@@ -1,0 +1,1013 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  SLT
+  HEAD_OF_DEPT
+  HEAD_OF_YEAR
+  COVER_MANAGER
+  TEACHER
+  SENCO
+  STUDENT
+  PARENT
+}
+
+enum LessonType {
+  NORMAL
+  COVER
+  INTERVENTION
+  CLUB
+}
+
+enum AudienceType {
+  CLASS
+  CUSTOM_GROUP
+}
+
+enum ResourceType {
+  PLAN
+  SLIDES
+  WORKSHEET
+  VIDEO
+  LINK
+  OTHER
+}
+
+enum HomeworkType {
+  MCQ_QUIZ
+  SHORT_ANSWER
+  EXTENDED_WRITING
+  MIXED
+  UPLOAD
+}
+
+enum HomeworkStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum ReleasePolicy {
+  AUTO_OBJECTIVE
+  TEACHER_EXTENDED
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  RESUBMISSION_REQ
+  MARKED
+  RETURNED
+}
+
+enum RiskLevel {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ILPStatus {
+  DRAFT
+  ACTIVE
+  UNDER_REVIEW
+  ARCHIVED
+}
+
+enum PlanStatus {
+  DRAFT
+  ACTIVE_INTERNAL
+  ACTIVE_PARENT_SHARED
+  ARCHIVED
+}
+
+enum StrategyAppliesTo {
+  HOMEWORK
+  CLASSROOM
+  BOTH
+}
+
+enum AdaptationStatus {
+  PENDING
+  ACCEPTED
+  EDITED
+  REVERTED
+  EXPIRED
+}
+
+enum SendStatusValue {
+  NONE
+  SEN_SUPPORT
+  EHCP
+}
+
+enum SendReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum MessageSenderType {
+  PARENT
+  TEACHER
+  ADMIN
+}
+
+enum IntegrityCaseStatus {
+  OPEN
+  UNDER_REVIEW
+  CLOSED_NO_ACTION
+  CLOSED_ACTIONED
+}
+
+enum AuditAction {
+  HOMEWORK_CREATED
+  HOMEWORK_PUBLISHED
+  HOMEWORK_ADAPTED
+  SUBMISSION_GRADED
+  GRADE_OVERRIDDEN
+  SUBMISSION_RETURNED
+  RESUBMISSION_REQUESTED
+  ILP_CREATED
+  ILP_ACTIVATED
+  ILP_REVIEWED
+  ILP_SHARED_WITH_PARENT
+  SEND_STATUS_CHANGED
+  INTEGRITY_FLAGGED
+  INTEGRITY_REVIEWED
+  MESSAGE_SENT
+  USER_CREATED
+  USER_ROLE_CHANGED
+  USER_DEACTIVATED
+  LESSON_PUBLISHED
+  WONDE_SYNC_COMPLETED
+  RESOURCE_UPLOADED
+  ADAPTATION_APPLIED
+  USER_SETTINGS_CHANGED
+}
+
+enum LessonSharingLevel {
+  SCHOOL
+  SELECTED
+  PRIVATE
+}
+
+// ─── School (tenant root) ─────────────────────────────────────────────────────
+
+model School {
+  id   String @id @default(cuid())
+  name String
+
+  wondeId  String? @unique
+  aiOptIn  Boolean @default(false)
+
+  // Timetable / out-of-hours config (hours in 24h)
+  dayStartHour Int @default(8)
+  dayEndHour   Int @default(16)
+  extStartHour Int @default(7)
+  extEndHour   Int @default(19)
+
+  allowAggregatedContribution Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  users                 User[]
+  classes               SchoolClass[]
+  lessons               Lesson[]
+  homework              Homework[]
+  submissions           Submission[]
+  ilps                  ILP[]
+  messages              Message[]
+  auditLogs             AuditLog[]
+  termDates             TermDate[]
+  integritySignals      IntegritySignal[]
+  resources             Resource[]
+  plans                 Plan[]
+  parentConversations   ParentConversation[]
+  wondeSyncRuns         WondeSyncRun[]
+  performanceAggregates ClassPerformanceAggregate[]
+  subjectMedians        SubjectMedianAggregate[]
+  notifications         Notification[]
+  sendInsights          SendInsight[]
+}
+
+model TermDate {
+  id       String   @id @default(cuid())
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  label    String
+  startsAt DateTime
+  endsAt   DateTime
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  firstName    String
+  lastName     String
+  department   String?
+  yearGroup    Int?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  teacherClasses      ClassTeacher[]
+  enrolments          Enrolment[]
+  parentLinks         ParentStudentLink[]
+  childLinks          ParentStudentLink[]    @relation("child")
+  submissions         Submission[]
+  ilpNotes            ILPNote[]
+  sentMessages        Message[]             @relation("sender")
+  receivedMessages    MessageRecipient[]
+  auditLogs           AuditLog[]
+
+  // SEND
+  sendStatus           SendStatus?
+  incomingSendReviews  SendStatusReview[]    @relation("pupil_send_reviews")
+  conductedSendReviews SendStatusReview[]    @relation("senco_send_reviews")
+
+  // Plans
+  plans                Plan[]                @relation("pupil_plans")
+  activatedPlans       Plan[]                @relation("plan_activator")
+  parentSharedPlans    Plan[]                @relation("plan_parent_sharer")
+
+  // Parent portal
+  parentChildLinks     ParentChildLink[]     @relation("parent_links")
+  childParentLinks     ParentChildLink[]     @relation("child_links")
+
+  // Messaging
+  teacherAvailability  TeacherAvailability?
+  teacherConversations ParentConversation[]  @relation("teacher_conversations")
+  parentConversations  ParentConversation[]  @relation("parent_conversations")
+
+  // Integrity
+  integrityReviewLogs  IntegrityReviewLog[]
+
+  // Settings
+  settings             UserSettings?
+
+  @@index([schoolId, role])
+}
+
+// ─── School structure ─────────────────────────────────────────────────────────
+
+model SchoolClass {
+  id         String @id @default(cuid())
+  school     School @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  name       String
+  subject    String
+  yearGroup  Int
+  department String
+
+  teachers              ClassTeacher[]
+  enrolments            Enrolment[]
+  lessons               Lesson[]
+  homework              Homework[]
+  performanceAggregates ClassPerformanceAggregate[]
+
+  @@index([schoolId])
+}
+
+model ClassTeacher {
+  classId String
+  userId  String
+  class   SchoolClass @relation(fields: [classId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@id([classId, userId])
+}
+
+model Enrolment {
+  classId String
+  userId  String
+  class   SchoolClass @relation(fields: [classId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+
+  @@id([classId, userId])
+}
+
+model ParentStudentLink {
+  parentId  String
+  studentId String
+  parent    User   @relation(fields: [parentId], references: [id])
+  child     User   @relation("child", fields: [studentId], references: [id])
+
+  @@id([parentId, studentId])
+}
+
+model ParentChildLink {
+  id               String   @id @default(cuid())
+  parent           User     @relation("parent_links", fields: [parentId], references: [id])
+  parentId         String
+  child            User     @relation("child_links", fields: [childId], references: [id])
+  childId          String
+  verified         Boolean  @default(false)
+  relationshipType String   @default("guardian")
+  createdAt        DateTime @default(now())
+
+  @@unique([parentId, childId])
+  @@index([parentId])
+  @@index([childId])
+}
+
+// ─── Lessons ──────────────────────────────────────────────────────────────────
+
+model Lesson {
+  id           String       @id @default(cuid())
+  school       School       @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  class        SchoolClass? @relation(fields: [classId], references: [id])
+  classId      String?
+  title        String
+  topic        String?
+  examBoard    String?
+  objectives   String[]
+  lessonType   LessonType   @default(NORMAL)
+  audienceType AudienceType @default(CLASS)
+  scheduledAt  DateTime
+  endsAt       DateTime?
+  published    Boolean      @default(false)
+  createdBy    String
+  createdAt    DateTime     @default(now())
+
+  homework  Homework[]
+  resources Resource[]
+
+  @@index([schoolId, classId])
+}
+
+// ─── Resources ────────────────────────────────────────────────────────────────
+
+model Resource {
+  id           String       @id @default(cuid())
+  school       School       @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  lesson       Lesson?      @relation(fields: [lessonId], references: [id])
+  lessonId     String?
+  type         ResourceType
+  label        String
+  url          String?
+  fileKey      String?
+  oakContentId String?
+  createdBy    String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  versions ResourceVersion[]
+  review   ResourceReview?
+
+  @@index([schoolId, lessonId])
+}
+
+model ResourceVersion {
+  id         String   @id @default(cuid())
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  resourceId String
+  version    Int
+  url        String?
+  fileKey    String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  @@index([resourceId])
+}
+
+model ResourceReview {
+  id          String   @id @default(cuid())
+  resource    Resource @relation(fields: [resourceId], references: [id])
+  resourceId  String   @unique
+  sendScore   Int
+  suggestions Json     @default("[]")
+  accepted    Boolean  @default(false)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model OakContentCache {
+  id          String   @id @default(cuid())
+  query       String   @unique
+  responseRaw Json
+  fetchedAt   DateTime @default(now())
+  expiresAt   DateTime
+}
+
+// ─── Homework ─────────────────────────────────────────────────────────────────
+
+model Homework {
+  id            String         @id @default(cuid())
+  school        School         @relation(fields: [schoolId], references: [id])
+  schoolId      String
+  class         SchoolClass    @relation(fields: [classId], references: [id])
+  classId       String
+  lesson        Lesson?        @relation(fields: [lessonId], references: [id])
+  lessonId      String?
+  title         String
+  instructions    String
+  modelAnswer     String?
+  gradingBands    Json?
+  targetWordCount Int?          // Essay: suggested word count
+  questionsJson   Json?         // Mixed: [{prompt, answer, marks, type}]
+  aiDecision      String?       // ACCEPTED | EDITED | REJECTED | null
+  dueAt           DateTime
+  status          HomeworkStatus @default(DRAFT)
+  type            HomeworkType   @default(SHORT_ANSWER)
+  releasePolicy   ReleasePolicy  @default(AUTO_OBJECTIVE)
+  maxAttempts     Int            @default(2)
+  isAdapted       Boolean        @default(false)
+  adaptedFor      String?
+  createdBy       String
+  createdAt       DateTime       @default(now())
+
+  submissions Submission[]
+  questions   HomeworkQuestion[]
+
+  @@index([schoolId, classId])
+}
+
+model HomeworkQuestion {
+  id               String       @id @default(cuid())
+  homework         Homework     @relation(fields: [homeworkId], references: [id])
+  homeworkId       String
+  orderIndex       Int
+  type             HomeworkType
+  prompt           String
+  optionsJson      Json?
+  correctAnswerJson Json?
+  explanationText  String?
+  rubricJson       Json?
+  maxScore         Int          @default(1)
+
+  attemptAnswers SubmissionAttemptAnswer[]
+
+  @@index([homeworkId])
+}
+
+// ─── Submissions ──────────────────────────────────────────────────────────────
+
+model Submission {
+  id          String           @id @default(cuid())
+  school      School           @relation(fields: [schoolId], references: [id])
+  schoolId    String
+  homework    Homework         @relation(fields: [homeworkId], references: [id])
+  homeworkId  String
+  student     User             @relation(fields: [studentId], references: [id])
+  studentId   String
+  content     String
+  status      SubmissionStatus @default(SUBMITTED)
+  submittedAt DateTime         @default(now())
+  markedAt    DateTime?
+
+  // Scoring
+  autoScore              Float?
+  teacherScore           Float?
+  teacherScoreReason     String?
+  finalScore             Float?
+  finalAttemptId         String?
+
+  // Integrity gate
+  integrityReviewed        Boolean @default(false)
+  integrityReleaseOverride Boolean @default(false)
+
+  // Legacy fields (kept for backward compat)
+  grade            String?
+  feedback         String?
+  misconceptionTags Json?
+
+  integritySignal IntegritySignal?
+  attempts        SubmissionAttempt[]
+
+  @@unique([homeworkId, studentId])
+  @@index([schoolId, studentId])
+}
+
+model SubmissionAttempt {
+  id             String     @id @default(cuid())
+  submission     Submission @relation(fields: [submissionId], references: [id])
+  submissionId   String
+  attemptNumber  Int
+  content        String?
+  answersJson    Json?
+  autoScore      Float?
+  startedAt      DateTime   @default(now())
+  submittedAt    DateTime?
+  isResubmission Boolean    @default(false)
+  changeCategory String?    // minimal | moderate | substantial
+
+  answers         SubmissionAttemptAnswer[]
+  integritySignal SubmissionIntegritySignal?
+
+  @@index([submissionId])
+}
+
+model SubmissionAttemptAnswer {
+  id         String            @id @default(cuid())
+  attempt    SubmissionAttempt @relation(fields: [attemptId], references: [id])
+  attemptId  String
+  question   HomeworkQuestion  @relation(fields: [questionId], references: [id])
+  questionId String
+  answerJson Json
+  score      Float?
+  feedback   String?
+
+  @@index([attemptId])
+}
+
+// ─── Integrity ────────────────────────────────────────────────────────────────
+
+// Legacy signal (linked to Submission — kept for existing data)
+model IntegritySignal {
+  id             String     @id @default(cuid())
+  school         School     @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  submission     Submission @relation(fields: [submissionId], references: [id])
+  submissionId   String     @unique
+  pasteCount     Int        @default(0)
+  pasteCharRatio Float      @default(0)
+  timeOnTaskSecs Int        @default(0)
+  flagged        Boolean    @default(false)
+  flagReason     String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  createdAt      DateTime   @default(now())
+
+  @@index([schoolId])
+}
+
+// New per-attempt signal
+model SubmissionIntegritySignal {
+  id                  String            @id @default(cuid())
+  attempt             SubmissionAttempt @relation(fields: [attemptId], references: [id])
+  attemptId           String            @unique
+  riskLevel           RiskLevel         @default(NONE)
+  pasteEventsCount    Int               @default(0)
+  pastedChars         Int               @default(0)
+  typedChars          Int               @default(0)
+  pasteRatio          Float             @default(0)
+  firstLargePasteSecs Int?
+  largestPasteChars   Int               @default(0)
+  replacementEvents   Int               @default(0)
+  focusLostCount      Int               @default(0)
+  createdAt           DateTime          @default(now())
+
+  reviewLogs IntegrityReviewLog[]
+}
+
+model IntegrityReviewLog {
+  id         String                    @id @default(cuid())
+  signal     SubmissionIntegritySignal @relation(fields: [signalId], references: [id])
+  signalId   String
+  reviewer   User                      @relation(fields: [reviewedBy], references: [id])
+  reviewedBy String
+  action     String                    // RELEASED | BLOCKED | FLAGGED_FOR_RESUBMISSION
+  notes      String?
+  createdAt  DateTime                  @default(now())
+
+  @@index([signalId])
+}
+
+model IntegrityPatternCase {
+  id           String              @id @default(cuid())
+  schoolId     String
+  studentId    String
+  status       IntegrityCaseStatus @default(OPEN)
+  triggerCount Int                 @default(0)
+  subjectCount Int                 @default(0)
+  openedAt     DateTime            @default(now())
+  closedAt     DateTime?
+  closedBy     String?
+  notes        String?
+
+  @@index([schoolId, studentId])
+}
+
+// ─── ILP (legacy — kept for existing data) ────────────────────────────────────
+
+model ILP {
+  id           String    @id @default(cuid())
+  school       School    @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  studentId    String
+  status       ILPStatus @default(DRAFT)
+  needsSummary String
+  reviewDueAt  DateTime?
+  activatedAt  DateTime?
+  activatedBy  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  targets ILPTarget[]
+  notes   ILPNote[]
+
+  @@index([schoolId, studentId])
+}
+
+model ILPTarget {
+  id              String  @id @default(cuid())
+  ilp             ILP     @relation(fields: [ilpId], references: [id])
+  ilpId           String
+  description     String
+  successCriteria String
+  achieved        Boolean @default(false)
+  subject         String?
+}
+
+model ILPNote {
+  id         String   @id @default(cuid())
+  ilp        ILP      @relation(fields: [ilpId], references: [id])
+  ilpId      String
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   String
+  content    String
+  isInternal Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+// ─── SEND ─────────────────────────────────────────────────────────────────────
+
+model SendStatus {
+  id              String          @id @default(cuid())
+  student         User            @relation(fields: [studentId], references: [id])
+  studentId       String          @unique
+  activeStatus    SendStatusValue @default(NONE)
+  activeSource    String?
+  needArea        String?
+  latestMisStatus SendStatusValue?
+  misLastSyncedAt DateTime?
+  updatedAt       DateTime        @updatedAt
+}
+
+model SendStatusReview {
+  id             String           @id @default(cuid())
+  student        User             @relation("pupil_send_reviews", fields: [studentId], references: [id])
+  studentId      String
+  incomingStatus SendStatusValue
+  status         SendReviewStatus @default(PENDING)
+  reviewer       User?            @relation("senco_send_reviews", fields: [reviewedBy], references: [id])
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  notes          String?
+  createdAt      DateTime         @default(now())
+
+  @@index([studentId, status])
+}
+
+// ─── Plans (richer ILP) ───────────────────────────────────────────────────────
+
+model Plan {
+  id               String     @id @default(cuid())
+  school           School     @relation(fields: [schoolId], references: [id])
+  schoolId         String
+  student          User       @relation("pupil_plans", fields: [studentId], references: [id])
+  studentId        String
+  status           PlanStatus @default(DRAFT)
+  reviewDate       DateTime
+  activatedBy      User?      @relation("plan_activator", fields: [activatedById], references: [id])
+  activatedById    String?
+  activatedAt      DateTime?
+  parentSharedBy   User?      @relation("plan_parent_sharer", fields: [parentSharedById], references: [id])
+  parentSharedById String?
+  parentSharedAt   DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  targets      PlanTarget[]
+  strategies   PlanStrategy[]
+  reviewCycles PlanReviewCycle[]
+
+  @@index([schoolId, studentId])
+}
+
+model PlanTarget {
+  id                String    @id @default(cuid())
+  plan              Plan      @relation(fields: [planId], references: [id])
+  planId            String
+  needCategory      String
+  metricKey         String
+  baselineValue     String?
+  targetValue       String
+  measurementWindow String?
+  reviewDate        DateTime?
+  achieved          Boolean   @default(false)
+
+  @@index([planId])
+}
+
+model PlanStrategy {
+  id           String            @id @default(cuid())
+  plan         Plan              @relation(fields: [planId], references: [id])
+  planId       String
+  strategyText String
+  appliesTo    StrategyAppliesTo @default(BOTH)
+  subjectId    String?
+
+  @@index([planId])
+}
+
+model PlanReviewCycle {
+  id              String    @id @default(cuid())
+  plan            Plan      @relation(fields: [planId], references: [id])
+  planId          String
+  cycleStartDate  DateTime
+  cycleReviewDate DateTime
+  completedAt     DateTime?
+  notes           String?
+
+  adaptationRecommendations AdaptationRecommendation[]
+
+  @@index([planId])
+}
+
+// ─── Adaptations ─────────────────────────────────────────────────────────────
+
+model SubjectAdaptationProfile {
+  id                 String   @id @default(cuid())
+  schoolId           String
+  studentId          String
+  subjectId          String
+  activeSettingsJson Json     @default("{}")
+  lockedFieldsJson   Json     @default("[]")
+  updatedAt          DateTime @updatedAt
+
+  @@unique([schoolId, studentId, subjectId])
+  @@index([schoolId, studentId])
+}
+
+model AdaptationRecommendation {
+  id                      String          @id @default(cuid())
+  reviewCycle             PlanReviewCycle @relation(fields: [reviewCycleId], references: [id])
+  reviewCycleId           String
+  schoolId                String
+  studentId               String
+  subjectId               String
+  recommendedSettingsJson Json
+  status                  AdaptationStatus @default(PENDING)
+  decidedBy               String?
+  decidedAt               DateTime?
+  createdAt               DateTime         @default(now())
+
+  @@index([schoolId, studentId])
+}
+
+// ─── Internal messaging (staff) ───────────────────────────────────────────────
+
+model Message {
+  id       String   @id @default(cuid())
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  sender   User     @relation("sender", fields: [senderId], references: [id])
+  senderId String
+  subject  String
+  body     String
+  sentAt   DateTime @default(now())
+
+  recipients MessageRecipient[]
+
+  @@index([schoolId, senderId])
+}
+
+model MessageRecipient {
+  messageId String
+  userId    String
+  read      Boolean @default(false)
+  message   Message @relation(fields: [messageId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@id([messageId, userId])
+}
+
+// ─── Parent–teacher contextual messaging ─────────────────────────────────────
+
+model TeacherAvailability {
+  id               String  @id @default(cuid())
+  teacher          User    @relation(fields: [teacherId], references: [id])
+  teacherId        String  @unique
+  daysOfWeek       Int[]
+  startTime        String
+  endTime          String
+  messagingEnabled Boolean @default(true)
+}
+
+model ParentConversation {
+  id               String             @id @default(cuid())
+  school           School             @relation(fields: [schoolId], references: [id])
+  schoolId         String
+  teacher          User               @relation("teacher_conversations", fields: [teacherId], references: [id])
+  teacherId        String
+  parent           User               @relation("parent_conversations", fields: [parentId], references: [id])
+  parentId         String
+  studentId        String
+  subjectId        String?
+  linkedEntityType String?
+  linkedEntityId   String?
+  status           ConversationStatus @default(OPEN)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  parentMessages ParentMessage[]
+
+  @@index([schoolId, teacherId])
+  @@index([schoolId, parentId])
+}
+
+model ParentMessage {
+  id             String             @id @default(cuid())
+  conversation   ParentConversation @relation(fields: [conversationId], references: [id])
+  conversationId String
+  senderType     MessageSenderType
+  content        String
+  moderationFlag Boolean            @default(false)
+  sentAt         DateTime           @default(now())
+  readAt         DateTime?
+
+  @@index([conversationId])
+}
+
+// ─── Analytics / Benchmarking ─────────────────────────────────────────────────
+
+model ClassPerformanceAggregate {
+  id                String      @id @default(cuid())
+  school            School      @relation(fields: [schoolId], references: [id])
+  schoolId          String
+  class             SchoolClass @relation(fields: [classId], references: [id])
+  classId           String
+  termId            String
+  completionRate    Float
+  avgScore          Float
+  predictedDelta    Float       @default(0)
+  integrityFlagRate Float       @default(0)
+  updatedAt         DateTime    @updatedAt
+
+  @@unique([classId, termId])
+  @@index([schoolId, classId])
+}
+
+model SubjectMedianAggregate {
+  id          String   @id @default(cuid())
+  school      School   @relation(fields: [schoolId], references: [id])
+  schoolId    String
+  subjectId   String
+  yearGroup   Int
+  termId      String
+  mediansJson Json
+  updatedAt   DateTime @updatedAt
+
+  @@unique([schoolId, subjectId, yearGroup, termId])
+  @@index([schoolId, subjectId])
+}
+
+// ─── Integrations ─────────────────────────────────────────────────────────────
+
+model WondeSyncRun {
+  id            String    @id @default(cuid())
+  school        School    @relation(fields: [schoolId], references: [id])
+  schoolId      String
+  status        String
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  recordsSynced Int       @default(0)
+  errorLog      String?
+
+  changeLogs ExternalChangeLog[]
+
+  @@index([schoolId])
+}
+
+model ExternalChangeLog {
+  id             String       @id @default(cuid())
+  syncRun        WondeSyncRun @relation(fields: [syncRunId], references: [id])
+  syncRunId      String
+  entityType     String
+  entityId       String
+  changeType     String
+  payload        Json
+  requiresReview Boolean      @default(false)
+  reviewedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([syncRunId])
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(cuid())
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  userId    String
+  type      String   // HOMEWORK_SUBMITTED | PLAN_REVIEW_DUE | SUBMISSION_FLAGGED | HOMEWORK_GRADED | GENERAL
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  linkHref  String?
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, userId, read])
+  @@index([schoolId, userId, createdAt])
+}
+
+// ─── Audit log (immutable) ────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  school     School      @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  actor      User        @relation(fields: [actorId], references: [id])
+  actorId    String
+  action     AuditAction
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([schoolId, action])
+  @@index([schoolId, createdAt])
+}
+
+// ─── User Settings ────────────────────────────────────────────────────────────
+
+model UserSettings {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @unique
+
+  // Profile extras
+  phone             String?
+  profilePictureUrl String?
+  bio               String?
+
+  // Professional
+  defaultSubject String?
+
+  // Privacy & Notifications
+  allowEmailNotifications    Boolean @default(true)
+  allowSmsNotifications      Boolean @default(false)
+  allowAnalyticsInsights     Boolean @default(true)
+  profileVisibleToColleagues Boolean @default(true)
+  profileVisibleToAdmins     Boolean @default(true)
+
+  // Lesson Sharing & AI
+  lessonSharing      LessonSharingLevel @default(PRIVATE)
+  allowAiImprovement Boolean            @default(false)
+
+  // Pending email change (stored until verified)
+  pendingEmail String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── SEND Score Cache ─────────────────────────────────────────────────────────
+
+model SendScoreCache {
+  id          String   @id @default(cuid())
+  contentHash String   @unique
+  score       Int
+  suggestions Json     @default("[]")
+  hitCount    Int      @default(1)
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+}
+
+// ─── SEND Insights (aggregated per school/subject/yearGroup/type) ─────────────
+
+model SendInsight {
+  id             String   @id @default(cuid())
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id])
+  subject        String
+  yearGroup      Int
+  resourceType   String
+  avgScore       Float
+  minScore       Int
+  maxScore       Int
+  totalResources Int
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([schoolId, subject, yearGroup, resourceType])
+  @@index([schoolId])
+}

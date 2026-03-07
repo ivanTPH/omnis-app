@@ -6,21 +6,37 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "npx prisma db seed",
+    "db:seed-classes": "tsx --env-file=.env.local prisma/seed-classes.ts",
+    "db:seed-english": "tsx --env-file=.env.local prisma/seed-english-students.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@auth/prisma-adapter": "^2.11.1",
+    "@prisma/client": "^6.19.2",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.575.0",
     "next": "16.1.6",
+    "next-auth": "^5.0.0-beta.30",
+    "prisma": "^6.19.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "tsx --env-file=.env.local prisma/seed.ts"
   }
 }

@@ -1,0 +1,100 @@
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import AppShell from '@/components/AppShell'
+import WeeklyCalendar, { type CalendarLesson, type UnscheduledLesson } from '@/components/WeeklyCalendar'
+
+export default async function DashboardPage() {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = session.user as any
+
+  // Current week Mon 00:00 → Fri 23:59
+  const now    = new Date()
+  const dow    = now.getDay()
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1))
+  monday.setHours(0, 0, 0, 0)
+  const friday = new Date(monday)
+  friday.setDate(monday.getDate() + 4)
+  friday.setHours(23, 59, 59, 999)
+
+  const [school, weekLessons, futureLessons, classes, allClasses] = await Promise.all([
+    prisma.school.findUnique({ where: { id: schoolId } }),
+
+    prisma.lesson.findMany({
+      where: {
+        schoolId,
+        scheduledAt: { gte: monday, lte: friday },
+        class: { teachers: { some: { userId } } },
+      },
+      include: {
+        class: true,
+        resources: { select: { type: true } },
+        homework:  { select: { id: true } },
+      },
+    }),
+
+    prisma.lesson.findMany({
+      where: {
+        schoolId,
+        published: false,
+        scheduledAt: { gt: friday },
+        class: { teachers: { some: { userId } } },
+      },
+      include: { class: true },
+      orderBy: { scheduledAt: 'asc' },
+      take: 30,
+    }),
+
+    prisma.schoolClass.findMany({
+      where: { schoolId, teachers: { some: { userId } } },
+      select: { id: true, name: true, subject: true, yearGroup: true },
+      orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
+    }),
+
+    prisma.schoolClass.findMany({
+      where:   { schoolId },
+      select:  { id: true, name: true, subject: true, yearGroup: true },
+      orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
+    }),
+  ])
+
+  const lessons: CalendarLesson[] = weekLessons.map(l => ({
+    id:          l.id,
+    title:       l.title,
+    scheduledAt: l.scheduledAt.toISOString(),
+    endsAt:      l.endsAt?.toISOString(),
+    published:   l.published,
+    className:   l.class?.name  ?? '—',
+    subject:     l.class?.subject ?? '—',
+    lessonType:  l.lessonType,
+    hasPlan:     l.resources.some(r => r.type === 'PLAN'),
+    hasSlides:   l.resources.some(r => r.type === 'SLIDES'),
+    hasHomework: l.homework.length > 0,
+    hasOther:    l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
+  }))
+
+  const unscheduled: UnscheduledLesson[] = futureLessons.map(l => ({
+    id:        l.id,
+    title:     l.title,
+    className: l.class?.name    ?? '—',
+    subject:   l.class?.subject ?? '—',
+  }))
+
+  return (
+    <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
+      <WeeklyCalendar
+        lessons={lessons}
+        unscheduled={unscheduled}
+        firstName={firstName}
+        classes={classes}
+        allClasses={allClasses}
+        startHour={school?.dayStartHour  ?? 8}
+        endHour={school?.dayEndHour      ?? 16}
+        extStartHour={school?.extStartHour ?? 7}
+        extEndHour={school?.extEndHour   ?? 19}
+      />
+    </AppShell>
+  )
+}

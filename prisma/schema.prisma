@@ -992,6 +992,144 @@ model SendScoreCache {
   lastUsedAt  DateTime @default(now())
 }
 
+// ─── Oak National Academy Content Library ─────────────────────────────────────
+//
+// Global (not school-scoped) — shared content library synced from Oak's API.
+// OakSubject → OakUnit → OakLesson → OakResource
+//
+// Categorisation fields use plain strings (not enums) to match Oak's slug
+// conventions directly: keystage "ks1"–"ks4", phase "primary"/"secondary",
+// examBoard "aqa"/"edexcel"/etc., tier "foundation"/"higher".
+
+model OakSubject {
+  slug      String   @id          // "english" | "maths" | "history" …
+  title     String                // "English" | "Maths" | "History" …
+  phase     String                // "primary" | "secondary"
+  syncedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  units OakUnit[]
+
+  @@index([phase])
+}
+
+model OakUnit {
+  slug        String @id           // "modern-text-first-study-4896"
+  title       String
+  subjectSlug String
+  subject     OakSubject @relation(fields: [subjectSlug], references: [slug])
+
+  // Categorisation
+  keystage      String   // "ks1" | "ks2" | "ks3" | "ks4"
+  yearGroup     Int?     // null when a unit spans multiple years
+  examBoard     String?  // "aqa" | "edexcel" | "ocr" | "wjec" | null
+  tier          String?  // "foundation" | "higher" | null
+  programmeSlug String   // full slug e.g. "english-secondary-ks4-aqa"
+
+  // Curriculum detail
+  description                String?
+  whyThisWhyNow              String?
+  priorKnowledgeRequirements Json    @default("[]")
+  nationalCurriculumContent  Json    @default("[]")
+  threads                    Json    @default("[]") // learning strands [{title,slug,order}]
+  subjectCategories          Json    @default("[]") // e.g. [{label:"Literature",slug:"literature"}]
+
+  // Sequencing
+  connectionPriorUnit  String?
+  connectionFutureUnit String?
+
+  plannedLessonCount Int     @default(0)
+  orderInProgramme   Int     @default(0)
+  isLegacy           Boolean @default(false)
+
+  syncedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessons OakLesson[]
+
+  @@index([subjectSlug])
+  @@index([keystage])
+  @@index([programmeSlug])
+  @@index([examBoard])
+  @@index([yearGroup])
+}
+
+model OakLesson {
+  slug        String   @id          // "understanding-context-and-priestleys-influences-65k3gd"
+  title       String
+  unitSlug    String
+  unit        OakUnit  @relation(fields: [unitSlug], references: [slug])
+
+  // Denormalised for fast filtering without joins
+  subjectSlug String
+  keystage    String
+  yearGroup   Int?
+  examBoard   String?
+  tier        String?
+  orderInUnit Int @default(0)
+
+  // Learning content
+  pupilLessonOutcome String?
+  keyLearningPoints  Json   @default("[]") // [{keyLearningPoint: "..."}]
+  lessonKeywords     Json   @default("[]") // [{keyword:"...",description:"..."}]
+  lessonOutline      Json   @default("[]") // [{lessonOutline:"..."}]
+
+  // Quizzes — full structured data (questionStem, answers, feedback, hint)
+  starterQuiz Json @default("[]")
+  exitQuiz    Json @default("[]")
+
+  // Teacher support
+  misconceptionsAndCommonMistakes Json    @default("[]")
+  teacherTips                     Json    @default("[]")
+  contentGuidance                 Json    @default("[]")
+  supervisionLevel                String?
+
+  // Media
+  videoMuxPlaybackId                 String?
+  videoWithSignLanguageMuxPlaybackId String?
+  transcriptSentences                Json    @default("[]")
+
+  // Downloadable materials (Google Slides source URLs)
+  worksheetUrl    String?
+  presentationUrl String?
+
+  // Categorisation
+  subjectCategories Json @default("[]")
+
+  isLegacy      Boolean @default(false)
+  expired       Boolean @default(false)
+  loginRequired Boolean @default(false)
+
+  syncedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resources OakResource[]
+
+  @@index([unitSlug])
+  @@index([subjectSlug])
+  @@index([keystage])
+  @@index([examBoard])
+  @@index([yearGroup])
+}
+
+model OakResource {
+  id         String    @id @default(cuid())
+  lessonSlug String
+  lesson     OakLesson @relation(fields: [lessonSlug], references: [slug])
+
+  // Type matches Oak's download type strings exactly
+  type   String  // "presentation" | "worksheet-pdf" | "worksheet-pptx"
+                 // "intro-quiz-questions" | "intro-quiz-answers"
+                 // "exit-quiz-questions"  | "exit-quiz-answers"
+                 // "supplementary-pdf"    | "lesson-guide-pdf"
+  label  String? // "Lesson slides" | "Starter quiz questions" …
+  ext    String? // "pptx" | "pdf"
+  exists Boolean @default(true)
+
+  @@unique([lessonSlug, type])
+  @@index([lessonSlug])
+}
+
 // ─── SEND Insights (aggregated per school/subject/yearGroup/type) ─────────────
 
 model SendInsight {

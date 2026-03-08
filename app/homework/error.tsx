@@ -19,7 +19,7 @@ export default function HomeworkError({
         <div className="inline-flex items-center justify-center w-12 h-12 bg-red-50 rounded-xl mb-4">
           <AlertCircle size={22} className="text-red-500" />
         </div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Couldn't load homework</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Couldn&apos;t load homework</h2>
         <p className="text-sm text-gray-500 mb-5">
           There was a problem fetching your homework data. This is usually a temporary issue.
         </p>

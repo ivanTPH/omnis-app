@@ -5,7 +5,7 @@ import { useRouter }                from 'next/navigation'
 import {
   User, Briefcase, Shield, Share2, Lock,
   Camera, CheckCircle, AlertCircle, Info,
-  Eye, EyeOff, ChevronRight,
+  Eye, EyeOff,
 } from 'lucide-react'
 import {
   saveProfile,
@@ -335,6 +335,7 @@ export default function SettingsShell({
             <div className="flex items-center gap-5">
               <div className="relative shrink-0">
                 {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={avatarUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-gray-200" />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200">

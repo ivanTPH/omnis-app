@@ -20,11 +20,6 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
     ? data.homeworks
     : data.homeworks.filter(h => h.subject === subjectFilter)
 
-  const completionColor =
-    data.completionRate >= 80 ? 'text-green-600' :
-    data.completionRate >= 60 ? 'text-amber-600' :
-    'text-rose-600'
-
   const scoreColor = (score: number | null) =>
     score == null       ? 'text-gray-400' :
     score >= 75         ? 'text-green-600' :

@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useTransition, useRef, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, Search, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Clock } from 'lucide-react'
+import { useState, useEffect, useTransition, useCallback } from 'react'
+import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson } from '@/app/actions/lessons'
@@ -145,7 +145,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     // Don't re-generate if this type already has content
     if (typeStore[hwType]?.instructions) return
     setHwYesNo('yes')
-    runHwGeneration(lessonId, hwType)
+    runHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
   }, [wizardStep])  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!lessonId) return null
@@ -687,7 +687,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       </div>
                       {mcqQuestions.length === 0 ? (
                         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
-                          <p className="text-[12px] text-gray-400">No questions yet — click "Generate with AI" or add manually</p>
+                          <p className="text-[12px] text-gray-400">No questions yet — click &quot;Generate with AI&quot; or add manually</p>
                         </div>
                       ) : (
                         mcqQuestions.map((q, qi) => (
@@ -763,7 +763,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       </div>
                       {saQuestions.length === 0 ? (
                         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
-                          <p className="text-[12px] text-gray-400">No questions yet — click "Generate with AI" or add manually</p>
+                          <p className="text-[12px] text-gray-400">No questions yet — click &quot;Generate with AI&quot; or add manually</p>
                         </div>
                       ) : (
                         saQuestions.map((q, qi) => (

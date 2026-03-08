@@ -151,14 +151,12 @@ export async function getSchoolResourceLibrary(forLessonId?: string) {
 
   // Resolve the calling lesson's subject + yearGroup for contextual filtering
   let contextSubject: string | undefined
-  let contextYear: number | undefined
   if (forLessonId) {
     const ctx = await prisma.lesson.findUnique({
       where:  { id: forLessonId },
-      select: { class: { select: { subject: true, yearGroup: true } } },
+      select: { class: { select: { subject: true } } },
     })
     contextSubject = ctx?.class?.subject ?? undefined
-    contextYear    = ctx?.class?.yearGroup ?? undefined
   }
 
   return prisma.resource.findMany({

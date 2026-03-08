@@ -50,6 +50,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
   const selectedLesson = lessons.find(l => l.id === lessonId)
 
   // Load lessons + classes on mount; pre-fill due date to +7 days
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const next7 = new Date()
     next7.setDate(next7.getDate() + 7)
@@ -61,6 +62,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
       setLoading(false)
     })
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleLessonChange(id: string) {
     setLessonId(id)

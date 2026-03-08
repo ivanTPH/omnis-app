@@ -25,10 +25,10 @@ type Child = { id: string; firstName: string; lastName: string }
 
 export default function ParentMessagesView({
   conversations,
-  children,
+  linkedChildren,
 }: {
-  conversations: Conversation[]
-  children:      Child[]
+  conversations:  Conversation[]
+  linkedChildren: Child[]
 }) {
   const router  = useRouter()
   const [selectedId, setSelectedId] = useState<string | null>(conversations[0]?.id ?? null)
@@ -43,7 +43,7 @@ export default function ParentMessagesView({
   }, [selectedId, conv?.parentMessages.length])
 
   function child(studentId: string) {
-    return children.find(c => c.id === studentId)
+    return linkedChildren.find(c => c.id === studentId)
   }
 
   function handleSend() {

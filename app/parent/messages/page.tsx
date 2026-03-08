@@ -30,7 +30,7 @@ export default async function ParentMessagesPage() {
       <div className="flex-1 min-h-0 overflow-hidden">
         <ParentMessagesView
           conversations={conversations as any}
-          children={children}
+          linkedChildren={children}
         />
       </div>
     </AppShell>

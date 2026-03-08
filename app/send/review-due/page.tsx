@@ -5,6 +5,75 @@ import AppShell from '@/components/AppShell'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { PlanStatus } from '@prisma/client'
+import type { Plan, SendStatus, User } from '@prisma/client'
+
+type SendStatusWithStudent = SendStatus & { student: Pick<User, 'id' | 'firstName' | 'lastName' | 'yearGroup'> }
+
+function PlanRow({ plan, ssById, now, in7 }: {
+  plan: Plan
+  ssById: Record<string, SendStatusWithStudent>
+  now: Date
+  in7: Date
+}) {
+  const ss  = ssById[plan.studentId]
+  const rd  = new Date(plan.reviewDate)
+  const ago = Math.ceil((now.getTime() - rd.getTime()) / 86_400_000)
+  const left = Math.ceil((rd.getTime() - now.getTime()) / 86_400_000)
+  return (
+    <Link href={`/send/ilp/${plan.studentId}`}
+      className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition group"
+    >
+      <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+        <span className="text-blue-700 font-bold text-[11px]">{ss?.student.firstName[0]}{ss?.student.lastName[0]}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-gray-900">{ss?.student.firstName} {ss?.student.lastName}</p>
+        <p className="text-[11px] text-gray-400">
+          Year {ss?.student.yearGroup ?? '—'}
+          {ss?.needArea && <span className="ml-2 text-blue-600">{ss.needArea}</span>}
+        </p>
+      </div>
+      <span className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
+        plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'bg-green-100 text-green-700' : 'bg-teal-50 text-teal-700'
+      }`}>
+        {plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'Shared w/ Parent' : 'Active (Internal)'}
+      </span>
+      <div className="shrink-0 text-right w-36">
+        <p className={`text-[13px] font-bold ${rd < now ? 'text-red-600' : rd <= in7 ? 'text-amber-600' : 'text-gray-600'}`}>
+          {rd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+        <p className="text-[10px] text-gray-400">
+          {rd < now ? `${ago} day${ago !== 1 ? 's' : ''} overdue` : `${left} day${left !== 1 ? 's' : ''} left`}
+        </p>
+      </div>
+      <ChevronRight size={14} className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
+    </Link>
+  )
+}
+
+function Section({ icon, title, colour, items, ssById, now, in7 }: {
+  icon: React.ReactNode
+  title: string
+  colour: string
+  items: Plan[]
+  ssById: Record<string, SendStatusWithStudent>
+  now: Date
+  in7: Date
+}) {
+  if (items.length === 0) return null
+  return (
+    <div className={`border rounded-xl overflow-hidden mb-5 ${colour}`}>
+      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-inherit">
+        {icon}
+        <h2 className="text-[13px] font-semibold">{title}</h2>
+        <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full bg-white bg-opacity-60">{items.length}</span>
+      </div>
+      <div className="bg-white divide-y divide-gray-100">
+        {items.map(p => <PlanRow key={p.id} plan={p} ssById={ssById} now={now} in7={in7} />)}
+      </div>
+    </div>
+  )
+}
 
 export default async function ReviewDuePage() {
   const session = await auth()
@@ -40,64 +109,6 @@ export default async function ReviewDuePage() {
   const urgent  = plans.filter(p => new Date(p.reviewDate) >= now && new Date(p.reviewDate) <= in7)
   const soon    = plans.filter(p => new Date(p.reviewDate) >  in7 && new Date(p.reviewDate) <= in30)
 
-  function PlanRow({ plan }: { plan: typeof plans[0] }) {
-    const ss  = ssById[plan.studentId]
-    const rd  = new Date(plan.reviewDate)
-    const ago = Math.ceil((now.getTime() - rd.getTime()) / 86_400_000)
-    const left = Math.ceil((rd.getTime() - now.getTime()) / 86_400_000)
-    return (
-      <Link href={`/send/ilp/${plan.studentId}`}
-        className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition group"
-      >
-        <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-          <span className="text-blue-700 font-bold text-[11px]">{ss?.student.firstName[0]}{ss?.student.lastName[0]}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-gray-900">{ss?.student.firstName} {ss?.student.lastName}</p>
-          <p className="text-[11px] text-gray-400">
-            Year {ss?.student.yearGroup ?? '—'}
-            {ss?.needArea && <span className="ml-2 text-blue-600">{ss.needArea}</span>}
-          </p>
-        </div>
-        <span className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
-          plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'bg-green-100 text-green-700' : 'bg-teal-50 text-teal-700'
-        }`}>
-          {plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'Shared w/ Parent' : 'Active (Internal)'}
-        </span>
-        <div className="shrink-0 text-right w-36">
-          <p className={`text-[13px] font-bold ${rd < now ? 'text-red-600' : rd <= in7 ? 'text-amber-600' : 'text-gray-600'}`}>
-            {rd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </p>
-          <p className="text-[10px] text-gray-400">
-            {rd < now ? `${ago} day${ago !== 1 ? 's' : ''} overdue` : `${left} day${left !== 1 ? 's' : ''} left`}
-          </p>
-        </div>
-        <ChevronRight size={14} className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
-      </Link>
-    )
-  }
-
-  function Section({ icon, title, colour, items }: {
-    icon: React.ReactNode
-    title: string
-    colour: string
-    items: typeof plans
-  }) {
-    if (items.length === 0) return null
-    return (
-      <div className={`border rounded-xl overflow-hidden mb-5 ${colour}`}>
-        <div className="flex items-center gap-2 px-5 py-3.5 border-b border-inherit">
-          {icon}
-          <h2 className="text-[13px] font-semibold">{title}</h2>
-          <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full bg-white bg-opacity-60">{items.length}</span>
-        </div>
-        <div className="bg-white divide-y divide-gray-100">
-          {items.map(p => <PlanRow key={p.id} plan={p} />)}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <main className="flex-1 overflow-auto bg-gray-50">
@@ -128,18 +139,27 @@ export default async function ReviewDuePage() {
                 title="Overdue"
                 colour="border-red-200 bg-red-50"
                 items={overdue}
+                ssById={ssById}
+                now={now}
+                in7={in7}
               />
               <Section
                 icon={<AlertTriangle size={14} className="text-amber-600" />}
                 title="Due Within 7 Days"
                 colour="border-amber-200 bg-amber-50"
                 items={urgent}
+                ssById={ssById}
+                now={now}
+                in7={in7}
               />
               <Section
                 icon={<Clock size={14} className="text-gray-500" />}
                 title="Due Within 30 Days"
                 colour="border-gray-200 bg-white"
                 items={soon}
+                ssById={ssById}
+                now={now}
+                in7={in7}
               />
             </>
           )}

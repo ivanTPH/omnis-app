@@ -100,6 +100,7 @@ export default function LessonSlideOver({
   const [isPending,    startTransition]= useTransition()
 
   // Auto-fill subject from teacher's first class
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (open) {
       const defaultSubject = classes[0]?.subject ?? ''
@@ -116,6 +117,7 @@ export default function LessonSlideOver({
       setEndTime(defaultEndHour != null ? toTimeStr(defaultEndHour) : defaultHour != null ? toTimeStr(defaultHour + 1) : '10:00')
     }
   }, [open])  // eslint-disable-line react-hooks/exhaustive-deps
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // When subject/yearGroup changes, reset class + topic selection
   function setSubject(s: string) {

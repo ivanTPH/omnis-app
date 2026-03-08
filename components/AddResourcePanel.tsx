@@ -238,6 +238,7 @@ export default function AddResourcePanel({
   const [uploadError,  setUploadError]  = useState<string | null>(null)
 
   // Load library when panel opens on library tab (reload if lessonId changes)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open || activeSection !== 'library') return
     setLibLoading(true)
@@ -252,6 +253,7 @@ export default function AddResourcePanel({
   useEffect(() => {
     if (wizardExpanded) setOpen(true)
   }, [wizardExpanded])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const filteredLibrary = library.filter(r =>
     r.label.toLowerCase().includes(libSearch.toLowerCase())

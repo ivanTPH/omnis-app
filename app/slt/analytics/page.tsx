@@ -45,10 +45,11 @@ export default async function SltAnalyticsPage() {
   }
 
   // SEND overview
+  const in30days = new Date(Date.now() + 30 * 86_400_000) // eslint-disable-line react-hooks/purity
   const [sendTotal, activePlans, reviewsDue] = await Promise.all([
     prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
     prisma.plan.count({ where: { schoolId, status: { in: [PlanStatus.ACTIVE_INTERNAL, PlanStatus.ACTIVE_PARENT_SHARED] } } }),
-    prisma.plan.count({ where: { schoolId, reviewDate: { lte: new Date(Date.now() + 30 * 86_400_000) }, status: { notIn: [PlanStatus.ARCHIVED] } } }),
+    prisma.plan.count({ where: { schoolId, reviewDate: { lte: in30days }, status: { notIn: [PlanStatus.ARCHIVED] } } }),
   ])
 
   // School-wide live submission stats

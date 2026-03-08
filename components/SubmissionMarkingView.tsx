@@ -189,7 +189,7 @@ export default function SubmissionMarkingView({
 
           {/* Student submission */}
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Student's Submission</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s Submission</p>
             <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[160px]">
               {data.content}
             </div>

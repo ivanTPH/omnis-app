@@ -126,7 +126,7 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
   useEffect(() => {
     const { dateFrom, dateTo } = computeDates('this_year')
     loadClasses(dateFrom, dateTo)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
 
   function handlePreset(p: 'this_year' | 'this_month' | 'custom') {
     setPreset(p)
@@ -679,7 +679,7 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
             </div>
           )}
           <div>
-            <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Student's Answer</div>
+            <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Student&apos;s Answer</div>
             <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap max-h-52 overflow-y-auto leading-relaxed">
               {detail.content || <span className="text-gray-400 italic">No content recorded</span>}
             </div>

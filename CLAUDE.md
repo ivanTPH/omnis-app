@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-09 (Phase 2A). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09 (Phase 2B). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -170,6 +170,12 @@ app/actions/
 | `platform-admin/SchoolListTable.tsx` | Sortable school table with inline flag expansion + activate toggle |
 | `platform-admin/SchoolForm.tsx` | Create school form (name, URN, phase, region, LA) |
 | `platform-admin/FeatureFlagPanel.tsx` | Per-school feature flag toggles (5 known flags), lazy-loaded |
+| `ai-generator/ResourceTypeIcon.tsx` | Maps resourceType → lucide icon; exports RESOURCE_TYPE_LABELS |
+| `ai-generator/ResourceGeneratorForm.tsx` | Full generation form (subject, year, type, topic, SEND toggles, notes) |
+| `ai-generator/ResourcePreview.tsx` | Rendered markdown preview with copy/delete/link-to-lesson actions |
+| `ai-generator/ResourceCard.tsx` | Expandable card for library grid — type/SEND badges, inline preview |
+| `ai-generator/ResourceLibrary.tsx` | My/School tabs, type filter, card grid — click to open in preview |
+| `ai-generator/AiGeneratorShell.tsx` | Two-panel layout manager (left: form, right: preview ↔ library toggle) |
 
 ### Library (`lib/`)
 
@@ -235,6 +241,7 @@ npm run platform:seed      # Platform admin user + 3 demo schools + feature flag
 | Platform school management | `app/platform-admin/schools/page.tsx` + `components/platform-admin/SchoolListTable.tsx` |
 | GDPR & Consent (admin) | `app/admin/gdpr/page.tsx` + `components/gdpr/GdprAdminShell.tsx` |
 | Parent Consent Portal | `app/parent/consent/page.tsx` + `components/gdpr/ParentConsentPortal.tsx` |
+| AI Resource Generator | `app/ai-generator/page.tsx` + `components/ai-generator/AiGeneratorShell.tsx` |
 | Parent portal | `app/parent/` + `components/ParentMessagesView.tsx` |
 | Auth | `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts` |
 | Route protection | `middleware.ts` (NextAuth middleware) |
@@ -425,6 +432,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Phase 2A — Platform Admin Dashboard:** `PLATFORM_ADMIN` role added to enum. School model extended: urn, phase, localAuthority, region, isActive, onboardedAt. `SchoolFeatureFlag` + `PlatformAuditLog` models + migration (20260309130000). `app/actions/platform-admin.ts` (7 actions). 6 components under `components/platform-admin/` (PlatformDashboardStats, PlatformUsageChart using recharts, PlatformAuditLogTable, SchoolListTable, SchoolForm, FeatureFlagPanel). Routes: `/platform-admin/dashboard`, `/platform-admin/schools`. `PLATFORM_ADMIN` nav in sidebar. `platform:seed` script seeds `platform@omnis.edu` + 3 demo schools + 5 feature flags.
 - **Phase 1E — GDPR Consent Management:** 3 Prisma models (ConsentPurpose, ConsentRecord, DataSubjectRequest) + migration (20260309120000). `app/actions/gdpr.ts` (8 actions: admin + parent). 6 components under `components/gdpr/` (ConsentPurposeForm, ConsentPurposeList, ConsentMatrix, DataSubjectRequestList, ParentConsentPortal, GdprAdminShell). `/admin/gdpr` (3 tabs: Purposes / Matrix / DSRs) for SCHOOL_ADMIN + SLT. `/parent/consent` portal with toggle UI. ConsentRecords are immutable INSERT-only. "GDPR & Consent" in admin sidebar; "Consent Settings" in parent sidebar. Seed: 4 UK-GDPR-framed purposes, 58 sample records.
 - **Phase 1D — SEND Resource Quality Scorer:** `SendQualityScore` Prisma model + migration (20260309110000). `app/actions/send-scorer.ts` (getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores). 5 components under `components/send/` (SendScoreBadge, SendScoreCard, SendScoreButton, ScorerResultRow, ScorerView). Standalone page `/send-scorer` (SENCO + SLT + SCHOOL_ADMIN). SendScoreButton integrated into OakResourcePanel expanded detail. "Resource Scorer" added to SENCO sidebar nav. AI scoring via `claude-sonnet-4-20250514` across 5 dimensions (readability, visual load, cognitive, language, structure), scores cached in DB.
+- **Phase 2B — AI Resource Generator:** `GeneratedResource` Prisma model + migration (20260309140000). `app/actions/ai-generator.ts` (generateResource, getMyResources, getSchoolResources, deleteGeneratedResource, linkResourceToLesson). `marked` installed for markdown rendering. 6 components under `components/ai-generator/` (ResourceTypeIcon, ResourceGeneratorForm, ResourcePreview, ResourceCard, ResourceLibrary, AiGeneratorShell). Route `/ai-generator` (TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN). Two-panel layout: left = form, right = preview or library. "AI Generator" added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN sidebars. Non-streaming Anthropic call with SEND adaptation prompts. Falls back to stub content if `ANTHROPIC_API_KEY` absent.
 
 ### 🔲 Still needed
 

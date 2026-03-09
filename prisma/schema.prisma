@@ -1486,3 +1486,25 @@ model PlatformAuditLog {
   @@index([actorId])
   @@index([createdAt])
 }
+
+// ─── AI Resource Generator ────────────────────────────────────────────────────
+
+model GeneratedResource {
+  id             String   @id @default(cuid())
+  schoolId       String
+  createdBy      String   // User.id
+  title          String
+  subject        String
+  yearGroup      String
+  resourceType   String   // "worksheet" | "quiz" | "lesson_plan" | "exit_ticket" | "knowledge_organiser"
+  topic          String
+  content        String   @db.Text
+  sendAdapted    Boolean  @default(false)
+  sendNotes      String?
+  modelVersion   String   @default("claude-sonnet-4-20250514")
+  createdAt      DateTime @default(now())
+  linkedLessonId String?
+
+  @@index([schoolId, createdBy])
+  @@index([schoolId, subject])
+}

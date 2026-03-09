@@ -91,10 +91,11 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Notifications', href: '/notifications',        icon: Bell            },
   ],
   STUDENT: [
-    { label: 'Dashboard',     href: '/student/dashboard',    icon: LayoutDashboard },
-    { label: 'Homework',      href: '/student/homework',     icon: ClipboardList   },
-    { label: 'My Grades',     href: '/student/grades',       icon: GraduationCap   },
-    { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
+    { label: 'Dashboard',         href: '/student/dashboard',    icon: LayoutDashboard },
+    { label: 'Homework',          href: '/student/homework',     icon: ClipboardList   },
+    { label: 'Revision Planner',  href: '/revision',             icon: BookOpen        },
+    { label: 'My Grades',         href: '/student/grades',       icon: GraduationCap   },
+    { label: 'Messages',          href: '/messages',             icon: MessageSquare   },
   ],
   PLATFORM_ADMIN: [
     { label: 'Dashboard', href: '/platform-admin/dashboard', icon: LayoutDashboard },

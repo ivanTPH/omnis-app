@@ -1576,3 +1576,51 @@ model GeneratedResource {
   @@index([schoolId, createdBy])
   @@index([schoolId, subject])
 }
+
+// ─── Revision Planner ─────────────────────────────────────────────────────────
+
+model RevisionExam {
+  id           String   @id @default(cuid())
+  studentId    String   // User.id
+  subject      String
+  examBoard    String?  // "AQA" | "Edexcel" | "OCR" | "WJEC" | "Other"
+  paperName    String?  // e.g. "Paper 1: Living with the Physical Environment"
+  examDate     DateTime
+  durationMins Int?
+  createdAt    DateTime @default(now())
+
+  sessions RevisionSession[]
+
+  @@index([studentId])
+}
+
+model RevisionSession {
+  id            String   @id @default(cuid())
+  studentId     String   // User.id
+  examId        String?  // RevisionExam.id — optional link
+  subject       String
+  topic         String
+  scheduledAt   DateTime // Date + time slot
+  durationMins  Int      @default(45)
+  status        String   @default("planned") // "planned" | "completed" | "skipped"
+  confidence    Int?     // 1–5 self-assessment after completing
+  notes         String?
+  oakLessonSlug String?  // Optional link to an OakLesson
+  createdAt     DateTime @default(now())
+
+  exam RevisionExam? @relation(fields: [examId], references: [id])
+
+  @@index([studentId])
+  @@index([scheduledAt])
+}
+
+model RevisionConfidence {
+  id         String   @id @default(cuid())
+  studentId  String   // User.id
+  subject    String
+  topic      String
+  confidence Int      // 1–5 (1=not at all confident, 5=very confident)
+  assessedAt DateTime @default(now())
+
+  @@index([studentId, subject])
+}

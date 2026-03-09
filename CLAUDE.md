@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-04. This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09. This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -118,7 +118,9 @@ app/actions/
 │
 ├── student.ts      getStudentHomework, submitHomework
 │
-└── parent.ts       sendParentMessage
+├── parent.ts       sendParentMessage
+│
+└── oak.ts          getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson
 ```
 
 ### Components (`components/`)
@@ -130,8 +132,9 @@ app/actions/
 | `WeeklyCalendar.tsx` | Teacher calendar grid (click = slide-over, dbl-click = lesson folder) |
 | `MiniCalendar.tsx` | Small month calendar (used inside WeeklyCalendar) |
 | `LessonSlideOver.tsx` | Right-side panel — create new lesson |
-| `LessonFolder.tsx` | Lesson detail modal — 5 tabs (Overview, Resources, Homework, SEND, Analytics) |
+| `LessonFolder.tsx` | Lesson detail modal — 6 tabs (Overview, Resources, Oak Resources, Homework, SEND, Analytics) |
 | `AddResourcePanel.tsx` | Inline panel for adding resources to a lesson |
+| `OakResourcePanel.tsx` | Oak National Academy lesson search + add-to-lesson panel (in LessonFolder "Oak Resources" tab) |
 | `SetHomeworkModal.tsx` | Homework creation modal (lesson picker → type → AI generate → publish) |
 | `HomeworkFilterView.tsx` | Homework list page — filters, sort, "Set Homework" button triggers modal |
 | `HomeworkMarkingView.tsx` | Split-panel marking view (student list left, submission right) |
@@ -162,9 +165,11 @@ prisma/
 ├── seed.ts                     Main seed (all demo users, classes, lessons, SEND, analytics)
 ├── seed-classes.ts             Class seed data
 ├── seed-english-students.ts    Adds 20+22+22 students to 9E/En1, 10E/En2, 11E/En1
+├── seed-wonde.ts               Oakfield Academy: 30 staff, 120 students, 32 classes (Wonde MIS)
 └── migrations/
     ├── 20260301191436_add_lessons/
-    └── 20260301195139_add_send_need_area_misconception_tags/
+    ├── 20260301195139_add_send_need_area_misconception_tags/
+    └── 20260309000000_add_wonde_schema/
 ```
 
 **Seed commands:**
@@ -172,6 +177,7 @@ prisma/
 npm run db:seed            # main seed (all demo data)
 npm run db:seed-classes    # classes only
 npm run db:seed-english    # English class students + submissions
+npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 ```
 
 ---
@@ -292,6 +298,20 @@ npm run db:seed-english    # English class students + submissions
 - `UserSettings` — profile extras, privacy prefs, lesson sharing level, avatar URL
 - `WondeSyncRun` / `ExternalChangeLog` — MIS sync history
 
+**Wonde MIS (12 tables)**
+- `WondeSchool` — 1-to-1 with School; stores Wonde school ID and sync metadata
+- `WondeStudent` — MIS student record (wondeId, UPN, DOB, SEND flag, KS2 data)
+- `WondeContact` — parent/guardian contacts linked to WondeStudent
+- `WondeEmployee` — staff records with MIS role and subject
+- `WondeGroup` — registration/form groups (e.g. 7A, 8B)
+- `WondeClass` — subject class linked to WondeEmployee (teacher) and WondeGroup
+- `WondeClassStudent` — many-to-many: WondeClass ↔ WondeStudent (composite PK)
+- `WondePeriod` — timetable period definitions (name, startTime, endTime, dayOfWeek)
+- `WondeTimetableEntry` — scheduled class occurrence per period
+- `WondeAssessmentResult` — KS2 SAT scores and standardised scores per student
+- `WondeDeletion` — soft-delete log for removed MIS records
+- `WondeSyncLog` — per-run sync audit (recordCounts, errors, duration)
+
 ---
 
 ## Auth & Session
@@ -361,6 +381,8 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Homework:** `SetHomeworkModal` built — lesson picker, homework type chips, AI generation from lesson resources, class assignment, publish flow
 - **Classes page:** `ClassListView` built; `seed-english-students.ts` added 20+22+22 students to 9E/En1, 10E/En2, 11E/En1 with realistic submissions
 - **Account settings:** `/settings` page built with 5 tabs (Profile, Professional, Privacy, Sharing, Security); avatar upload to DB; avatar chip in sidebar links to `/settings`
+- **Phase 1A — Oak content library:** Oak sync script (`scripts/oak-sync.ts`) completed — 19 subjects, 2,017 units, 11,403 lessons synced. `app/actions/oak.ts` created (getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson). `components/OakResourcePanel.tsx` built with filter/search UI. Integrated as "Oak Resources" tab in `LessonFolder.tsx`.
+- **Phase 1C Part A — Wonde schema + synthetic data:** 12 Wonde MIS models added to `prisma/schema.prisma` with migration applied. `prisma/seed-wonde.ts` creates Oakfield Academy: 30 staff, 120 students (Y7–Y10), 204 contacts, 32 classes, 480 enrolments, 40 periods, 96 timetable entries, 240 KS2 SAT results.
 
 ### 🔲 Still needed
 

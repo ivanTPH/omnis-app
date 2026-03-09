@@ -206,6 +206,19 @@ model School {
   subjectMedians        SubjectMedianAggregate[]
   notifications         Notification[]
   sendInsights          SendInsight[]
+
+  // Wonde MIS integration
+  wondeSchool            WondeSchool?
+  wondeStudents          WondeStudent[]
+  wondeContacts          WondeContact[]
+  wondeEmployees         WondeEmployee[]
+  wondeGroups            WondeGroup[]
+  wondeClasses           WondeClass[]
+  wondePeriods           WondePeriod[]
+  wondeTimetableEntries  WondeTimetableEntry[]
+  wondeAssessmentResults WondeAssessmentResult[]
+  wondeDeletions         WondeDeletion[]
+  wondeSyncLogs          WondeSyncLog[]
 }
 
 model TermDate {
@@ -879,7 +892,207 @@ model SubjectMedianAggregate {
   @@index([schoolId, subjectId])
 }
 
-// ─── Integrations ─────────────────────────────────────────────────────────────
+// ─── Wonde MIS Models ─────────────────────────────────────────────────────────
+
+model WondeSchool {
+  id                   String    @id              // Wonde ID e.g. "A1329183376"
+  school               School    @relation(fields: [schoolId], references: [id])
+  schoolId             String    @unique          // 1-to-1 with School
+  wondeToken           String
+  mis                  String?
+  phaseOfEducation     String?
+  urn                  Int?
+  laCode               String?
+  establishmentNumber  String?
+  syncedAt             DateTime
+  lastDeltaAt          DateTime?
+}
+
+model WondeStudent {
+  id             String    @id              // Wonde ID
+  school         School    @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  misId          String?
+  upn            String?
+  firstName      String
+  lastName       String
+  dob            DateTime?
+  yearGroup      Int?
+  formGroup      String?
+  isLeaver       Boolean   @default(false)
+  wondeUpdatedAt DateTime?
+  syncedAt       DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  contacts          WondeContact[]
+  classes           WondeClassStudent[]
+  assessmentResults WondeAssessmentResult[]
+
+  @@index([schoolId])
+  @@index([yearGroup])
+}
+
+model WondeContact {
+  id                     String       @id
+  school                 School       @relation(fields: [schoolId], references: [id])
+  schoolId               String
+  student                WondeStudent @relation(fields: [studentId], references: [id])
+  studentId              String
+  firstName              String
+  lastName               String
+  email                  String?
+  phone                  String?
+  relationship           String?
+  parentalResponsibility Boolean      @default(false)
+  syncedAt               DateTime     @default(now())
+
+  @@index([studentId])
+}
+
+model WondeEmployee {
+  id             String    @id              // Wonde ID
+  school         School    @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  misId          String?
+  firstName      String
+  lastName       String
+  email          String?
+  title          String?
+  isTeacher      Boolean   @default(true)
+  subjects       Json      @default("[]")
+  wondeUpdatedAt DateTime?
+  syncedAt       DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  taughtClasses    WondeClass[]
+  timetableEntries WondeTimetableEntry[]
+
+  @@index([schoolId])
+}
+
+model WondeGroup {
+  id             String    @id
+  school         School    @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  misId          String?
+  name           String
+  description    String?
+  type           String?
+  wondeUpdatedAt DateTime?
+  syncedAt       DateTime  @default(now())
+
+  classes WondeClass[]
+
+  @@index([schoolId])
+}
+
+model WondeClass {
+  id             String         @id
+  school         School         @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  misId          String?
+  name           String
+  subject        String?
+  yearGroup      Int?
+  employee       WondeEmployee? @relation(fields: [employeeId], references: [id])
+  employeeId     String?
+  group          WondeGroup?    @relation(fields: [groupId], references: [id])
+  groupId        String?
+  wondeUpdatedAt DateTime?
+  syncedAt       DateTime       @default(now())
+
+  students         WondeClassStudent[]
+  timetableEntries WondeTimetableEntry[]
+
+  @@index([schoolId])
+  @@index([employeeId])
+}
+
+model WondeClassStudent {
+  class     WondeClass   @relation(fields: [classId], references: [id])
+  classId   String
+  student   WondeStudent @relation(fields: [studentId], references: [id])
+  studentId String
+
+  @@id([classId, studentId])
+}
+
+model WondePeriod {
+  id        String @id
+  school    School @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  name      String
+  startTime String
+  endTime   String
+  dayOfWeek Int?
+
+  timetableEntries WondeTimetableEntry[]
+
+  @@index([schoolId])
+}
+
+model WondeTimetableEntry {
+  id            String         @id
+  school        School         @relation(fields: [schoolId], references: [id])
+  schoolId      String
+  wondeClass    WondeClass     @relation(fields: [classId], references: [id])
+  classId       String
+  employee      WondeEmployee? @relation(fields: [employeeId], references: [id])
+  employeeId    String?
+  period        WondePeriod    @relation(fields: [periodId], references: [id])
+  periodId      String
+  roomName      String?
+  effectiveDate DateTime?
+
+  @@index([schoolId])
+  @@index([classId])
+}
+
+model WondeAssessmentResult {
+  id             String       @id
+  school         School       @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  student        WondeStudent @relation(fields: [studentId], references: [id])
+  studentId      String
+  subjectName    String?
+  resultSetName  String?
+  aspectName     String?
+  result         String?
+  gradeValue     String?
+  collectionDate DateTime?
+  syncedAt       DateTime     @default(now())
+
+  @@index([schoolId])
+  @@index([studentId])
+}
+
+model WondeDeletion {
+  id          String    @id
+  school      School    @relation(fields: [schoolId], references: [id])
+  schoolId    String
+  wondeType   String
+  deletedAt   DateTime
+  restoredAt  DateTime?
+  processedAt DateTime?
+
+  @@index([schoolId])
+}
+
+model WondeSyncLog {
+  id               String    @id @default(cuid())
+  school           School    @relation(fields: [schoolId], references: [id])
+  schoolId         String
+  syncType         String
+  status           String
+  recordsProcessed Int       @default(0)
+  errors           Json      @default("[]")
+  startedAt        DateTime  @default(now())
+  completedAt      DateTime?
+
+  @@index([schoolId])
+}
+
+// ─── Integrations (legacy Wonde sync history) ─────────────────────────────────
 
 model WondeSyncRun {
   id            String    @id @default(cuid())

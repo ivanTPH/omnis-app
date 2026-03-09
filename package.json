@@ -10,7 +10,8 @@
     "db:seed": "npx prisma db seed",
     "db:seed-classes": "tsx --env-file=.env.local prisma/seed-classes.ts",
     "db:seed-english": "tsx --env-file=.env.local prisma/seed-english-students.ts",
-    "oak:sync": "tsx --env-file=.env.local scripts/oak-sync.ts"
+    "oak:sync": "tsx --env-file=.env.local scripts/oak-sync.ts",
+    "wonde:seed": "tsx --env-file=.env.local prisma/seed-wonde.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

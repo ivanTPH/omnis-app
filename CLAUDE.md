@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-09. This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09 (Phase 1D). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -120,7 +120,9 @@ app/actions/
 │
 ├── parent.ts       sendParentMessage
 │
-└── oak.ts          getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson
+├── oak.ts          getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson
+│
+└── send-scorer.ts  getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores
 ```
 
 ### Components (`components/`)
@@ -145,6 +147,11 @@ app/actions/
 | `ClassListView.tsx` | Classes page — expandable class cards with student rosters |
 | `ParentMessagesView.tsx` | Parent–teacher conversation threads |
 | `settings/SettingsShell.tsx` | Settings page — 5 tabs (Profile, Professional, Privacy, Sharing, Security) |
+| `send/SendScoreBadge.tsx` | Compact SEND score badge (green ≥70, amber 40–69, red <40) |
+| `send/SendScoreCard.tsx` | Full score card — 5 dimension bars, summary, recommendations, re-score |
+| `send/SendScoreButton.tsx` | Inline score button — checks cache on mount, lazy-scores on click |
+| `send/ScorerResultRow.tsx` | Result row for standalone scorer page with expandable score card |
+| `send/ScorerView.tsx` | Standalone scorer client view — search, filter, "Score all visible" |
 
 ### Library (`lib/`)
 
@@ -203,6 +210,7 @@ npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 | User settings (5 tabs) | `app/settings/page.tsx` + `components/settings/SettingsShell.tsx` |
 | Avatar upload | `app/api/settings/avatar/route.ts` |
 | SEND dashboard | `app/send/dashboard/page.tsx` |
+| SEND Resource Quality Scorer | `app/send-scorer/page.tsx` + `components/send/ScorerView.tsx` |
 | ILP records + detail | `app/send/ilp/` |
 | Parent portal | `app/parent/` + `components/ParentMessagesView.tsx` |
 | Auth | `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts` |
@@ -267,6 +275,7 @@ npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 - `SendStatusReview` — SENCo review records for SEND status changes
 - `SendScoreCache` — content-hash cache for SEND accessibility scores
 - `SendInsight` — aggregated SEND score insights by subject/yearGroup/resourceType
+- `SendQualityScore` — AI-generated SEND accessibility score per OakLesson (unique per `oakLessonSlug`); 5 dimensions (readability, visualLoad, cognitive, language, structure) + summary + recommendations; cached in DB, scored via `claude-sonnet-4-20250514`
 
 **Plans (richer ILP)**
 - `Plan` — SEND support plan with status, reviewDate, parent sharing
@@ -384,6 +393,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Phase 1A — Oak content library:** Oak sync script (`scripts/oak-sync.ts`) completed — 19 subjects, 2,017 units, 11,403 lessons synced. `app/actions/oak.ts` created (getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson). `components/OakResourcePanel.tsx` built with filter/search UI. Integrated as "Oak Resources" tab in `LessonFolder.tsx`.
 - **Phase 1C Part A — Wonde schema + synthetic data:** 12 Wonde MIS models added to `prisma/schema.prisma` with migration applied. `prisma/seed-wonde.ts` creates Oakfield Academy: 30 staff, 120 students (Y7–Y10), 204 contacts, 32 classes, 480 enrolments, 40 periods, 96 timetable entries, 240 KS2 SAT results.
 - **Phase 1B — School Admin Dashboard:** 7 routes under `/admin/`, `app/actions/admin.ts` (8 actions), 6 components under `components/admin/`. SchoolCalendar schema model added + migration. SCHOOL_ADMIN sidebar updated. SCHOOL_ADMIN login now redirects to `/admin/dashboard`.
+- **Phase 1D — SEND Resource Quality Scorer:** `SendQualityScore` Prisma model + migration (20260309110000). `app/actions/send-scorer.ts` (getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores). 5 components under `components/send/` (SendScoreBadge, SendScoreCard, SendScoreButton, ScorerResultRow, ScorerView). Standalone page `/send-scorer` (SENCO + SLT + SCHOOL_ADMIN). SendScoreButton integrated into OakResourcePanel expanded detail. "Resource Scorer" added to SENCO sidebar nav. AI scoring via `claude-sonnet-4-20250514` across 5 dimensions (readability, visual load, cognitive, language, structure), scores cached in DB.
 
 ### 🔲 Still needed
 

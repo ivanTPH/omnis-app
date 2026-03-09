@@ -7,8 +7,9 @@ import { getLessonDetails, updateLessonOverview, removeResource, updateResource,
 import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
-import AddResourcePanel from '@/components/AddResourcePanel'
-import OakResourcePanel from '@/components/OakResourcePanel'
+import AddResourcePanel   from '@/components/AddResourcePanel'
+import OakResourcePanel  from '@/components/OakResourcePanel'
+import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
 type LessonData = Awaited<ReturnType<typeof getLessonDetails>>
@@ -417,6 +418,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {lessonId && !confirmDelete && (
+              <ExportPdfButton
+                href={`/api/export/lesson-plan/${lessonId}`}
+                filename="lesson-plan.pdf"
+                label="Export"
+              />
+            )}
             {confirmDelete ? (
               <>
                 <span className="text-[11px] text-red-600 font-medium mr-1">Delete this lesson?</span>

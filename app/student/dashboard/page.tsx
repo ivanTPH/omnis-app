@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
 import { ClipboardList, Star, Clock } from 'lucide-react'
+import ExportPdfButton from '@/components/ExportPdfButton'
 
 export default async function StudentDashboardPage() {
   const session = await auth()
@@ -37,7 +38,10 @@ export default async function StudentDashboardPage() {
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <main className="flex-1 overflow-auto bg-gray-50">
         <div className="max-w-4xl mx-auto p-4 sm:p-8">
-          <div className="mb-8"><h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName} 👋</h1><p className="text-gray-500 mt-1">Your homework overview</p></div>
+          <div className="mb-8 flex items-start justify-between gap-4">
+            <div><h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName} 👋</h1><p className="text-gray-500 mt-1">Your homework overview</p></div>
+            <ExportPdfButton href={`/api/export/homework-summary?studentId=${userId}`} filename={`homework-summary.pdf`} label="Export Summary" />
+          </div>
           <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
             <div className="bg-white rounded-xl border border-gray-200 p-5"><div className={`text-3xl font-bold ${overdue.length > 0 ? 'text-red-600' : 'text-gray-900'}`}>{pending.length}</div><div className="text-sm text-gray-500 mt-1">To Do</div>{overdue.length > 0 && <div className="text-xs text-red-600 mt-1">{overdue.length} overdue</div>}</div>
             <div className="bg-white rounded-xl border border-gray-200 p-5"><div className="text-3xl font-bold text-amber-600">{homework.filter((hw: any) => hw.submissions[0] && !hw.submissions[0].grade).length}</div><div className="text-sm text-gray-500 mt-1">Awaiting Feedback</div></div>

@@ -6,6 +6,7 @@ import {
   Clock, Search, X, Plus,
 } from 'lucide-react'
 import SetHomeworkModal from './SetHomeworkModal'
+import ExportPdfButton  from '@/components/ExportPdfButton'
 
 export type HomeworkListItem = {
   id:             string
@@ -115,6 +116,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
   function HomeworkCard({ hw }: { hw: HomeworkListItem }) {
     const overdue = new Date(hw.dueAt) < now && hw.status === 'PUBLISHED'
     return (
+      <div className="relative group/card">
       <Link
         href={`/homework/${hw.id}`}
         className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all group"
@@ -181,6 +183,14 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
           <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
         </div>
       </Link>
+      <div className="absolute top-3 right-10 opacity-0 group-hover/card:opacity-100 transition-opacity">
+        <ExportPdfButton
+          href={`/api/export/homework/${hw.id}`}
+          filename={`homework-${hw.title.toLowerCase().replace(/\s+/g,'-').slice(0,30)}.pdf`}
+          label="Sheet"
+        />
+      </div>
+      </div>
     )
   }
 

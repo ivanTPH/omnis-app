@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import SessionDetailModal from './SessionDetailModal'
+import ExportPdfButton    from '@/components/ExportPdfButton'
 
 type Session = {
   id:            string
@@ -59,10 +60,12 @@ export default function WeeklyRevisionGrid({
   sessions,
   onWeekChange,
   onRefresh,
+  studentId,
 }: {
   sessions:     Session[]
   onWeekChange: (monday: Date) => void
   onRefresh:    () => void
+  studentId?:   string
 }) {
   const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()))
   const [selected,  setSelected]  = useState<Session | null>(null)
@@ -101,6 +104,13 @@ export default function WeeklyRevisionGrid({
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[13px] font-bold text-gray-900">Weekly Planner</h3>
         <div className="flex items-center gap-2">
+          {studentId && (
+            <ExportPdfButton
+              href={`/api/export/revision-timetable?weekStart=${weekStart.toISOString()}&studentId=${studentId}`}
+              filename={`revision-timetable-${weekStart.toISOString().slice(0,10)}.pdf`}
+              label="Export Week"
+            />
+          )}
           <span className="text-[11px] text-gray-500">{weekLabel} – {weekEndLabel}</span>
           <button onClick={() => navigate(-1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
             <ChevronLeft size={14} />

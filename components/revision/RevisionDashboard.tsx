@@ -152,6 +152,7 @@ export default function RevisionDashboard({
             sessions={sessions}
             onWeekChange={monday => refreshSessions(monday)}
             onRefresh={refreshAll}
+            studentId={studentId}
           />
         </div>
       </div>

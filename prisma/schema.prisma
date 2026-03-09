@@ -21,6 +21,7 @@ enum Role {
   SENCO
   STUDENT
   PARENT
+  PLATFORM_ADMIN
 }
 
 enum LessonType {
@@ -178,6 +179,14 @@ model School {
   wondeId  String? @unique
   aiOptIn  Boolean @default(false)
 
+  // UK school identifiers
+  urn           String? @unique  // Unique Reference Number
+  phase         String?          // "primary" | "secondary" | "all_through" | "special"
+  localAuthority String?
+  region        String?
+  isActive      Boolean  @default(true)
+  onboardedAt   DateTime?
+
   // Timetable / out-of-hours config (hours in 24h)
   dayStartHour Int @default(8)
   dayEndHour   Int @default(16)
@@ -187,6 +196,8 @@ model School {
   allowAggregatedContribution Boolean @default(false)
 
   createdAt DateTime @default(now())
+
+  @@index([isActive])
 
   users                 User[]
   classes               SchoolClass[]
@@ -209,6 +220,7 @@ model School {
   calendarEntries       SchoolCalendar[]
   consentPurposes       ConsentPurpose[]
   dataSubjectRequests   DataSubjectRequest[]
+  featureFlags          SchoolFeatureFlag[]
 
   // Wonde MIS integration
   wondeSchool            WondeSchool?
@@ -1446,4 +1458,31 @@ model DataSubjectRequest {
   resolvedAt  DateTime?
 
   @@index([schoolId, status])
+}
+
+// ─── Platform Admin ───────────────────────────────────────────────────────────
+
+model SchoolFeatureFlag {
+  id       String   @id @default(cuid())
+  schoolId String
+  flag     String   // "send_scorer" | "oak_resources" | "gdpr_portal" | "parent_portal" | "wonde_sync"
+  enabled  Boolean  @default(true)
+  setAt    DateTime @default(now())
+  setBy    String   // User.id of platform admin who set it
+
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@unique([schoolId, flag])
+}
+
+model PlatformAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String   // User.id
+  action    String   // e.g. "school.created", "flag.toggled", "school.deactivated"
+  target    String?  // schoolId or other entity id
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
 }

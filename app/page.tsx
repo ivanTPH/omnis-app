@@ -7,6 +7,7 @@ export default async function RootPage() {
   if (role === 'STUDENT')      redirect('/student/dashboard')
   if (role === 'PARENT')       redirect('/parent/dashboard')
   if (role === 'SENCO')        redirect('/send/dashboard')
-  if (role === 'SCHOOL_ADMIN') redirect('/admin/dashboard')
+  if (role === 'SCHOOL_ADMIN')   redirect('/admin/dashboard')
+  if (role === 'PLATFORM_ADMIN') redirect('/platform-admin/dashboard')
   redirect('/dashboard')
 }

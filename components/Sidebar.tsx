@@ -6,7 +6,7 @@ import {
   Calendar, BookOpen, ClipboardList, Users, Folder,
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
-  UserCheck, Clock, Sparkles, ShieldCheck,
+  UserCheck, Clock, Sparkles, ShieldCheck, Building2,
 } from 'lucide-react'
 
 type NavItem =
@@ -86,6 +86,10 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Homework',      href: '/student/homework',     icon: ClipboardList   },
     { label: 'My Grades',     href: '/student/grades',       icon: GraduationCap   },
     { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
+  ],
+  PLATFORM_ADMIN: [
+    { label: 'Dashboard', href: '/platform-admin/dashboard', icon: LayoutDashboard },
+    { label: 'Schools',   href: '/platform-admin/schools',   icon: Building2       },
   ],
   PARENT: [
     { label: 'Dashboard',       href: '/parent/dashboard', icon: LayoutDashboard },

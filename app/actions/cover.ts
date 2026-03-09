@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -82,13 +83,26 @@ function dayBounds(date: Date) {
   return { start, end }
 }
 
+// ─── Zod schemas ──────────────────────────────────────────────────────────────
+
+const VALID_REASONS = ['illness', 'personal_leave', 'training', 'compassionate', 'unauthorised', 'other'] as const
+
+const LogAbsenceSchema = z.object({
+  staffId: z.string().min(1, 'Staff ID required'),
+  date:    z.date(),
+  reason:  z.enum(VALID_REASONS, { error: 'Invalid absence reason' }),
+  notes:   z.string().max(500, 'Notes must not exceed 500 characters').optional(),
+})
+
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export async function getTodaysCoverSummary(
-  schoolId: string,
+  _schoolId?: string,
   date?: Date,
 ): Promise<CoverSummary> {
-  await requireAdminOrSlt()
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
   const target = date ?? new Date()
   const { start, end } = dayBounds(target)
 
@@ -172,37 +186,42 @@ export async function getTodaysCoverSummary(
     assignments: assignmentsWithDetails,
     unassignedCount,
     totalLessons: allAssignments.length,
-    // assignmentIds exposed for completeness — unused but harmless
   }
   // suppress unused warning
   void assignmentIds
 }
 
 export async function logAbsence(
-  schoolId: string,
+  _schoolId: string,
   data: { staffId: string; date: Date; reason: string; notes?: string },
 ) {
+  // Security: always use session schoolId — never trust client-provided schoolId
   const user = await requireAdminOrSlt()
-  const { start, end } = dayBounds(data.date)
+  const schoolId = user.schoolId as string
+
+  // Validate input
+  const validated = LogAbsenceSchema.parse(data)
+
+  const { start, end } = dayBounds(validated.date)
 
   // Create absence
   const absence = await prisma.staffAbsence.create({
     data: {
       schoolId,
-      staffId: data.staffId,
-      date: data.date,
-      reason: data.reason,
-      notes: data.notes ?? null,
-      reportedBy: user.id,
+      staffId:     validated.staffId,
+      date:        validated.date,
+      reason:      validated.reason,
+      notes:       validated.notes ?? null,
+      reportedBy:  user.id,
     },
   })
 
   // Find timetable entries for this employee on that day
-  const dayOfWeek = data.date.getDay() // 0=Sun, 1=Mon… match WondePeriod.dayOfWeek
+  const dayOfWeek = validated.date.getDay()
   const entries = await prisma.wondeTimetableEntry.findMany({
     where: {
       schoolId,
-      employeeId: data.staffId,
+      employeeId: validated.staffId,
       period: { dayOfWeek },
     },
   })
@@ -225,11 +244,14 @@ export async function logAbsence(
 }
 
 export async function getAvailableStaff(
-  schoolId: string,
+  _schoolId: string,
   date: Date,
   periodId: string,
 ): Promise<AvailableStaffMember[]> {
-  await requireAdminOrSlt()
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const { start, end } = dayBounds(date)
 
   // Get absent staff IDs for this date
@@ -310,13 +332,22 @@ export async function updateAssignmentStatus(assignmentId: string, status: strin
 }
 
 export async function deleteAbsence(absenceId: string) {
-  await requireAdminOrSlt()
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Security: scope delete to admin's school to prevent cross-tenant deletion
+  const absence = await prisma.staffAbsence.findFirst({ where: { id: absenceId, schoolId } })
+  if (!absence) throw new Error('Absence not found')
+
   await prisma.staffAbsence.delete({ where: { id: absenceId } })
   revalidatePath('/admin/cover')
 }
 
-export async function getStaffList(schoolId: string) {
-  await requireAdminOrSlt()
+export async function getStaffList(_schoolId?: string) {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   return prisma.wondeEmployee.findMany({
     where: { schoolId, isTeacher: true },
     orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
@@ -324,10 +355,13 @@ export async function getStaffList(schoolId: string) {
 }
 
 export async function getCoverHistory(
-  schoolId: string,
+  _schoolId?: string,
   limit = 30,
 ): Promise<CoverHistoryEntry[]> {
-  await requireAdminOrSlt()
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const since = new Date()
   since.setDate(since.getDate() - 30)
 

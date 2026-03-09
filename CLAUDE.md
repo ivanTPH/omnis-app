@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-09 (Phase 3C). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09 (Phase 4A). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -465,6 +465,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 ## Outstanding Tasks
 
 ### ✅ Completed (this session)
+- **Phase 4A — Security Audit & Hardening:** Full code-level security audit. 15 issues found and resolved. High: (1) 6 admin read actions had NO auth checks — fixed by adding `requireAdminOrSlt()` to all; (2) `schoolId` trusted from client in admin/cover/gdpr/ai-generator — fixed to always use session `user.schoolId`. Medium: IDOR on revision planner `studentId` param — fixed to always use `user.id`; IDOR on accessibility `userId` param — fixed; cross-tenant IDOR on consent purpose/DSR mutations — fixed with school ownership checks; no security headers — added full CSP + X-Frame-Options + X-Content-Type-Options etc. to `next.config.ts`; no role-based middleware — expanded `auth.config.ts` with 11 role-route rules redirecting wrong-role users to their home page. Low: Zod validation added to gdpr.createPurpose (slug kebab-case, lawfulBasis enum), gdpr.recordConsent (decision enum), cover.logAbsence (reason enum), platform-admin.createSchool (URN 6-digit regex, phase enum), ai-generator.generateResource (resourceType enum, 200-char topic limit to prevent prompt injection); rate limiting added — generateResource max 20/user/day, getOrCreateSendScore max 50/day. `SECURITY_AUDIT.md` created in project root.
 - **Sidebar:** Lessons and Resources removed from TEACHER and HEAD_OF_DEPT nav
 - **Analytics:** Classes tab added to `StudentAnalyticsView` with clickable rows drilling into student view
 - **Homework:** `SetHomeworkModal` built — lesson picker, homework type chips, AI generation from lesson resources, class assignment, publish flow

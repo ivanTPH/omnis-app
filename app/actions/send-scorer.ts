@@ -158,17 +158,29 @@ function computeOverall(p: ScorePayload) {
 
 // ─── Public actions ────────────────────────────────────────────────────────
 
+const SEND_SCORE_DAILY_LIMIT = 50
+
 export async function getOrCreateSendScore(
   oakLessonSlug: string,
 ): Promise<SendQualityScoreData> {
   const session = await auth()
   if (!session) redirect('/login')
 
-  // Return cached score if present
+  // Return cached score if present (before rate limit check — reads are free)
   const existing = await prisma.sendQualityScore.findUnique({
     where: { oakLessonSlug },
   })
   if (existing) return existing as SendQualityScoreData
+
+  // Rate limiting: max 50 new AI scores per day across all schools
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayCount = await prisma.sendQualityScore.count({
+    where: { scoredAt: { gte: today } },
+  })
+  if (todayCount >= SEND_SCORE_DAILY_LIMIT) {
+    throw new Error(`Daily scoring limit reached (${SEND_SCORE_DAILY_LIMIT}/day). Try again tomorrow.`)
+  }
 
   // Fetch lesson content
   const lesson = await prisma.oakLesson.findUnique({

@@ -18,8 +18,10 @@ async function requireStudent() {
 
 // ─── Exam CRUD ────────────────────────────────────────────────────────────────
 
-export async function getMyExams(studentId: string) {
-  await requireStudent()
+export async function getMyExams(_studentId: string) {
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
   return prisma.revisionExam.findMany({
     where:   { studentId },
     orderBy: { examDate: 'asc' },
@@ -27,14 +29,16 @@ export async function getMyExams(studentId: string) {
   })
 }
 
-export async function addExam(studentId: string, data: {
+export async function addExam(_studentId: string, data: {
   subject:      string
   examBoard?:   string
   paperName?:   string
   examDate:     string   // ISO
   durationMins?: number
 }) {
-  await requireStudent()
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
   return prisma.revisionExam.create({
     data: {
       studentId,
@@ -58,8 +62,10 @@ export async function deleteExam(examId: string) {
 
 // ─── Session queries ──────────────────────────────────────────────────────────
 
-export async function getMyRevisionSessions(studentId: string, weekStart?: Date) {
-  await requireStudent()
+export async function getMyRevisionSessions(_studentId: string, weekStart?: Date) {
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
 
   // Default to current week Monday
   const monday = weekStart ? new Date(weekStart) : getMonday(new Date())
@@ -111,16 +117,18 @@ type GeneratedSession = {
   examId:      string | null
 }
 
-export async function generateRevisionPlan(studentId: string, input: {
+export async function generateRevisionPlan(_studentId: string, input: {
   examIds:            string[]
   weeksUntilExams:    number
   hoursPerDay:        number
   preferredSlots:     string[]
   confidenceRatings:  Record<string, number>
 }): Promise<{ sessions: GeneratedSession[]; error?: string }> {
-  await requireStudent()
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
 
-  // Fetch exam details
+  // Fetch exam details — scoped to this student's own exams
   const exams = await prisma.revisionExam.findMany({
     where: { id: { in: input.examIds }, studentId },
     orderBy: { examDate: 'asc' },
@@ -214,8 +222,10 @@ function buildStubPlan(
   return sessions.slice(0, 14)
 }
 
-export async function saveRevisionPlan(studentId: string, sessions: GeneratedSession[]) {
-  await requireStudent()
+export async function saveRevisionPlan(_studentId: string, sessions: GeneratedSession[]) {
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
   await prisma.revisionSession.createMany({
     data: sessions.map(s => ({
       studentId,
@@ -265,8 +275,10 @@ export async function skipSession(sessionId: string) {
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
-export async function getConfidenceProfile(studentId: string) {
-  await requireStudent()
+export async function getConfidenceProfile(_studentId: string) {
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
 
   const records = await prisma.revisionConfidence.findMany({
     where:   { studentId },
@@ -294,8 +306,10 @@ export async function getConfidenceProfile(studentId: string) {
   }))
 }
 
-export async function getRevisionStats(studentId: string) {
-  await requireStudent()
+export async function getRevisionStats(_studentId: string) {
+  // Security: always use session user ID, never trust client-provided studentId
+  const user = await requireStudent()
+  const studentId = user.id as string
 
   const [sessions, confidence] = await Promise.all([
     prisma.revisionSession.findMany({

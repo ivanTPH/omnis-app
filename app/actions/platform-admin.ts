@@ -4,6 +4,19 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+// ─── Zod schemas ──────────────────────────────────────────────────────────────
+
+const CreateSchoolSchema = z.object({
+  name: z.string().min(1, 'School name is required').max(200, 'Name must not exceed 200 characters'),
+  urn:  z.string().regex(/^\d{6}$/, 'URN must be exactly 6 digits'),
+  phase: z.enum(['primary', 'secondary', 'all-through', 'special', 'pru', 'other'], {
+    error: 'Phase must be one of: primary, secondary, all-through, special, pru, other',
+  }),
+  localAuthority: z.string().max(100).optional(),
+  region:         z.string().max(100).optional(),
+})
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -132,15 +145,19 @@ export async function createSchool(data: {
   region?: string
 }): Promise<void> {
   const user = await requirePlatformAdmin()
+
+  // Validate input
+  const validated = CreateSchoolSchema.parse(data)
+
   const school = await prisma.school.create({
     data: {
-      name: data.name,
-      urn: data.urn || null,
-      phase: data.phase,
-      localAuthority: data.localAuthority || null,
-      region: data.region || null,
-      isActive: true,
-      onboardedAt: new Date(),
+      name:           validated.name,
+      urn:            validated.urn,
+      phase:          validated.phase,
+      localAuthority: validated.localAuthority || null,
+      region:         validated.region || null,
+      isActive:       true,
+      onboardedAt:    new Date(),
     },
   })
   await prisma.platformAuditLog.create({

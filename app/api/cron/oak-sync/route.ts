@@ -7,6 +7,13 @@
  *
  * Also callable manually from the Platform Admin dashboard via triggerDeltaSync().
  *
+ * SECURITY:
+ * - When CRON_SECRET is set: request must include Authorization: Bearer <secret>
+ * - When CRON_SECRET is unset (dev only): unauthenticated requests are allowed.
+ *   Always set CRON_SECRET in production (Vercel environment variables).
+ * - Rate limiting: Vercel Cron runs at most once per configured schedule.
+ *   Additional rate limiting is not required for cron routes in Vercel.
+ *
  * NOTE: maxDuration = 300 requires Vercel Pro plan. Remove/lower for free plan.
  */
 

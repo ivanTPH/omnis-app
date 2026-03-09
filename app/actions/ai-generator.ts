@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ export type GeneratedResourceData = {
 }
 
 export type GenerateInput = {
-  schoolId: string
+  schoolId: string        // accepted for backwards compat but overridden by session
   subject: string
   yearGroup: string
   topic: string
@@ -35,6 +36,19 @@ export type GenerateInput = {
   additionalNotes?: string
   lessonId?: string
 }
+
+// ─── Zod schema ───────────────────────────────────────────────────────────────
+
+const VALID_RESOURCE_TYPES = ['worksheet', 'quiz', 'lesson_plan', 'exit_ticket', 'knowledge_organiser'] as const
+
+const GenerateInputSchema = z.object({
+  subject:      z.string().min(1, 'Subject is required').max(200, 'Subject must not exceed 200 characters'),
+  yearGroup:    z.string().min(1, 'Year group is required').max(50, 'Year group must not exceed 50 characters'),
+  topic:        z.string().min(1, 'Topic is required').max(200, 'Topic must not exceed 200 characters (prevents prompt injection)'),
+  resourceType: z.enum(VALID_RESOURCE_TYPES, { error: 'Invalid resource type' }),
+  sendAdaptations: z.array(z.string().max(50)).max(10),
+  additionalNotes: z.string().max(1000, 'Additional notes must not exceed 1,000 characters').optional(),
+})
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 
@@ -96,6 +110,8 @@ function buildUserPrompt(input: GenerateInput): string {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
+const AI_DAILY_LIMIT = 20
+
 export async function generateResource(
   input: GenerateInput,
 ): Promise<{ id: string; content: string; title: string }> {
@@ -103,6 +119,22 @@ export async function generateResource(
   if (!session) redirect('/login')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session.user as any
+
+  // Validate input (includes length limits to prevent prompt injection)
+  const validated = GenerateInputSchema.parse(input)
+
+  // Security: always use session IDs — never trust client-provided schoolId/userId
+  const schoolId = user.schoolId as string
+
+  // Rate limiting: max 20 AI generations per user per day
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayCount = await prisma.generatedResource.count({
+    where: { createdBy: user.id, createdAt: { gte: today } },
+  })
+  if (todayCount >= AI_DAILY_LIMIT) {
+    throw new Error(`Daily generation limit reached (${AI_DAILY_LIMIT}/day). Try again tomorrow.`)
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   let content: string
@@ -114,35 +146,35 @@ export async function generateResource(
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildUserPrompt(input) }],
+      messages: [{ role: 'user', content: buildUserPrompt({ ...input, ...validated }) }],
     })
     content = (message.content[0] as { type: string; text: string }).text.trim()
   } else {
     // Fallback stub when API key is absent
-    const typeLabel = input.resourceType.replace(/_/g, ' ')
-    content = `# ${input.topic} — ${typeLabel}\n\n*AI service unavailable. This is a placeholder resource.*\n\n## Learning Objectives\n- Understand ${input.topic}\n\n## Activity\n1. Task one\n2. Task two\n\n## Extension\nFurther investigation of ${input.topic}.`
+    const typeLabel = validated.resourceType.replace(/_/g, ' ')
+    content = `# ${validated.topic} — ${typeLabel}\n\n*AI service unavailable. This is a placeholder resource.*\n\n## Learning Objectives\n- Understand ${validated.topic}\n\n## Activity\n1. Task one\n2. Task two\n\n## Extension\nFurther investigation of ${validated.topic}.`
   }
 
   // Extract title from first # heading
   const titleMatch = content.match(/^#\s+(.+)$/m)
-  title = titleMatch ? titleMatch[1].trim() : `${input.topic} — ${input.resourceType}`
+  title = titleMatch ? titleMatch[1].trim() : `${validated.topic} — ${validated.resourceType}`
 
   const sendNotes =
-    input.sendAdaptations.length > 0
-      ? `Adapted for: ${input.sendAdaptations.join(', ')}`
+    validated.sendAdaptations.length > 0
+      ? `Adapted for: ${validated.sendAdaptations.join(', ')}`
       : null
 
   const saved = await prisma.generatedResource.create({
     data: {
-      schoolId:       input.schoolId,
-      createdBy:      user.id,
+      schoolId,           // Security: from session
+      createdBy: user.id, // Security: from session
       title,
-      subject:        input.subject,
-      yearGroup:      input.yearGroup,
-      resourceType:   input.resourceType,
-      topic:          input.topic,
+      subject:        validated.subject,
+      yearGroup:      validated.yearGroup,
+      resourceType:   validated.resourceType,
+      topic:          validated.topic,
       content,
-      sendAdapted:    input.sendAdaptations.length > 0,
+      sendAdapted:    validated.sendAdaptations.length > 0,
       sendNotes,
       linkedLessonId: input.lessonId ?? null,
     },
@@ -153,13 +185,17 @@ export async function generateResource(
 }
 
 export async function getMyResources(
-  schoolId: string,
-  userId: string,
+  _schoolId: string,
+  _userId: string,
 ): Promise<GeneratedResourceData[]> {
+  // Security: always use session IDs — never trust client-provided schoolId/userId
   const session = await auth()
   if (!session) redirect('/login')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = session.user as any
+
   return prisma.generatedResource.findMany({
-    where: { schoolId, createdBy: userId },
+    where: { schoolId: user.schoolId, createdBy: user.id },
     orderBy: { createdAt: 'desc' },
   }) as Promise<GeneratedResourceData[]>
 }
@@ -183,10 +219,17 @@ export async function deleteGeneratedResource(id: string): Promise<void> {
   if (!session) redirect('/login')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session.user as any
-  const resource = await prisma.generatedResource.findUniqueOrThrow({ where: { id } })
+
+  // Security: verify resource belongs to user's school before fetching
+  const resource = await prisma.generatedResource.findFirst({
+    where: { id, schoolId: user.schoolId },
+  })
+  if (!resource) throw new Error('Resource not found')
+
   const isOwner = resource.createdBy === user.id
   const isAdmin = ['SCHOOL_ADMIN', 'SLT'].includes(user.role)
   if (!isOwner && !isAdmin) throw new Error('Not authorised to delete this resource')
+
   await prisma.generatedResource.delete({ where: { id } })
   revalidatePath('/ai-generator')
 }
@@ -197,6 +240,15 @@ export async function linkResourceToLesson(
 ): Promise<void> {
   const session = await auth()
   if (!session) redirect('/login')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const user = session.user as any
+
+  // Security: verify resource belongs to user's school (IDOR protection)
+  const resource = await prisma.generatedResource.findFirst({
+    where: { id: resourceId, schoolId: user.schoolId },
+  })
+  if (!resource) throw new Error('Resource not found')
+
   await prisma.generatedResource.update({
     where: { id: resourceId },
     data: { linkedLessonId: lessonId },

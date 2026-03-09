@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,10 +75,34 @@ async function requireParent() {
   return u
 }
 
+// ─── Zod schemas ──────────────────────────────────────────────────────────────
+
+const CreatePurposeSchema = z.object({
+  slug: z.string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be kebab-case (e.g. data-analytics)')
+    .max(80, 'Slug must not exceed 80 characters'),
+  title: z.string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(100, 'Title must be at most 100 characters'),
+  description: z.string().max(500, 'Description must be at most 500 characters'),
+  lawfulBasis: z.enum(['consent', 'legitimate_interest', 'legal_obligation'], {
+    error: 'Invalid lawful basis — must be consent, legitimate_interest, or legal_obligation',
+  }),
+})
+
+const RecordConsentSchema = z.object({
+  decision: z.enum(['granted', 'withdrawn'], {
+    error: 'Decision must be "granted" or "withdrawn"',
+  }),
+})
+
 // ─── Admin: Purposes ──────────────────────────────────────────────────────────
 
-export async function getPurposes(schoolId: string): Promise<ConsentPurposeData[]> {
-  await requireAdminOrSlt()
+export async function getPurposes(_schoolId?: string): Promise<ConsentPurposeData[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const purposes = await prisma.consentPurpose.findMany({
     where: { schoolId },
     orderBy: { createdAt: 'asc' },
@@ -97,19 +122,32 @@ export async function getPurposes(schoolId: string): Promise<ConsentPurposeData[
 }
 
 export async function createPurpose(
-  schoolId: string,
+  _schoolId: string,
   data: { slug: string; title: string; description: string; lawfulBasis: string },
 ): Promise<void> {
-  await requireAdminOrSlt()
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Validate input
+  const validated = CreatePurposeSchema.parse(data)
+
   await prisma.consentPurpose.create({
-    data: { schoolId, ...data, isActive: true },
+    data: { schoolId, ...validated, isActive: true },
   })
   revalidatePath('/admin/gdpr')
 }
 
 export async function togglePurposeActive(purposeId: string): Promise<void> {
-  await requireAdminOrSlt()
-  const current = await prisma.consentPurpose.findUniqueOrThrow({ where: { id: purposeId } })
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Security: verify purpose belongs to admin's school (prevents cross-tenant mutation)
+  const current = await prisma.consentPurpose.findFirst({
+    where: { id: purposeId, schoolId },
+  })
+  if (!current) throw new Error('Purpose not found')
+
   await prisma.consentPurpose.update({
     where: { id: purposeId },
     data: { isActive: !current.isActive },
@@ -120,9 +158,11 @@ export async function togglePurposeActive(purposeId: string): Promise<void> {
 // ─── Admin: Consent Matrix ────────────────────────────────────────────────────
 
 export async function getConsentMatrix(
-  schoolId: string,
+  _schoolId?: string,
 ): Promise<{ purposes: ConsentPurposeData[]; students: ConsentMatrixStudent[] }> {
-  await requireAdminOrSlt()
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
 
   const purposes = await getPurposes(schoolId)
   const activePurposes = purposes.filter(p => p.isActive)
@@ -163,9 +203,9 @@ export async function getConsentMatrix(
   return { purposes: activePurposes, students: matrixStudents }
 }
 
-export async function exportConsentCsv(schoolId: string): Promise<string> {
-  await requireAdminOrSlt()
-  const { purposes, students } = await getConsentMatrix(schoolId)
+export async function exportConsentCsv(_schoolId?: string): Promise<string> {
+  // Security: schoolId comes from session via getConsentMatrix
+  const { purposes, students } = await getConsentMatrix()
 
   const header = [
     'Student ID', 'Last Name', 'First Name', 'Year Group',
@@ -185,8 +225,11 @@ export async function exportConsentCsv(schoolId: string): Promise<string> {
 
 // ─── Admin: Data Subject Requests ────────────────────────────────────────────
 
-export async function getDataSubjectRequests(schoolId: string): Promise<DsrRow[]> {
-  await requireAdminOrSlt()
+export async function getDataSubjectRequests(_schoolId?: string): Promise<DsrRow[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const rows = await prisma.dataSubjectRequest.findMany({
     where: { schoolId },
     orderBy: { submittedAt: 'desc' },
@@ -199,7 +242,13 @@ export async function updateDsrStatus(
   status: string,
   notes?: string,
 ): Promise<void> {
-  await requireAdminOrSlt()
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Security: verify DSR belongs to admin's school (prevents cross-tenant mutation)
+  const dsr = await prisma.dataSubjectRequest.findFirst({ where: { id: dsrId, schoolId } })
+  if (!dsr) throw new Error('Request not found')
+
   await prisma.dataSubjectRequest.update({
     where: { id: dsrId },
     data: {
@@ -214,9 +263,11 @@ export async function updateDsrStatus(
 // ─── Parent: Consent Portal ───────────────────────────────────────────────────
 
 export async function getMyChildrenConsents(
-  schoolId: string,
+  _schoolId?: string,
 ): Promise<ChildConsentData[]> {
+  // Security: schoolId and parentId always come from session
   const user = await requireParent()
+  const schoolId = user.schoolId as string
 
   const links = await prisma.parentStudentLink.findMany({
     where: { parentId: user.id },
@@ -279,7 +330,11 @@ export async function recordConsent(
   decision: string,
 ): Promise<void> {
   const user = await requireParent()
-  // Verify the parent is linked to this student
+
+  // Validate decision value
+  const validated = RecordConsentSchema.parse({ decision })
+
+  // Security: verify the parent is linked to this student (IDOR protection)
   const link = await prisma.parentStudentLink.findFirst({
     where: { parentId: user.id, studentId },
   })
@@ -291,7 +346,7 @@ export async function recordConsent(
       purposeId,
       studentId,
       responderId: user.id,
-      decision,
+      decision: validated.decision,
       method: 'portal',
     },
   })

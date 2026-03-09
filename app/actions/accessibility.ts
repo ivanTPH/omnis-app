@@ -27,10 +27,12 @@ export async function getAccessibilitySettings(userId: string): Promise<Accessib
 }
 
 export async function saveAccessibilitySettings(
-  userId: string,
+  _userId: string,  // ignored — always uses the authenticated user's ID
   settings: Partial<AccessibilitySettings>,
 ): Promise<AccessibilitySettings> {
-  await requireAuth()
+  // Security: always use session user ID, never trust client-provided userId
+  const user = await requireAuth()
+  const userId = user.id as string
 
   const record = await prisma.userAccessibilitySettings.upsert({
     where:  { userId },

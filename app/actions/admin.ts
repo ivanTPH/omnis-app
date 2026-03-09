@@ -3,7 +3,19 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { Role } from '@prisma/client'
+
+// ─── Guard ────────────────────────────────────────────────────────────────────
+
+async function requireAdminOrSlt() {
+  const session = await auth()
+  if (!session) redirect('/login')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const u = session.user as any
+  if (!['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER'].includes(u.role)) redirect('/dashboard')
+  return u
+}
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -21,7 +33,11 @@ const STAFF_ROLES: Role[] = [
   'SENCO', 'SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER',
 ]
 
-export async function getAdminDashboardData(schoolId: string): Promise<AdminDashboardData> {
+export async function getAdminDashboardData(_schoolId?: string): Promise<AdminDashboardData> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const [studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount] =
     await Promise.all([
       prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } }),
@@ -49,7 +65,11 @@ export type StaffMember = {
   isActive:   boolean
 }
 
-export async function getStaffList(schoolId: string): Promise<StaffMember[]> {
+export async function getStaffMembers(_schoolId?: string): Promise<StaffMember[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const users = await prisma.user.findMany({
     where:   { schoolId, role: { in: STAFF_ROLES } },
     include: { teacherClasses: true },
@@ -67,6 +87,9 @@ export async function getStaffList(schoolId: string): Promise<StaffMember[]> {
   }))
 }
 
+// Keep old name for backwards compatibility with any existing callers
+export const getStaffList = getStaffMembers
+
 // ─── Students ─────────────────────────────────────────────────────────────────
 
 export type StudentRow = {
@@ -79,7 +102,11 @@ export type StudentRow = {
   hasSend:   boolean
 }
 
-export async function getStudentList(schoolId: string): Promise<StudentRow[]> {
+export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const students = await prisma.user.findMany({
     where:   { schoolId, role: 'STUDENT', isActive: true },
     include: {
@@ -111,7 +138,11 @@ export type ClassRow = {
   teacherNames: string[]
 }
 
-export async function getClassList(schoolId: string): Promise<ClassRow[]> {
+export async function getClassList(_schoolId?: string): Promise<ClassRow[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const classes = await prisma.schoolClass.findMany({
     where:   { schoolId },
     include: {
@@ -145,7 +176,11 @@ export type TimetableRow = {
   room:       string | null
 }
 
-export async function getTimetable(schoolId: string): Promise<TimetableRow[]> {
+export async function getTimetable(_schoolId?: string): Promise<TimetableRow[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const entries = await prisma.wondeTimetableEntry.findMany({
     where:   { schoolId },
     include: {
@@ -177,7 +212,11 @@ export type CalendarEntry = {
   label: string | null
 }
 
-export async function getCalendarEntries(schoolId: string): Promise<CalendarEntry[]> {
+export async function getCalendarEntries(_schoolId?: string): Promise<CalendarEntry[]> {
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
   const entries = await prisma.schoolCalendar.findMany({
     where:   { schoolId },
     orderBy: { date: 'asc' },
@@ -186,16 +225,15 @@ export async function getCalendarEntries(schoolId: string): Promise<CalendarEntr
 }
 
 export async function createCalendarEntry(
-  schoolId: string,
-  date:     string,
-  type:     string,
-  label:    string,
+  _schoolId: string,
+  date:      string,
+  type:      string,
+  label:     string,
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { role } = session.user as any
-  if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) throw new Error('Forbidden')
+  // Security: always use session schoolId — never trust client-provided schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
 
   await prisma.schoolCalendar.create({
     data: { schoolId, date: new Date(date), type, label },
@@ -204,12 +242,11 @@ export async function createCalendarEntry(
 }
 
 export async function deleteCalendarEntry(id: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { role, schoolId } = session.user as any
-  if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) throw new Error('Forbidden')
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
 
+  // Security: scope delete to admin's school to prevent cross-tenant deletion
   await prisma.schoolCalendar.deleteMany({ where: { id, schoolId } })
   revalidatePath('/admin/calendar')
 }

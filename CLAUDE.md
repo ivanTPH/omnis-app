@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-09 (Phase 1E). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09 (Phase 2A). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -124,8 +124,11 @@ app/actions/
 │
 ├── send-scorer.ts  getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores
 │
-└── gdpr.ts         getPurposes, createPurpose, togglePurposeActive, getConsentMatrix, exportConsentCsv,
-                    getDataSubjectRequests, updateDsrStatus, getMyChildrenConsents, recordConsent
+├── gdpr.ts         getPurposes, createPurpose, togglePurposeActive, getConsentMatrix, exportConsentCsv,
+│                   getDataSubjectRequests, updateDsrStatus, getMyChildrenConsents, recordConsent
+│
+└── platform-admin.ts  getPlatformStats, getSchoolList, createSchool, toggleSchoolActive,
+                       getFeatureFlags, setFeatureFlag, getAuditLog, getPlatformUsageStats
 ```
 
 ### Components (`components/`)
@@ -161,6 +164,12 @@ app/actions/
 | `gdpr/DataSubjectRequestList.tsx` | DSR table with inline status dropdown |
 | `gdpr/ParentConsentPortal.tsx` | Parent toggle UI with optimistic updates, immutable consent inserts |
 | `gdpr/GdprAdminShell.tsx` | Tabbed wrapper (Consent Purposes / Consent Matrix / Data Subject Requests) |
+| `platform-admin/PlatformDashboardStats.tsx` | 7-card stat row (schools, students, staff, Oak, SEND, consent) |
+| `platform-admin/PlatformUsageChart.tsx` | recharts LineChart — Oak/SEND/consent activity over 8 weeks |
+| `platform-admin/PlatformAuditLogTable.tsx` | Read-only platform audit log table |
+| `platform-admin/SchoolListTable.tsx` | Sortable school table with inline flag expansion + activate toggle |
+| `platform-admin/SchoolForm.tsx` | Create school form (name, URN, phase, region, LA) |
+| `platform-admin/FeatureFlagPanel.tsx` | Per-school feature flag toggles (5 known flags), lazy-loaded |
 
 ### Library (`lib/`)
 
@@ -194,6 +203,7 @@ npm run db:seed            # main seed (all demo data)
 npm run db:seed-classes    # classes only
 npm run db:seed-english    # English class students + submissions
 npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
+npm run platform:seed      # Platform admin user + 3 demo schools + feature flags
 ```
 
 ---
@@ -221,6 +231,8 @@ npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 | SEND dashboard | `app/send/dashboard/page.tsx` |
 | SEND Resource Quality Scorer | `app/send-scorer/page.tsx` + `components/send/ScorerView.tsx` |
 | ILP records + detail | `app/send/ilp/` |
+| Platform admin dashboard | `app/platform-admin/dashboard/page.tsx` + `components/platform-admin/` |
+| Platform school management | `app/platform-admin/schools/page.tsx` + `components/platform-admin/SchoolListTable.tsx` |
 | GDPR & Consent (admin) | `app/admin/gdpr/page.tsx` + `components/gdpr/GdprAdminShell.tsx` |
 | Parent Consent Portal | `app/parent/consent/page.tsx` + `components/gdpr/ParentConsentPortal.tsx` |
 | Parent portal | `app/parent/` + `components/ParentMessagesView.tsx` |
@@ -287,6 +299,8 @@ npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 - `SendScoreCache` — content-hash cache for SEND accessibility scores
 - `SendInsight` — aggregated SEND score insights by subject/yearGroup/resourceType
 - `SendQualityScore` — AI-generated SEND accessibility score per OakLesson
+- `SchoolFeatureFlag` — per-school feature flag (send_scorer/oak_resources/gdpr_portal/parent_portal/wonde_sync); unique per schoolId+flag; setBy=User.id
+- `PlatformAuditLog` — platform-level audit trail (school.created/activated/deactivated/flag.toggled); actorId=User.id
 - `ConsentPurpose` — school-scoped data processing purpose with lawful basis (consent/legitimate_interest/legal_obligation); unique per schoolId+slug
 - `ConsentRecord` — immutable consent audit record (INSERT-only); studentId=WondeStudent.id, responderId=User.id, decision=granted/withdrawn
 - `DataSubjectRequest` — DSR tracking (access/erasure/rectification/portability) with status workflow (unique per `oakLessonSlug`); 5 dimensions (readability, visualLoad, cognitive, language, structure) + summary + recommendations; cached in DB, scored via `claude-sonnet-4-20250514`
@@ -375,6 +389,7 @@ All passwords: `Demo1234!`
 | `a.hughes@students.omnisdemo.school` | STUDENT (Year 9) |
 | `l.hughes@parents.omnisdemo.school` | PARENT (Aiden's parent) |
 | `admin@omnisdemo.school` | SCHOOL_ADMIN |
+| `platform@omnis.edu` | PLATFORM_ADMIN (Omnis staff — sees all schools) |
 
 ---
 
@@ -407,6 +422,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Phase 1A — Oak content library:** Oak sync script (`scripts/oak-sync.ts`) completed — 19 subjects, 2,017 units, 11,403 lessons synced. `app/actions/oak.ts` created (getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson). `components/OakResourcePanel.tsx` built with filter/search UI. Integrated as "Oak Resources" tab in `LessonFolder.tsx`.
 - **Phase 1C Part A — Wonde schema + synthetic data:** 12 Wonde MIS models added to `prisma/schema.prisma` with migration applied. `prisma/seed-wonde.ts` creates Oakfield Academy: 30 staff, 120 students (Y7–Y10), 204 contacts, 32 classes, 480 enrolments, 40 periods, 96 timetable entries, 240 KS2 SAT results.
 - **Phase 1B — School Admin Dashboard:** 7 routes under `/admin/`, `app/actions/admin.ts` (8 actions), 6 components under `components/admin/`. SchoolCalendar schema model added + migration. SCHOOL_ADMIN sidebar updated. SCHOOL_ADMIN login now redirects to `/admin/dashboard`.
+- **Phase 2A — Platform Admin Dashboard:** `PLATFORM_ADMIN` role added to enum. School model extended: urn, phase, localAuthority, region, isActive, onboardedAt. `SchoolFeatureFlag` + `PlatformAuditLog` models + migration (20260309130000). `app/actions/platform-admin.ts` (7 actions). 6 components under `components/platform-admin/` (PlatformDashboardStats, PlatformUsageChart using recharts, PlatformAuditLogTable, SchoolListTable, SchoolForm, FeatureFlagPanel). Routes: `/platform-admin/dashboard`, `/platform-admin/schools`. `PLATFORM_ADMIN` nav in sidebar. `platform:seed` script seeds `platform@omnis.edu` + 3 demo schools + 5 feature flags.
 - **Phase 1E — GDPR Consent Management:** 3 Prisma models (ConsentPurpose, ConsentRecord, DataSubjectRequest) + migration (20260309120000). `app/actions/gdpr.ts` (8 actions: admin + parent). 6 components under `components/gdpr/` (ConsentPurposeForm, ConsentPurposeList, ConsentMatrix, DataSubjectRequestList, ParentConsentPortal, GdprAdminShell). `/admin/gdpr` (3 tabs: Purposes / Matrix / DSRs) for SCHOOL_ADMIN + SLT. `/parent/consent` portal with toggle UI. ConsentRecords are immutable INSERT-only. "GDPR & Consent" in admin sidebar; "Consent Settings" in parent sidebar. Seed: 4 UK-GDPR-framed purposes, 58 sample records.
 - **Phase 1D — SEND Resource Quality Scorer:** `SendQualityScore` Prisma model + migration (20260309110000). `app/actions/send-scorer.ts` (getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores). 5 components under `components/send/` (SendScoreBadge, SendScoreCard, SendScoreButton, ScorerResultRow, ScorerView). Standalone page `/send-scorer` (SENCO + SLT + SCHOOL_ADMIN). SendScoreButton integrated into OakResourcePanel expanded detail. "Resource Scorer" added to SENCO sidebar nav. AI scoring via `claude-sonnet-4-20250514` across 5 dimensions (readability, visual load, cognitive, language, structure), scores cached in DB.
 

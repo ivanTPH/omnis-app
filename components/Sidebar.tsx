@@ -6,7 +6,7 @@ import {
   Calendar, BookOpen, ClipboardList, Users, Folder,
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
-  UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2,
+  UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2, RefreshCw,
 } from 'lucide-react'
 
 type NavItem =
@@ -99,6 +99,7 @@ const navByRole: Record<string, NavItem[]> = {
   PLATFORM_ADMIN: [
     { label: 'Dashboard', href: '/platform-admin/dashboard', icon: LayoutDashboard },
     { label: 'Schools',   href: '/platform-admin/schools',   icon: Building2       },
+    { label: 'Oak Sync',  href: '/platform-admin/oak-sync',  icon: RefreshCw       },
   ],
   PARENT: [
     { label: 'Dashboard',       href: '/parent/dashboard', icon: LayoutDashboard },

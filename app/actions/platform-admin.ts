@@ -301,3 +301,42 @@ export async function getPlatformUsageStats(): Promise<WeeklyUsageStat[]> {
 
   return [...weekMap.values()].sort((a, b) => a.isoWeek.localeCompare(b.isoWeek))
 }
+
+// ─── Oak Sync Logs ────────────────────────────────────────────────────────────
+
+export async function getOakSyncLogs() {
+  await requirePlatformAdmin()
+  return prisma.oakSyncLog.findMany({
+    orderBy: { startedAt: 'desc' },
+    take:    10,
+  })
+}
+
+export async function triggerDeltaSync(): Promise<{
+  success: boolean
+  counts?: Record<string, number>
+  error?: string
+  durationMs: number
+}> {
+  await requirePlatformAdmin()
+  const cronSecret = process.env.CRON_SECRET
+  const baseUrl    = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (cronSecret) headers['Authorization'] = `Bearer ${cronSecret}`
+
+  const start = Date.now()
+  try {
+    const res  = await fetch(`${baseUrl}/api/cron/oak-sync`, { headers })
+    const json = await res.json() as { success: boolean; counts?: Record<string, number>; error?: string; durationMs?: number }
+    return {
+      success:    json.success,
+      counts:     json.counts,
+      error:      json.error,
+      durationMs: json.durationMs ?? Date.now() - start,
+    }
+  } catch (err) {
+    return { success: false, error: String(err), durationMs: Date.now() - start }
+  }
+}
+

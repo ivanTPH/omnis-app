@@ -1287,6 +1287,9 @@ model OakSubject {
   syncedAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  lastSeenAt DateTime? // Updated every delta sync run
+  deletedAt  DateTime? // Set when subject no longer seen in Oak API
+
   units OakUnit[]
 
   @@index([phase])
@@ -1321,8 +1324,10 @@ model OakUnit {
   orderInProgramme   Int     @default(0)
   isLegacy           Boolean @default(false)
 
-  syncedAt  DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  syncedAt   DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastSeenAt DateTime? // Updated every delta sync run
+  deletedAt  DateTime? // Set when unit no longer seen in Oak API
 
   lessons OakLesson[]
 
@@ -1379,8 +1384,10 @@ model OakLesson {
   expired       Boolean @default(false)
   loginRequired Boolean @default(false)
 
-  syncedAt  DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  syncedAt   DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastSeenAt DateTime? // Updated every delta sync run
+  deletedAt  DateTime? // Set when lesson no longer seen in Oak API
 
   resources        OakResource[]
   sendQualityScore SendQualityScore?
@@ -1390,6 +1397,30 @@ model OakLesson {
   @@index([keystage])
   @@index([examBoard])
   @@index([yearGroup])
+}
+
+model OakSyncLog {
+  id         String    @id @default(cuid())
+  type       String    @default("delta") // "full" | "delta"
+  status     String    @default("running") // "running" | "completed" | "failed" | "partial"
+  startedAt  DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+
+  // Delta counts
+  newSubjects     Int @default(0)
+  updatedSubjects Int @default(0)
+  deletedSubjects Int @default(0)
+  newUnits        Int @default(0)
+  updatedUnits    Int @default(0)
+  deletedUnits    Int @default(0)
+  newLessons      Int @default(0)
+  updatedLessons  Int @default(0)
+  deletedLessons  Int @default(0)
+  errorCount      Int @default(0)
+  errors          Json @default("[]") // [{slug, message}]
+
+  @@index([startedAt])
 }
 
 model SendQualityScore {

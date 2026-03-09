@@ -11,6 +11,7 @@
     "db:seed-classes": "tsx --env-file=.env.local prisma/seed-classes.ts",
     "db:seed-english": "tsx --env-file=.env.local prisma/seed-english-students.ts",
     "oak:sync": "tsx --env-file=.env.local scripts/oak-sync.ts",
+    "oak:delta": "tsx --env-file=.env.local scripts/oak-delta-sync.ts",
     "wonde:seed": "tsx --env-file=.env.local prisma/seed-wonde.ts",
     "platform:seed": "tsx --env-file=.env.local prisma/seed-platform.ts"
   },

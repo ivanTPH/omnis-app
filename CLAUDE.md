@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-09 (Phase 2D). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09 (Phase 2E). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -183,6 +183,7 @@ app/actions/
 | `cover/CoverHistoryTable.tsx` | Last 30 days table: date, staff, reason, lessons, coverage rate % |
 | `cover/CoverDashboard.tsx` | Today's cover view: 3-stat bar + AbsenceList + CoverAssignmentGrid |
 | `cover/CoverPageTabs.tsx` | Tab switcher: Today (CoverDashboard) ↔ History (CoverHistoryTable) |
+| `platform-admin/OakSyncStatus.tsx` | OakSyncLog table with row expansion, status badges, "Run Delta Sync Now" button |
 
 ### Library (`lib/`)
 
@@ -250,6 +251,7 @@ npm run platform:seed      # Platform admin user + 3 demo schools + feature flag
 | Parent Consent Portal | `app/parent/consent/page.tsx` + `components/gdpr/ParentConsentPortal.tsx` |
 | AI Resource Generator | `app/ai-generator/page.tsx` + `components/ai-generator/AiGeneratorShell.tsx` |
 | Cover Management | `app/admin/cover/page.tsx` + `components/cover/CoverPageTabs.tsx` + `components/cover/CoverDashboard.tsx` |
+| Oak Sync dashboard | `app/platform-admin/oak-sync/page.tsx` + `components/platform-admin/OakSyncStatus.tsx` |
 | Parent portal | `app/parent/` + `components/ParentMessagesView.tsx` |
 | Auth | `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts` |
 | Route protection | `middleware.ts` (NextAuth middleware) |
@@ -441,6 +443,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Phase 1E — GDPR Consent Management:** 3 Prisma models (ConsentPurpose, ConsentRecord, DataSubjectRequest) + migration (20260309120000). `app/actions/gdpr.ts` (8 actions: admin + parent). 6 components under `components/gdpr/` (ConsentPurposeForm, ConsentPurposeList, ConsentMatrix, DataSubjectRequestList, ParentConsentPortal, GdprAdminShell). `/admin/gdpr` (3 tabs: Purposes / Matrix / DSRs) for SCHOOL_ADMIN + SLT. `/parent/consent` portal with toggle UI. ConsentRecords are immutable INSERT-only. "GDPR & Consent" in admin sidebar; "Consent Settings" in parent sidebar. Seed: 4 UK-GDPR-framed purposes, 58 sample records.
 - **Phase 1D — SEND Resource Quality Scorer:** `SendQualityScore` Prisma model + migration (20260309110000). `app/actions/send-scorer.ts` (getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores). 5 components under `components/send/` (SendScoreBadge, SendScoreCard, SendScoreButton, ScorerResultRow, ScorerView). Standalone page `/send-scorer` (SENCO + SLT + SCHOOL_ADMIN). SendScoreButton integrated into OakResourcePanel expanded detail. "Resource Scorer" added to SENCO sidebar nav. AI scoring via `claude-sonnet-4-20250514` across 5 dimensions (readability, visual load, cognitive, language, structure), scores cached in DB.
 - **Phase 2B — AI Resource Generator:** `GeneratedResource` Prisma model + migration (20260309140000). `app/actions/ai-generator.ts` (generateResource, getMyResources, getSchoolResources, deleteGeneratedResource, linkResourceToLesson). `marked` installed for markdown rendering. 6 components under `components/ai-generator/` (ResourceTypeIcon, ResourceGeneratorForm, ResourcePreview, ResourceCard, ResourceLibrary, AiGeneratorShell). Route `/ai-generator` (TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN). Two-panel layout: left = form, right = preview or library. "AI Generator" added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN sidebars. Non-streaming Anthropic call with SEND adaptation prompts. Falls back to stub content if `ANTHROPIC_API_KEY` absent.
+- **Phase 2E — Delta Oak Sync:** `lastSeenAt` + `deletedAt` fields added to OakSubject/OakUnit/OakLesson. `OakSyncLog` model created + migration (20260309160000). `lib/oak-delta-sync.ts` exports `runDeltaSync()` using shared prisma client — upserts subjects/units/lessons with change detection, soft-deletes unseen records, writes full counts to OakSyncLog. `scripts/oak-delta-sync.ts` standalone wrapper with direct-URL PrismaClient. `npm run oak:delta` script added. `app/api/cron/oak-sync/route.ts` — GET endpoint secured by `CRON_SECRET`, `maxDuration=300`. `vercel.json` cron: Sunday 2am (`0 2 * * 0`). `app/actions/oak.ts` updated to filter `deletedAt: null` in all queries. `getOakSyncLogs` + `triggerDeltaSync` actions added to `platform-admin.ts`. `components/platform-admin/OakSyncStatus.tsx` — log table with per-row expansion + "Run Delta Sync Now" button. `/platform-admin/oak-sync` page + "Oak Sync" (RefreshCw) in PLATFORM_ADMIN sidebar. `.env.local.example` created with `CRON_SECRET` documented.
 - **Phase 2D — Cover Management:** `StaffAbsence` + `CoverAssignment` Prisma models + migration (20260309150000). `app/actions/cover.ts` (getTodaysCoverSummary, logAbsence, getAvailableStaff, assignCover, updateAssignmentStatus, deleteAbsence, getStaffList, getCoverHistory). 6 components under `components/cover/` (AbsenceList, AssignCoverModal, CoverAssignmentGrid, LogAbsenceModal, CoverHistoryTable, CoverDashboard, CoverPageTabs). Route `/admin/cover` (SCHOOL_ADMIN, SLT, COVER_MANAGER) with Today/History tabs. "Cover" (CalendarX2) added to SCHOOL_ADMIN, SLT, COVER_MANAGER sidebars. Auto-creates CoverAssignment per lesson when absence logged. `wonde:seed` extended with 2 today absences (WEMP-005 Helen Davies, WEMP-006 Robert Johnson) + mix of assignment statuses.
 
 ### 🔲 Still needed

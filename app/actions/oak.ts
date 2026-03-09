@@ -7,7 +7,10 @@ import { ResourceType } from '@prisma/client'
 // ── Subjects ──────────────────────────────────────────────────────────────────
 
 export async function getOakSubjects() {
-  return prisma.oakSubject.findMany({ orderBy: { title: 'asc' } })
+  return prisma.oakSubject.findMany({
+    where:   { deletedAt: null },
+    orderBy: { title: 'asc' },
+  })
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -41,8 +44,9 @@ export async function searchOakLessons(params: {
 
   const rows = await prisma.oakLesson.findMany({
     where: {
-      isLegacy: false,
-      expired:  false,
+      isLegacy:  false,
+      expired:   false,
+      deletedAt: null,
       ...(subjectSlug ? { subjectSlug }          : {}),
       ...(yearGroup   ? { yearGroup }             : {}),
       ...(keystage    ? { keystage }              : {}),
@@ -97,8 +101,8 @@ export async function searchOakLessons(params: {
 // ── Full lesson detail ────────────────────────────────────────────────────────
 
 export async function getOakLesson(slug: string) {
-  return prisma.oakLesson.findUnique({
-    where:   { slug },
+  return prisma.oakLesson.findFirst({
+    where:   { slug, deletedAt: null },
     include: { unit: { select: { title: true } } },
   })
 }

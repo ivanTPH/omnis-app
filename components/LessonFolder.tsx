@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar } from 'lucide-react'
+import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson } from '@/app/actions/lessons'
@@ -8,11 +8,12 @@ import { createHomework, generateHomeworkFromResources } from '@/app/actions/hom
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
 import AddResourcePanel from '@/components/AddResourcePanel'
+import OakResourcePanel from '@/components/OakResourcePanel'
 import { addUploadedResource } from '@/app/actions/lessons'
 
 type LessonData = Awaited<ReturnType<typeof getLessonDetails>>
 
-const TABS = ['Overview', 'Resources', 'Homework', 'SEND & Inclusion', 'Class Insights'] as const
+const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'SEND & Inclusion', 'Class Insights'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -321,11 +322,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   const TAB_ICONS: Record<Tab, React.ReactNode> = {
-    'Overview':         <BookOpen   size={13} />,
-    'Resources':        <Upload     size={13} />,
+    'Overview':         <BookOpen      size={13} />,
+    'Resources':        <Upload        size={13} />,
+    'Oak Resources':    <Library       size={13} />,
     'Homework':         <ClipboardList size={13} />,
-    'SEND & Inclusion': <Heart      size={13} />,
-    'Class Insights':   <BarChart2  size={13} />,
+    'SEND & Inclusion': <Heart         size={13} />,
+    'Class Insights':   <BarChart2     size={13} />,
   }
 
   return (
@@ -1183,11 +1185,30 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {lessonId && (
                     <AddResourcePanel lessonId={lessonId} onAdded={refreshLesson} />
                   )}
+                </div>
+              )}
 
-                  {/* Oak — coming soon note */}
-                  <p className="text-[10px] text-gray-400 pt-1">
-                    Oak National Academy integration coming soon.
-                  </p>
+              {/* ── Oak Resources ── */}
+              {activeTab === 'Oak Resources' && (
+                <div className="p-7 space-y-4">
+                  <div>
+                    <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Oak National Academy</h3>
+                    <p className="text-[12px] text-gray-400 mt-1">
+                      Browse Oak&apos;s free lesson library and add lessons as resources.
+                    </p>
+                  </div>
+                  {lessonId && (
+                    <OakResourcePanel
+                      lessonId={lessonId}
+                      presetSubjectSlug={
+                        lesson?.class?.subject
+                          ? lesson.class.subject.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                          : undefined
+                      }
+                      presetYearGroup={lesson?.class?.yearGroup ?? undefined}
+                      onAdded={refreshLesson}
+                    />
+                  )}
                 </div>
               )}
 

@@ -4,34 +4,38 @@
  * Fetches all Oak National Academy content and populates the Oak tables.
  *
  * Strategy:
- *   1. Fetch the Oak build ID from the homepage (needed for _next/data URLs)
- *   2. Fetch all programme slugs from the sitemap (all 159 programmes)
- *   3. For each programme → fetch all units
- *   4. For each unit → fetch all lesson slugs
- *   5. For each lesson slug → fetch full lesson detail
- *   6. Upsert everything into OakSubject / OakUnit / OakLesson / OakResource
+ *   1. Fetch Oak build ID from homepage
+ *   2. Parse lesson sitemap → extract (programmeSlug, unitSlug, lessonSlug) triples
+ *   3. Fetch units listing per programme → upsert OakSubject + OakUnit
+ *   4. Fetch full lesson detail per lesson slug → upsert OakLesson + OakResource
  *
- * Resumable: records already in the DB are skipped (upsert on slug PK).
+ * Resumable: lessons already in DB are skipped. Re-running is always safe.
  * Run with: npm run oak:sync
  */
 
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+// Use direct URL (port 5432) for long-running scripts to avoid pgbouncer
+// transaction-mode connection drops. Falls back to DATABASE_URL if not set.
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.DIRECT_URL ?? process.env.DATABASE_URL } },
+})
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-const OAK_BASE   = 'https://www.thenational.academy'
-const SEARCH_API = 'https://api.thenational.academy/api/search'
+const OAK_BASE = 'https://www.thenational.academy'
 
-// Concurrency limits to avoid hammering Oak's CDN
-const UNIT_CONCURRENCY   = 3
-const LESSON_CONCURRENCY = 5
+const UNIT_CONCURRENCY   = 4
+const LESSON_CONCURRENCY = 6
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function log(msg: string) {
   process.stdout.write(`[${new Date().toISOString().slice(11, 19)}] ${msg}\n`)
+}
+
+function tick(msg: string) {
+  process.stdout.write(msg)
 }
 
 async function sleep(ms: number) {
@@ -44,19 +48,17 @@ async function fetchJson(url: string, retries = 3): Promise<unknown> {
       const res = await fetch(url, {
         headers: { 'User-Agent': 'Omnis-Oak-Sync/1.0' },
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)
+      if (res.status === 404) return null
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
       return await res.json()
     } catch (err) {
       if (attempt === retries) throw err
-      const delay = attempt * 1000
-      log(`  ⚠ Retry ${attempt}/${retries - 1} for ${url.slice(0, 80)} (${delay}ms)`)
-      await sleep(delay)
+      await sleep(attempt * 800)
     }
   }
   throw new Error('fetchJson: exhausted retries')
 }
 
-/** Run an array of tasks with bounded concurrency */
 async function withConcurrency<T>(
   items: T[],
   limit: number,
@@ -65,14 +67,14 @@ async function withConcurrency<T>(
   let i = 0
   async function worker() {
     while (i < items.length) {
-      const idx  = i++
+      const idx = i++
       await fn(items[idx], idx)
     }
   }
   await Promise.all(Array.from({ length: limit }, worker))
 }
 
-// ─── Step 1: Get Oak build ID ─────────────────────────────────────────────────
+// ─── Step 1: Build ID ─────────────────────────────────────────────────────────
 
 async function getBuildId(): Promise<string> {
   log('Fetching Oak build ID…')
@@ -83,19 +85,32 @@ async function getBuildId(): Promise<string> {
   return match[1]
 }
 
-// ─── Step 2: Discover all programme slugs from sitemap ───────────────────────
+// ─── Step 2: Parse lesson sitemap ─────────────────────────────────────────────
 
-async function getProgrammeSlugs(): Promise<string[]> {
-  log('Fetching programme sitemap…')
-  const xml = await fetch(`${OAK_BASE}/teachers/sitemap.xml`).then(r => r.text())
-  // Extract /teachers/programmes/{slug}/units URLs
-  const matches = Array.from(xml.matchAll(/\/teachers\/programmes\/([^/]+)\/units/g))
-  const slugs = Array.from(new Set(matches.map(m => m[1])))
-  log(`  Found ${slugs.length} programme slugs`)
-  return slugs
+type LessonEntry = {
+  programmeSlug: string
+  unitSlug:      string
+  lessonSlug:    string
 }
 
-// ─── Step 3: Parse a programme slug into metadata ─────────────────────────────
+async function getLessonEntries(): Promise<LessonEntry[]> {
+  log('Fetching lesson sitemap…')
+  const xml = await fetch(`${OAK_BASE}/teachers/sitemap-1.xml`).then(r => r.text())
+  // URLs: /teachers/programmes/{prog}/units/{unit}/lessons/{lesson}
+  const pattern = /\/teachers\/programmes\/([^/]+)\/units\/([^/]+)\/lessons\/([^/<]+)/g
+  const entries: LessonEntry[] = []
+  let m: RegExpExecArray | null
+  while ((m = pattern.exec(xml)) !== null) {
+    entries.push({ programmeSlug: m[1], unitSlug: m[2], lessonSlug: m[3] })
+  }
+  const unique = Array.from(
+    new Map(entries.map(e => [e.lessonSlug, e])).values()
+  )
+  log(`  Found ${unique.length} unique lessons across ${new Set(unique.map(e => e.unitSlug)).size} units`)
+  return unique
+}
+
+// ─── Step 3: Programme metadata ───────────────────────────────────────────────
 
 type ProgrammeMeta = {
   programmeSlug: string
@@ -112,73 +127,144 @@ const KS_PHASES: Record<string, string> = {
   ks2: 'primary',
   ks3: 'secondary',
   ks4: 'secondary',
+  'early-years-foundation-stage': 'primary',
 }
 
 const EXAM_BOARDS = new Set(['aqa', 'edexcel', 'edexcelb', 'ocr', 'wjec', 'eduqas', 'pearson'])
 const TIERS       = new Set(['foundation', 'higher'])
 
 function parseProgrammeSlug(slug: string): ProgrammeMeta {
-  // Remove trailing -l (legacy) suffix
-  const isLegacy  = slug.endsWith('-l')
-  const base      = isLegacy ? slug.slice(0, -2) : slug
-  const parts     = base.split('-')
+  const isLegacy = slug.endsWith('-l')
+  const base     = isLegacy ? slug.slice(0, -2) : slug
+  const parts    = base.split('-')
 
-  // Find the keystage part (ks1|ks2|ks3|ks4)
-  const ksIdx     = parts.findIndex(p => /^ks[1-4]$/.test(p))
-  const keystage  = parts[ksIdx] ?? 'ks3'
-  const phase     = KS_PHASES[keystage] ?? 'secondary'
+  // Key stage: ks1–ks4 or early-years-...
+  const ksIdx    = parts.findIndex(p => /^ks[1-4]$/.test(p))
+  const keystage = ksIdx >= 0 ? parts[ksIdx] : 'early-years-foundation-stage'
+  const phase    = KS_PHASES[keystage] ?? 'primary'
 
-  // Subject is everything before the phase word (primary|secondary)
-  const phaseIdx  = parts.findIndex(p => p === 'primary' || p === 'secondary')
-  const subjectSlug = parts.slice(0, phaseIdx).join('-')
+  // Subject = everything before phase keyword
+  const phaseIdx    = parts.findIndex(p => p === 'primary' || p === 'secondary' || p === 'foundation')
+  const subjectSlug = phaseIdx > 0 ? parts.slice(0, phaseIdx).join('-') : parts[0]
 
-  // Everything after the keystage part
-  const after     = parts.slice(ksIdx + 1)
+  const after    = ksIdx >= 0 ? parts.slice(ksIdx + 1) : []
   const examBoard = after.find(p => EXAM_BOARDS.has(p)) ?? null
   const tier      = after.find(p => TIERS.has(p)) ?? null
 
   return { programmeSlug: slug, subjectSlug, phase, keystage, examBoard, tier, isLegacy }
 }
 
-// ─── Step 4: Fetch units for a programme ─────────────────────────────────────
+// ─── Step 4: Fetch and upsert units for a programme ──────────────────────────
 
-type OakUnitRaw = {
-  unitSlug:                   string
-  unitTitle:                  string
-  year?:                      number | null
-  description?:               string | null
-  whyThisWhyNow?:             string | null
-  connectionPriorUnitTitle?:  string | null
-  connectionFutureUnitTitle?: string | null
-  plannedNumberOfLessons?:    number
-  order?:                     number
-  threads?:                   unknown[]
-  subjectcategories?:         unknown[]
-  nationalCurriculumContent?: unknown[]
-  priorKnowledgeRequirements?: string[]
-  lessons?:                   { lessonSlug: string; lessonTitle: string }[]
-  unitStudyOrder?:            number
+const SUBJECT_TITLES: Record<string, string> = {
+  'art':                'Art and design',
+  'biology':            'Biology',
+  'chemistry':          'Chemistry',
+  'citizenship':        'Citizenship',
+  'combined-science':   'Combined science',
+  'computing':          'Computing',
+  'cooking-nutrition':  'Cooking and nutrition',
+  'design-technology':  'Design and technology',
+  'drama':              'Drama',
+  'english':            'English',
+  'financial-education':'Financial education',
+  'french':             'French',
+  'geography':          'Geography',
+  'german':             'German',
+  'history':            'History',
+  'latin':              'Latin',
+  'literacy':           'Literacy',
+  'maths':              'Maths',
+  'music':              'Music',
+  'physical-education': 'Physical education',
+  'physics':            'Physics',
+  'religious-education':'Religious education',
+  'rshe-pshe':          'RSHE (PSHE)',
+  'science':            'Science',
+  'spanish':            'Spanish',
+  'expressive-arts-and-design': 'Expressive arts and design',
+  'personal-social-and-emotional-development': 'Personal, social and emotional development',
+  'understanding-the-world': 'Understanding the world',
 }
 
-async function fetchUnits(buildId: string, meta: ProgrammeMeta): Promise<OakUnitRaw[]> {
+// A unit object as returned by Oak's units listing
+type OakUnitListItem = {
+  slug:              string
+  title:             string
+  nullTitle?:        string
+  programmeSlug:     string
+  keyStageSlug:      string
+  subjectSlug:       string
+  year?:             string | number | null
+  unitStudyOrder?:   number
+  lessonCount?:      number
+  subjectCategories?: unknown[]
+  learningThemes?:   unknown[]
+}
+
+async function syncProgramme(
+  buildId:  string,
+  meta:     ProgrammeMeta,
+  unitSlugsNeeded: Set<string>,
+): Promise<number> {
   const url = `${OAK_BASE}/_next/data/${buildId}/teachers/programmes/${meta.programmeSlug}/units.json`
-  try {
-    const data = await fetchJson(url) as { pageProps?: { curriculumData?: { units?: OakUnitRaw[] } } }
-    return data?.pageProps?.curriculumData?.units ?? []
-  } catch {
-    return []
+  const data = await fetchJson(url) as { pageProps?: { curriculumData?: { units?: OakUnitListItem[][] } } } | null
+  if (!data) return 0
+
+  // units is an array of arrays (optionality groups per study-order slot)
+  const nestedUnits = data?.pageProps?.curriculumData?.units ?? []
+  const allUnits: OakUnitListItem[] = (nestedUnits as unknown[]).flat() as OakUnitListItem[]
+
+  let saved = 0
+  for (const unit of allUnits) {
+    if (!unit.slug || !unitSlugsNeeded.has(unit.slug)) continue
+    try {
+      await prisma.oakUnit.upsert({
+        where:  { slug: unit.slug },
+        create: {
+          slug:            unit.slug,
+          title:           unit.title,
+          subjectSlug:     meta.subjectSlug,
+          keystage:        meta.keystage,
+          yearGroup:       unit.year ? parseInt(String(unit.year), 10) : null,
+          examBoard:       meta.examBoard,
+          tier:            meta.tier,
+          programmeSlug:   meta.programmeSlug,
+          orderInProgramme: unit.unitStudyOrder ?? 0,
+          plannedLessonCount: unit.lessonCount ?? 0,
+          isLegacy:        meta.isLegacy,
+          subjectCategories: (unit.subjectCategories ?? []) as object[],
+          threads:           (unit.learningThemes ?? []) as object[],
+        },
+        update: {
+          title:           unit.title,
+          yearGroup:       unit.year ? parseInt(String(unit.year), 10) : null,
+          examBoard:       meta.examBoard,
+          tier:            meta.tier,
+          orderInProgramme: unit.unitStudyOrder ?? 0,
+          plannedLessonCount: unit.lessonCount ?? 0,
+          subjectCategories: (unit.subjectCategories ?? []) as object[],
+          threads:           (unit.learningThemes ?? []) as object[],
+        },
+      })
+      saved++
+    } catch {
+      // Unit may have been upserted by another programme already — fine
+    }
   }
+  return saved
 }
 
-// ─── Step 5: Fetch full lesson detail ────────────────────────────────────────
+// ─── Step 5: Fetch and upsert a lesson ───────────────────────────────────────
 
-type OakLessonRaw = {
+type OakLessonDetail = {
   lessonSlug:                        string
   lessonTitle:                       string
   unitSlug:                          string
+  unitTitle:                         string
   subjectSlug:                       string
   keyStageSlug:                      string
-  year?:                             number | null
+  year?:                             string | number | null
   examBoardSlug?:                    string | null
   tierSlug?:                         string | null
   orderInUnit?:                      number
@@ -204,191 +290,102 @@ type OakLessonRaw = {
   downloads?:                        { type: string; label?: string; ext?: string; exists: boolean }[]
 }
 
-async function fetchLesson(buildId: string, lessonSlug: string): Promise<OakLessonRaw | null> {
-  const url = `${OAK_BASE}/_next/data/${buildId}/teachers/lessons/${lessonSlug}.json`
-  try {
-    const data = await fetchJson(url) as { pageProps?: { curriculumData?: { lesson?: OakLessonRaw } } }
-    return data?.pageProps?.curriculumData?.lesson ?? null
-  } catch {
-    return null
-  }
-}
+async function syncLesson(buildId: string, entry: LessonEntry): Promise<boolean> {
+  const url = `${OAK_BASE}/_next/data/${buildId}/teachers/lessons/${entry.lessonSlug}.json`
+  const data = await fetchJson(url) as { pageProps?: { lesson?: OakLessonDetail } } | null
+  if (!data) return false
 
-// ─── Step 6: Upsert helpers ───────────────────────────────────────────────────
+  const lesson = data?.pageProps?.lesson
+  if (!lesson?.lessonSlug) return false
 
-const SUBJECT_TITLES: Record<string, string> = {
-  'art':                   'Art and design',
-  'biology':               'Biology',
-  'chemistry':             'Chemistry',
-  'citizenship':           'Citizenship',
-  'combined-science':      'Combined science',
-  'computing':             'Computing',
-  'computing-non-gcse':    'Computing (non-GCSE)',
-  'cooking-nutrition':     'Cooking and nutrition',
-  'design-technology':     'Design and technology',
-  'drama':                 'Drama',
-  'english':               'English',
-  'financial-education':   'Financial education',
-  'french':                'French',
-  'geography':             'Geography',
-  'german':                'German',
-  'history':               'History',
-  'latin':                 'Latin',
-  'maths':                 'Maths',
-  'music':                 'Music',
-  'physical-education':    'Physical education',
-  'physics':               'Physics',
-  'religious-education':   'Religious education',
-  'rshe-pshe':             'RSHE (PSHE)',
-  'science':               'Science',
-  'spanish':               'Spanish',
-}
+  const yearGroup = lesson.year ? parseInt(String(lesson.year), 10) : null
 
-async function upsertSubject(meta: ProgrammeMeta) {
-  await prisma.oakSubject.upsert({
-    where:  { slug: meta.subjectSlug },
-    create: {
-      slug:  meta.subjectSlug,
-      title: SUBJECT_TITLES[meta.subjectSlug] ?? meta.subjectSlug,
-      phase: meta.phase,
-    },
-    update: { phase: meta.phase },
-  })
-}
-
-async function upsertUnit(meta: ProgrammeMeta, raw: OakUnitRaw) {
-  await prisma.oakUnit.upsert({
-    where:  { slug: raw.unitSlug },
-    create: {
-      slug:          raw.unitSlug,
-      title:         raw.unitTitle,
-      subjectSlug:   meta.subjectSlug,
-      keystage:      meta.keystage,
-      yearGroup:     raw.year ?? null,
-      examBoard:     meta.examBoard,
-      tier:          meta.tier,
-      programmeSlug: meta.programmeSlug,
-      description:   raw.description ?? null,
-      whyThisWhyNow: raw.whyThisWhyNow ?? null,
-      connectionPriorUnit:  raw.connectionPriorUnitTitle ?? null,
-      connectionFutureUnit: raw.connectionFutureUnitTitle ?? null,
-      plannedLessonCount:   raw.plannedNumberOfLessons ?? 0,
-      orderInProgramme:     raw.order ?? raw.unitStudyOrder ?? 0,
-      isLegacy:             meta.isLegacy,
-      threads:                    (raw.threads ?? []) as object[],
-      subjectCategories:          (raw.subjectcategories ?? []) as object[],
-      nationalCurriculumContent:  (raw.nationalCurriculumContent ?? []) as object[],
-      priorKnowledgeRequirements: (raw.priorKnowledgeRequirements ?? []) as string[],
-    },
-    update: {
-      title:         raw.unitTitle,
-      yearGroup:     raw.year ?? null,
-      examBoard:     meta.examBoard,
-      tier:          meta.tier,
-      description:   raw.description ?? null,
-      whyThisWhyNow: raw.whyThisWhyNow ?? null,
-      connectionPriorUnit:  raw.connectionPriorUnitTitle ?? null,
-      connectionFutureUnit: raw.connectionFutureUnitTitle ?? null,
-      plannedLessonCount:   raw.plannedNumberOfLessons ?? 0,
-      threads:                    (raw.threads ?? []) as object[],
-      subjectCategories:          (raw.subjectcategories ?? []) as object[],
-      nationalCurriculumContent:  (raw.nationalCurriculumContent ?? []) as object[],
-      priorKnowledgeRequirements: (raw.priorKnowledgeRequirements ?? []) as string[],
-    },
-  })
-}
-
-async function upsertLesson(raw: OakLessonRaw) {
   await prisma.oakLesson.upsert({
-    where:  { slug: raw.lessonSlug },
+    where:  { slug: lesson.lessonSlug },
     create: {
-      slug:        raw.lessonSlug,
-      title:       raw.lessonTitle,
-      unitSlug:    raw.unitSlug,
-      subjectSlug: raw.subjectSlug,
-      keystage:    raw.keyStageSlug,
-      yearGroup:   raw.year ?? null,
-      examBoard:   raw.examBoardSlug ?? null,
-      tier:        raw.tierSlug ?? null,
-      orderInUnit: raw.orderInUnit ?? 0,
+      slug:        lesson.lessonSlug,
+      title:       lesson.lessonTitle,
+      unitSlug:    entry.unitSlug,
+      subjectSlug: lesson.subjectSlug,
+      keystage:    lesson.keyStageSlug,
+      yearGroup,
+      examBoard:   lesson.examBoardSlug ?? null,
+      tier:        lesson.tierSlug ?? null,
+      orderInUnit: lesson.orderInUnit ?? 0,
 
-      pupilLessonOutcome: raw.pupilLessonOutcome ?? null,
-      keyLearningPoints:  (raw.keyLearningPoints ?? []) as object[],
-      lessonKeywords:     (raw.lessonKeywords ?? []) as object[],
-      lessonOutline:      (raw.lessonOutline ?? []) as object[],
-      starterQuiz:        (raw.starterQuiz ?? []) as object[],
-      exitQuiz:           (raw.exitQuiz ?? []) as object[],
+      pupilLessonOutcome: lesson.pupilLessonOutcome ?? null,
+      keyLearningPoints:  (lesson.keyLearningPoints ?? []) as object[],
+      lessonKeywords:     (lesson.lessonKeywords ?? []) as object[],
+      lessonOutline:      (lesson.lessonOutline ?? []) as object[],
+      starterQuiz:        (lesson.starterQuiz ?? []) as object[],
+      exitQuiz:           (lesson.exitQuiz ?? []) as object[],
 
-      misconceptionsAndCommonMistakes: (raw.misconceptionsAndCommonMistakes ?? []) as object[],
-      teacherTips:                     (raw.teacherTips ?? []) as object[],
-      contentGuidance:                 (raw.contentGuidance ?? []) as object[],
-      supervisionLevel:                raw.supervisionLevel ?? null,
+      misconceptionsAndCommonMistakes: (lesson.misconceptionsAndCommonMistakes ?? []) as object[],
+      teacherTips:                     (lesson.teacherTips ?? []) as object[],
+      contentGuidance:                 (lesson.contentGuidance ?? []) as object[],
+      supervisionLevel:                lesson.supervisionLevel ?? null,
 
-      videoMuxPlaybackId:                 raw.videoMuxPlaybackId ?? null,
-      videoWithSignLanguageMuxPlaybackId: raw.videoWithSignLanguageMuxPlaybackId ?? null,
-      transcriptSentences:                (raw.transcriptSentences ?? []) as string[],
+      videoMuxPlaybackId:                 lesson.videoMuxPlaybackId ?? null,
+      videoWithSignLanguageMuxPlaybackId: lesson.videoWithSignLanguageMuxPlaybackId ?? null,
+      transcriptSentences:                (lesson.transcriptSentences ?? []) as string[],
 
-      worksheetUrl:    raw.worksheetUrl ?? null,
-      presentationUrl: raw.presentationUrl ?? null,
-      subjectCategories: (raw.subjectCategories ?? []) as object[],
+      worksheetUrl:      lesson.worksheetUrl ?? null,
+      presentationUrl:   lesson.presentationUrl ?? null,
+      subjectCategories: (lesson.subjectCategories ?? []) as object[],
 
-      isLegacy:      raw.isLegacy ?? false,
-      expired:       raw.expired ?? false,
-      loginRequired: raw.loginRequired ?? false,
+      isLegacy:      lesson.isLegacy ?? false,
+      expired:       lesson.expired ?? false,
+      loginRequired: lesson.loginRequired ?? false,
     },
     update: {
-      title:       raw.lessonTitle,
-      unitSlug:    raw.unitSlug,
-      yearGroup:   raw.year ?? null,
-      examBoard:   raw.examBoardSlug ?? null,
-      tier:        raw.tierSlug ?? null,
-      orderInUnit: raw.orderInUnit ?? 0,
+      title:       lesson.lessonTitle,
+      unitSlug:    entry.unitSlug,
+      yearGroup,
+      examBoard:   lesson.examBoardSlug ?? null,
+      tier:        lesson.tierSlug ?? null,
+      orderInUnit: lesson.orderInUnit ?? 0,
 
-      pupilLessonOutcome: raw.pupilLessonOutcome ?? null,
-      keyLearningPoints:  (raw.keyLearningPoints ?? []) as object[],
-      lessonKeywords:     (raw.lessonKeywords ?? []) as object[],
-      lessonOutline:      (raw.lessonOutline ?? []) as object[],
-      starterQuiz:        (raw.starterQuiz ?? []) as object[],
-      exitQuiz:           (raw.exitQuiz ?? []) as object[],
+      pupilLessonOutcome: lesson.pupilLessonOutcome ?? null,
+      keyLearningPoints:  (lesson.keyLearningPoints ?? []) as object[],
+      lessonKeywords:     (lesson.lessonKeywords ?? []) as object[],
+      lessonOutline:      (lesson.lessonOutline ?? []) as object[],
+      starterQuiz:        (lesson.starterQuiz ?? []) as object[],
+      exitQuiz:           (lesson.exitQuiz ?? []) as object[],
 
-      misconceptionsAndCommonMistakes: (raw.misconceptionsAndCommonMistakes ?? []) as object[],
-      teacherTips:                     (raw.teacherTips ?? []) as object[],
-      contentGuidance:                 (raw.contentGuidance ?? []) as object[],
-      supervisionLevel:                raw.supervisionLevel ?? null,
+      misconceptionsAndCommonMistakes: (lesson.misconceptionsAndCommonMistakes ?? []) as object[],
+      teacherTips:                     (lesson.teacherTips ?? []) as object[],
+      contentGuidance:                 (lesson.contentGuidance ?? []) as object[],
+      supervisionLevel:                lesson.supervisionLevel ?? null,
 
-      videoMuxPlaybackId:                 raw.videoMuxPlaybackId ?? null,
-      videoWithSignLanguageMuxPlaybackId: raw.videoWithSignLanguageMuxPlaybackId ?? null,
-      transcriptSentences:                (raw.transcriptSentences ?? []) as string[],
+      videoMuxPlaybackId:                 lesson.videoMuxPlaybackId ?? null,
+      videoWithSignLanguageMuxPlaybackId: lesson.videoWithSignLanguageMuxPlaybackId ?? null,
+      transcriptSentences:                (lesson.transcriptSentences ?? []) as string[],
 
-      worksheetUrl:    raw.worksheetUrl ?? null,
-      presentationUrl: raw.presentationUrl ?? null,
-      subjectCategories: (raw.subjectCategories ?? []) as object[],
+      worksheetUrl:      lesson.worksheetUrl ?? null,
+      presentationUrl:   lesson.presentationUrl ?? null,
+      subjectCategories: (lesson.subjectCategories ?? []) as object[],
 
-      expired:       raw.expired ?? false,
-      loginRequired: raw.loginRequired ?? false,
+      expired:       lesson.expired ?? false,
+      loginRequired: lesson.loginRequired ?? false,
     },
   })
 
-  // Upsert resources (downloads)
-  if (raw.downloads && raw.downloads.length > 0) {
-    for (const dl of raw.downloads) {
-      await prisma.oakResource.upsert({
-        where:  { lessonSlug_type: { lessonSlug: raw.lessonSlug, type: dl.type } },
-        create: {
-          lessonSlug: raw.lessonSlug,
-          type:       dl.type,
-          label:      dl.label ?? null,
-          ext:        dl.ext ?? null,
-          exists:     dl.exists,
-        },
-        update: {
-          label:  dl.label ?? null,
-          ext:    dl.ext ?? null,
-          exists: dl.exists,
-        },
-      })
-    }
+  // Upsert resources
+  for (const dl of lesson.downloads ?? []) {
+    await prisma.oakResource.upsert({
+      where:  { lessonSlug_type: { lessonSlug: lesson.lessonSlug, type: dl.type } },
+      create: {
+        type:   dl.type,
+        label:  dl.label ?? null,
+        ext:    dl.ext ?? null,
+        exists: dl.exists ?? true,
+        lesson: { connect: { slug: lesson.lessonSlug } },
+      },
+      update: { label: dl.label ?? null, ext: dl.ext ?? null, exists: dl.exists ?? true },
+    })
   }
+
+  return true
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -399,115 +396,102 @@ async function main() {
   log('═══════════════════════════════════════════')
 
   const startTime = Date.now()
+  let errors = 0
 
-  // 1. Get build ID
+  // 1. Build ID
   const buildId = await getBuildId()
 
-  // 2. Get all programme slugs
-  const programmeSlugs = await getProgrammeSlugs()
+  // 2. All lesson entries from sitemap
+  const lessonEntries = await getLessonEntries()
 
-  // 3. Parse into metadata
-  const programmes = programmeSlugs.map(parseProgrammeSlug)
-  log(`Parsed ${programmes.length} programmes across ${new Set(programmes.map(p => p.subjectSlug)).size} subjects`)
+  // Derive all unique programmes and units from entries
+  const programmeMap = new Map<string, ProgrammeMeta>()
+  const unitSlugsNeeded = new Set<string>()
+  for (const e of lessonEntries) {
+    if (!programmeMap.has(e.programmeSlug)) {
+      programmeMap.set(e.programmeSlug, parseProgrammeSlug(e.programmeSlug))
+    }
+    unitSlugsNeeded.add(e.unitSlug)
+  }
+  const programmes = Array.from(programmeMap.values())
+  log(`  ${programmes.length} programmes, ${unitSlugsNeeded.size} unique units`)
 
-  // Counters
-  let subjectsDone = 0
-  let unitsDone    = 0
-  let lessonsDone  = 0
-  let lessonsSkipped = 0
-  let errors       = 0
-
-  // 4. Upsert subjects first
+  // 3. Upsert subjects
+  log(`\nStep 1/3 — Syncing subjects…`)
   const uniqueSubjects = Array.from(new Map(programmes.map(p => [p.subjectSlug, p])).values())
-  log(`\nStep 1/3 — Syncing ${uniqueSubjects.length} subjects…`)
   for (const meta of uniqueSubjects) {
-    await upsertSubject(meta)
-    subjectsDone++
+    await prisma.oakSubject.upsert({
+      where:  { slug: meta.subjectSlug },
+      create: { slug: meta.subjectSlug, title: SUBJECT_TITLES[meta.subjectSlug] ?? meta.subjectSlug, phase: meta.phase },
+      update: { phase: meta.phase },
+    })
   }
-  log(`  ✓ ${subjectsDone} subjects synced`)
+  log(`  ✓ ${uniqueSubjects.length} subjects`)
 
-  // 5. Fetch and upsert units for each programme
-  log(`\nStep 2/3 — Fetching units for ${programmes.length} programmes…`)
+  // 4. Fetch units per programme and upsert
+  log(`\nStep 2/3 — Syncing units from ${programmes.length} programmes…`)
+  let unitsDone = 0
+  let progDone  = 0
 
-  // Collect all (unit, lessons[]) pairs — deduplicated by unitSlug
-  const unitMap = new Map<string, { meta: ProgrammeMeta; raw: OakUnitRaw }>()
-
-  await withConcurrency(programmes, UNIT_CONCURRENCY, async (meta, i) => {
-    const units = await fetchUnits(buildId, meta)
-    for (const unit of units) {
-      if (!unitMap.has(unit.unitSlug)) {
-        unitMap.set(unit.unitSlug, { meta, raw: unit })
-      }
-    }
-    process.stdout.write(`  [${i + 1}/${programmes.length}] ${meta.programmeSlug} → ${units.length} units\n`)
-  })
-
-  // Upsert deduplicated units
-  for (const { meta, raw } of Array.from(unitMap.values())) {
+  await withConcurrency(programmes, UNIT_CONCURRENCY, async (meta) => {
     try {
-      await upsertUnit(meta, raw)
-      unitsDone++
+      const saved = await syncProgramme(buildId, meta, unitSlugsNeeded)
+      unitsDone += saved
     } catch (err) {
-      log(`  ✗ Unit ${raw.unitSlug}: ${err}`)
+      log(`  ✗ Programme ${meta.programmeSlug}: ${err}`)
       errors++
     }
-  }
-  log(`  ✓ ${unitsDone} units synced (${unitMap.size} unique across all programmes)`)
-
-  // 6. Collect all lesson slugs from units
-  log(`\nStep 3/3 — Fetching lesson details…`)
-  const allLessonSlugs: string[] = []
-  for (const { raw } of Array.from(unitMap.values())) {
-    for (const lesson of raw.lessons ?? []) {
-      allLessonSlugs.push(lesson.lessonSlug)
+    progDone++
+    if (progDone % 20 === 0 || progDone === programmes.length) {
+      log(`  [${progDone}/${programmes.length}] programmes processed, ${unitsDone} units saved`)
     }
-  }
-  const uniqueLessonSlugs = Array.from(new Set(allLessonSlugs))
-  log(`  ${uniqueLessonSlugs.length} unique lesson slugs to sync`)
-
-  // Check which are already in the DB (resumability)
-  const existingLessons = await prisma.oakLesson.findMany({
-    select: { slug: true },
   })
-  const existingSlugs = new Set(existingLessons.map(l => l.slug))
-  const toFetch = uniqueLessonSlugs.filter(s => !existingSlugs.has(s))
-  lessonsSkipped = uniqueLessonSlugs.length - toFetch.length
+  log(`  ✓ ${unitsDone} units synced`)
 
-  log(`  ${lessonsSkipped} already in DB (skipped) — fetching ${toFetch.length} new lessons`)
+  // 5. Fetch lessons — skip those already in DB
+  log(`\nStep 3/3 — Syncing ${lessonEntries.length} lessons…`)
 
-  await withConcurrency(toFetch, LESSON_CONCURRENCY, async (slug, i) => {
+  // Skip lessons that are fully synced (exist in DB AND have at least 1 resource).
+  // Lessons with 0 resources may have had a failed resource upsert — re-sync them.
+  const lessonsInDb = await prisma.oakLesson.findMany({
+    select: { slug: true, resources: { select: { id: true }, take: 1 } },
+  })
+  const fullySynced = new Set(
+    lessonsInDb.filter(l => l.resources.length > 0).map(l => l.slug)
+  )
+  const toFetch = lessonEntries.filter(e => !fullySynced.has(e.lessonSlug))
+  const skipped = lessonEntries.length - toFetch.length
+  log(`  ${skipped} fully synced — fetching/repairing ${toFetch.length}`)
+
+  let lessonsDone = 0
+  let lessonIdx   = 0
+
+  await withConcurrency(toFetch, LESSON_CONCURRENCY, async (entry) => {
+    const i = lessonIdx++
     try {
-      const lesson = await fetchLesson(buildId, slug)
-      if (!lesson) {
-        log(`  ⚠ No data for lesson: ${slug}`)
-        return
-      }
-      await upsertLesson(lesson)
-      lessonsDone++
-      if ((i + 1) % 50 === 0 || i + 1 === toFetch.length) {
-        log(`  [${i + 1}/${toFetch.length}] lessons fetched (${lessonsDone} saved, ${errors} errors)`)
-      }
+      const ok = await syncLesson(buildId, entry)
+      if (ok) lessonsDone++
     } catch (err) {
-      log(`  ✗ Lesson ${slug}: ${err}`)
+      log(`  ✗ Lesson ${entry.lessonSlug}: ${err}`)
       errors++
     }
+    if ((i + 1) % 200 === 0 || i + 1 === toFetch.length) {
+      tick(`  [${i + 1}/${toFetch.length}] ${lessonsDone} saved, ${errors} errors\n`)
+    }
   })
 
-  // ─── Summary ────────────────────────────────────────────────────────────────
+  // Summary
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
   log('\n═══════════════════════════════════════════')
   log('  Sync complete')
-  log(`  Subjects:  ${subjectsDone}`)
+  log(`  Subjects:  ${uniqueSubjects.length}`)
   log(`  Units:     ${unitsDone}`)
-  log(`  Lessons:   ${lessonsDone} new, ${lessonsSkipped} already present`)
+  log(`  Lessons:   ${lessonsDone} new  |  ${skipped} already present`)
   log(`  Errors:    ${errors}`)
   log(`  Time:      ${elapsed}s`)
   log('═══════════════════════════════════════════')
 }
 
 main()
-  .catch(err => {
-    log(`\nFATAL: ${err}`)
-    process.exit(1)
-  })
+  .catch(err => { log(`\nFATAL: ${err}`); process.exit(1) })
   .finally(() => prisma.$disconnect())

@@ -6,6 +6,7 @@ import {
   Calendar, BookOpen, ClipboardList, Users, Folder,
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
+  UserCheck, Clock,
 } from 'lucide-react'
 
 type NavItem =
@@ -51,15 +52,16 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Notifications',     href: '/notifications',          icon: Bell           },
   ],
   SCHOOL_ADMIN: [
-    { label: 'Dashboard',     href: '/dashboard',            icon: LayoutDashboard },
-    { label: 'Users',         href: '/admin/users',          icon: Users           },
-    { label: 'Audit Log',     href: '/admin/audit',          icon: Shield          },
-    { label: 'Analytics',     href: '/slt/analytics',        icon: BarChart2       },
-    { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
-    { label: 'Notifications', href: '/notifications',        icon: Bell            },
-    { divider: true, label: 'Pastoral' },
-    { label: 'Integrity',     href: '/hoy/integrity',        icon: AlertTriangle   },
-    { label: 'Plans',         href: '/plans',                icon: Folder          },
+    { label: 'Dashboard',   href: '/admin/dashboard',  icon: LayoutDashboard },
+    { label: 'Staff',       href: '/admin/staff',      icon: UserCheck       },
+    { label: 'Students',    href: '/admin/students',   icon: Users           },
+    { label: 'Classes',     href: '/admin/classes',    icon: BookOpen        },
+    { label: 'Timetable',   href: '/admin/timetable',  icon: Clock           },
+    { label: 'Calendar',    href: '/admin/calendar',   icon: Calendar        },
+    { divider: true, label: 'Management' },
+    { label: 'Analytics',   href: '/slt/analytics',    icon: BarChart2       },
+    { label: 'Audit Log',   href: '/admin/audit',      icon: Shield          },
+    { label: 'Messages',    href: '/messages',         icon: MessageSquare   },
   ],
   SLT: [
     { label: 'Dashboard',     href: '/dashboard',            icon: LayoutDashboard },

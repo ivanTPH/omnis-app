@@ -1991,6 +1991,23 @@ async function main() {
   }
   console.log(`  ✓ UserSettings seeded for 3 demo users`)
 
+  // ── School Calendar entries ────────────────────────────────────────────────
+  const calendarEntries = [
+    { id: 'CAL-DEMO-1', date: new Date('2026-01-05'), type: 'TERM_START', label: 'Spring Term begins' },
+    { id: 'CAL-DEMO-2', date: new Date('2026-02-16'), type: 'HOLIDAY',    label: 'Spring Half Term'   },
+    { id: 'CAL-DEMO-3', date: new Date('2026-03-02'), type: 'INSET',      label: 'Staff INSET Day'    },
+    { id: 'CAL-DEMO-4', date: new Date('2026-04-01'), type: 'TERM_END',   label: 'Spring Term ends'   },
+    { id: 'CAL-DEMO-5', date: new Date('2026-04-20'), type: 'TERM_START', label: 'Summer Term begins' },
+  ]
+  for (const e of calendarEntries) {
+    await prisma.schoolCalendar.upsert({
+      where:  { id: e.id },
+      create: { ...e, schoolId: school.id },
+      update: {},
+    })
+  }
+  console.log(`  ✓ SchoolCalendar seeded (${calendarEntries.length} entries)`)
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

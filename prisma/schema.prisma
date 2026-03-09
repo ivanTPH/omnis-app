@@ -206,6 +206,7 @@ model School {
   subjectMedians        SubjectMedianAggregate[]
   notifications         Notification[]
   sendInsights          SendInsight[]
+  calendarEntries       SchoolCalendar[]
 
   // Wonde MIS integration
   wondeSchool            WondeSchool?
@@ -1191,6 +1192,20 @@ model UserSettings {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ─── School Calendar ─────────────────────────────────────────────────────────
+
+model SchoolCalendar {
+  id       String   @id @default(cuid())
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  date     DateTime
+  type     String   // HOLIDAY | INSET | TERM_START | TERM_END | EVENT
+  label    String?
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, date])
 }
 
 // ─── SEND Score Cache ─────────────────────────────────────────────────────────

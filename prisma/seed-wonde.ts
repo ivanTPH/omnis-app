@@ -539,6 +539,91 @@ async function main() {
   }
   console.log('✓ WondeSyncLog')
 
+  // ── 13. GDPR Consent Purposes ─────────────────────────────────────────────────
+  const PURPOSES = [
+    {
+      id:          'CP-OAKFIELD-1',
+      slug:        'send-data-sharing',
+      title:       'SEND Data Sharing with External Agencies',
+      description: 'Sharing your child\'s SEND assessment data with local authority educational psychologists, speech therapists, and other support agencies.',
+      lawfulBasis: 'consent',
+    },
+    {
+      id:          'CP-OAKFIELD-2',
+      slug:        'photo-video-consent',
+      title:       'Photography and Video Recording',
+      description: 'Use of your child\'s image in school publications, website, social media, and promotional materials.',
+      lawfulBasis: 'consent',
+    },
+    {
+      id:          'CP-OAKFIELD-3',
+      slug:        'data-analytics',
+      title:       'Learning Analytics',
+      description: 'Use of anonymised learning data to identify pupils at risk of underachievement and personalise support.',
+      lawfulBasis: 'legitimate_interest',
+    },
+    {
+      id:          'CP-OAKFIELD-4',
+      slug:        'third-party-tools',
+      title:       'Third-Party EdTech Tools',
+      description: 'Sharing pupil data with approved third-party educational technology tools used in lessons (e.g. online quizzes, revision platforms).',
+      lawfulBasis: 'consent',
+    },
+  ]
+
+  for (const p of PURPOSES) {
+    await prisma.consentPurpose.upsert({
+      where:  { schoolId_slug: { schoolId: school.id, slug: p.slug } },
+      update: {},
+      create: { ...p, schoolId: school.id, isActive: true },
+    })
+  }
+  console.log(`✓ ${PURPOSES.length} ConsentPurposes`)
+
+  // ── 14. Sample ConsentRecords ─────────────────────────────────────────────────
+  // Use Y7 + Y8 students (first 10 per year) as sample subjects.
+  // Use the first parent-linked user as responder — fall back to admin user.
+  const adminUser = await prisma.user.findFirst({ where: { schoolId: school.id, role: 'SCHOOL_ADMIN' } })
+  const parentUser = await prisma.user.findFirst({ where: { schoolId: school.id, role: 'PARENT' } })
+  const responderId = parentUser?.id ?? adminUser?.id ?? 'SYSTEM'
+
+  const DECISIONS: ('granted' | 'withdrawn')[] = ['granted', 'granted', 'granted', 'withdrawn', 'granted']
+  let crCount = 0
+
+  const sampleStudents = [
+    ...studentsByYear[7].slice(0, 5),
+    ...studentsByYear[8].slice(0, 5),
+    ...studentsByYear[9].slice(0, 5),
+    ...(studentsByYear[10] ?? []).slice(0, 5),
+  ]
+
+  for (const stud of sampleStudents) {
+    for (let pi = 0; pi < PURPOSES.length; pi++) {
+      // Skip ~20% of entries to leave some "unknown" cells in the matrix
+      if (rng() < 0.2) continue
+      const decision = DECISIONS[Math.floor(rng() * DECISIONS.length)]
+      const crId = `CR-${stud.wondeId}-${PURPOSES[pi].slug}`
+      const existing = await prisma.consentRecord.findFirst({
+        where: { purposeId: PURPOSES[pi].id, studentId: stud.wondeId, responderId },
+      })
+      if (!existing) {
+        await prisma.consentRecord.create({
+          data: {
+            id:          crId,
+            purposeId:   PURPOSES[pi].id,
+            studentId:   stud.wondeId,
+            responderId,
+            decision,
+            method:      'imported',
+            recordedAt:  new Date(Date.now() - ri(0, 30) * 86400_000),
+          },
+        })
+        crCount++
+      }
+    }
+  }
+  console.log(`✓ ${crCount} ConsentRecords`)
+
   // ── Summary ──────────────────────────────────────────────────────────────────
   console.log('\n═══════════════════════════════════════════')
   console.log('  Seed complete — Oakfield Academy')
@@ -550,6 +635,7 @@ async function main() {
   console.log(`  Periods:     ${periodCount}`)
   console.log(`  Timetable:   ${ttCount}`)
   console.log(`  Assessments: ${assCount}`)
+  console.log(`  Consent:     ${PURPOSES.length} purposes, ${crCount} records`)
   console.log('═══════════════════════════════════════════\n')
 }
 

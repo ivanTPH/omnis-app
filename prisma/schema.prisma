@@ -207,6 +207,8 @@ model School {
   notifications         Notification[]
   sendInsights          SendInsight[]
   calendarEntries       SchoolCalendar[]
+  consentPurposes       ConsentPurpose[]
+  dataSubjectRequests   DataSubjectRequest[]
 
   // Wonde MIS integration
   wondeSchool            WondeSchool?
@@ -1393,4 +1395,55 @@ model SendInsight {
 
   @@unique([schoolId, subject, yearGroup, resourceType])
   @@index([schoolId])
+}
+
+// ─── GDPR Consent Management ──────────────────────────────────────────────────
+
+model ConsentPurpose {
+  id          String   @id @default(cuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  slug        String   // e.g. "send-data-sharing", "photo-consent"
+  title       String
+  description String
+  lawfulBasis String   // "consent" | "legitimate_interest" | "legal_obligation"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  records     ConsentRecord[]
+
+  @@unique([schoolId, slug])
+  @@index([schoolId])
+}
+
+model ConsentRecord {
+  id          String   @id @default(cuid())
+  purposeId   String
+  studentId   String   // WondeStudent.id
+  responderId String   // User.id (parent or guardian)
+  decision    String   // "granted" | "withdrawn"
+  method      String   // "portal" | "paper" | "verbal" | "imported"
+  notes       String?
+  recordedAt  DateTime @default(now())
+  expiresAt   DateTime?
+
+  purpose  ConsentPurpose @relation(fields: [purposeId], references: [id])
+
+  @@index([purposeId])
+  @@index([studentId])
+  @@index([responderId])
+}
+
+model DataSubjectRequest {
+  id          String   @id @default(cuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
+  requestType String   // "access" | "erasure" | "rectification" | "portability"
+  studentId   String?
+  submittedBy String   // User.id
+  status      String   @default("pending") // "pending" | "in_progress" | "completed" | "rejected"
+  notes       String?
+  submittedAt DateTime @default(now())
+  resolvedAt  DateTime?
+
+  @@index([schoolId, status])
 }

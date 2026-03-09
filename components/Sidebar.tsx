@@ -6,7 +6,7 @@ import {
   Calendar, BookOpen, ClipboardList, Users, Folder,
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
-  UserCheck, Clock, Sparkles,
+  UserCheck, Clock, Sparkles, ShieldCheck,
 } from 'lucide-react'
 
 type NavItem =
@@ -62,6 +62,7 @@ const navByRole: Record<string, NavItem[]> = {
     { divider: true, label: 'Management' },
     { label: 'Analytics',   href: '/slt/analytics',    icon: BarChart2       },
     { label: 'Audit Log',   href: '/admin/audit',      icon: Shield          },
+    { label: 'GDPR & Consent', href: '/admin/gdpr',   icon: ShieldCheck     },
     { label: 'Messages',    href: '/messages',         icon: MessageSquare   },
   ],
   SLT: [
@@ -87,9 +88,10 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
   ],
   PARENT: [
-    { label: 'Dashboard',     href: '/parent/dashboard',     icon: LayoutDashboard },
-    { label: 'Progress',      href: '/parent/progress',      icon: BarChart2       },
-    { label: 'Messages',      href: '/parent/messages',      icon: MessageSquare   },
+    { label: 'Dashboard',       href: '/parent/dashboard', icon: LayoutDashboard },
+    { label: 'Progress',        href: '/parent/progress',  icon: BarChart2       },
+    { label: 'Messages',        href: '/parent/messages',  icon: MessageSquare   },
+    { label: 'Consent Settings', href: '/parent/consent', icon: ShieldCheck     },
   ],
 }
 

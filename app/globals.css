@@ -1,1 +1,59 @@
 @import "tailwindcss";
+
+/* ─── Accessibility: Dyslexia-friendly font ─────────────────────────────────── */
+html.dyslexia-font body,
+html.dyslexia-font * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif !important;
+  letter-spacing: 0.05em;
+  word-spacing: 0.1em;
+}
+
+/* ─── Accessibility: High contrast ─────────────────────────────────────────── */
+html.high-contrast {
+  filter: contrast(1.5);
+}
+html.high-contrast body {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+html.high-contrast a { color: #ffff00 !important; }
+html.high-contrast button { border: 2px solid #fff !important; }
+html.high-contrast .bg-white,
+html.high-contrast .bg-gray-50,
+html.high-contrast .bg-gray-100 {
+  background-color: #1a1a1a !important;
+}
+html.high-contrast .text-gray-900,
+html.high-contrast .text-gray-800,
+html.high-contrast .text-gray-700 {
+  color: #ffffff !important;
+}
+html.high-contrast .text-gray-500,
+html.high-contrast .text-gray-400 {
+  color: #cccccc !important;
+}
+html.high-contrast .border-gray-200,
+html.high-contrast .border-gray-100 {
+  border-color: #555555 !important;
+}
+
+/* ─── Accessibility: Large text ─────────────────────────────────────────────── */
+html.large-text body   { font-size: 120% !important; }
+html.large-text h1     { font-size: 2.4rem !important; }
+html.large-text h2     { font-size: 2rem !important; }
+html.large-text h3     { font-size: 1.5rem !important; }
+html.large-text p,
+html.large-text li     { font-size: 1.2rem !important; }
+
+/* ─── Accessibility: Reduced motion ─────────────────────────────────────────── */
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ─── Accessibility: Line spacing ───────────────────────────────────────────── */
+html.line-spacing-wide  body { line-height: 1.8 !important; }
+html.line-spacing-wider body { line-height: 2.2 !important; }

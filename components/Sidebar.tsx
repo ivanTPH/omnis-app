@@ -7,6 +7,7 @@ import {
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
   UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2, RefreshCw,
+  Accessibility,
 } from 'lucide-react'
 
 type NavItem =
@@ -171,12 +172,23 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
           href="/settings"
           onClick={onClose}
           className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
-            pathname === '/settings' || pathname.startsWith('/settings/')
+            pathname === '/settings' && !pathname.startsWith('/settings/accessibility')
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
           <Settings size={15} className="shrink-0" />Settings
+        </Link>
+        <Link
+          href="/settings/accessibility"
+          onClick={onClose}
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+            pathname === '/settings/accessibility'
+              ? 'bg-blue-50 text-blue-700'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          <Accessibility size={15} className="shrink-0" />Accessibility
         </Link>
       </div>
 

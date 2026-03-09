@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-09 (Phase 3A). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-09 (Phase 3B). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -62,8 +62,6 @@ app/
 │   ├── page.tsx                        Class list with expandable student rosters
 │   └── loading.tsx                     Suspense skeleton
 │
-├── settings/page.tsx                   User settings (5 tabs)
-│
 ├── analytics/
 │   ├── teacher/page.tsx                Teacher-scoped analytics
 │   ├── department/page.tsx             Department analytics (HEAD_OF_DEPT)
@@ -72,6 +70,10 @@ app/
 │       └── [id]/page.tsx              Individual student detail dashboard
 │
 ├── revision/page.tsx                   Student revision planner (STUDENT only)
+│
+├── settings/
+│   ├── page.tsx                        User settings (5 tabs)
+│   └── accessibility/page.tsx          Accessibility settings (all roles)
 │
 ├── student/
 │   ├── dashboard/page.tsx              Student home (upcoming homework, grades)
@@ -196,12 +198,16 @@ app/actions/
 | `revision/PlanGeneratorModal.tsx` | 3-step modal: select exams → availability → confidence → AI generate → preview → accept |
 | `revision/ConfidenceChart.tsx` | recharts bar chart of avg confidence by subject (red/amber/green coded) |
 | `revision/RevisionDashboard.tsx` | Full dashboard: stats bar, ExamList, WeeklyRevisionGrid, ConfidenceChart, plan trigger |
+| `accessibility/AccessibilityToolbar.tsx` | Fixed floating button (bottom-right) — opens AccessibilityPanel slide-in; blue dot when active |
+| `accessibility/AccessibilityPanel.tsx` | Compact panel with toggles for all 5 settings; live-applies CSS classes to `<html>` + persists to DB |
+| `accessibility/AccessibilitySettingsView.tsx` | Full-page settings with icon cards, descriptions, "who it helps" copy, reset button |
 
 ### Library (`lib/`)
 
 | File | Purpose |
 |---|---|
 | `lib/auth.ts` | NextAuth config (`trustHost: true`, JWT callbacks, session shape) |
+| `lib/accessibility.ts` | settingsToClasses(), hasActiveSettings(), ACCESSIBILITY_DEFAULTS |
 | `lib/prisma.ts` | Prisma client singleton + helpers (e.g. `writeAudit()`) |
 | `lib/sendReview.ts` | SEND accessibility scoring via Claude API |
 | `lib/sendReviewCached.ts` | Cached wrapper around sendReview (DB cache via `SendScoreCache`) |
@@ -365,6 +371,9 @@ npm run platform:seed      # Platform admin user + 3 demo schools + feature flag
 - `UserSettings` — profile extras, privacy prefs, lesson sharing level, avatar URL
 - `WondeSyncRun` / `ExternalChangeLog` — MIS sync history
 
+**Accessibility**
+- `UserAccessibilitySettings` — per-user: dyslexiaFont, highContrast, largeText, reducedMotion, lineSpacing; applied server-side to `<html>` class on every page load
+
 **Revision Planner**
 - `RevisionExam` — student exam with subject, examBoard, paperName, examDate, durationMins
 - `RevisionSession` — planned/completed/skipped session linked to exam (optional); tracks confidence 1–5 + notes + optional oakLessonSlug
@@ -462,6 +471,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Phase 1D — SEND Resource Quality Scorer:** `SendQualityScore` Prisma model + migration (20260309110000). `app/actions/send-scorer.ts` (getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores). 5 components under `components/send/` (SendScoreBadge, SendScoreCard, SendScoreButton, ScorerResultRow, ScorerView). Standalone page `/send-scorer` (SENCO + SLT + SCHOOL_ADMIN). SendScoreButton integrated into OakResourcePanel expanded detail. "Resource Scorer" added to SENCO sidebar nav. AI scoring via `claude-sonnet-4-20250514` across 5 dimensions (readability, visual load, cognitive, language, structure), scores cached in DB.
 - **Phase 2B — AI Resource Generator:** `GeneratedResource` Prisma model + migration (20260309140000). `app/actions/ai-generator.ts` (generateResource, getMyResources, getSchoolResources, deleteGeneratedResource, linkResourceToLesson). `marked` installed for markdown rendering. 6 components under `components/ai-generator/` (ResourceTypeIcon, ResourceGeneratorForm, ResourcePreview, ResourceCard, ResourceLibrary, AiGeneratorShell). Route `/ai-generator` (TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN). Two-panel layout: left = form, right = preview or library. "AI Generator" added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN sidebars. Non-streaming Anthropic call with SEND adaptation prompts. Falls back to stub content if `ANTHROPIC_API_KEY` absent.
 - **Phase 2E — Delta Oak Sync:** `lastSeenAt` + `deletedAt` fields added to OakSubject/OakUnit/OakLesson. `OakSyncLog` model created + migration (20260309160000). `lib/oak-delta-sync.ts` exports `runDeltaSync()` using shared prisma client — upserts subjects/units/lessons with change detection, soft-deletes unseen records, writes full counts to OakSyncLog. `scripts/oak-delta-sync.ts` standalone wrapper with direct-URL PrismaClient. `npm run oak:delta` script added. `app/api/cron/oak-sync/route.ts` — GET endpoint secured by `CRON_SECRET`, `maxDuration=300`. `vercel.json` cron: Sunday 2am (`0 2 * * 0`). `app/actions/oak.ts` updated to filter `deletedAt: null` in all queries. `getOakSyncLogs` + `triggerDeltaSync` actions added to `platform-admin.ts`. `components/platform-admin/OakSyncStatus.tsx` — log table with per-row expansion + "Run Delta Sync Now" button. `/platform-admin/oak-sync` page + "Oak Sync" (RefreshCw) in PLATFORM_ADMIN sidebar. `.env.local.example` created with `CRON_SECRET` documented.
+- **Phase 3B — Accessibility Modes:** `UserAccessibilitySettings` Prisma model + migration (20260309180000). `app/actions/accessibility.ts` (getAccessibilitySettings, saveAccessibilitySettings). `lib/accessibility.ts` (settingsToClasses, hasActiveSettings, ACCESSIBILITY_DEFAULTS). 4 components under `components/accessibility/` (AccessibilityToolbar, AccessibilityPanel, AccessibilitySettingsView). `/settings/accessibility` page (all roles). CSS classes added to `globals.css`: dyslexia-font (OpenDyslexic + letter-spacing), high-contrast (dark bg, bright text), large-text (+20% font), reduced-motion (0.01ms transitions), line-spacing-wide/wider (1.8/2.2 line-height). `app/layout.tsx` fetches settings server-side and applies classes to `<html>` before paint — no flash. `AccessibilityToolbar` floats fixed bottom-right on all pages with blue dot indicator when active. "Accessibility" (Accessibility icon) added to sidebar footer for all roles.
 - **Phase 3A — Student Revision Planner:** 3 Prisma models (RevisionExam, RevisionSession, RevisionConfidence) + migration (20260309170000). `app/actions/revision.ts` (getMyExams, addExam, deleteExam, getMyRevisionSessions, generateRevisionPlan, saveRevisionPlan, markSessionComplete, skipSession, getConfidenceProfile, getRevisionStats). 5 components under `components/revision/` (ExamList, WeeklyRevisionGrid, SessionDetailModal, PlanGeneratorModal, ConfidenceChart, RevisionDashboard). Route `/revision` (STUDENT only). Claude-powered plan generation: 3-step modal (select exams → availability → confidence ratings) → AI generates 10–20 sessions for next 2 weeks → preview → accept. Session status tracking (planned/completed/skipped), confidence self-assessment (1–5 stars), 7-day week grid with navigation, streak counter. "Revision Planner" (BookOpen) added to STUDENT sidebar after Homework. Confidence bar chart via recharts. Falls back to stub plan if ANTHROPIC_API_KEY absent.
 - **Phase 2D — Cover Management:** `StaffAbsence` + `CoverAssignment` Prisma models + migration (20260309150000). `app/actions/cover.ts` (getTodaysCoverSummary, logAbsence, getAvailableStaff, assignCover, updateAssignmentStatus, deleteAbsence, getStaffList, getCoverHistory). 6 components under `components/cover/` (AbsenceList, AssignCoverModal, CoverAssignmentGrid, LogAbsenceModal, CoverHistoryTable, CoverDashboard, CoverPageTabs). Route `/admin/cover` (SCHOOL_ADMIN, SLT, COVER_MANAGER) with Today/History tabs. "Cover" (CalendarX2) added to SCHOOL_ADMIN, SLT, COVER_MANAGER sidebars. Auto-creates CoverAssignment per lesson when absence logged. `wonde:seed` extended with 2 today absences (WEMP-005 Helen Davies, WEMP-006 Robert Johnson) + mix of assignment statuses.
 

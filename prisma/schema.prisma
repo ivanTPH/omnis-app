@@ -234,6 +234,8 @@ model School {
   wondeAssessmentResults WondeAssessmentResult[]
   wondeDeletions         WondeDeletion[]
   wondeSyncLogs          WondeSyncLog[]
+  staffAbsences          StaffAbsence[]
+  coverAssignments       CoverAssignment[]
 }
 
 model TermDate {
@@ -1137,6 +1139,41 @@ model ExternalChangeLog {
   createdAt      DateTime     @default(now())
 
   @@index([syncRunId])
+}
+
+// ─── Cover Management ─────────────────────────────────────────────────────────
+
+model StaffAbsence {
+  id               String            @id @default(cuid())
+  school           School            @relation(fields: [schoolId], references: [id])
+  schoolId         String
+  staffId          String            // WondeEmployee.id
+  date             DateTime          // Date of absence
+  reason           String            // "illness" | "training" | "personal" | "other"
+  notes            String?
+  reportedBy       String            // User.id of admin who logged it
+  createdAt        DateTime          @default(now())
+  coverAssignments CoverAssignment[]
+
+  @@index([schoolId, date])
+  @@index([staffId])
+}
+
+model CoverAssignment {
+  id               String       @id @default(cuid())
+  school           School       @relation(fields: [schoolId], references: [id])
+  schoolId         String
+  absenceId        String
+  timetableEntryId String       // WondeTimetableEntry.id
+  coveredBy        String?      // WondeEmployee.id of cover supervisor (null = unassigned)
+  status           String       @default("unassigned") // "unassigned" | "assigned" | "confirmed" | "cancelled"
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  absence          StaffAbsence @relation(fields: [absenceId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, absenceId])
+  @@index([coveredBy])
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

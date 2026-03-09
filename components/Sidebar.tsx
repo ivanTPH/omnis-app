@@ -6,7 +6,7 @@ import {
   Calendar, BookOpen, ClipboardList, Users, Folder,
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
-  UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2,
+  UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2,
 } from 'lucide-react'
 
 type NavItem =
@@ -68,6 +68,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Audit Log',   href: '/admin/audit',      icon: Shield          },
     { label: 'GDPR & Consent', href: '/admin/gdpr',   icon: ShieldCheck     },
     { label: 'AI Generator', href: '/ai-generator',   icon: Wand2           },
+    { label: 'Cover',        href: '/admin/cover',    icon: CalendarX2      },
     { label: 'Messages',    href: '/messages',         icon: MessageSquare   },
   ],
   SLT: [
@@ -75,6 +76,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Analytics',     href: '/slt/analytics',        icon: BarChart2       },
     { label: 'Audit Log',     href: '/slt/audit',            icon: Shield          },
     { label: 'AI Generator', href: '/ai-generator',         icon: Wand2           },
+    { label: 'Cover',        href: '/admin/cover',          icon: CalendarX2      },
     { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
     { label: 'Notifications', href: '/notifications',        icon: Bell            },
     { divider: true, label: 'Pastoral' },
@@ -83,6 +85,7 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   COVER_MANAGER: [
     { label: 'Dashboard',     href: '/dashboard',            icon: LayoutDashboard },
+    { label: 'Cover',         href: '/admin/cover',          icon: CalendarX2      },
     { label: 'Lessons',       href: '/lessons',              icon: BookOpen        },
     { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
     { label: 'Notifications', href: '/notifications',        icon: Bell            },

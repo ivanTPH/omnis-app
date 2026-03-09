@@ -624,6 +624,80 @@ async function main() {
   }
   console.log(`✓ ${crCount} ConsentRecords`)
 
+  // ── 15. Cover seed data — 2 absences for today ───────────────────────────────
+  const today = new Date()
+  today.setHours(12, 0, 0, 0)
+  const todayDow = today.getDay() // 0=Sun … 6=Sat
+
+  // WEMP-005 = Helen Davies (English HOD, Y7 English teacher)
+  // WEMP-006 = Robert Johnson (Maths HOD, Y7 Maths teacher)
+  const absenceStaff = [
+    { staffId: 'WEMP-005', reason: 'illness', notes: 'Called in sick this morning', allUnassigned: true },
+    { staffId: 'WEMP-006', reason: 'illness', notes: null, allUnassigned: false },
+  ]
+
+  // Find an admin user to report absences
+  const adminReporter = await prisma.user.findFirst({
+    where: { schoolId: school.id, role: { in: ['SCHOOL_ADMIN', 'SLT'] } },
+  })
+  const reportedBy = adminReporter?.id ?? 'SYSTEM'
+
+  for (const abs of absenceStaff) {
+    // Upsert absence (avoid duplicate on re-seed)
+    const existingAbs = await prisma.staffAbsence.findFirst({
+      where: { schoolId: school.id, staffId: abs.staffId, date: { gte: new Date(today.setHours(0,0,0,0)), lte: new Date(today.setHours(23,59,59,999)) } },
+    })
+    today.setHours(12, 0, 0, 0)
+
+    let absence = existingAbs
+    if (!absence) {
+      absence = await prisma.staffAbsence.create({
+        data: {
+          schoolId:  school.id,
+          staffId:   abs.staffId,
+          date:      today,
+          reason:    abs.reason,
+          notes:     abs.notes,
+          reportedBy,
+        },
+      })
+    }
+
+    // Find timetable entries for this employee on today's day of week
+    // Skip weekends (no lessons on Sat/Sun)
+    if (todayDow >= 1 && todayDow <= 5) {
+      const entries = await prisma.wondeTimetableEntry.findMany({
+        where: { schoolId: school.id, employeeId: abs.staffId, period: { dayOfWeek: todayDow } },
+      })
+
+      for (let i = 0; i < entries.length; i++) {
+        const existing = await prisma.coverAssignment.findFirst({
+          where: { absenceId: absence.id, timetableEntryId: entries[i].id },
+        })
+        if (!existing) {
+          // For second teacher: mix of statuses
+          let status = 'unassigned'
+          if (!abs.allUnassigned) {
+            if (i === 0) status = 'confirmed'
+            else if (i === 1) status = 'assigned'
+          }
+          // For assigned/confirmed, pick a cover supervisor (WEMP-027 = Matthew Cooper, PE)
+          const coveredBy = status !== 'unassigned' ? 'WEMP-027' : null
+          await prisma.coverAssignment.create({
+            data: {
+              schoolId:        school.id,
+              absenceId:       absence.id,
+              timetableEntryId: entries[i].id,
+              status,
+              coveredBy,
+            },
+          })
+        }
+      }
+    }
+  }
+  console.log('✓ Cover seed: 2 absences for today')
+
   // ── Summary ──────────────────────────────────────────────────────────────────
   console.log('\n═══════════════════════════════════════════')
   console.log('  Seed complete — Oakfield Academy')

@@ -383,6 +383,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Account settings:** `/settings` page built with 5 tabs (Profile, Professional, Privacy, Sharing, Security); avatar upload to DB; avatar chip in sidebar links to `/settings`
 - **Phase 1A — Oak content library:** Oak sync script (`scripts/oak-sync.ts`) completed — 19 subjects, 2,017 units, 11,403 lessons synced. `app/actions/oak.ts` created (getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson). `components/OakResourcePanel.tsx` built with filter/search UI. Integrated as "Oak Resources" tab in `LessonFolder.tsx`.
 - **Phase 1C Part A — Wonde schema + synthetic data:** 12 Wonde MIS models added to `prisma/schema.prisma` with migration applied. `prisma/seed-wonde.ts` creates Oakfield Academy: 30 staff, 120 students (Y7–Y10), 204 contacts, 32 classes, 480 enrolments, 40 periods, 96 timetable entries, 240 KS2 SAT results.
+- **Phase 1B — School Admin Dashboard:** 7 routes under `/admin/`, `app/actions/admin.ts` (8 actions), 6 components under `components/admin/`. SchoolCalendar schema model added + migration. SCHOOL_ADMIN sidebar updated. SCHOOL_ADMIN login now redirects to `/admin/dashboard`.
 
 ### 🔲 Still needed
 
@@ -411,7 +412,6 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - `/messages` — staff messaging inbox
 - `/notifications` — notification centre
 - `/hoy/integrity` — integrity case management
-- `/admin/users` — user management (SCHOOL_ADMIN)
 - `/admin/audit` — audit log (SCHOOL_ADMIN)
 - `/slt/audit` — audit log (SLT)
 - `/student/grades` — student grade history

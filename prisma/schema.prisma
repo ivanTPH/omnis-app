@@ -1331,13 +1331,30 @@ model OakLesson {
   syncedAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  resources OakResource[]
+  resources        OakResource[]
+  sendQualityScore SendQualityScore?
 
   @@index([unitSlug])
   @@index([subjectSlug])
   @@index([keystage])
   @@index([examBoard])
   @@index([yearGroup])
+}
+
+model SendQualityScore {
+  id               String    @id @default(cuid())
+  oakLessonSlug    String    @unique
+  lesson           OakLesson @relation(fields: [oakLessonSlug], references: [slug])
+  overallScore     Int
+  readabilityScore Int
+  visualLoadScore  Int
+  cognitiveScore   Int
+  languageScore    Int
+  structureScore   Int
+  summary          String
+  recommendations  String[]
+  scoredAt         DateTime  @default(now())
+  modelVersion     String    @default("claude-sonnet-4-20250514")
 }
 
 model OakResource {

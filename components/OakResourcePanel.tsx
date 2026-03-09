@@ -11,6 +11,7 @@ import {
   addOakLessonToLesson,
 } from '@/app/actions/oak'
 import type { OakLessonSearchResult } from '@/app/actions/oak'
+import SendScoreButton from '@/components/send/SendScoreButton'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -215,6 +216,9 @@ function ResultRow({
           ) : (
             expandedDetail && <LessonDetail lesson={expandedDetail} />
           )}
+
+          {/* SEND score */}
+          <SendScoreButton oakLessonSlug={result.slug} />
 
           {/* Add button */}
           <div className="flex justify-end mt-3">

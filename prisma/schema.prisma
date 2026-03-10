@@ -236,6 +236,13 @@ model School {
   wondeSyncLogs          WondeSyncLog[]
   staffAbsences          StaffAbsence[]
   coverAssignments       CoverAssignment[]
+
+  // Phase 5 — SEND Monitoring
+  sendConcerns           SendConcern[]
+  sendNotifications      SendNotification[]
+  sendReviewLogs         SendReviewLog[]
+  earlyWarningFlags      EarlyWarningFlag[]
+  learningPlans          IndividualLearningPlan[] @relation("SchoolLearningPlans")
 }
 
 model TermDate {
@@ -298,6 +305,16 @@ model User {
   // Settings
   settings             UserSettings?
   accessibilitySettings UserAccessibilitySettings?
+
+  // Phase 5 — SEND Monitoring
+  studentConcerns      SendConcern[]          @relation("StudentConcerns")
+  raisedConcerns       SendConcern[]          @relation("RaisedConcerns")
+  sendNotifications    SendNotification[]     @relation("NotificationRecipient")
+  reviewedConcerns     SendConcern[]          @relation("ReviewedConcerns")
+  ilpsCreated          IndividualLearningPlan[] @relation("IlpCreator")
+  studentIlps          IndividualLearningPlan[] @relation("StudentIlps")
+  sendReviewLogs       SendReviewLog[]        @relation("SendActor")
+  earlyWarningActioned EarlyWarningFlag[]     @relation("FlagActioner")
 
   @@index([schoolId, role])
 }
@@ -1639,4 +1656,132 @@ model UserAccessibilitySettings {
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+}
+
+// ─── Phase 5 — SEND Monitoring & Early Warning ───────────────────────────────
+
+model SendConcern {
+  id            String    @id @default(cuid())
+  schoolId      String
+  studentId     String
+  raisedBy      String
+  source        String    // "teacher" | "system" | "parent" | "self"
+  category      String    // "literacy" | "numeracy" | "behaviour" | "attendance"
+                          // | "social_emotional" | "communication" | "physical" | "sensory" | "other"
+  description   String
+  evidenceNotes String?
+  status        String    @default("open")
+                          // "open" | "under_review" | "escalated" | "monitoring" | "closed" | "no_action"
+  aiAnalysis    String?
+  createdAt     DateTime  @default(now())
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  reviewNotes   String?
+
+  school          School             @relation(fields: [schoolId], references: [id])
+  student         User               @relation("StudentConcerns", fields: [studentId], references: [id])
+  raisedByUser    User               @relation("RaisedConcerns", fields: [raisedBy], references: [id])
+  reviewedByUser  User?              @relation("ReviewedConcerns", fields: [reviewedBy], references: [id])
+  notifications   SendNotification[]
+
+  @@index([schoolId, studentId])
+  @@index([schoolId, status])
+}
+
+model IndividualLearningPlan {
+  id               String      @id @default(cuid())
+  schoolId         String
+  studentId        String
+  createdBy        String
+  sendCategory     String
+  currentStrengths String
+  areasOfNeed      String
+  strategies       String[]
+  successCriteria  String
+  reviewDate       DateTime
+  status           String      @default("active") // "active" | "under_review" | "archived"
+  parentConsent    Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  school   School      @relation("SchoolLearningPlans", fields: [schoolId], references: [id])
+  student  User        @relation("StudentIlps", fields: [studentId], references: [id])
+  creator  User        @relation("IlpCreator", fields: [createdBy], references: [id])
+  targets  IlpTarget[]
+
+  @@index([schoolId, studentId])
+}
+
+model IlpTarget {
+  id              String    @id @default(cuid())
+  ilpId           String
+  target          String
+  strategy        String
+  successMeasure  String
+  targetDate      DateTime
+  status          String    @default("active") // "active" | "achieved" | "not_achieved" | "deferred"
+  progressNotes   String?
+  reviewedAt      DateTime?
+
+  ilp IndividualLearningPlan @relation(fields: [ilpId], references: [id], onDelete: Cascade)
+
+  @@index([ilpId])
+}
+
+model SendNotification {
+  id          String    @id @default(cuid())
+  schoolId    String
+  recipientId String
+  concernId   String?
+  type        String    // "new_concern" | "concern_escalated" | "ilp_created"
+                        // | "ilp_review_due" | "pattern_detected" | "review_requested"
+  title       String
+  body        String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  school    School       @relation(fields: [schoolId], references: [id])
+  recipient User         @relation("NotificationRecipient", fields: [recipientId], references: [id])
+  concern   SendConcern? @relation(fields: [concernId], references: [id])
+
+  @@index([recipientId, isRead])
+  @@index([schoolId])
+}
+
+model SendReviewLog {
+  id        String   @id @default(cuid())
+  schoolId  String
+  studentId String
+  action    String   // "concern_raised" | "concern_reviewed" | "ilp_created"
+                     // | "ilp_updated" | "ilp_reviewed" | "concern_closed"
+  actorId   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+  actor  User   @relation("SendActor", fields: [actorId], references: [id])
+
+  @@index([schoolId, studentId])
+}
+
+model EarlyWarningFlag {
+  id          String    @id @default(cuid())
+  schoolId    String
+  studentId   String
+  flagType    String    // "homework_decline" | "completion_drop" | "score_decline"
+                        // | "pattern_absence" | "multiple_concerns"
+  severity    String    // "low" | "medium" | "high"
+  description String
+  dataPoints  Json
+  isActioned  Boolean   @default(false)
+  actionedBy  String?
+  actionedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+
+  school     School @relation(fields: [schoolId], references: [id])
+  actionedByUser User? @relation("FlagActioner", fields: [actionedBy], references: [id])
+
+  @@index([schoolId, isActioned])
+  @@index([studentId])
 }

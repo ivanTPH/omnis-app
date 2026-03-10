@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-10 (Phase 4B). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-10 (Phase 5). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -220,6 +220,8 @@ app/actions/
 | `lib/sendReviewCached.ts` | Cached wrapper around sendReview (DB cache via `SendScoreCache`) |
 | `lib/sendInsights.ts` | SEND insights aggregation queries |
 | `lib/curriculum.ts` | Curriculum utilities |
+| `lib/send/early-warning.ts` | `analyseStudentPatterns(schoolId)` — 4 pattern checks, upserts EarlyWarningFlags, notifies SENCOs |
+| `lib/send/concern-analyser.ts` | `analyseConcernPattern(studentId, schoolId)` — Claude AI pattern analysis for concern review |
 
 ### Database (`prisma/`)
 
@@ -230,6 +232,7 @@ prisma/
 ├── seed-classes.ts             Class seed data
 ├── seed-english-students.ts    Adds 20+22+22 students to 9E/En1, 10E/En2, 11E/En1
 ├── seed-wonde.ts               Oakfield Academy: 30 staff, 120 students, 32 classes (Wonde MIS)
+├── seed-send.ts                Phase 5 SEND data: 6 concerns, 2 ILPs, 4 flags, 6 review logs, 8 notifications
 └── migrations/
     ├── 20260301191436_add_lessons/
     ├── 20260301195139_add_send_need_area_misconception_tags/
@@ -243,6 +246,7 @@ npm run db:seed-classes    # classes only
 npm run db:seed-english    # English class students + submissions
 npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 npm run platform:seed      # Platform admin user + 3 demo schools + feature flags
+npm run send:seed          # Phase 5 SEND monitoring: concerns, ILPs, flags, notifications
 ```
 
 ---
@@ -465,6 +469,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 ## Outstanding Tasks
 
 ### ✅ Completed (this session)
+- **Phase 5 — Proactive SEND Monitoring, Early Warning & ILP:** 6 Prisma models (SendConcern, IndividualLearningPlan, IlpTarget, SendNotification, SendReviewLog, EarlyWarningFlag) pushed to DB. Early warning engine `lib/send/early-warning.ts` — 4 pattern checks (completion drop, score decline, 3+ concerns, consecutive misses), upserts flags, notifies SENCOs. AI concern analyser `lib/send/concern-analyser.ts` — Claude analysis with disclaimer prefix. Server actions `app/actions/send-support.ts` (25 actions). 12 components under `components/send-support/` (SencoDashboard, RaiseConcernModal, RaiseConcernButton, ConcernList, ConcernReviewModal, EarlyWarningPanel, IlpCard, IlpForm, NotificationBell, StudentSendOverlay, ConcernsPageView, IlpPageView). Routes: `/senco/dashboard`, `/senco/concerns`, `/senco/ilp`, `/senco/early-warning`, `/student/[studentId]/send`. Cron: `/api/cron/early-warning` (6am Mon–Fri). SENCO sidebar replaced with full nav (Dashboard, Concerns, ILP, Early Warning, Resource Scorer). HEAD_OF_YEAR gets SEND Concerns link. `auth.config.ts` updated for `/senco/*` routes. `prisma/seed-send.ts` + `npm run send:seed` added. Build passing.
 - **Phase 4B — Playwright E2E Test Suite:** 50 tests passing across 8 spec files (auth, teacher, student, admin, send-scorer, platform-admin, accessibility, pdf-export). Page object model (`LoginPage`, `SidebarPage`), fixtures (`e2e/fixtures/users.ts`), helpers (`loginAs`, `gotoCommit`). GitHub Actions CI workflow (`.github/workflows/e2e.yml`). `TEST_REPORT.md` in project root. All role-based access controls and login flows verified. `test:e2e` / `test:e2e:ui` / `test:e2e:headed` scripts added to `package.json`.
 - **Phase 4A — Security Audit & Hardening:** Full code-level security audit. 15 issues found and resolved. High: (1) 6 admin read actions had NO auth checks — fixed by adding `requireAdminOrSlt()` to all; (2) `schoolId` trusted from client in admin/cover/gdpr/ai-generator — fixed to always use session `user.schoolId`. Medium: IDOR on revision planner `studentId` param — fixed to always use `user.id`; IDOR on accessibility `userId` param — fixed; cross-tenant IDOR on consent purpose/DSR mutations — fixed with school ownership checks; no security headers — added full CSP + X-Frame-Options + X-Content-Type-Options etc. to `next.config.ts`; no role-based middleware — expanded `auth.config.ts` with 11 role-route rules redirecting wrong-role users to their home page. Low: Zod validation added to gdpr.createPurpose (slug kebab-case, lawfulBasis enum), gdpr.recordConsent (decision enum), cover.logAbsence (reason enum), platform-admin.createSchool (URN 6-digit regex, phase enum), ai-generator.generateResource (resourceType enum, 200-char topic limit to prevent prompt injection); rate limiting added — generateResource max 20/user/day, getOrCreateSendScore max 50/day. `SECURITY_AUDIT.md` created in project root.
 - **Sidebar:** Lessons and Resources removed from TEACHER and HEAD_OF_DEPT nav

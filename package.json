@@ -14,6 +14,7 @@
     "oak:delta": "tsx --env-file=.env.local scripts/oak-delta-sync.ts",
     "wonde:seed": "tsx --env-file=.env.local prisma/seed-wonde.ts",
     "platform:seed": "tsx --env-file=.env.local prisma/seed-platform.ts",
+    "send:seed": "tsx --env-file=.env.local prisma/seed-send.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

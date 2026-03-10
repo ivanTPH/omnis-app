@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/oak-sync",
       "schedule": "0 2 * * 0"
+    },
+    {
+      "path": "/api/cron/early-warning",
+      "schedule": "0 6 * * 1-5"
     }
   ]
 }

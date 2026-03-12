@@ -100,6 +100,7 @@ export type StudentRow = {
   yearGroup: number | null
   className: string
   hasSend:   boolean
+  avatarUrl: string | null
 }
 
 export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> {
@@ -123,6 +124,7 @@ export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> 
     yearGroup: u.yearGroup,
     className: u.enrolments[0]?.class.name ?? '—',
     hasSend:   u.sendStatus !== null && u.sendStatus.activeStatus !== 'NONE',
+    avatarUrl: u.avatarUrl ?? null,
   }))
 }
 

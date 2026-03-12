@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { StudentRow } from '@/app/actions/admin'
+import StudentAvatar from '@/components/StudentAvatar'
 
 const YEAR_OPTIONS = [7, 8, 9, 10, 11]
 
@@ -82,11 +83,12 @@ export default function AdminStudentTable({ students }: { students: StudentRow[]
               <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-5 py-3.5 font-medium text-gray-900">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-                      <span className="text-gray-600 font-bold text-[10px]">
-                        {s.firstName[0]}{s.lastName[0]}
-                      </span>
-                    </div>
+                    <StudentAvatar
+                      firstName={s.firstName}
+                      lastName={s.lastName}
+                      avatarUrl={s.avatarUrl}
+                      size="xs"
+                    />
                     {s.firstName} {s.lastName}
                   </div>
                 </td>

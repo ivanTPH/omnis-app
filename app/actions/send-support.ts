@@ -14,6 +14,7 @@ export type ConcernRow = {
   id: string
   studentId: string
   studentName: string
+  studentAvatarUrl: string | null
   raisedBy: string
   raiserName: string
   source: string
@@ -247,16 +248,17 @@ export async function getStudentConcerns(studentId: string): Promise<ConcernRow[
 
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
   })
-  const userMap = new Map(users.map(u => [u.id, `${u.firstName} ${u.lastName}`]))
+  const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
 
   return concerns.map(c => ({
     id: c.id,
     studentId: c.studentId,
-    studentName: userMap.get(c.studentId) ?? 'Unknown',
+    studentName: userMap.get(c.studentId)?.name ?? 'Unknown',
+    studentAvatarUrl: userMap.get(c.studentId)?.avatarUrl ?? null,
     raisedBy: c.raisedBy,
-    raiserName: userMap.get(c.raisedBy) ?? 'Unknown',
+    raiserName: userMap.get(c.raisedBy)?.name ?? 'Unknown',
     source: c.source,
     category: c.category,
     description: c.description,
@@ -292,16 +294,17 @@ export async function getAllConcerns(filter?: {
 
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
   })
-  const userMap = new Map(users.map(u => [u.id, `${u.firstName} ${u.lastName}`]))
+  const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
 
   return concerns.map(c => ({
     id: c.id,
     studentId: c.studentId,
-    studentName: userMap.get(c.studentId) ?? 'Unknown',
+    studentName: userMap.get(c.studentId)?.name ?? 'Unknown',
+    studentAvatarUrl: userMap.get(c.studentId)?.avatarUrl ?? null,
     raisedBy: c.raisedBy,
-    raiserName: userMap.get(c.raisedBy) ?? 'Unknown',
+    raiserName: userMap.get(c.raisedBy)?.name ?? 'Unknown',
     source: c.source,
     category: c.category,
     description: c.description,
@@ -764,9 +767,9 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
   ])]
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
   })
-  const userMap = new Map(users.map(u => [u.id, `${u.firstName} ${u.lastName}`]))
+  const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
 
   return {
     openConcerns,
@@ -776,9 +779,10 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     recentConcerns: recentConcernsRaw.map(c => ({
       id: c.id,
       studentId: c.studentId,
-      studentName: userMap.get(c.studentId) ?? 'Unknown',
+      studentName: userMap.get(c.studentId)?.name ?? 'Unknown',
+      studentAvatarUrl: userMap.get(c.studentId)?.avatarUrl ?? null,
       raisedBy: c.raisedBy,
-      raiserName: userMap.get(c.raisedBy) ?? 'Unknown',
+      raiserName: userMap.get(c.raisedBy)?.name ?? 'Unknown',
       source: c.source,
       category: c.category,
       description: c.description,
@@ -792,7 +796,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     activeFlags: activeFlagsRaw.map(f => ({
       id: f.id,
       studentId: f.studentId,
-      studentName: userMap.get(f.studentId) ?? 'Unknown',
+      studentName: userMap.get(f.studentId)?.name ?? 'Unknown',
       flagType: f.flagType,
       severity: f.severity,
       description: f.description,

@@ -35,7 +35,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
       class: {
         include: {
           enrolments: {
-            include: { user: { select: { id: true, firstName: true, lastName: true } } },
+            include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
             orderBy:  [{ user: { lastName: 'asc' } }],
           },
         },
@@ -69,7 +69,7 @@ export async function getSubmissionForMarking(submissionId: string) {
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
     include: {
-      student:  { select: { id: true, firstName: true, lastName: true } },
+      student:  { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
       homework: {
         include: {
           class: {
@@ -793,7 +793,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
         const feedback = parsed.feedback ?? 'Auto-marked by AI.'
         await prisma.submission.update({
           where: { id: submissionId },
-          data: { autoScore: score, finalScore: score, feedback, status: 'MARKED' },
+          data: { autoScore: score, autoFeedback: feedback, finalScore: score, feedback, status: 'MARKED', autoMarked: true, teacherReviewed: false },
         })
         void updateLearningProfile(sub.studentId).catch(() => {})
         return { score, maxScore, feedback }
@@ -806,7 +806,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
   const feedback = `Auto-scored: ${score}/${maxScore}. Please review and add personalised feedback.`
   await prisma.submission.update({
     where: { id: submissionId },
-    data: { autoScore: score, finalScore: score, feedback, status: 'MARKED' },
+    data: { autoScore: score, autoFeedback: feedback, finalScore: score, feedback, status: 'MARKED', autoMarked: true, teacherReviewed: false },
   })
   void updateLearningProfile(sub.studentId).catch(() => {})
   return { score, maxScore, feedback }
@@ -836,6 +836,7 @@ export async function markSubmission(submissionId: string, data: {
       status:            'RETURNED',
       markedAt:          new Date(),
       integrityReviewed: true,
+      teacherReviewed:   true,
     },
   })
 
@@ -844,4 +845,68 @@ export async function markSubmission(submissionId: string, data: {
   revalidatePath('/homework')
   revalidatePath(`/homework/${sub.homeworkId}`)
   revalidatePath(`/homework/${sub.homeworkId}/mark/${submissionId}`)
+}
+
+// ── Bulk auto-mark queue ──────────────────────────────────────────────────────
+
+export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
+  queued: number
+  alreadyMarked: number
+}> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, id: userId } = session.user as any
+
+  const hw = await prisma.homework.findFirst({
+    where: { id: homeworkId, schoolId },
+    select: {
+      title: true,
+      homeworkVariantType: true,
+      class: { select: { teachers: { select: { userId: true } } } },
+    },
+  })
+  if (!hw) throw new Error('Homework not found')
+
+  const autoMarkableTypes = ['quiz', 'multiple_choice', 'retrieval_practice']
+  if (!autoMarkableTypes.includes(hw.homeworkVariantType ?? '')) {
+    throw new Error('This homework type does not support auto-marking')
+  }
+
+  const submissions = await prisma.submission.findMany({
+    where: { homeworkId, schoolId, status: 'SUBMITTED' },
+    select: { id: true },
+  })
+
+  const alreadyMarked = await prisma.submission.count({
+    where: { homeworkId, schoolId, status: { not: 'SUBMITTED' } },
+  })
+
+  let queued = 0
+  for (const sub of submissions) {
+    try {
+      await autoMarkSubmission(sub.id)
+      queued++
+    } catch {
+      // Skip submissions that fail
+    }
+  }
+
+  // Notify the teacher
+  if (queued > 0) {
+    const teacherIds = hw.class?.teachers.map(t => t.userId) ?? [userId]
+    await prisma.notification.createMany({
+      data: teacherIds.map(tid => ({
+        schoolId,
+        userId: tid,
+        type: 'HOMEWORK_GRADED',
+        title: `${queued} submission${queued !== 1 ? 's' : ''} auto-marked`,
+        body: `${queued} submission${queued !== 1 ? 's have' : ' has'} been auto-marked for "${hw.title}". Please review before returning to students.`,
+        linkHref: `/homework/${homeworkId}`,
+      })),
+      skipDuplicates: true,
+    })
+  }
+
+  revalidatePath(`/homework/${homeworkId}`)
+  return { queued, alreadyMarked }
 }

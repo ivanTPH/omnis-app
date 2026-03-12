@@ -6,7 +6,8 @@ import ConcernList from '@/components/send-support/ConcernList'
 import IlpCard from '@/components/send-support/IlpCard'
 import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
 import RaiseConcernButton from '@/components/send-support/RaiseConcernButton'
-import { AlertTriangle, FileText, User } from 'lucide-react'
+import { AlertTriangle, FileText } from 'lucide-react'
+import StudentAvatar from '@/components/StudentAvatar'
 
 const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN']
 
@@ -25,7 +26,7 @@ export default async function StudentSendPage({
   const [student, sendStatus, concerns, ilp, allFlags] = await Promise.all([
     prisma.user.findFirst({
       where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true, yearGroup: true },
+      select: { id: true, firstName: true, lastName: true, yearGroup: true, avatarUrl: true },
     }),
     prisma.sendStatus.findFirst({
       where: { studentId },
@@ -51,9 +52,12 @@ export default async function StudentSendPage({
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <User size={18} className="text-blue-600" />
-          </div>
+          <StudentAvatar
+            firstName={student.firstName}
+            lastName={student.lastName}
+            avatarUrl={student.avatarUrl}
+            size="md"
+          />
           <div>
             <h1 className="text-xl font-semibold text-gray-900">{studentName}</h1>
             <div className="flex items-center gap-2 mt-0.5">

@@ -7,6 +7,7 @@ import {
   AlertTriangle, BookOpen, Target,
 } from 'lucide-react'
 import { StrategyAppliesTo } from '@prisma/client'
+import StudentAvatar from '@/components/StudentAvatar'
 
 type MarkingData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getSubmissionForMarking>>>
 
@@ -100,9 +101,12 @@ export default function SubmissionMarkingView({
 
           {/* Student + submission meta */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-[12px] shrink-0">
-              {data.student.firstName[0]}{data.student.lastName[0]}
-            </div>
+            <StudentAvatar
+              firstName={data.student.firstName}
+              lastName={data.student.lastName}
+              avatarUrl={data.student.avatarUrl}
+              size="md"
+            />
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-[15px] font-bold text-gray-900">
@@ -137,6 +141,24 @@ export default function SubmissionMarkingView({
               </p>
             </div>
           </div>
+
+          {/* AI auto-mark review banner */}
+          {(data as any).autoMarked && !(data as any).teacherReviewed && (
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-amber-600">⚠️</span>
+                <span className="text-sm font-semibold text-amber-800">AI Auto-marked — Review Required</span>
+              </div>
+              <p className="text-sm text-amber-700">
+                This submission was automatically marked. Please review the score and feedback before returning to the student.
+              </p>
+              {(data as any).autoScore != null && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Original AI score: <strong>{(data as any).autoScore}%</strong> · Feedback pre-filled below (editable)
+                </p>
+              )}
+            </div>
+          )}
 
           {/* SEND support notice */}
           {data.plan && (hwStrats.length > 0 || classStrats.length > 0) && (
@@ -255,6 +277,9 @@ export default function SubmissionMarkingView({
             <div className="mb-4">
               <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
                 Score (out of {maxScore})
+                {(data as any).autoMarked && !(data as any).teacherReviewed && (
+                  <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI suggested</span>
+                )}
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -319,6 +344,8 @@ export default function SubmissionMarkingView({
                   ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
                   : saved
                     ? <><CheckCircle2 size={14} /> {data.nav.next ? 'Saved — moving on…' : 'Returned to student'}</>
+                    : (data as any).autoMarked && !(data as any).teacherReviewed
+                    ? 'Confirm & Return to Student'
                     : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
                 }
               </button>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, Bot, CheckCircle } from 'lucide-react'
 import type { ConcernRow } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
+import StudentAvatar from '@/components/StudentAvatar'
 
 const STATUS_COLOURS: Record<string, string> = {
   open:         'bg-amber-100 text-amber-800',
@@ -82,7 +83,15 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-900">{c.studentName}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <StudentAvatar
+                        firstName={c.studentName.split(' ')[0] ?? ''}
+                        lastName={c.studentName.split(' ').slice(1).join(' ') || c.studentName}
+                        avatarUrl={c.studentAvatarUrl}
+                        size="xs"
+                      />
+                      <span className="text-sm font-medium text-gray-900">{c.studentName}</span>
+                    </span>
                     <CategoryBadge category={c.category} />
                     <ConcernStatusBadge status={c.status} />
                   </div>

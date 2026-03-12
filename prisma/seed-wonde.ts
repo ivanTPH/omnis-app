@@ -1,3 +1,21 @@
+/*
+ * WONDE PHOTO SYNC NOTE:
+ * The Wonde API returns student photos at:
+ *   student.photo.thumb  (small, ~100px)
+ *   student.photo.medium (medium, ~200px)
+ *   student.photo.full   (full size)
+ *
+ * During Phase 1C Part B (live Wonde integration), sync photoUrl
+ * from student.photo.medium to WondeStudent.photoUrl and
+ * User.avatarUrl for each student.
+ *
+ * Photos are personal data — ensure:
+ * - Stored URLs are school-scoped (never cross-tenant)
+ * - Included in GDPR data subject access requests
+ * - Deleted when student leaves school (off-rolling)
+ * - Not used in platform-level analytics
+ */
+
 /**
  * prisma/seed-wonde.ts
  *
@@ -340,6 +358,7 @@ async function main() {
           yearGroup: year,
           formGroup: `${year}${i < 15 ? 'A' : 'B'}`,
           syncedAt:  now,
+          photoUrl:  `https://api.dicebear.com/7.x/initials/svg?seed=${firstName}${lastName}&backgroundColor=3b82f6`,
         },
       })
 
@@ -354,6 +373,7 @@ async function main() {
           firstName,
           lastName,
           yearGroup:    year,
+          avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${firstName}${lastName}&backgroundColor=3b82f6`,
         },
       })
 

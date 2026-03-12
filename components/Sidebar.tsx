@@ -116,12 +116,13 @@ const navByRole: Record<string, NavItem[]> = {
   ],
 }
 
-export default function Sidebar({ role, firstName, lastName, schoolName, onClose }: {
+export default function Sidebar({ role, firstName, lastName, schoolName, onClose, avatarUrl }: {
   role:        string
   firstName:   string
   lastName:    string
   schoolName:  string
   onClose?:    () => void
+  avatarUrl?:  string | null
 }) {
   const pathname = usePathname()
   const nav = navByRole[role] ?? navByRole['TEACHER']
@@ -199,9 +200,13 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
 
       <div className="px-4 py-4 border-t border-gray-100 shrink-0">
         <Link href="/settings" className="flex items-center gap-2.5 mb-3 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-            <span className="text-blue-700 font-semibold text-xs">{firstName[0]}{lastName[0]}</span>
-          </div>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={`${firstName} ${lastName}`} className="w-8 h-8 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-blue-700 font-semibold text-xs">{firstName[0]}{lastName[0]}</span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-medium text-gray-900 truncate">{firstName} {lastName}</div>
             <div className="text-[11px] text-gray-400">{role.replace(/_/g, ' ')}</div>

@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink } from 'lucide-react'
 import { markSubmission } from '@/app/actions/homework'
+import StudentAvatar from '@/components/StudentAvatar'
 
 type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getHomeworkForMarking>>>
 
@@ -131,18 +132,19 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         onClick={() => !missing && setSelectedId(studentId)}
         className={`flex-1 text-left flex items-center gap-2.5 px-3 py-2.5 ${missing ? 'cursor-default' : ''}`}
       >
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-          active   ? 'bg-blue-200 text-blue-800' :
-          missing  ? 'bg-gray-100 text-gray-400' :
-          isDone   ? 'bg-green-100 text-green-700' :
-          'bg-gray-100 text-gray-600'
-        }`}>
-          {user.firstName[0]}{user.lastName[0]}
-        </div>
+        <StudentAvatar
+          firstName={user.firstName}
+          lastName={user.lastName}
+          avatarUrl={user.avatarUrl ?? null}
+          size="xs"
+        />
         <div className="flex-1 min-w-0">
           <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>
             {user.firstName} {user.lastName}
             {send && <span className="ml-1 text-[9px] font-bold text-rose-500">SEND</span>}
+            {sub?.autoMarked && !sub?.teacherReviewed && (
+              <span className="ml-0.5 text-[9px] font-bold text-amber-600">⚠</span>
+            )}
           </p>
           <p className="text-[10px] text-gray-400">
             {missing ? 'Not submitted' : statusLabel(sub.status)}
@@ -183,6 +185,14 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           <p className="text-[10px] text-gray-400 mt-0.5">
             {hw.submissions.length} submitted · {missingStudents.length} missing
           </p>
+          {(() => {
+            const needsReview = hw.submissions.filter(s => s.autoMarked && !s.teacherReviewed).length
+            return needsReview > 0 ? (
+              <p className="text-[10px] text-amber-600 font-medium mt-0.5">
+                ⚠ {needsReview} awaiting your review
+              </p>
+            ) : null
+          })()}
         </div>
         <div className="flex-1 overflow-auto py-2 px-2 space-y-0.5">
           {submittedStudents.map(e => (
@@ -212,9 +222,12 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
             {/* student header */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[12px] font-bold shrink-0">
-                {selectedStudent.firstName[0]}{selectedStudent.lastName[0]}
-              </div>
+              <StudentAvatar
+                firstName={selectedStudent.firstName}
+                lastName={selectedStudent.lastName}
+                avatarUrl={selectedStudent.avatarUrl ?? null}
+                size="md"
+              />
               <div>
                 <p className="text-[16px] font-semibold text-gray-900">
                   {selectedStudent.firstName} {selectedStudent.lastName}
@@ -277,6 +290,22 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* AI auto-mark review banner */}
+            {selectedSub?.autoMarked && !selectedSub?.teacherReviewed && (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-amber-600 text-sm">⚠️</span>
+                  <span className="text-sm font-semibold text-amber-800">AI Auto-marked — Please Review</span>
+                </div>
+                <p className="text-xs text-amber-700">
+                  Score and feedback pre-filled by AI. Review and confirm before returning to student.
+                </p>
+                {selectedSub.autoScore != null && (
+                  <p className="text-xs text-amber-600 mt-1">AI score: <strong>{selectedSub.autoScore}%</strong></p>
                 )}
               </div>
             )}
@@ -357,7 +386,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
                   >
                     {isPending && <Loader2 size={13} className="animate-spin" />}
-                    {isAlreadyMarked ? 'Update & Return' : 'Mark & Return'}
+                    {selectedSub?.autoMarked && !selectedSub?.teacherReviewed
+                      ? 'Confirm & Return'
+                      : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
+                    }
                   </button>
                 </div>
               </div>

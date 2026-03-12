@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Brain, Link2, FileCheck, Star, ChevronDown, Lightbulb } from 'lucide-react'
+import { Brain, Link2, Star, ChevronDown, Lightbulb } from 'lucide-react'
 import type { StudentLearningProfileData, AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { getStudentLearningProfile, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
-import { linkSubmissionToEhcpOutcome } from '@/app/actions/ehcp'
+import { linkSubmissionToEhcpOutcome, linkHomeworkToIlpTarget } from '@/app/actions/ehcp'
 
 type Submission = {
   id: string
@@ -28,18 +28,29 @@ type EhcpOutcome = {
   status: string
 }
 
+type IlpTargetForLinking = {
+  id: string
+  target: string
+  targetDate: Date
+  strategy: string
+}
+
 type Props = {
   submission: Submission
   homeworkId: string
   ehcpOutcomes?: EhcpOutcome[]
+  ilpTargetsDue?: IlpTargetForLinking[]
 }
 
-export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOutcomes = [] }: Props) {
+export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOutcomes = [], ilpTargetsDue = [] }: Props) {
   const [profile, setProfile] = useState<StudentLearningProfileData | null>(null)
   const [suggestions, setSuggestions] = useState<AdaptiveHomeworkSuggestions | null>(null)
   const [loadingProfile, setLoadingProfile] = useState(true)
   const [linkingOutcome, setLinkingOutcome] = useState<string | null>(null)
   const [linkedOutcomes, setLinkedOutcomes] = useState<Set<string>>(new Set())
+  const [linkingIlpTarget, setLinkingIlpTarget] = useState<string | null>(null)
+  const [linkedIlpTargets, setLinkedIlpTargets] = useState<Set<string>>(new Set())
+  const [showEvidence, setShowEvidence] = useState(false)
   const [expandProfile, setExpandProfile] = useState(false)
   const [note, setNote] = useState('')
 
@@ -62,6 +73,18 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
       console.error(e)
     } finally {
       setLinkingOutcome(null)
+    }
+  }
+
+  async function handleLinkIlpTarget(targetId: string) {
+    setLinkingIlpTarget(targetId)
+    try {
+      await linkHomeworkToIlpTarget(homeworkId, targetId, `Evidence from submission by ${submission.studentName}`)
+      setLinkedIlpTargets(prev => new Set([...prev, targetId]))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLinkingIlpTarget(null)
     }
   }
 
@@ -160,45 +183,105 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
           </div>
         )}
 
-        {/* EHCP Evidence linking */}
-        {ehcpOutcomes.length > 0 && (
-          <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-              <FileCheck size={16} className="text-green-600" />
-              Link as EHCP Evidence
-            </div>
-            <input
-              type="text"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="Add evidence note (optional)"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
-            />
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {ehcpOutcomes.map(outcome => {
-                const isLinked = linkedOutcomes.has(outcome.id)
-                return (
-                  <div key={outcome.id} className="flex items-start gap-3">
-                    <button
-                      onClick={() => handleLinkEhcp(outcome.id)}
-                      disabled={linkingOutcome === outcome.id || isLinked}
-                      className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        isLinked
-                          ? 'bg-green-100 text-green-700 cursor-default'
-                          : 'bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50'
-                      }`}
-                    >
-                      <Link2 size={12} />
-                      {isLinked ? 'Linked' : linkingOutcome === outcome.id ? '…' : 'Link'}
-                    </button>
-                    <div className="min-w-0">
-                      <span className="text-xs text-gray-500">Section {outcome.section} · </span>
-                      <span className="text-xs text-gray-700">{outcome.outcomeText}</span>
+        {/* Link as Evidence — ILP + EHCP combined */}
+        {(ilpTargetsDue.length > 0 || ehcpOutcomes.length > 0) && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowEvidence(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Link2 size={16} className="text-purple-600" />
+                Link as Evidence
+                {(linkedIlpTargets.size > 0 || linkedOutcomes.size > 0) && (
+                  <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                    {linkedIlpTargets.size + linkedOutcomes.size} linked
+                  </span>
+                )}
+              </div>
+              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showEvidence ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showEvidence && (
+              <div className="p-4 space-y-4">
+                {/* ILP Targets */}
+                {ilpTargetsDue.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase">ILP Targets</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {ilpTargetsDue.map(t => {
+                        const isLinked = linkedIlpTargets.has(t.id)
+                        const daysLeft = Math.ceil((new Date(t.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                        const isUrgent = daysLeft <= 14
+                        return (
+                          <div key={t.id} className="flex items-start gap-3">
+                            <button
+                              onClick={() => handleLinkIlpTarget(t.id)}
+                              disabled={linkingIlpTarget === t.id || isLinked}
+                              className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                isLinked
+                                  ? 'bg-green-100 text-green-700 cursor-default'
+                                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50'
+                              }`}
+                            >
+                              <Link2 size={12} />
+                              {isLinked ? '✓ Linked' : linkingIlpTarget === t.id ? '…' : 'Link'}
+                            </button>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isUrgent ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {daysLeft}d left
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-700">{t.target}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                )}
+
+                {/* EHCP Outcomes */}
+                {ehcpOutcomes.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase">EHCP Outcomes</p>
+                    <input
+                      type="text"
+                      value={note}
+                      onChange={e => setNote(e.target.value)}
+                      placeholder="Add evidence note (optional)"
+                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                    />
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {ehcpOutcomes.map(outcome => {
+                        const isLinked = linkedOutcomes.has(outcome.id)
+                        return (
+                          <div key={outcome.id} className="flex items-start gap-3">
+                            <button
+                              onClick={() => handleLinkEhcp(outcome.id)}
+                              disabled={linkingOutcome === outcome.id || isLinked}
+                              className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                isLinked
+                                  ? 'bg-green-100 text-green-700 cursor-default'
+                                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50'
+                              }`}
+                            >
+                              <Link2 size={12} />
+                              {isLinked ? '✓ Linked' : linkingOutcome === outcome.id ? '…' : 'Link'}
+                            </button>
+                            <div className="min-w-0">
+                              <span className="text-xs text-gray-500">Section {outcome.section} · </span>
+                              <span className="text-xs text-gray-700">{outcome.outcomeText}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

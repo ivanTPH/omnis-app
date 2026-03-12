@@ -400,9 +400,38 @@ export async function generateIlpProgressReport(studentId: string): Promise<stri
     ? Math.round((recentSubmissions.filter(s => s.status !== 'SUBMITTED' || s.finalScore !== null).length / recentSubmissions.length) * 100)
     : 0
 
-  const targetsSummary = ilp.targets.map(t =>
-    `- Target: ${t.target}\n  Strategy: ${t.strategy}\n  Success measure: ${t.successMeasure}\n  Due: ${new Date(t.targetDate).toLocaleDateString('en-GB')}\n  Status: ${t.status}`
-  ).join('\n')
+  // Fetch linked homework evidence per ILP target
+  const ilpLinks = await prisma.ilpHomeworkLink.findMany({
+    where: { ilpTargetId: { in: ilp.targets.map(t => t.id) } },
+    include: {
+      homework: {
+        select: {
+          title: true,
+          dueAt: true,
+          submissions: {
+            where: { studentId },
+            select: { finalScore: true, feedback: true, submittedAt: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  })
+
+  const evidenceByTarget = new Map<string, string[]>()
+  for (const link of ilpLinks) {
+    const sub = link.homework.submissions[0]
+    const evidenceNote = `"${link.homework.title}" (due ${new Date(link.homework.dueAt).toLocaleDateString('en-GB')})${sub?.finalScore != null ? ` — scored ${sub.finalScore}%` : ''}`
+    if (!evidenceByTarget.has(link.ilpTargetId)) {
+      evidenceByTarget.set(link.ilpTargetId, [])
+    }
+    evidenceByTarget.get(link.ilpTargetId)!.push(evidenceNote)
+  }
+
+  const targetsSummary = ilp.targets.map(t => {
+    const evidence = evidenceByTarget.get(t.id) ?? []
+    return `- Target: ${t.target}\n  Strategy: ${t.strategy}\n  Success measure: ${t.successMeasure}\n  Due: ${new Date(t.targetDate).toLocaleDateString('en-GB')}\n  Status: ${t.status}\n  Evidence: ${evidence.length > 0 ? evidence.join('; ') : 'No linked homework evidence yet'}`
+  }).join('\n')
 
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return AI_DISCLAIMER + `ILP Progress Report — ${student.firstName} ${student.lastName}\n\n[AI service unavailable — please review targets manually]\n\n${targetsSummary}`
@@ -425,7 +454,9 @@ ${targetsSummary}
 
 Homework performance (last 90 days): ${recentSubmissions.length} tasks, ${completionRate}% completion rate${avgScore ? `, average score ${avgScore}%` : ''}.
 
-Write a structured report covering: (1) Overview and progress summary, (2) Target-by-target review, (3) Recommendations for next review period. Keep it professional and concise (400–500 words).`,
+Where evidence exists, reference the specific homework tasks in your report. Where no evidence exists for a target, note this as a gap and recommend action.
+
+Write a structured report covering: (1) Overview and progress summary, (2) Target-by-target review with evidence references, (3) Recommendations for next review period. Keep it professional and concise (400–500 words).`,
       }],
     })
     return AI_DISCLAIMER + (msg.content[0] as any).text.trim()
@@ -446,7 +477,18 @@ export async function generateEhcpAnnualReview(studentId: string): Promise<strin
       where: { schoolId, studentId, status: 'active' },
       include: {
         outcomes: {
-          include: { evidence: { select: { teacherNote: true, qualityRating: true, evidenceDate: true } } },
+          include: {
+            evidence: {
+              include: {
+                submission: {
+                  select: {
+                    finalScore: true,
+                    homework: { select: { title: true, dueAt: true } },
+                  },
+                },
+              },
+            },
+          },
           orderBy: [{ section: 'asc' }],
         },
       },
@@ -457,7 +499,12 @@ export async function generateEhcpAnnualReview(studentId: string): Promise<strin
   if (!ehcp) return AI_DISCLAIMER + 'No active EHCP found for this student.'
 
   const outcomesSummary = ehcp.outcomes.map(o =>
-    `Section ${o.section}: ${o.outcomeText}\nStatus: ${o.status}\nEvidence pieces: ${o.evidenceCount}\n${o.evidence.map(e => `  - ${e.teacherNote ?? 'No note'} (quality: ${e.qualityRating ?? 'N/A'}/5)`).join('\n')}`
+    `Section ${o.section}: ${o.outcomeText}\nStatus: ${o.status}\nEvidence pieces: ${o.evidenceCount}\n${o.evidence.map(e => {
+      const hwTitle = (e.submission as any)?.homework?.title
+      const score = (e.submission as any)?.finalScore
+      const dueDate = (e.submission as any)?.homework?.dueAt
+      return `  - ${e.teacherNote ?? 'No note'} (quality: ${e.qualityRating ?? 'N/A'}/5)${hwTitle ? ` — from "${hwTitle}"${dueDate ? ` due ${new Date(dueDate).toLocaleDateString('en-GB')}` : ''}` : ''}${score != null ? ` — scored ${score}%` : ''}`
+    }).join('\n')}`
   ).join('\n\n')
 
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -479,6 +526,8 @@ Review date: ${new Date(ehcp.reviewDate).toLocaleDateString('en-GB')}
 
 Outcomes and evidence:
 ${outcomesSummary}
+
+Where evidence exists, reference the specific homework tasks and scores in your review. Where outcomes have no evidence, note this as a gap requiring action before the review meeting.
 
 Write a formal annual review covering: (1) Overview of the year, (2) Review of each outcome with evidence referenced, (3) Recommendations for the coming year. Use appropriate EHCP annual review language (500–700 words).`,
       }],

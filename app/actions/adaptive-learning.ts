@@ -20,7 +20,7 @@ async function requireStaff() {
 export type StudentLearningProfileData = {
   id: string
   studentId: string
-  typePerformance: Record<string, { avgScore: number; count: number; avgTimeMin: number }>
+  typePerformance: Record<string, { avgScore: number; count: number; avgTimeMin: number; avgSelfAssessment?: number | null }>
   bloomsPerformance: Record<string, number>
   subjectPerformance: Record<string, { avg: number; trend: string }>
   preferredTypes: string[]
@@ -114,6 +114,7 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
       status: true,
       submittedAt: true,
       timeSpentMins: true,
+      selfAssessment: true,
       homework: {
         select: {
           homeworkVariantType: true,
@@ -126,7 +127,7 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
   })
 
   // Calculate type performance
-  const typeMap: Record<string, { scores: number[]; times: number[] }> = {}
+  const typeMap: Record<string, { scores: number[]; times: number[]; selfScores: number[] }> = {}
   const bloomsMap: Record<string, number[]> = {}
   const subjectMap: Record<string, { scores: number[]; recent: number[] }> = {}
   let submittedCount = 0
@@ -136,11 +137,12 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
     submittedCount++
 
     const varType = sub.homework.homeworkVariantType ?? 'free_text'
-    if (!typeMap[varType]) typeMap[varType] = { scores: [], times: [] }
+    if (!typeMap[varType]) typeMap[varType] = { scores: [], times: [], selfScores: [] }
     if (sub.finalScore != null) typeMap[varType].scores.push(sub.finalScore)
     if (sub.timeSpentMins && sub.homework.estimatedMins) {
       typeMap[varType].times.push(sub.timeSpentMins / sub.homework.estimatedMins)
     }
+    if (sub.selfAssessment) typeMap[varType].selfScores.push(sub.selfAssessment)
 
     if (sub.homework.bloomsLevel && sub.finalScore != null) {
       if (!bloomsMap[sub.homework.bloomsLevel]) bloomsMap[sub.homework.bloomsLevel] = []
@@ -159,12 +161,15 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
   const totalAssigned = submissions.length
   const avgCompletionRate = totalAssigned > 0 ? submittedCount / totalAssigned : 0
 
-  const typePerformance: Record<string, { avgScore: number; count: number; avgTimeMin: number }> = {}
+  const typePerformance: Record<string, { avgScore: number; count: number; avgTimeMin: number; avgSelfAssessment?: number | null }> = {}
   for (const [t, d] of Object.entries(typeMap)) {
     typePerformance[t] = {
       avgScore: d.scores.length ? Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length) : 0,
       count: d.scores.length,
       avgTimeMin: d.times.length ? Math.round(d.times.reduce((a, b) => a + b, 0) / d.times.length * 100) / 100 : 0,
+      avgSelfAssessment: d.selfScores.length
+        ? Math.round(d.selfScores.reduce((a, b) => a + b, 0) / d.selfScores.length * 10) / 10
+        : null,
     }
   }
 
@@ -181,10 +186,16 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
     subjectPerformance[subject] = { avg, trend }
   }
 
-  // Derive preferred types (sorted by avg score, min 2 submissions)
+  // Derive preferred types: 60% score weight + 40% self-assessment weight (normalised to 0–100)
   const preferredTypes = Object.entries(typePerformance)
     .filter(([, d]) => d.count >= 2)
-    .sort((a, b) => b[1].avgScore - a[1].avgScore)
+    .sort((a, b) => {
+      const scoreA = a[1].avgScore
+      const selfA  = a[1].avgSelfAssessment != null ? a[1].avgSelfAssessment * 20 : scoreA
+      const scoreB = b[1].avgScore
+      const selfB  = b[1].avgSelfAssessment != null ? b[1].avgSelfAssessment * 20 : scoreB
+      return (scoreB * 0.6 + selfB * 0.4) - (scoreA * 0.6 + selfA * 0.4)
+    })
     .map(([t]) => t)
 
   // Strength/development areas from subjects
@@ -283,13 +294,17 @@ export async function suggestSpacedRepetition(
   const schoolId = user.schoolId
 
   // Find last 3 homework for this class/subject related to this topic
-  const prior = await prisma.homework.findMany({
+  // Uses OR: title match OR learningObjectives array contains the topic
+  let prior = await prisma.homework.findMany({
     where: {
       schoolId,
       classId,
       class: { subject },
       status: 'PUBLISHED',
-      title: { contains: topic, mode: 'insensitive' },
+      OR: [
+        { title: { contains: topic, mode: 'insensitive' } },
+        { learningObjectives: { has: topic } },
+      ],
     },
     orderBy: { dueAt: 'desc' },
     take: 3,
@@ -298,12 +313,25 @@ export async function suggestSpacedRepetition(
 
   // Spaced repetition intervals: 1 day → 3 days → 7 days → 14 days
   const spacing = [1, 3, 7, 14]
-  const intervalDays = spacing[Math.min(prior.length, spacing.length - 1)]
 
+  // Fallback: if no topic-specific homework found, use last 3 for this class+subject
+  const usedFallback = prior.length === 0 && topic.length > 0
+  if (usedFallback) {
+    prior = await prisma.homework.findMany({
+      where: { schoolId, classId, class: { subject }, status: 'PUBLISHED' },
+      orderBy: { dueAt: 'desc' },
+      take: 3,
+      select: { id: true, dueAt: true },
+    })
+  }
+
+  const intervalDays = spacing[Math.min(prior.length, spacing.length - 1)]
   const lastDue = prior.length > 0 ? prior[0].dueAt : new Date()
   const suggestedDate = new Date(lastDue.getTime() + intervalDays * 24 * 60 * 60 * 1000)
 
-  const rationale = prior.length === 0
+  const rationale = usedFallback
+    ? `No topic-specific homework found for "${topic}". Based on ${prior.length} recent homework${prior.length !== 1 ? 's' : ''} for this class, spacing of ${intervalDays} days suggested.`
+    : prior.length === 0
     ? `First homework on "${topic}" — no prior spacing needed.`
     : `${prior.length} prior homework${prior.length > 1 ? 's' : ''} on this topic. Spaced repetition suggests ${intervalDays} days after the last (${lastDue.toLocaleDateString('en-GB')}).`
 
@@ -534,4 +562,152 @@ export async function getIlpEvidenceDashboard(schoolId: string) {
     targetsWithNoEvidence,
     upcomingReviews,
   }
+}
+
+// ─── Differentiated Versions ──────────────────────────────────────────────────
+
+export async function generateDifferentiatedVersions(
+  homeworkId: string,
+  studentIds: string[],
+): Promise<{
+  studentId: string
+  studentName: string
+  adaptedContent: object
+  adaptationNotes: string
+  adaptationType: 'send' | 'profile' | 'standard'
+}[]> {
+  const user = await requireStaff()
+  const schoolId = user.schoolId
+
+  if (studentIds.length > 20) throw new Error('Maximum 20 students per differentiation batch')
+
+  const hw = await prisma.homework.findFirst({
+    where: { id: homeworkId, schoolId },
+    select: { structuredContent: true, homeworkVariantType: true, learningObjectives: true, bloomsLevel: true, title: true },
+  })
+  if (!hw) throw new Error('Homework not found')
+  const hwData = hw
+
+  const students = await prisma.user.findMany({
+    where: { id: { in: studentIds }, schoolId, role: 'STUDENT' },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const studentMap = new Map(students.map(s => [s.id, s]))
+
+  async function processStudent(studentId: string): Promise<{
+    studentId: string
+    studentName: string
+    adaptedContent: object
+    adaptationNotes: string
+    adaptationType: 'send' | 'profile' | 'standard'
+  }> {
+    const student = studentMap.get(studentId)
+    const studentName = student ? `${student.firstName} ${student.lastName}` : 'Unknown'
+
+    const [profile, sendStatus, ilpTargets] = await Promise.all([
+      prisma.studentLearningProfile.findUnique({ where: { studentId } }),
+      prisma.sendStatus.findUnique({ where: { studentId } }),
+      prisma.ilpTarget.findMany({
+        where: {
+          ilp: { schoolId, studentId, status: 'active' },
+          status: 'in_progress',
+          targetDate: { lte: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) },
+        },
+        select: { target: true, strategy: true },
+        take: 5,
+      }),
+    ])
+
+    const hasSend = sendStatus?.activeStatus === 'EHCP' || sendStatus?.activeStatus === 'SEN_SUPPORT'
+    const hasProfile = profile && profile.preferredTypes.length > 0
+    const adaptationType: 'send' | 'profile' | 'standard' =
+      hasSend ? 'send' : hasProfile ? 'profile' : 'standard'
+
+    if (adaptationType === 'standard') {
+      return {
+        studentId,
+        studentName,
+        adaptedContent: hwData.structuredContent as object ?? {},
+        adaptationNotes: 'Standard version — no adaptations required.',
+        adaptationType,
+      }
+    }
+
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return {
+        studentId,
+        studentName,
+        adaptedContent: hwData.structuredContent as object ?? {},
+        adaptationNotes: `${adaptationType === 'send' ? 'SEND' : 'Profile'} adaptation required but AI unavailable.`,
+        adaptationType,
+      }
+    }
+
+    const sendContext = hasSend
+      ? `SEND status: ${sendStatus?.activeStatus}${sendStatus?.needArea ? `, need area: ${sendStatus.needArea}` : ''}`
+      : ''
+    const profileContext = hasProfile
+      ? `Preferred homework types: ${profile!.preferredTypes.slice(0, 3).join(', ')}. Strength areas: ${profile!.strengthAreas.join(', ')}. Development areas: ${profile!.developmentAreas.join(', ')}.`
+      : ''
+    const ilpContext = ilpTargets.length > 0
+      ? `Active ILP targets to incorporate:\n${ilpTargets.map((t, i) => `${i + 1}. ${t.target} (strategy: ${t.strategy})`).join('\n')}`
+      : ''
+
+    try {
+      const client = new Anthropic({ apiKey })
+      const msg = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        system: 'You are a UK SENCO and differentiation expert. Adapt homework for specific student needs. Keep the same learning objectives. Return ONLY valid JSON matching the original structuredContent schema exactly.',
+        messages: [{
+          role: 'user',
+          content: `Adapt this ${hwData.homeworkVariantType} homework for a student with the following profile.
+
+Homework: "${hwData.title}"
+Bloom's level: ${hwData.bloomsLevel ?? 'understand'}
+Learning objectives: ${hwData.learningObjectives.join('; ')}
+Original content: ${JSON.stringify(hwData.structuredContent)}
+
+Student profile:
+${sendContext}
+${profileContext}
+${ilpContext}
+
+Return a JSON object with:
+{
+  "adaptedContent": { /* same schema as original content but adapted */ },
+  "adaptationNotes": "Brief teacher-facing explanation of what was adapted and why (2-3 sentences)"
+}`,
+        }],
+      })
+      const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+      const parsed = JSON.parse(raw)
+      return {
+        studentId,
+        studentName,
+        adaptedContent: parsed.adaptedContent ?? (hwData.structuredContent as object ?? {}),
+        adaptationNotes: parsed.adaptationNotes ?? `Adapted for ${adaptationType} needs.`,
+        adaptationType,
+      }
+    } catch {
+      return {
+        studentId,
+        studentName,
+        adaptedContent: hwData.structuredContent as object ?? {},
+        adaptationNotes: `${adaptationType === 'send' ? 'SEND' : 'Profile'} adaptation requested — AI unavailable, original content returned.`,
+        adaptationType,
+      }
+    }
+  }
+
+  // Process in batches of 5 to limit concurrent API calls
+  const results: Awaited<ReturnType<typeof processStudent>>[] = []
+  for (let i = 0; i < studentIds.length; i += 5) {
+    const chunk = studentIds.slice(i, i + 5)
+    const chunkResults = await Promise.all(chunk.map(processStudent))
+    results.push(...chunkResults)
+  }
+
+  return results
 }

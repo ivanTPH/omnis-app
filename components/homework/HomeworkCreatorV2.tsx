@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X, ChevronRight, ChevronLeft, Sparkles, BookOpen, Upload, PenLine } from 'lucide-react'
 import type { LessonForHomework, ClassForHomework, LearningExtraction, GeneratedHomeworkContent } from '@/app/actions/homework'
 import { extractLearningFromLesson, generateHomeworkContent, createHomework } from '@/app/actions/homework'
-import { suggestSpacedRepetition } from '@/app/actions/adaptive-learning'
+import { suggestSpacedRepetition, suggestNextHomework } from '@/app/actions/adaptive-learning'
 import { HomeworkType } from '@prisma/client'
 import IlpTargetHomeworkPanel from './IlpTargetHomeworkPanel'
 
@@ -44,6 +44,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
   const [editedTitle, setEditedTitle] = useState('')
   const [linkedIlpTargetIds, setLinkedIlpTargetIds] = useState<string[]>([])
   const [spacingSuggestion, setSpacingSuggestion] = useState<string | null>(null)
+  const [suggestedIlpTargets, setSuggestedIlpTargets] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
@@ -64,6 +65,12 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
           setSpacingSuggestion(sug.rationale)
         } catch { /* ignore */ }
       }
+      try {
+        const suggestion = await suggestNextHomework(classId, selectedLesson.id)
+        if (suggestion.ilpTargetsToAddress.length > 0) {
+          setSuggestedIlpTargets(suggestion.ilpTargetsToAddress)
+        }
+      } catch { /* ignore — teacher may not have access */ }
       setStep(2)
     } catch (e) { setError((e as Error).message) }
     finally { setLoading(false) }
@@ -94,6 +101,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
         bloomsLevel: extraction.bloomsLevel,
         keyTopics: extraction.keyTopics,
         durationMins: extraction.suggestedDurationMins,
+        ilpTargets: suggestedIlpTargets.length > 0 ? suggestedIlpTargets : undefined,
       })
       setGenerated(gen)
       setEditedTitle(gen.title)
@@ -245,6 +253,19 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               {spacingSuggestion && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
                   📅 Spacing: {spacingSuggestion}
+                </div>
+              )}
+              {suggestedIlpTargets.length > 0 && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 space-y-1.5">
+                  <p className="text-sm font-medium text-purple-800">
+                    ⚡ {suggestedIlpTargets.length} ILP target{suggestedIlpTargets.length !== 1 ? 's' : ''} due within 28 days for students in this class
+                  </p>
+                  <ul className="space-y-0.5">
+                    {suggestedIlpTargets.map((t, i) => (
+                      <li key={i} className="text-xs text-purple-700">• {t}</li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-purple-600">These will be incorporated into the AI-generated content. You can link specific targets in Step 5.</p>
                 </div>
               )}
               <div className="flex gap-3">

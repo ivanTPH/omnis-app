@@ -4,6 +4,7 @@ import { prisma }          from '@/lib/prisma'
 import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
+import { updateLearningProfile } from '@/app/actions/adaptive-learning'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -91,11 +92,30 @@ export async function getSubmissionForMarking(submissionId: string) {
   })
   if (!sub) return null
 
-  const [sendStatus, plan] = await Promise.all([
+  const [sendStatus, plan, ilpTargetsDue, ehcpOutcomesDue] = await Promise.all([
     prisma.sendStatus.findUnique({ where: { studentId: sub.studentId } }),
     prisma.plan.findFirst({
       where:   { studentId: sub.studentId, schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
       include: { strategies: true },
+    }),
+    prisma.ilpTarget.findMany({
+      where: {
+        ilp: { schoolId, studentId: sub.studentId, status: 'active' },
+        status: 'in_progress',
+        targetDate: { lte: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) },
+      },
+      select: { id: true, target: true, targetDate: true, strategy: true },
+      orderBy: { targetDate: 'asc' },
+      take: 10,
+    }),
+    prisma.ehcpOutcome.findMany({
+      where: {
+        ehcp: { schoolId, studentId: sub.studentId, status: { in: ['active', 'under_review'] } },
+        status: 'active',
+      },
+      select: { id: true, section: true, outcomeText: true, targetDate: true },
+      orderBy: [{ section: 'asc' }, { targetDate: 'asc' }],
+      take: 20,
     }),
   ])
 
@@ -115,6 +135,8 @@ export async function getSubmissionForMarking(submissionId: string) {
     sendStatus: sendStatus?.activeStatus !== 'NONE' ? sendStatus : null,
     plan,
     nav: { current: idx + 1, total: ordered.length, prev, next },
+    ilpTargetsDue,
+    ehcpOutcomesDue,
   }
 }
 
@@ -563,7 +585,7 @@ export async function extractLearningFromLesson(lessonId: string): Promise<Learn
   const lesson = await prisma.lesson.findFirst({
     where: { id: lessonId, schoolId },
     include: {
-      resources: { select: { type: true, label: true } },
+      resources: { select: { type: true, label: true, oakContentId: true } },
       class: { select: { subject: true, yearGroup: true } },
     },
   })
@@ -591,6 +613,24 @@ export async function extractLearningFromLesson(lessonId: string): Promise<Learn
     ? lesson.objectives.join('\n')
     : '(No objectives specified)'
 
+  // Fetch Oak lesson content for any linked Oak resources
+  const oakSlugs = lesson.resources
+    .filter(r => r.oakContentId)
+    .map(r => r.oakContentId as string)
+
+  const oakLessons = oakSlugs.length > 0
+    ? await prisma.oakLesson.findMany({
+        where: { slug: { in: oakSlugs }, deletedAt: null },
+        select: { slug: true, title: true, pupilLessonOutcome: true, keystage: true },
+      })
+    : []
+
+  const oakContext = oakLessons.length > 0
+    ? `\nOak National Academy resources used:\n${oakLessons.map(o =>
+        `- "${o.title}": ${o.pupilLessonOutcome ?? 'No outcome description'}`
+      ).join('\n')}`
+    : ''
+
   try {
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
@@ -601,7 +641,7 @@ export async function extractLearningFromLesson(lessonId: string): Promise<Learn
         role: 'user',
         content: `Lesson: "${lesson.title}", Subject: ${subject}, Year: ${yearGroup}
 Objectives: ${objectives}
-Resources: ${resourceList || 'None'}
+Resources: ${resourceList || 'None'}${oakContext}
 
 Return JSON:
 {
@@ -656,7 +696,7 @@ export async function generateHomeworkContent(input: {
     ? `\nSEND adaptations required: ${input.sendAdaptations.join('; ')}`
     : ''
   const ilpNote = input.ilpTargets?.length
-    ? `\nILP targets to incorporate: ${input.ilpTargets.join('; ')}`
+    ? `\nCRITICAL: This homework must provide evidence opportunities for these ILP targets. Design at least one question or task that directly addresses each target:\n${input.ilpTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
     : ''
 
   const fallback: GeneratedHomeworkContent = {
@@ -755,6 +795,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
           where: { id: submissionId },
           data: { autoScore: score, finalScore: score, feedback, status: 'MARKED' },
         })
+        void updateLearningProfile(sub.studentId).catch(() => {})
         return { score, maxScore, feedback }
       } catch {
         // Fall through to simple scoring
@@ -767,6 +808,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
     where: { id: submissionId },
     data: { autoScore: score, finalScore: score, feedback, status: 'MARKED' },
   })
+  void updateLearningProfile(sub.studentId).catch(() => {})
   return { score, maxScore, feedback }
 }
 
@@ -796,6 +838,8 @@ export async function markSubmission(submissionId: string, data: {
       integrityReviewed: true,
     },
   })
+
+  void updateLearningProfile(sub.studentId).catch(() => {})
 
   revalidatePath('/homework')
   revalidatePath(`/homework/${sub.homeworkId}`)

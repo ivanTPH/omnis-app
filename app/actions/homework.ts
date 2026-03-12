@@ -190,6 +190,15 @@ export async function createHomework(input: {
   aiDecision?:     string
   setAt:           string
   dueAt:           string
+  // Phase 6 adaptive fields
+  homeworkVariantType?:  string
+  structuredContent?:    object
+  learningObjectives?:   string[]
+  bloomsLevel?:          string
+  ilpTargetIds?:         string[]
+  ehcpOutcomeIds?:       string[]
+  differentiationNotes?: string
+  estimatedMins?:        number
 }): Promise<{ id: string }> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
@@ -212,6 +221,15 @@ export async function createHomework(input: {
       status:          HomeworkStatus.PUBLISHED,
       releasePolicy:   'TEACHER_EXTENDED',
       createdBy:       userId,
+      // Phase 6
+      homeworkVariantType:  input.homeworkVariantType ?? 'free_text',
+      structuredContent:    input.structuredContent as any ?? undefined,
+      learningObjectives:   input.learningObjectives ?? [],
+      bloomsLevel:          input.bloomsLevel ?? undefined,
+      ilpTargetIds:         input.ilpTargetIds ?? [],
+      ehcpOutcomeIds:       input.ehcpOutcomeIds ?? [],
+      differentiationNotes: input.differentiationNotes ?? undefined,
+      estimatedMins:        input.estimatedMins ?? undefined,
     },
   })
 
@@ -517,6 +535,239 @@ Respond ONLY with valid JSON, no markdown, no code fences:
       targetWordCount: params.type === 'EXTENDED_WRITING' ? 300 : 0,
     }
   }
+}
+
+// ── Phase 6: Learning extraction + adaptive generation ───────────────────────
+
+export type LearningExtraction = {
+  learningObjectives: string[]
+  bloomsLevel: string
+  keyTopics: string[]
+  suggestedHomeworkTypes: string[]
+  suggestedDurationMins: number
+  rationale: string
+}
+
+export type GeneratedHomeworkContent = {
+  title: string
+  instructions: string
+  structuredContent: object
+  differentiationNotes: string
+}
+
+export async function extractLearningFromLesson(lessonId: string): Promise<LearningExtraction> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const lesson = await prisma.lesson.findFirst({
+    where: { id: lessonId, schoolId },
+    include: {
+      resources: { select: { type: true, label: true } },
+      class: { select: { subject: true, yearGroup: true } },
+    },
+  })
+  if (!lesson) throw new Error('Lesson not found')
+
+  const subject = lesson.class?.subject ?? 'Unknown'
+  const yearGroup = lesson.class?.yearGroup ?? 10
+
+  const fallback: LearningExtraction = {
+    learningObjectives: lesson.objectives.length > 0
+      ? lesson.objectives
+      : [`Understand key concepts from ${lesson.title}`],
+    bloomsLevel: 'understand',
+    keyTopics: lesson.topic ? [lesson.topic] : [lesson.title],
+    suggestedHomeworkTypes: ['quiz', 'retrieval_practice', 'short_answer'],
+    suggestedDurationMins: 20,
+    rationale: 'Extracted from lesson content.',
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return fallback
+
+  const resourceList = lesson.resources.map(r => `[${r.type}] ${r.label}`).join('\n')
+  const objectives = lesson.objectives.length > 0
+    ? lesson.objectives.join('\n')
+    : '(No objectives specified)'
+
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      system: 'You are a UK curriculum expert. Extract learning requirements from lesson content and suggest appropriate homework types aligned to Bloom\'s Taxonomy. Return ONLY valid JSON, no markdown.',
+      messages: [{
+        role: 'user',
+        content: `Lesson: "${lesson.title}", Subject: ${subject}, Year: ${yearGroup}
+Objectives: ${objectives}
+Resources: ${resourceList || 'None'}
+
+Return JSON:
+{
+  "learningObjectives": ["2-4 specific, measurable objectives"],
+  "bloomsLevel": "remember|understand|apply|analyse|evaluate|create",
+  "keyTopics": ["3-6 key topics/concepts"],
+  "suggestedHomeworkTypes": ["ordered by suitability for this lesson"],
+  "suggestedDurationMins": 20,
+  "rationale": "brief explanation"
+}`,
+      }],
+    })
+    const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+    return JSON.parse(raw) as LearningExtraction
+  } catch {
+    return fallback
+  }
+}
+
+export async function generateHomeworkContent(input: {
+  homeworkVariantType: string
+  subject: string
+  yearGroup: number
+  learningObjectives: string[]
+  bloomsLevel: string
+  keyTopics: string[]
+  sendAdaptations?: string[]
+  ilpTargets?: string[]
+  durationMins: number
+}): Promise<GeneratedHomeworkContent> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+
+  const qualification = input.yearGroup <= 9 ? 'KS3' : input.yearGroup <= 11 ? 'GCSE' : 'A-Level'
+
+  const typeInstructions: Record<string, string> = {
+    quiz: 'Generate 6-8 short questions with model answers. Return structuredContent: { questions: [{question, answer, marks}] }',
+    multiple_choice: 'Generate 8-10 MCQs with 4 options each. Return structuredContent: { questions: [{question, options: [string,string,string,string], correct: 0-3}] }',
+    essay: 'Generate essay title, word count, paragraph guide, mark scheme. Return structuredContent: { title, wordCount, paragraphGuide: [string], markScheme }',
+    retrieval_practice: 'Generate 8-12 retrieval questions with answers. Return structuredContent: { questions: [{question, answer}] }',
+    mind_map: 'Generate mind map structure. Return structuredContent: { centralConcept, branches: [string], keyTerms: [string] }',
+    reading_response: 'Generate a short text extract and 3-4 response questions. Return structuredContent: { text, questions: [{question, responseFrame}] }',
+    short_answer: 'Generate 4-5 short answer questions with model answers. Return structuredContent: { questions: [{question, modelAnswer, marks}] }',
+    free_text: 'Generate a clear task description. Return structuredContent: { taskDescription, hints: [string] }',
+    research_task: 'Generate research questions and sources list. Return structuredContent: { researchQuestions: [string], suggestedSources: [string], outputFormat }',
+    creative: 'Generate creative brief. Return structuredContent: { brief, constraints: [string], successCriteria }',
+    practical: 'Generate practical task instructions. Return structuredContent: { steps: [string], materials: [string], outputFormat }',
+  }
+
+  const typeGuide = typeInstructions[input.homeworkVariantType] ?? typeInstructions.free_text
+  const sendNote = input.sendAdaptations?.length
+    ? `\nSEND adaptations required: ${input.sendAdaptations.join('; ')}`
+    : ''
+  const ilpNote = input.ilpTargets?.length
+    ? `\nILP targets to incorporate: ${input.ilpTargets.join('; ')}`
+    : ''
+
+  const fallback: GeneratedHomeworkContent = {
+    title: `${input.subject} — ${input.keyTopics[0] ?? 'Homework'}`,
+    instructions: `Complete the following ${input.homeworkVariantType} task on ${input.keyTopics.join(', ')}.`,
+    structuredContent: { taskDescription: 'AI generation unavailable. Please add content manually.' },
+    differentiationNotes: sendNote || 'Standard differentiation applies.',
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return fallback
+
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: 'You are a UK secondary school teacher creating homework content. Return ONLY valid JSON, no markdown fences.',
+      messages: [{
+        role: 'user',
+        content: `Create ${qualification} ${input.subject} homework.
+Type: ${input.homeworkVariantType}
+Duration: ${input.durationMins} minutes
+Bloom's level: ${input.bloomsLevel}
+Objectives: ${input.learningObjectives.join('; ')}
+Key topics: ${input.keyTopics.join(', ')}${sendNote}${ilpNote}
+
+${typeGuide}
+
+Return JSON:
+{
+  "title": "Descriptive homework title",
+  "instructions": "Clear student-facing instructions (2-4 sentences)",
+  "structuredContent": { /* per type schema above */ },
+  "differentiationNotes": "Brief SEND/differentiation notes for teacher"
+}`,
+      }],
+    })
+    const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+    return JSON.parse(raw) as GeneratedHomeworkContent
+  } catch {
+    return fallback
+  }
+}
+
+export async function autoMarkSubmission(submissionId: string): Promise<{ score: number; maxScore: number; feedback: string }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const sub = await prisma.submission.findFirst({
+    where: { id: submissionId, schoolId },
+    include: { homework: { select: { homeworkVariantType: true, structuredContent: true, title: true } } },
+  })
+  if (!sub) throw new Error('Submission not found')
+
+  const hwType = sub.homework.homeworkVariantType
+  if (!['quiz', 'multiple_choice', 'retrieval_practice'].includes(hwType ?? '')) {
+    throw new Error('Auto-marking only supported for quiz, multiple_choice, and retrieval_practice types')
+  }
+
+  const content = sub.homework.structuredContent as any
+  const response = sub.structuredResponse as any
+
+  let score = 0
+  let maxScore = 0
+
+  if (hwType === 'multiple_choice' && content?.questions && response?.answers) {
+    for (let i = 0; i < content.questions.length; i++) {
+      maxScore++
+      if (response.answers[i] === content.questions[i].correct) score++
+    }
+  } else if ((hwType === 'quiz' || hwType === 'retrieval_practice') && content?.questions) {
+    maxScore = content.questions.reduce((a: number, q: any) => a + (q.marks ?? 1), 0)
+    // For text-based quiz, use AI to assess
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (apiKey && response?.answers) {
+      try {
+        const client = new Anthropic({ apiKey })
+        const qaPairs = content.questions.map((q: any, i: number) =>
+          `Q${i + 1}: ${q.question}\nModel answer: ${q.answer ?? q.modelAnswer}\nStudent answer: ${response.answers?.[i] ?? '(no answer)'}`
+        ).join('\n\n')
+        const msg = await client.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 600,
+          system: 'You are a UK teacher marking homework. Score each answer fairly against the model answer. Return ONLY JSON.',
+          messages: [{
+            role: 'user',
+            content: `Mark these answers. Max total marks: ${maxScore}.\n\n${qaPairs}\n\nReturn: {"scores": [number per question], "totalScore": number, "feedback": "brief 2-sentence feedback"}`,
+          }],
+        })
+        const parsed = JSON.parse((msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, ''))
+        score = parsed.totalScore ?? 0
+        const feedback = parsed.feedback ?? 'Auto-marked by AI.'
+        await prisma.submission.update({
+          where: { id: submissionId },
+          data: { autoScore: score, finalScore: score, feedback, status: 'MARKED' },
+        })
+        return { score, maxScore, feedback }
+      } catch {
+        // Fall through to simple scoring
+      }
+    }
+  }
+
+  const feedback = `Auto-scored: ${score}/${maxScore}. Please review and add personalised feedback.`
+  await prisma.submission.update({
+    where: { id: submissionId },
+    data: { autoScore: score, finalScore: score, feedback, status: 'MARKED' },
+  })
+  return { score, maxScore, feedback }
 }
 
 // ── Mark submission ───────────────────────────────────────────────────────────

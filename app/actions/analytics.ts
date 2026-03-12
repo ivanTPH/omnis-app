@@ -3,6 +3,100 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { SendStatusValue, HomeworkStatus, Role } from '@prisma/client'
 
+// ── Adaptive analytics ────────────────────────────────────────────────────────
+
+export type HomeworkAdaptiveAnalytics = {
+  typeBreakdown: { type: string; count: number; avgScore: number }[]
+  bloomsDistribution: { level: string; count: number; avgScore: number }[]
+  completionByType: { type: string; completionRate: number }[]
+  ilpEvidenceRate: number
+  ehcpEvidenceRate: number
+}
+
+export async function getHomeworkAdaptiveAnalytics(filters?: {
+  classId?: string
+  studentId?: string
+}): Promise<HomeworkAdaptiveAnalytics> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const hwWhere: any = { schoolId, status: { not: 'DRAFT' } }
+  if (filters?.classId) hwWhere.classId = filters.classId
+
+  const homeworks = await prisma.homework.findMany({
+    where: hwWhere,
+    select: {
+      id: true,
+      homeworkVariantType: true,
+      bloomsLevel: true,
+      ilpTargetIds: true,
+      ehcpOutcomeIds: true,
+      classId: true,
+      submissions: {
+        where: filters?.studentId ? { studentId: filters.studentId } : undefined,
+        select: { finalScore: true, status: true, studentId: true },
+      },
+    },
+    take: 200,
+  })
+
+  // Type breakdown
+  const typeMap: Record<string, { scores: number[]; submitted: number; total: number }> = {}
+  const bloomsMap: Record<string, { scores: number[]; count: number }> = {}
+
+  for (const hw of homeworks) {
+    const t = hw.homeworkVariantType ?? 'free_text'
+    if (!typeMap[t]) typeMap[t] = { scores: [], submitted: 0, total: 0 }
+    for (const sub of hw.submissions) {
+      typeMap[t].total++
+      if (sub.status !== 'SUBMITTED' || sub.finalScore != null) typeMap[t].submitted++
+      if (sub.finalScore != null) typeMap[t].scores.push(sub.finalScore)
+    }
+
+    if (hw.bloomsLevel) {
+      const b = hw.bloomsLevel
+      if (!bloomsMap[b]) bloomsMap[b] = { scores: [], count: 0 }
+      bloomsMap[b].count++
+      for (const sub of hw.submissions) {
+        if (sub.finalScore != null) bloomsMap[b].scores.push(sub.finalScore)
+      }
+    }
+  }
+
+  const typeBreakdown = Object.entries(typeMap).map(([type, d]) => ({
+    type,
+    count: d.total,
+    avgScore: d.scores.length ? Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length) : 0,
+  })).sort((a, b) => b.count - a.count)
+
+  const bloomsOrder = ['remember', 'understand', 'apply', 'analyse', 'evaluate', 'create']
+  const bloomsDistribution = Object.entries(bloomsMap)
+    .sort((a, b) => bloomsOrder.indexOf(a[0]) - bloomsOrder.indexOf(b[0]))
+    .map(([level, d]) => ({
+      level,
+      count: d.count,
+      avgScore: d.scores.length ? Math.round(d.scores.reduce((a, b) => a + b, 0) / d.scores.length) : 0,
+    }))
+
+  const completionByType = Object.entries(typeMap).map(([type, d]) => ({
+    type,
+    completionRate: d.total > 0 ? Math.round((d.submitted / d.total) * 100) : 0,
+  }))
+
+  // ILP evidence rate
+  const totalIlpTargets = await prisma.ilpTarget.count({ where: { ilp: { schoolId, status: 'active' }, status: 'in_progress' } })
+  const linkedTargets = await prisma.ilpHomeworkLink.count({ where: { homework: { schoolId } } })
+  const ilpEvidenceRate = totalIlpTargets > 0 ? Math.round((linkedTargets / totalIlpTargets) * 100) : 0
+
+  // EHCP evidence rate
+  const totalOutcomes = await prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' } } })
+  const outcomesWithEvidence = await prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' }, evidenceCount: { gt: 0 } } })
+  const ehcpEvidenceRate = totalOutcomes > 0 ? Math.round((outcomesWithEvidence / totalOutcomes) * 100) : 0
+
+  return { typeBreakdown, bloomsDistribution, completionByType, ilpEvidenceRate, ehcpEvidenceRate }
+}
+
 export type AnalyticsFilters = {
   subject?:      string
   yearGroup?:    number

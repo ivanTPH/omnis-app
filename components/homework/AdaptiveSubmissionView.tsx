@@ -1,0 +1,285 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Brain, Link2, FileCheck, Star, ChevronDown, Lightbulb } from 'lucide-react'
+import type { StudentLearningProfileData, AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
+import { getStudentLearningProfile, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
+import { linkSubmissionToEhcpOutcome } from '@/app/actions/ehcp'
+
+type Submission = {
+  id: string
+  studentId: string
+  studentName: string
+  answer: string | null
+  structuredResponse: unknown
+  finalScore: number | null
+  autoScore: number | null
+  teacherScore: number | null
+  feedback: string | null
+  status: string
+  timeSpentMins: number | null
+  selfAssessment: number | null
+}
+
+type EhcpOutcome = {
+  id: string
+  section: string
+  outcomeText: string
+  status: string
+}
+
+type Props = {
+  submission: Submission
+  homeworkId: string
+  ehcpOutcomes?: EhcpOutcome[]
+}
+
+export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOutcomes = [] }: Props) {
+  const [profile, setProfile] = useState<StudentLearningProfileData | null>(null)
+  const [suggestions, setSuggestions] = useState<AdaptiveHomeworkSuggestions | null>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+  const [linkingOutcome, setLinkingOutcome] = useState<string | null>(null)
+  const [linkedOutcomes, setLinkedOutcomes] = useState<Set<string>>(new Set())
+  const [expandProfile, setExpandProfile] = useState(false)
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    Promise.all([
+      getStudentLearningProfile(submission.studentId),
+      getAdaptiveHomeworkSuggestions(submission.studentId, homeworkId),
+    ]).then(([p, s]) => {
+      setProfile(p)
+      setSuggestions(s)
+    }).catch(() => {}).finally(() => setLoadingProfile(false))
+  }, [submission.studentId, homeworkId])
+
+  async function handleLinkEhcp(outcomeId: string) {
+    setLinkingOutcome(outcomeId)
+    try {
+      await linkSubmissionToEhcpOutcome(submission.id, outcomeId, note || 'Linked from marking view', 3)
+      setLinkedOutcomes(prev => new Set([...prev, outcomeId]))
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLinkingOutcome(null)
+    }
+  }
+
+  const scoreDisplay = submission.finalScore ?? submission.autoScore ?? null
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      {/* Main submission panel */}
+      <div className="xl:col-span-2 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900">{submission.studentName}</h3>
+            <p className="text-sm text-gray-500">
+              {submission.timeSpentMins != null && `${submission.timeSpentMins} min · `}
+              Status: <span className="capitalize">{submission.status.toLowerCase().replace(/_/g, ' ')}</span>
+            </p>
+          </div>
+          {scoreDisplay !== null && (
+            <div className="text-center">
+              <div className="text-3xl font-bold text-purple-700">{scoreDisplay}%</div>
+              <div className="text-xs text-gray-400">{submission.autoScore != null ? 'Auto-marked' : 'Teacher scored'}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Self-assessment */}
+        {submission.selfAssessment != null && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Star size={14} className="text-amber-500" />
+            <span>Self-assessment: </span>
+            {Array.from({ length: 5 }, (_, i) => (
+              <span key={i} className={i < submission.selfAssessment! ? 'text-amber-400' : 'text-gray-300'}>★</span>
+            ))}
+          </div>
+        )}
+
+        {/* Response */}
+        <div>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Student response</h4>
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed min-h-[120px]">
+            {submission.answer ?? <span className="text-gray-400 italic">No response submitted</span>}
+          </div>
+        </div>
+
+        {/* Feedback */}
+        {submission.feedback && (
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Feedback</h4>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-900 whitespace-pre-wrap">
+              {submission.feedback}
+            </div>
+          </div>
+        )}
+
+        {/* AI Suggestions */}
+        {suggestions && (suggestions.adaptations.length > 0 || suggestions.scaffolding.length > 0 || suggestions.ilpAlignments.length > 0) && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+              <Lightbulb size={16} />
+              AI Adaptive Suggestions
+            </div>
+            {suggestions.adaptations.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-amber-700 mb-1">Adaptations</p>
+                <ul className="space-y-1">
+                  {suggestions.adaptations.map((a, i) => (
+                    <li key={i} className="text-xs text-amber-800">• {a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {suggestions.scaffolding.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-amber-700 mb-1">Scaffolding</p>
+                <ul className="space-y-1">
+                  {suggestions.scaffolding.map((s, i) => (
+                    <li key={i} className="text-xs text-amber-800">• {s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {suggestions.ilpAlignments.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-amber-700 mb-1">ILP targets addressed</p>
+                <ul className="space-y-1">
+                  {suggestions.ilpAlignments.map((a, i) => (
+                    <li key={i} className="text-xs text-amber-800">• {a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {suggestions.alternativeType && (
+              <p className="text-xs text-amber-700">Suggested alternative type: <strong>{suggestions.alternativeType.replace(/_/g, ' ')}</strong></p>
+            )}
+          </div>
+        )}
+
+        {/* EHCP Evidence linking */}
+        {ehcpOutcomes.length > 0 && (
+          <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <FileCheck size={16} className="text-green-600" />
+              Link as EHCP Evidence
+            </div>
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Add evidence note (optional)"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+            />
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {ehcpOutcomes.map(outcome => {
+                const isLinked = linkedOutcomes.has(outcome.id)
+                return (
+                  <div key={outcome.id} className="flex items-start gap-3">
+                    <button
+                      onClick={() => handleLinkEhcp(outcome.id)}
+                      disabled={linkingOutcome === outcome.id || isLinked}
+                      className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        isLinked
+                          ? 'bg-green-100 text-green-700 cursor-default'
+                          : 'bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50'
+                      }`}
+                    >
+                      <Link2 size={12} />
+                      {isLinked ? 'Linked' : linkingOutcome === outcome.id ? '…' : 'Link'}
+                    </button>
+                    <div className="min-w-0">
+                      <span className="text-xs text-gray-500">Section {outcome.section} · </span>
+                      <span className="text-xs text-gray-700">{outcome.outcomeText}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Learning profile sidebar */}
+      <div className="space-y-4">
+        <button
+          onClick={() => setExpandProfile(v => !v)}
+          className="w-full flex items-center justify-between text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-3"
+        >
+          <span className="flex items-center gap-2"><Brain size={16} className="text-purple-600" /> Learning Profile</span>
+          <ChevronDown size={16} className={`transition-transform ${expandProfile ? 'rotate-180' : ''}`} />
+        </button>
+
+        {expandProfile && (
+          <div className="space-y-3">
+            {loadingProfile ? (
+              <p className="text-sm text-gray-400">Loading profile…</p>
+            ) : !profile ? (
+              <p className="text-sm text-gray-400">No profile data yet.</p>
+            ) : (
+              <>
+                {profile.profileSummary && (
+                  <div className="bg-purple-50 rounded-xl p-3 text-xs text-purple-900 leading-relaxed">
+                    {profile.profileSummary}
+                  </div>
+                )}
+
+                {profile.strengthAreas.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Strengths</p>
+                    <div className="flex flex-wrap gap-1">
+                      {profile.strengthAreas.map(s => (
+                        <span key={s} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {profile.developmentAreas.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Development areas</p>
+                    <div className="flex flex-wrap gap-1">
+                      {profile.developmentAreas.map(d => (
+                        <span key={d} className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {Object.keys(profile.typePerformance).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Type performance</p>
+                    <div className="space-y-1.5">
+                      {Object.entries(profile.typePerformance)
+                        .sort((a, b) => b[1].avgScore - a[1].avgScore)
+                        .slice(0, 5)
+                        .map(([type, data]) => (
+                          <div key={type} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-600 w-24 truncate capitalize">{type.replace(/_/g, ' ')}</span>
+                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-purple-500 rounded-full"
+                                style={{ width: `${data.avgScore}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-500 w-8 text-right">{Math.round(data.avgScore)}%</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-400">
+                  Completion rate: <span className="font-medium text-gray-600">{Math.round(profile.avgCompletionRate * 100)}%</span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

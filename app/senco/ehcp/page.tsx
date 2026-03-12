@@ -1,0 +1,148 @@
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { getAllEhcpPlans } from '@/app/actions/ehcp'
+import { FileCheck, AlertTriangle, Clock, CheckCircle, Circle } from 'lucide-react'
+import EhcpOutcomeTracker from '@/components/homework/EhcpOutcomeTracker'
+
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Active',
+  under_review: 'Under Review',
+  ceased: 'Ceased',
+}
+
+const STATUS_COLOUR: Record<string, string> = {
+  active: 'bg-green-100 text-green-700',
+  under_review: 'bg-amber-100 text-amber-700',
+  ceased: 'bg-gray-100 text-gray-600',
+}
+
+function daysUntil(date: Date) {
+  return Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+}
+
+export default async function EhcpPlansPage() {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const role = (session.user as any).role
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role)) redirect('/dashboard')
+
+  const plans = await getAllEhcpPlans()
+
+  const overdue = plans.filter(p => daysUntil(p.reviewDate) < 0)
+  const dueWithin30 = plans.filter(p => {
+    const d = daysUntil(p.reviewDate)
+    return d >= 0 && d <= 30
+  })
+  const onTrack = plans.filter(p => daysUntil(p.reviewDate) > 30)
+
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">EHCP Plans</h1>
+        <p className="text-sm text-gray-500 mt-1">Education, Health and Care Plans — outcome tracking and annual review</p>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-red-700 mb-1">
+            <AlertTriangle size={16} />
+            <span className="text-sm font-medium">Review overdue</span>
+          </div>
+          <div className="text-3xl font-bold text-red-700">{overdue.length}</div>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-amber-700 mb-1">
+            <Clock size={16} />
+            <span className="text-sm font-medium">Due within 30 days</span>
+          </div>
+          <div className="text-3xl font-bold text-amber-700">{dueWithin30.length}</div>
+        </div>
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-green-700 mb-1">
+            <CheckCircle size={16} />
+            <span className="text-sm font-medium">On track</span>
+          </div>
+          <div className="text-3xl font-bold text-green-700">{onTrack.length}</div>
+        </div>
+      </div>
+
+      {/* UK GDPR notice */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-800">
+          EHCP data is Special Category under UK GDPR (Article 9). Access is logged. Do not share outside authorised staff.
+          All annual reviews also require Local Authority sign-off.
+        </p>
+      </div>
+
+      {/* Plans list */}
+      {plans.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <FileCheck size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="text-sm">No active EHCP plans recorded.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {plans.map(plan => {
+            const days = daysUntil(plan.reviewDate)
+            const isOverdue = days < 0
+            const isDueSoon = days >= 0 && days <= 30
+            const achieved = plan.outcomes.filter(o => o.status === 'achieved').length
+
+            return (
+              <div key={plan.id} className="border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                {/* Plan header */}
+                <div className={`px-5 py-4 flex items-start justify-between ${isOverdue ? 'bg-red-50' : isDueSoon ? 'bg-amber-50' : 'bg-white'}`}>
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <h2 className="font-semibold text-gray-900">{plan.studentName}</h2>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOUR[plan.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {STATUS_LABEL[plan.status] ?? plan.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span>LA: {plan.localAuthority}</span>
+                      <span>·</span>
+                      <span>Plan date: {new Date(plan.planDate).toLocaleDateString('en-GB')}</span>
+                      {plan.coordinatorName && <><span>·</span><span>Co-ordinator: {plan.coordinatorName}</span></>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`text-sm font-semibold ${isOverdue ? 'text-red-700' : isDueSoon ? 'text-amber-700' : 'text-gray-700'}`}>
+                      {isOverdue ? `${Math.abs(days)}d overdue` : `Review in ${days}d`}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Date(plan.reviewDate).toLocaleDateString('en-GB')}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {achieved}/{plan.outcomes.length} outcomes achieved
+                    </div>
+                  </div>
+                </div>
+
+                {/* Outcome tracker */}
+                <div className="p-5 border-t border-gray-100">
+                  <EhcpOutcomeTracker plan={plan} />
+                </div>
+
+                {/* Progress towards annual review */}
+                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{plan.outcomes.filter(o => o.evidenceCount > 0).length} of {plan.outcomes.length} outcomes have evidence</span>
+                    <a
+                      href={`/student/${plan.studentId}/send`}
+                      className="text-purple-600 hover:underline"
+                    >
+                      View student SEND record →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}

@@ -483,7 +483,227 @@ async function main() {
 
   console.log('  Created 8 SendNotifications')
 
-  console.log('\n✓ Phase 5 SEND seed complete.\n')
+  // ── 6. Phase 6 EHCP Plans ─────────────────────────────────────────────────
+  console.log('\n6. Creating EhcpPlans...')
+
+  const futureReview1 = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000)  // ~3 weeks
+  const futureReview2 = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)  // ~2 months
+
+  const ehcp1 = await prisma.ehcpPlan.create({
+    data: {
+      schoolId: school.id,
+      studentId: s1.id,
+      createdBy: senco.id,
+      localAuthority: 'Oakfield Metropolitan Borough Council',
+      planDate: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+      reviewDate: futureReview1,
+      coordinatorName: 'Ms J. Freeman',
+      status: 'active',
+      outcomes: {
+        create: [
+          {
+            section: 'B',
+            outcomeText: 'Aiden will read age-appropriate texts with ≥90% accuracy using phonics and contextual strategies.',
+            successCriteria: 'Standardised reading test score at or above chronological age band at annual review.',
+            targetDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'Reading Recovery programme, 3× per week with trained TA. Coloured overlays. Dyslexia-friendly resources.',
+            status: 'active',
+            evidenceCount: 0,
+          },
+          {
+            section: 'B',
+            outcomeText: 'Aiden will write extended responses of 200+ words with appropriate structure and punctuation.',
+            successCriteria: 'Three consecutive homework tasks rated Good or higher by subject teacher using shared rubric.',
+            targetDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'Writing frames provided. Laptop access for extended tasks.',
+            status: 'active',
+            evidenceCount: 0,
+          },
+          {
+            section: 'C',
+            outcomeText: 'Aiden will self-report anxiety levels ≤2/5 before written assessments.',
+            successCriteria: 'Anxiety self-rating card used before assessments; average ≤2 for three consecutive assessments.',
+            targetDate: new Date(Date.now() + 84 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'Pastoral check-in before major assessments. Separate quiet room access.',
+            status: 'active',
+            evidenceCount: 0,
+          },
+          {
+            section: 'D',
+            outcomeText: 'Aiden will independently use 2 self-regulation strategies when experiencing anxiety.',
+            successCriteria: 'Student can name and demonstrate strategies; evidence from pastoral log of independent use on ≥5 occasions.',
+            targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+            status: 'active',
+            evidenceCount: 0,
+          },
+        ],
+      },
+    },
+  })
+
+  const ehcp2 = s2 ? await prisma.ehcpPlan.create({
+    data: {
+      schoolId: school.id,
+      studentId: s2.id,
+      createdBy: senco.id,
+      localAuthority: 'Oakfield Metropolitan Borough Council',
+      planDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      reviewDate: futureReview2,
+      coordinatorName: 'Ms J. Freeman',
+      status: 'active',
+      outcomes: {
+        create: [
+          {
+            section: 'A',
+            outcomeText: 'Maya will attend school for ≥90% of sessions over any rolling 4-week period.',
+            successCriteria: '≥90% attendance measured at 6-week review using school attendance data.',
+            targetDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'Daily attendance call if absent. EWO involvement. Phased return protocol.',
+            status: 'active',
+            evidenceCount: 0,
+          },
+          {
+            section: 'C',
+            outcomeText: 'Maya will remain in the classroom for ≥80% of lesson time without needing the exit strategy.',
+            successCriteria: 'Exit card used ≤2 times per week average over 3 consecutive weeks.',
+            targetDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'Agreed signal system. Designated safe space. Pastoral check-ins.',
+            status: 'active',
+            evidenceCount: 0,
+          },
+          {
+            section: 'C',
+            outcomeText: 'Maya will independently use 3 personal regulation strategies when managing emotional distress.',
+            successCriteria: 'Student can name and use strategies from personal coping card; pastoral log evidence.',
+            targetDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'SENCO 4-session emotional regulation programme. Coping card produced.',
+            status: 'not_started',
+            evidenceCount: 0,
+          },
+          {
+            section: 'H1',
+            outcomeText: 'Maya will complete SEMH-appropriate homework tasks to a quality rating of ≥60%.',
+            successCriteria: '8 of 10 consecutive homework tasks submitted; teacher quality rating ≥60%.',
+            targetDate: new Date(Date.now() + 70 * 24 * 60 * 60 * 1000),
+            provisionRequired: 'Adapted homework (shorter tasks, flexible deadlines). Homework club access.',
+            status: 'active',
+            evidenceCount: 0,
+          },
+        ],
+      },
+    },
+  }) : null
+
+  const ehcpCount = [ehcp1, ehcp2].filter(Boolean).length
+  console.log(`  Created ${ehcpCount} EHCP plans with outcomes`)
+
+  // ── 7. StudentLearningProfiles ─────────────────────────────────────────────
+  console.log('\n7. Creating StudentLearningProfiles...')
+
+  // Only create for students 1 and 2 (the ones with ILPs/EHCPs)
+  await prisma.studentLearningProfile.upsert({
+    where: { studentId: s1.id },
+    update: {},
+    create: {
+      studentId: s1.id,
+      schoolId: school.id,
+      typePerformance: {
+        quiz: { avgScore: 58, count: 4, avgTimeMin: 22 },
+        short_answer: { avgScore: 42, count: 6, avgTimeMin: 18 },
+        multiple_choice: { avgScore: 71, count: 3, avgTimeMin: 12 },
+        free_text: { avgScore: 35, count: 5, avgTimeMin: 30 },
+      },
+      bloomsPerformance: {
+        remember: 74,
+        understand: 55,
+        apply: 38,
+        analyse: 30,
+      },
+      subjectPerformance: {
+        English: { avg: 44, trend: 'declining' },
+        Drama: { avg: 82, trend: 'stable' },
+      },
+      preferredTypes: ['multiple_choice', 'quiz'],
+      strengthAreas: ['verbal reasoning', 'creative tasks', 'peer collaboration'],
+      developmentAreas: ['extended writing', 'reading comprehension', 'timed assessments'],
+      avgCompletionRate: 0.55,
+      profileSummary: 'Aiden shows strength in oral and creative tasks but faces significant barriers with written work due to SpLD. Performs best on structured, short-response formats. Extended writing tasks require additional scaffolding and time. Evidence suggests anxiety around assessments further depresses performance on text-heavy tasks.',
+      profileUpdatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
+  })
+
+  if (s2) {
+    await prisma.studentLearningProfile.upsert({
+      where: { studentId: s2.id },
+      update: {},
+      create: {
+        studentId: s2.id,
+        schoolId: school.id,
+        typePerformance: {
+          quiz: { avgScore: 65, count: 3, avgTimeMin: 20 },
+          short_answer: { avgScore: 61, count: 4, avgTimeMin: 25 },
+          free_text: { avgScore: 72, count: 2, avgTimeMin: 35 },
+        },
+        bloomsPerformance: {
+          remember: 68,
+          understand: 63,
+          apply: 55,
+        },
+        subjectPerformance: {
+          English: { avg: 64, trend: 'declining' },
+          Art: { avg: 89, trend: 'stable' },
+        },
+        preferredTypes: ['free_text', 'creative_writing'],
+        strengthAreas: ['creative expression', 'verbal communication', 'empathy'],
+        developmentAreas: ['attendance consistency', 'timed tasks', 'emotional regulation in assessments'],
+        avgCompletionRate: 0.72,
+        profileSummary: 'Maya performs well when present and engaged, with particular strength in creative and expressive tasks. SEMH difficulties significantly impact attendance and in-school performance. Creative homework formats show the highest completion and quality. Needs flexible deadlines and low-pressure formats.',
+        profileUpdatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    })
+  }
+
+  console.log('  Created StudentLearningProfiles')
+
+  // ── 8. IlpHomeworkLinks ────────────────────────────────────────────────────
+  console.log('\n8. Creating IlpHomeworkLinks...')
+
+  // Get ILP targets for s1
+  const ilp1Targets = await prisma.ilpTarget.findMany({
+    where: { ilp: { studentId: s1.id } },
+    take: 2,
+  })
+
+  // Get any published homework
+  const homework = await prisma.homework.findMany({
+    where: { schoolId: school.id, status: 'PUBLISHED' },
+    take: 4,
+  })
+
+  if (ilp1Targets.length > 0 && homework.length > 0) {
+    await prisma.ilpHomeworkLink.createMany({
+      skipDuplicates: true,
+      data: [
+        {
+          homeworkId: homework[0].id,
+          ilpTargetId: ilp1Targets[0].id,
+          linkedBy: teacher.id,
+          evidenceNote: 'This homework directly targets reading comprehension skill development.',
+        },
+        ...(ilp1Targets[1] && homework[1] ? [{
+          homeworkId: homework[1].id,
+          ilpTargetId: ilp1Targets[1].id,
+          linkedBy: teacher.id,
+          evidenceNote: 'Written homework to evidence progress towards homework completion target.',
+        }] : []),
+      ],
+    })
+    console.log('  Created IlpHomeworkLinks')
+  } else {
+    console.log('  Skipped IlpHomeworkLinks (no matching homework/targets)')
+  }
+
+  console.log('\n✓ Phase 5 + Phase 6 SEND seed complete.\n')
 }
 
 main()

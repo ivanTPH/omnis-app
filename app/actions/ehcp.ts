@@ -1,0 +1,490 @@
+'use server'
+
+import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import Anthropic from '@anthropic-ai/sdk'
+
+// ─── Guards ───────────────────────────────────────────────────────────────────
+
+async function requireSencoOrStaff() {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const user = session.user as { id: string; schoolId: string; role: string }
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR', 'TEACHER', 'HEAD_OF_DEPT'].includes(user.role)) {
+    redirect('/dashboard')
+  }
+  return user
+}
+
+async function requireSenco() {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const user = session.user as { id: string; schoolId: string; role: string }
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) redirect('/dashboard')
+  return user
+}
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type EhcpOutcomeInput = {
+  section: string
+  outcomeText: string
+  targetDate: Date
+  successCriteria: string
+  provisionRequired?: string
+}
+
+export type EhcpPlanWithOutcomes = {
+  id: string
+  schoolId: string
+  studentId: string
+  studentName: string
+  localAuthority: string
+  planDate: Date
+  reviewDate: Date
+  coordinatorName: string | null
+  status: string
+  createdAt: Date
+  outcomes: {
+    id: string
+    section: string
+    outcomeText: string
+    targetDate: Date
+    successCriteria: string
+    provisionRequired: string | null
+    status: string
+    evidenceCount: number
+  }[]
+}
+
+// ─── EHCP Plan CRUD ───────────────────────────────────────────────────────────
+
+export async function createEhcpPlan(data: {
+  studentId: string
+  localAuthority: string
+  planDate: Date
+  reviewDate: Date
+  coordinatorName?: string
+  outcomes: EhcpOutcomeInput[]
+}): Promise<void> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  // Verify student belongs to this school
+  const student = await prisma.user.findFirst({
+    where: { id: data.studentId, schoolId, role: 'STUDENT' },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  if (!student) throw new Error('Student not found')
+
+  // Mark any existing active plan as under_review
+  await prisma.ehcpPlan.updateMany({
+    where: { schoolId, studentId: data.studentId, status: 'active' },
+    data: { status: 'under_review' },
+  })
+
+  const plan = await prisma.ehcpPlan.create({
+    data: {
+      schoolId,
+      studentId: data.studentId,
+      localAuthority: data.localAuthority,
+      planDate: data.planDate,
+      reviewDate: data.reviewDate,
+      coordinatorName: data.coordinatorName ?? null,
+      status: 'active',
+      createdBy: user.id,
+      outcomes: {
+        create: data.outcomes.map(o => ({
+          section: o.section,
+          outcomeText: o.outcomeText,
+          targetDate: o.targetDate,
+          successCriteria: o.successCriteria,
+          provisionRequired: o.provisionRequired ?? null,
+        })),
+      },
+    },
+  })
+
+  // Log to SendReviewLog (EHCP is Special Category data)
+  await prisma.sendReviewLog.create({
+    data: {
+      schoolId,
+      studentId: data.studentId,
+      action: 'ilp_created',
+      actorId: user.id,
+      metadata: { ehcpId: plan.id, localAuthority: data.localAuthority, type: 'EHCP' },
+    },
+  })
+
+  // Notify HOY and class teachers
+  const [hoys, classTeachers] = await Promise.all([
+    prisma.user.findMany({ where: { schoolId, role: 'HEAD_OF_YEAR', isActive: true }, select: { id: true } }),
+    prisma.classTeacher.findMany({
+      where: { class: { enrolments: { some: { userId: data.studentId } }, schoolId } },
+      select: { userId: true },
+    }),
+  ])
+  const notifyIds = [...new Set([...hoys.map(h => h.id), ...classTeachers.map(ct => ct.userId)])]
+  const studentName = `${student.firstName} ${student.lastName}`
+  if (notifyIds.length > 0) {
+    await prisma.sendNotification.createMany({
+      data: notifyIds.map(recipientId => ({
+        schoolId,
+        recipientId,
+        type: 'ilp_created',
+        title: `EHCP plan recorded: ${studentName}`,
+        body: `An EHCP plan has been recorded for ${studentName}. Please review SEND strategies in your planning.`,
+      })),
+    })
+  }
+
+  revalidatePath('/senco/ehcp')
+}
+
+export async function getStudentEhcp(studentId: string): Promise<EhcpPlanWithOutcomes | null> {
+  const user = await requireSencoOrStaff()
+  const schoolId = user.schoolId
+
+  // Log access to EHCP data (Special Category)
+  await prisma.sendReviewLog.create({
+    data: {
+      schoolId,
+      studentId,
+      action: 'ilp_updated',
+      actorId: user.id,
+      metadata: { action: 'ehcp_viewed', role: user.role },
+    },
+  })
+
+  const plan = await prisma.ehcpPlan.findFirst({
+    where: { schoolId, studentId, status: { in: ['active', 'under_review'] } },
+    include: { outcomes: { orderBy: [{ section: 'asc' }, { targetDate: 'asc' }] } },
+    orderBy: { planDate: 'desc' },
+  })
+  if (!plan) return null
+
+  const student = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { firstName: true, lastName: true },
+  })
+
+  return {
+    id: plan.id,
+    schoolId: plan.schoolId,
+    studentId: plan.studentId,
+    studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
+    localAuthority: plan.localAuthority,
+    planDate: plan.planDate,
+    reviewDate: plan.reviewDate,
+    coordinatorName: plan.coordinatorName,
+    status: plan.status,
+    createdAt: plan.createdAt,
+    outcomes: plan.outcomes.map(o => ({
+      id: o.id,
+      section: o.section,
+      outcomeText: o.outcomeText,
+      targetDate: o.targetDate,
+      successCriteria: o.successCriteria,
+      provisionRequired: o.provisionRequired,
+      status: o.status,
+      evidenceCount: o.evidenceCount,
+    })),
+  }
+}
+
+export async function getAllEhcpPlans(): Promise<EhcpPlanWithOutcomes[]> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const plans = await prisma.ehcpPlan.findMany({
+    where: { schoolId, status: { not: 'ceased' } },
+    include: { outcomes: { orderBy: [{ section: 'asc' }] } },
+    orderBy: { reviewDate: 'asc' },
+  })
+
+  const studentIds = [...new Set(plans.map(p => p.studentId))]
+  const students = await prisma.user.findMany({
+    where: { id: { in: studentIds } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const studentMap = new Map(students.map(s => [s.id, `${s.firstName} ${s.lastName}`]))
+
+  return plans.map(p => ({
+    id: p.id,
+    schoolId: p.schoolId,
+    studentId: p.studentId,
+    studentName: studentMap.get(p.studentId) ?? 'Unknown',
+    localAuthority: p.localAuthority,
+    planDate: p.planDate,
+    reviewDate: p.reviewDate,
+    coordinatorName: p.coordinatorName,
+    status: p.status,
+    createdAt: p.createdAt,
+    outcomes: p.outcomes.map(o => ({
+      id: o.id,
+      section: o.section,
+      outcomeText: o.outcomeText,
+      targetDate: o.targetDate,
+      successCriteria: o.successCriteria,
+      provisionRequired: o.provisionRequired,
+      status: o.status,
+      evidenceCount: o.evidenceCount,
+    })),
+  }))
+}
+
+// ─── ILP / EHCP Evidence Linking ─────────────────────────────────────────────
+
+export async function linkHomeworkToIlpTarget(
+  homeworkId: string,
+  ilpTargetId: string,
+  evidenceNote?: string,
+): Promise<void> {
+  const user = await requireSencoOrStaff()
+  const schoolId = user.schoolId
+
+  // Verify homework belongs to this school
+  const hw = await prisma.homework.findFirst({ where: { id: homeworkId, schoolId } })
+  if (!hw) throw new Error('Homework not found')
+
+  await prisma.ilpHomeworkLink.upsert({
+    where: { ilpTargetId_homeworkId: { ilpTargetId, homeworkId } },
+    update: { evidenceNote: evidenceNote ?? null },
+    create: { ilpTargetId, homeworkId, linkedBy: user.id, evidenceNote: evidenceNote ?? null },
+  })
+
+  revalidatePath('/senco/ilp-evidence')
+}
+
+export async function linkSubmissionToEhcpOutcome(
+  submissionId: string,
+  outcomeId: string,
+  teacherNote: string,
+  qualityRating: number,
+): Promise<void> {
+  const user = await requireSencoOrStaff()
+  const schoolId = user.schoolId
+
+  // Verify submission belongs to this school
+  const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
+  if (!sub) throw new Error('Submission not found')
+
+  await prisma.homeworkEhcpEvidence.create({
+    data: { outcomeId, submissionId, teacherNote, qualityRating, evidenceDate: new Date() },
+  })
+
+  // Increment evidenceCount on outcome
+  await prisma.ehcpOutcome.update({
+    where: { id: outcomeId },
+    data: { evidenceCount: { increment: 1 } },
+  })
+
+  revalidatePath('/senco/ehcp')
+}
+
+export async function updateEhcpOutcomeStatus(
+  outcomeId: string,
+  status: string,
+): Promise<void> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  // Verify outcome belongs to this school via its plan
+  const outcome = await prisma.ehcpOutcome.findFirst({
+    where: { id: outcomeId, ehcp: { schoolId } },
+    select: { id: true, ehcpId: true },
+  })
+  if (!outcome) throw new Error('Outcome not found')
+
+  await prisma.ehcpOutcome.update({ where: { id: outcomeId }, data: { status } })
+  revalidatePath('/senco/ehcp')
+}
+
+// ─── ILP targets due for evidencing ──────────────────────────────────────────
+
+export type IlpTargetDue = {
+  targetId: string
+  target: string
+  strategy: string
+  successMeasure: string
+  targetDate: Date
+  status: string
+  studentId: string
+  studentName: string
+  ilpId: string
+  daysUntilDue: number
+  evidenceCount: number
+}
+
+export async function getIlpTargetsDueForEvidencing(): Promise<IlpTargetDue[]> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const cutoff = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000)
+
+  const targets = await prisma.ilpTarget.findMany({
+    where: {
+      ilp: { schoolId, status: 'active' },
+      status: 'in_progress',
+      targetDate: { lte: cutoff },
+    },
+    include: { ilp: { include: { targets: false } } },
+    orderBy: { targetDate: 'asc' },
+    take: 50,
+  })
+
+  const studentIds = [...new Set(targets.map(t => t.ilp.studentId))]
+  const students = await prisma.user.findMany({
+    where: { id: { in: studentIds } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const studentMap = new Map(students.map(s => [s.id, `${s.firstName} ${s.lastName}`]))
+
+  // Count ILP homework links per target
+  const targetIds = targets.map(t => t.id)
+  const links = await prisma.ilpHomeworkLink.findMany({
+    where: { ilpTargetId: { in: targetIds } },
+    select: { ilpTargetId: true },
+  })
+  const linkCountMap = new Map<string, number>()
+  for (const link of links) {
+    linkCountMap.set(link.ilpTargetId, (linkCountMap.get(link.ilpTargetId) ?? 0) + 1)
+  }
+
+  const now = Date.now()
+  return targets.map(t => ({
+    targetId: t.id,
+    target: t.target,
+    strategy: t.strategy,
+    successMeasure: t.successMeasure,
+    targetDate: t.targetDate,
+    status: t.status,
+    studentId: t.ilp.studentId,
+    studentName: studentMap.get(t.ilp.studentId) ?? 'Unknown',
+    ilpId: t.ilpId,
+    daysUntilDue: Math.round((t.targetDate.getTime() - now) / (1000 * 60 * 60 * 24)),
+    evidenceCount: linkCountMap.get(t.id) ?? 0,
+  }))
+}
+
+// ─── AI Progress Reports ──────────────────────────────────────────────────────
+
+export async function generateIlpProgressReport(studentId: string): Promise<string> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const AI_DISCLAIMER = '⚠️ AI-assisted draft — requires SENCO review before use.\n\n'
+
+  const [student, ilp, recentSubmissions] = await Promise.all([
+    prisma.user.findUnique({ where: { id: studentId }, select: { firstName: true, lastName: true, yearGroup: true } }),
+    prisma.individualLearningPlan.findFirst({
+      where: { schoolId, studentId, status: 'active' },
+      include: { targets: true },
+    }),
+    prisma.submission.findMany({
+      where: { studentId, schoolId, submittedAt: { gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } },
+      select: { finalScore: true, status: true, submittedAt: true, homework: { select: { title: true, type: true } } },
+      orderBy: { submittedAt: 'desc' },
+      take: 20,
+    }),
+  ])
+
+  if (!student) return AI_DISCLAIMER + 'Student not found.'
+  if (!ilp) return AI_DISCLAIMER + 'No active ILP found for this student.'
+
+  const scored = recentSubmissions.filter(s => s.finalScore !== null)
+  const avgScore = scored.length > 0 ? Math.round(scored.reduce((a, s) => a + (s.finalScore ?? 0), 0) / scored.length) : null
+  const completionRate = recentSubmissions.length > 0
+    ? Math.round((recentSubmissions.filter(s => s.status !== 'SUBMITTED' || s.finalScore !== null).length / recentSubmissions.length) * 100)
+    : 0
+
+  const targetsSummary = ilp.targets.map(t =>
+    `- Target: ${t.target}\n  Strategy: ${t.strategy}\n  Success measure: ${t.successMeasure}\n  Due: ${new Date(t.targetDate).toLocaleDateString('en-GB')}\n  Status: ${t.status}`
+  ).join('\n')
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return AI_DISCLAIMER + `ILP Progress Report — ${student.firstName} ${student.lastName}\n\n[AI service unavailable — please review targets manually]\n\n${targetsSummary}`
+
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: 'You are a UK SENCO writing professional ILP progress reports. Use positive, evidence-based language. Avoid diagnoses. Reference specific targets.',
+      messages: [{
+        role: 'user',
+        content: `Write an ILP progress report for ${student.firstName} ${student.lastName} (Year ${student.yearGroup ?? 'unknown'}).
+
+ILP category: ${ilp.sendCategory}
+Review date: ${new Date(ilp.reviewDate).toLocaleDateString('en-GB')}
+
+Targets:
+${targetsSummary}
+
+Homework performance (last 90 days): ${recentSubmissions.length} tasks, ${completionRate}% completion rate${avgScore ? `, average score ${avgScore}%` : ''}.
+
+Write a structured report covering: (1) Overview and progress summary, (2) Target-by-target review, (3) Recommendations for next review period. Keep it professional and concise (400–500 words).`,
+      }],
+    })
+    return AI_DISCLAIMER + (msg.content[0] as any).text.trim()
+  } catch {
+    return AI_DISCLAIMER + `Unable to generate AI report at this time. Please review the targets manually:\n\n${targetsSummary}`
+  }
+}
+
+export async function generateEhcpAnnualReview(studentId: string): Promise<string> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const AI_DISCLAIMER = '⚠️ AI-assisted draft — requires SENCO and LA review before use.\n\n'
+
+  const [student, ehcp] = await Promise.all([
+    prisma.user.findUnique({ where: { id: studentId }, select: { firstName: true, lastName: true, yearGroup: true } }),
+    prisma.ehcpPlan.findFirst({
+      where: { schoolId, studentId, status: 'active' },
+      include: {
+        outcomes: {
+          include: { evidence: { select: { teacherNote: true, qualityRating: true, evidenceDate: true } } },
+          orderBy: [{ section: 'asc' }],
+        },
+      },
+    }),
+  ])
+
+  if (!student) return AI_DISCLAIMER + 'Student not found.'
+  if (!ehcp) return AI_DISCLAIMER + 'No active EHCP found for this student.'
+
+  const outcomesSummary = ehcp.outcomes.map(o =>
+    `Section ${o.section}: ${o.outcomeText}\nStatus: ${o.status}\nEvidence pieces: ${o.evidenceCount}\n${o.evidence.map(e => `  - ${e.teacherNote ?? 'No note'} (quality: ${e.qualityRating ?? 'N/A'}/5)`).join('\n')}`
+  ).join('\n\n')
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return AI_DISCLAIMER + `EHCP Annual Review — ${student.firstName} ${student.lastName}\n\n[AI service unavailable]\n\n${outcomesSummary}`
+
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1200,
+      system: 'You are a UK SENCO writing EHCP annual review reports. Use formal, evidence-based language appropriate for an official local authority document. Structure clearly by outcome.',
+      messages: [{
+        role: 'user',
+        content: `Write an EHCP annual review for ${student.firstName} ${student.lastName} (Year ${student.yearGroup ?? 'unknown'}).
+
+Local Authority: ${ehcp.localAuthority}
+Plan date: ${new Date(ehcp.planDate).toLocaleDateString('en-GB')}
+Review date: ${new Date(ehcp.reviewDate).toLocaleDateString('en-GB')}
+
+Outcomes and evidence:
+${outcomesSummary}
+
+Write a formal annual review covering: (1) Overview of the year, (2) Review of each outcome with evidence referenced, (3) Recommendations for the coming year. Use appropriate EHCP annual review language (500–700 words).`,
+      }],
+    })
+    return AI_DISCLAIMER + (msg.content[0] as any).text.trim()
+  } catch {
+    return AI_DISCLAIMER + `Unable to generate AI review at this time.\n\n${outcomesSummary}`
+  }
+}

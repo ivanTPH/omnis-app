@@ -248,6 +248,7 @@ model School {
   learningSequences    LearningSequence[]
   studentProfiles      StudentLearningProfile[]
   ehcpPlans            EhcpPlan[]
+  msgThreads           MsgThread[]
 }
 
 model TermDate {
@@ -327,6 +328,10 @@ model User {
   ehcpPlans            EhcpPlan[]             @relation("StudentEhcps")
   ehcpsCreated         EhcpPlan[]             @relation("EhcpCreator")
   ilpHomeworkLinks     IlpHomeworkLink[]
+
+  // Messaging (threaded)
+  msgParticipants  MsgParticipant[]
+  threadMessages   MsgMessage[]     @relation("MsgSender")
 
   @@index([schoolId, role])
 }
@@ -927,6 +932,58 @@ model ParentMessage {
   readAt         DateTime?
 
   @@index([conversationId])
+}
+
+// ─── Messaging (threaded) ─────────────────────────────────────────────────────
+
+model MsgThread {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  subject      String
+  context      String?  // "homework" | "send" | "general" | "parent_evening"
+  contextId    String?
+  isPrivate    Boolean  @default(false)
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  participants MsgParticipant[]
+  messages     MsgMessage[]
+
+  @@index([schoolId])
+  @@index([updatedAt])
+}
+
+model MsgParticipant {
+  id           String    @id @default(cuid())
+  threadId     String
+  userId       String
+  lastReadAt   DateTime?
+  isArchived   Boolean   @default(false)
+  joinedAt     DateTime  @default(now())
+
+  thread MsgThread @relation(fields: [threadId], references: [id])
+  user   User      @relation(fields: [userId], references: [id])
+
+  @@unique([threadId, userId])
+  @@index([userId])
+}
+
+model MsgMessage {
+  id          String   @id @default(cuid())
+  threadId    String
+  senderId    String
+  body        String   @db.Text
+  isSystem    Boolean  @default(false)
+  attachments Json?
+  sentAt      DateTime @default(now())
+  editedAt    DateTime?
+
+  thread  MsgThread @relation(fields: [threadId], references: [id])
+  sender  User      @relation("MsgSender", fields: [senderId], references: [id])
+
+  @@index([threadId, sentAt])
 }
 
 // ─── Analytics / Benchmarking ─────────────────────────────────────────────────

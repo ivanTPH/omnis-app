@@ -15,6 +15,7 @@
     "wonde:seed": "tsx --env-file=.env.local prisma/seed-wonde.ts",
     "platform:seed": "tsx --env-file=.env.local prisma/seed-platform.ts",
     "send:seed": "tsx --env-file=.env.local prisma/seed-send.ts",
+    "messages:seed": "tsx --env-file=.env.local prisma/seed-messages.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",

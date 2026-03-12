@@ -9,6 +9,7 @@ import {
   UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2, RefreshCw,
   Accessibility, FileCheck, BarChart3, Brain,
 } from 'lucide-react'
+import UnreadBadge from '@/components/messaging/UnreadBadge'
 
 type NavItem =
   | { label: string; href: string; icon: React.ElementType }
@@ -167,6 +168,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               }`}
             >
               <Icon size={15} className="shrink-0" />{item.label}
+              {item.href === '/messages' && <UnreadBadge />}
             </Link>
           )
         })}

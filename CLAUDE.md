@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-12 (Phase 6D). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-12 (Messaging System). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -160,6 +160,14 @@ app/actions/
 | `StudentDashboard.tsx` | Individual student detail dashboard |
 | `ClassListView.tsx` | Classes page — expandable class cards with student rosters |
 | `ParentMessagesView.tsx` | Parent–teacher conversation threads |
+| `messaging/MessagingShell.tsx` | Two-panel messaging layout (thread list 288px left, thread view right) |
+| `messaging/ThreadList.tsx` | Scrollable thread list — participant avatars, unread badge, context badge, timeAgo |
+| `messaging/ThreadView.tsx` | Thread header, message list (scroll-to-bottom), 30s poll for new messages, composer |
+| `messaging/MessageBubble.tsx` | Chat bubble — right-aligned (own), left-aligned (others), system messages centred italic |
+| `messaging/MessageComposer.tsx` | Auto-resize textarea, Enter to send, Shift+Enter newline, 2000-char limit |
+| `messaging/NewThreadModal.tsx` | 2-step modal: select recipients → compose; SEND context notice |
+| `messaging/UnreadBadge.tsx` | Polls `getUnreadMessageCount()` every 60s; shows blue badge in Sidebar |
+| `StudentAvatar.tsx` | Reusable avatar — xs/sm/md/lg sizes; photo URL or deterministic coloured initials fallback |
 | `settings/SettingsShell.tsx` | Settings page — 5 tabs (Profile, Professional, Privacy, Sharing, Security) |
 | `send/SendScoreBadge.tsx` | Compact SEND score badge (green ≥70, amber 40–69, red <40) |
 | `send/SendScoreCard.tsx` | Full score card — 5 dimension bars, summary, recommendations, re-score |
@@ -254,6 +262,7 @@ npm run db:seed-english    # English class students + submissions
 npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
 npm run platform:seed      # Platform admin user + 3 demo schools + feature flags
 npm run send:seed          # Phase 5 SEND monitoring: concerns, ILPs, flags, notifications
+npm run messages:seed      # 5 demo message threads across omnisdemo.school users
 ```
 
 ---
@@ -290,6 +299,8 @@ npm run send:seed          # Phase 5 SEND monitoring: concerns, ILPs, flags, not
 | Oak Sync dashboard | `app/platform-admin/oak-sync/page.tsx` + `components/platform-admin/OakSyncStatus.tsx` |
 | Student Revision Planner | `app/revision/page.tsx` + `components/revision/RevisionDashboard.tsx` |
 | Parent portal | `app/parent/` + `components/ParentMessagesView.tsx` |
+| Messaging inbox | `app/messages/page.tsx` + `components/messaging/MessagingShell.tsx` |
+| Thread view | `app/messages/[threadId]/page.tsx` + `components/messaging/ThreadView.tsx` |
 | Auth | `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts` |
 | Route protection | `middleware.ts` (NextAuth middleware) |
 
@@ -375,8 +386,11 @@ npm run send:seed          # Phase 5 SEND monitoring: concerns, ILPs, flags, not
 - `AdaptationRecommendation` — AI-recommended adaptations from plan review cycles
 
 **Messaging**
-- `Message` / `MessageRecipient` — internal staff messaging
+- `Message` / `MessageRecipient` — internal staff messaging (legacy)
 - `ParentConversation` / `ParentMessage` — parent–teacher contextual threads
+- `MsgThread` — thread with subject, context (GENERAL/PARENT/SEND/HOMEWORK), schoolId
+- `MsgParticipant` — many-to-many: User ↔ MsgThread with lastReadAt
+- `MsgMessage` — individual message: body, senderId, isSystem flag
 - `TeacherAvailability` — teacher's messaging availability window
 
 **Analytics**
@@ -476,6 +490,7 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 ## Outstanding Tasks
 
 ### ✅ Completed (this session)
+- **Messaging System — Threaded In-App Messaging:** 3 Prisma models (`MsgThread`, `MsgParticipant`, `MsgMessage`) added to schema; migration 20260309240000. `app/actions/messaging.ts` — 7 actions (`getMyThreads`, `getThread`, `createThread`, `sendMessage`, `archiveThread`, `getUnreadMessageCount`, `getContactList`). Role-aware `createThread`: STUDENT → class teachers only; PARENT → child's teachers only; Staff → anyone in school. New-thread/new-message notifications via `prisma.notification.createMany`. 7 components: `MessageBubble`, `MessageComposer` (auto-resize, Enter-to-send), `ThreadList` (unread badge, context badge, timeAgo), `ThreadView` (scroll-to-bottom, 30s poll), `NewThreadModal` (2-step: recipients → compose), `MessagingShell` (two-panel layout), `UnreadBadge` (60s poll, blue dot). Routes: `/messages` + `/messages/[threadId]`. `prisma/seed-messages.ts` — 5 demo threads; `npm run messages:seed` script. `Sidebar.tsx` updated with `UnreadBadge` on Messages nav items for all roles. Build passing.
 - **Phase 6D — E2E Test Suite Update:** 50 existing tests — all passing, no fixes needed. 7 new spec files added: `senco.spec.ts` (8 tests — dashboard, concerns, ILP, early-warning, EHCP, ILP-evidence, role blocks), `adaptive-homework.spec.ts` (5 tests — homework list, `/analytics/adaptive` access, role blocks), `cover-management.spec.ts` (4 tests), `revision-planner.spec.ts` (4 tests), `ai-generator.spec.ts` (4 tests), `gdpr.spec.ts` (4 tests), `student-photos.spec.ts` (3 tests). **82 total tests, 82 passing, 0 failures.** Key patterns: URL-based access control assertions, `waitForLoadState('networkidle')`, 10s timeouts for content assertions. `TEST_REPORT.md` updated with new counts and coverage summary.
 - **Phase 6C — Homework Review Workflow & Student Photos:** Part A: Schema — 3 new Submission fields (`autoMarked`, `teacherReviewed`, `autoFeedback`); migration 20260309220000. Part B: Schema — 2 new WondeStudent fields (`photoUrl`, `photoUpdatedAt`) + 1 new User field (`avatarUrl`); migration 20260309230000. `autoMarkSubmission()` now sets `autoMarked: true, teacherReviewed: false, autoFeedback`; `markSubmission()` sets `teacherReviewed: true`; new `bulkAutoMarkAndQueue(homeworkId)` action — bulk auto-marks SUBMITTED submissions and notifies teacher. `StudentRow` + `ConcernRow` types extended with `avatarUrl`/`studentAvatarUrl`. New `components/StudentAvatar.tsx` — reusable component (xs/sm/md/lg sizes, photo URL or deterministic coloured initials fallback). `SubmissionMarkingView`: amber AI review banner + "AI suggested" badge + "Confirm & Return to Student" button label when auto-marked. `HomeworkMarkingView`: "Needs review" badge per submission + count header + AI review banner + "Confirm & Return" button. `AdminStudentTable`, `ConcernList`, student `/send` page: all use StudentAvatar. Sidebar: optional `avatarUrl` prop (shows photo or initials). `seed-wonde.ts`: DiceBear initials avatars for all 120 synthetic students + Wonde photo sync note comment. Build passing.
 - **Phase 6B — Adaptive Learning Fixes & Enhancements:** 8 surgical fixes across 5 files. FIX 1: Auto-update learning profile after marking (non-blocking `void updateLearningProfile()` in markSubmission + autoMarkSubmission). FIX 2: Auto-suggest ILP/EHCP evidence linking in submission marking view — `getSubmissionForMarking` now returns `ilpTargetsDue` + `ehcpOutcomesDue`; `AdaptiveSubmissionView` shows combined collapsible "Link as Evidence" panel. FIX 3: Spaced repetition now uses OR query (title contains + learningObjectives has) with fallback to recent homework when no topic match. FIX 4: `generateDifferentiatedVersions(homeworkId, studentIds)` added — Claude-powered per-student adaptation with SEND/profile context, batch 5 concurrent, graceful fallback. FIX 5: ILP targets auto-wired into homework generation — `HomeworkCreatorV2` banner + CRITICAL-framed numbered list in AI prompt. FIX 6: Oak resource `pupilLessonOutcome` fetched via `oakContentId` and included in learning extraction prompt. FIX 7: Self-assessment included in learning profile — 60/40 blending with avgScore for `preferredTypes` sort. FIX 8: ILP/EHCP reports reference specific homework evidence — `generateIlpProgressReport` lists linked homeworks per target; `generateEhcpAnnualReview` includes submission scores. Build passing.
@@ -525,7 +540,6 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - `/resources` — resource library page
 - `/classes` — partially built (list view exists, may need detail pages)
 - `/plans` — SEND plans list/detail
-- `/messages` — staff messaging inbox
 - `/notifications` — notification centre
 - `/hoy/integrity` — integrity case management
 - `/admin/audit` — audit log (SCHOOL_ADMIN)

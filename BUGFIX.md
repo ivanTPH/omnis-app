@@ -171,3 +171,37 @@ The following workflows were reviewed and found to be functioning correctly:
 
 **Files changed:**
 - `app/actions/homework.ts`
+
+---
+
+## 9. Production crash digest 3065895699
+
+**Symptom:** A second production server error appeared at digest 3065895699, distinct from the analytics crash (digest 645327168).
+
+**Root cause (A — IlpTarget `status: 'in_progress'` in ehcp.ts and adaptive-learning.ts):** Three server actions continued to query `IlpTarget` with `status: 'in_progress'`, an invalid status value. Valid values are `"active"`, `"achieved"`, `"not_achieved"`, `"deferred"`.
+- `getIlpTargetsDueForEvidencing()` in `app/actions/ehcp.ts` line 330
+- `getAdaptiveHomeworkSuggestions()` in `app/actions/adaptive-learning.ts`
+- `generateDifferentiatedVersions()` in `app/actions/adaptive-learning.ts`
+
+These were missed in the previous bug #8 fix which only corrected `homework.ts` and `analytics.ts`.
+
+**Root cause (B — SENCO blocked from `/analytics` route):** The sidebar was updated in a prior session to give SENCO an `Analytics → /analytics` link, but `auth.config.ts` did not include `SENCO` in the `/analytics` allowed roles. SENCO users clicking Analytics were silently redirected to `/send/dashboard` instead of seeing an error — but this also indicated an inconsistent access model.
+
+**Root cause (C — Missing error boundaries):** `app/global-error.tsx` did not exist. Only `app/homework/error.tsx` had a route-level error boundary. Any unhandled server component exception in other routes (dashboard, analytics, SEND, classes) would escalate directly to the bare Next.js error page.
+
+**Fix:**
+1. Changed all three `status: 'in_progress'` → `status: 'active'` on `IlpTarget` filters in `ehcp.ts` and `adaptive-learning.ts`.
+2. Added `'SENCO'` to the `/analytics` allowed roles in `auth.config.ts`.
+3. Created `app/global-error.tsx` — branded fallback error page with digest display and "Try again" button.
+4. Created `error.tsx` for: `app/dashboard/`, `app/analytics/`, `app/senco/`, `app/send/`, `app/classes/`.
+
+**Files changed:**
+- `app/actions/ehcp.ts`
+- `app/actions/adaptive-learning.ts`
+- `auth.config.ts`
+- `app/global-error.tsx` (new)
+- `app/dashboard/error.tsx` (new)
+- `app/analytics/error.tsx` (new)
+- `app/senco/error.tsx` (new)
+- `app/send/error.tsx` (new)
+- `app/classes/error.tsx` (new)

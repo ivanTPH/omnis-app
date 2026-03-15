@@ -402,7 +402,7 @@ export async function suggestNextHomework(
           status: 'active',
           student: { enrolments: { some: { classId } } },
         },
-        status: 'in_progress',
+        status: 'active',
         targetDate: { lte: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000) },
       },
       select: { id: true, target: true },
@@ -449,7 +449,7 @@ export async function getAdaptiveHomeworkSuggestions(
     prisma.studentLearningProfile.findUnique({ where: { studentId } }),
     prisma.sendStatus.findUnique({ where: { studentId } }),
     prisma.ilpTarget.findMany({
-      where: { ilp: { schoolId, studentId, status: 'active' }, status: 'in_progress' },
+      where: { ilp: { schoolId, studentId, status: 'active' }, status: 'active' },
       select: { id: true, target: true, strategy: true },
       take: 5,
     }),
@@ -610,7 +610,7 @@ export async function generateDifferentiatedVersions(
       prisma.ilpTarget.findMany({
         where: {
           ilp: { schoolId, studentId, status: 'active' },
-          status: 'in_progress',
+          status: 'active',
           targetDate: { lte: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) },
         },
         select: { target: true, strategy: true },

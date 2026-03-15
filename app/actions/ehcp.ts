@@ -327,7 +327,7 @@ export async function getIlpTargetsDueForEvidencing(): Promise<IlpTargetDue[]> {
   const targets = await prisma.ilpTarget.findMany({
     where: {
       ilp: { schoolId, status: 'active' },
-      status: 'in_progress',
+      status: 'active',
       targetDate: { lte: cutoff },
     },
     include: { ilp: { include: { targets: false } } },

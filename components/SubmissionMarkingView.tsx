@@ -66,8 +66,24 @@ export default function SubmissionMarkingView({
   const [saved,     setSaved]         = useState(false)
   const [error,     setError]         = useState<string | null>(null)
 
-  const isAlreadyMarked   = data.status === 'RETURNED' || data.status === 'MARKED'
+  const isAlreadyMarked    = data.status === 'RETURNED' || data.status === 'MARKED'
+  const isReturned         = data.status === 'RETURNED'
   const isAutoMarkedPending = (data as any).autoMarked && !(data as any).teacherReviewed
+
+  // Grade visual state: auto (amber) → confirmed (green) → final/returned (neutral)
+  const gradeState: 'auto' | 'confirmed' | 'final' | 'empty' =
+    isReturned ? 'final' :
+    (data as any).teacherReviewed ? 'confirmed' :
+    isAutoMarkedPending ? 'auto' :
+    'empty'
+  const gradeBoxClass =
+    gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-700' :
+    gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-700' :
+    'bg-white border-gray-300 text-gray-900'
+  const gradeLabel =
+    gradeState === 'auto'      ? 'Auto-suggested — confirm' :
+    gradeState === 'confirmed' ? 'Confirmed ✓' :
+    'Auto-suggested from score'
 
   function handleScoreChange(v: string) {
     setScore(v)
@@ -198,10 +214,14 @@ export default function SubmissionMarkingView({
                   {' · '}Submitted {new Date(data.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   {' at '}
                   {new Date(data.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                  {isAlreadyMarked && data.markedAt && (
+                  {isReturned && data.markedAt &&
+                    new Date(data.markedAt) >= new Date(data.submittedAt) && (
                     <span className="text-green-600">
                       {' · '}Returned {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </span>
+                  )}
+                  {data.status === 'MARKED' && (
+                    <span className="text-amber-600">{' · '}Awaiting review</span>
                   )}
                 </p>
                 <a
@@ -413,10 +433,14 @@ export default function SubmissionMarkingView({
                 type="text"
                 value={grade}
                 onChange={e => setGrade(e.target.value)}
-                className="w-24 border border-gray-300 rounded-xl px-3 py-2.5 text-[16px] font-bold text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className={`w-24 border rounded-xl px-3 py-2.5 text-[16px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
                 placeholder="—"
               />
-              <p className="text-[10px] text-gray-400 mt-1">Auto-suggested from score</p>
+              <p className={`text-[10px] mt-1 ${
+                gradeState === 'auto'      ? 'text-amber-600' :
+                gradeState === 'confirmed' ? 'text-green-600' :
+                'text-gray-400'
+              }`}>{gradeLabel}</p>
             </div>
 
             {/* Feedback */}
@@ -467,8 +491,8 @@ export default function SubmissionMarkingView({
             </div>
           </div>
 
-          {/* Previously returned info — FIX 1: correct score display */}
-          {isAlreadyMarked && (
+          {/* Previously returned info */}
+          {isReturned && (
             <div className="border-t border-gray-200 pt-4">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Previously Returned</p>
               <div className="space-y-1 text-[12px] text-gray-500">
@@ -476,7 +500,9 @@ export default function SubmissionMarkingView({
                   <p>Score: <span className="font-semibold text-gray-700">{displayFinalScore}</span></p>
                 )}
                 {data.grade && <p>Grade: <span className="font-bold text-green-700">{data.grade}</span></p>}
-                {data.markedAt && <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+                {data.markedAt && new Date(data.markedAt) >= new Date(data.submittedAt) && (
+                  <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                )}
               </div>
             </div>
           )}

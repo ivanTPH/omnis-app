@@ -237,8 +237,24 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     )
   }
 
-  const isAlreadyMarked = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
+  const isAlreadyMarked    = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
+  const isReturned         = selectedSub?.status === 'RETURNED'
   const isAutoMarkedPending = selectedSub?.autoMarked && !selectedSub?.teacherReviewed
+
+  // Grade visual state: auto (amber) → confirmed (green) → final/returned (neutral)
+  const gradeState: 'auto' | 'confirmed' | 'final' | 'empty' =
+    isReturned ? 'final' :
+    selectedSub?.teacherReviewed ? 'confirmed' :
+    isAutoMarkedPending ? 'auto' :
+    'empty'
+  const gradeBoxClass =
+    gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-700' :
+    gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-700' :
+    'bg-white border-gray-300 text-gray-900'
+  const gradeLabel =
+    gradeState === 'auto'      ? 'Auto-suggested — confirm' :
+    gradeState === 'confirmed' ? 'Confirmed ✓' :
+    'Auto-suggested'
 
   return (
     <div className="flex h-full min-h-0">
@@ -304,8 +320,15 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 </p>
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   Submitted {new Date(selectedSub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  {selectedSub.markedAt && ` · Returned ${new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-                  {' · '}<span className="font-medium text-gray-500">{statusLabel(selectedSub.status)}</span>
+                  {isReturned && selectedSub.markedAt &&
+                    new Date(selectedSub.markedAt) >= new Date(selectedSub.submittedAt) &&
+                    ` · Returned ${new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                  }
+                  {' · '}
+                  {selectedSub.status === 'MARKED'
+                    ? <span className="font-medium text-amber-600">Awaiting review</span>
+                    : <span className={`font-medium ${isReturned ? 'text-green-600' : 'text-gray-500'}`}>{statusLabel(selectedSub.status)}</span>
+                  }
                 </p>
               </div>
             </div>
@@ -446,10 +469,14 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       type="text"
                       value={form.grade}
                       onChange={e => setField('grade', e.target.value)}
-                      className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-[14px] font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-20 border rounded-lg px-3 py-2 text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
                       placeholder="—"
                     />
-                    <p className="text-[10px] text-gray-400 mt-1">Auto-suggested</p>
+                    <p className={`text-[10px] mt-1 ${
+                      gradeState === 'auto'      ? 'text-amber-600' :
+                      gradeState === 'confirmed' ? 'text-green-600' :
+                      'text-gray-400'
+                    }`}>{gradeLabel}</p>
                   </div>
                 </div>
 

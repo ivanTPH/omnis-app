@@ -251,3 +251,40 @@ These were missed in the previous bug #8 fix which only corrected `homework.ts` 
 **Files changed:**
 - `components/HomeworkMarkingView.tsx`
 - `components/SubmissionMarkingView.tsx`
+
+---
+
+## 12. Homework marking — return date, status display, grade colour states
+
+**Symptom A ("Returned 3 Mar" for "Submitted 4 Mar"):** The submission header showed a return date before the submission date — physically impossible. The "Returned" label appeared even on `MARKED` submissions that hadn't been confirmed by the teacher yet.
+
+**Root cause A (display):** `HomeworkMarkingView.tsx` line 307 rendered `· Returned X Mar` whenever `markedAt` was set, regardless of `status`. `SubmissionMarkingView.tsx` did the same via `isAlreadyMarked = status === 'RETURNED' || status === 'MARKED'`.
+
+**Root cause A (data):** `submitHomework` in `app/actions/student.ts` updated `submittedAt: new Date()` on resubmit but left the old `markedAt` from a previous seed run unchanged. If the submission was seeded with `markedAt = March 3` and the student resubmitted on March 4, `submittedAt (March 4) > markedAt (March 3)`.
+
+**Root cause A (seed):** `upsertSub` set `markedAt: daysAgo(0)` for all RETURNED submissions regardless of `daysAgoSub`, and `update: {}` meant re-running the seed never corrected bad dates.
+
+**Fix A:**
+1. Both components now only show "Returned X Mar" when `status === 'RETURNED'` AND `markedAt >= submittedAt`.
+2. `submitHomework` now clears `markedAt`, `finalScore`, `teacherScore`, `grade`, `feedback` on resubmit.
+3. `upsertSub` in `seed.ts` now sets `markedAt = submittedAt + 1 day`; changed `update: {}` to also update `markedAt` for RETURNED records so re-running the seed fixes existing bad dates.
+
+---
+
+**Symptom B ("Returned" status before teacher confirms):** The status badge showed "Returned" for `MARKED` submissions (auto-marked, awaiting teacher review).
+
+**Root cause B:** `statusLabel('MARKED')` returned "Marked" which could be confused, and there was no "Awaiting review" state. The "Returned" date line appeared for MARKED status.
+
+**Fix B:** Both components now show `"Awaiting review"` (amber) for `MARKED` status. Status badge is green only for `RETURNED`.
+
+---
+
+**Symptom C (Grade field plain white, no visual state):** The Grade input box had no visual distinction between "AI auto-suggested" (needs confirmation), "teacher confirmed", and "final/returned".
+
+**Fix C:** Added `gradeState` logic to both components. Grade box is amber (`bg-amber-50 border-amber-300 text-amber-700`) when auto-suggested, green (`bg-green-50 border-green-300 text-green-700`) when teacher confirmed, neutral when returned/empty. Label below changes to "Auto-suggested — confirm" (amber) / "Confirmed ✓" (green).
+
+**Files changed:**
+- `components/HomeworkMarkingView.tsx`
+- `components/SubmissionMarkingView.tsx`
+- `app/actions/student.ts`
+- `prisma/seed.ts`

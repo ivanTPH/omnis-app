@@ -1425,15 +1425,21 @@ async function main() {
   async function upsertSub(s: SubInput) {
     const hw = await prisma.homework.findUniqueOrThrow({ where: { id: s.hwId } })
     const unique = { homeworkId: hw.id, studentId: s.studentId }
+    // markedAt must always be AFTER submittedAt — set to 1 day after submission
+    const submittedAt = daysAgo(s.daysAgoSub ?? 2)
+    const markedAt    = s.status === SubmissionStatus.RETURNED
+      ? new Date(submittedAt.getTime() + 24 * 60 * 60 * 1000)
+      : undefined
     await prisma.submission.upsert({
       where:  { homeworkId_studentId: unique },
-      update: {},
+      // Also update markedAt on existing records to fix any previously bad seed dates
+      update: s.status === SubmissionStatus.RETURNED ? { markedAt } : {},
       create: {
         schoolId: school.id, homeworkId: hw.id, studentId: s.studentId,
         content: s.content,
         status: s.status,
-        submittedAt: daysAgo(s.daysAgoSub ?? 2),
-        markedAt: s.status === SubmissionStatus.RETURNED ? daysAgo(0) : undefined,
+        submittedAt,
+        markedAt,
         finalScore: s.score,
         teacherScore: s.score,
         grade: s.grade,

@@ -75,6 +75,12 @@ export async function submitHomework(homeworkId: string, content: string) {
       content:     content.trim(),
       status:      'SUBMITTED',
       submittedAt: new Date(),
+      // Clear previous marking data when student resubmits
+      markedAt:    null,
+      finalScore:  null,
+      teacherScore: null,
+      grade:       null,
+      feedback:    null,
     },
   })
 

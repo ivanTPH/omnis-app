@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
+import { getMyAvatarUrl } from '@/app/actions/settings'
 
 export default function AppShell({
   role, firstName, lastName, schoolName, children,
@@ -13,13 +14,18 @@ export default function AppShell({
   children:   React.ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    getMyAvatarUrl().then(url => setAvatarUrl(url ?? null))
+  }, [])
 
   return (
     <div className="flex h-dvh overflow-hidden bg-white">
 
       {/* Desktop sidebar — always in flow on md+ (768px+) */}
       <div className="hidden md:flex shrink-0">
-        <Sidebar role={role} firstName={firstName} lastName={lastName} schoolName={schoolName} />
+        <Sidebar role={role} firstName={firstName} lastName={lastName} schoolName={schoolName} avatarUrl={avatarUrl} />
       </div>
 
       {/* Mobile drawer — rendered as overlay when open (below md) */}
@@ -34,6 +40,7 @@ export default function AppShell({
               firstName={firstName}
               lastName={lastName}
               schoolName={schoolName}
+              avatarUrl={avatarUrl}
               onClose={() => setOpen(false)}
             />
           </div>

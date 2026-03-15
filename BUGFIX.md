@@ -288,3 +288,59 @@ These were missed in the previous bug #8 fix which only corrected `homework.ts` 
 - `components/SubmissionMarkingView.tsx`
 - `app/actions/student.ts`
 - `prisma/seed.ts`
+
+---
+
+## 13. Profile picture not updating sidebar after upload
+
+**Symptom:** Uploading a new profile picture in Settings (Profile tab) succeeded — the preview updated locally — but the avatar chip at the bottom-left of the sidebar still showed the old initials/photo until a full page reload.
+
+**Root cause (3 parts):**
+1. `app/api/settings/avatar/route.ts` — No `revalidatePath` calls after saving the image to DB. Next.js cached the page layout, so server components never refetched.
+2. `components/settings/SettingsShell.tsx` — `handleAvatarChange` updated local `avatarUrl` state but never called `router.refresh()` to trigger a client-side re-render of server data.
+3. `components/AppShell.tsx` — The `avatarUrl` prop was never passed to `Sidebar`. `AppShell` didn't fetch avatar data at all; `Sidebar` already accepted `avatarUrl?: string | null` but always received `undefined`.
+
+**Fix:**
+1. `avatar/route.ts` — Added `revalidatePath('/', 'layout')` and `revalidatePath('/settings')` after `writeAudit`.
+2. `SettingsShell.tsx` — Added `router.refresh()` after the successful upload response.
+3. `app/actions/settings.ts` — Added new `getMyAvatarUrl()` server action that queries `UserSettings.profilePictureUrl` for the current session user.
+4. `AppShell.tsx` — Added `useEffect` on mount to call `getMyAvatarUrl()` and store result in `avatarUrl` state, then passes it to both Sidebar instances (desktop + mobile drawer).
+
+**Files changed:**
+- `app/api/settings/avatar/route.ts`
+- `components/settings/SettingsShell.tsx`
+- `app/actions/settings.ts`
+- `components/AppShell.tsx`
+
+---
+
+## 14. Homework marking — filter chips, SEND indicators, resend/message actions
+
+**Symptom A (Non-clickable counters):** The pupil list header showed "26/28 submitted · 2 missing" as plain text. There was no way to filter the list to show only submitted, returned, missing, or SEND pupils.
+
+**Fix A:** Replaced the plain-text header with a row of clickable filter chips (All / Submitted / Returned / Missing / SEND), each showing a count badge. Clicking a chip filters the pupil list; clicking the active chip returns to "All". `pupilFilter` state drives two separate computed lists (`visibleSubmitted`, `visibleMissing`).
+
+---
+
+**Symptom B (Generic SEND badge):** All SEND pupils had an identical red "SEND" label. EHCP and SEN Support have different implications but were visually identical.
+
+**Fix B:**
+- Added `<SendBadge>` component inline — renders `EHCP` (purple) for `activeStatus === 'EHCP'` and `SEN` (blue) for `SEN_SUPPORT`.
+- Missing SEND pupils now get an amber left-border highlight and amber `AlertCircle` icon instead of the grey treatment.
+- The right-panel student header also shows the full `activeStatus` label with colour coding.
+
+---
+
+**Symptom C (No action buttons for missing pupils):** Missing students appeared in the list but teachers had no way to prompt them from within the marking view.
+
+**Fix C:** Added two action buttons beneath each missing student row:
+- **Remind** — calls new `resendHomeworkReminder(homeworkId, studentId)` server action that creates a `Notification` record for the student. Button shows spinner while pending and switches to "Sent ✓" (green) once confirmed per-session. Non-blocking (best-effort).
+- **Message** — `<Link>` to `/messages?new=1&recipient=<id>&context=<hw title>`. For SEND pupils, shows a small purple "SEND" hint label to remind the teacher to use sensitive language.
+
+---
+
+**New server action:** `resendHomeworkReminder(homeworkId, studentId)` in `app/actions/homework.ts` — creates a `HOMEWORK_SET` notification for the student with due-date copy and link to the submission page.
+
+**Files changed:**
+- `components/HomeworkMarkingView.tsx`
+- `app/actions/homework.ts`

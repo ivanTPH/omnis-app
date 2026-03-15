@@ -269,6 +269,18 @@ export async function saveSharingSettings(input: {
   return { ok: true }
 }
 
+/** Fetch the current user's avatar URL (for sidebar display). */
+export async function getMyAvatarUrl(): Promise<string | null> {
+  const session = await auth()
+  if (!session?.user) return null
+  const { id: userId } = session.user as any
+  const settings = await prisma.userSettings.findUnique({
+    where:  { userId },
+    select: { profilePictureUrl: true },
+  })
+  return settings?.profilePictureUrl ?? null
+}
+
 /** Change the user's password after verifying the current one. */
 export async function changePassword(input: {
   currentPassword: string

@@ -947,3 +947,31 @@ export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
   revalidatePath(`/homework/${homeworkId}`)
   return { queued, alreadyMarked }
 }
+
+/** Send a homework reminder notification to a student who hasn't submitted. */
+export async function resendHomeworkReminder(homeworkId: string, studentId: string): Promise<{ ok: true }> {
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const hw = await prisma.homework.findFirst({
+    where:  { id: homeworkId, schoolId },
+    select: { title: true, dueAt: true },
+  })
+  if (!hw) throw new Error('Homework not found')
+
+  await prisma.notification.create({
+    data: {
+      schoolId,
+      userId:   studentId,
+      type:     'HOMEWORK_SET',
+      title:    `Reminder: "${hw.title}" is due`,
+      body:     hw.dueAt
+        ? `This homework is due ${new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}. Please submit when ready.`
+        : 'Please submit your homework when ready.',
+      linkHref: `/student/homework/${homeworkId}`,
+    },
+  })
+
+  return { ok: true }
+}

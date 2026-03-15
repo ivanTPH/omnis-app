@@ -2,8 +2,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare } from 'lucide-react'
-import { markSubmission } from '@/app/actions/homework'
+import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare } from 'lucide-react'
+import { markSubmission, resendHomeworkReminder } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -21,10 +21,7 @@ function maxFromBands(bands: unknown): number {
 }
 
 function suggestGrade(score: number, bands: unknown): string {
-  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) {
-    // No bands — auto-suggest GCSE grade based on percentage of maxScore
-    return ''
-  }
+  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return ''
   for (const range of Object.keys(bands as Record<string, string>)) {
     const parts = range.split(/[-–]/).map(Number)
     const [lo, hi] = parts.length === 1 ? [parts[0], parts[0]] : [parts[0], parts[1]]
@@ -48,6 +45,24 @@ function statusLabel(s: string) {
   return s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' ')
 }
 
+// ── SEND badge ─────────────────────────────────────────────────────────────────
+
+function SendBadge({ send }: { send: { activeStatus: string; needArea: string | null } | undefined }) {
+  if (!send) return null
+  if (send.activeStatus === 'EHCP') {
+    return (
+      <span className="ml-1 text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700 leading-none">EHCP</span>
+    )
+  }
+  return (
+    <span className="ml-1 text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 leading-none">SEN</span>
+  )
+}
+
+// ── filter type ────────────────────────────────────────────────────────────────
+
+type PupilFilter = 'all' | 'submitted' | 'returned' | 'missing' | 'send'
+
 // ── main component ─────────────────────────────────────────────────────────────
 
 export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
@@ -55,28 +70,35 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const maxScore   = maxFromBands(hw.gradingBands)
   const subByStudent = Object.fromEntries(hw.submissions.map(s => [s.student.id, s]))
 
-  const submittedStudents = enrolled
+  const allSubmitted = enrolled
     .filter(e => subByStudent[e.user.id])
     .sort((a, b) => a.user.lastName.localeCompare(b.user.lastName))
-  const missingStudents = enrolled.filter(e => !subByStudent[e.user.id])
+  const allMissing = enrolled.filter(e => !subByStudent[e.user.id])
+  const allReturned = allSubmitted.filter(e => {
+    const s = subByStudent[e.user.id]
+    return s?.status === 'RETURNED' || s?.status === 'MARKED'
+  })
+  const allSend = enrolled.filter(e => hw.sendByStudent[e.user.id])
 
-  const [selectedId, setSelectedId] = useState<string | null>(
-    submittedStudents[0]?.user.id ?? null
+  const [pupilFilter,     setPupilFilter]     = useState<PupilFilter>('all')
+  const [selectedId,      setSelectedId]      = useState<string | null>(
+    allSubmitted[0]?.user.id ?? null
   )
   const [showModelAnswer, setShowModelAnswer] = useState(false)
   const [showBands,       setShowBands]       = useState(false)
   const [isPending,       startTransition]    = useTransition()
   const [savedId,         setSavedId]         = useState<string | null>(null)
   const [error,           setError]           = useState<string | null>(null)
+  const [remindingId,     setRemindingId]     = useState<string | null>(null)
+  const [remindedIds,     setRemindedIds]     = useState<Set<string>>(new Set())
   const router = useRouter()
 
-  // Per-student form state — score normalised to grade scale, feedback pre-filled from autoFeedback
+  // Per-student form state
   const [formState, setFormState] = useState<Record<string, { score: string; grade: string; feedback: string }>>(() => {
     const init: Record<string, { score: string; grade: string; feedback: string }> = {}
     for (const s of hw.submissions) {
       const normScore = normalizeScoreForForm(s.finalScore, maxScore)
       const feedbackValue = s.feedback ?? (s as any).autoFeedback ?? ''
-      // Pre-calculate grade from normScore so the grade field is not blank on load
       const autoGrade = normScore !== ''
         ? (suggestGrade(Number(normScore), hw.gradingBands) ||
            String(percentToGcseGrade(Math.round((Number(normScore) / maxScore) * 100))))
@@ -95,6 +117,27 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const form            = selectedId ? (formState[selectedId] ?? { score: '', grade: '', feedback: '' }) : null
   const sendInfo        = selectedId ? hw.sendByStudent[selectedId] : null
 
+  // ── filter counts ────────────────────────────────────────────────────────────
+  const filterCounts: Record<PupilFilter, number> = {
+    all:       enrolled.length,
+    submitted: allSubmitted.length,
+    returned:  allReturned.length,
+    missing:   allMissing.length,
+    send:      allSend.length,
+  }
+
+  // ── filtered student lists ───────────────────────────────────────────────────
+  const visibleSubmitted = pupilFilter === 'all'       ? allSubmitted
+    : pupilFilter === 'submitted' ? allSubmitted
+    : pupilFilter === 'returned'  ? allReturned
+    : pupilFilter === 'send'      ? allSubmitted.filter(e => hw.sendByStudent[e.user.id])
+    : [] // missing filter shows no submitted
+
+  const visibleMissing = pupilFilter === 'all'     ? allMissing
+    : pupilFilter === 'missing' ? allMissing
+    : pupilFilter === 'send'    ? allMissing.filter(e => hw.sendByStudent[e.user.id])
+    : []
+
   function setField(field: 'score' | 'grade' | 'feedback', value: string) {
     if (!selectedId) return
     setFormState(prev => {
@@ -104,7 +147,6 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         const n = Number(value)
         if (!isNaN(n)) {
           const suggested = suggestGrade(n, hw.gradingBands)
-          // If no band scheme, auto-suggest GCSE grade from percentage of maxScore
           next.grade = suggested || String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
         }
       }
@@ -112,7 +154,6 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     })
   }
 
-  // FIX 3: save with try/catch + proper error display
   function handleSave() {
     if (!selectedId || !selectedSub || !form) return
     const scoreNum = Number(form.score)
@@ -137,12 +178,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     })
   }
 
-  // One-click AI approval — autoScore is raw (0–maxScore); handle legacy percentage values
   function handleApprove() {
     if (!selectedId || !selectedSub) return
     const autoScore = (selectedSub as any).autoScore ?? 0
     const autoFeedback = (selectedSub as any).autoFeedback ?? ''
-    // Detect if legacy percentage-scale (same heuristic as normalizeScoreForForm)
     const isLegacyPct = autoScore > maxScore && maxScore <= 20
     const gradeNum = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
     const pctForGrade = isLegacyPct ? autoScore : Math.round((autoScore / maxScore) * 100)
@@ -165,6 +204,20 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     })
   }
 
+  function handleRemind(studentId: string) {
+    setRemindingId(studentId)
+    startTransition(async () => {
+      try {
+        await resendHomeworkReminder(hw.id, studentId)
+        setRemindedIds(prev => new Set([...prev, studentId]))
+      } catch {
+        // silently fail — reminder is best-effort
+      } finally {
+        setRemindingId(null)
+      }
+    })
+  }
+
   // ── student list item ────────────────────────────────────────────────────────
   function StudentRow({ studentId, missing = false }: { studentId: string; missing?: boolean }) {
     const user    = enrolled.find(e => e.user.id === studentId)?.user
@@ -173,75 +226,115 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     const active  = selectedId === studentId
     const send    = hw.sendByStudent[studentId]
     const isDone  = sub?.status === 'RETURNED' || sub?.status === 'MARKED'
+    const isSend  = !!send
+    const reminded = remindedIds.has(studentId)
 
-    // FIX 1: display grade not raw percentage
     const rawFinalScore = sub?.finalScore
     const displayScore  = rawFinalScore != null
       ? (rawFinalScore > maxScore && maxScore <= 20
-        ? percentToGcseGrade(rawFinalScore)   // percentage → GCSE grade
+        ? percentToGcseGrade(rawFinalScore)
         : fState?.score ? Number(fState.score) : rawFinalScore)
       : (fState?.score ? Number(fState.score) : null)
 
     if (!user) return null
+
+    // Amber left-border for missing SEND students
+    const rowBorder = missing && isSend ? 'border-l-2 border-amber-400' : ''
+
     return (
-      <div className={`flex items-center rounded-lg transition-colors ${
+      <div className={`rounded-lg transition-colors ${rowBorder} ${
         active  ? 'bg-blue-50' :
-        missing ? 'opacity-50' :
+        missing ? (isSend ? 'bg-amber-50/40' : 'opacity-50') :
         'hover:bg-gray-50'
       }`}>
-      <button
-        onClick={() => !missing && setSelectedId(studentId)}
-        className={`flex-1 text-left flex items-center gap-2.5 px-3 py-2.5 ${missing ? 'cursor-default' : ''}`}
-      >
-        <StudentAvatar
-          firstName={user.firstName}
-          lastName={user.lastName}
-          avatarUrl={user.avatarUrl ?? null}
-          size="xs"
-        />
-        <div className="flex-1 min-w-0">
-          <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>
-            {user.firstName} {user.lastName}
-            {send && <span className="ml-1 text-[9px] font-bold text-rose-500">SEND</span>}
-            {sub?.autoMarked && !sub?.teacherReviewed && (
-              <span className="ml-0.5 text-[9px] font-bold text-amber-600">⚠</span>
-            )}
-          </p>
-          <p className="text-[10px] text-gray-400">
-            {missing ? 'Not submitted' : statusLabel(sub.status)}
-          </p>
-        </div>
-        {!missing && displayScore != null && (
-          <span className={`text-[11px] font-semibold shrink-0 ${isDone ? 'text-green-700' : 'text-gray-500'}`}>
-            {rawFinalScore != null && rawFinalScore > maxScore && maxScore <= 20
-              ? `Grade ${displayScore}`
-              : `${displayScore}/${maxScore}`
-            }
-          </span>
-        )}
-        {!missing && isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
-        {!missing && !isDone && sub && <Clock size={13} className="text-amber-400 shrink-0" />}
-        {missing && <AlertCircle size={13} className="text-gray-300 shrink-0" />}
-      </button>
-      {!missing && sub && (
-        <Link
-          href={`/homework/${hw.id}/mark/${sub.id}`}
-          title="Open full marking view"
-          className="px-2 py-2.5 text-gray-300 hover:text-blue-500 transition-colors shrink-0"
-          onClick={e => e.stopPropagation()}
+        <button
+          onClick={() => !missing && setSelectedId(studentId)}
+          className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 ${missing ? 'cursor-default' : ''}`}
         >
-          <ExternalLink size={11} />
-        </Link>
-      )}
+          <StudentAvatar
+            firstName={user.firstName}
+            lastName={user.lastName}
+            avatarUrl={user.avatarUrl ?? null}
+            size="xs"
+          />
+          <div className="flex-1 min-w-0">
+            <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>
+              {user.firstName} {user.lastName}
+              <SendBadge send={send} />
+              {sub?.autoMarked && !sub?.teacherReviewed && (
+                <span className="ml-0.5 text-[9px] font-bold text-amber-600">⚠</span>
+              )}
+            </p>
+            <p className="text-[10px] text-gray-400">
+              {missing ? 'Not submitted' : statusLabel(sub.status)}
+            </p>
+          </div>
+          {!missing && displayScore != null && (
+            <span className={`text-[11px] font-semibold shrink-0 ${isDone ? 'text-green-700' : 'text-gray-500'}`}>
+              {rawFinalScore != null && rawFinalScore > maxScore && maxScore <= 20
+                ? `Grade ${displayScore}`
+                : `${displayScore}/${maxScore}`
+              }
+            </span>
+          )}
+          {!missing && isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
+          {!missing && !isDone && sub && <Clock size={13} className="text-amber-400 shrink-0" />}
+          {missing && !isSend && <AlertCircle size={13} className="text-gray-300 shrink-0" />}
+          {missing && isSend && <AlertCircle size={13} className="text-amber-400 shrink-0" />}
+        </button>
+
+        {/* Action buttons row for submission */}
+        {!missing && sub && (
+          <div className="flex justify-end px-2 pb-1 -mt-1">
+            <Link
+              href={`/homework/${hw.id}/mark/${sub.id}`}
+              title="Open full marking view"
+              className="px-2 py-1 text-gray-300 hover:text-blue-500 transition-colors"
+              onClick={e => e.stopPropagation()}
+            >
+              <ExternalLink size={11} />
+            </Link>
+          </div>
+        )}
+
+        {/* Resend + Message buttons for missing students */}
+        {missing && (
+          <div className="flex items-center gap-1 px-3 pb-2 -mt-1">
+            <button
+              onClick={() => handleRemind(studentId)}
+              disabled={reminded || remindingId === studentId}
+              title={reminded ? 'Reminder sent' : 'Send reminder notification'}
+              className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded transition-colors ${
+                reminded
+                  ? 'bg-green-100 text-green-700 cursor-default'
+                  : 'bg-gray-100 hover:bg-amber-100 text-gray-500 hover:text-amber-700'
+              }`}
+            >
+              {remindingId === studentId
+                ? <Loader2 size={9} className="animate-spin" />
+                : <Bell size={9} />
+              }
+              {reminded ? 'Sent' : 'Remind'}
+            </button>
+            <Link
+              href={`/messages?new=1&recipient=${studentId}&context=${encodeURIComponent(`Re: ${hw.title}`)}`}
+              title={isSend ? 'Message student (SEND — please use sensitive language)' : 'Message student'}
+              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-700 transition-colors"
+            >
+              <MessageSquare size={9} />
+              Message
+              {isSend && <span className="ml-0.5 text-[8px] text-purple-500">SEND</span>}
+            </Link>
+          </div>
+        )}
       </div>
     )
   }
 
-  const isAlreadyMarked    = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
-  const isReturned         = selectedSub?.status === 'RETURNED'
+  const isAlreadyMarked     = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
+  const isReturned          = selectedSub?.status === 'RETURNED'
   const isAutoMarkedPending = selectedSub?.autoMarked && !selectedSub?.teacherReviewed
 
-  // Grade visual state: auto (amber) → confirmed (green) → final/returned (neutral)
   const gradeState: 'auto' | 'confirmed' | 'final' | 'empty' =
     isReturned ? 'final' :
     selectedSub?.teacherReviewed ? 'confirmed' :
@@ -256,38 +349,76 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     gradeState === 'confirmed' ? 'Confirmed ✓' :
     'Auto-suggested'
 
+  // ── filter chips config ──────────────────────────────────────────────────────
+  const chips: { key: PupilFilter; label: string; activeClass: string }[] = [
+    { key: 'all',       label: 'All',       activeClass: 'bg-gray-700 text-white' },
+    { key: 'submitted', label: 'Submitted', activeClass: 'bg-blue-600 text-white' },
+    { key: 'returned',  label: 'Returned',  activeClass: 'bg-green-600 text-white' },
+    { key: 'missing',   label: 'Missing',   activeClass: 'bg-rose-500 text-white' },
+    { key: 'send',      label: 'SEND',      activeClass: 'bg-purple-600 text-white' },
+  ]
+
   return (
     <div className="flex h-full min-h-0">
 
       {/* ── Left: student list ─────────────────────────────────────────────── */}
       <div className="w-56 shrink-0 border-r border-gray-200 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-100">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Pupils</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">
-            {hw.submissions.length} submitted · {missingStudents.length} missing
-          </p>
+
+        {/* Filter chips */}
+        <div className="px-3 pt-3 pb-2 border-b border-gray-100 space-y-2">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pupils</p>
+          <div className="flex flex-wrap gap-1">
+            {chips.map(chip => (
+              <button
+                key={chip.key}
+                onClick={() => {
+                  setPupilFilter(prev => prev === chip.key ? 'all' : chip.key)
+                  // When switching to submitted/returned, select first in that group
+                  if (chip.key === 'submitted') setSelectedId(allSubmitted[0]?.user.id ?? null)
+                  if (chip.key === 'returned')  setSelectedId(allReturned[0]?.user.id ?? null)
+                  if (chip.key === 'all')       setSelectedId(allSubmitted[0]?.user.id ?? null)
+                }}
+                className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border transition-colors ${
+                  pupilFilter === chip.key
+                    ? chip.activeClass + ' border-transparent'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                }`}
+              >
+                {chip.label}
+                <span className={`text-[9px] font-bold ${
+                  pupilFilter === chip.key ? 'opacity-80' : 'text-gray-400'
+                }`}>{filterCounts[chip.key]}</span>
+              </button>
+            ))}
+          </div>
           {(() => {
             const needsReview = hw.submissions.filter(s => s.autoMarked && !s.teacherReviewed).length
             return needsReview > 0 ? (
-              <p className="text-[10px] text-amber-600 font-medium mt-0.5">
+              <p className="text-[10px] text-amber-600 font-medium">
                 ⚠ {needsReview} awaiting your review
               </p>
             ) : null
           })()}
         </div>
+
         <div className="flex-1 overflow-auto py-2 px-2 space-y-0.5">
-          {submittedStudents.map(e => (
+          {visibleSubmitted.map(e => (
             <StudentRow key={e.user.id} studentId={e.user.id} />
           ))}
-          {missingStudents.length > 0 && (
+          {visibleMissing.length > 0 && (
             <>
-              <div className="px-2 pt-3 pb-1">
-                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Not submitted</span>
-              </div>
-              {missingStudents.map(e => (
+              {pupilFilter !== 'missing' && (
+                <div className="px-2 pt-3 pb-1">
+                  <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Not submitted</span>
+                </div>
+              )}
+              {visibleMissing.map(e => (
                 <StudentRow key={e.user.id} studentId={e.user.id} missing />
               ))}
             </>
+          )}
+          {visibleSubmitted.length === 0 && visibleMissing.length === 0 && (
+            <p className="text-[11px] text-gray-400 px-3 py-4 text-center">No pupils in this filter</p>
           )}
         </div>
       </div>
@@ -313,8 +444,13 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 <p className="text-[16px] font-semibold text-gray-900">
                   {selectedStudent.firstName} {selectedStudent.lastName}
                   {sendInfo && (
-                    <span className="ml-2 text-[10px] font-bold px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full">
-                      SEND · {sendInfo.needArea}
+                    <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      sendInfo.activeStatus === 'EHCP'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {sendInfo.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
+                      {sendInfo.needArea ? ` · ${sendInfo.needArea}` : ''}
                     </span>
                   )}
                 </p>
@@ -382,7 +518,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               </div>
             )}
 
-            {/* FIX 2: AI Suggested Mark section with Approve & Return */}
+            {/* AI Suggested Mark section */}
             {isAutoMarkedPending && (
               <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">

@@ -1,6 +1,7 @@
 import { auth }               from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { NextRequest }        from 'next/server'
+import { revalidatePath }     from 'next/cache'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png']
 const MAX_BYTES     = 5 * 1024 * 1024   // 5 MB
@@ -58,6 +59,9 @@ export async function POST(req: NextRequest) {
       to:    'updated',
     },
   })
+
+  revalidatePath('/', 'layout')
+  revalidatePath('/settings')
 
   return Response.json({ url: dataUrl })
 }

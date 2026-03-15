@@ -214,6 +214,7 @@ export default function SettingsShell({
     if (!res.ok) { flash(json.error ?? 'Upload failed.', false); return }
     setAvatarUrl(json.url)
     flash('Profile picture updated.', true)
+    router.refresh()
   }
 
   // ─── Save handlers ───────────────────────────────────────────────────────

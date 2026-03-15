@@ -40,7 +40,7 @@ export async function searchOakLessons(params: {
   query?:       string
   limit?:       number
 }): Promise<OakLessonSearchResult[]> {
-  const { subjectSlug, yearGroup, keystage, examBoard, query, limit = 40 } = params
+  const { subjectSlug, yearGroup, keystage, examBoard, query, limit = 50 } = params
 
   const rows = await prisma.oakLesson.findMany({
     where: {

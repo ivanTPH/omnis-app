@@ -267,9 +267,10 @@ export default function OakResourcePanel({
   const [query,       setQuery]       = useState('')
 
   // Search results
-  const [results,    setResults]    = useState<OakLessonSearchResult[]>([])
-  const [hasSearched, setHasSearched] = useState(false)
-  const [searching,   startSearch]    = useTransition()
+  const [results,       setResults]       = useState<OakLessonSearchResult[]>([])
+  const [hasSearched,   setHasSearched]   = useState(false)
+  const [searching,     startSearch]      = useTransition()
+  const [yearFallback,  setYearFallback]  = useState(false)
 
   // Expanded row
   const [expandedSlug,   setExpandedSlug]   = useState<string | null>(null)
@@ -287,31 +288,42 @@ export default function OakResourcePanel({
     getOakSubjects().then(setSubjects)
   }, [open, subjects.length])
 
-  // Auto-search when opened with presets
+  // Auto-search when opened with presets — fallback to all year groups if no results
   useEffect(() => {
     if (!open || hasSearched) return
     if (!presetSubjectSlug && !presetYearGroup) return
     setHasSearched(true)
+    setYearFallback(false)
     startSearch(async () => {
       const res = await searchOakLessons({
         subjectSlug: presetSubjectSlug || undefined,
         yearGroup:   presetYearGroup   || undefined,
-        limit:       40,
+        limit:       50,
       })
-      setResults(res)
+      if (res.length === 0 && presetYearGroup) {
+        const fallback = await searchOakLessons({
+          subjectSlug: presetSubjectSlug || undefined,
+          limit:       50,
+        })
+        setResults(fallback)
+        setYearFallback(fallback.length > 0)
+      } else {
+        setResults(res)
+      }
     })
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function runSearch() {
     setHasSearched(true)
+    setYearFallback(false)
     startSearch(async () => {
       const res = await searchOakLessons({
         subjectSlug: subjectSlug || undefined,
         yearGroup:   yearGroup   || undefined,
         examBoard:   examBoard   || undefined,
         query:       query       || undefined,
-        limit:       40,
+        limit:       50,
       })
       setResults(res)
     })
@@ -452,7 +464,14 @@ export default function OakResourcePanel({
               </p>
             ) : (
               <>
-                <p className="text-[10px] text-gray-400 px-0.5">{results.length} lessons</p>
+                <p className="text-[10px] text-gray-400 px-0.5">
+                  {results.length} lessons
+                  {yearFallback && (
+                    <span className="ml-1.5 text-amber-600">
+                      (no results for Year {presetYearGroup} — showing all year groups)
+                    </span>
+                  )}
+                </p>
                 {results.map(r => (
                   <ResultRow
                     key={r.slug}

@@ -101,7 +101,7 @@ export async function getSubmissionForMarking(submissionId: string) {
     prisma.ilpTarget.findMany({
       where: {
         ilp: { schoolId, studentId: sub.studentId, status: 'active' },
-        status: 'in_progress',
+        status: 'active',
         targetDate: { lte: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000) },
       },
       select: { id: true, target: true, targetDate: true, strategy: true },
@@ -477,10 +477,37 @@ Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
       max_tokens: 4000,
       messages:   [{ role: 'user', content: prompt }],
     })
-    const raw    = (message.content[0] as any).text.trim()
-    // Strip any accidental markdown fences
+    const raw     = (message.content[0] as any).text.trim()
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-    const parsed  = JSON.parse(cleaned) as any
+
+    let parsed: any
+    try {
+      parsed = JSON.parse(cleaned)
+    } catch (parseErr) {
+      console.error('[generateHomeworkFromResources] JSON parse failed:', parseErr, 'Raw (first 200):', cleaned.slice(0, 200))
+      return noApiKeyFallback(type, lesson.title, subject)
+    }
+
+    // Validate questionsJson for structured types
+    const needsQuestions = type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER'
+    const hasQuestions   = parsed.questionsJson?.questions && Array.isArray(parsed.questionsJson.questions) && parsed.questionsJson.questions.length >= 3
+    if (needsQuestions && !hasQuestions) {
+      console.warn('[generateHomeworkFromResources] questionsJson missing or too short for', type, '— retrying')
+      // Retry once with a more directive prompt
+      const retryMsg = await client.messages.create({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 4000,
+        messages:   [
+          { role: 'user',      content: prompt },
+          { role: 'assistant', content: cleaned },
+          { role: 'user',      content: 'The questionsJson field is missing or has too few questions. Please resend the complete JSON with questionsJson containing all required questions. Return ONLY valid JSON, no extra text.' },
+        ],
+      })
+      const retryRaw     = (retryMsg.content[0] as any).text.trim()
+      const retryCleaned = retryRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+      try { parsed = JSON.parse(retryCleaned) } catch { /* use original parsed */ }
+    }
+
     return {
       type:            type,
       instructions:    parsed.instructions    ?? '',
@@ -489,7 +516,8 @@ Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
       targetWordCount: parsed.targetWordCount ?? (type === 'EXTENDED_WRITING' ? 300 : 0),
       questionsJson:   parsed.questionsJson   ?? undefined,
     }
-  } catch {
+  } catch (err) {
+    console.error('[generateHomeworkFromResources] API call failed:', err)
     return noApiKeyFallback(type, lesson.title, subject)
   }
 }
@@ -539,20 +567,23 @@ Respond ONLY with valid JSON, no markdown, no code fences:
       max_tokens: 2500,
       messages:   [{ role: 'user', content: prompt }],
     })
-    const raw    = (message.content[0] as any).text.trim()
-    const parsed = JSON.parse(raw) as any
+    const raw     = (message.content[0] as any).text.trim()
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+    let parsed: any
+    try { parsed = JSON.parse(cleaned) } catch { parsed = {} }
     return {
       type:            params.type,
       instructions:    params.instructions,
-      modelAnswer:     parsed.modelAnswer     ?? '',
-      gradingBands:    parsed.gradingBands    ?? {},
+      modelAnswer:     parsed.modelAnswer     ?? `[Model answer for ${params.lessonTitle} — add content here]`,
+      gradingBands:    parsed.gradingBands    ?? (params.type === 'MCQ_QUIZ' || params.type === 'UPLOAD' ? {} : defaultBands()),
       targetWordCount: parsed.targetWordCount ?? (params.type === 'EXTENDED_WRITING' ? 300 : 0),
     }
-  } catch {
+  } catch (err) {
+    console.error('[generateHomeworkProposal] API call failed:', err)
     return {
       type:            params.type,
       instructions:    params.instructions,
-      modelAnswer:     '',
+      modelAnswer:     `[Model answer for ${params.lessonTitle} — add content here]`,
       gradingBands:    params.type === 'MCQ_QUIZ' || params.type === 'UPLOAD' ? {} : defaultBands(),
       targetWordCount: params.type === 'EXTENDED_WRITING' ? 300 : 0,
     }
@@ -755,10 +786,14 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
 
   const hwType = sub.homework.homeworkVariantType
   if (!['quiz', 'multiple_choice', 'retrieval_practice'].includes(hwType ?? '')) {
-    throw new Error('Auto-marking only supported for quiz, multiple_choice, and retrieval_practice types')
+    return { score: 0, maxScore: 0, feedback: 'Auto-marking not available for this homework type. Please mark manually.' }
   }
 
   const content = sub.homework.structuredContent as any
+  if (!content?.questions || !Array.isArray(content.questions) || content.questions.length === 0) {
+    return { score: 0, maxScore: 0, feedback: 'Auto-marking not available — no structured questions found. Please mark manually.' }
+  }
+
   const response = sub.structuredResponse as any
 
   let score = 0

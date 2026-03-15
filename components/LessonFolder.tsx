@@ -14,6 +14,29 @@ import { addUploadedResource } from '@/app/actions/lessons'
 
 type LessonData = Awaited<ReturnType<typeof getLessonDetails>>
 
+// Maps school subject names to Oak National Academy subject slugs
+function toOakSubjectSlug(subject: string): string {
+  const s = subject.toLowerCase().trim()
+  const MAP: Record<string, string> = {
+    'mathematics': 'maths', 'math': 'maths',
+    'english language': 'english', 'english literature': 'english',
+    'english lang': 'english', 'english lit': 'english',
+    'eng lang': 'english', 'eng lit': 'english',
+    'combined science': 'science', 'triple science': 'science',
+    'physical education': 'physical-education', 'pe': 'physical-education',
+    'p.e.': 'physical-education', 'p.e': 'physical-education',
+    'art & design': 'art', 'art and design': 'art',
+    'design & technology': 'design-and-technology',
+    'design and technology': 'design-and-technology',
+    'd&t': 'design-and-technology', 'dt': 'design-and-technology',
+    'religious education': 'religious-education', 're': 'religious-education',
+    'r.e.': 'religious-education', 'religious studies': 'religious-education',
+    'rs': 'religious-education', 'pshe': 'rshe-and-pshe',
+    'modern foreign languages': 'modern-foreign-languages', 'mfl': 'modern-foreign-languages',
+  }
+  return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
 const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'SEND & Inclusion', 'Class Insights'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
@@ -1210,7 +1233,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       lessonId={lessonId}
                       presetSubjectSlug={
                         lesson?.class?.subject
-                          ? lesson.class.subject.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                          ? toOakSubjectSlug(lesson.class.subject)
                           : undefined
                       }
                       presetYearGroup={lesson?.class?.yearGroup ?? undefined}

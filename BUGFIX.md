@@ -125,3 +125,49 @@ The following workflows were reviewed and found to be functioning correctly:
 - **Lesson reschedule (drag-drop):** `rescheduleLesson` calls `revalidatePath('/dashboard')`; optimistic UI clears after `router.refresh()` ✓
 - **Student homework list (`/student/dashboard`):** Queries by enrolled classIds, filters `status: 'PUBLISHED'` ✓
 - **Sidebar navigation:** All active routes are wired correctly; `/plans`, `/notifications`, `/hoy/integrity` deliberately show "Coming soon" per CLAUDE.md ✓
+
+---
+
+## 7. Oak resources not showing in lesson planner
+
+**Symptom:** The Oak Resources tab in LessonFolder showed few or no results even though 11,403 lessons are synced in the database. Auto-search on open returned empty results for many subjects.
+
+**Root cause (A — Subject slug mismatch):** `LessonFolder.tsx` derived the Oak subject slug from the school class's subject name using a simple `.toLowerCase().replace(/\s+/g, '-')` transform. This failed for common variations: "Mathematics" → "mathematics" (Oak uses "maths"), "English Literature" → "english-literature" (Oak uses "english"), "Religious Education" → "religious-education" vs "religious-studies", etc.
+
+**Root cause (B — Limit too low):** The default `limit` in `searchOakLessons()` was 40, and the auto-search calls hardcoded `limit: 40`. With subject + year group filters this was sometimes fine, but for broad searches teachers saw a truncated list.
+
+**Root cause (C — No year-group fallback):** When subject + year group combination returned 0 results (e.g. if the Oak database has lessons tagged to different year groups than the class), the panel showed "No lessons found" with no fallback.
+
+**Fix:**
+1. Added `toOakSubjectSlug(subject)` helper in `LessonFolder.tsx` with a complete mapping table covering mathematics/maths, english variants, physical education/pe, art & design, design and technology, religious education variants, etc.
+2. Increased default `limit` in `searchOakLessons()` from 40 → 50.
+3. Updated all search call sites in `OakResourcePanel.tsx` to use `limit: 50`.
+4. Added year-group fallback in the auto-search `useEffect`: if subject+yearGroup returns 0 results, retry with subject only and show a note "(no results for Year X — showing all year groups)".
+
+**Files changed:**
+- `components/LessonFolder.tsx`
+- `components/OakResourcePanel.tsx`
+- `app/actions/oak.ts`
+
+---
+
+## 8. Homework generation not producing quiz questions or model answers
+
+**Symptom:** Teachers generating MCQ or short-answer homework via AI found no quiz questions were included. Auto-marking failed. Model answers were sometimes empty.
+
+**Root cause (A — ILP target status bug):** `getSubmissionForMarking()` queried `IlpTarget` with `status: 'in_progress'` — not a valid status value (valid: "active" | "achieved" | "not_achieved" | "deferred"). This silently returned 0 ILP targets for the marking panel, breaking the ILP evidence linking flow.
+
+**Root cause (B — questionsJson not validated):** `generateHomeworkFromResources()` caught JSON parse errors and silently fell back to `noApiKeyFallback()`, discarding any partial AI output. There was no logging and no retry when `questionsJson` was missing from the parsed response.
+
+**Root cause (C — autoMarkSubmission throws instead of graceful return):** `autoMarkSubmission()` threw `Error('Auto-marking only supported for quiz...')` when the homework type was unsupported, or when `structuredContent` was null — crashing the caller instead of returning a graceful message.
+
+**Root cause (D — empty modelAnswer on proposal failure):** `generateHomeworkProposal()` catch block returned `modelAnswer: ''` — a blank field — when the API call or JSON parse failed.
+
+**Fix:**
+1. `getSubmissionForMarking()`: changed `status: 'in_progress'` → `status: 'active'` on `IlpTarget` filter.
+2. `generateHomeworkFromResources()`: separated JSON.parse into its own try/catch with error logging; added `questionsJson` validation for MCQ_QUIZ/SHORT_ANSWER types — if < 3 questions found, retries once with a follow-up message in the conversation; improved error logging throughout.
+3. `autoMarkSubmission()`: replaced `throw new Error(...)` with `return { score: 0, maxScore: 0, feedback: '...' }` for unsupported types and null structuredContent.
+4. `generateHomeworkProposal()`: added markdown fence stripping; changed catch block to return a non-empty placeholder `modelAnswer` instead of `''`; changed catch to log the error.
+
+**Files changed:**
+- `app/actions/homework.ts`

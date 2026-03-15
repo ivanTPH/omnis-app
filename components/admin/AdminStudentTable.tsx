@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { MessageSquare } from 'lucide-react'
 import type { StudentRow } from '@/app/actions/admin'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -76,6 +77,7 @@ export default function AdminStudentTable({ students }: { students: StudentRow[]
               <th className="px-5 py-3 text-left font-semibold text-gray-500">Class</th>
               <th className="px-5 py-3 text-left font-semibold text-gray-500">SEND</th>
               <th className="px-5 py-3 text-left font-semibold text-gray-500">Email</th>
+              <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -104,11 +106,20 @@ export default function AdminStudentTable({ students }: { students: StudentRow[]
                   )}
                 </td>
                 <td className="px-5 py-3.5 text-gray-400 text-[12px]">{s.email}</td>
+                <td className="px-5 py-3.5">
+                  <a
+                    href="/messages"
+                    className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
+                    title="Message parent"
+                  >
+                    <MessageSquare size={12} /> Message parent
+                  </a>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-12 text-center text-gray-400 text-[13px]">
+                <td colSpan={6} className="px-5 py-12 text-center text-gray-400 text-[13px]">
                   No students found
                 </td>
               </tr>

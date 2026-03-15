@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { markSubmission } from '@/app/actions/homework'
 import {
   ChevronDown, ChevronUp, CheckCircle2, Loader2,
-  AlertTriangle, BookOpen, Target,
+  AlertTriangle, BookOpen, Target, MessageSquare,
 } from 'lucide-react'
 import { StrategyAppliesTo } from '@prisma/client'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -128,9 +128,10 @@ export default function SubmissionMarkingView({
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                {hw.class?.name}
-                {' · '}Submitted {new Date(data.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-[11px] text-gray-400">
+                  {hw.class?.name}
+                  {' · '}Submitted {new Date(data.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 {' at '}
                 {new Date(data.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                 {isAlreadyMarked && data.markedAt && (
@@ -139,6 +140,14 @@ export default function SubmissionMarkingView({
                   </span>
                 )}
               </p>
+                <a
+                  href="/messages"
+                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
+                  title="Message student"
+                >
+                  <MessageSquare size={11} /> Message
+                </a>
+              </div>
             </div>
           </div>
 

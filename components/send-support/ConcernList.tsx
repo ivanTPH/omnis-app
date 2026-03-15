@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, Bot, CheckCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Bot, CheckCircle, MessageSquare } from 'lucide-react'
 import type { ConcernRow } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -139,14 +139,23 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
                     </div>
                   )}
 
-                  {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
-                    <button
-                      onClick={() => setReviewing(c)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                  <div className="flex items-center gap-2">
+                    {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
+                      <button
+                        onClick={() => setReviewing(c)}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                      >
+                        Review Concern
+                      </button>
+                    )}
+                    <a
+                      href="/messages"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
                     >
-                      Review Concern
-                    </button>
-                  )}
+                      <MessageSquare size={12} />
+                      {isSenco ? 'Message teacher' : 'Message SENCO'}
+                    </a>
+                  </div>
                 </div>
               )}
             </div>

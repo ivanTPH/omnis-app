@@ -395,3 +395,40 @@ export async function getContactList(): Promise<ContactGroup[]> {
 
   return Object.entries(grouped).map(([role, list]) => ({ role, contacts: list }))
 }
+
+// ── Platform notifications (with linkHref for deep-linking) ───────────────────
+
+export type PlatformNotificationRow = {
+  id:        string
+  type:      string
+  title:     string
+  body:      string
+  read:      boolean
+  linkHref:  string | null
+  createdAt: Date
+}
+
+export async function getMyPlatformNotifications(): Promise<PlatformNotificationRow[]> {
+  const user = await requireAuth()
+  return prisma.notification.findMany({
+    where:   { userId: user.id, schoolId: user.schoolId },
+    orderBy: { createdAt: 'desc' },
+    take:    30,
+  })
+}
+
+export async function markPlatformNotificationRead(id: string): Promise<void> {
+  const user = await requireAuth()
+  await prisma.notification.updateMany({
+    where: { id, userId: user.id },
+    data:  { read: true },
+  })
+}
+
+export async function markAllPlatformNotificationsRead(): Promise<void> {
+  const user = await requireAuth()
+  await prisma.notification.updateMany({
+    where: { userId: user.id, read: false },
+    data:  { read: true },
+  })
+}

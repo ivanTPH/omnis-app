@@ -208,28 +208,46 @@ These were missed in the previous bug #8 fix which only corrected `homework.ts` 
 
 ---
 
-## 10. Homework marking — score display, AI approval, save freeze
+## 10. Homework marking — score display, AI approval, save freeze (first attempt — partial fix)
 
-**Symptom A (Score display):** Student list showed "87/9" — Leo Barrett's score looked like a fraction where 87 was the numerator and 9 (the max GCSE grade) was the denominator.
+**Note:** The first fix attempt addressed the wrong root causes. See Bug #11 for the complete fix.
 
-**Root cause A:** `autoMarkSubmission()` stores `finalScore` as a **percentage** (0–100). The marking form treats `finalScore` as a **raw score** on the `maxScore` scale (0–9 from `maxFromBands`). When the form was initialised with `finalScore = 87` and `maxScore = 9`, the sidebar rendered `87/9`.
+**Files changed (first attempt):**
+- `lib/grading.ts` (new) — `percentToGcseGrade`, `formatScore`, `normalizeScoreForForm`
+- `components/HomeworkMarkingView.tsx` — initial score normalisation, autoFeedback pre-fill, handleApprove stub
+- `components/SubmissionMarkingView.tsx` — same
+- `app/actions/homework.ts` — added `revalidatePath('/dashboard')` and `revalidatePath('/', 'layout')`
 
-**Symptom B (Save freeze):** Teacher added feedback, set grade, clicked Save — nothing happened. No error, no spinner, no response.
+---
 
-**Root cause B:** `handleSave()` in both marking components had a guard `if (scoreNum > maxScore) return` — a **silent no-op** when the form was pre-filled with the percentage (87 > 9). Combined with the disabled check only covering `score === ''`, the button appeared clickable but immediately returned without calling `markSubmission`.
+## 11. Homework marking — three bugs still present after Bug #10 fix
 
-**Symptom C (AI feedback not pre-filled):** Auto-marked submissions showed blank feedback textarea; teacher had to re-type the AI feedback manually.
+**Symptom A (Score still shows "X/9"):** Pupil list in `HomeworkMarkingView` showed scores as e.g. `8/9` even after the GCSE grade conversion — the `/9` denominator should not appear when the value is a GCSE grade. For old submissions with `finalScore = 87` (legacy percentage), the display showed `8/9` (converted GCSE grade over maxScore).
 
-**Root cause C:** Form state initialised `feedback` from `s.feedback` (null for auto-marked) rather than `s.autoFeedback`. No "Approve & Return" one-click path existed.
+**Root cause A:** `StudentRow` in `HomeworkMarkingView.tsx` rendered `{displayScore}/{maxScore}` unconditionally. Even when `displayScore` had been converted from a percentage to a GCSE grade (e.g., 87 → 8), it still showed `8/9`.
 
-**Fix:**
-1. Created `lib/grading.ts` — `percentToGcseGrade(pct)`, `formatScore(score, maxScore, showGrade)`, `normalizeScoreForForm(finalScore, maxScore)`. The normaliser detects percentage-scale scores (`finalScore > maxScore && maxScore ≤ 20`) and converts them back to the raw grade scale.
-2. `HomeworkMarkingView.tsx` — formState initialisation now uses `normalizeScoreForForm`; feedback falls back to `autoFeedback`; `handleSave` shows a user-visible error instead of silently returning; added `handleApprove` for one-click AI approval; added "Approve & Return" + "or edit below ↓" buttons in the AI banner.
-3. `SubmissionMarkingView.tsx` — same score/feedback/grade normalisation; `handleSave` wrapped in try/catch with `setError`; `handleApprove` added; "Previously Returned" score display corrected to show `87% (Grade 8)` not `87/9`; feedback textarea shows "AI pre-filled" badge.
-4. `app/actions/homework.ts` `markSubmission` — added `revalidatePath('/dashboard')` and `revalidatePath('/', 'layout')` for full cache invalidation.
+**Fix A:** Changed the render to `Grade {displayScore}` when the original score was percentage-scale (`rawFinalScore > maxScore && maxScore ≤ 20`), and `{displayScore}/{maxScore}` only for raw scores.
+
+---
+
+**Symptom B (Grade field shows "—" on load):** The Grade input in the marking form always showed the placeholder "—" when opening an auto-marked submission. The teacher had to interact with the score field before the grade populated.
+
+**Root cause B:** `formState` initialisation in `HomeworkMarkingView.tsx` set `grade: s.grade ?? ''`. For auto-marked submissions `s.grade` is null, so grade was always `''` on load. The grade auto-calculation only ran when the teacher typed into the score field (inside `setField`), not on initial render.
+
+**Fix B:** In the `formState` init loop, pre-calculate `autoGrade` from `normScore` (using the same `suggestGrade` / `percentToGcseGrade` logic as `setField`), and use it as the default: `grade: s.grade ?? autoGrade`. Same fix applied to `SubmissionMarkingView.tsx` grade `useState` initialiser — now derives grade from `normalizeScoreForForm` output rather than raw `finalScore`.
+
+---
+
+**Symptom C ("Update & Return" button did nothing):** Clicking the button ran the server action (submission was updated in the DB), but the pupil list and submission status never reflected the change. Appeared to freeze / do nothing.
+
+**Root cause C:** `HomeworkMarkingView.tsx` did not import `useRouter` and had no `router.refresh()` call after `markSubmission` succeeded. `revalidatePath` in the server action invalidates the cache, but without `router.refresh()` the client never re-fetched the updated server data, so the pupil list status remained stale.
+
+**Fix C:** Added `useRouter` import and `router.refresh()` calls immediately after `markSubmission` in both `handleSave` and `handleApprove` in `HomeworkMarkingView.tsx`. (`SubmissionMarkingView.tsx` already had `router.refresh()`.)
+
+---
+
+**Bonus fix — `handleApprove` used wrong scale for `autoScore`:** `autoMarkSubmission` stores `autoScore` as a **raw score** (0–maxScore), not a percentage. Both `handleApprove` functions incorrectly computed `gradeNum = Math.round((autoScore / 100) * maxScore)` — treating a raw 7 as 7%, producing `gradeNum = 1` instead of 7. Fixed to use the same detection heuristic as `normalizeScoreForForm` (if `autoScore > maxScore && maxScore ≤ 20`, treat as legacy percentage; otherwise treat as raw). AI banner score display also fixed — was showing `7%` when autoScore is raw; now shows `7/9 (78% · Grade 7)`.
 
 **Files changed:**
-- `lib/grading.ts` (new)
 - `components/HomeworkMarkingView.tsx`
 - `components/SubmissionMarkingView.tsx`
-- `app/actions/homework.ts`

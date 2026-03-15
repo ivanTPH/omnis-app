@@ -52,10 +52,12 @@ export default function SubmissionMarkingView({
   const [score,    setScore]    = useState(() => normalizeScoreForForm(data.finalScore, maxScore))
   const [grade,    setGrade]    = useState(() => {
     if (data.grade) return data.grade
-    // Derive grade from stored finalScore if available
-    const raw = data.finalScore
-    if (raw == null) return ''
-    return String(percentToGcseGrade(raw > maxScore ? raw : Math.round((raw / maxScore) * 100)))
+    // Derive grade from the normalised score (same scale as the score input)
+    const normScore = normalizeScoreForForm(data.finalScore, maxScore)
+    if (normScore === '') return ''
+    const n = Number(normScore)
+    return suggestGrade(n, hw.gradingBands) ||
+      String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
   })
   const [feedback, setFeedback] = useState(data.feedback ?? (data as any).autoFeedback ?? '')
   const [showModelAnswer, setShowModelAnswer] = useState(false)
@@ -104,13 +106,15 @@ export default function SubmissionMarkingView({
     })
   }
 
-  // FIX 2: one-click approval of AI suggested mark
+  // One-click approval of AI suggested mark — autoScore is raw; handle legacy percentage values
   function handleApprove() {
     const autoScore    = (data as any).autoScore ?? 0
     const autoFeedback = (data as any).autoFeedback ?? ''
-    const gradeNum     = Math.round((autoScore / 100) * maxScore)
+    const isLegacyPct  = autoScore > maxScore && maxScore <= 20
+    const gradeNum     = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
+    const pctForGrade  = isLegacyPct ? autoScore : Math.round((autoScore / maxScore) * 100)
     const gradeStr     = suggestGrade(gradeNum, hw.gradingBands) ||
-      String(percentToGcseGrade(autoScore))
+      String(percentToGcseGrade(pctForGrade))
     setError(null)
     startTransition(async () => {
       try {
@@ -220,15 +224,17 @@ export default function SubmissionMarkingView({
                 <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">Auto-marked</span>
               </div>
               <div className="px-4 py-3 space-y-2">
-                {(data as any).autoScore != null && (
-                  <p className="text-sm text-amber-900">
-                    Score: <strong>
-                      {(data as any).autoScore}%{' '}
-                      (Grade {percentToGcseGrade((data as any).autoScore)})
-                    </strong>
-                    <span className="ml-2 text-[11px] text-amber-600">≈ {Math.round(((data as any).autoScore / 100) * maxScore)}/{maxScore} raw</span>
-                  </p>
-                )}
+                {(data as any).autoScore != null && (() => {
+                  const as_ = (data as any).autoScore
+                  const isLegacyPct = as_ > maxScore && maxScore <= 20
+                  const rawScore = isLegacyPct ? Math.round((as_ / 100) * maxScore) : as_
+                  const pct = isLegacyPct ? as_ : Math.round((as_ / maxScore) * 100)
+                  return (
+                    <p className="text-sm text-amber-900">
+                      Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
+                    </p>
+                  )
+                })()}
                 {(data as any).autoFeedback && (
                   <p className="text-xs text-amber-800 leading-relaxed">
                     {(data as any).autoFeedback}

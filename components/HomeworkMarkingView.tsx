@@ -1,5 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare } from 'lucide-react'
 import { markSubmission } from '@/app/actions/homework'
@@ -67,18 +68,22 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const [isPending,       startTransition]    = useTransition()
   const [savedId,         setSavedId]         = useState<string | null>(null)
   const [error,           setError]           = useState<string | null>(null)
+  const router = useRouter()
 
   // Per-student form state — score normalised to grade scale, feedback pre-filled from autoFeedback
   const [formState, setFormState] = useState<Record<string, { score: string; grade: string; feedback: string }>>(() => {
     const init: Record<string, { score: string; grade: string; feedback: string }> = {}
     for (const s of hw.submissions) {
-      // FIX 1: normalise percentage-scale finalScore to the form's raw score scale
       const normScore = normalizeScoreForForm(s.finalScore, maxScore)
-      // FIX 2: pre-fill feedback from autoFeedback if teacher hasn't written their own yet
       const feedbackValue = s.feedback ?? (s as any).autoFeedback ?? ''
+      // Pre-calculate grade from normScore so the grade field is not blank on load
+      const autoGrade = normScore !== ''
+        ? (suggestGrade(Number(normScore), hw.gradingBands) ||
+           String(percentToGcseGrade(Math.round((Number(normScore) / maxScore) * 100))))
+        : ''
       init[s.student.id] = {
         score:    normScore,
-        grade:    s.grade ?? '',
+        grade:    s.grade ?? autoGrade,
         feedback: feedbackValue,
       }
     }
@@ -124,6 +129,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           grade:        form.grade || undefined,
         })
         setSavedId(selectedId)
+        router.refresh()
         setTimeout(() => setSavedId(null), 2500)
       } catch {
         setError('Failed to save. Please try again.')
@@ -131,14 +137,17 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     })
   }
 
-  // FIX 2: one-click AI approval — converts percentage autoScore to grade scale
+  // One-click AI approval — autoScore is raw (0–maxScore); handle legacy percentage values
   function handleApprove() {
     if (!selectedId || !selectedSub) return
     const autoScore = (selectedSub as any).autoScore ?? 0
     const autoFeedback = (selectedSub as any).autoFeedback ?? ''
-    const gradeNum = Math.round((autoScore / 100) * maxScore)
+    // Detect if legacy percentage-scale (same heuristic as normalizeScoreForForm)
+    const isLegacyPct = autoScore > maxScore && maxScore <= 20
+    const gradeNum = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
+    const pctForGrade = isLegacyPct ? autoScore : Math.round((autoScore / maxScore) * 100)
     const gradeStr = suggestGrade(gradeNum, hw.gradingBands) ||
-      String(percentToGcseGrade(autoScore))
+      String(percentToGcseGrade(pctForGrade))
     setError(null)
     startTransition(async () => {
       try {
@@ -148,6 +157,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           grade:        gradeStr || undefined,
         })
         setSavedId(selectedId)
+        router.refresh()
         setTimeout(() => setSavedId(null), 2500)
       } catch {
         setError('Failed to save. Please try again.')
@@ -203,7 +213,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         </div>
         {!missing && displayScore != null && (
           <span className={`text-[11px] font-semibold shrink-0 ${isDone ? 'text-green-700' : 'text-gray-500'}`}>
-            {displayScore}/{maxScore}
+            {rawFinalScore != null && rawFinalScore > maxScore && maxScore <= 20
+              ? `Grade ${displayScore}`
+              : `${displayScore}/${maxScore}`
+            }
           </span>
         )}
         {!missing && isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
@@ -357,14 +370,17 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   </span>
                 </div>
                 <div className="px-4 py-3 space-y-2">
-                  {(selectedSub as any).autoScore != null && (
-                    <p className="text-sm text-amber-900">
-                      Score: <strong>
-                        {(selectedSub as any).autoScore}%{' '}
-                        (Grade {percentToGcseGrade((selectedSub as any).autoScore)})
-                      </strong>
-                    </p>
-                  )}
+                  {(selectedSub as any).autoScore != null && (() => {
+                    const as_ = (selectedSub as any).autoScore
+                    const isLegacyPct = as_ > maxScore && maxScore <= 20
+                    const rawScore = isLegacyPct ? Math.round((as_ / 100) * maxScore) : as_
+                    const pct = isLegacyPct ? as_ : Math.round((as_ / maxScore) * 100)
+                    return (
+                      <p className="text-sm text-amber-900">
+                        Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
+                      </p>
+                    )
+                  })()}
                   {(selectedSub as any).autoFeedback && (
                     <p className="text-xs text-amber-800 leading-relaxed line-clamp-3">
                       {(selectedSub as any).autoFeedback}

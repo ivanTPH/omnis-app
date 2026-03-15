@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ClipboardList, ChevronRight, AlertCircle, CheckCircle2,
@@ -35,6 +36,7 @@ function statusDisplayLabel(s: string) {
 }
 
 export default function HomeworkFilterView({ homework }: { homework: HomeworkListItem[] }) {
+  const router = useRouter()
   const [subject,   setSubject]   = useState('')
   const [year,      setYear]      = useState('')
   const [classId,   setClassId]   = useState('')
@@ -410,7 +412,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
       {showModal && (
         <SetHomeworkModal
           onClose={() => setShowModal(false)}
-          onCreated={() => setShowModal(false)}
+          onCreated={() => { setShowModal(false); router.refresh() }}
         />
       )}
     </div>

@@ -7,6 +7,64 @@ import { type ReviewResult } from '@/lib/sendReview'
 import { sendReviewCached } from '@/lib/sendReviewCached'
 import { updateSendInsight } from '@/lib/sendInsights'
 
+// ── CalendarLesson shape (mirrors WeeklyCalendar type) ────────────────────────
+export type CalendarLessonData = {
+  id:          string
+  title:       string
+  scheduledAt: string
+  endsAt?:     string
+  published:   boolean
+  className:   string
+  subject:     string
+  lessonType?: string
+  hasPlan:     boolean
+  hasSlides:   boolean
+  hasHomework: boolean
+  hasOther:    boolean
+}
+
+export async function getWeekLessons(weekStartISO: string): Promise<CalendarLessonData[]> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, id: userId } = session.user as any
+
+  const weekStart = new Date(weekStartISO)
+  const friday    = new Date(weekStart)
+  friday.setDate(weekStart.getDate() + 4)
+  friday.setHours(23, 59, 59, 999)
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      schoolId,
+      scheduledAt: { gte: weekStart, lte: friday },
+      OR: [
+        { class: { teachers: { some: { userId } } } },
+        { createdBy: userId },
+      ],
+    },
+    include: {
+      class:     true,
+      resources: { select: { type: true } },
+      homework:  { select: { id: true } },
+    },
+  })
+
+  return lessons.map(l => ({
+    id:          l.id,
+    title:       l.title,
+    scheduledAt: l.scheduledAt.toISOString(),
+    endsAt:      l.endsAt?.toISOString(),
+    published:   l.published,
+    className:   l.class?.name    ?? '—',
+    subject:     l.class?.subject ?? '—',
+    lessonType:  l.lessonType,
+    hasPlan:     l.resources.some(r => r.type === 'PLAN'),
+    hasSlides:   l.resources.some(r => r.type === 'SLIDES'),
+    hasHomework: l.homework.length > 0,
+    hasOther:    l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
+  }))
+}
+
 export type CreateLessonInput = {
   classId:      string | null
   title:        string

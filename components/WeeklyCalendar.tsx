@@ -1,11 +1,11 @@
 'use client'
-import { useState, useRef, useEffect, useTransition } from 'react'
+import { useState, useRef, useEffect, useTransition, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
 import LessonFolder, { type FolderTab } from './LessonFolder'
-import { rescheduleLesson } from '@/app/actions/lessons'
+import { rescheduleLesson, getWeekLessons } from '@/app/actions/lessons'
 
 // ── Time grid config ──────────────────────────────────────────────────────────
 const SLOT_H    = 56   // px per hour
@@ -85,7 +85,34 @@ export default function WeeklyCalendar({
   const router = useRouter()
   const [, startReschedule] = useTransition()
 
+  // Current-week start (stable reference)
+  const currentWeekStart = useMemo(() => getWeekStart(new Date()), [])
+
   const [weekStart,       setWeekStart]       = useState(() => getWeekStart(today))
+  // Client-fetched lessons for non-current weeks; null = use server prop
+  const [fetchedLessons,  setFetchedLessons]  = useState<CalendarLesson[] | null>(null)
+
+  // Sync server prop → state when on current week (after router.refresh())
+  useEffect(() => {
+    if (weekStart.getTime() === currentWeekStart.getTime()) {
+      setFetchedLessons(null)
+    }
+  }, [lessons, weekStart, currentWeekStart])
+
+  // Fetch lessons from server when navigating to a different week
+  useEffect(() => {
+    if (weekStart.getTime() === currentWeekStart.getTime()) return
+    let cancelled = false
+    getWeekLessons(weekStart.toISOString()).then(data => {
+      if (!cancelled) setFetchedLessons(data)
+    }).catch(() => {
+      if (!cancelled) setFetchedLessons([])
+    })
+    return () => { cancelled = true }
+  }, [weekStart, currentWeekStart])
+
+  // Which lesson array to display
+  const displayLessons = fetchedLessons ?? lessons
   const [dragging,        setDragging]        = useState<string | null>(null)
   const [dropTarget,      setDropTarget]      = useState<string | null>(null)
   const [optimisticMoves, setOptimisticMoves] = useState<Map<string, { di: number; hr: number }>>(new Map())
@@ -137,7 +164,7 @@ export default function WeeklyCalendar({
 
   // Slot map: "dayIdx-hour" → lessons
   const slotMap = new Map<string, CalendarLesson[]>()
-  for (const l of lessons) {
+  for (const l of displayLessons) {
     const dt  = new Date(l.scheduledAt)
     const di  = Math.round((dt.getTime() - weekStart.getTime()) / 86_400_000)
     const hr  = dt.getHours()
@@ -148,7 +175,7 @@ export default function WeeklyCalendar({
   }
   // Apply optimistic drag-drop overrides
   for (const [id, { di: newDi, hr: newHr }] of optimisticMoves) {
-    const moved = lessons.find(l => l.id === id)
+    const moved = displayLessons.find(l => l.id === id)
     if (!moved) continue
     const origDt  = new Date(moved.scheduledAt)
     const origDi  = Math.round((origDt.getTime() - weekStart.getTime()) / 86_400_000)
@@ -192,7 +219,7 @@ export default function WeeklyCalendar({
               </span>
             </div>
             <Link
-              href="/homework/new"
+              href="/homework"
               className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 h-7 rounded-lg text-[12px] font-medium transition-colors"
             >
               <Plus size={12} />New Homework
@@ -268,7 +295,7 @@ export default function WeeklyCalendar({
                                 setDragging(null)
                                 if (!id) return
                                 // Find the lesson being dragged to preserve its duration
-                                const dragged = lessons.find(l => l.id === id)
+                                const dragged = displayLessons.find(l => l.id === id)
                                 const origStart = dragged ? new Date(dragged.scheduledAt) : null
                                 const origEnd   = dragged?.endsAt ? new Date(dragged.endsAt) : null
                                 const durationMs = origStart && origEnd ? origEnd.getTime() - origStart.getTime() : 3600_000

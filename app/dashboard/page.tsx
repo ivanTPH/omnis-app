@@ -26,7 +26,10 @@ export default async function DashboardPage() {
       where: {
         schoolId,
         scheduledAt: { gte: monday, lte: friday },
-        class: { teachers: { some: { userId } } },
+        OR: [
+          { class: { teachers: { some: { userId } } } },
+          { createdBy: userId },
+        ],
       },
       include: {
         class: true,
@@ -40,7 +43,10 @@ export default async function DashboardPage() {
         schoolId,
         published: false,
         scheduledAt: { gt: friday },
-        class: { teachers: { some: { userId } } },
+        OR: [
+          { class: { teachers: { some: { userId } } } },
+          { createdBy: userId },
+        ],
       },
       include: { class: true },
       orderBy: { scheduledAt: 'asc' },

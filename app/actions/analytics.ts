@@ -85,7 +85,7 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
   }))
 
   // ILP evidence rate
-  const totalIlpTargets = await prisma.ilpTarget.count({ where: { ilp: { schoolId, status: 'active' }, status: 'in_progress' } })
+  const totalIlpTargets = await prisma.ilpTarget.count({ where: { ilp: { schoolId, status: 'active' } } })
   const linkedTargets = await prisma.ilpHomeworkLink.count({ where: { homework: { schoolId } } })
   const ilpEvidenceRate = totalIlpTargets > 0 ? Math.round((linkedTargets / totalIlpTargets) * 100) : 0
 
@@ -153,29 +153,33 @@ export async function getAnalyticsFilters(): Promise<FilterOptions> {
   if (!session) throw new Error('Unauthenticated')
   const { schoolId } = session.user as any
 
-  const [classes, students, sendStatuses] = await Promise.all([
-    prisma.schoolClass.findMany({
-      where:   { schoolId },
-      select:  { id: true, name: true, subject: true, yearGroup: true },
-      orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
-    }),
-    prisma.user.findMany({
-      where:   { schoolId, role: Role.STUDENT, isActive: true },
-      select:  { id: true, firstName: true, lastName: true },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    }),
-    prisma.sendStatus.findMany({
-      where:    { activeStatus: { not: SendStatusValue.NONE }, student: { schoolId } },
-      select:   { activeStatus: true },
-      distinct: ['activeStatus'],
-    }),
-  ])
+  try {
+    const [classes, students, sendStatuses] = await Promise.all([
+      prisma.schoolClass.findMany({
+        where:   { schoolId },
+        select:  { id: true, name: true, subject: true, yearGroup: true },
+        orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.user.findMany({
+        where:   { schoolId, role: Role.STUDENT, isActive: true },
+        select:  { id: true, firstName: true, lastName: true },
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      }),
+      prisma.sendStatus.findMany({
+        where:    { activeStatus: { not: SendStatusValue.NONE }, student: { schoolId } },
+        select:   { activeStatus: true },
+        distinct: ['activeStatus'],
+      }),
+    ])
 
-  const subjects      = [...new Set(classes.map(c => c.subject))].sort()
-  const yearGroups    = [...new Set(classes.map(c => c.yearGroup))].sort((a, b) => a - b)
-  const sendCategories = sendStatuses.map(s => s.activeStatus as string)
+    const subjects       = [...new Set(classes.map(c => c.subject))].sort()
+    const yearGroups     = [...new Set(classes.map(c => c.yearGroup))].sort((a, b) => a - b)
+    const sendCategories = sendStatuses.map(s => s.activeStatus as string)
 
-  return { subjects, yearGroups, classes, students, sendCategories }
+    return { subjects, yearGroups, classes, students, sendCategories }
+  } catch {
+    return { subjects: [], yearGroups: [], classes: [], students: [], sendCategories: [] }
+  }
 }
 
 export async function getStudentPerformance(filters: AnalyticsFilters): Promise<StudentPerformanceResult> {

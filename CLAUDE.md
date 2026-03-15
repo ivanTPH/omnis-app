@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-12 (Messaging System). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-15 (Analytics redesign + bug fixes). This file is the authoritative reference for Claude sessions working on this codebase.
 
 ---
 
@@ -515,13 +515,9 @@ Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for al
 - **Phase 3B — Accessibility Modes:** `UserAccessibilitySettings` Prisma model + migration (20260309180000). `app/actions/accessibility.ts` (getAccessibilitySettings, saveAccessibilitySettings). `lib/accessibility.ts` (settingsToClasses, hasActiveSettings, ACCESSIBILITY_DEFAULTS). 4 components under `components/accessibility/` (AccessibilityToolbar, AccessibilityPanel, AccessibilitySettingsView). `/settings/accessibility` page (all roles). CSS classes added to `globals.css`: dyslexia-font (OpenDyslexic + letter-spacing), high-contrast (dark bg, bright text), large-text (+20% font), reduced-motion (0.01ms transitions), line-spacing-wide/wider (1.8/2.2 line-height). `app/layout.tsx` fetches settings server-side and applies classes to `<html>` before paint — no flash. `AccessibilityToolbar` floats fixed bottom-right on all pages with blue dot indicator when active. "Accessibility" (Accessibility icon) added to sidebar footer for all roles.
 - **Phase 3A — Student Revision Planner:** 3 Prisma models (RevisionExam, RevisionSession, RevisionConfidence) + migration (20260309170000). `app/actions/revision.ts` (getMyExams, addExam, deleteExam, getMyRevisionSessions, generateRevisionPlan, saveRevisionPlan, markSessionComplete, skipSession, getConfidenceProfile, getRevisionStats). 5 components under `components/revision/` (ExamList, WeeklyRevisionGrid, SessionDetailModal, PlanGeneratorModal, ConfidenceChart, RevisionDashboard). Route `/revision` (STUDENT only). Claude-powered plan generation: 3-step modal (select exams → availability → confidence ratings) → AI generates 10–20 sessions for next 2 weeks → preview → accept. Session status tracking (planned/completed/skipped), confidence self-assessment (1–5 stars), 7-day week grid with navigation, streak counter. "Revision Planner" (BookOpen) added to STUDENT sidebar after Homework. Confidence bar chart via recharts. Falls back to stub plan if ANTHROPIC_API_KEY absent.
 - **Phase 2D — Cover Management:** `StaffAbsence` + `CoverAssignment` Prisma models + migration (20260309150000). `app/actions/cover.ts` (getTodaysCoverSummary, logAbsence, getAvailableStaff, assignCover, updateAssignmentStatus, deleteAbsence, getStaffList, getCoverHistory). 6 components under `components/cover/` (AbsenceList, AssignCoverModal, CoverAssignmentGrid, LogAbsenceModal, CoverHistoryTable, CoverDashboard, CoverPageTabs). Route `/admin/cover` (SCHOOL_ADMIN, SLT, COVER_MANAGER) with Today/History tabs. "Cover" (CalendarX2) added to SCHOOL_ADMIN, SLT, COVER_MANAGER sidebars. Auto-creates CoverAssignment per lesson when absence logged. `wonde:seed` extended with 2 today absences (WEMP-005 Helen Davies, WEMP-006 Robert Johnson) + mix of assignment statuses.
+- **Analytics redesign + bug fixes (2026-03-15):** (1) Fixed analytics server crash — `getAnalyticsFilters()` wrapped in try/catch, returns empty defaults on error; fixed invalid `IlpTarget.status: 'in_progress'` filter (not a valid value). (2) Unified analytics — created `/analytics/page.tsx` using existing `StudentAnalyticsView` (Classes + Students tabs); redirected `/analytics/teacher`, `/analytics/department`, `/analytics/students` to `/analytics`. (3) Sidebar consolidated: TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO all have single "Analytics → /analytics" link (BarChart3 icon); `Adaptive Learning → /analytics/adaptive` kept as separate entry for TEACHER + HEAD_OF_DEPT. See `BUGFIX.md` for details.
 
 ### 🔲 Still needed
-
-**Analytics filter bar**
-- `StudentAnalyticsView` has a filter bar but needs these specific dropdowns confirmed/added:
-  - Subject, Year Group, Class, SEND status, Attainment band
-- File: `components/StudentAnalyticsView.tsx` + `app/actions/analytics.ts` (`getAnalyticsFilters`)
 
 **Marketing pages (4 pages as Next.js routes)**
 - Add 4 public HTML pages as Next.js routes (do not require auth)

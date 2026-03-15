@@ -81,6 +81,38 @@ Also imported `useRouter` and initialised it in the component.
 
 ---
 
+## 5. Analytics page server crash (digest 645327168)
+
+**Symptom:** Navigating to `/analytics/students` (and now `/analytics`) produced a production error — "Application error: a server-side exception has occurred".
+
+**Root cause (A):** `getAnalyticsFilters()` in `app/actions/analytics.ts` called `Promise.all()` across three Prisma queries with no error handling. Any query failure (schema mismatch, connection error, etc.) propagated directly to the server component, crashing the entire page.
+
+**Root cause (B):** `getHomeworkAdaptiveAnalytics()` at line 88 used `status: 'in_progress'` as a filter on `IlpTarget.status`. This is not a valid status value — the valid values are `"active"`, `"achieved"`, `"not_achieved"`, `"deferred"`. This invalid filter caused a silent runtime failure.
+
+**Fix:**
+1. Wrapped the `Promise.all()` block in `getAnalyticsFilters()` in a `try/catch` that returns empty defaults on error, preventing a full page crash.
+2. Removed the invalid `status: 'in_progress'` filter on `IlpTarget.count` — the query now counts all targets in active ILPs regardless of target status.
+
+**Files changed:**
+- `app/actions/analytics.ts`
+
+---
+
+## 6. Analytics redesign — unified /analytics page
+
+**Change:** Consolidated multiple analytics routes (`/analytics/teacher`, `/analytics/department`, `/analytics/students`) into a single `/analytics` page using the existing `StudentAnalyticsView` component (which already has both Classes and Students tabs). The role-specific teacher/dept aggregate pages now redirect to `/analytics`.
+
+**Sidebar update:** All roles that had multiple analytics links (TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO) now have a single "Analytics" link pointing to `/analytics`, keeping `Adaptive Learning → /analytics/adaptive` as a separate entry for applicable roles.
+
+**Files changed:**
+- `app/analytics/page.tsx` (new)
+- `app/analytics/students/page.tsx` (now redirects to `/analytics`)
+- `app/analytics/teacher/page.tsx` (now redirects to `/analytics`)
+- `app/analytics/department/page.tsx` (now redirects to `/analytics`)
+- `components/Sidebar.tsx`
+
+---
+
 ## Broader audit — no bugs found
 
 The following workflows were reviewed and found to be functioning correctly:

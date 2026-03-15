@@ -2,9 +2,10 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { markSubmission } from '@/app/actions/homework'
+import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import {
   ChevronDown, ChevronUp, CheckCircle2, Loader2,
-  AlertTriangle, BookOpen, Target, MessageSquare,
+  AlertTriangle, BookOpen, Target, MessageSquare, BotMessageSquare,
 } from 'lucide-react'
 import { StrategyAppliesTo } from '@prisma/client'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -46,44 +47,93 @@ export default function SubmissionMarkingView({
 
   const maxScore = maxFromBands(hw.gradingBands)
 
-  const [score,    setScore]    = useState(data.finalScore != null ? String(data.finalScore) : '')
-  const [grade,    setGrade]    = useState(data.grade    ?? '')
-  const [feedback, setFeedback] = useState(data.feedback ?? '')
+  // FIX 1 + 3: normalise finalScore — auto-mark stores a percentage, manual stores raw grade score
+  // FIX 2: pre-fill feedback from autoFeedback when teacher hasn't written their own yet
+  const [score,    setScore]    = useState(() => normalizeScoreForForm(data.finalScore, maxScore))
+  const [grade,    setGrade]    = useState(() => {
+    if (data.grade) return data.grade
+    // Derive grade from stored finalScore if available
+    const raw = data.finalScore
+    if (raw == null) return ''
+    return String(percentToGcseGrade(raw > maxScore ? raw : Math.round((raw / maxScore) * 100)))
+  })
+  const [feedback, setFeedback] = useState(data.feedback ?? (data as any).autoFeedback ?? '')
   const [showModelAnswer, setShowModelAnswer] = useState(false)
   const [showBands,       setShowBands]       = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [saved,    setSaved]         = useState(false)
+  const [saved,     setSaved]         = useState(false)
+  const [error,     setError]         = useState<string | null>(null)
 
-  const isAlreadyMarked = data.status === 'RETURNED' || data.status === 'MARKED'
+  const isAlreadyMarked   = data.status === 'RETURNED' || data.status === 'MARKED'
+  const isAutoMarkedPending = (data as any).autoMarked && !(data as any).teacherReviewed
 
   function handleScoreChange(v: string) {
     setScore(v)
     const n = Number(v)
-    if (!isNaN(n) && v !== '') setGrade(suggestGrade(n, hw.gradingBands))
+    if (!isNaN(n) && v !== '') {
+      const suggested = suggestGrade(n, hw.gradingBands)
+      setGrade(suggested || String(percentToGcseGrade(Math.round((n / maxScore) * 100))))
+    }
   }
 
+  // FIX 3: try/catch, validate with user-visible error, router.refresh()
   function handleSave() {
     const n = Number(score)
-    if (isNaN(n) || n < 0 || n > maxScore) return
+    if (isNaN(n) || n < 0 || n > maxScore) {
+      setError(`Score must be between 0 and ${maxScore}`)
+      return
+    }
+    setError(null)
     startTransition(async () => {
-      await markSubmission(data.id, {
-        teacherScore: n,
-        feedback,
-        grade: grade || undefined,
-      })
-      setSaved(true)
-      router.refresh()
-      // Auto-advance to next submission after a short pause
-      if (data.nav.next) {
-        setTimeout(() => {
-          router.push(`/homework/${homeworkId}/mark/${data.nav.next}`)
-        }, 1200)
+      try {
+        await markSubmission(data.id, {
+          teacherScore: n,
+          feedback,
+          grade: grade || undefined,
+        })
+        setSaved(true)
+        router.refresh()
+        if (data.nav.next) {
+          setTimeout(() => {
+            router.push(`/homework/${homeworkId}/mark/${data.nav.next}`)
+          }, 1200)
+        }
+      } catch {
+        setError('Failed to save. Please try again.')
       }
     })
   }
 
-  const pct         = score !== '' && !isNaN(Number(score)) ? (Number(score) / maxScore) * 100 : 0
-  const barColour   = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-amber-500' : 'bg-rose-500'
+  // FIX 2: one-click approval of AI suggested mark
+  function handleApprove() {
+    const autoScore    = (data as any).autoScore ?? 0
+    const autoFeedback = (data as any).autoFeedback ?? ''
+    const gradeNum     = Math.round((autoScore / 100) * maxScore)
+    const gradeStr     = suggestGrade(gradeNum, hw.gradingBands) ||
+      String(percentToGcseGrade(autoScore))
+    setError(null)
+    startTransition(async () => {
+      try {
+        await markSubmission(data.id, {
+          teacherScore: gradeNum,
+          feedback:     autoFeedback,
+          grade:        gradeStr || undefined,
+        })
+        setSaved(true)
+        router.refresh()
+        if (data.nav.next) {
+          setTimeout(() => {
+            router.push(`/homework/${homeworkId}/mark/${data.nav.next}`)
+          }, 1200)
+        }
+      } catch {
+        setError('Failed to save. Please try again.')
+      }
+    })
+  }
+
+  const pct       = score !== '' && !isNaN(Number(score)) ? (Number(score) / maxScore) * 100 : 0
+  const barColour = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-amber-500' : 'bg-rose-500'
 
   const hwStrats = data.plan?.strategies.filter(
     s => s.appliesTo === StrategyAppliesTo.HOMEWORK || s.appliesTo === StrategyAppliesTo.BOTH
@@ -91,6 +141,16 @@ export default function SubmissionMarkingView({
   const classStrats = data.plan?.strategies.filter(
     s => s.appliesTo === StrategyAppliesTo.CLASSROOM || s.appliesTo === StrategyAppliesTo.BOTH
   ) ?? []
+
+  // Display helper for previously-returned score (may be percentage or raw)
+  const displayFinalScore = (() => {
+    const raw = data.finalScore
+    if (raw == null) return null
+    if (raw > maxScore && maxScore <= 20) {
+      return `${raw}% (Grade ${percentToGcseGrade(raw)})`
+    }
+    return `${raw} / ${maxScore}`
+  })()
 
   return (
     <div className="flex h-full min-h-0">
@@ -132,14 +192,14 @@ export default function SubmissionMarkingView({
                 <p className="text-[11px] text-gray-400">
                   {hw.class?.name}
                   {' · '}Submitted {new Date(data.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                {' at '}
-                {new Date(data.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                {isAlreadyMarked && data.markedAt && (
-                  <span className="text-green-600">
-                    {' · '}Returned {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                  </span>
-                )}
-              </p>
+                  {' at '}
+                  {new Date(data.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  {isAlreadyMarked && data.markedAt && (
+                    <span className="text-green-600">
+                      {' · '}Returned {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                </p>
                 <a
                   href="/messages"
                   className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
@@ -151,21 +211,46 @@ export default function SubmissionMarkingView({
             </div>
           </div>
 
-          {/* AI auto-mark review banner */}
-          {(data as any).autoMarked && !(data as any).teacherReviewed && (
-            <div className="bg-amber-50 border border-amber-300 rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-amber-600">⚠️</span>
-                <span className="text-sm font-semibold text-amber-800">AI Auto-marked — Review Required</span>
+          {/* FIX 2: AI Suggested Mark — prominent section with Approve button */}
+          {isAutoMarkedPending && (
+            <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
+                <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
+                <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
+                <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">Auto-marked</span>
               </div>
-              <p className="text-sm text-amber-700">
-                This submission was automatically marked. Please review the score and feedback before returning to the student.
-              </p>
-              {(data as any).autoScore != null && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Original AI score: <strong>{(data as any).autoScore}%</strong> · Feedback pre-filled below (editable)
-                </p>
-              )}
+              <div className="px-4 py-3 space-y-2">
+                {(data as any).autoScore != null && (
+                  <p className="text-sm text-amber-900">
+                    Score: <strong>
+                      {(data as any).autoScore}%{' '}
+                      (Grade {percentToGcseGrade((data as any).autoScore)})
+                    </strong>
+                    <span className="ml-2 text-[11px] text-amber-600">≈ {Math.round(((data as any).autoScore / 100) * maxScore)}/{maxScore} raw</span>
+                  </p>
+                )}
+                {(data as any).autoFeedback && (
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    {(data as any).autoFeedback}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    onClick={handleApprove}
+                    disabled={isPending}
+                    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                  >
+                    {isPending
+                      ? <Loader2 size={12} className="animate-spin" />
+                      : <CheckCircle2 size={12} />
+                    }
+                    Approve &amp; Return
+                  </button>
+                  <p className="flex items-center text-[11px] text-amber-700">
+                    or edit score &amp; feedback in the panel →
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -222,7 +307,7 @@ export default function SubmissionMarkingView({
           <div>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s Submission</p>
             <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[160px]">
-              {data.content}
+              {data.content || <span className="text-gray-400 italic">No answer recorded</span>}
             </div>
           </div>
 
@@ -286,7 +371,7 @@ export default function SubmissionMarkingView({
             <div className="mb-4">
               <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
                 Score (out of {maxScore})
-                {(data as any).autoMarked && !(data as any).teacherReviewed && (
+                {isAutoMarkedPending && (
                   <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI suggested</span>
                 )}
               </label>
@@ -317,7 +402,7 @@ export default function SubmissionMarkingView({
 
             {/* Grade */}
             <div className="mb-4">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">Grade</label>
+              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">Grade (GCSE 1–9)</label>
               <input
                 type="text"
                 value={grade}
@@ -332,6 +417,9 @@ export default function SubmissionMarkingView({
             <div className="mb-5">
               <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
                 Feedback to Student
+                {isAutoMarkedPending && (
+                  <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI pre-filled</span>
+                )}
               </label>
               <textarea
                 rows={8}
@@ -341,6 +429,11 @@ export default function SubmissionMarkingView({
                 placeholder="Write constructive feedback for the student…"
               />
             </div>
+
+            {/* Error */}
+            {error && (
+              <p className="text-[12px] text-rose-600 font-medium mb-3">{error}</p>
+            )}
 
             {/* Actions */}
             <div className="space-y-2">
@@ -353,7 +446,7 @@ export default function SubmissionMarkingView({
                   ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
                   : saved
                     ? <><CheckCircle2 size={14} /> {data.nav.next ? 'Saved — moving on…' : 'Returned to student'}</>
-                    : (data as any).autoMarked && !(data as any).teacherReviewed
+                    : isAutoMarkedPending
                     ? 'Confirm & Return to Student'
                     : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
                 }
@@ -368,14 +461,16 @@ export default function SubmissionMarkingView({
             </div>
           </div>
 
-          {/* Previous mark info */}
+          {/* Previously returned info — FIX 1: correct score display */}
           {isAlreadyMarked && (
             <div className="border-t border-gray-200 pt-4">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Previously Returned</p>
               <div className="space-y-1 text-[12px] text-gray-500">
-                {data.finalScore != null && <p>Score: <span className="font-semibold text-gray-700">{data.finalScore} / {maxScore}</span></p>}
-                {data.grade           && <p>Grade: <span className="font-bold text-green-700">{data.grade}</span></p>}
-                {data.markedAt        && <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
+                {data.finalScore != null && (
+                  <p>Score: <span className="font-semibold text-gray-700">{displayFinalScore}</span></p>
+                )}
+                {data.grade && <p>Grade: <span className="font-bold text-green-700">{data.grade}</span></p>}
+                {data.markedAt && <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
               </div>
             </div>
           )}

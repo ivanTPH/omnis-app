@@ -880,6 +880,8 @@ export async function markSubmission(submissionId: string, data: {
   revalidatePath('/homework')
   revalidatePath(`/homework/${sub.homeworkId}`)
   revalidatePath(`/homework/${sub.homeworkId}/mark/${submissionId}`)
+  revalidatePath('/dashboard')
+  revalidatePath('/', 'layout')
 }
 
 // ── Bulk auto-mark queue ──────────────────────────────────────────────────────

@@ -1,8 +1,9 @@
 'use client'
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink } from 'lucide-react'
+import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare } from 'lucide-react'
 import { markSubmission } from '@/app/actions/homework'
+import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getHomeworkForMarking>>>
@@ -19,7 +20,10 @@ function maxFromBands(bands: unknown): number {
 }
 
 function suggestGrade(score: number, bands: unknown): string {
-  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return String(score)
+  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) {
+    // No bands — auto-suggest GCSE grade based on percentage of maxScore
+    return ''
+  }
   for (const range of Object.keys(bands as Record<string, string>)) {
     const parts = range.split(/[-–]/).map(Number)
     const [lo, hi] = parts.length === 1 ? [parts[0], parts[0]] : [parts[0], parts[1]]
@@ -50,7 +54,6 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const maxScore   = maxFromBands(hw.gradingBands)
   const subByStudent = Object.fromEntries(hw.submissions.map(s => [s.student.id, s]))
 
-  // split: submitted students first (sorted by lastName), then missing
   const submittedStudents = enrolled
     .filter(e => subByStudent[e.user.id])
     .sort((a, b) => a.user.lastName.localeCompare(b.user.lastName))
@@ -60,18 +63,23 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     submittedStudents[0]?.user.id ?? null
   )
   const [showModelAnswer, setShowModelAnswer] = useState(false)
-  const [showBands, setShowBands]             = useState(false)
-  const [isPending, startTransition]          = useTransition()
-  const [savedId, setSavedId]                 = useState<string | null>(null)
+  const [showBands,       setShowBands]       = useState(false)
+  const [isPending,       startTransition]    = useTransition()
+  const [savedId,         setSavedId]         = useState<string | null>(null)
+  const [error,           setError]           = useState<string | null>(null)
 
-  // Per-student form state
+  // Per-student form state — score normalised to grade scale, feedback pre-filled from autoFeedback
   const [formState, setFormState] = useState<Record<string, { score: string; grade: string; feedback: string }>>(() => {
     const init: Record<string, { score: string; grade: string; feedback: string }> = {}
     for (const s of hw.submissions) {
+      // FIX 1: normalise percentage-scale finalScore to the form's raw score scale
+      const normScore = normalizeScoreForForm(s.finalScore, maxScore)
+      // FIX 2: pre-fill feedback from autoFeedback if teacher hasn't written their own yet
+      const feedbackValue = s.feedback ?? (s as any).autoFeedback ?? ''
       init[s.student.id] = {
-        score:    s.finalScore != null ? String(s.finalScore) : '',
+        score:    normScore,
         grade:    s.grade ?? '',
-        feedback: s.feedback ?? '',
+        feedback: feedbackValue,
       }
     }
     return init
@@ -87,27 +95,63 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     setFormState(prev => {
       const current = prev[selectedId] ?? { score: '', grade: '', feedback: '' }
       const next    = { ...current, [field]: value }
-      // Auto-suggest grade when score changes
       if (field === 'score' && value !== '') {
         const n = Number(value)
-        if (!isNaN(n)) next.grade = suggestGrade(n, hw.gradingBands)
+        if (!isNaN(n)) {
+          const suggested = suggestGrade(n, hw.gradingBands)
+          // If no band scheme, auto-suggest GCSE grade from percentage of maxScore
+          next.grade = suggested || String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
+        }
       }
       return { ...prev, [selectedId]: next }
     })
   }
 
+  // FIX 3: save with try/catch + proper error display
   function handleSave() {
     if (!selectedId || !selectedSub || !form) return
     const scoreNum = Number(form.score)
-    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > maxScore) return
+    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > maxScore) {
+      setError(`Score must be between 0 and ${maxScore}`)
+      return
+    }
+    setError(null)
     startTransition(async () => {
-      await markSubmission(selectedSub.id, {
-        teacherScore: scoreNum,
-        feedback:     form.feedback,
-        grade:        form.grade || undefined,
-      })
-      setSavedId(selectedId)
-      setTimeout(() => setSavedId(null), 2500)
+      try {
+        await markSubmission(selectedSub.id, {
+          teacherScore: scoreNum,
+          feedback:     form.feedback,
+          grade:        form.grade || undefined,
+        })
+        setSavedId(selectedId)
+        setTimeout(() => setSavedId(null), 2500)
+      } catch {
+        setError('Failed to save. Please try again.')
+      }
+    })
+  }
+
+  // FIX 2: one-click AI approval — converts percentage autoScore to grade scale
+  function handleApprove() {
+    if (!selectedId || !selectedSub) return
+    const autoScore = (selectedSub as any).autoScore ?? 0
+    const autoFeedback = (selectedSub as any).autoFeedback ?? ''
+    const gradeNum = Math.round((autoScore / 100) * maxScore)
+    const gradeStr = suggestGrade(gradeNum, hw.gradingBands) ||
+      String(percentToGcseGrade(autoScore))
+    setError(null)
+    startTransition(async () => {
+      try {
+        await markSubmission(selectedSub.id, {
+          teacherScore: gradeNum,
+          feedback:     autoFeedback,
+          grade:        gradeStr || undefined,
+        })
+        setSavedId(selectedId)
+        setTimeout(() => setSavedId(null), 2500)
+      } catch {
+        setError('Failed to save. Please try again.')
+      }
     })
   }
 
@@ -119,7 +163,14 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     const active  = selectedId === studentId
     const send    = hw.sendByStudent[studentId]
     const isDone  = sub?.status === 'RETURNED' || sub?.status === 'MARKED'
-    const score   = fState?.score ?? (sub?.finalScore != null ? String(sub.finalScore) : null)
+
+    // FIX 1: display grade not raw percentage
+    const rawFinalScore = sub?.finalScore
+    const displayScore  = rawFinalScore != null
+      ? (rawFinalScore > maxScore && maxScore <= 20
+        ? percentToGcseGrade(rawFinalScore)   // percentage → GCSE grade
+        : fState?.score ? Number(fState.score) : rawFinalScore)
+      : (fState?.score ? Number(fState.score) : null)
 
     if (!user) return null
     return (
@@ -150,9 +201,9 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             {missing ? 'Not submitted' : statusLabel(sub.status)}
           </p>
         </div>
-        {!missing && score && (
+        {!missing && displayScore != null && (
           <span className={`text-[11px] font-semibold shrink-0 ${isDone ? 'text-green-700' : 'text-gray-500'}`}>
-            {score}/{maxScore}
+            {displayScore}/{maxScore}
           </span>
         )}
         {!missing && isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
@@ -174,6 +225,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   }
 
   const isAlreadyMarked = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
+  const isAutoMarkedPending = selectedSub?.autoMarked && !selectedSub?.teacherReviewed
 
   return (
     <div className="flex h-full min-h-0">
@@ -240,7 +292,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   Submitted {new Date(selectedSub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   {selectedSub.markedAt && ` · Returned ${new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
-                  {' · '}<span className={`font-medium ${STATUS_STYLES[selectedSub.status]?.includes('green') ? 'text-green-600' : 'text-gray-500'}`}>{statusLabel(selectedSub.status)}</span>
+                  {' · '}<span className="font-medium text-gray-500">{statusLabel(selectedSub.status)}</span>
                 </p>
               </div>
             </div>
@@ -249,7 +301,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             <div>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Submission</p>
               <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {selectedSub.content}
+                {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
               </div>
             </div>
 
@@ -294,19 +346,45 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               </div>
             )}
 
-            {/* AI auto-mark review banner */}
-            {selectedSub?.autoMarked && !selectedSub?.teacherReviewed && (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-amber-600 text-sm">⚠️</span>
-                  <span className="text-sm font-semibold text-amber-800">AI Auto-marked — Please Review</span>
+            {/* FIX 2: AI Suggested Mark section with Approve & Return */}
+            {isAutoMarkedPending && (
+              <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
+                  <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
+                  <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
+                  <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                    Auto-marked
+                  </span>
                 </div>
-                <p className="text-xs text-amber-700">
-                  Score and feedback pre-filled by AI. Review and confirm before returning to student.
-                </p>
-                {selectedSub.autoScore != null && (
-                  <p className="text-xs text-amber-600 mt-1">AI score: <strong>{selectedSub.autoScore}%</strong></p>
-                )}
+                <div className="px-4 py-3 space-y-2">
+                  {(selectedSub as any).autoScore != null && (
+                    <p className="text-sm text-amber-900">
+                      Score: <strong>
+                        {(selectedSub as any).autoScore}%{' '}
+                        (Grade {percentToGcseGrade((selectedSub as any).autoScore)})
+                      </strong>
+                    </p>
+                  )}
+                  {(selectedSub as any).autoFeedback && (
+                    <p className="text-xs text-amber-800 leading-relaxed line-clamp-3">
+                      {(selectedSub as any).autoFeedback}
+                    </p>
+                  )}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={handleApprove}
+                      disabled={isPending}
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                    >
+                      {isPending
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : <CheckCircle2 size={12} />
+                      }
+                      Approve &amp; Return
+                    </button>
+                    <p className="flex items-center text-[11px] text-amber-700 px-2">or edit below ↓</p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -314,7 +392,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             <div className="border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                 <p className="text-[12px] font-semibold text-gray-700">
-                  {isAlreadyMarked ? 'Update Mark' : 'Mark Submission'}
+                  {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit before returning' : 'Mark Submission'}
                 </p>
               </div>
               <div className="px-4 py-4 space-y-4">
@@ -373,6 +451,11 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   />
                 </div>
 
+                {/* error */}
+                {error && (
+                  <p className="text-[12px] text-rose-600 font-medium">{error}</p>
+                )}
+
                 {/* submit */}
                 <div className="flex items-center justify-between pt-1">
                   {savedId === selectedId ? (
@@ -386,7 +469,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
                   >
                     {isPending && <Loader2 size={13} className="animate-spin" />}
-                    {selectedSub?.autoMarked && !selectedSub?.teacherReviewed
+                    {isAutoMarkedPending
                       ? 'Confirm & Return'
                       : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
                     }

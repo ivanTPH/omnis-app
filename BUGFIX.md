@@ -205,3 +205,31 @@ These were missed in the previous bug #8 fix which only corrected `homework.ts` 
 - `app/senco/error.tsx` (new)
 - `app/send/error.tsx` (new)
 - `app/classes/error.tsx` (new)
+
+---
+
+## 10. Homework marking — score display, AI approval, save freeze
+
+**Symptom A (Score display):** Student list showed "87/9" — Leo Barrett's score looked like a fraction where 87 was the numerator and 9 (the max GCSE grade) was the denominator.
+
+**Root cause A:** `autoMarkSubmission()` stores `finalScore` as a **percentage** (0–100). The marking form treats `finalScore` as a **raw score** on the `maxScore` scale (0–9 from `maxFromBands`). When the form was initialised with `finalScore = 87` and `maxScore = 9`, the sidebar rendered `87/9`.
+
+**Symptom B (Save freeze):** Teacher added feedback, set grade, clicked Save — nothing happened. No error, no spinner, no response.
+
+**Root cause B:** `handleSave()` in both marking components had a guard `if (scoreNum > maxScore) return` — a **silent no-op** when the form was pre-filled with the percentage (87 > 9). Combined with the disabled check only covering `score === ''`, the button appeared clickable but immediately returned without calling `markSubmission`.
+
+**Symptom C (AI feedback not pre-filled):** Auto-marked submissions showed blank feedback textarea; teacher had to re-type the AI feedback manually.
+
+**Root cause C:** Form state initialised `feedback` from `s.feedback` (null for auto-marked) rather than `s.autoFeedback`. No "Approve & Return" one-click path existed.
+
+**Fix:**
+1. Created `lib/grading.ts` — `percentToGcseGrade(pct)`, `formatScore(score, maxScore, showGrade)`, `normalizeScoreForForm(finalScore, maxScore)`. The normaliser detects percentage-scale scores (`finalScore > maxScore && maxScore ≤ 20`) and converts them back to the raw grade scale.
+2. `HomeworkMarkingView.tsx` — formState initialisation now uses `normalizeScoreForForm`; feedback falls back to `autoFeedback`; `handleSave` shows a user-visible error instead of silently returning; added `handleApprove` for one-click AI approval; added "Approve & Return" + "or edit below ↓" buttons in the AI banner.
+3. `SubmissionMarkingView.tsx` — same score/feedback/grade normalisation; `handleSave` wrapped in try/catch with `setError`; `handleApprove` added; "Previously Returned" score display corrected to show `87% (Grade 8)` not `87/9`; feedback textarea shows "AI pre-filled" badge.
+4. `app/actions/homework.ts` `markSubmission` — added `revalidatePath('/dashboard')` and `revalidatePath('/', 'layout')` for full cache invalidation.
+
+**Files changed:**
+- `lib/grading.ts` (new)
+- `components/HomeworkMarkingView.tsx`
+- `components/SubmissionMarkingView.tsx`
+- `app/actions/homework.ts`

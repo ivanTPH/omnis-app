@@ -450,20 +450,20 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     gradeHasValue              ? 'Auto-suggested from score' :
     'Enter score first'
 
-  // ── filter chip config ────────────────────────────────────────────────────
-  const chips: {
-    key:         PupilFilter
-    label:       string
-    count:       number
-    activeClass: string
-    show:        boolean
-  }[] = [
-    { key: 'all',       label: 'All',       count: pupils.length,    activeClass: 'bg-gray-800 text-white border-gray-800',     show: true },
-    { key: 'submitted', label: 'Submitted', count: submittedCount,   activeClass: 'bg-blue-600 text-white border-blue-600',     show: true },
-    { key: 'returned',  label: 'Returned',  count: returnedCount,    activeClass: 'bg-green-600 text-white border-green-600',   show: true },
-    { key: 'missing',   label: 'Missing',   count: missingCount,     activeClass: 'bg-rose-600 text-white border-rose-600',     show: true },
-    { key: 'send',      label: 'SEND',      count: sendCount,        activeClass: 'bg-purple-600 text-white border-purple-600', show: sendCount > 0 },
-  ]
+  // ── filter click helper ───────────────────────────────────────────────────
+  function handleFilterClick(key: PupilFilter) {
+    setPupilFilter(prev => prev === key ? 'all' : key)
+    if (key === 'submitted') {
+      const first = pupils.find(p => p.submission && p.submission.status !== 'RETURNED')
+      setSelectedId(first?.id ?? null)
+    } else if (key === 'returned') {
+      const first = pupils.find(p => p.submission?.status === 'RETURNED')
+      setSelectedId(first?.id ?? null)
+    } else if (key === 'all' || key === 'send' || key === 'missing') {
+      const first = pupils.find(p => p.submission)
+      setSelectedId(first?.id ?? null)
+    }
+  }
 
   return (
     <div className="flex h-full min-h-0">
@@ -471,45 +471,100 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       {/* ── Left: student list ─────────────────────────────────────────────── */}
       <div className="w-56 shrink-0 border-r border-gray-200 flex flex-col">
 
-        {/* Filter chips */}
-        <div className="px-3 pt-3 pb-2 border-b border-gray-100 space-y-2">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pupils</p>
-          <div className="flex flex-wrap gap-1">
-            {chips.filter(c => c.show).map(chip => (
+        {/* Filter counter badges */}
+        <div className="px-2 pt-3 pb-2 border-b border-gray-100">
+          <div className="flex items-stretch gap-1">
+
+            {/* All */}
+            <button
+              onClick={() => handleFilterClick('all')}
+              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
+                pupilFilter === 'all'
+                  ? 'border-gray-700 bg-gray-50'
+                  : 'border-transparent hover:border-gray-200'
+              }`}
+            >
+              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'all' ? 'text-gray-800' : 'text-gray-700'}`}>
+                {pupils.length}
+              </span>
+              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'all' ? 'text-gray-700' : 'text-gray-400'}`}>
+                All
+              </span>
+            </button>
+
+            {/* Submitted */}
+            <button
+              onClick={() => handleFilterClick('submitted')}
+              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
+                pupilFilter === 'submitted'
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-transparent hover:border-gray-200'
+              }`}
+            >
+              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'submitted' ? 'text-blue-600' : 'text-gray-700'}`}>
+                {submittedCount}
+              </span>
+              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'submitted' ? 'text-blue-600' : 'text-gray-400'}`}>
+                Due
+              </span>
+            </button>
+
+            {/* Returned */}
+            <button
+              onClick={() => handleFilterClick('returned')}
+              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
+                pupilFilter === 'returned'
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-transparent hover:border-gray-200'
+              }`}
+            >
+              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'returned' ? 'text-green-600' : 'text-gray-700'}`}>
+                {returnedCount}
+              </span>
+              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'returned' ? 'text-green-600' : 'text-gray-400'}`}>
+                Done
+              </span>
+            </button>
+
+            {/* Missing */}
+            <button
+              onClick={() => handleFilterClick('missing')}
+              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
+                pupilFilter === 'missing'
+                  ? 'border-rose-500 bg-rose-50'
+                  : 'border-transparent hover:border-gray-200'
+              }`}
+            >
+              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'missing' ? 'text-rose-600' : 'text-gray-700'}`}>
+                {missingCount}
+              </span>
+              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'missing' ? 'text-rose-600' : 'text-gray-400'}`}>
+                Missing
+              </span>
+            </button>
+
+            {/* SEND — only when > 0 */}
+            {sendCount > 0 && (
               <button
-                key={chip.key}
-                onClick={() => {
-                  setPupilFilter(prev => prev === chip.key ? 'all' : chip.key)
-                  // Auto-select first visible student when switching filters
-                  if (chip.key === 'submitted') {
-                    const first = pupils.find(p => p.submission && p.submission.status !== 'RETURNED')
-                    setSelectedId(first?.id ?? null)
-                  } else if (chip.key === 'returned') {
-                    const first = pupils.find(p => p.submission?.status === 'RETURNED')
-                    setSelectedId(first?.id ?? null)
-                  } else if (chip.key === 'all') {
-                    const first = pupils.find(p => p.submission)
-                    setSelectedId(first?.id ?? null)
-                  }
-                }}
-                className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border transition-colors ${
-                  pupilFilter === chip.key
-                    ? chip.activeClass
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                onClick={() => handleFilterClick('send')}
+                className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
+                  pupilFilter === 'send'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-transparent hover:border-gray-200'
                 }`}
               >
-                {chip.label}
-                <span className={`text-[9px] font-bold ${
-                  pupilFilter === chip.key ? 'opacity-80' : 'text-gray-400'
-                }`}>{chip.count}</span>
-                {chip.key === 'send' && sendMissingCount > 0 && (
-                  <span className="text-[8px] opacity-70">·{sendMissingCount}↗</span>
-                )}
+                <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'send' ? 'text-purple-600' : 'text-gray-700'}`}>
+                  {sendCount}
+                </span>
+                <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'send' ? 'text-purple-600' : 'text-gray-400'}`}>
+                  SEND
+                </span>
               </button>
-            ))}
+            )}
+
           </div>
           {needsReviewCount > 0 && (
-            <p className="text-[10px] text-amber-600 font-medium">
+            <p className="text-[10px] text-amber-600 font-medium mt-2 px-1">
               ⚡ {needsReviewCount} awaiting AI review
             </p>
           )}

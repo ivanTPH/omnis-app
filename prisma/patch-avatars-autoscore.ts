@@ -13,7 +13,7 @@ const prisma = new PrismaClient({ datasources: { db: { url: connUrl } } })
 
 function dicebearUrl(firstName: string, lastName: string) {
   const seed = encodeURIComponent(`${firstName}${lastName}`)
-  return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`
+  return `https://api.dicebear.com/7.x/initials/png?seed=${seed}&backgroundColor=3b82f6,8b5cf6,ec4899,f59e0b,10b981`
 }
 
 // Plausible autoScore distribution (for 9-point scale)

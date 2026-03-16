@@ -353,6 +353,7 @@ model SchoolClass {
   homework              Homework[]
   performanceAggregates ClassPerformanceAggregate[]
   learningSequences     LearningSequence[]
+  revisionPrograms      RevisionProgram[]
 
   @@index([schoolId])
 }
@@ -1990,4 +1991,104 @@ model IlpHomeworkLink {
   @@unique([ilpTargetId, homeworkId])
   @@index([homeworkId])
   @@index([ilpTargetId])
+}
+
+// ─── Phase 7A — Revision Program ─────────────────────────────────────────────
+
+model RevisionProgram {
+  id            String    @id @default(cuid())
+  schoolId      String
+  classId       String
+  createdBy     String
+  title         String
+  subject       String
+  yearGroup     Int
+  periodStart   DateTime
+  periodEnd     DateTime
+  topics        String[]
+  mode          String    @default("study_guide")
+  deadline      DateTime?
+  durationWeeks Int       @default(1)
+  status        String    @default("draft")
+  aiAnalysis    Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tasks RevisionTask[]
+  class SchoolClass     @relation(fields: [classId], references: [id])
+
+  @@index([schoolId, classId])
+  @@index([schoolId, status])
+}
+
+model RevisionTask {
+  id            String    @id @default(cuid())
+  programId     String
+  studentId     String
+  schoolId      String
+
+  focusTopics       String[]
+  taskType          String
+  structuredContent Json?
+  instructions      String
+  modelAnswer       String?
+
+  weakTopics      String[]
+  strongTopics    String[]
+  sendAdaptations String[]
+  ilpTargetIds    String[]
+  bloomsLevel     String?
+  estimatedMins   Int      @default(30)
+
+  status          String    @default("not_started")
+  submittedAt     DateTime?
+  studentResponse Json?
+  autoScore       Int?
+  teacherScore    Int?
+  finalScore      Int?
+  feedback        String?
+  markedAt        DateTime?
+
+  selfConfidence Int?
+  completedAt    DateTime?
+  timeSpentMins  Int?
+
+  program RevisionProgram @relation(fields: [programId], references: [id])
+
+  @@index([programId])
+  @@index([studentId])
+  @@index([schoolId, status])
+}
+
+model RevisionProgress {
+  id              String    @id @default(cuid())
+  studentId       String
+  schoolId        String
+  subject         String
+  topic           String
+
+  preRevisionAvg  Float?
+  postRevisionAvg Float?
+  improvement     Float?
+
+  lastRevisedAt   DateTime  @default(now())
+  nextReviewAt    DateTime?
+  confidenceLevel Int?
+
+  @@index([studentId, subject])
+  @@unique([studentId, subject, topic])
+}
+
+model RevisionAnalyticsCache {
+  id          String   @id @default(cuid())
+  schoolId    String
+  classId     String
+  subject     String
+  periodStart DateTime
+  periodEnd   DateTime
+  analysis    Json
+  generatedAt DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([classId])
 }

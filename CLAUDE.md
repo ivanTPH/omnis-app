@@ -248,6 +248,19 @@ Covers: Auth, Teacher Dashboard, Homework (set/mark/submit), Classes, Analytics,
 
 ## Outstanding Tasks
 
+**Phase 7A — Revision Program Foundation (completed 2026-03-16)**
+- 4 Prisma models (RevisionProgram, RevisionTask, RevisionProgress, RevisionAnalyticsCache) pushed to DB via `db push`.
+- `lib/revision/analysis-engine.ts` — `analyseClassPerformance()` analyses lessons/homework/SEND/ILP data for a class period, identifies weak/strong topics per student.
+- `lib/revision/content-generator.ts` — `generateRevisionTask()` calls Claude to generate personalised tasks per student with SEND adaptations and ILP integration; batches 5 concurrent; graceful fallback.
+- `app/actions/revision-program.ts` — 8 server actions (getClassPerformanceAnalysis, createRevisionProgram, getRevisionPrograms, getRevisionProgramDetail, submitRevisionTask, selfAssessRevisionTask, markRevisionTask, getStudentRevisionTasks). Rate limit: 3 programs/class/week. 24h analytics cache. Spaced repetition via RevisionProgress.
+- `e2e/tests/revision-program.spec.ts` — stub test file (skipped; UI in Phase 7B).
+- Build passing.
+
+**Phase 7B — Revision Program UI (not yet built)**
+- Teacher UI: class selector, period picker, program creation modal, task list
+- Student UI: task viewer, submission, self-assessment
+- Route: `/revision-program` (teacher), `/student/revision` (student tasks)
+
 **Marketing pages (TODO)**
 - 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`
 - Contact forms → email `ivanyardley@me.com` via `resend` package

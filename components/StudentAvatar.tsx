@@ -1,4 +1,6 @@
 'use client'
+// Real photos come from Wonde API (Phase 1C Part B)
+// Placeholder: ui-avatars.com generates initials avatars
 import { useState } from 'react'
 
 type Size = 'xs' | 'sm' | 'md' | 'lg'

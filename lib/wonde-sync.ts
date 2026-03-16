@@ -317,7 +317,12 @@ export async function runWondeSync(
       result.periods.upserted++
     }
   } catch (err) {
-    errors.push(`Periods: ${String(err)}`)
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('permission')) {
+      console.warn('[wonde-sync] Periods sync skipped — enable periods.read permission in Wonde dashboard to sync timetable data')
+    } else {
+      errors.push(`Periods: ${msg}`)
+    }
   }
 
   // ── 7. Timetable entries ──────────────────────────────────────────────────
@@ -362,7 +367,12 @@ export async function runWondeSync(
       result.timetable.upserted++
     }
   } catch (err) {
-    errors.push(`Timetable: ${String(err)}`)
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('permission')) {
+      console.warn('[wonde-sync] Timetable sync skipped — enable lessons.read permission in Wonde dashboard to sync timetable data')
+    } else {
+      errors.push(`Timetable: ${msg}`)
+    }
   }
 
   result.durationMs = Date.now() - startedAt

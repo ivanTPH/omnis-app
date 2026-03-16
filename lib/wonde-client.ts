@@ -181,14 +181,13 @@ export async function fetchWondeSchool(schoolId: string, token: string): Promise
 
 export async function fetchWondeEmployees(schoolId: string, token: string): Promise<WondeEmployee[]> {
   return wondeAll<WondeEmployee>(`/schools/${schoolId}/employees`, token, {
-    include: 'subjects',
     per_page: '200',
   })
 }
 
 export async function fetchWondeStudents(schoolId: string, token: string): Promise<WondeStudent[]> {
   return wondeAll<WondeStudent>(`/schools/${schoolId}/students`, token, {
-    include: 'contacts,year,form_group',
+    include: 'contacts,year',
     per_page: '200',
   })
 }
@@ -201,7 +200,7 @@ export async function fetchWondeGroups(schoolId: string, token: string): Promise
 
 export async function fetchWondeClasses(schoolId: string, token: string): Promise<WondeClass[]> {
   return wondeAll<WondeClass>(`/schools/${schoolId}/classes`, token, {
-    include: 'students,employees,subject,year,group',
+    include: 'students,employees,subject,group',
     per_page: '100',
   })
 }

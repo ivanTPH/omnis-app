@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
-import { getAdminDashboardData } from '@/app/actions/admin'
+import { getAdminDashboardData, type AdminDashboardData } from '@/app/actions/admin'
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import {
   UserCheck, Users, BookOpen, Clock, Calendar, BarChart2,
@@ -28,7 +28,13 @@ export default async function AdminDashboardPage() {
   const { schoolId, role, firstName, lastName, schoolName } = session.user as any
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
-  const data = await getAdminDashboardData(schoolId)
+  let data: AdminDashboardData
+  try {
+    data = await getAdminDashboardData(schoolId)
+  } catch (err) {
+    console.error('[AdminDashboard] getAdminDashboardData failed:', err)
+    data = { studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, pendingHomework: 0, activeIlpCount: 0 }
+  }
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

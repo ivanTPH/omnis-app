@@ -200,7 +200,7 @@ export async function fetchWondeGroups(schoolId: string, token: string): Promise
 
 export async function fetchWondeClasses(schoolId: string, token: string): Promise<WondeClass[]> {
   return wondeAll<WondeClass>(`/schools/${schoolId}/classes`, token, {
-    include: 'students,employees,subject,group',
+    include: 'students,employees,subject',
     per_page: '100',
   })
 }

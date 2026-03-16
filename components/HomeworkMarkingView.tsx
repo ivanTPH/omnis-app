@@ -67,6 +67,26 @@ function SendBadge({ send }: { send: { activeStatus: string; needArea: string | 
   )
 }
 
+// ── submission status badge ─────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'RETURNED') return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+      ✓ Returned
+    </span>
+  )
+  if (status === 'MARKED') return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+      ⚡ Awaiting Review
+    </span>
+  )
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+      ● Submitted
+    </span>
+  )
+}
+
 // ── filter type ────────────────────────────────────────────────────────────────
 
 type PupilFilter = 'all' | 'submitted' | 'returned' | 'missing' | 'send'
@@ -138,7 +158,16 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const [formState, setFormState] = useState<Record<string, { score: string; grade: string; feedback: string }>>(() => {
     const init: Record<string, { score: string; grade: string; feedback: string }> = {}
     for (const s of hw.submissions) {
-      const normScore = normalizeScoreForForm(s.finalScore, maxScore)
+      // Pre-fill from finalScore; fall back to autoScore when not yet teacher-marked
+      let normScore = normalizeScoreForForm(s.finalScore, maxScore)
+      if (normScore === '') {
+        const autoScore = (s as any).autoScore as number | null
+        if (autoScore != null) {
+          const isLegPct = autoScore > maxScore && maxScore <= 20
+          const rawScore = isLegPct ? Math.round((autoScore / 100) * maxScore) : autoScore
+          normScore = String(rawScore)
+        }
+      }
       const feedbackValue = s.feedback ?? (s as any).autoFeedback ?? ''
       const autoGrade = normScore !== ''
         ? (suggestGrade(Number(normScore), hw.gradingBands) ||
@@ -411,11 +440,13 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const gradeBoxClass =
     gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-700' :
     gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-700' :
+    gradeState === 'final'     ? 'bg-white border-gray-300 text-gray-900 font-semibold' :
     gradeHasValue              ? 'bg-amber-50 border-amber-200 text-amber-700' :
     'bg-white border-gray-300 text-gray-900'
   const gradeLabel =
     gradeState === 'auto'      ? 'Auto-suggested — confirm' :
     gradeState === 'confirmed' ? 'Confirmed ✓' :
+    gradeState === 'final'     ? 'Final grade' :
     gradeHasValue              ? 'Auto-suggested from score' :
     'Enter score first'
 
@@ -523,11 +554,13 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 avatarUrl={(selectedStudent as any).avatarUrl ?? null}
                 size="md"
               />
-              <div>
-                <p className="text-[16px] font-semibold text-gray-900">
-                  {selectedStudent.firstName} {selectedStudent.lastName}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-[16px] font-semibold text-gray-900">
+                    {selectedStudent.firstName} {selectedStudent.lastName}
+                  </p>
                   {sendInfo && sendInfo.activeStatus !== 'NONE' && (
-                    <span className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       sendInfo.activeStatus === 'EHCP'
                         ? 'bg-purple-100 text-purple-700'
                         : 'bg-blue-100 text-blue-700'
@@ -536,17 +569,16 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       {sendInfo.needArea ? ` · ${sendInfo.needArea}` : ''}
                     </span>
                   )}
-                </p>
+                  <StatusBadge status={selectedSub.status} />
+                </div>
                 <p className="text-[11px] text-gray-400 mt-0.5">
                   Submitted {new Date(selectedSub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   {isReturned && selectedSub.markedAt &&
-                    new Date(selectedSub.markedAt) >= new Date(selectedSub.submittedAt) &&
-                    ` · Returned ${new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                  }
-                  {' · '}
-                  {selectedSub.status === 'MARKED'
-                    ? <span className="font-medium text-amber-600">Awaiting review</span>
-                    : <span className={`font-medium ${isReturned ? 'text-green-600' : 'text-gray-500'}`}>{statusLabel(selectedSub.status)}</span>
+                    new Date(selectedSub.markedAt) >= new Date(selectedSub.submittedAt) && (
+                      <span className="text-green-600 ml-1">
+                        · Returned {new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    )
                   }
                 </p>
               </div>
@@ -733,7 +765,9 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     {isPending && <Loader2 size={13} className="animate-spin" />}
                     {isAutoMarkedPending
                       ? 'Confirm & Return'
-                      : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
+                      : isReturned ? '✓ Returned — Edit & Resend'
+                      : isAlreadyMarked ? 'Update & Return'
+                      : 'Mark & Return'
                     }
                   </button>
                 </div>

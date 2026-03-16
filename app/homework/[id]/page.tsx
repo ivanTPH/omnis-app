@@ -15,16 +15,12 @@ export default async function HomeworkMarkingPage({ params }: { params: Promise<
   const hw = await getHomeworkForMarking(id)
   if (!hw) notFound()
 
-  const enrolled  = hw.class?.enrolments.length ?? 0
-  const submitted = hw.submissions.length
-  const marked    = hw.submissions.filter(s => s.status === 'RETURNED' || s.status === 'MARKED').length
-
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
         {/* Page header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-start px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-start gap-3">
             <Link href="/homework" className="mt-0.5 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700">
               <ChevronLeft size={16} />
@@ -52,21 +48,6 @@ export default async function HomeworkMarkingPage({ params }: { params: Promise<
             </div>
           </div>
 
-          {/* submission stats */}
-          <div className="flex items-center gap-5 shrink-0">
-            <div className="text-right">
-              <p className="text-[18px] font-bold text-gray-900">{submitted}<span className="text-[13px] font-normal text-gray-400">/{enrolled}</span></p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Submitted</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[18px] font-bold text-green-600">{marked}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Marked</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[18px] font-bold text-rose-500">{enrolled - submitted}</p>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Missing</p>
-            </div>
-          </div>
         </div>
 
         {/* Split-panel marking view */}

@@ -42,7 +42,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
       },
       lesson:      { select: { id: true, title: true } },
       submissions: {
-        include: { student: { select: { id: true, firstName: true, lastName: true } } },
+        include: { student: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
         orderBy: { submittedAt: 'asc' },
       },
     },

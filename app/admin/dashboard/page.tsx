@@ -6,7 +6,7 @@ import { getAdminDashboardData } from '@/app/actions/admin'
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import {
   UserCheck, Users, BookOpen, Clock, Calendar, BarChart2,
-  Shield, MessageSquare,
+  Shield, MessageSquare, RefreshCw,
 } from 'lucide-react'
 
 const QUICK_LINKS = [
@@ -17,6 +17,7 @@ const QUICK_LINKS = [
   { label: 'Calendar',   href: '/admin/calendar',  icon: Calendar,     desc: 'Term dates & holidays'       },
   { label: 'Analytics',  href: '/slt/analytics',   icon: BarChart2,    desc: 'School performance data'     },
   { label: 'Audit Log',  href: '/admin/audit',     icon: Shield,       desc: 'Immutable event log'         },
+  { label: 'MIS Sync',   href: '/admin/wonde',     icon: RefreshCw,    desc: 'Sync data from Wonde MIS'    },
   { label: 'Messages',   href: '/messages',        icon: MessageSquare,desc: 'Staff messaging inbox'       },
 ]
 

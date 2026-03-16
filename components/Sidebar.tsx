@@ -77,6 +77,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'GDPR & Consent', href: '/admin/gdpr',   icon: ShieldCheck     },
     { label: 'AI Generator', href: '/ai-generator',   icon: Wand2           },
     { label: 'Cover',        href: '/admin/cover',    icon: CalendarX2      },
+    { label: 'MIS Sync',     href: '/admin/wonde',    icon: RefreshCw       },
     { label: 'Messages',    href: '/messages',         icon: MessageSquare   },
   ],
   SLT: [

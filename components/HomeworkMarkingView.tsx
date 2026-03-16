@@ -261,13 +261,22 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>
               {user.firstName} {user.lastName}
               <SendBadge send={send} />
-              {sub?.autoMarked && !sub?.teacherReviewed && (
-                <span className="ml-0.5 text-[9px] font-bold text-amber-600">⚠</span>
-              )}
             </p>
-            <p className="text-[10px] text-gray-400">
-              {missing ? 'Not submitted' : statusLabel(sub.status)}
-            </p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-[10px] text-gray-400">
+                {missing ? 'Not submitted' : statusLabel(sub.status)}
+              </span>
+              {sub?.autoMarked && !sub?.teacherReviewed && sub?.autoScore != null && (() => {
+                const as_ = sub.autoScore as number
+                const isLegPct = as_ > maxScore && maxScore <= 20
+                const pct = isLegPct ? Math.round(as_) : Math.round((as_ / maxScore) * 100)
+                return (
+                  <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">
+                    AI: {pct}% ↗
+                  </span>
+                )
+              })()}
+            </div>
           </div>
           {!missing && displayScore != null && (
             <span className={`text-[11px] font-semibold shrink-0 ${isDone ? 'text-green-700' : 'text-gray-500'}`}>

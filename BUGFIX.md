@@ -341,6 +341,12 @@ These were missed in the previous bug #8 fix which only corrected `homework.ts` 
 
 **New server action:** `resendHomeworkReminder(homeworkId, studentId)` in `app/actions/homework.ts` — creates a `HOMEWORK_SET` notification for the student with due-date copy and link to the submission page.
 
+---
+
+**Symptom D (No AI score visible in pupil list):** Auto-marked submissions only showed a plain `⚠` symbol in the pupil list. Teachers couldn't see the predicted score at a glance without opening each submission.
+
+**Fix D:** Replaced the bare `⚠` with an amber `AI: {pct}% ↗` badge computed from `sub.autoScore` (handles both raw-score and legacy-percentage scale). Badge appears only when `autoMarked=true AND teacherReviewed=false AND autoScore != null`. The right-panel banner for auto-marked submissions (showing the full suggested score + feedback + Approve & Return button) was already present.
+
 **Files changed:**
 - `components/HomeworkMarkingView.tsx`
 - `app/actions/homework.ts`

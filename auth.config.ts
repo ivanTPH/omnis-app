@@ -22,6 +22,7 @@ const ROLE_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/admin',          roles: ['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER'] },
   { prefix: '/send-scorer',    roles: ['SENCO', 'SLT', 'SCHOOL_ADMIN'] },
   { prefix: '/ai-generator',   roles: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'] },
+  { prefix: '/revision-program', roles: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SUPER_ADMIN'] },
   { prefix: '/revision',       roles: ['STUDENT'] },
   { prefix: '/parent',         roles: ['PARENT'] },
   { prefix: '/analytics',      roles: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SENCO'] },

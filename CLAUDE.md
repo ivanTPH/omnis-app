@@ -256,10 +256,13 @@ Covers: Auth, Teacher Dashboard, Homework (set/mark/submit), Classes, Analytics,
 - `e2e/tests/revision-program.spec.ts` — stub test file (skipped; UI in Phase 7B).
 - Build passing.
 
-**Phase 7B — Revision Program UI (not yet built)**
-- Teacher UI: class selector, period picker, program creation modal, task list
-- Student UI: task viewer, submission, self-assessment
-- Route: `/revision-program` (teacher), `/student/revision` (student tasks)
+- **Phase 7B — Revision Program Teacher UI:** 4 components (RevisionProgramCreator 4-step wizard, RevisionProgramList with filter tabs, RevisionProgramDetail split-panel marking view, RevisionAnalysisPanel). Routes: `/revision-program` (list), `/revision-program/new` (creator wizard), `/revision-program/[programId]` (detail/marking). Sidebar: "Revision" (BookMarked) added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SLT, SCHOOL_ADMIN. Middleware updated. Build passing.
+
+**Phase 7C — Revision Program Student UI (not yet built)**
+- Student task viewer at /student/revision
+- Submit answers, self-assessment confidence rating
+- Progress tracking view
+- Integration tests for full revision program flow
 
 **Marketing pages (TODO)**
 - 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`

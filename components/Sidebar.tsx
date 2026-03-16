@@ -7,7 +7,7 @@ import {
   MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
   Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
   UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2, RefreshCw,
-  Accessibility, FileCheck, BarChart3, Brain,
+  Accessibility, FileCheck, BarChart3, Brain, BookMarked,
 } from 'lucide-react'
 import UnreadBadge from '@/components/messaging/UnreadBadge'
 
@@ -19,6 +19,7 @@ const navByRole: Record<string, NavItem[]> = {
   TEACHER: [
     { label: 'Calendar',         href: '/dashboard',          icon: Calendar       },
     { label: 'Homework',         href: '/homework',           icon: ClipboardList  },
+    { label: 'Revision',         href: '/revision-program',   icon: BookMarked     },
     { label: 'Classes',          href: '/classes',            icon: Users          },
     { label: 'Plans',            href: '/plans',              icon: Folder         },
     { label: 'Messages',         href: '/messages',           icon: MessageSquare  },
@@ -30,6 +31,7 @@ const navByRole: Record<string, NavItem[]> = {
   HEAD_OF_DEPT: [
     { label: 'Calendar',         href: '/dashboard',          icon: Calendar       },
     { label: 'Homework',         href: '/homework',           icon: ClipboardList  },
+    { label: 'Revision',         href: '/revision-program',   icon: BookMarked     },
     { label: 'Classes',          href: '/classes',            icon: Users          },
     { label: 'Analytics',        href: '/analytics',          icon: BarChart3      },
     { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: Brain         },
@@ -39,6 +41,7 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   HEAD_OF_YEAR: [
     { label: 'Calendar',         href: '/dashboard',          icon: Calendar       },
+    { label: 'Revision',         href: '/revision-program',   icon: BookMarked     },
     { label: 'Analytics',        href: '/analytics',          icon: BarChart3      },
     { label: 'AI Generator',     href: '/ai-generator',       icon: Wand2          },
     { label: 'Messages',         href: '/messages',           icon: MessageSquare  },
@@ -62,6 +65,7 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   SCHOOL_ADMIN: [
     { label: 'Dashboard',   href: '/admin/dashboard',  icon: LayoutDashboard },
+    { label: 'Revision',    href: '/revision-program', icon: BookMarked      },
     { label: 'Staff',       href: '/admin/staff',      icon: UserCheck       },
     { label: 'Students',    href: '/admin/students',   icon: Users           },
     { label: 'Classes',     href: '/admin/classes',    icon: BookOpen        },
@@ -77,6 +81,7 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   SLT: [
     { label: 'Dashboard',     href: '/dashboard',            icon: LayoutDashboard },
+    { label: 'Revision',      href: '/revision-program',     icon: BookMarked      },
     { label: 'Analytics',     href: '/slt/analytics',        icon: BarChart2       },
     { label: 'Audit Log',     href: '/slt/audit',            icon: Shield          },
     { label: 'AI Generator', href: '/ai-generator',         icon: Wand2           },

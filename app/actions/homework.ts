@@ -692,6 +692,40 @@ Return JSON:
   }
 }
 
+// ── Extract learning from uploaded file label ──────────────────────────────────
+
+export async function extractLearningFromLabel(params: {
+  label:      string
+  subject?:   string
+  yearGroup?: number
+}): Promise<{ objectives: string[]; topics: string[] }> {
+  const { label, subject = '', yearGroup } = params
+  const fallback = {
+    objectives: [`Understand key concepts from "${label}"`],
+    topics:     [label],
+  }
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return fallback
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      system:     'You are a UK curriculum expert. Return ONLY valid JSON, no markdown.',
+      messages: [{
+        role:    'user',
+        content: `A teacher uploaded a resource called "${label}"${subject ? ` for ${subject}` : ''}${yearGroup ? ` Year ${yearGroup}` : ''}.
+Infer 2-4 learning objectives and 2-4 key topics from the title.
+Return JSON: {"objectives":["..."],"topics":["..."]}`,
+      }],
+    })
+    const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+    return JSON.parse(raw)
+  } catch {
+    return fallback
+  }
+}
+
 export async function generateHomeworkContent(input: {
   homeworkVariantType: string
   subject: string

@@ -64,21 +64,22 @@ export type UnscheduledLesson = {
 }
 
 interface Props {
-  lessons:     CalendarLesson[]
-  unscheduled: UnscheduledLesson[]
-  firstName:   string
-  classes:     SlideOverClass[]
-  allClasses:  SlideOverClass[]
-  startHour:   number
-  endHour:     number
-  extStartHour: number
-  extEndHour:  number
+  lessons:          CalendarLesson[]
+  unscheduled:      UnscheduledLesson[]
+  firstName:        string
+  classes:          SlideOverClass[]
+  allClasses:       SlideOverClass[]
+  teacherSubjects?: string[]
+  startHour:        number
+  endHour:          number
+  extStartHour:     number
+  extEndHour:       number
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function WeeklyCalendar({
-  lessons, unscheduled, firstName, classes, allClasses,
+  lessons, unscheduled, firstName, classes, allClasses, teacherSubjects = [],
   startHour, endHour, extStartHour, extEndHour,
 }: Props) {
   const today  = new Date()
@@ -455,6 +456,7 @@ export default function WeeklyCalendar({
         defaultEndHour={slideOver?.endHour}
         classes={classes}
         allClasses={allClasses}
+        teacherSubjects={teacherSubjects}
         onCreated={id => { setSlideOver(null); setFolderWizard(true); setFolderId(id); router.refresh() }}
       />
 

@@ -8,8 +8,9 @@ import { createHomework, generateHomeworkFromResources } from '@/app/actions/hom
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
 import dynamic from 'next/dynamic'
-import AddResourcePanel   from '@/components/AddResourcePanel'
-import OakResourcePanel  from '@/components/OakResourcePanel'
+import AddResourcePanel       from '@/components/AddResourcePanel'
+import OakResourcePanel       from '@/components/OakResourcePanel'
+import UnifiedResourceSearch  from '@/components/UnifiedResourceSearch'
 const RevisionAnalysisPanel = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
@@ -161,19 +162,21 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     }
   }, [lessonId])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-generate homework when wizard reaches step 5 — uses objectives + resources as context
+  // Auto-generate homework when wizard reaches step 5
   useEffect(() => {
     if (wizardStep !== 5 || !lessonId) return
-    // Only auto-generate if lesson has objectives or relevant resources
-    const hasContent =
-      (lesson?.objectives?.length ?? 0) > 0 ||
-      (lesson?.resources ?? []).some(r => ['PLAN', 'SLIDES', 'WORKSHEET'].includes(r.type))
-    if (!hasContent) return
     // Don't re-generate if this type already has content
     if (typeStore[hwType]?.instructions) return
     setHwYesNo('yes')
     runHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
   }, [wizardStep])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-regenerate when homework type changes mid-wizard
+  useEffect(() => {
+    if (wizardStep !== 5 || !lessonId || hwYesNo !== 'yes') return
+    if (typeStore[hwType]?.instructions) return   // already have content for this type
+    runHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
+  }, [hwType])  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!lessonId) return null
 
@@ -616,8 +619,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 </div>
               )}
 
-              {/* Add resource panel (wizard-expanded) */}
-              <AddResourcePanel lessonId={lessonId} onAdded={refreshLesson} wizardExpanded />
+              {/* Unified Oak + school library search */}
+              <UnifiedResourceSearch
+                lessonId={lessonId}
+                subjectSlug={lesson?.class?.subject ? toOakSubjectSlug(lesson.class.subject) : undefined}
+                yearGroup={lesson?.class?.yearGroup ?? undefined}
+                onAdded={refreshLesson}
+              />
             </div>
 
           ) : wizardStep === 5 ? (
@@ -700,7 +708,9 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
                       <Loader2 size={16} className="animate-spin text-purple-600 shrink-0" />
                       <div>
-                        <p className="text-[13px] font-semibold text-purple-800">Analysing lesson objectives and resources…</p>
+                        <p className="text-[13px] font-semibold text-purple-800">
+                          ⚡ {genSource ? `Regenerating for ${hwType === 'MCQ_QUIZ' ? 'MCQ' : hwType === 'SHORT_ANSWER' ? 'Short Answer' : hwType === 'EXTENDED_WRITING' ? 'Essay' : 'Mixed'} format…` : 'Generating homework from your lesson content…'}
+                        </p>
                         <p className="text-[11px] text-purple-600 mt-0.5">Creating {hwType === 'MCQ_QUIZ' ? 'quiz questions' : hwType === 'SHORT_ANSWER' ? 'questions and model answers' : 'homework content'} based on what was taught.</p>
                       </div>
                     </div>
@@ -824,8 +834,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 value={q.modelAnswer}
                                 onChange={e => updateSaQ(qi, { modelAnswer: e.target.value })}
                                 placeholder="Model answer / mark scheme for this question…"
-                                className="w-full text-[12px] border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 bg-green-50/40 text-gray-700 resize-none"
+                                className={`w-full text-[12px] border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-700 resize-none ${
+                                  !q.modelAnswer.trim()
+                                    ? 'border-amber-300 bg-amber-50/40 placeholder-amber-400'
+                                    : 'border-green-200 bg-green-50/40'
+                                }`}
                               />
+                              {!q.modelAnswer.trim() && (
+                                <p className="text-[10px] text-amber-600 mt-1">Model answer not generated — add manually before saving</p>
+                              )}
                             </div>
                           </div>
                         ))
@@ -894,8 +911,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             value={activeHw.modelAnswer}
                             onChange={e => updateActive({ modelAnswer: e.target.value })}
                             placeholder={hwType === 'EXTENDED_WRITING' ? '250–350 word model response or structured essay plan…' : 'Part A mark scheme:\n1. …\n\nPart B model answer:\n…'}
-                            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-y"
+                            className={`w-full border rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y ${
+                              !activeHw.modelAnswer?.trim()
+                                ? 'border-amber-300 bg-amber-50 placeholder-amber-400'
+                                : 'border-gray-200 bg-white'
+                            }`}
                           />
+                          {!activeHw.modelAnswer?.trim() && (
+                            <p className="text-[11px] text-amber-600">Model answer not generated — add manually before saving</p>
+                          )}
                           <div className="space-y-2 border-t border-gray-200 pt-3">
                             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Mark scheme bands</p>
                             {['Low (1–3)', 'Mid (4–6)', 'High (7–9)'].map(band => (
@@ -1215,9 +1239,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   )}
 
-                  {/* Add resource panel */}
+                  {/* Unified Oak + school library search */}
                   {lessonId && (
-                    <AddResourcePanel lessonId={lessonId} onAdded={refreshLesson} />
+                    <UnifiedResourceSearch
+                      lessonId={lessonId}
+                      subjectSlug={lesson?.class?.subject ? toOakSubjectSlug(lesson.class.subject) : undefined}
+                      yearGroup={lesson?.class?.yearGroup ?? undefined}
+                      onAdded={refreshLesson}
+                    />
                   )}
                 </div>
               )}

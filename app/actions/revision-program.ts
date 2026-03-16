@@ -76,7 +76,19 @@ export async function getClassPerformanceAnalysis(
     return analysis
   } catch (err) {
     console.error('[getClassPerformanceAnalysis] error:', err)
-    throw err
+    return {
+      classId,
+      subject: '',
+      periodStart,
+      periodEnd,
+      topicsCovered: [],
+      topicPerformance: [],
+      studentAnalysis: [],
+      classAvgScore: 0,
+      overallSubmissionRate: 0,
+      topicsNeedingRevision: [],
+      topicsToSkip: [],
+    }
   }
 }
 

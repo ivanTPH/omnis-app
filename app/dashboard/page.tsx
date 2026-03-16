@@ -96,6 +96,7 @@ export default async function DashboardPage() {
         firstName={firstName}
         classes={classes}
         allClasses={allClasses}
+        teacherSubjects={[...new Set(classes.map(c => c.subject))]}
         startHour={school?.dayStartHour  ?? 8}
         endHour={school?.dayEndHour      ?? 16}
         extStartHour={school?.extStartHour ?? 7}

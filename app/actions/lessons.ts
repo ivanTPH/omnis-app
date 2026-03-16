@@ -184,6 +184,17 @@ export async function getLessonDetails(lessonId: string) {
   }
 }
 
+export async function updateLessonObjectives(lessonId: string, objectives: string[]) {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+  await prisma.lesson.updateMany({
+    where: { id: lessonId, schoolId },
+    data: { objectives },
+  })
+  revalidatePath('/dashboard')
+}
+
 export async function updateLessonOverview(lessonId: string, data: {
   title: string
   objectives: string[]

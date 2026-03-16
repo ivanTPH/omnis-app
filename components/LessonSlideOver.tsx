@@ -18,25 +18,43 @@ export type SlideOverClass = {
 }
 
 interface Props {
-  open:           boolean
-  onClose:        () => void
-  defaultDate?:   string
-  defaultHour?:   number
-  defaultEndHour?: number
-  classes:        SlideOverClass[]   // teacher's own classes
-  allClasses:     SlideOverClass[]   // all school classes
-  onCreated?:     (lessonId: string) => void
+  open:             boolean
+  onClose:          () => void
+  defaultDate?:     string
+  defaultHour?:     number
+  defaultEndHour?:  number
+  classes:          SlideOverClass[]   // teacher's own classes
+  allClasses:       SlideOverClass[]   // all school classes
+  teacherSubjects?: string[]           // subjects from teacher profile (shown first)
+  onCreated?:       (lessonId: string) => void
 }
 
 const LESSON_TYPES: { value: LessonType; label: string }[] = [
-  { value: 'NORMAL',       label: 'Normal'      },
-  { value: 'COVER',        label: 'Cover'        },
-  { value: 'INTERVENTION', label: 'Intervention' },
-  { value: 'CLUB',         label: 'Club'         },
+  { value: 'NORMAL',       label: 'Normal'       },
+  { value: 'COVER',        label: 'Cover'         },
+  { value: 'INTERVENTION', label: 'Assessment'    },
+  { value: 'CLUB',         label: 'Trip'          },
 ]
 
 function pad(n: number) { return String(n).padStart(2, '0') }
 function toTimeStr(hour: number) { return `${pad(hour)}:00` }
+
+// Generate time options in 15-minute increments from 07:00 to 19:00
+const TIME_OPTIONS: string[] = []
+for (let h = 7; h <= 19; h++) {
+  for (const m of [0, 15, 30, 45]) {
+    if (h === 19 && m > 0) break
+    TIME_OPTIONS.push(`${pad(h)}:${pad(m)}`)
+  }
+}
+
+function addOneHour(time: string): string {
+  const [h, m] = time.split(':').map(Number)
+  const total = h * 60 + m + 60
+  const nh = Math.floor(total / 60)
+  const nm = total % 60
+  return `${pad(Math.min(nh, 19))}:${pad(nm)}`
+}
 
 const YEAR_GROUPS = [7, 8, 9, 10, 11, 12, 13]
 
@@ -76,7 +94,7 @@ function SelectField({
 
 export default function LessonSlideOver({
   open, onClose, defaultDate, defaultHour, defaultEndHour,
-  classes, allClasses = [], onCreated,
+  classes, allClasses = [], teacherSubjects = [], onCreated,
 }: Props) {
   const [step, setStep] = useState<1 | 2 | 3>(1)
 
@@ -99,11 +117,11 @@ export default function LessonSlideOver({
   const [audienceType, setAudience]    = useState<AudienceType>('CLASS')
   const [isPending,    startTransition]= useTransition()
 
-  // Auto-fill subject from teacher's first class
+  // Auto-fill subject from teacher's profile (teacherSubjects[0]) or first class
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (open) {
-      const defaultSubject = classes[0]?.subject ?? ''
+      const defaultSubject = teacherSubjects[0] ?? classes[0]?.subject ?? ''
       setSubjectRaw(defaultSubject)
       setYearGroup('')
       setClassId('')
@@ -230,10 +248,21 @@ export default function LessonSlideOver({
 
             {/* ── Step 1: Subject & Class ─────────────────────────── */}
             {step === 1 && <>
-              <SelectField label="Subject" value={subject} onChange={setSubject} required>
-                <option value="">Select subject…</option>
-                {ALL_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-              </SelectField>
+              <div>
+                <SelectField label="Subject" value={subject} onChange={setSubject} required>
+                  <option value="">Select subject…</option>
+                  {teacherSubjects.length > 0 && <>
+                    {teacherSubjects.map(s => <option key={`my-${s}`} value={s}>{s}</option>)}
+                    <option disabled>──────────────</option>
+                  </>}
+                  {ALL_SUBJECTS.filter(s => !teacherSubjects.includes(s)).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </SelectField>
+                {teacherSubjects.length > 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1.5">Teaching cover? Select a different subject above</p>
+                )}
+              </div>
 
               {/* Exam board + qualification badges */}
               {subject && (
@@ -364,13 +393,34 @@ export default function LessonSlideOver({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[12px] font-medium text-gray-500 mb-1.5">Start time</label>
-                  <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <div className="relative">
+                    <select
+                      value={startTime}
+                      onChange={e => {
+                        setStartTime(e.target.value)
+                        setEndTime(addOneHour(e.target.value))
+                      }}
+                      required
+                      className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                    >
+                      {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[12px] font-medium text-gray-500 mb-1.5">End time</label>
-                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <div className="relative">
+                    <select
+                      value={endTime}
+                      onChange={e => setEndTime(e.target.value)}
+                      required
+                      className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
+                    >
+                      {TIME_OPTIONS.filter(t => t > startTime).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 

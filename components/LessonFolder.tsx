@@ -7,9 +7,10 @@ import { getLessonDetails, updateLessonOverview, removeResource, updateResource,
 import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
+import dynamic from 'next/dynamic'
 import AddResourcePanel   from '@/components/AddResourcePanel'
 import OakResourcePanel  from '@/components/OakResourcePanel'
-import RevisionAnalysisPanel from '@/components/revision-program/RevisionAnalysisPanel'
+const RevisionAnalysisPanel = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 

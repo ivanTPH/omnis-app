@@ -13,7 +13,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
       "font-src 'self' https://cdn.jsdelivr.net",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https://api.dicebear.com",
       "connect-src 'self'",
     ].join('; '),
   },

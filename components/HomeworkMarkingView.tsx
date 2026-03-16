@@ -471,100 +471,78 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       {/* ── Left: student list ─────────────────────────────────────────────── */}
       <div className="w-56 shrink-0 border-r border-gray-200 flex flex-col">
 
-        {/* Filter counter badges */}
-        <div className="px-2 pt-3 pb-2 border-b border-gray-100">
-          <div className="flex items-stretch gap-1">
+        {/* Filter counter tiles — PUPILS label left, tiles right */}
+        <div className="px-4 py-3 border-b bg-white sticky top-0 z-10">
+          <div className="flex items-center justify-between">
 
-            {/* All */}
-            <button
-              onClick={() => handleFilterClick('all')}
-              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
-                pupilFilter === 'all'
-                  ? 'border-gray-700 bg-gray-50'
-                  : 'border-transparent hover:border-gray-200'
-              }`}
-            >
-              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'all' ? 'text-gray-800' : 'text-gray-700'}`}>
-                {pupils.length}
-              </span>
-              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'all' ? 'text-gray-700' : 'text-gray-400'}`}>
-                All
-              </span>
-            </button>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Pupils
+            </span>
 
-            {/* Submitted */}
-            <button
-              onClick={() => handleFilterClick('submitted')}
-              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
-                pupilFilter === 'submitted'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-transparent hover:border-gray-200'
-              }`}
-            >
-              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'submitted' ? 'text-blue-600' : 'text-gray-700'}`}>
-                {submittedCount}
-              </span>
-              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'submitted' ? 'text-blue-600' : 'text-gray-400'}`}>
-                Due
-              </span>
-            </button>
+            <div className="flex items-center gap-1.5">
 
-            {/* Returned */}
-            <button
-              onClick={() => handleFilterClick('returned')}
-              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
-                pupilFilter === 'returned'
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-transparent hover:border-gray-200'
-              }`}
-            >
-              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'returned' ? 'text-green-600' : 'text-gray-700'}`}>
-                {returnedCount}
-              </span>
-              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'returned' ? 'text-green-600' : 'text-gray-400'}`}>
-                Done
-              </span>
-            </button>
-
-            {/* Missing */}
-            <button
-              onClick={() => handleFilterClick('missing')}
-              className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
-                pupilFilter === 'missing'
-                  ? 'border-rose-500 bg-rose-50'
-                  : 'border-transparent hover:border-gray-200'
-              }`}
-            >
-              <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'missing' ? 'text-rose-600' : 'text-gray-700'}`}>
-                {missingCount}
-              </span>
-              <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'missing' ? 'text-rose-600' : 'text-gray-400'}`}>
-                Missing
-              </span>
-            </button>
-
-            {/* SEND — only when > 0 */}
-            {sendCount > 0 && (
+              {/* ALL */}
               <button
-                onClick={() => handleFilterClick('send')}
-                className={`flex-1 flex flex-col items-center px-1 py-2 rounded-lg border-2 transition-all ${
-                  pupilFilter === 'send'
-                    ? 'border-purple-500 bg-purple-50'
-                    : 'border-transparent hover:border-gray-200'
-                }`}
+                onClick={() => handleFilterClick('all')}
+                className={pupilFilter === 'all'
+                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-gray-800 text-white'
+                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200'}
               >
-                <span className={`text-[18px] font-bold leading-none ${pupilFilter === 'send' ? 'text-purple-600' : 'text-gray-700'}`}>
-                  {sendCount}
-                </span>
-                <span className={`text-[9px] font-semibold uppercase tracking-wide mt-0.5 ${pupilFilter === 'send' ? 'text-purple-600' : 'text-gray-400'}`}>
-                  SEND
-                </span>
+                <span className="text-lg font-bold leading-none">{pupils.length}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">All</span>
               </button>
-            )}
 
+              {/* DUE */}
+              <button
+                onClick={() => handleFilterClick('submitted')}
+                className={pupilFilter === 'submitted'
+                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-blue-600 text-white'
+                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100'}
+              >
+                <span className="text-lg font-bold leading-none">{submittedCount}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">Due</span>
+              </button>
+
+              {/* DONE */}
+              <button
+                onClick={() => handleFilterClick('returned')}
+                className={pupilFilter === 'returned'
+                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-green-600 text-white'
+                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100'}
+              >
+                <span className="text-lg font-bold leading-none">{returnedCount}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">Done</span>
+              </button>
+
+              {/* MISSING */}
+              <button
+                onClick={() => handleFilterClick('missing')}
+                className={pupilFilter === 'missing'
+                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-red-600 text-white'
+                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100'}
+              >
+                <span className="text-lg font-bold leading-none">{missingCount}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">Missing</span>
+              </button>
+
+              {/* SEND — only when > 0 */}
+              {sendCount > 0 && (
+                <button
+                  onClick={() => handleFilterClick('send')}
+                  className={pupilFilter === 'send'
+                    ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-purple-600 text-white'
+                    : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100'}
+                >
+                  <span className="text-lg font-bold leading-none">{sendCount}</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">SEND</span>
+                </button>
+              )}
+
+            </div>
           </div>
+
           {needsReviewCount > 0 && (
-            <p className="text-[10px] text-amber-600 font-medium mt-2 px-1">
+            <p className="text-[10px] text-amber-600 font-medium mt-2">
               ⚡ {needsReviewCount} awaiting AI review
             </p>
           )}

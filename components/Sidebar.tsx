@@ -102,6 +102,7 @@ const navByRole: Record<string, NavItem[]> = {
   STUDENT: [
     { label: 'Dashboard',         href: '/student/dashboard',    icon: LayoutDashboard },
     { label: 'Homework',          href: '/student/homework',     icon: ClipboardList   },
+    { label: 'Revision',          href: '/student/revision',     icon: BookMarked      },
     { label: 'Revision Planner',  href: '/revision',             icon: BookOpen        },
     { label: 'My Grades',         href: '/student/grades',       icon: GraduationCap   },
     { label: 'Messages',          href: '/messages',             icon: MessageSquare   },

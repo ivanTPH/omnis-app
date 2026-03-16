@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library } from 'lucide-react'
+import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson } from '@/app/actions/lessons'
@@ -9,6 +9,7 @@ import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
 import AddResourcePanel   from '@/components/AddResourcePanel'
 import OakResourcePanel  from '@/components/OakResourcePanel'
+import RevisionAnalysisPanel from '@/components/revision-program/RevisionAnalysisPanel'
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
@@ -37,7 +38,7 @@ function toOakSubjectSlug(subject: string): string {
   return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }
 
-const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'SEND & Inclusion', 'Class Insights'] as const
+const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -352,6 +353,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     'Homework':         <ClipboardList size={13} />,
     'SEND & Inclusion': <Heart         size={13} />,
     'Class Insights':   <BarChart2     size={13} />,
+    'Revision':         <RotateCcw     size={13} />,
   }
 
   return (
@@ -1502,6 +1504,47 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               )}
 
               {/* ── Class Insights ── */}
+              {/* ── Revision ── */}
+              {activeTab === 'Revision' && (
+                <div className="p-7 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[13px] font-semibold text-gray-900 flex items-center gap-2">
+                        <RotateCcw size={14} className="text-blue-500" /> Class Revision Analysis
+                      </h3>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Based on homework performance over the past 4 weeks</p>
+                    </div>
+                    {lesson?.class?.id && (
+                      <a
+                        href={`/revision-program/new?classId=${lesson.class.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[12px] font-semibold transition-colors"
+                      >
+                        <Plus size={12} /> Create Program
+                      </a>
+                    )}
+                  </div>
+                  {lesson?.class?.id && lesson?.scheduledAt ? (
+                    <RevisionAnalysisPanel
+                      classId={lesson.class.id}
+                      periodStart={new Date(new Date(lesson.scheduledAt).getTime() - 28 * 24 * 60 * 60 * 1000)}
+                      periodEnd={new Date(lesson.scheduledAt)}
+                      onCreateProgram={() => {
+                        if (lesson?.class?.id) {
+                          window.open(`/revision-program/new?classId=${lesson.class.id}`, '_blank')
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+                      <RotateCcw size={24} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === 'Class Insights' && (
                 <div className="p-7 space-y-6">
                   {(() => {

@@ -30,9 +30,10 @@ const ROLE_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/send',           roles: ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'] },
   { prefix: '/hoy',            roles: ['HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN'] },
   { prefix: '/slt',            roles: ['SLT', 'SCHOOL_ADMIN', 'PLATFORM_ADMIN'] },
-  { prefix: '/student/dashboard', roles: ['STUDENT'] },
-  { prefix: '/student/homework',  roles: ['STUDENT'] },
-  { prefix: '/student/grades',    roles: ['STUDENT'] },
+  { prefix: '/student/dashboard',  roles: ['STUDENT'] },
+  { prefix: '/student/homework',   roles: ['STUDENT'] },
+  { prefix: '/student/grades',     roles: ['STUDENT'] },
+  { prefix: '/student/revision',   roles: ['STUDENT'] },
 ]
 
 // Lightweight config used only by middleware (Edge runtime).

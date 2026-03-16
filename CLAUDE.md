@@ -258,11 +258,7 @@ Covers: Auth, Teacher Dashboard, Homework (set/mark/submit), Classes, Analytics,
 
 - **Phase 7B — Revision Program Teacher UI:** 4 components (RevisionProgramCreator 4-step wizard, RevisionProgramList with filter tabs, RevisionProgramDetail split-panel marking view, RevisionAnalysisPanel). Routes: `/revision-program` (list), `/revision-program/new` (creator wizard), `/revision-program/[programId]` (detail/marking). Sidebar: "Revision" (BookMarked) added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SLT, SCHOOL_ADMIN. Middleware updated. Build passing.
 
-**Phase 7C — Revision Program Student UI (not yet built)**
-- Student task viewer at /student/revision
-- Submit answers, self-assessment confidence rating
-- Progress tracking view
-- Integration tests for full revision program flow
+- **Phase 7C — Revision Program Student View & Integration:** `StudentRevisionView` (active/completed/study guide tabs with task cards, due-date urgency indicators, SEND/ILP badges), `RevisionTaskView` (quiz/MCQ/free-text response with localStorage auto-save every 60s, time tracking via `useRef`, self-assessment confidence rating 1–5 stars), `RevisionProgressChart` (recharts before/after grouped bar chart). Routes: `/student/revision`, `/student/revision/[taskId]`. Sidebar: "Revision" (BookMarked) added to STUDENT nav after Homework. `LessonFolder` Revision tab with `RevisionAnalysisPanel` + Create Program button. `auth.config.ts` updated with `/student/revision` STUDENT route. Seed: 2 revision programs (formal assignment + study guide) with 5 tasks each. `revision:seed` npm script. Build passing.
 
 **Marketing pages (TODO)**
 - 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`

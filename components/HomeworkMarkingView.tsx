@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare } from 'lucide-react'
+import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare } from 'lucide-react'
 import { markSubmission, resendHomeworkReminder } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -466,87 +466,121 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   }
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex flex-col h-full min-h-0">
+
+      {/* ── Page header ────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-6 py-3 border-b bg-white shrink-0">
+
+        {/* Left: back + title */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/homework" className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
+            <ChevronLeft size={18} />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="font-semibold text-gray-900 truncate text-sm">{hw.title}</h1>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              {hw.class && (
+                <span className="text-xs text-blue-700 font-medium">{hw.class.name}</span>
+              )}
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
+                hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-500'   :
+                'bg-amber-100 text-amber-700'
+              }`}>{hw.status}</span>
+              <span className="text-xs text-gray-400">
+                Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+              {hw.lesson && (
+                <span className="text-xs text-gray-400">↳ {hw.lesson.title}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: coloured clickable counter tiles */}
+        <div className="flex items-center gap-2 shrink-0 ml-4">
+
+          <button
+            onClick={() => handleFilterClick('all')}
+            style={{
+              backgroundColor: pupilFilter === 'all' ? '#1f2937' : '#f9fafb',
+              color:            pupilFilter === 'all' ? '#ffffff' : '#374151',
+              border: '1px solid #e5e7eb',
+            }}
+            className="flex flex-col items-center w-16 py-2 rounded-xl"
+          >
+            <span className="text-2xl font-bold leading-none">{pupils.length}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">All</span>
+          </button>
+
+          <button
+            onClick={() => handleFilterClick('submitted')}
+            style={{
+              backgroundColor: pupilFilter === 'submitted' ? '#2563eb' : '#eff6ff',
+              color:            pupilFilter === 'submitted' ? '#ffffff' : '#1d4ed8',
+              border: '1px solid #bfdbfe',
+            }}
+            className="flex flex-col items-center w-16 py-2 rounded-xl"
+          >
+            <span className="text-2xl font-bold leading-none">{submittedCount}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Due</span>
+          </button>
+
+          <button
+            onClick={() => handleFilterClick('returned')}
+            style={{
+              backgroundColor: pupilFilter === 'returned' ? '#16a34a' : '#f0fdf4',
+              color:            pupilFilter === 'returned' ? '#ffffff' : '#15803d',
+              border: '1px solid #bbf7d0',
+            }}
+            className="flex flex-col items-center w-16 py-2 rounded-xl"
+          >
+            <span className="text-2xl font-bold leading-none">{returnedCount}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Done</span>
+          </button>
+
+          <button
+            onClick={() => handleFilterClick('missing')}
+            style={{
+              backgroundColor: pupilFilter === 'missing' ? '#dc2626' : '#fef2f2',
+              color:            pupilFilter === 'missing' ? '#ffffff' : '#dc2626',
+              border: '1px solid #fecaca',
+            }}
+            className="flex flex-col items-center w-16 py-2 rounded-xl"
+          >
+            <span className="text-2xl font-bold leading-none">{missingCount}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Missing</span>
+          </button>
+
+          {sendCount > 0 && (
+            <button
+              onClick={() => handleFilterClick('send')}
+              style={{
+                backgroundColor: pupilFilter === 'send' ? '#9333ea' : '#faf5ff',
+                color:            pupilFilter === 'send' ? '#ffffff' : '#7c3aed',
+                border: '1px solid #e9d5ff',
+              }}
+              className="flex flex-col items-center w-16 py-2 rounded-xl"
+            >
+              <span className="text-2xl font-bold leading-none">{sendCount}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">SEND</span>
+            </button>
+          )}
+
+        </div>
+      </div>
+
+      {/* ── Two-panel layout ───────────────────────────────────────────────── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
       {/* ── Left: student list ─────────────────────────────────────────────── */}
       <div className="w-56 shrink-0 border-r border-gray-200 flex flex-col">
 
-        {/* Filter counter tiles — PUPILS label left, tiles right */}
-        <div className="px-4 py-3 border-b bg-white sticky top-0 z-10">
-          <div className="flex items-center justify-between">
-
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Pupils
-            </span>
-
-            <div className="flex items-center gap-1.5">
-
-              {/* ALL */}
-              <button
-                onClick={() => handleFilterClick('all')}
-                className={pupilFilter === 'all'
-                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-gray-800 text-white'
-                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200'}
-              >
-                <span className="text-lg font-bold leading-none">{pupils.length}</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">All</span>
-              </button>
-
-              {/* DUE */}
-              <button
-                onClick={() => handleFilterClick('submitted')}
-                className={pupilFilter === 'submitted'
-                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-blue-600 text-white'
-                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100'}
-              >
-                <span className="text-lg font-bold leading-none">{submittedCount}</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">Due</span>
-              </button>
-
-              {/* DONE */}
-              <button
-                onClick={() => handleFilterClick('returned')}
-                className={pupilFilter === 'returned'
-                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-green-600 text-white'
-                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100'}
-              >
-                <span className="text-lg font-bold leading-none">{returnedCount}</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">Done</span>
-              </button>
-
-              {/* MISSING */}
-              <button
-                onClick={() => handleFilterClick('missing')}
-                className={pupilFilter === 'missing'
-                  ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-red-600 text-white'
-                  : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100'}
-              >
-                <span className="text-lg font-bold leading-none">{missingCount}</span>
-                <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">Missing</span>
-              </button>
-
-              {/* SEND — only when > 0 */}
-              {sendCount > 0 && (
-                <button
-                  onClick={() => handleFilterClick('send')}
-                  className={pupilFilter === 'send'
-                    ? 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-purple-600 text-white'
-                    : 'flex flex-col items-center w-14 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100'}
-                >
-                  <span className="text-lg font-bold leading-none">{sendCount}</span>
-                  <span className="text-[10px] font-semibold uppercase tracking-wide mt-0.5">SEND</span>
-                </button>
-              )}
-
-            </div>
+        {needsReviewCount > 0 && (
+          <div className="px-3 py-2 border-b border-amber-100 bg-amber-50">
+            <p className="text-[10px] text-amber-600 font-medium">⚡ {needsReviewCount} awaiting AI review</p>
           </div>
-
-          {needsReviewCount > 0 && (
-            <p className="text-[10px] text-amber-600 font-medium mt-2">
-              ⚡ {needsReviewCount} awaiting AI review
-            </p>
-          )}
-        </div>
+        )}
 
         <div className="flex-1 overflow-auto py-2 px-2 space-y-0.5">
           {listSubmitted.map(p => (
@@ -810,6 +844,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           </div>
         )}
       </div>
+
+      </div>{/* end two-panel layout */}
     </div>
   )
 }

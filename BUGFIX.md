@@ -350,3 +350,31 @@ These were missed in the previous bug #8 fix which only corrected `homework.ts` 
 **Files changed:**
 - `components/HomeworkMarkingView.tsx`
 - `app/actions/homework.ts`
+
+---
+
+## 15. Homework marking view — screenshot-based fixes (2026-03-16)
+
+**FIX 1 — Score displayed as "4/9" instead of "Grade 4":**
+Pupil list showed `{score}/{maxScore}` format. GCSE grades are 1–9 and should always render as "Grade X". Removed the conditional `/maxScore` format; all scores now render as `Grade {displayScore}`.
+**File:** `components/HomeworkMarkingView.tsx`
+
+**FIX 2 — Score input shows "0" placeholder:**
+Score field had `placeholder="0"` which implied a default value. Changed to `placeholder="—"` to indicate the field is intentionally empty.
+**File:** `components/HomeworkMarkingView.tsx`
+
+**FIX 3 — Grade box shows "Auto-suggested" when no score entered:**
+When score was empty, `gradeState === 'empty'` still showed "Auto-suggested" label. Added `gradeHasValue` check: label is "Enter score first" when grade is blank, "Auto-suggested from score" when computed from score input, "Auto-suggested — confirm" when AI-suggested, "Confirmed ✓" when teacher-confirmed.
+**File:** `components/HomeworkMarkingView.tsx`
+
+**FIX 4 — AI prediction banner missing for submissions with autoScore but autoMarked=false:**
+`isAutoMarkedPending` required `autoMarked === true`. Submissions where `autoScore` was populated but `autoMarked` was `false` (e.g. legacy records) were excluded. Broadened condition to `(autoMarked || autoScore != null) && !teacherReviewed && status !== 'RETURNED'`. Also updated `needsReview` counter and pupil-list AI badge to match. Banner label now shows "AI score available" when `autoMarked` is false but `autoScore` exists.
+**File:** `components/HomeworkMarkingView.tsx`
+
+**FIX 5 — Student names truncated with SEND badge clipping:**
+`SendBadge` rendered as inline `<span>` inside a `<p className="truncate">`. The badge was being clipped by `overflow: hidden`. Moved badge to its own flex row below the name (alongside the status label), so the name paragraph can truncate cleanly.
+**File:** `components/HomeworkMarkingView.tsx`
+
+**FIX 6 — Mark Scheme section shown with no content:**
+`gradingBands: {}` (empty object from DB) is truthy, so the collapsible Mark Scheme section rendered with an empty body. Added `Object.keys(hw.gradingBands).length > 0` guard so the section only appears when there are actual grading bands.
+**File:** `components/HomeworkMarkingView.tsx`

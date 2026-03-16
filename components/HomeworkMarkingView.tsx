@@ -258,11 +258,11 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             size="xs"
           />
           <div className="flex-1 min-w-0">
-            <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>
+            <p className={`text-[12px] font-medium overflow-hidden whitespace-nowrap ${active ? 'text-blue-700' : 'text-gray-800'}`}>
               {user.firstName} {user.lastName}
-              <SendBadge send={send} />
             </p>
             <div className="flex items-center gap-1 mt-0.5">
+              <SendBadge send={send} />
               <span className="text-[10px] text-gray-400">
                 {missing ? 'Not submitted' : statusLabel(sub.status)}
               </span>
@@ -280,10 +280,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           </div>
           {!missing && displayScore != null && (
             <span className={`text-[11px] font-semibold shrink-0 ${isDone ? 'text-green-700' : 'text-gray-500'}`}>
-              {rawFinalScore != null && rawFinalScore > maxScore && maxScore <= 20
-                ? `Grade ${displayScore}`
-                : `${displayScore}/${maxScore}`
-              }
+              Grade {displayScore}
             </span>
           )}
           {!missing && isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
@@ -342,21 +339,28 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
   const isAlreadyMarked     = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
   const isReturned          = selectedSub?.status === 'RETURNED'
-  const isAutoMarkedPending = selectedSub?.autoMarked && !selectedSub?.teacherReviewed
+  const isAutoMarkedPending = (
+    (selectedSub?.autoMarked || (selectedSub as any)?.autoScore != null) &&
+    !selectedSub?.teacherReviewed &&
+    selectedSub?.status !== 'RETURNED'
+  )
 
   const gradeState: 'auto' | 'confirmed' | 'final' | 'empty' =
     isReturned ? 'final' :
     selectedSub?.teacherReviewed ? 'confirmed' :
     isAutoMarkedPending ? 'auto' :
     'empty'
+  const gradeHasValue = !!(form?.grade && form.grade !== '')
   const gradeBoxClass =
     gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-700' :
     gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-700' :
+    gradeHasValue              ? 'bg-amber-50 border-amber-200 text-amber-700' :
     'bg-white border-gray-300 text-gray-900'
   const gradeLabel =
     gradeState === 'auto'      ? 'Auto-suggested — confirm' :
     gradeState === 'confirmed' ? 'Confirmed ✓' :
-    'Auto-suggested'
+    gradeHasValue              ? 'Auto-suggested from score' :
+    'Enter score first'
 
   // ── filter chips config ──────────────────────────────────────────────────────
   const chips: { key: PupilFilter; label: string; activeClass: string }[] = [
@@ -401,7 +405,9 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             ))}
           </div>
           {(() => {
-            const needsReview = hw.submissions.filter(s => s.autoMarked && !s.teacherReviewed).length
+            const needsReview = hw.submissions.filter(s =>
+              (s.autoMarked || (s as any).autoScore != null) && !s.teacherReviewed && s.status !== 'RETURNED'
+            ).length
             return needsReview > 0 ? (
               <p className="text-[10px] text-amber-600 font-medium">
                 ⚠ {needsReview} awaiting your review
@@ -505,7 +511,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             )}
 
             {/* grading bands (collapsible) */}
-            {hw.gradingBands && typeof hw.gradingBands === 'object' && !Array.isArray(hw.gradingBands) && (
+            {hw.gradingBands && typeof hw.gradingBands === 'object' && !Array.isArray(hw.gradingBands) && Object.keys(hw.gradingBands as object).length > 0 && (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setShowBands(v => !v)}
@@ -534,7 +540,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
                   <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
                   <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
-                    Auto-marked
+                    {selectedSub?.autoMarked ? 'Auto-marked' : 'AI score available'}
                   </span>
                 </div>
                 <div className="px-4 py-3 space-y-2">
@@ -594,7 +600,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       value={form.score}
                       onChange={e => setField('score', e.target.value)}
                       className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-[14px] font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="0"
+                      placeholder="—"
                     />
                     {form.score !== '' && Number(form.score) >= 0 && (
                       <div className="mt-2 h-1.5 w-48 bg-gray-200 rounded-full overflow-hidden">

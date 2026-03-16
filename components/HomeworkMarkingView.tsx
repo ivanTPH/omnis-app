@@ -222,10 +222,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
   function handleApprove() {
     if (!selectedId || !selectedSub) return
-    const autoScore = (selectedSub as any).autoScore ?? 0
-    const autoFeedback = (selectedSub as any).autoFeedback ?? ''
-    const isLegacyPct = autoScore > maxScore && maxScore <= 20
-    const gradeNum = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
+    const autoScore    = selectedAutoScore ?? 0
+    const autoFeedback = selectedAutoFeedback ?? ''
+    const isLegacyPct  = autoScore > maxScore && maxScore <= 20
+    const gradeNum     = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
     const pctForGrade = isLegacyPct ? autoScore : Math.round((autoScore / maxScore) * 100)
     const gradeStr = suggestGrade(gradeNum, hw.gradingBands) ||
       String(percentToGcseGrade(pctForGrade))
@@ -280,10 +280,14 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         : fState?.score ? Number(fState.score) : rawFinalScore)
       : (fState?.score ? Number(fState.score) : null)
 
+    const autoScore       = (sub as any)?.autoScore ?? null
+    const autoMarked      = (sub as any)?.autoMarked ?? false
+    const teacherReviewed = (sub as any)?.teacherReviewed ?? false
+
     const showAiBadge = !!(
       sub && !missing &&
-      (sub.autoMarked || (sub as any).autoScore != null) &&
-      !sub.teacherReviewed &&
+      (autoMarked || autoScore != null) &&
+      !teacherReviewed &&
       sub.status !== 'RETURNED'
     )
 
@@ -314,10 +318,9 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               <span className="text-[10px] text-gray-400">
                 {missing ? 'Not submitted' : sub ? statusLabel(sub.status) : ''}
               </span>
-              {showAiBadge && (() => {
-                const as_ = (sub as any).autoScore as number
-                const isLegPct = as_ > maxScore && maxScore <= 20
-                const pct = isLegPct ? Math.round(as_) : Math.round((as_ / maxScore) * 100)
+              {showAiBadge && autoScore != null && (() => {
+                const isLegPct = autoScore > maxScore && maxScore <= 20
+                const pct = isLegPct ? Math.round(autoScore) : Math.round((autoScore / maxScore) * 100)
                 return (
                   <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
                     AI: {pct}% ↗
@@ -387,16 +390,21 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
   const isAlreadyMarked     = selectedSub?.status === 'RETURNED' || selectedSub?.status === 'MARKED'
   const isReturned          = selectedSub?.status === 'RETURNED'
+  const selectedAutoScore       = (selectedSub as any)?.autoScore ?? null
+  const selectedAutoMarked      = (selectedSub as any)?.autoMarked ?? false
+  const selectedTeacherReviewed = (selectedSub as any)?.teacherReviewed ?? false
+  const selectedAutoFeedback    = (selectedSub as any)?.autoFeedback ?? null
+
   const isAutoMarkedPending = !!(
     selectedSub &&
-    (selectedSub.autoMarked || (selectedSub as any).autoScore != null) &&
-    !selectedSub.teacherReviewed &&
+    (selectedAutoMarked || selectedAutoScore != null) &&
+    !selectedTeacherReviewed &&
     selectedSub.status !== 'RETURNED'
   )
 
   const gradeState: 'auto' | 'confirmed' | 'final' | 'empty' =
     isReturned ? 'final' :
-    selectedSub?.teacherReviewed ? 'confirmed' :
+    selectedTeacherReviewed ? 'confirmed' :
     isAutoMarkedPending ? 'auto' :
     'empty'
   const gradeHasValue = !!(form?.grade && form.grade !== '')
@@ -600,24 +608,23 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
                   <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
                   <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
-                    {selectedSub.autoMarked ? 'Auto-marked' : 'AI score available'}
+                    {selectedAutoMarked ? 'Auto-marked' : 'AI score available'}
                   </span>
                 </div>
                 <div className="px-4 py-3 space-y-2">
-                  {(selectedSub as any).autoScore != null && (() => {
-                    const as_ = (selectedSub as any).autoScore as number
-                    const isLegacyPct = as_ > maxScore && maxScore <= 20
-                    const rawScore = isLegacyPct ? Math.round((as_ / 100) * maxScore) : as_
-                    const pct = isLegacyPct ? as_ : Math.round((as_ / maxScore) * 100)
+                  {selectedAutoScore != null && (() => {
+                    const isLegacyPct = selectedAutoScore > maxScore && maxScore <= 20
+                    const rawScore = isLegacyPct ? Math.round((selectedAutoScore / 100) * maxScore) : selectedAutoScore
+                    const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
                     return (
                       <p className="text-sm text-amber-900">
                         Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
                       </p>
                     )
                   })()}
-                  {(selectedSub as any).autoFeedback && (
+                  {selectedAutoFeedback && (
                     <p className="text-xs text-amber-800 leading-relaxed line-clamp-3">
-                      {(selectedSub as any).autoFeedback}
+                      {selectedAutoFeedback}
                     </p>
                   )}
                   <div className="flex gap-2 pt-1">

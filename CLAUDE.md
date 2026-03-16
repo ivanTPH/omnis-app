@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-15 (Analytics redesign + bug fixes). This file is the authoritative reference for Claude sessions working on this codebase.
+> Last updated: 2026-03-16. Authoritative reference for Claude sessions.
 
 ---
 
@@ -16,414 +16,23 @@
 | AI | Anthropic Claude SDK (`@anthropic-ai/sdk`) |
 | Language | TypeScript |
 
-**Tailwind v4 note:** Uses `@import "tailwindcss"` in globals.css. Full class literals required (no dynamic construction) for the scanner to pick them up.
+**Tailwind v4:** Uses `@import "tailwindcss"` in globals.css. Full class literals required (no dynamic construction).
 
-**Database connection:** `DATABASE_URL` in `.env.local` must use port **6543** (transaction mode pooler) with `?pgbouncer=true&connection_limit=5` to avoid `MaxClientsInSessionMode` errors. `DIRECT_URL` uses port 5432 for migrations.
+**DB connection:** `DATABASE_URL` must use port **6543** with `?pgbouncer=true&connection_limit=5`. `DIRECT_URL` uses port 5432 for migrations.
 
 ---
 
-## Environment
+## Environment (`.env.local`)
 
-`.env.local` (required variables):
 ```
 DATABASE_URL="...port 6543...?pgbouncer=true&connection_limit=5"
 DIRECT_URL="...port 5432..."
 NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="http://localhost:3000"
 ANTHROPIC_API_KEY="..."
+RESEND_API_KEY="..."        # for marketing contact forms
+CRON_SECRET="..."           # for Oak sync + early-warning cron endpoints
 ```
-
----
-
-## Complete File Structure
-
-### Pages (`app/`)
-
-```
-app/
-├── layout.tsx                          Root layout (loads AppShell for auth'd routes)
-├── page.tsx                            Root — redirects to /dashboard
-├── globals.css                         Tailwind v4 import + base styles
-├── not-found.tsx                       "Coming soon" fallback for unbuilt routes
-│
-├── login/page.tsx                      Login form (email + password)
-│
-├── dashboard/page.tsx                  Teacher weekly calendar (server component)
-│
-├── homework/
-│   ├── page.tsx                        Teacher homework list
-│   ├── loading.tsx                     Suspense skeleton
-│   ├── error.tsx                       Error boundary
-│   ├── [id]/page.tsx                   Homework detail — student submission list
-│   └── [id]/mark/[submissionId]/
-│       └── page.tsx                    Full-page single-submission marking
-│
-├── classes/
-│   ├── page.tsx                        Class list with expandable student rosters
-│   └── loading.tsx                     Suspense skeleton
-│
-├── analytics/
-│   ├── teacher/page.tsx                Teacher-scoped analytics
-│   ├── department/page.tsx             Department analytics (HEAD_OF_DEPT)
-│   └── students/
-│       ├── page.tsx                    Student analytics — Classes tab + Students tab
-│       └── [id]/page.tsx              Individual student detail dashboard
-│
-├── revision/page.tsx                   Student revision planner (STUDENT only)
-│
-├── settings/
-│   ├── page.tsx                        User settings (5 tabs)
-│   └── accessibility/page.tsx          Accessibility settings (all roles)
-│
-├── student/
-│   ├── dashboard/page.tsx              Student home (upcoming homework, grades)
-│   └── homework/[id]/page.tsx         Student homework submission view
-│
-├── parent/
-│   ├── dashboard/page.tsx              Parent home (child summary)
-│   ├── progress/page.tsx              Child progress view
-│   └── messages/page.tsx              Parent–teacher messaging
-│
-├── send/
-│   ├── dashboard/page.tsx              SEND overview dashboard
-│   ├── review-due/page.tsx            Students with overdue SEND reviews
-│   └── ilp/
-│       ├── page.tsx                    ILP records list
-│       └── [studentId]/page.tsx       Student ILP detail
-│
-├── hoy/analytics/page.tsx             Head of Year analytics
-├── slt/analytics/page.tsx             SLT whole-school analytics
-│
-└── api/
-    ├── auth/[...nextauth]/route.ts    NextAuth handler (GET + POST)
-    └── settings/avatar/route.ts       Avatar upload (POST — JPG/PNG, max 5 MB, base64 → DB)
-```
-
-### Actions (`app/actions/`)
-
-```
-app/actions/
-├── lessons.ts      createLesson, getLessonDetails, updateLessonOverview,
-│                   getSchoolResourceLibrary, addUrlResource, addUploadedResource,
-│                   addLibraryResource, reReviewResource, removeResource,
-│                   deleteLesson, rescheduleLesson, updateResource
-│
-├── homework.ts     getHomeworkList, getHomeworkForMarking, getSubmissionForMarking,
-│                   getTeacherLessons, getTeacherClasses,
-│                   createHomework, markSubmission,
-│                   generateHomeworkFromResources, generateHomeworkProposal
-│
-├── analytics.ts    getAnalyticsFilters, getStudentPerformance, getStudentDetail,
-│                   getSubmissionDetail, getClassSummaries
-│
-├── settings.ts     getMySettings, saveProfile, requestEmailChange,
-│                   saveProfessionalPrefs, savePrivacySettings,
-│                   saveSharingSettings, changePassword
-│
-├── student.ts      getStudentHomework, submitHomework
-│
-├── parent.ts       sendParentMessage
-│
-├── oak.ts          getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson
-│
-├── send-scorer.ts  getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores
-│
-├── gdpr.ts         getPurposes, createPurpose, togglePurposeActive, getConsentMatrix, exportConsentCsv,
-│                   getDataSubjectRequests, updateDsrStatus, getMyChildrenConsents, recordConsent
-│
-├── revision.ts     getMyExams, addExam, deleteExam, getMyRevisionSessions,
-│                   generateRevisionPlan, saveRevisionPlan, markSessionComplete,
-│                   skipSession, getConfidenceProfile, getRevisionStats
-│
-└── platform-admin.ts  getPlatformStats, getSchoolList, createSchool, toggleSchoolActive,
-                       getFeatureFlags, setFeatureFlag, getAuditLog, getPlatformUsageStats
-```
-
-### Components (`components/`)
-
-| Component | Controls |
-|---|---|
-| `Sidebar.tsx` | Role-based left nav (all authenticated views) |
-| `AppShell.tsx` | Main authenticated layout wrapper (sidebar + content area) |
-| `WeeklyCalendar.tsx` | Teacher calendar grid (click = slide-over, dbl-click = lesson folder) |
-| `MiniCalendar.tsx` | Small month calendar (used inside WeeklyCalendar) |
-| `LessonSlideOver.tsx` | Right-side panel — create new lesson |
-| `LessonFolder.tsx` | Lesson detail modal — 6 tabs (Overview, Resources, Oak Resources, Homework, SEND, Analytics) |
-| `AddResourcePanel.tsx` | Inline panel for adding resources to a lesson |
-| `OakResourcePanel.tsx` | Oak National Academy lesson search + add-to-lesson panel (in LessonFolder "Oak Resources" tab) |
-| `SetHomeworkModal.tsx` | Homework creation modal (lesson picker → type → AI generate → publish) |
-| `HomeworkFilterView.tsx` | Homework list page — filters, sort, "Set Homework" button triggers modal |
-| `HomeworkMarkingView.tsx` | Split-panel marking view (student list left, submission right) |
-| `SubmissionMarkingView.tsx` | Full-page per-submission marking (score, feedback, prev/next nav) |
-| `HomeworkSubmissionView.tsx` | Student-facing homework submission UI |
-| `StudentAnalyticsView.tsx` | Analytics page — Classes tab + Students tab with drill-down |
-| `StudentDashboard.tsx` | Individual student detail dashboard |
-| `ClassListView.tsx` | Classes page — expandable class cards with student rosters |
-| `ParentMessagesView.tsx` | Parent–teacher conversation threads |
-| `messaging/MessagingShell.tsx` | Two-panel messaging layout (thread list 288px left, thread view right) |
-| `messaging/ThreadList.tsx` | Scrollable thread list — participant avatars, unread badge, context badge, timeAgo |
-| `messaging/ThreadView.tsx` | Thread header, message list (scroll-to-bottom), 30s poll for new messages, composer |
-| `messaging/MessageBubble.tsx` | Chat bubble — right-aligned (own), left-aligned (others), system messages centred italic |
-| `messaging/MessageComposer.tsx` | Auto-resize textarea, Enter to send, Shift+Enter newline, 2000-char limit |
-| `messaging/NewThreadModal.tsx` | 2-step modal: select recipients → compose; SEND context notice |
-| `messaging/UnreadBadge.tsx` | Polls `getUnreadMessageCount()` every 60s; shows blue badge in Sidebar |
-| `StudentAvatar.tsx` | Reusable avatar — xs/sm/md/lg sizes; photo URL or deterministic coloured initials fallback |
-| `settings/SettingsShell.tsx` | Settings page — 5 tabs (Profile, Professional, Privacy, Sharing, Security) |
-| `send/SendScoreBadge.tsx` | Compact SEND score badge (green ≥70, amber 40–69, red <40) |
-| `send/SendScoreCard.tsx` | Full score card — 5 dimension bars, summary, recommendations, re-score |
-| `send/SendScoreButton.tsx` | Inline score button — checks cache on mount, lazy-scores on click |
-| `send/ScorerResultRow.tsx` | Result row for standalone scorer page with expandable score card |
-| `send/ScorerView.tsx` | Standalone scorer client view — search, filter, "Score all visible" |
-| `gdpr/ConsentPurposeForm.tsx` | Inline form — title, auto-slug, description, lawful basis select |
-| `gdpr/ConsentPurposeList.tsx` | Purpose cards with active/inactive toggle |
-| `gdpr/ConsentMatrix.tsx` | Student × purpose grid (✓/✗/—) with year/purpose/decision filters + CSV export |
-| `gdpr/DataSubjectRequestList.tsx` | DSR table with inline status dropdown |
-| `gdpr/ParentConsentPortal.tsx` | Parent toggle UI with optimistic updates, immutable consent inserts |
-| `gdpr/GdprAdminShell.tsx` | Tabbed wrapper (Consent Purposes / Consent Matrix / Data Subject Requests) |
-| `platform-admin/PlatformDashboardStats.tsx` | 7-card stat row (schools, students, staff, Oak, SEND, consent) |
-| `platform-admin/PlatformUsageChart.tsx` | recharts LineChart — Oak/SEND/consent activity over 8 weeks |
-| `platform-admin/PlatformAuditLogTable.tsx` | Read-only platform audit log table |
-| `platform-admin/SchoolListTable.tsx` | Sortable school table with inline flag expansion + activate toggle |
-| `platform-admin/SchoolForm.tsx` | Create school form (name, URN, phase, region, LA) |
-| `platform-admin/FeatureFlagPanel.tsx` | Per-school feature flag toggles (5 known flags), lazy-loaded |
-| `ai-generator/ResourceTypeIcon.tsx` | Maps resourceType → lucide icon; exports RESOURCE_TYPE_LABELS |
-| `ai-generator/ResourceGeneratorForm.tsx` | Full generation form (subject, year, type, topic, SEND toggles, notes) |
-| `ai-generator/ResourcePreview.tsx` | Rendered markdown preview with copy/delete/link-to-lesson actions |
-| `ai-generator/ResourceCard.tsx` | Expandable card for library grid — type/SEND badges, inline preview |
-| `ai-generator/ResourceLibrary.tsx` | My/School tabs, type filter, card grid — click to open in preview |
-| `ai-generator/AiGeneratorShell.tsx` | Two-panel layout manager (left: form, right: preview ↔ library toggle) |
-| `cover/AbsenceList.tsx` | List of today's absences — click to select/highlight, delete with confirm |
-| `cover/LogAbsenceModal.tsx` | Modal: staff search select, date, reason, notes → calls logAbsence action |
-| `cover/AssignCoverModal.tsx` | Modal: shows period/class/absent teacher, available staff list, assign + status update |
-| `cover/CoverAssignmentGrid.tsx` | Grid of cover assignments grouped by period — click to open AssignCoverModal |
-| `cover/CoverHistoryTable.tsx` | Last 30 days table: date, staff, reason, lessons, coverage rate % |
-| `cover/CoverDashboard.tsx` | Today's cover view: 3-stat bar + AbsenceList + CoverAssignmentGrid |
-| `cover/CoverPageTabs.tsx` | Tab switcher: Today (CoverDashboard) ↔ History (CoverHistoryTable) |
-| `platform-admin/OakSyncStatus.tsx` | OakSyncLog table with row expansion, status badges, "Run Delta Sync Now" button |
-| `revision/ExamList.tsx` | Upcoming exams list with days-until chip, inline "Add Exam" form, delete |
-| `revision/WeeklyRevisionGrid.tsx` | 7-column week view with session cards, prev/next navigation, click to open detail |
-| `revision/SessionDetailModal.tsx` | Session detail: mark complete (confidence stars + notes) or skip; Oak lesson link |
-| `revision/PlanGeneratorModal.tsx` | 3-step modal: select exams → availability → confidence → AI generate → preview → accept |
-| `revision/ConfidenceChart.tsx` | recharts bar chart of avg confidence by subject (red/amber/green coded) |
-| `revision/RevisionDashboard.tsx` | Full dashboard: stats bar, ExamList, WeeklyRevisionGrid, ConfidenceChart, plan trigger |
-| `accessibility/AccessibilityToolbar.tsx` | Fixed floating button (bottom-right) — opens AccessibilityPanel slide-in; blue dot when active |
-| `accessibility/AccessibilityPanel.tsx` | Compact panel with toggles for all 5 settings; live-applies CSS classes to `<html>` + persists to DB |
-| `accessibility/AccessibilitySettingsView.tsx` | Full-page settings with icon cards, descriptions, "who it helps" copy, reset button |
-| `ExportPdfButton.tsx` | Reusable download button — fetches PDF route, triggers browser download, loading/error states |
-| `homework/HomeworkCreatorV2.tsx` | 6-step homework creation modal: source → objectives → type → AI content → ILP targets → publish |
-| `homework/IlpTargetHomeworkPanel.tsx` | ILP target linker panel — shows targets due in 28 days, toggle to link/unlink per homework |
-| `homework/EhcpOutcomeTracker.tsx` | EHCP outcome progress: progress bar, section grouping, inline status dropdown, evidence count |
-| `homework/IlpProgressReportViewer.tsx` | AI-assisted ILP/EHCP report generator with disclaimer; supports ilp and ehcp report types |
-| `homework/AdaptiveSubmissionView.tsx` | Teacher submission view: response, score, AI adaptive suggestions, EHCP evidence linking, learning profile sidebar |
-| `homework/HomeworkTypeRenderer.tsx` | Renders correct input UI per homework variant type (11 types: quiz, MCQ, essay, mind map, upload, etc.) |
-| `analytics/AdaptiveAnalyticsDashboard.tsx` | recharts charts: Bloom's distribution, type performance, completion by type, ILP/EHCP evidence rates |
-
-### Library (`lib/`)
-
-| File | Purpose |
-|---|---|
-| `lib/auth.ts` | NextAuth config (`trustHost: true`, JWT callbacks, session shape) |
-| `lib/accessibility.ts` | settingsToClasses(), hasActiveSettings(), ACCESSIBILITY_DEFAULTS |
-| `lib/pdf/generator.ts` | generatePdf(html, opts) — Puppeteer launch, A4/landscape, returns ArrayBuffer |
-| `lib/pdf/templates.ts` | pdfShell(), BASE_CSS, escHtml() — shared print CSS and document shell |
-| `lib/pdf/lesson-plan-template.ts` | lessonPlanPdf() — objectives, activities, resources, homework table |
-| `lib/pdf/homework-template.ts` | homeworkSheetPdf() — student-facing sheet with questions/working space |
-| `lib/pdf/revision-timetable-template.ts` | revisionTimetablePdf() — 7-day landscape grid + exam countdown |
-| `lib/pdf/homework-summary-template.ts` | homeworkSummaryPdf() — stats header + full homework table with scores |
-| `lib/prisma.ts` | Prisma client singleton + helpers (e.g. `writeAudit()`) |
-| `lib/sendReview.ts` | SEND accessibility scoring via Claude API |
-| `lib/sendReviewCached.ts` | Cached wrapper around sendReview (DB cache via `SendScoreCache`) |
-| `lib/sendInsights.ts` | SEND insights aggregation queries |
-| `lib/curriculum.ts` | Curriculum utilities |
-| `lib/send/early-warning.ts` | `analyseStudentPatterns(schoolId)` — 4 pattern checks, upserts EarlyWarningFlags, notifies SENCOs |
-| `lib/send/concern-analyser.ts` | `analyseConcernPattern(studentId, schoolId)` — Claude AI pattern analysis for concern review |
-
-### Database (`prisma/`)
-
-```
-prisma/
-├── schema.prisma               Full schema (see summary below)
-├── seed.ts                     Main seed (all demo users, classes, lessons, SEND, analytics)
-├── seed-classes.ts             Class seed data
-├── seed-english-students.ts    Adds 20+22+22 students to 9E/En1, 10E/En2, 11E/En1
-├── seed-wonde.ts               Oakfield Academy: 30 staff, 120 students, 32 classes (Wonde MIS)
-├── seed-send.ts                Phase 5 SEND data: 6 concerns, 2 ILPs, 4 flags, 6 review logs, 8 notifications
-└── migrations/
-    ├── 20260301191436_add_lessons/
-    ├── 20260301195139_add_send_need_area_misconception_tags/
-    └── 20260309000000_add_wonde_schema/
-```
-
-**Seed commands:**
-```bash
-npm run db:seed            # main seed (all demo data)
-npm run db:seed-classes    # classes only
-npm run db:seed-english    # English class students + submissions
-npm run wonde:seed         # Oakfield Academy Wonde MIS synthetic data
-npm run platform:seed      # Platform admin user + 3 demo schools + feature flags
-npm run send:seed          # Phase 5 SEND monitoring: concerns, ILPs, flags, notifications
-npm run messages:seed      # 5 demo message threads across omnisdemo.school users
-```
-
----
-
-## UI Map — What Controls What
-
-| Part of UI | File |
-|---|---|
-| Left sidebar nav | `components/Sidebar.tsx` |
-| Authenticated layout shell | `components/AppShell.tsx` |
-| Teacher calendar page | `app/dashboard/page.tsx` + `components/WeeklyCalendar.tsx` |
-| Create lesson (slide-over) | `components/LessonSlideOver.tsx` |
-| Lesson detail modal | `components/LessonFolder.tsx` |
-| Add resource to lesson | `components/AddResourcePanel.tsx` |
-| Homework list page | `app/homework/page.tsx` + `components/HomeworkFilterView.tsx` |
-| Set Homework modal | `components/SetHomeworkModal.tsx` |
-| Homework marking (split view) | `app/homework/[id]/page.tsx` + `components/HomeworkMarkingView.tsx` |
-| Single submission marking | `app/homework/[id]/mark/[submissionId]/page.tsx` + `components/SubmissionMarkingView.tsx` |
-| Student homework submission | `app/student/homework/[id]/page.tsx` + `components/HomeworkSubmissionView.tsx` |
-| Classes page | `app/classes/page.tsx` + `components/ClassListView.tsx` |
-| Analytics (Classes + Students tabs) | `app/analytics/students/page.tsx` + `components/StudentAnalyticsView.tsx` |
-| Individual student dashboard | `app/analytics/students/[id]/page.tsx` + `components/StudentDashboard.tsx` |
-| User settings (5 tabs) | `app/settings/page.tsx` + `components/settings/SettingsShell.tsx` |
-| Avatar upload | `app/api/settings/avatar/route.ts` |
-| SEND dashboard | `app/send/dashboard/page.tsx` |
-| SEND Resource Quality Scorer | `app/send-scorer/page.tsx` + `components/send/ScorerView.tsx` |
-| ILP records + detail | `app/send/ilp/` |
-| Platform admin dashboard | `app/platform-admin/dashboard/page.tsx` + `components/platform-admin/` |
-| Platform school management | `app/platform-admin/schools/page.tsx` + `components/platform-admin/SchoolListTable.tsx` |
-| GDPR & Consent (admin) | `app/admin/gdpr/page.tsx` + `components/gdpr/GdprAdminShell.tsx` |
-| Parent Consent Portal | `app/parent/consent/page.tsx` + `components/gdpr/ParentConsentPortal.tsx` |
-| AI Resource Generator | `app/ai-generator/page.tsx` + `components/ai-generator/AiGeneratorShell.tsx` |
-| Cover Management | `app/admin/cover/page.tsx` + `components/cover/CoverPageTabs.tsx` + `components/cover/CoverDashboard.tsx` |
-| Oak Sync dashboard | `app/platform-admin/oak-sync/page.tsx` + `components/platform-admin/OakSyncStatus.tsx` |
-| Student Revision Planner | `app/revision/page.tsx` + `components/revision/RevisionDashboard.tsx` |
-| Parent portal | `app/parent/` + `components/ParentMessagesView.tsx` |
-| Messaging inbox | `app/messages/page.tsx` + `components/messaging/MessagingShell.tsx` |
-| Thread view | `app/messages/[threadId]/page.tsx` + `components/messaging/ThreadView.tsx` |
-| Auth | `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts` |
-| Route protection | `middleware.ts` (NextAuth middleware) |
-
----
-
-## Database Schema Summary
-
-### Enums
-
-| Enum | Values |
-|---|---|
-| `Role` | SUPER_ADMIN, SCHOOL_ADMIN, SLT, HEAD_OF_DEPT, HEAD_OF_YEAR, COVER_MANAGER, TEACHER, SENCO, STUDENT, PARENT |
-| `HomeworkType` | MCQ_QUIZ, SHORT_ANSWER, EXTENDED_WRITING, MIXED, UPLOAD |
-| `HomeworkStatus` | DRAFT, PUBLISHED, CLOSED |
-| `SubmissionStatus` | SUBMITTED, UNDER_REVIEW, RESUBMISSION_REQ, MARKED, RETURNED |
-| `ResourceType` | PLAN, SLIDES, WORKSHEET, VIDEO, LINK, OTHER |
-| `SendStatusValue` | NONE, SEN_SUPPORT, EHCP |
-| `PlanStatus` | DRAFT, ACTIVE_INTERNAL, ACTIVE_PARENT_SHARED, ARCHIVED |
-| `LessonSharingLevel` | SCHOOL, SELECTED, PRIVATE |
-| `RiskLevel` | NONE, LOW, MEDIUM, HIGH |
-| `ConversationStatus` | OPEN, CLOSED, ARCHIVED |
-| `AuditAction` | 23 values covering all auditable events |
-
-### Models
-
-**Tenant root**
-- `School` — tenant root; all other tables carry `schoolId`
-- `TermDate` — term start/end dates per school
-
-**Users & structure**
-- `User` — all roles; fields: email, passwordHash, role, firstName, lastName, department?, yearGroup?
-- `SchoolClass` — class with name, subject, yearGroup, department
-- `ClassTeacher` — many-to-many: teacher ↔ class
-- `Enrolment` — many-to-many: student ↔ class
-- `ParentStudentLink` — legacy parent ↔ student link
-- `ParentChildLink` — verified parent ↔ child link with relationshipType
-
-**Lessons & resources**
-- `Lesson` — title, topic, objectives[], scheduledAt, classId?, createdBy, lessonType
-- `Resource` — type, label, url?, fileKey?, linked to lesson
-- `ResourceVersion` — versioned resource history
-- `ResourceReview` — SEND accessibility score (sendScore 0–100, suggestions[])
-- `OakContentCache` — cached Oak National API responses
-
-**Homework**
-- `Homework` — title, instructions, modelAnswer?, type, status, dueAt, classId, lessonId?
-- `HomeworkQuestion` — individual question with optionsJson, correctAnswerJson, rubricJson
-- `Submission` — student answer, status, autoScore?, teacherScore?, finalScore?, feedback?
-- `SubmissionAttempt` — individual attempt (supports resubmission flow)
-- `SubmissionAttemptAnswer` — per-question answer for structured homework
-
-**Integrity**
-- `IntegritySignal` — legacy per-submission signal (pasteCount, pasteRatio, timeOnTask)
-- `SubmissionIntegritySignal` — per-attempt signal (riskLevel, pasteEventsCount, focusLostCount)
-- `IntegrityReviewLog` — reviewer decisions on flagged attempts
-- `IntegrityPatternCase` — cross-submission integrity pattern tracking
-
-**SEND**
-- `SendStatus` — student's current SEND status (NONE/SEN_SUPPORT/EHCP) + needArea
-- `SendStatusReview` — SENCo review records for SEND status changes
-- `SendScoreCache` — content-hash cache for SEND accessibility scores
-- `SendInsight` — aggregated SEND score insights by subject/yearGroup/resourceType
-- `SendQualityScore` — AI-generated SEND accessibility score per OakLesson
-- `SchoolFeatureFlag` — per-school feature flag (send_scorer/oak_resources/gdpr_portal/parent_portal/wonde_sync); unique per schoolId+flag; setBy=User.id
-- `PlatformAuditLog` — platform-level audit trail (school.created/activated/deactivated/flag.toggled); actorId=User.id
-- `ConsentPurpose` — school-scoped data processing purpose with lawful basis (consent/legitimate_interest/legal_obligation); unique per schoolId+slug
-- `ConsentRecord` — immutable consent audit record (INSERT-only); studentId=WondeStudent.id, responderId=User.id, decision=granted/withdrawn
-- `DataSubjectRequest` — DSR tracking (access/erasure/rectification/portability) with status workflow (unique per `oakLessonSlug`); 5 dimensions (readability, visualLoad, cognitive, language, structure) + summary + recommendations; cached in DB, scored via `claude-sonnet-4-20250514`
-
-**Plans (richer ILP)**
-- `Plan` — SEND support plan with status, reviewDate, parent sharing
-- `PlanTarget` — measurable targets with baseline/target values
-- `PlanStrategy` — strategies applying to HOMEWORK/CLASSROOM/BOTH
-- `PlanReviewCycle` — review periods with associated adaptation recommendations
-
-**Legacy ILP**
-- `ILP` — legacy individual learning plan
-- `ILPTarget` — targets within an ILP
-- `ILPNote` — internal/external notes on an ILP
-
-**Adaptations**
-- `SubjectAdaptationProfile` — per-student per-subject active settings
-- `AdaptationRecommendation` — AI-recommended adaptations from plan review cycles
-
-**Messaging**
-- `Message` / `MessageRecipient` — internal staff messaging (legacy)
-- `ParentConversation` / `ParentMessage` — parent–teacher contextual threads
-- `MsgThread` — thread with subject, context (GENERAL/PARENT/SEND/HOMEWORK), schoolId
-- `MsgParticipant` — many-to-many: User ↔ MsgThread with lastReadAt
-- `MsgMessage` — individual message: body, senderId, isSystem flag
-- `TeacherAvailability` — teacher's messaging availability window
-
-**Analytics**
-- `ClassPerformanceAggregate` — per-class completion rate, avgScore, predictedDelta per term
-- `SubjectMedianAggregate` — subject-level median benchmarks by year group + term
-
-**System**
-- `Notification` — in-app notifications with type, linkHref, read status
-- `AuditLog` — immutable audit trail (actor, action, targetType, targetId, metadata)
-- `UserSettings` — profile extras, privacy prefs, lesson sharing level, avatar URL
-- `WondeSyncRun` / `ExternalChangeLog` — MIS sync history
-
-**Accessibility**
-- `UserAccessibilitySettings` — per-user: dyslexiaFont, highContrast, largeText, reducedMotion, lineSpacing; applied server-side to `<html>` class on every page load
-
-**Revision Planner**
-- `RevisionExam` — student exam with subject, examBoard, paperName, examDate, durationMins
-- `RevisionSession` — planned/completed/skipped session linked to exam (optional); tracks confidence 1–5 + notes + optional oakLessonSlug
-- `RevisionConfidence` — per-topic confidence records (upserted on session completion)
-
-**Wonde MIS (12 tables)**
-- `WondeSchool` — 1-to-1 with School; stores Wonde school ID and sync metadata
-- `WondeStudent` — MIS student record (wondeId, UPN, DOB, SEND flag, KS2 data)
-- `WondeContact` — parent/guardian contacts linked to WondeStudent
-- `WondeEmployee` — staff records with MIS role and subject
-- `WondeGroup` — registration/form groups (e.g. 7A, 8B)
-- `WondeClass` — subject class linked to WondeEmployee (teacher) and WondeGroup
-- `WondeClassStudent` — many-to-many: WondeClass ↔ WondeStudent (composite PK)
-- `WondePeriod` — timetable period definitions (name, startTime, endTime, dayOfWeek)
-- `WondeTimetableEntry` — scheduled class occurrence per period
-- `WondeAssessmentResult` — KS2 SAT scores and standardised scores per student
-- `WondeDeletion` — soft-delete log for removed MIS records
-- `WondeSyncLog` — per-run sync audit (recordCounts, errors, duration)
 
 ---
 
@@ -431,141 +40,237 @@ npm run messages:seed      # 5 demo message threads across omnisdemo.school user
 
 ```typescript
 // JWT session shape (lib/auth.ts)
-session.user = {
-  id:         string   // User.id
-  schoolId:   string
-  schoolName: string
-  role:       Role
-  firstName:  string
-  lastName:   string
-}
+session.user = { id, schoolId, schoolName, role, firstName, lastName }
 ```
 
-Middleware (`middleware.ts`) protects all routes except `/login`. Role-based redirect:
-- STUDENT → `/student/dashboard`
-- PARENT → `/parent/dashboard`
-- SENCO → `/send/dashboard`
-- SLT / SCHOOL_ADMIN → `/slt/analytics`
-- Others → `/dashboard`
+`middleware.ts` protects all routes except `/login`. Role-based redirects:
+- STUDENT → `/student/dashboard` | PARENT → `/parent/dashboard` | SENCO → `/send/dashboard`
+- SLT / SCHOOL_ADMIN → `/slt/analytics` | Others → `/dashboard`
 
 ---
 
-## Demo Credentials
-
-All passwords: `Demo1234!`
+## Demo Credentials (all password: `Demo1234!`)
 
 | Email | Role |
 |---|---|
-| `j.patel@omnisdemo.school` | TEACHER (English, 3 classes: 9E/En1, 10E/En2, 11E/En1) |
+| `j.patel@omnisdemo.school` | TEACHER (English, 3 classes) |
 | `r.morris@omnisdemo.school` | SENCO |
 | `t.adeyemi@omnisdemo.school` | HEAD_OF_YEAR (Year 9) |
 | `d.brooks@omnisdemo.school` | HEAD_OF_DEPT (English) |
 | `c.roberts@omnisdemo.school` | SLT |
-| `k.wright@omnisdemo.school` | TEACHER (Maths, 10M/Ma1) |
+| `k.wright@omnisdemo.school` | TEACHER (Maths) |
 | `a.hughes@students.omnisdemo.school` | STUDENT (Year 9) |
-| `l.hughes@parents.omnisdemo.school` | PARENT (Aiden's parent) |
+| `l.hughes@parents.omnisdemo.school` | PARENT |
 | `admin@omnisdemo.school` | SCHOOL_ADMIN |
-| `platform@omnis.edu` | PLATFORM_ADMIN (Omnis staff — sees all schools) |
+| `platform@omnis.edu` | PLATFORM_ADMIN |
 
 ---
 
-## Sidebar Navigation by Role
+## Routes (`app/`)
+
+```
+login/                          Login form
+dashboard/                      Teacher weekly calendar
+homework/                       Teacher homework list + [id] detail + [id]/mark/[submissionId]
+classes/                        Class list with student rosters
+analytics/                      Unified analytics (Classes + Students tabs + /adaptive)
+revision/                       Student revision planner (STUDENT only)
+settings/                       User settings (5 tabs) + /accessibility
+student/dashboard, homework/[id]
+parent/dashboard, progress, messages, consent
+send/dashboard, review-due, ilp/[studentId]
+senco/dashboard, concerns, ilp, early-warning, ehcp, ilp-evidence
+hoy/analytics, slt/analytics
+admin/gdpr, admin/cover
+platform-admin/dashboard, schools, oak-sync
+messages/ + messages/[threadId]
+ai-generator/
+send-scorer/
+api/auth/[...nextauth], api/settings/avatar, api/export/*, api/cron/*
+marketing/home, marketing/features, marketing/beta, marketing/investors  ← TODO
+```
+
+---
+
+## Actions (`app/actions/`)
+
+| File | Key exports |
+|---|---|
+| `lessons.ts` | createLesson, getLessonDetails, updateLessonOverview, addUrlResource, addUploadedResource, addLibraryResource, removeResource, deleteLesson, rescheduleLesson |
+| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent |
+| `analytics.ts` | getAnalyticsFilters, getStudentPerformance, getStudentDetail, getClassSummaries, getHomeworkAdaptiveAnalytics |
+| `settings.ts` | getMySettings, saveProfile, saveProfessionalPrefs, savePrivacySettings, saveSharingSettings, changePassword |
+| `oak.ts` | getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson |
+| `send-scorer.ts` | getOrCreateSendScore, forceRescoreLesson, searchLessonsWithScores |
+| `send-support.ts` | 25 SEND/concern/ILP/notification actions |
+| `ehcp.ts` | createEhcpPlan, getStudentEhcp, linkHomeworkToIlpTarget, linkSubmissionToEhcpOutcome, generateIlpProgressReport, generateEhcpAnnualReview |
+| `adaptive-learning.ts` | getStudentLearningProfile, updateLearningProfile, suggestSpacedRepetition, suggestNextHomework, getAdaptiveHomeworkSuggestions |
+| `gdpr.ts` | getPurposes, createPurpose, getConsentMatrix, exportConsentCsv, getDataSubjectRequests, recordConsent |
+| `revision.ts` | getMyExams, addExam, getMyRevisionSessions, generateRevisionPlan, saveRevisionPlan, markSessionComplete |
+| `cover.ts` | getTodaysCoverSummary, logAbsence, getAvailableStaff, assignCover, getCoverHistory |
+| `platform-admin.ts` | getPlatformStats, getSchoolList, createSchool, getFeatureFlags, setFeatureFlag, getAuditLog |
+| `messaging.ts` | getMyThreads, getThread, createThread, sendMessage, getUnreadMessageCount, getContactList |
+| `accessibility.ts` | getAccessibilitySettings, saveAccessibilitySettings |
+| `student.ts` | getStudentHomework, submitHomework |
+| `parent.ts` | sendParentMessage |
+
+---
+
+## Key Components (`components/`)
+
+| Component | Purpose |
+|---|---|
+| `Sidebar.tsx` | Role-based left nav |
+| `AppShell.tsx` | Authenticated layout wrapper |
+| `WeeklyCalendar.tsx` | Teacher calendar (click=slide-over, dbl-click=folder) |
+| `LessonFolder.tsx` | Lesson detail modal (6 tabs) |
+| `LessonSlideOver.tsx` | Create new lesson panel |
+| `AddResourcePanel.tsx` / `OakResourcePanel.tsx` | Add resources to lesson |
+| `HomeworkFilterView.tsx` | Homework list + filters |
+| `SetHomeworkModal.tsx` | Homework creation modal |
+| `HomeworkMarkingView.tsx` | Split-panel marking view |
+| `SubmissionMarkingView.tsx` | Full-page per-submission marking |
+| `HomeworkSubmissionView.tsx` | Student submission UI |
+| `homework/HomeworkCreatorV2.tsx` | 6-step homework creation modal |
+| `homework/AdaptiveSubmissionView.tsx` | Marking with AI suggestions + EHCP evidence |
+| `homework/HomeworkTypeRenderer.tsx` | Input UI per homework variant (11 types) |
+| `StudentAnalyticsView.tsx` | Analytics — Classes + Students tabs |
+| `StudentDashboard.tsx` | Individual student detail |
+| `StudentAvatar.tsx` | Avatar (photo or coloured initials, xs–lg) |
+| `ClassListView.tsx` | Expandable class cards |
+| `settings/SettingsShell.tsx` | Settings (5 tabs) |
+| `messaging/MessagingShell.tsx` | Two-panel messaging layout |
+| `messaging/ThreadView.tsx` | Thread with 30s poll |
+| `messaging/UnreadBadge.tsx` | Blue badge, 60s poll |
+| `send/SendScoreCard.tsx` / `SendScoreBadge.tsx` | SEND score display |
+| `send/ScorerView.tsx` | Standalone SEND scorer |
+| `send-support/SencoDashboard.tsx` + siblings | SEND monitoring UI |
+| `gdpr/GdprAdminShell.tsx` + siblings | GDPR consent management |
+| `platform-admin/PlatformDashboardStats.tsx` + siblings | Platform admin UI |
+| `ai-generator/AiGeneratorShell.tsx` + siblings | AI resource generator |
+| `cover/CoverDashboard.tsx` + siblings | Cover management |
+| `revision/RevisionDashboard.tsx` + siblings | Revision planner |
+| `accessibility/AccessibilityToolbar.tsx` + siblings | Accessibility panel |
+| `homework/EhcpOutcomeTracker.tsx` | EHCP outcome progress |
+| `analytics/AdaptiveAnalyticsDashboard.tsx` | Bloom's + adaptive charts |
+| `ExportPdfButton.tsx` | PDF download button |
+
+---
+
+## Library (`lib/`)
+
+| File | Purpose |
+|---|---|
+| `lib/auth.ts` | NextAuth config, JWT callbacks |
+| `lib/prisma.ts` | Prisma singleton + `writeAudit()` helper |
+| `lib/accessibility.ts` | `settingsToClasses()`, defaults |
+| `lib/sendReview.ts` / `sendReviewCached.ts` | SEND accessibility scoring via Claude |
+| `lib/send/early-warning.ts` | Pattern checks → EarlyWarningFlags + SENCO notifications |
+| `lib/send/concern-analyser.ts` | Claude AI concern pattern analysis |
+| `lib/pdf/` | Puppeteer PDF generation (lesson plan, homework, revision, summary) |
+
+---
+
+## Database Schema Summary
+
+### Key Enums
+
+| Enum | Values |
+|---|---|
+| `Role` | SUPER_ADMIN, SCHOOL_ADMIN, SLT, HEAD_OF_DEPT, HEAD_OF_YEAR, COVER_MANAGER, TEACHER, SENCO, STUDENT, PARENT, PLATFORM_ADMIN |
+| `HomeworkType` | MCQ_QUIZ, SHORT_ANSWER, EXTENDED_WRITING, MIXED, UPLOAD |
+| `HomeworkStatus` | DRAFT, PUBLISHED, CLOSED |
+| `SubmissionStatus` | SUBMITTED, UNDER_REVIEW, RESUBMISSION_REQ, MARKED, RETURNED |
+| `SendStatusValue` | NONE, SEN_SUPPORT, EHCP |
+
+### Model Groups
+
+- **Tenant:** `School`, `TermDate`
+- **Users/Classes:** `User`, `SchoolClass`, `ClassTeacher`, `Enrolment`, `ParentChildLink`
+- **Lessons/Resources:** `Lesson`, `Resource`, `ResourceReview`, `OakContentCache`
+- **Homework:** `Homework`, `HomeworkQuestion`, `Submission`, `SubmissionAttempt`, `SubmissionAttemptAnswer`
+- **Integrity:** `SubmissionIntegritySignal`, `IntegrityReviewLog`, `IntegrityPatternCase`
+- **SEND:** `SendStatus`, `SendScoreCache`, `SendQualityScore`, `SendConcern`, `EarlyWarningFlag`, `SendNotification`
+- **ILP/EHCP:** `ILP`, `ILPTarget`, `Plan`, `PlanTarget`, `EhcpPlan`, `EhcpOutcome`, `IlpHomeworkLink`, `HomeworkEhcpEvidence`
+- **Adaptive:** `StudentLearningProfile`, `LearningSequence`, `SubjectAdaptationProfile`
+- **Messaging:** `MsgThread`, `MsgParticipant`, `MsgMessage`
+- **Analytics:** `ClassPerformanceAggregate`, `SubjectMedianAggregate`
+- **System:** `Notification`, `AuditLog`, `UserSettings`, `UserAccessibilitySettings`
+- **Revision:** `RevisionExam`, `RevisionSession`, `RevisionConfidence`
+- **Cover:** `StaffAbsence`, `CoverAssignment`
+- **GDPR:** `ConsentPurpose`, `ConsentRecord`, `DataSubjectRequest`
+- **Platform:** `SchoolFeatureFlag`, `PlatformAuditLog`, `GeneratedResource`
+- **Wonde MIS (12 tables):** `WondeSchool`, `WondeStudent`, `WondeEmployee`, `WondeClass`, `WondeGroup`, `WondePeriod`, `WondeTimetableEntry`, `WondeAssessmentResult`, `WondeContact`, `WondeClassStudent`, `WondeDeletion`, `WondeSyncLog`
+- **Oak sync:** `OakSubject`, `OakUnit`, `OakLesson`, `OakSyncLog`
+
+---
+
+## Sidebar Nav by Role
 
 | Role | Nav items |
 |---|---|
-| TEACHER | Calendar, Homework, Classes, Plans, Messages, Notifications, Analytics, Student Analytics |
-| HEAD_OF_DEPT | Calendar, Homework, Classes, Analytics (dept), Student Analytics, Messages, Notifications |
-| HEAD_OF_YEAR | Calendar, Analytics, Student Analytics, Messages, Notifications · *Pastoral:* Integrity, Plans |
-| SENCO | SEND Dashboard, ILP Records, Review Due, Student Analytics, Messages, Notifications |
-| SCHOOL_ADMIN | Dashboard, Users, Audit Log, Analytics, Messages, Notifications · *Pastoral:* Integrity, Plans |
-| SLT | Dashboard, Analytics, Audit Log, Messages, Notifications · *Pastoral:* Integrity, Plans |
-| COVER_MANAGER | Dashboard, Lessons, Messages, Notifications |
+| TEACHER | Calendar, Homework, Classes, Analytics, Adaptive Learning, AI Generator, Messages |
+| HEAD_OF_DEPT | Calendar, Homework, Classes, Analytics, Adaptive Learning, AI Generator, Messages |
+| HEAD_OF_YEAR | Calendar, Analytics, Student Analytics, SEND Concerns, Messages |
+| SENCO | SEND Dashboard, Concerns, ILP, Early Warning, EHCP Plans, ILP Evidence, Analytics, Resource Scorer, AI Generator, Messages |
+| SCHOOL_ADMIN | Dashboard, Users, Audit Log, Analytics, Cover, GDPR, Messages |
+| SLT | Dashboard, Analytics, Audit Log, Cover, GDPR, Messages |
+| COVER_MANAGER | Dashboard, Cover, Messages |
 | STUDENT | Dashboard, Homework, Revision Planner, My Grades, Messages |
-| PARENT | Dashboard, Progress, Messages |
+| PARENT | Dashboard, Progress, Consent, Messages |
+| PLATFORM_ADMIN | Dashboard, Schools, Oak Sync |
 
-Settings link + avatar chip (→ `/settings`) appear at bottom of sidebar for all roles.
+Settings + avatar chip at sidebar bottom for all roles.
+
+---
+
+## Seed Commands
+
+```bash
+npm run db:seed            # main seed (demo users, classes, lessons)
+npm run db:seed-classes    # classes only
+npm run db:seed-english    # English students + submissions
+npm run wonde:seed         # Oakfield Academy (30 staff, 120 students)
+npm run platform:seed      # platform admin + 3 demo schools + feature flags
+npm run send:seed          # SEND concerns, ILPs, flags, EHCP plans
+npm run messages:seed      # 5 demo message threads
+```
+
+---
+
+## Phase Completion
+
+**Phases 0–6D + Messaging: All complete ✅**
+
+Covers: Auth, Teacher Dashboard, Homework (set/mark/submit), Classes, Analytics, Settings, Oak content library, Wonde MIS schema, School Admin, Platform Admin, GDPR, SEND Scorer, AI Generator, Delta Oak Sync, Cover Management, PDF Export, Accessibility Modes, Student Revision Planner, Security Audit, Playwright E2E (82 tests), Proactive SEND Monitoring/ILP/Early Warning, Adaptive Homework/EHCP/ILP integration, Student Photos, Threaded Messaging.
 
 ---
 
 ## Outstanding Tasks
 
-### ✅ Completed (this session)
-- **Messaging System — Threaded In-App Messaging:** 3 Prisma models (`MsgThread`, `MsgParticipant`, `MsgMessage`) added to schema; migration 20260309240000. `app/actions/messaging.ts` — 7 actions (`getMyThreads`, `getThread`, `createThread`, `sendMessage`, `archiveThread`, `getUnreadMessageCount`, `getContactList`). Role-aware `createThread`: STUDENT → class teachers only; PARENT → child's teachers only; Staff → anyone in school. New-thread/new-message notifications via `prisma.notification.createMany`. 7 components: `MessageBubble`, `MessageComposer` (auto-resize, Enter-to-send), `ThreadList` (unread badge, context badge, timeAgo), `ThreadView` (scroll-to-bottom, 30s poll), `NewThreadModal` (2-step: recipients → compose), `MessagingShell` (two-panel layout), `UnreadBadge` (60s poll, blue dot). Routes: `/messages` + `/messages/[threadId]`. `prisma/seed-messages.ts` — 5 demo threads; `npm run messages:seed` script. `Sidebar.tsx` updated with `UnreadBadge` on Messages nav items for all roles. Build passing.
-- **Phase 6D — E2E Test Suite Update:** 50 existing tests — all passing, no fixes needed. 7 new spec files added: `senco.spec.ts` (8 tests — dashboard, concerns, ILP, early-warning, EHCP, ILP-evidence, role blocks), `adaptive-homework.spec.ts` (5 tests — homework list, `/analytics/adaptive` access, role blocks), `cover-management.spec.ts` (4 tests), `revision-planner.spec.ts` (4 tests), `ai-generator.spec.ts` (4 tests), `gdpr.spec.ts` (4 tests), `student-photos.spec.ts` (3 tests). **82 total tests, 82 passing, 0 failures.** Key patterns: URL-based access control assertions, `waitForLoadState('networkidle')`, 10s timeouts for content assertions. `TEST_REPORT.md` updated with new counts and coverage summary.
-- **Phase 6C — Homework Review Workflow & Student Photos:** Part A: Schema — 3 new Submission fields (`autoMarked`, `teacherReviewed`, `autoFeedback`); migration 20260309220000. Part B: Schema — 2 new WondeStudent fields (`photoUrl`, `photoUpdatedAt`) + 1 new User field (`avatarUrl`); migration 20260309230000. `autoMarkSubmission()` now sets `autoMarked: true, teacherReviewed: false, autoFeedback`; `markSubmission()` sets `teacherReviewed: true`; new `bulkAutoMarkAndQueue(homeworkId)` action — bulk auto-marks SUBMITTED submissions and notifies teacher. `StudentRow` + `ConcernRow` types extended with `avatarUrl`/`studentAvatarUrl`. New `components/StudentAvatar.tsx` — reusable component (xs/sm/md/lg sizes, photo URL or deterministic coloured initials fallback). `SubmissionMarkingView`: amber AI review banner + "AI suggested" badge + "Confirm & Return to Student" button label when auto-marked. `HomeworkMarkingView`: "Needs review" badge per submission + count header + AI review banner + "Confirm & Return" button. `AdminStudentTable`, `ConcernList`, student `/send` page: all use StudentAvatar. Sidebar: optional `avatarUrl` prop (shows photo or initials). `seed-wonde.ts`: DiceBear initials avatars for all 120 synthetic students + Wonde photo sync note comment. Build passing.
-- **Phase 6B — Adaptive Learning Fixes & Enhancements:** 8 surgical fixes across 5 files. FIX 1: Auto-update learning profile after marking (non-blocking `void updateLearningProfile()` in markSubmission + autoMarkSubmission). FIX 2: Auto-suggest ILP/EHCP evidence linking in submission marking view — `getSubmissionForMarking` now returns `ilpTargetsDue` + `ehcpOutcomesDue`; `AdaptiveSubmissionView` shows combined collapsible "Link as Evidence" panel. FIX 3: Spaced repetition now uses OR query (title contains + learningObjectives has) with fallback to recent homework when no topic match. FIX 4: `generateDifferentiatedVersions(homeworkId, studentIds)` added — Claude-powered per-student adaptation with SEND/profile context, batch 5 concurrent, graceful fallback. FIX 5: ILP targets auto-wired into homework generation — `HomeworkCreatorV2` banner + CRITICAL-framed numbered list in AI prompt. FIX 6: Oak resource `pupilLessonOutcome` fetched via `oakContentId` and included in learning extraction prompt. FIX 7: Self-assessment included in learning profile — 60/40 blending with avgScore for `preferredTypes` sort. FIX 8: ILP/EHCP reports reference specific homework evidence — `generateIlpProgressReport` lists linked homeworks per target; `generateEhcpAnnualReview` includes submission scores. Build passing.
-- **Phase 6 — Adaptive Homework, Layered Learning & ILP/EHCP Integration:** 6 Prisma models (LearningSequence, StudentLearningProfile, EhcpPlan, EhcpOutcome, HomeworkEhcpEvidence, IlpHomeworkLink) pushed to DB. Fields added to Homework (homeworkVariantType, structuredContent, learningObjectives, bloomsLevel, ilpTargetIds, ehcpOutcomeIds, differentiationNotes, estimatedMins, ilpLinks) and Submission (structuredResponse, selfAssessment, timeSpentMins, ehcpEvidence). `app/actions/ehcp.ts` — 8 actions (createEhcpPlan, getStudentEhcp, getAllEhcpPlans, linkHomeworkToIlpTarget, linkSubmissionToEhcpOutcome, updateEhcpOutcomeStatus, getIlpTargetsDueForEvidencing, generateIlpProgressReport, generateEhcpAnnualReview). `app/actions/adaptive-learning.ts` — 6 actions (getStudentLearningProfile, updateLearningProfile, suggestSpacedRepetition, getLayeredLearningSequence, suggestNextHomework, getAdaptiveHomeworkSuggestions, getIlpEvidenceDashboard). `app/actions/homework.ts` extended (extractLearningFromLesson, generateHomeworkContent, autoMarkSubmission). `app/actions/analytics.ts` extended (getHomeworkAdaptiveAnalytics). 7 components: `HomeworkCreatorV2.tsx` (6-step modal), `IlpTargetHomeworkPanel.tsx`, `EhcpOutcomeTracker.tsx`, `IlpProgressReportViewer.tsx`, `AdaptiveSubmissionView.tsx`, `HomeworkTypeRenderer.tsx`, `AdaptiveAnalyticsDashboard.tsx`. Routes: `/senco/ehcp`, `/senco/ilp-evidence`, `/analytics/adaptive`. Sidebar: SENCO gets EHCP Plans (FileCheck) and ILP Evidence (BarChart3); TEACHER + HEAD_OF_DEPT get Adaptive Learning (Brain) in analytics nav. seed-send.ts updated with 2 EHCP plans (8 outcomes total), 2 StudentLearningProfiles, IlpHomeworkLinks. Build passing.
-- **Phase 5 — Proactive SEND Monitoring, Early Warning & ILP:** 6 Prisma models (SendConcern, IndividualLearningPlan, IlpTarget, SendNotification, SendReviewLog, EarlyWarningFlag) pushed to DB. Early warning engine `lib/send/early-warning.ts` — 4 pattern checks (completion drop, score decline, 3+ concerns, consecutive misses), upserts flags, notifies SENCOs. AI concern analyser `lib/send/concern-analyser.ts` — Claude analysis with disclaimer prefix. Server actions `app/actions/send-support.ts` (25 actions). 12 components under `components/send-support/` (SencoDashboard, RaiseConcernModal, RaiseConcernButton, ConcernList, ConcernReviewModal, EarlyWarningPanel, IlpCard, IlpForm, NotificationBell, StudentSendOverlay, ConcernsPageView, IlpPageView). Routes: `/senco/dashboard`, `/senco/concerns`, `/senco/ilp`, `/senco/early-warning`, `/student/[studentId]/send`. Cron: `/api/cron/early-warning` (6am Mon–Fri). SENCO sidebar replaced with full nav (Dashboard, Concerns, ILP, Early Warning, Resource Scorer). HEAD_OF_YEAR gets SEND Concerns link. `auth.config.ts` updated for `/senco/*` routes. `prisma/seed-send.ts` + `npm run send:seed` added. Build passing.
-- **Phase 4B — Playwright E2E Test Suite:** 50 tests passing across 8 spec files (auth, teacher, student, admin, send-scorer, platform-admin, accessibility, pdf-export). Page object model (`LoginPage`, `SidebarPage`), fixtures (`e2e/fixtures/users.ts`), helpers (`loginAs`, `gotoCommit`). GitHub Actions CI workflow (`.github/workflows/e2e.yml`). `TEST_REPORT.md` in project root. All role-based access controls and login flows verified. `test:e2e` / `test:e2e:ui` / `test:e2e:headed` scripts added to `package.json`.
-- **Phase 4A — Security Audit & Hardening:** Full code-level security audit. 15 issues found and resolved. High: (1) 6 admin read actions had NO auth checks — fixed by adding `requireAdminOrSlt()` to all; (2) `schoolId` trusted from client in admin/cover/gdpr/ai-generator — fixed to always use session `user.schoolId`. Medium: IDOR on revision planner `studentId` param — fixed to always use `user.id`; IDOR on accessibility `userId` param — fixed; cross-tenant IDOR on consent purpose/DSR mutations — fixed with school ownership checks; no security headers — added full CSP + X-Frame-Options + X-Content-Type-Options etc. to `next.config.ts`; no role-based middleware — expanded `auth.config.ts` with 11 role-route rules redirecting wrong-role users to their home page. Low: Zod validation added to gdpr.createPurpose (slug kebab-case, lawfulBasis enum), gdpr.recordConsent (decision enum), cover.logAbsence (reason enum), platform-admin.createSchool (URN 6-digit regex, phase enum), ai-generator.generateResource (resourceType enum, 200-char topic limit to prevent prompt injection); rate limiting added — generateResource max 20/user/day, getOrCreateSendScore max 50/day. `SECURITY_AUDIT.md` created in project root.
-- **Sidebar:** Lessons and Resources removed from TEACHER and HEAD_OF_DEPT nav
-- **Analytics:** Classes tab added to `StudentAnalyticsView` with clickable rows drilling into student view
-- **Homework:** `SetHomeworkModal` built — lesson picker, homework type chips, AI generation from lesson resources, class assignment, publish flow
-- **Classes page:** `ClassListView` built; `seed-english-students.ts` added 20+22+22 students to 9E/En1, 10E/En2, 11E/En1 with realistic submissions
-- **Account settings:** `/settings` page built with 5 tabs (Profile, Professional, Privacy, Sharing, Security); avatar upload to DB; avatar chip in sidebar links to `/settings`
-- **Phase 1A — Oak content library:** Oak sync script (`scripts/oak-sync.ts`) completed — 19 subjects, 2,017 units, 11,403 lessons synced. `app/actions/oak.ts` created (getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson). `components/OakResourcePanel.tsx` built with filter/search UI. Integrated as "Oak Resources" tab in `LessonFolder.tsx`.
-- **Phase 1C Part A — Wonde schema + synthetic data:** 12 Wonde MIS models added to `prisma/schema.prisma` with migration applied. `prisma/seed-wonde.ts` creates Oakfield Academy: 30 staff, 120 students (Y7–Y10), 204 contacts, 32 classes, 480 enrolments, 40 periods, 96 timetable entries, 240 KS2 SAT results.
-- **Phase 1B — School Admin Dashboard:** 7 routes under `/admin/`, `app/actions/admin.ts` (8 actions), 6 components under `components/admin/`. SchoolCalendar schema model added + migration. SCHOOL_ADMIN sidebar updated. SCHOOL_ADMIN login now redirects to `/admin/dashboard`.
-- **Phase 2A — Platform Admin Dashboard:** `PLATFORM_ADMIN` role added to enum. School model extended: urn, phase, localAuthority, region, isActive, onboardedAt. `SchoolFeatureFlag` + `PlatformAuditLog` models + migration (20260309130000). `app/actions/platform-admin.ts` (7 actions). 6 components under `components/platform-admin/` (PlatformDashboardStats, PlatformUsageChart using recharts, PlatformAuditLogTable, SchoolListTable, SchoolForm, FeatureFlagPanel). Routes: `/platform-admin/dashboard`, `/platform-admin/schools`. `PLATFORM_ADMIN` nav in sidebar. `platform:seed` script seeds `platform@omnis.edu` + 3 demo schools + 5 feature flags.
-- **Phase 1E — GDPR Consent Management:** 3 Prisma models (ConsentPurpose, ConsentRecord, DataSubjectRequest) + migration (20260309120000). `app/actions/gdpr.ts` (8 actions: admin + parent). 6 components under `components/gdpr/` (ConsentPurposeForm, ConsentPurposeList, ConsentMatrix, DataSubjectRequestList, ParentConsentPortal, GdprAdminShell). `/admin/gdpr` (3 tabs: Purposes / Matrix / DSRs) for SCHOOL_ADMIN + SLT. `/parent/consent` portal with toggle UI. ConsentRecords are immutable INSERT-only. "GDPR & Consent" in admin sidebar; "Consent Settings" in parent sidebar. Seed: 4 UK-GDPR-framed purposes, 58 sample records.
-- **Phase 1D — SEND Resource Quality Scorer:** `SendQualityScore` Prisma model + migration (20260309110000). `app/actions/send-scorer.ts` (getOrCreateSendScore, forceRescoreLesson, getExistingScore, searchLessonsWithScores). 5 components under `components/send/` (SendScoreBadge, SendScoreCard, SendScoreButton, ScorerResultRow, ScorerView). Standalone page `/send-scorer` (SENCO + SLT + SCHOOL_ADMIN). SendScoreButton integrated into OakResourcePanel expanded detail. "Resource Scorer" added to SENCO sidebar nav. AI scoring via `claude-sonnet-4-20250514` across 5 dimensions (readability, visual load, cognitive, language, structure), scores cached in DB.
-- **Phase 2B — AI Resource Generator:** `GeneratedResource` Prisma model + migration (20260309140000). `app/actions/ai-generator.ts` (generateResource, getMyResources, getSchoolResources, deleteGeneratedResource, linkResourceToLesson). `marked` installed for markdown rendering. 6 components under `components/ai-generator/` (ResourceTypeIcon, ResourceGeneratorForm, ResourcePreview, ResourceCard, ResourceLibrary, AiGeneratorShell). Route `/ai-generator` (TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN). Two-panel layout: left = form, right = preview or library. "AI Generator" added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO, SLT, SCHOOL_ADMIN sidebars. Non-streaming Anthropic call with SEND adaptation prompts. Falls back to stub content if `ANTHROPIC_API_KEY` absent.
-- **Phase 2E — Delta Oak Sync:** `lastSeenAt` + `deletedAt` fields added to OakSubject/OakUnit/OakLesson. `OakSyncLog` model created + migration (20260309160000). `lib/oak-delta-sync.ts` exports `runDeltaSync()` using shared prisma client — upserts subjects/units/lessons with change detection, soft-deletes unseen records, writes full counts to OakSyncLog. `scripts/oak-delta-sync.ts` standalone wrapper with direct-URL PrismaClient. `npm run oak:delta` script added. `app/api/cron/oak-sync/route.ts` — GET endpoint secured by `CRON_SECRET`, `maxDuration=300`. `vercel.json` cron: Sunday 2am (`0 2 * * 0`). `app/actions/oak.ts` updated to filter `deletedAt: null` in all queries. `getOakSyncLogs` + `triggerDeltaSync` actions added to `platform-admin.ts`. `components/platform-admin/OakSyncStatus.tsx` — log table with per-row expansion + "Run Delta Sync Now" button. `/platform-admin/oak-sync` page + "Oak Sync" (RefreshCw) in PLATFORM_ADMIN sidebar. `.env.local.example` created with `CRON_SECRET` documented.
-- **Phase 3C — PDF Export:** Puppeteer installed. `lib/pdf/` module: `generator.ts` (Puppeteer launch, ArrayBuffer return, Vercel deployment note), `templates.ts` (pdfShell wrapper with school header/date, BASE_CSS), `lesson-plan-template.ts`, `homework-template.ts`, `revision-timetable-template.ts`, `homework-summary-template.ts`. 4 API routes under `app/api/export/`: `lesson-plan/[lessonId]`, `homework/[homeworkId]`, `revision-timetable` (landscape, weekStart + studentId params), `homework-summary` (studentId param). `components/ExportPdfButton.tsx` — reusable client component with loading/error states. Export buttons wired: lesson folder header (lesson plan), homework filter card hover (sheet), WeeklyRevisionGrid header (this week's timetable), student dashboard header (homework summary). All routes auth-guarded; revision/summary routes check ownership or staff role.
-- **Phase 3B — Accessibility Modes:** `UserAccessibilitySettings` Prisma model + migration (20260309180000). `app/actions/accessibility.ts` (getAccessibilitySettings, saveAccessibilitySettings). `lib/accessibility.ts` (settingsToClasses, hasActiveSettings, ACCESSIBILITY_DEFAULTS). 4 components under `components/accessibility/` (AccessibilityToolbar, AccessibilityPanel, AccessibilitySettingsView). `/settings/accessibility` page (all roles). CSS classes added to `globals.css`: dyslexia-font (OpenDyslexic + letter-spacing), high-contrast (dark bg, bright text), large-text (+20% font), reduced-motion (0.01ms transitions), line-spacing-wide/wider (1.8/2.2 line-height). `app/layout.tsx` fetches settings server-side and applies classes to `<html>` before paint — no flash. `AccessibilityToolbar` floats fixed bottom-right on all pages with blue dot indicator when active. "Accessibility" (Accessibility icon) added to sidebar footer for all roles.
-- **Phase 3A — Student Revision Planner:** 3 Prisma models (RevisionExam, RevisionSession, RevisionConfidence) + migration (20260309170000). `app/actions/revision.ts` (getMyExams, addExam, deleteExam, getMyRevisionSessions, generateRevisionPlan, saveRevisionPlan, markSessionComplete, skipSession, getConfidenceProfile, getRevisionStats). 5 components under `components/revision/` (ExamList, WeeklyRevisionGrid, SessionDetailModal, PlanGeneratorModal, ConfidenceChart, RevisionDashboard). Route `/revision` (STUDENT only). Claude-powered plan generation: 3-step modal (select exams → availability → confidence ratings) → AI generates 10–20 sessions for next 2 weeks → preview → accept. Session status tracking (planned/completed/skipped), confidence self-assessment (1–5 stars), 7-day week grid with navigation, streak counter. "Revision Planner" (BookOpen) added to STUDENT sidebar after Homework. Confidence bar chart via recharts. Falls back to stub plan if ANTHROPIC_API_KEY absent.
-- **Phase 2D — Cover Management:** `StaffAbsence` + `CoverAssignment` Prisma models + migration (20260309150000). `app/actions/cover.ts` (getTodaysCoverSummary, logAbsence, getAvailableStaff, assignCover, updateAssignmentStatus, deleteAbsence, getStaffList, getCoverHistory). 6 components under `components/cover/` (AbsenceList, AssignCoverModal, CoverAssignmentGrid, LogAbsenceModal, CoverHistoryTable, CoverDashboard, CoverPageTabs). Route `/admin/cover` (SCHOOL_ADMIN, SLT, COVER_MANAGER) with Today/History tabs. "Cover" (CalendarX2) added to SCHOOL_ADMIN, SLT, COVER_MANAGER sidebars. Auto-creates CoverAssignment per lesson when absence logged. `wonde:seed` extended with 2 today absences (WEMP-005 Helen Davies, WEMP-006 Robert Johnson) + mix of assignment statuses.
-- **Analytics redesign + bug fixes (2026-03-15):** (1) Fixed analytics server crash — `getAnalyticsFilters()` wrapped in try/catch, returns empty defaults on error; fixed invalid `IlpTarget.status: 'in_progress'` filter (not a valid value). (2) Unified analytics — created `/analytics/page.tsx` using existing `StudentAnalyticsView` (Classes + Students tabs); redirected `/analytics/teacher`, `/analytics/department`, `/analytics/students` to `/analytics`. (3) Sidebar consolidated: TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SENCO all have single "Analytics → /analytics" link (BarChart3 icon); `Adaptive Learning → /analytics/adaptive` kept as separate entry for TEACHER + HEAD_OF_DEPT. See `BUGFIX.md` for details.
+**Marketing pages (TODO)**
+- 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`
+- Contact forms → email `ivanyardley@me.com` via `resend` package
+- API routes: `app/api/contact/beta/route.ts`, `app/api/contact/investors/route.ts`
 
-### 🔲 Still needed
-
-**Marketing pages (4 pages as Next.js routes)**
-- Add 4 public HTML pages as Next.js routes (do not require auth)
-- Each page needs an email contact form that sends to `ivanyardley@me.com`
-- Suggested routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors` (confirm exact routes with user)
-- Install `resend` package for email sending
-
-**Resend email API routes**
-- Install: `npm install resend`
-- Create `app/api/contact/beta/route.ts` — handles beta sign-up form submissions, sends email to `ivanyardley@me.com`
-- Create `app/api/contact/investors/route.ts` — handles investor enquiry form submissions, sends email to `ivanyardley@me.com`
-- Add `RESEND_API_KEY` to `.env.local`
-
-**Unbuilt routes (currently show "Coming soon" via `not-found.tsx`)**
-- `/lessons` — lesson library page
-- `/resources` — resource library page
-- `/classes` — partially built (list view exists, may need detail pages)
-- `/plans` — SEND plans list/detail
-- `/notifications` — notification centre
-- `/hoy/integrity` — integrity case management
-- `/admin/audit` — audit log (SCHOOL_ADMIN)
-- `/slt/audit` — audit log (SLT)
-- `/student/grades` — student grade history
-- `/student/homework` — student homework list (individual items exist at `/student/homework/[id]`)
-- `/cover/*` — cover manager pages
+**Unbuilt routes (show "Coming soon")**
+- `/lessons`, `/resources`, `/plans`, `/notifications`
+- `/hoy/integrity`, `/admin/audit`, `/slt/audit`
+- `/student/grades`, `/student/homework` (list — individual items exist)
 
 ---
 
 ## Key Patterns & Gotchas
 
-**Server actions:** All DB mutations live in `app/actions/`. Always `'use server'` at top. Session via `auth()` from `lib/auth.ts`.
-
-**Multi-tenancy:** Every query must be scoped with `schoolId` from session. Never query without it.
-
-**Prisma client:** Singleton in `lib/prisma.ts`. If server started before schema change, restart dev server or queries will fail silently.
-
-**`SchoolClass.department`** is required (not nullable) in schema.
-
-**Lesson `classId`** is optional — supports out-of-hours/club lessons.
-
-**`createHomework` requires `setAt` and `dueAt`** as ISO strings, and sets `status: 'PUBLISHED'` by default.
-
-**AI homework generation:** `generateHomeworkFromResources(lessonId, type)` in `app/actions/homework.ts` calls Claude with lesson title/objectives/resources as context. Falls back to template if API unavailable.
-
-**SEND review:** Resources are automatically scored for SEND accessibility via `lib/sendReviewCached.ts` on upload. Score 0–100 stored in `ResourceReview.sendScore`.
-
-**Avatar upload:** Stored as base64 data URL in `UserSettings.profilePictureUrl`. Max 5 MB, JPG/PNG only.
-
-**Audit logging:** Use `writeAudit()` helper from `lib/prisma.ts` for all auditable actions.
-
-**Dev server:** `npm run dev > /tmp/omnis-dev.log 2>&1 &` to run in background.
+- **Server actions:** All in `app/actions/`. Always `'use server'`. Session via `auth()` from `lib/auth.ts`.
+- **Multi-tenancy:** Every query scoped with `schoolId` from session. Never query without it.
+- **Prisma:** Singleton in `lib/prisma.ts`. Restart dev server after schema changes or queries fail silently.
+- **`SchoolClass.department`** is required (not nullable).
+- **Lesson `classId`** is optional (supports out-of-hours lessons).
+- **`createHomework`** requires `setAt` and `dueAt` as ISO strings; defaults to `status: 'PUBLISHED'`.
+- **AI generation:** Falls back to stub content if `ANTHROPIC_API_KEY` absent.
+- **SEND scoring:** Auto-scored on resource upload via `lib/sendReviewCached.ts`. Score 0–100 in `ResourceReview.sendScore`.
+- **Avatar:** Stored as base64 data URL in `UserSettings.profilePictureUrl`. Max 5 MB, JPG/PNG.
+- **Audit logging:** Use `writeAudit()` from `lib/prisma.ts` for all auditable actions.
+- **ConsentRecords:** INSERT-only (immutable audit trail).
+- **Dev server:** `npm run dev > /tmp/omnis-dev.log 2>&1 &`

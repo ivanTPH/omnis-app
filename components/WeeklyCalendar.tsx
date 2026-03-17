@@ -184,17 +184,18 @@ export default function WeeklyCalendar({
   const goToday  = () => setWeekStart(getWeekStart(today))
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div style={{
+      display:             'grid',
+      gridTemplateRows:    folderId ? '42% 1fr' : '1fr',
+      flex:                1,
+      minHeight:           0,
+      overflow:            'hidden',
+    }}>
 
-      {/* ── Main calendar area — shrinks when lesson panel is open ──── */}
+      {/* ── Main calendar area — top grid row ────────────────────── */}
       <div
         className="flex min-w-0 bg-white overflow-hidden"
-        style={{
-          height:    folderId ? '42%' : '100%',
-          minHeight: folderId ? '200px' : undefined,
-          transition: 'height 0.3s ease',
-          flexShrink: 0,
-        }}
+        style={{ minHeight: 0 }}
       >
 
         {/* ── Calendar panel ──────────────────────────────── */}
@@ -459,15 +460,14 @@ export default function WeeklyCalendar({
         </div>
       </div>
 
-      {/* ── Inline lesson panel — slides up below calendar ─────────── */}
+      {/* ── Inline lesson panel — bottom grid row ───────────────────── */}
       {folderId && (
         <div style={{
-          flex:            1,
           minHeight:       0,
           display:         'flex',
           flexDirection:   'column',
           overflow:        'hidden',
-          borderTop:       '1px solid #e5e7eb',
+          borderTop:       '2px solid #e5e7eb',
           backgroundColor: 'white',
           animation:       'slideUp 0.25s ease-out',
         }}>

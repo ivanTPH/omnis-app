@@ -24,45 +24,50 @@ export type CalendarLessonData = {
 }
 
 export async function getWeekLessons(weekStartISO: string): Promise<CalendarLessonData[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  try {
+    const session = await auth()
+    if (!session) return []
+    const { schoolId, id: userId } = session.user as any
 
-  const weekStart = new Date(weekStartISO)
-  const friday    = new Date(weekStart)
-  friday.setDate(weekStart.getDate() + 4)
-  friday.setHours(23, 59, 59, 999)
+    const weekStart = new Date(weekStartISO)
+    const friday    = new Date(weekStart)
+    friday.setDate(weekStart.getDate() + 4)
+    friday.setHours(23, 59, 59, 999)
 
-  const lessons = await prisma.lesson.findMany({
-    where: {
-      schoolId,
-      scheduledAt: { gte: weekStart, lte: friday },
-      OR: [
-        { class: { teachers: { some: { userId } } } },
-        { createdBy: userId },
-      ],
-    },
-    include: {
-      class:     true,
-      resources: { select: { type: true } },
-      homework:  { select: { id: true } },
-    },
-  })
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        schoolId,
+        scheduledAt: { gte: weekStart, lte: friday },
+        OR: [
+          { class: { teachers: { some: { userId } } } },
+          { createdBy: userId },
+        ],
+      },
+      include: {
+        class:     true,
+        resources: { select: { type: true } },
+        homework:  { select: { id: true } },
+      },
+    })
 
-  return lessons.map(l => ({
-    id:          l.id,
-    title:       l.title,
-    scheduledAt: l.scheduledAt.toISOString(),
-    endsAt:      l.endsAt?.toISOString(),
-    published:   l.published,
-    className:   l.class?.name    ?? '—',
-    subject:     l.class?.subject ?? '—',
-    lessonType:  l.lessonType,
-    hasPlan:     l.resources.some(r => r.type === 'PLAN'),
-    hasSlides:   l.resources.some(r => r.type === 'SLIDES'),
-    hasHomework: l.homework.length > 0,
-    hasOther:    l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
-  }))
+    return lessons.map(l => ({
+      id:          l.id,
+      title:       l.title,
+      scheduledAt: l.scheduledAt.toISOString(),
+      endsAt:      l.endsAt?.toISOString(),
+      published:   l.published,
+      className:   l.class?.name    ?? '—',
+      subject:     l.class?.subject ?? '—',
+      lessonType:  l.lessonType,
+      hasPlan:     l.resources.some(r => r.type === 'PLAN'),
+      hasSlides:   l.resources.some(r => r.type === 'SLIDES'),
+      hasHomework: l.homework.length > 0,
+      hasOther:    l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
+    }))
+  } catch (err) {
+    console.error('[getWeekLessons] error:', err)
+    return []
+  }
 }
 
 export type CreateLessonInput = {
@@ -517,46 +522,51 @@ export type ClassRosterRow = {
 }
 
 export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  try {
+    const session = await auth()
+    if (!session) return []
+    const { schoolId } = session.user as any
 
-  const enrolments = await prisma.enrolment.findMany({
-    where:   { classId, class: { schoolId } },
-    include: {
-      user: {
-        include: {
-          sendStatus: { select: { activeStatus: true, needArea: true } },
-          plans: {
-            where:  { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
-            take:   1,
-            select: { id: true },
+    const enrolments = await prisma.enrolment.findMany({
+      where:   { classId, class: { schoolId } },
+      include: {
+        user: {
+          include: {
+            sendStatus: { select: { activeStatus: true, needArea: true } },
+            plans: {
+              where:  { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
+              take:   1,
+              select: { id: true },
+            },
+            submissions: {
+              where:   { schoolId },
+              orderBy: { submittedAt: 'desc' },
+              take:    1,
+              select:  { finalScore: true, autoScore: true, teacherScore: true },
+            },
+            settings: { select: { profilePictureUrl: true } },
           },
-          submissions: {
-            where:   { schoolId },
-            orderBy: { submittedAt: 'desc' },
-            take:    1,
-            select:  { finalScore: true, autoScore: true, teacherScore: true },
-          },
-          settings: { select: { profilePictureUrl: true } },
         },
       },
-    },
-    orderBy: [{ user: { lastName: 'asc' } }],
-  })
+      orderBy: [{ user: { lastName: 'asc' } }],
+    })
 
-  return enrolments.map(e => {
-    const sub   = e.user.submissions[0]
-    const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
-    return {
-      id:          e.user.id,
-      firstName:   e.user.firstName,
-      lastName:    e.user.lastName,
-      avatarUrl:   e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
-      sendStatus:  e.user.sendStatus?.activeStatus ?? 'NONE',
-      needArea:    e.user.sendStatus?.needArea ?? null,
-      hasIlp:      e.user.plans.length > 0,
-      latestScore: score,
-    }
-  })
+    return enrolments.map(e => {
+      const sub   = e.user.submissions[0]
+      const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
+      return {
+        id:          e.user.id,
+        firstName:   e.user.firstName,
+        lastName:    e.user.lastName,
+        avatarUrl:   e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+        sendStatus:  e.user.sendStatus?.activeStatus ?? 'NONE',
+        needArea:    e.user.sendStatus?.needArea ?? null,
+        hasIlp:      e.user.plans.length > 0,
+        latestScore: score,
+      }
+    })
+  } catch (err) {
+    console.error('[getClassRoster] error:', err)
+    return []
+  }
 }

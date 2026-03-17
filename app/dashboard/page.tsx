@@ -19,52 +19,60 @@ export default async function DashboardPage() {
   friday.setDate(monday.getDate() + 4)
   friday.setHours(23, 59, 59, 999)
 
-  const [school, weekLessons, futureLessons, classes, allClasses] = await Promise.all([
-    prisma.school.findUnique({ where: { id: schoolId } }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let school: any = null, weekLessons: any[] = [], futureLessons: any[] = [], classes: any[] = [], allClasses: any[] = []
 
-    prisma.lesson.findMany({
-      where: {
-        schoolId,
-        scheduledAt: { gte: monday, lte: friday },
-        OR: [
-          { class: { teachers: { some: { userId } } } },
-          { createdBy: userId },
-        ],
-      },
-      include: {
-        class: true,
-        resources: { select: { type: true } },
-        homework:  { select: { id: true } },
-      },
-    }),
+  try {
+    ;[school, weekLessons, futureLessons, classes, allClasses] = await Promise.all([
+      prisma.school.findUnique({ where: { id: schoolId } }),
 
-    prisma.lesson.findMany({
-      where: {
-        schoolId,
-        published: false,
-        scheduledAt: { gt: friday },
-        OR: [
-          { class: { teachers: { some: { userId } } } },
-          { createdBy: userId },
-        ],
-      },
-      include: { class: true },
-      orderBy: { scheduledAt: 'asc' },
-      take: 30,
-    }),
+      prisma.lesson.findMany({
+        where: {
+          schoolId,
+          scheduledAt: { gte: monday, lte: friday },
+          OR: [
+            { class: { teachers: { some: { userId } } } },
+            { createdBy: userId },
+          ],
+        },
+        include: {
+          class: true,
+          resources: { select: { type: true } },
+          homework:  { select: { id: true } },
+        },
+      }),
 
-    prisma.schoolClass.findMany({
-      where: { schoolId, teachers: { some: { userId } } },
-      select: { id: true, name: true, subject: true, yearGroup: true },
-      orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
-    }),
+      prisma.lesson.findMany({
+        where: {
+          schoolId,
+          published: false,
+          scheduledAt: { gt: friday },
+          OR: [
+            { class: { teachers: { some: { userId } } } },
+            { createdBy: userId },
+          ],
+        },
+        include: { class: true },
+        orderBy: { scheduledAt: 'asc' },
+        take: 30,
+      }),
 
-    prisma.schoolClass.findMany({
-      where:   { schoolId },
-      select:  { id: true, name: true, subject: true, yearGroup: true },
-      orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
-    }),
-  ])
+      prisma.schoolClass.findMany({
+        where: { schoolId, teachers: { some: { userId } } },
+        select: { id: true, name: true, subject: true, yearGroup: true },
+        orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
+      }),
+
+      prisma.schoolClass.findMany({
+        where:   { schoolId },
+        select:  { id: true, name: true, subject: true, yearGroup: true },
+        orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
+      }),
+    ])
+  } catch (err) {
+    console.error('[DashboardPage] data fetch failed:', err)
+    // Render empty calendar rather than crashing
+  }
 
   const lessons: CalendarLesson[] = weekLessons.map(l => ({
     id:          l.id,
@@ -75,10 +83,10 @@ export default async function DashboardPage() {
     className:   l.class?.name  ?? '—',
     subject:     l.class?.subject ?? '—',
     lessonType:  l.lessonType,
-    hasPlan:     l.resources.some(r => r.type === 'PLAN'),
-    hasSlides:   l.resources.some(r => r.type === 'SLIDES'),
+    hasPlan:     l.resources.some((r: { type: string }) => r.type === 'PLAN'),
+    hasSlides:   l.resources.some((r: { type: string }) => r.type === 'SLIDES'),
     hasHomework: l.homework.length > 0,
-    hasOther:    l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
+    hasOther:    l.resources.some((r: { type: string }) => r.type !== 'PLAN' && r.type !== 'SLIDES'),
   }))
 
   const unscheduled: UnscheduledLesson[] = futureLessons.map(l => ({

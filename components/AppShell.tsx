@@ -17,7 +17,7 @@ export default function AppShell({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    getMyAvatarUrl().then(url => setAvatarUrl(url ?? null))
+    getMyAvatarUrl().then(url => setAvatarUrl(url ?? null)).catch(() => {})
   }, [])
 
   return (

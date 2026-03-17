@@ -13,16 +13,21 @@ async function requireAuth() {
 }
 
 export async function getAccessibilitySettings(userId: string): Promise<AccessibilitySettings> {
-  const record = await prisma.userAccessibilitySettings.findUnique({
-    where: { userId },
-  })
-  if (!record) return { ...ACCESSIBILITY_DEFAULTS }
-  return {
-    dyslexiaFont:  record.dyslexiaFont,
-    highContrast:  record.highContrast,
-    largeText:     record.largeText,
-    reducedMotion: record.reducedMotion,
-    lineSpacing:   record.lineSpacing,
+  try {
+    const record = await prisma.userAccessibilitySettings.findUnique({
+      where: { userId },
+    })
+    if (!record) return { ...ACCESSIBILITY_DEFAULTS }
+    return {
+      dyslexiaFont:  record.dyslexiaFont,
+      highContrast:  record.highContrast,
+      largeText:     record.largeText,
+      reducedMotion: record.reducedMotion,
+      lineSpacing:   record.lineSpacing,
+    }
+  } catch (err) {
+    console.error('[getAccessibilitySettings] error:', err)
+    return { ...ACCESSIBILITY_DEFAULTS }
   }
 }
 

@@ -16,17 +16,22 @@ export default function AccessibilityToolbar({ userId }: { userId: string | null
   useEffect(() => {
     if (!userId) { setLoaded(true); return }
     start(async () => {
-      const s = await getAccessibilitySettings(userId)
-      setSettings(s)
-      setLoaded(true)
-      // Reconcile with server-applied classes (idempotent)
-      const el = document.documentElement
-      el.classList.remove(
-        'dyslexia-font', 'high-contrast', 'large-text',
-        'reduced-motion', 'line-spacing-wide', 'line-spacing-wider',
-      )
-      const classes = settingsToClasses(s)
-      if (classes) el.classList.add(...classes.split(' '))
+      try {
+        const s = await getAccessibilitySettings(userId)
+        setSettings(s)
+        setLoaded(true)
+        // Reconcile with server-applied classes (idempotent)
+        const el = document.documentElement
+        el.classList.remove(
+          'dyslexia-font', 'high-contrast', 'large-text',
+          'reduced-motion', 'line-spacing-wide', 'line-spacing-wider',
+        )
+        const classes = settingsToClasses(s)
+        if (classes) el.classList.add(...classes.split(' '))
+      } catch (err) {
+        console.error('[AccessibilityToolbar] settings load failed:', err)
+        setLoaded(true)
+      }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])

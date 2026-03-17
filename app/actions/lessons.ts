@@ -502,3 +502,61 @@ export async function updateResource(
 
   revalidatePath('/dashboard')
 }
+
+// ── Class Roster ─────────────────────────────────────────────────────────────
+
+export type ClassRosterRow = {
+  id:          string
+  firstName:   string
+  lastName:    string
+  avatarUrl:   string | null
+  sendStatus:  string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  needArea:    string | null
+  hasIlp:      boolean
+  latestScore: number | null
+}
+
+export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const enrolments = await prisma.enrolment.findMany({
+    where:   { classId, class: { schoolId } },
+    include: {
+      user: {
+        include: {
+          sendStatus: { select: { activeStatus: true, needArea: true } },
+          plans: {
+            where:  { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
+            take:   1,
+            select: { id: true },
+          },
+          submissions: {
+            where:   { schoolId },
+            orderBy: { submittedAt: 'desc' },
+            take:    1,
+            select:  { finalScore: true, autoScore: true, teacherScore: true },
+          },
+          settings: { select: { profilePictureUrl: true } },
+        },
+      },
+    },
+    orderBy: [{ user: { lastName: 'asc' } }],
+  })
+
+  return enrolments.map(e => {
+    const sub   = e.user.submissions[0]
+    const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
+    return {
+      id:          e.user.id,
+      firstName:   e.user.firstName,
+      lastName:    e.user.lastName,
+      avatarUrl:   e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+      sendStatus:  e.user.sendStatus?.activeStatus ?? 'NONE',
+      needArea:    e.user.sendStatus?.needArea ?? null,
+      hasIlp:      e.user.plans.length > 0,
+      latestScore: score,
+    }
+  })
+}

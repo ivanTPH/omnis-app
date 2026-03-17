@@ -134,18 +134,11 @@ export default function WeeklyCalendar({
     return () => window.removeEventListener('mouseup', onUp)
   }, [])
 
-  // Double-click detection
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Single-click opens lesson panel
   function onLessonClick(id: string) {
-    if (clickTimer.current) {
-      clearTimeout(clickTimer.current)
-      clickTimer.current = null
-      setFolderWizard(false)
-      setFolderTab('Overview')
-      setFolderId(id)
-    } else {
-      clickTimer.current = setTimeout(() => { clickTimer.current = null }, 260)
-    }
+    setFolderWizard(false)
+    setFolderTab('Overview')
+    setFolderId(prev => prev === id ? null : id)
   }
 
   const HOURS = Array.from({ length: extEndHour - extStartHour }, (_, i) => extStartHour + i)
@@ -163,7 +156,7 @@ export default function WeeklyCalendar({
     ? (today.getHours() - extStartHour) * SLOT_H + (today.getMinutes() / 60) * SLOT_H
     : -1
 
-  // Slot map: "dayIdx-hour" → lessons
+  // Slot map: "dayIdx-hour" → lessons (used for drop targeting + "add lesson" hint)
   const slotMap = new Map<string, CalendarLesson[]>()
   for (const l of displayLessons) {
     const dt  = new Date(l.scheduledAt)
@@ -191,8 +184,10 @@ export default function WeeklyCalendar({
   const goToday  = () => setWeekStart(getWeekStart(today))
 
   return (
-    <>
-      <div className="flex flex-1 min-w-0 overflow-hidden bg-white">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+
+      {/* ── Main calendar area ─────────────────────────────────────── */}
+      <div className={`flex min-w-0 bg-white overflow-hidden transition-all duration-300 ease-in-out ${folderId ? 'h-[45vh]' : 'flex-1'}`}>
 
         {/* ── Calendar panel ──────────────────────────────── */}
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
@@ -264,7 +259,7 @@ export default function WeeklyCalendar({
                         </div>
                       </div>
 
-                      {/* Hour slots */}
+                      {/* Hour slots — drop targets + absolute lesson tiles */}
                       <div className="relative flex-1">
                         {HOURS.map(h => {
                           const outOfHours  = h < startHour || h >= endHour
@@ -295,7 +290,6 @@ export default function WeeklyCalendar({
                                 const id = e.dataTransfer.getData('id')
                                 setDragging(null)
                                 if (!id) return
-                                // Find the lesson being dragged to preserve its duration
                                 const dragged = displayLessons.find(l => l.id === id)
                                 const origStart = dragged ? new Date(dragged.scheduledAt) : null
                                 const origEnd   = dragged?.endsAt ? new Date(dragged.endsAt) : null
@@ -303,14 +297,12 @@ export default function WeeklyCalendar({
                                 const newStart = new Date(day)
                                 newStart.setHours(h, 0, 0, 0)
                                 const newEnd = new Date(newStart.getTime() + durationMs)
-                                // Optimistic UI — move tile immediately
                                 if (dragged) setOptimisticMoves(m => new Map(m).set(id, { di, hr: h }))
                                 startReschedule(async () => {
                                   try {
                                     await rescheduleLesson(id, newStart.toISOString(), newEnd.toISOString())
                                     router.refresh()
                                   } finally {
-                                    // Clear optimistic override (real data replaces it via router.refresh)
                                     setOptimisticMoves(m => { const n = new Map(m); n.delete(id); return n })
                                   }
                                 })
@@ -351,9 +343,21 @@ export default function WeeklyCalendar({
                                 </div>
                               )}
 
-                              {/* Lesson tiles */}
+                              {/* FIX 3 — Apple Calendar: lessons positioned by actual start time + duration */}
                               {slotLessons.map((lesson, ti) => {
                                 const c = palette(lesson.subject)
+                                const isOptimistic = optimisticMoves.has(lesson.id)
+                                const dt = new Date(lesson.scheduledAt)
+                                // Sub-hour offset within the slot (0 when optimistically moved)
+                                const minuteOffset = isOptimistic ? 0 : dt.getMinutes()
+                                const topPx = (minuteOffset / 60) * SLOT_H + 2
+                                // Duration → height
+                                const endDt = (!isOptimistic && lesson.endsAt) ? new Date(lesson.endsAt) : null
+                                const durationH = endDt
+                                  ? Math.max(0.5, (endDt.getTime() - dt.getTime()) / 3600000)
+                                  : 1
+                                const heightPx = durationH * SLOT_H - 4
+
                                 return (
                                   <div
                                     key={lesson.id}
@@ -361,8 +365,8 @@ export default function WeeklyCalendar({
                                     onClick={() => onLessonClick(lesson.id)}
                                     onDragStart={e => { e.dataTransfer.setData('id', lesson.id); setDragging(lesson.id) }}
                                     onDragEnd={() => setDragging(null)}
-                                    style={{ top: 2, bottom: 2, left: 2 + ti * 5, right: 2 }}
-                                    className={`absolute rounded-md border-l-[3px] px-2 py-1 cursor-pointer z-[6] transition-opacity select-none
+                                    style={{ top: topPx, height: heightPx, left: 2 + ti * 5, right: 2 }}
+                                    className={`absolute rounded-md border-l-[3px] px-2 py-1 cursor-pointer z-[6] transition-opacity select-none overflow-hidden
                                       ${c.bg} ${c.border} ${c.text}
                                       ${dragging === lesson.id ? 'opacity-40' : 'opacity-100'}
                                     `}
@@ -447,7 +451,20 @@ export default function WeeklyCalendar({
         </div>
       </div>
 
-      {/* ── Slide-over ──────────────────────────────────────── */}
+      {/* ── FIX 1 — Inline lesson panel (slides up below calendar) ─── */}
+      {folderId && (
+        <div className="flex-1 min-h-0 overflow-hidden border-t border-gray-200 animate-slide-up">
+          <LessonFolder
+            lessonId={folderId}
+            defaultTab={folderTab}
+            wizardMode={folderWizard}
+            onClose={() => setFolderId(null)}
+            inline
+          />
+        </div>
+      )}
+
+      {/* ── Slide-over (create lesson modal) ────────────────────────── */}
       <LessonSlideOver
         open={slideOver !== null}
         onClose={() => setSlideOver(null)}
@@ -459,14 +476,6 @@ export default function WeeklyCalendar({
         teacherSubjects={teacherSubjects}
         onCreated={id => { setSlideOver(null); setFolderWizard(true); setFolderId(id); router.refresh() }}
       />
-
-      {/* ── Lesson Folder ───────────────────────────────────── */}
-      <LessonFolder
-        lessonId={folderId}
-        defaultTab={folderTab}
-        wizardMode={folderWizard}
-        onClose={() => setFolderId(null)}
-      />
-    </>
+    </div>
   )
 }

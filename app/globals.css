@@ -57,3 +57,12 @@ html.reduced-motion *::after {
 /* ─── Accessibility: Line spacing ───────────────────────────────────────────── */
 html.line-spacing-wide  body { line-height: 1.8 !important; }
 html.line-spacing-wider body { line-height: 2.2 !important; }
+
+/* ─── Lesson panel slide-up animation ──────────────────────────────────────── */
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.22s ease-out both;
+}

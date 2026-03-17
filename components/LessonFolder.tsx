@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw } from 'lucide-react'
+import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson } from '@/app/actions/lessons'
@@ -12,6 +12,7 @@ import AddResourcePanel       from '@/components/AddResourcePanel'
 import OakResourcePanel       from '@/components/OakResourcePanel'
 import UnifiedResourceSearch  from '@/components/UnifiedResourceSearch'
 const RevisionAnalysisPanel = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
+const ClassRosterTab = dynamic(() => import('@/components/ClassRosterTab'), { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
@@ -40,7 +41,7 @@ function toOakSubjectSlug(subject: string): string {
   return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }
 
-const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
+const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'Class', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -66,6 +67,7 @@ interface Props {
   onClose:     () => void
   defaultTab?: FolderTab
   wizardMode?: boolean
+  inline?:     boolean
 }
 
 const HW_TYPES: { value: HomeworkType; label: string }[] = [
@@ -76,7 +78,7 @@ const HW_TYPES: { value: HomeworkType; label: string }[] = [
   { value: 'UPLOAD',           label: 'Upload (photo/scan)' },
 ]
 
-export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode }: Props) {
+export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode, inline = false }: Props) {
   const router = useRouter()
   const [activeTab, setActiveTab]   = useState<Tab>('Overview')
   const [lesson,    setLesson]      = useState<LessonData | null>(null)
@@ -355,15 +357,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     'Resources':        <Upload        size={13} />,
     'Oak Resources':    <Library       size={13} />,
     'Homework':         <ClipboardList size={13} />,
+    'Class':            <Users         size={13} />,
     'SEND & Inclusion': <Heart         size={13} />,
     'Class Insights':   <BarChart2     size={13} />,
     'Revision':         <RotateCcw     size={13} />,
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-6">
+    <div className={inline ? 'h-full' : 'fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-6'}>
       <div
-        className={`bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-4xl h-[92dvh] sm:h-auto sm:max-h-[90vh] flex flex-col relative transition-all ${isDragOver ? 'ring-4 ring-blue-400 ring-offset-2' : ''}`}
+        className={`bg-white flex flex-col relative transition-all ${inline ? 'h-full' : 'rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-4xl h-[92dvh] sm:h-auto sm:max-h-[90vh]'} ${isDragOver ? 'ring-4 ring-blue-400 ring-offset-2' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -1372,6 +1375,20 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
                       <ClipboardList size={20} className="mx-auto text-gray-300 mb-2" />
                       <p className="text-[12px] text-gray-400">No homework linked. Set homework from this lesson.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Class roster ── */}
+              {activeTab === 'Class' && (
+                <div className="p-7">
+                  {lesson?.class?.id ? (
+                    <ClassRosterTab classId={lesson.class.id} />
+                  ) : (
+                    <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+                      <Users size={24} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
                     </div>
                   )}
                 </div>

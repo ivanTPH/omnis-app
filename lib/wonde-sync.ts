@@ -297,6 +297,13 @@ export async function runWondeSync(
   try {
     const periods = await fetchWondePeriods(wondeSchoolId, wondeToken)
     for (const p of periods) {
+      // API returns day as a string ("monday") — map to ISO weekday int (1=Mon…7=Sun)
+      const DAY_MAP: Record<string, number> = {
+        monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
+        friday: 5, saturday: 6, sunday: 7,
+      }
+      const dayOfWeek = p.day_number ?? (p.day ? (DAY_MAP[p.day.toLowerCase()] ?? null) : null)
+
       await prisma.wondePeriod.upsert({
         where:  { id: p.id },
         create: {
@@ -305,13 +312,13 @@ export async function runWondeSync(
           name:      p.name,
           startTime: p.start_time ?? '',
           endTime:   p.end_time ?? '',
-          dayOfWeek: p.day_of_week ?? null,
+          dayOfWeek,
         },
         update: {
           name:      p.name,
           startTime: p.start_time ?? '',
           endTime:   p.end_time ?? '',
-          dayOfWeek: p.day_of_week ?? null,
+          dayOfWeek,
         },
       })
       result.periods.upserted++
@@ -330,8 +337,9 @@ export async function runWondeSync(
     const entries = await fetchWondeTimetableEntries(wondeSchoolId, wondeToken)
     for (const e of entries) {
       const classId    = e.class?.data?.id ?? null
-      const employeeId = e.employee?.data?.id ?? null
-      const periodId   = e.period?.data?.id ?? null
+      // period and employee come back as flat string IDs (not nested objects)
+      const employeeId = e.employee ?? null
+      const periodId   = e.period ?? null
 
       if (!classId || !periodId) continue
 
@@ -353,14 +361,15 @@ export async function runWondeSync(
           classId,
           employeeId:    empExists ? employeeId : null,
           periodId,
-          roomName:      e.room?.data?.name ?? null,
+          // room is a flat string name in the API response
+          roomName:      e.room ?? null,
           effectiveDate: parseWondeDate(e.effective_date),
         },
         update: {
           classId,
           employeeId:    empExists ? employeeId : null,
           periodId,
-          roomName:      e.room?.data?.name ?? null,
+          roomName:      e.room ?? null,
           effectiveDate: parseWondeDate(e.effective_date),
         },
       })

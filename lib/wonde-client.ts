@@ -104,16 +104,23 @@ export interface WondePeriod {
   name: string
   start_time: string | null
   end_time: string | null
-  day_of_week: number | null
+  /** API returns a string like "monday" */
+  day: string | null
+  /** API returns a numeric day number (1=Mon…5=Fri) if available */
+  day_number: number | null
 }
 
 export interface WondeTimetableEntry {
   id: string
-  room?: { data: { name: string } | null }
+  /** Flat string room name (not nested) */
+  room: string | null
   effective_date: { date: string } | null
+  /** Nested object only when include=class */
   class?: { data: WondeClass | null }
-  employee?: { data: WondeEmployee | null }
-  period?: { data: WondePeriod | null }
+  /** Flat string employee ID (not nested) */
+  employee: string | null
+  /** Flat string period ID (not nested) */
+  period: string | null
 }
 
 export interface WondeAssessmentResult {
@@ -213,7 +220,7 @@ export async function fetchWondePeriods(schoolId: string, token: string): Promis
 
 export async function fetchWondeTimetableEntries(schoolId: string, token: string): Promise<WondeTimetableEntry[]> {
   return wondeAll<WondeTimetableEntry>(`/schools/${schoolId}/lessons`, token, {
-    include: 'period,class,employee,room',
+    include: 'class',
     per_page: '100',
   })
 }

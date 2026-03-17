@@ -227,6 +227,7 @@ export default function UnifiedResourceSearch({
   const [typeFilter,  setTypeFilter]  = useState<'all' | 'worksheet' | 'slides' | 'video' | 'quiz'>('all')
   const [results,     setResults]     = useState<CombinedResult[]>([])
   const [loading,     setLoading]     = useState(false)
+  const [broadened,   setBroadened]   = useState(false)
   const [addingId,    setAddingId]    = useState<string | null>(null)
   const [addedIds,    setAddedIds]    = useState<Set<string>>(new Set())
   const [previewSlug, setPreviewSlug] = useState<string | null>(null)
@@ -238,12 +239,25 @@ export default function UnifiedResourceSearch({
     runSearch('')
   }, [subjectSlug, yearGroup]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function runSearch(q: string) {
+  async function runSearch(q: string) {
     setLoading(true)
-    Promise.all([
-      searchOakLessons({ subjectSlug, yearGroup, query: q || undefined, limit: 20 }),
-      getSchoolResourceLibrary(lessonId),
-    ]).then(([oakResults, schoolResults]) => {
+    setBroadened(false)
+    try {
+      // First pass: exact subject + exact year group
+      let [oakResults, schoolResults] = await Promise.all([
+        searchOakLessons({ subjectSlug, yearGroup, query: q || undefined, limit: 20 }),
+        getSchoolResourceLibrary(lessonId),
+      ])
+
+      // Second pass: if fewer than 3 Oak results, broaden to subject only
+      if (oakResults.length < 3 && subjectSlug) {
+        const broader = await searchOakLessons({ subjectSlug, query: q || undefined, limit: 20 })
+        if (broader.length > oakResults.length) {
+          oakResults = broader
+          setBroadened(true)
+        }
+      }
+
       const combined: CombinedResult[] = [
         ...oakResults.map(d => ({ kind: 'oak' as const, data: d })),
         ...schoolResults
@@ -251,8 +265,11 @@ export default function UnifiedResourceSearch({
           .map(d => ({ kind: 'school' as const, data: d })),
       ]
       setResults(combined)
+    } catch {
+      // ignore
+    } finally {
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }
   }
 
   function handleQueryChange(q: string) {
@@ -328,6 +345,13 @@ export default function UnifiedResourceSearch({
         />
         {loading && <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
       </div>
+
+      {/* Broadened year notice */}
+      {broadened && yearGroup && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+          No exact Year {yearGroup} matches — showing resources from related year groups
+        </p>
+      )}
 
       {/* Type filter chips */}
       <div className="flex gap-1.5 flex-wrap">

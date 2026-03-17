@@ -47,14 +47,16 @@ export async function searchOakLessons(params: {
       isLegacy:  false,
       expired:   false,
       deletedAt: null,
-      ...(subjectSlug ? { subjectSlug }          : {}),
-      ...(yearGroup   ? { yearGroup }             : {}),
-      ...(keystage    ? { keystage }              : {}),
-      ...(examBoard   ? { examBoard }             : {}),
+      ...(subjectSlug ? { subjectSlug } : {}),
+      // When searching by keyword, skip yearGroup so results span all year groups
+      ...(!query && yearGroup ? { yearGroup } : {}),
+      ...(keystage  ? { keystage }  : {}),
+      ...(examBoard ? { examBoard } : {}),
       ...(query ? {
         OR: [
           { title:              { contains: query, mode: 'insensitive' } },
           { pupilLessonOutcome: { contains: query, mode: 'insensitive' } },
+          { unitSlug:           { contains: query.toLowerCase().replace(/\s+/g, '-') } },
         ],
       } : {}),
     },

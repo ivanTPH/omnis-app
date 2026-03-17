@@ -656,6 +656,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 lessonId={lessonId}
                 subjectSlug={lesson?.class?.subject ? toOakSubjectSlug(lesson.class.subject) : undefined}
                 yearGroup={lesson?.class?.yearGroup ?? undefined}
+                lessonTitle={lesson?.title}
                 onAdded={refreshLesson}
               />
             </div>
@@ -1226,6 +1227,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       lessonId={lessonId}
                       subjectSlug={lesson?.class?.subject ? toOakSubjectSlug(lesson.class.subject) : undefined}
                       yearGroup={lesson?.class?.yearGroup ?? undefined}
+                      lessonTitle={lesson?.title}
                       onAdded={refreshLesson}
                     />
                   )}

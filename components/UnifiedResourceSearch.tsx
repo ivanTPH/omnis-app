@@ -212,16 +212,29 @@ function QuickUpload({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+/** Extract the most useful search keywords from a lesson title */
+function titleToKeywords(title: string | undefined): string {
+  if (!title) return ''
+  return title
+    .replace(/[—\-–]/g, ' ')
+    .split(' ')
+    .filter(w => w.length > 3)
+    .slice(0, 4)
+    .join(' ')
+}
+
 export default function UnifiedResourceSearch({
   lessonId,
   subjectSlug,
   yearGroup,
+  lessonTitle,
   onAdded,
 }: {
-  lessonId:    string
+  lessonId:     string
   subjectSlug?: string
-  yearGroup?:  number
-  onAdded:     () => void
+  yearGroup?:   number
+  lessonTitle?: string
+  onAdded:      () => void
 }) {
   const [query,       setQuery]       = useState('')
   const [typeFilter,  setTypeFilter]  = useState<'all' | 'worksheet' | 'slides' | 'video' | 'quiz'>('all')
@@ -234,10 +247,10 @@ export default function UnifiedResourceSearch({
   const [, startAdd]                  = useTransition()
   const debounceRef                   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initial load: fetch Oak lessons for this subject/year
+  // Initial load: search by lesson title keywords first, then fall back to subject browse
   useEffect(() => {
-    runSearch('')
-  }, [subjectSlug, yearGroup]) // eslint-disable-line react-hooks/exhaustive-deps
+    runSearch(titleToKeywords(lessonTitle))
+  }, [subjectSlug, yearGroup, lessonTitle]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function runSearch(q: string) {
     setLoading(true)

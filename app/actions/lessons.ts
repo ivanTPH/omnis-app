@@ -596,7 +596,7 @@ export async function getStudentClassDetail(
       where: {
         studentId,
         schoolId,
-        homework: { lesson: { classId } },
+        homework: { classId },
       },
       include: { homework: { select: { title: true, dueAt: true } } },
       orderBy: { submittedAt: 'desc' },
@@ -655,7 +655,7 @@ export async function getClassInsights(classId: string): Promise<ClassInsightsDa
         orderBy: [{ user: { lastName: 'asc' } }],
       }),
       prisma.homework.findMany({
-        where: { lesson: { classId, schoolId }, status: { not: 'DRAFT' } },
+        where: { classId, schoolId, status: { not: 'DRAFT' } },
         select: {
           id:           true,
           gradingBands: true,

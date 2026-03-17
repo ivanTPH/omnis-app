@@ -399,11 +399,28 @@ function noApiKeyFallback(type: HomeworkType, lessonTitle: string, subject: stri
       modelAnswer: `[Teacher marking notes — not visible to pupils]`,
     },
   }
+  const questionsJson: ProposalResult['questionsJson'] =
+    type === 'MCQ_QUIZ' ? {
+      questions: [
+        { q: `[Edit] Question 1 about "${lessonTitle}"`, options: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 0, explanation: '' },
+        { q: `[Edit] Question 2 about "${lessonTitle}"`, options: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 1, explanation: '' },
+        { q: `[Edit] Question 3 about "${lessonTitle}"`, options: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 2, explanation: '' },
+      ] as MCQQuestion[],
+    } :
+    type === 'SHORT_ANSWER' ? {
+      questions: [
+        { q: `[Edit] Describe the key concepts from "${lessonTitle}".`,  modelAnswer: '[Add model answer]' },
+        { q: `[Edit] Give an example related to "${lessonTitle}".`,       modelAnswer: '[Add model answer]' },
+        { q: `[Edit] Explain why "${lessonTitle}" matters in ${subject}.`, modelAnswer: '[Add model answer]' },
+      ] as SAQuestion[],
+    } : undefined
+
   return {
     type,
     ...placeholders[type],
     gradingBands: type === 'MCQ_QUIZ' || type === 'UPLOAD' ? {} : defaultBands(),
     targetWordCount: type === 'EXTENDED_WRITING' ? 300 : 0,
+    questionsJson,
   }
 }
 

@@ -116,6 +116,7 @@ export default function LessonSlideOver({
   const [lessonType,   setLessonType]  = useState<LessonType>('NORMAL')
   const [audienceType, setAudience]    = useState<AudienceType>('CLASS')
   const [isPending,    startTransition]= useTransition()
+  const [submitError,  setSubmitError]  = useState<string | null>(null)
 
   // Auto-fill subject from teacher's profile (teacherSubjects[0]) or first class
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -187,19 +188,25 @@ export default function LessonSlideOver({
     const scheduledAt = new Date(`${date}T${startTime}`).toISOString()
     const endsAt      = new Date(`${date}T${endTime}`).toISOString()
 
+    setSubmitError(null)
     startTransition(async () => {
-      const result = await createLesson({
-        classId:     classId || null,
-        title:       lessonTitle,
-        scheduledAt,
-        endsAt,
-        lessonType,
-        audienceType,
-        topic:       topicLabel || undefined,
-        examBoard:   examBoard || undefined,
-      })
-      onClose()
-      onCreated?.(result.id)
+      try {
+        const result = await createLesson({
+          classId:     classId || null,
+          title:       lessonTitle,
+          scheduledAt,
+          endsAt,
+          lessonType,
+          audienceType,
+          topic:       topicLabel || undefined,
+          examBoard:   examBoard || undefined,
+        })
+        onClose()
+        onCreated?.(result.id)
+      } catch (err) {
+        console.error('Create lesson failed:', err)
+        setSubmitError('Failed to create lesson. Please try again.')
+      }
     })
   }
 
@@ -471,6 +478,9 @@ export default function LessonSlideOver({
           </div>
 
           {/* Footer navigation */}
+          {submitError && (
+            <p className="px-6 py-2 text-[12px] text-red-600 bg-red-50 border-t border-red-100">{submitError}</p>
+          )}
           <div className="px-6 py-4 border-t border-gray-200 flex gap-2 shrink-0">
             {step > 1 ? (
               <button

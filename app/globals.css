@@ -66,3 +66,7 @@ html.line-spacing-wider body { line-height: 2.2 !important; }
 .animate-slide-up {
   animation: slide-up 0.22s ease-out both;
 }
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

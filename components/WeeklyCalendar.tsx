@@ -184,10 +184,17 @@ export default function WeeklyCalendar({
   const goToday  = () => setWeekStart(getWeekStart(today))
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Main calendar area ─────────────────────────────────────── */}
-      <div className={`flex min-w-0 bg-white overflow-hidden transition-all duration-300 ease-in-out ${folderId ? 'h-[45vh]' : 'flex-1'}`}>
+      {/* ── Main calendar area — shrinks when lesson panel is open ──── */}
+      <div
+        className="flex min-w-0 bg-white overflow-hidden"
+        style={{
+          height:     folderId ? '45%' : '100%',
+          transition: 'height 0.3s ease',
+          flexShrink: 0,
+        }}
+      >
 
         {/* ── Calendar panel ──────────────────────────────── */}
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
@@ -451,9 +458,16 @@ export default function WeeklyCalendar({
         </div>
       </div>
 
-      {/* ── FIX 1 — Inline lesson panel (slides up below calendar) ─── */}
+      {/* ── Inline lesson panel — slides up below calendar ─────────── */}
       {folderId && (
-        <div className="flex-1 min-h-0 overflow-hidden border-t border-gray-200 animate-slide-up">
+        <div style={{
+          flex:        1,
+          minHeight:   0,
+          overflow:    'hidden',
+          borderTop:   '1px solid #e5e7eb',
+          backgroundColor: 'white',
+          animation:   'slideUp 0.25s ease-out',
+        }}>
           <LessonFolder
             lessonId={folderId}
             defaultTab={folderTab}

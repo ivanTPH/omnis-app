@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-16. Authoritative reference for Claude sessions.
+> Last updated: 2026-03-17. Authoritative reference for Claude sessions.
 
 ---
 
@@ -81,11 +81,15 @@ parent/dashboard, progress, messages, consent
 send/dashboard, review-due, ilp/[studentId]
 senco/dashboard, concerns, ilp, early-warning, ehcp, ilp-evidence
 hoy/analytics, slt/analytics
-admin/gdpr, admin/cover
+admin/gdpr, admin/cover, admin/wonde
 platform-admin/dashboard, schools, oak-sync
 messages/ + messages/[threadId]
+notifications/                          Platform notifications (all roles)
+plans/                                  SEND plans list
 ai-generator/
 send-scorer/
+revision-program/ + /new + /[programId]
+student/revision + /[taskId]
 api/auth/[...nextauth], api/settings/avatar, api/export/*, api/cron/*
 marketing/home, marketing/features, marketing/beta, marketing/investors  ← TODO
 ```
@@ -96,8 +100,8 @@ marketing/home, marketing/features, marketing/beta, marketing/investors  ← TOD
 
 | File | Key exports |
 |---|---|
-| `lessons.ts` | createLesson, getLessonDetails, updateLessonOverview, addUrlResource, addUploadedResource, addLibraryResource, removeResource, deleteLesson, rescheduleLesson |
-| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent |
+| `lessons.ts` | createLesson, getLessonDetails, updateLessonOverview, addUrlResource, addUploadedResource, addLibraryResource, removeResource, deleteLesson, rescheduleLesson, updateLessonObjectives |
+| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent, extractLearningFromLabel |
 | `analytics.ts` | getAnalyticsFilters, getStudentPerformance, getStudentDetail, getClassSummaries, getHomeworkAdaptiveAnalytics |
 | `settings.ts` | getMySettings, saveProfile, saveProfessionalPrefs, savePrivacySettings, saveSharingSettings, changePassword |
 | `oak.ts` | getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson |
@@ -113,6 +117,7 @@ marketing/home, marketing/features, marketing/beta, marketing/investors  ← TOD
 | `accessibility.ts` | getAccessibilitySettings, saveAccessibilitySettings |
 | `student.ts` | getStudentHomework, submitHomework |
 | `parent.ts` | sendParentMessage |
+| `wonde.ts` | testWondeConnection, triggerWondeSync, getWondeConfig, getWondeSyncLogs, getWondeCounts |
 
 ---
 
@@ -126,6 +131,9 @@ marketing/home, marketing/features, marketing/beta, marketing/investors  ← TOD
 | `LessonFolder.tsx` | Lesson detail modal (6 tabs) |
 | `LessonSlideOver.tsx` | Create new lesson panel |
 | `AddResourcePanel.tsx` / `OakResourcePanel.tsx` | Add resources to lesson |
+| `UnifiedResourceSearch.tsx` | Combined Oak + school library search with type filter chips |
+| `ResourcePreviewModal.tsx` | Oak lesson preview — key learning points, vocab, quizzes, download links |
+| `admin/WondeSyncPanel.tsx` | MIS sync dashboard — connection test, run sync, counts, log history |
 | `HomeworkFilterView.tsx` | Homework list + filters |
 | `SetHomeworkModal.tsx` | Homework creation modal |
 | `HomeworkMarkingView.tsx` | Split-panel marking view |
@@ -168,6 +176,8 @@ marketing/home, marketing/features, marketing/beta, marketing/investors  ← TOD
 | `lib/send/early-warning.ts` | Pattern checks → EarlyWarningFlags + SENCO notifications |
 | `lib/send/concern-analyser.ts` | Claude AI concern pattern analysis |
 | `lib/pdf/` | Puppeteer PDF generation (lesson plan, homework, revision, summary) |
+| `lib/wonde-client.ts` | Typed Wonde API client — paginated fetch helpers for all entity types |
+| `lib/wonde-sync.ts` | Full sync engine — upserts employees, students, contacts, groups, classes, periods, timetable |
 
 ---
 
@@ -240,34 +250,60 @@ npm run messages:seed      # 5 demo message threads
 
 ## Phase Completion
 
-**Phases 0–6D + Messaging: All complete ✅**
+**Phases 0–6D + Messaging + Phase 7 (Revision Program) + Phase 1C Part B (Wonde Live API): All complete ✅**
 
-Covers: Auth, Teacher Dashboard, Homework (set/mark/submit), Classes, Analytics, Settings, Oak content library, Wonde MIS schema, School Admin, Platform Admin, GDPR, SEND Scorer, AI Generator, Delta Oak Sync, Cover Management, PDF Export, Accessibility Modes, Student Revision Planner, Security Audit, Playwright E2E (82 tests), Proactive SEND Monitoring/ILP/Early Warning, Adaptive Homework/EHCP/ILP integration, Student Photos, Threaded Messaging.
+Covers: Auth, Teacher Dashboard, Homework (set/mark/submit), Classes, Analytics, Settings, Oak content library, Wonde MIS schema, School Admin, Platform Admin, GDPR, SEND Scorer, AI Generator, Delta Oak Sync, Cover Management, PDF Export, Accessibility Modes, Student Revision Planner, Security Audit, Playwright E2E (82 tests), Proactive SEND Monitoring/ILP/Early Warning, Adaptive Homework/EHCP/ILP integration, Student Photos, Threaded Messaging, Revision Program (7A/7B/7C), Wonde Live API Integration.
+
+---
+
+## Completed Phases (detail)
+
+**Phase 7A — Revision Program Foundation ✅ (2026-03-16)**
+- 4 Prisma models (RevisionProgram, RevisionTask, RevisionProgress, RevisionAnalyticsCache) pushed to DB.
+- `lib/revision/analysis-engine.ts` — `analyseClassPerformance()`.
+- `lib/revision/content-generator.ts` — `generateRevisionTask()` with SEND adaptations and ILP integration.
+- `app/actions/revision-program.ts` — 8 server actions. Rate limit: 3 programs/class/week.
+
+**Phase 7B — Revision Program Teacher UI ✅ (2026-03-16)**
+- 4 components: RevisionProgramCreator (4-step wizard), RevisionProgramList, RevisionProgramDetail, RevisionAnalysisPanel.
+- Routes: `/revision-program`, `/revision-program/new`, `/revision-program/[programId]`.
+
+**Phase 7C — Revision Program Student View ✅ (2026-03-16)**
+- StudentRevisionView, RevisionTaskView (localStorage auto-save, time tracking, 1–5 star confidence), RevisionProgressChart.
+- Routes: `/student/revision`, `/student/revision/[taskId]`.
+- LessonFolder Revision tab with RevisionAnalysisPanel + Create Program button.
+
+**Phase 1C Part B — Wonde Live API Integration ✅ (2026-03-17)**
+- `lib/wonde-client.ts` — typed API client, paginated fetch for all entity types.
+- `lib/wonde-sync.ts` — full sync engine; 98 staff, 200 students, 66 classes synced from Wonde Testing School (A1930499544, SIMS MIS).
+- `app/actions/wonde.ts` — 5 server actions (testWondeConnection, triggerWondeSync, getWondeConfig, getWondeSyncLogs, getWondeCounts).
+- `components/admin/WondeSyncPanel.tsx` + `/admin/wonde` route.
+- MIS Sync added to SCHOOL_ADMIN sidebar and admin dashboard quick links.
 
 ---
 
 ## Outstanding Tasks
-
-**Phase 7A — Revision Program Foundation (completed 2026-03-16)**
-- 4 Prisma models (RevisionProgram, RevisionTask, RevisionProgress, RevisionAnalyticsCache) pushed to DB via `db push`.
-- `lib/revision/analysis-engine.ts` — `analyseClassPerformance()` analyses lessons/homework/SEND/ILP data for a class period, identifies weak/strong topics per student.
-- `lib/revision/content-generator.ts` — `generateRevisionTask()` calls Claude to generate personalised tasks per student with SEND adaptations and ILP integration; batches 5 concurrent; graceful fallback.
-- `app/actions/revision-program.ts` — 8 server actions (getClassPerformanceAnalysis, createRevisionProgram, getRevisionPrograms, getRevisionProgramDetail, submitRevisionTask, selfAssessRevisionTask, markRevisionTask, getStudentRevisionTasks). Rate limit: 3 programs/class/week. 24h analytics cache. Spaced repetition via RevisionProgress.
-- `e2e/tests/revision-program.spec.ts` — stub test file (skipped; UI in Phase 7B).
-- Build passing.
-
-- **Phase 7B — Revision Program Teacher UI:** 4 components (RevisionProgramCreator 4-step wizard, RevisionProgramList with filter tabs, RevisionProgramDetail split-panel marking view, RevisionAnalysisPanel). Routes: `/revision-program` (list), `/revision-program/new` (creator wizard), `/revision-program/[programId]` (detail/marking). Sidebar: "Revision" (BookMarked) added to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SLT, SCHOOL_ADMIN. Middleware updated. Build passing.
-
-- **Phase 7C — Revision Program Student View & Integration:** `StudentRevisionView` (active/completed/study guide tabs with task cards, due-date urgency indicators, SEND/ILP badges), `RevisionTaskView` (quiz/MCQ/free-text response with localStorage auto-save every 60s, time tracking via `useRef`, self-assessment confidence rating 1–5 stars), `RevisionProgressChart` (recharts before/after grouped bar chart). Routes: `/student/revision`, `/student/revision/[taskId]`. Sidebar: "Revision" (BookMarked) added to STUDENT nav after Homework. `LessonFolder` Revision tab with `RevisionAnalysisPanel` + Create Program button. `auth.config.ts` updated with `/student/revision` STUDENT route. Seed: 2 revision programs (formal assignment + study guide) with 5 tasks each. `revision:seed` npm script. Build passing.
 
 **Marketing pages (TODO)**
 - 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`
 - Contact forms → email `ivanyardley@me.com` via `resend` package
 - API routes: `app/api/contact/beta/route.ts`, `app/api/contact/investors/route.ts`
 
-**Unbuilt routes (show "Coming soon")**
-- `/lessons`, `/resources`, `/plans`, `/notifications`
-- `/hoy/integrity`, `/admin/audit`, `/slt/audit`
+**Wonde timetable sync (pending permissions)**
+- Timetable sync (periods + lessons) skipped — needs `periods.read` and `lessons.read` permissions enabled in the Wonde dashboard. Email sent to Wonde support. When granted, re-run full sync from `/admin/wonde`.
+
+**E2E tests needed**
+- Phase 1C Part B (Wonde sync): `e2e/tests/wonde-sync.spec.ts`
+- Phase 7 (Revision Program): `e2e/tests/revision-program.spec.ts` (currently stubbed/skipped)
+- Lesson creation fixes (teacher subjects, time selects, Oak resources, homework auto-gen)
+
+**Missing error boundaries**
+- `app/hoy/error.tsx`, `app/messages/error.tsx`, `app/parent/error.tsx`, `app/settings/error.tsx`
+- `app/platform-admin/error.tsx`, `app/slt/error.tsx`, `app/send-scorer/error.tsx`
+- `app/ai-generator/error.tsx`, `app/revision/error.tsx`, `app/notifications/error.tsx`, `app/plans/error.tsx`
+
+**Unbuilt routes (404)**
+- `/lessons`, `/resources`, `/hoy/integrity`, `/admin/audit`, `/slt/audit`
 - `/student/grades`, `/student/homework` (list — individual items exist)
 
 ---

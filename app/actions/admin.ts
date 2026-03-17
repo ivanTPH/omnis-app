@@ -82,7 +82,7 @@ export async function getStaffMembers(_schoolId?: string): Promise<StaffMember[]
     email:      u.email,
     role:       u.role,
     department: u.department,
-    classCount: u.teacherClasses.length,
+    classCount: (u.teacherClasses ?? []).length,
     isActive:   u.isActive,
   }))
 }

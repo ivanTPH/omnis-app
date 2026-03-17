@@ -9,7 +9,12 @@ export default async function NotificationsPage() {
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName } = session.user as any
 
-  const notifications = await getMyPlatformNotifications()
+  let notifications: Awaited<ReturnType<typeof getMyPlatformNotifications>> = []
+  try {
+    notifications = await getMyPlatformNotifications()
+  } catch (err) {
+    console.error('[NotificationsPage] fetch failed:', err)
+  }
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

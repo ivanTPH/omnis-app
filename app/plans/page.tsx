@@ -21,7 +21,12 @@ export default async function PlansPage() {
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName, schoolId } = session.user as any
 
-  const plans = await getPlans(schoolId)
+  let plans: Awaited<ReturnType<typeof getPlans>> = []
+  try {
+    plans = await getPlans(schoolId)
+  } catch (err) {
+    console.error('[PlansPage] fetch failed:', err)
+  }
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

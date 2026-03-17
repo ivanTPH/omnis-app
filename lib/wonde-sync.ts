@@ -169,30 +169,45 @@ export async function runWondeSync(
       // Contacts
       if (stu.contacts?.data) {
         for (const c of stu.contacts.data) {
-          await prisma.wondeContact.upsert({
-            where:  { id: c.id },
-            create: {
-              id:                    c.id,
-              schoolId:              omnisSchoolId,
-              studentId:             stu.id,
-              firstName:             c.forename,
-              lastName:              c.surname,
-              email:                 c.email ?? null,
-              phone:                 c.telephone ?? c.mobile ?? null,
-              relationship:          c.relationship ?? null,
-              parentalResponsibility:c.parental_responsibility,
-              syncedAt:              now,
-            },
-            update: {
-              firstName:             c.forename,
-              lastName:              c.surname,
-              email:                 c.email ?? null,
-              phone:                 c.telephone ?? c.mobile ?? null,
-              relationship:          c.relationship ?? null,
-              parentalResponsibility:c.parental_responsibility,
-            },
-          })
-          result.contacts.upserted++
+          try {
+            // API returns relationship as a nested object; extract the string label
+            const relObj = typeof c.relationship === 'object' && c.relationship !== null
+              ? (c.relationship as { relationship?: string | null; parental_responsibility?: boolean | null })
+              : null
+            const relationshipStr = relObj
+              ? (relObj.relationship ?? null)
+              : (typeof c.relationship === 'string' ? c.relationship : null)
+            const parentalResp = relObj
+              ? (relObj.parental_responsibility ?? false)
+              : false
+
+            await prisma.wondeContact.upsert({
+              where:  { id: c.id },
+              create: {
+                id:                    c.id,
+                schoolId:              omnisSchoolId,
+                studentId:             stu.id,
+                firstName:             c.forename,
+                lastName:              c.surname,
+                email:                 c.email ?? null,
+                phone:                 c.telephone ?? c.mobile ?? null,
+                relationship:          relationshipStr,
+                parentalResponsibility:parentalResp,
+                syncedAt:              now,
+              },
+              update: {
+                firstName:             c.forename,
+                lastName:              c.surname,
+                email:                 c.email ?? null,
+                phone:                 c.telephone ?? c.mobile ?? null,
+                relationship:          relationshipStr,
+                parentalResponsibility:parentalResp,
+              },
+            })
+            result.contacts.upserted++
+          } catch (contactErr) {
+            errors.push(`Contact ${c.id}: ${String(contactErr)}`)
+          }
         }
       }
     }

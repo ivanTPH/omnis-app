@@ -5,7 +5,7 @@ import {
   Users, BookOpen, UserCheck, Calendar, AlertTriangle,
   Wifi, WifiOff, ChevronDown, ChevronUp,
 } from 'lucide-react'
-import { triggerWondeSync, testWondeConnection } from '@/app/actions/wonde'
+import { testWondeConnection } from '@/app/actions/wonde'
 import type { WondeSyncLog } from '@prisma/client'
 
 interface Props {
@@ -128,12 +128,14 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
     setSyncing(true)
     setSyncResult(null)
     try {
-      const r = await triggerWondeSync()
+      const res = await fetch('/api/wonde/sync', { method: 'POST' })
+      const r = await res.json()
       setSyncResult(r)
       if (r.success) {
-        // Refresh page data (server will re-fetch counts + logs)
         window.location.reload()
       }
+    } catch (err) {
+      setSyncResult({ success: false, error: String(err) })
     } finally {
       setSyncing(false)
     }

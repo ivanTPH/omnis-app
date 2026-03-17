@@ -8,5 +8,10 @@
       "path": "/api/cron/early-warning",
       "schedule": "0 6 * * 1-5"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/wonde/sync/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }

@@ -64,6 +64,14 @@ export interface WondeStudent {
   photo?: { data: { viewed: string } | null }
 }
 
+export interface WondeContactRelationship {
+  relationship: string | null
+  parental_responsibility: boolean | null
+  priority: number | null
+  lives_with_pupil: boolean | null
+  [key: string]: unknown
+}
+
 export interface WondeContact {
   id: string
   forename: string
@@ -73,9 +81,8 @@ export interface WondeContact {
   email: string | null
   telephone: string | null
   mobile: string | null
-  relationship: string | null
-  parental_responsibility: boolean
-  primary_salutation: boolean
+  /** API returns a nested object, not a plain string */
+  relationship: WondeContactRelationship | string | null
 }
 
 export interface WondeGroup {
@@ -207,7 +214,7 @@ export async function fetchWondeGroups(schoolId: string, token: string): Promise
 
 export async function fetchWondeClasses(schoolId: string, token: string): Promise<WondeClass[]> {
   return wondeAll<WondeClass>(`/schools/${schoolId}/classes`, token, {
-    include: 'students,employees,subject',
+    include: 'students,subject',
     per_page: '100',
   })
 }

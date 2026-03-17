@@ -190,7 +190,8 @@ export default function WeeklyCalendar({
       <div
         className="flex min-w-0 bg-white overflow-hidden"
         style={{
-          height:     folderId ? '45%' : '100%',
+          height:    folderId ? '42%' : '100%',
+          minHeight: folderId ? '200px' : undefined,
           transition: 'height 0.3s ease',
           flexShrink: 0,
         }}
@@ -461,12 +462,14 @@ export default function WeeklyCalendar({
       {/* ── Inline lesson panel — slides up below calendar ─────────── */}
       {folderId && (
         <div style={{
-          flex:        1,
-          minHeight:   0,
-          overflow:    'hidden',
-          borderTop:   '1px solid #e5e7eb',
+          flex:            1,
+          minHeight:       0,
+          display:         'flex',
+          flexDirection:   'column',
+          overflow:        'hidden',
+          borderTop:       '1px solid #e5e7eb',
           backgroundColor: 'white',
-          animation:   'slideUp 0.25s ease-out',
+          animation:       'slideUp 0.25s ease-out',
         }}>
           <LessonFolder
             lessonId={folderId}

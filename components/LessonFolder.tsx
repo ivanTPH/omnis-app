@@ -366,7 +366,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   return (
     <div
       className={inline ? '' : 'fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-6'}
-      style={inline ? { height: '100%', display: 'flex', flexDirection: 'column' } : {}}
+      style={inline ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}}
     >
       <div
         className={`${inline ? '' : 'bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-4xl h-[92dvh] sm:h-auto sm:max-h-[90vh]'} flex flex-col relative transition-all ${isDragOver ? 'ring-4 ring-blue-400 ring-offset-2' : ''}`}

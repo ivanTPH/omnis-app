@@ -41,7 +41,7 @@ function toOakSubjectSlug(subject: string): string {
   return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 }
 
-const TABS = ['Overview', 'Resources', 'Oak Resources', 'Homework', 'Class', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
+const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -179,6 +179,26 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     if (typeStore[hwType]?.instructions) return   // already have content for this type
     runHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
   }, [hwType])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-open homework wizard when Homework tab clicked, no homework exists, lesson has content
+  useEffect(() => {
+    if (activeTab !== 'Homework' || wizardStep !== null || !lessonId || !lesson) return
+    if ((lesson.homework?.length ?? 0) > 0) return
+    const hasContent = (lesson.objectives?.length ?? 0) > 0 || (lesson.resources?.length ?? 0) > 0
+    if (!hasContent) return
+    const lessonDate = lesson.scheduledAt ? new Date(lesson.scheduledAt) : new Date()
+    setHwSetDate(lessonDate.toISOString().split('T')[0])
+    const due = new Date(lessonDate)
+    due.setDate(due.getDate() + 7)
+    setHwDueDate(due.toISOString().split('T')[0])
+    setHwType('SHORT_ANSWER')
+    setTypeStore({})
+    setMcqQuestions([])
+    setSaQuestions([])
+    setGenSource(null)
+    setAiDecision(null)
+    setWizardStep(5)
+  }, [activeTab, lesson?.id])  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!lessonId) return null
 
@@ -349,13 +369,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     if (!lessonId) return
     startSave(async () => {
       await updateLessonOverview(lessonId, { title, objectives })
+      router.refresh()
     })
   }
 
   const TAB_ICONS: Record<Tab, React.ReactNode> = {
     'Overview':         <BookOpen      size={13} />,
     'Resources':        <Upload        size={13} />,
-    'Oak Resources':    <Library       size={13} />,
     'Homework':         <ClipboardList size={13} />,
     'Class':            <Users         size={13} />,
     'SEND & Inclusion': <Heart         size={13} />,
@@ -422,7 +442,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
                       className="border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" />
-                    <input type="time" value={editStart} onChange={e => setEditStart(e.target.value)}
+                    <input type="time" value={editStart} onChange={e => {
+                      const v = e.target.value; setEditStart(v)
+                      if (v) { const [h, m] = v.split(':').map(Number); setEditEnd(`${String(Math.min(h+1,23)).padStart(2,'0')}:${String(m).padStart(2,'0')}`) }
+                    }}
                       className="border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" />
                     <span className="text-gray-300 text-[11px]">–</span>
                     <input type="time" value={editEnd} onChange={e => setEditEnd(e.target.value)}
@@ -1007,60 +1030,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               {activeTab === 'Overview' && (
                 <div className="p-7 space-y-6">
 
-                  {/* Class info */}
-                  {lesson?.class && (
-                    <div>
-                      <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Class Information</h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Class</p>
-                          <p className="text-[14px] font-semibold text-gray-900">{lesson.class.name}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Subject</p>
-                          <p className="text-[14px] font-semibold text-gray-900">{lesson.class.subject}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Year Group</p>
-                          <p className="text-[14px] font-semibold text-gray-900">Year {lesson.class.yearGroup}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Department</p>
-                          <p className="text-[14px] font-semibold text-gray-900">{lesson.class.department}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Pupils Enrolled</p>
-                          <p className="text-[14px] font-semibold text-gray-900">{lesson.class._count.enrolments}</p>
-                        </div>
-                        {lesson.class.teachers.length > 0 && (
-                          <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Teacher{lesson.class.teachers.length > 1 ? 's' : ''}</p>
-                            <p className="text-[14px] font-semibold text-gray-900 truncate">
-                              {lesson.class.teachers.map(t => `${t.user.firstName} ${t.user.lastName}`).join(', ')}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Enrolled pupils */}
-                      {lesson.class.enrolments.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Enrolled Pupils</p>
-                          <div className="flex flex-wrap gap-2">
-                            {lesson.class.enrolments.map(e => (
-                              <div key={e.user.id} className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full pl-1 pr-3 py-1">
-                                <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold shrink-0">
-                                  {e.user.firstName[0]}{e.user.lastName[0]}
-                                </div>
-                                <span className="text-[12px] text-gray-800">{e.user.firstName} {e.user.lastName}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Learning Objectives</h3>
@@ -1117,7 +1086,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         <input
                           type="time"
                           value={editStart}
-                          onChange={e => setEditStart(e.target.value)}
+                          onChange={e => {
+                            const v = e.target.value; setEditStart(v)
+                            if (v) { const [h, m] = v.split(':').map(Number); setEditEnd(`${String(Math.min(h+1,23)).padStart(2,'0')}:${String(m).padStart(2,'0')}`) }
+                          }}
                           className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-2 text-[12px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
@@ -1258,29 +1230,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 </div>
               )}
 
-              {/* ── Oak Resources ── */}
-              {activeTab === 'Oak Resources' && (
-                <div className="p-7 space-y-4">
-                  <div>
-                    <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Oak National Academy</h3>
-                    <p className="text-[12px] text-gray-400 mt-1">
-                      Browse Oak&apos;s free lesson library and add lessons as resources.
-                    </p>
-                  </div>
-                  {lessonId && (
-                    <OakResourcePanel
-                      lessonId={lessonId}
-                      presetSubjectSlug={
-                        lesson?.class?.subject
-                          ? toOakSubjectSlug(lesson.class.subject)
-                          : undefined
-                      }
-                      presetYearGroup={lesson?.class?.yearGroup ?? undefined}
-                      onAdded={refreshLesson}
-                    />
-                  )}
-                </div>
-              )}
 
               {/* ── Homework ── */}
               {activeTab === 'Homework' && (

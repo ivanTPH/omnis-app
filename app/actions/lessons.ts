@@ -519,6 +519,7 @@ export type ClassRosterRow = {
   needArea:    string | null
   hasIlp:      boolean
   latestScore: number | null
+  maxScore:    number | null
 }
 
 export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
@@ -542,7 +543,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
               where:   { schoolId },
               orderBy: { submittedAt: 'desc' },
               take:    1,
-              select:  { finalScore: true, autoScore: true, teacherScore: true },
+              select:  { finalScore: true, autoScore: true, teacherScore: true, homework: { select: { gradingBands: true } } },
             },
             settings: { select: { profilePictureUrl: true } },
           },
@@ -563,6 +564,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         needArea:    e.user.sendStatus?.needArea ?? null,
         hasIlp:      e.user.plans.length > 0,
         latestScore: score,
+        maxScore:    sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
       }
     })
   } catch (err) {
@@ -579,6 +581,7 @@ export type StudentClassDetail = {
     status:        string
     finalScore:    number | null
     autoScore:     number | null
+    maxScore:      number | null
     dueAt:         string
   }[]
 }
@@ -598,7 +601,7 @@ export async function getStudentClassDetail(
         schoolId,
         homework: { classId },
       },
-      include: { homework: { select: { title: true, dueAt: true } } },
+      include: { homework: { select: { title: true, dueAt: true, gradingBands: true } } },
       orderBy: { submittedAt: 'desc' },
       take: 5,
     })
@@ -609,6 +612,7 @@ export async function getStudentClassDetail(
         status:        s.status,
         finalScore:    s.finalScore,
         autoScore:     s.autoScore,
+        maxScore:      maxFromBandsServer(s.homework.gradingBands),
         dueAt:         s.homework.dueAt.toISOString(),
       })),
     }

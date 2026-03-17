@@ -525,13 +525,24 @@ Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
       try { parsed = JSON.parse(retryCleaned) } catch { /* use original parsed */ }
     }
 
+    // Defensive: Claude sometimes returns questions at root level instead of inside questionsJson
+    let questionsJson = parsed.questionsJson ?? undefined
+    if (!questionsJson && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+      questionsJson = { questions: parsed.questions }
+    }
+    // Last resort: fall back to stub questions rather than silently returning none
+    if ((type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER') && (!questionsJson || !Array.isArray((questionsJson as any).questions) || (questionsJson as any).questions.length === 0)) {
+      const fallback = noApiKeyFallback(type, lesson.title, subject)
+      questionsJson = fallback.questionsJson
+    }
+
     return {
       type:            type,
       instructions:    parsed.instructions    ?? '',
       modelAnswer:     parsed.modelAnswer     ?? '',
       gradingBands:    parsed.gradingBands    ?? {},
       targetWordCount: parsed.targetWordCount ?? (type === 'EXTENDED_WRITING' ? 300 : 0),
-      questionsJson:   parsed.questionsJson   ?? undefined,
+      questionsJson,
     }
   } catch (err) {
     console.error('[generateHomeworkFromResources] API call failed:', err)

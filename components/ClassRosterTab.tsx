@@ -99,7 +99,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
         {rows.map(row => {
           const badge        = SEND_BADGE[row.sendStatus]
-          const scoreDisplay = row.latestScore != null ? `${Math.round(row.latestScore)}%` : null
+          const scoreDisplay = row.latestScore != null
+            ? (row.maxScore ? `${Math.round(row.latestScore)}/${row.maxScore}` : `${Math.round(row.latestScore)}`)
+            : null
           const isExpanded   = expandedId === row.id
           const detail       = detailsCache[row.id]
 
@@ -137,7 +139,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     </span>
                   )}
                   {scoreDisplay && (
-                    <span className="text-[11px] font-medium text-gray-500 w-9 text-right">
+                    <span className="text-[11px] font-medium text-gray-500 w-12 text-right">
                       {scoreDisplay}
                     </span>
                   )}
@@ -181,17 +183,20 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     ) : (
                       <div className="space-y-1.5">
                         {detail.recentSubmissions.map((s, i) => {
-                          const score = s.finalScore ?? s.autoScore
-                          const pct   = score != null ? Math.round(score) : null
+                          const score    = s.finalScore ?? s.autoScore
+                          const scoreStr = score != null
+                            ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
+                            : null
+                          const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
                           return (
                             <div key={i} className="flex items-center gap-3">
                               <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
                               <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
                                 {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
                               </span>
-                              {pct != null && (
-                                <span className={`text-[11px] font-bold shrink-0 w-10 text-right ${pct >= 70 ? 'text-green-600' : pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                  {pct}%
+                              {scoreStr != null && (
+                                <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                  {scoreStr}
                                 </span>
                               )}
                             </div>

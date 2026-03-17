@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
 import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson } from '@/app/actions/lessons'
@@ -12,7 +13,8 @@ import AddResourcePanel       from '@/components/AddResourcePanel'
 import OakResourcePanel       from '@/components/OakResourcePanel'
 import UnifiedResourceSearch  from '@/components/UnifiedResourceSearch'
 const RevisionAnalysisPanel = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
-const ClassRosterTab = dynamic(() => import('@/components/ClassRosterTab'), { ssr: false })
+const ClassRosterTab        = dynamic(() => import('@/components/ClassRosterTab'),         { ssr: false })
+const ClassInsightsTab      = dynamic(() => import('@/components/ClassInsightsTab'),        { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
@@ -1546,258 +1548,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               )}
 
               {activeTab === 'Class Insights' && (
-                <div className="p-7 space-y-6">
-                  {(() => {
-                    const enrolled    = lesson?.class?.enrolments ?? []
-                    const totalPupils = enrolled.length
-                    const homework    = lesson?.homework ?? []
-                    const termAgg     = lesson?.termAgg
-                    const medians     = lesson?.subjectMedian?.mediansJson as Record<string, number> | null ?? null
-
-                    // ── helper: infer max score from gradingBands keys ────────
-                    function maxFromBands(bands: unknown): number {
-                      if (!bands || typeof bands !== 'object') return 9
-                      return Math.max(...Object.keys(bands as Record<string, string>)
-                        .flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))))
-                    }
-
-                    // ── helper: aggregate misconception tags across submissions ─
-                    function tallyMisconceptions(subs: typeof homework[0]['submissions']) {
-                      const tally = new Map<string, number>()
-                      for (const s of subs) {
-                        const tags = s.misconceptionTags
-                        if (Array.isArray(tags)) {
-                          for (const t of tags as string[]) tally.set(t, (tally.get(t) ?? 0) + 1)
-                        }
-                      }
-                      return [...tally.entries()].sort((a, b) => b[1] - a[1])
-                    }
-
-                    // ── delta badge ────────────────────────────────────────────
-                    function DeltaBadge({ val, medianVal, unit = '' }: { val: number; medianVal: number; unit?: string }) {
-                      const diff = val - medianVal
-                      const up   = diff >= 0
-                      return (
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ml-1.5 ${up ? 'bg-green-50 text-green-700' : 'bg-rose-50 text-rose-700'}`}>
-                          {up ? '↑' : '↓'} {Math.abs(diff).toFixed(1)}{unit} vs median
-                        </span>
-                      )
-                    }
-
-                    return (
-                      <>
-                        {/* ── Homework performance ── */}
-                        {homework.length === 0 ? (
-                          <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                            <BarChart2 size={24} className="mx-auto text-gray-300 mb-2" />
-                            <p className="text-[12px] text-gray-400">No homework set for this lesson yet.</p>
-                          </div>
-                        ) : (
-                          homework.map(hw => {
-                            const maxScore   = maxFromBands(hw.gradingBands)
-                            const submitted  = hw.submissions.filter(s => s.status !== 'SUBMITTED' || s.finalScore != null)
-                            const scored     = hw.submissions.filter(s => s.finalScore != null)
-                            const avgScore   = scored.length ? scored.reduce((a, s) => a + s.finalScore!, 0) / scored.length : null
-                            const missedIds  = new Set(hw.submissions.map(s => s.student.id))
-                            const missing    = enrolled.filter(e => !missedIds.has(e.user.id))
-                            const completion = totalPupils > 0 ? hw.submissions.length / totalPupils : 0
-                            const misconceptions = tallyMisconceptions(hw.submissions)
-
-                            return (
-                              <div key={hw.id} className="border border-gray-200 rounded-2xl overflow-hidden">
-
-                                {/* hw header */}
-                                <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
-                                  <div>
-                                    <p className="text-[13px] font-semibold text-gray-900">{hw.title}</p>
-                                    <p className="text-[11px] text-gray-400 mt-0.5">
-                                      Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                                    </p>
-                                  </div>
-                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                    hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                                  }`}>{hw.status}</span>
-                                </div>
-
-                                <div className="px-5 py-4 space-y-5">
-
-                                  {/* stat row */}
-                                  <div className="grid grid-cols-3 gap-3">
-                                    {/* completion */}
-                                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Submitted</p>
-                                      <p className="text-[18px] font-bold text-gray-900">{hw.submissions.length}<span className="text-[12px] font-normal text-gray-400">/{totalPupils}</span></p>
-                                      <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${completion * 100}%` }} />
-                                      </div>
-                                      <p className="text-[10px] text-gray-400 mt-1">{Math.round(completion * 100)}% completion</p>
-                                    </div>
-
-                                    {/* avg score */}
-                                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Avg Score</p>
-                                      {avgScore != null ? (
-                                        <>
-                                          <p className="text-[18px] font-bold text-gray-900">
-                                            {avgScore.toFixed(1)}<span className="text-[12px] font-normal text-gray-400">/{maxScore}</span>
-                                          </p>
-                                          <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full ${avgScore / maxScore >= 0.7 ? 'bg-green-500' : avgScore / maxScore >= 0.4 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                              style={{ width: `${(avgScore / maxScore) * 100}%` }} />
-                                          </div>
-                                          <p className="text-[10px] text-gray-400 mt-1">{Math.round((avgScore / maxScore) * 100)}% of marks</p>
-                                        </>
-                                      ) : (
-                                        <p className="text-[12px] text-gray-400 mt-2">Not yet marked</p>
-                                      )}
-                                    </div>
-
-                                    {/* missing */}
-                                    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Missing</p>
-                                      <p className={`text-[18px] font-bold ${missing.length > 0 ? 'text-rose-600' : 'text-green-600'}`}>{missing.length}</p>
-                                      {missing.length > 0 ? (
-                                        <div className="mt-1.5 space-y-0.5">
-                                          {missing.map(e => (
-                                            <p key={e.user.id} className="text-[10px] text-rose-500 truncate">⚠ {e.user.firstName} {e.user.lastName}</p>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        <p className="text-[10px] text-green-600 mt-1">All submitted ✓</p>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* per-pupil score bars */}
-                                  {scored.length > 0 && (
-                                    <div>
-                                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Pupil Scores</p>
-                                      <div className="space-y-2">
-                                        {[...hw.submissions]
-                                          .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1))
-                                          .map(s => {
-                                            const pct = s.finalScore != null ? (s.finalScore / maxScore) * 100 : 0
-                                            const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-amber-500' : 'bg-rose-500'
-                                            return (
-                                              <div key={s.id} className="flex items-center gap-3">
-                                                <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-[9px] font-bold shrink-0">
-                                                  {s.student.firstName[0]}{s.student.lastName[0]}
-                                                </div>
-                                                <span className="text-[12px] text-gray-700 w-32 shrink-0 truncate">{s.student.firstName} {s.student.lastName}</span>
-                                                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                  <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-                                                </div>
-                                                <span className="text-[11px] font-semibold text-gray-700 w-10 text-right shrink-0">
-                                                  {s.finalScore != null ? `${s.finalScore}/${maxScore}` : '—'}
-                                                </span>
-                                                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full w-16 text-center shrink-0 ${
-                                                  s.status === 'RETURNED' ? 'bg-green-100 text-green-700' :
-                                                  s.status === 'MARKED'   ? 'bg-blue-100 text-blue-700'   :
-                                                  'bg-gray-100 text-gray-500'
-                                                }`}>{s.status.charAt(0) + s.status.slice(1).toLowerCase()}</span>
-                                              </div>
-                                            )
-                                          })}
-                                        {missing.map(e => (
-                                          <div key={e.user.id} className="flex items-center gap-3">
-                                            <div className="w-6 h-6 rounded-full bg-rose-50 text-rose-400 flex items-center justify-center text-[9px] font-bold shrink-0">
-                                              {e.user.firstName[0]}{e.user.lastName[0]}
-                                            </div>
-                                            <span className="text-[12px] text-gray-400 w-32 shrink-0 truncate">{e.user.firstName} {e.user.lastName}</span>
-                                            <div className="flex-1 h-2 bg-gray-100 rounded-full" />
-                                            <span className="text-[11px] text-gray-300 w-10 text-right shrink-0">—</span>
-                                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full w-16 text-center shrink-0 bg-rose-50 text-rose-400">Missing</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* misconceptions */}
-                                  {misconceptions.length > 0 && (
-                                    <div>
-                                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Common Misconceptions</p>
-                                      <div className="space-y-1.5">
-                                        {misconceptions.map(([tag, count]) => (
-                                          <div key={tag} className="flex items-center gap-2">
-                                            <div className="flex-1 flex items-center gap-2">
-                                              <div className="h-1.5 bg-rose-400 rounded-full" style={{ width: `${Math.min(count * 40, 100)}%`, minWidth: 8 }} />
-                                              <span className="text-[11px] text-gray-600 capitalize">{tag.replace(/_/g, ' ')}</span>
-                                            </div>
-                                            <span className="text-[10px] font-bold text-rose-500 shrink-0">×{count}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )
-                          })
-                        )}
-
-                        {/* ── Term overview ── */}
-                        {termAgg && (
-                          <div>
-                            <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
-                              Term Overview — {lesson?.class?.name}
-                            </h3>
-                            <div className="grid grid-cols-2 gap-3">
-
-                              <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Completion Rate</p>
-                                <div className="flex items-baseline gap-1 flex-wrap">
-                                  <span className="text-[20px] font-bold text-gray-900">{Math.round(termAgg.completionRate * 100)}%</span>
-                                  {medians?.completionRate != null && (
-                                    <DeltaBadge val={termAgg.completionRate * 100} medianVal={medians.completionRate * 100} unit="pp" />
-                                  )}
-                                </div>
-                                <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full ${termAgg.completionRate >= 0.8 ? 'bg-green-500' : termAgg.completionRate >= 0.6 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                    style={{ width: `${termAgg.completionRate * 100}%` }} />
-                                </div>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Average Score</p>
-                                <div className="flex items-baseline gap-1 flex-wrap">
-                                  <span className="text-[20px] font-bold text-gray-900">{termAgg.avgScore.toFixed(1)}</span>
-                                  {medians?.avgScore != null && (
-                                    <DeltaBadge val={termAgg.avgScore} medianVal={medians.avgScore} />
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Predicted Trend</p>
-                                <span className={`text-[20px] font-bold ${termAgg.predictedDelta > 0 ? 'text-green-600' : termAgg.predictedDelta < 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                                  {termAgg.predictedDelta > 0 ? '+' : ''}{termAgg.predictedDelta.toFixed(1)}
-                                </span>
-                                <p className="text-[10px] text-gray-400 mt-0.5">grade points vs last term</p>
-                              </div>
-
-                              <div className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Integrity Flags</p>
-                                <span className={`text-[20px] font-bold ${termAgg.integrityFlagRate === 0 ? 'text-green-600' : termAgg.integrityFlagRate < 0.05 ? 'text-amber-600' : 'text-rose-600'}`}>
-                                  {Math.round(termAgg.integrityFlagRate * 100)}%
-                                </span>
-                                <p className="text-[10px] text-gray-400 mt-0.5">of submissions flagged</p>
-                              </div>
-
-                            </div>
-                          </div>
-                        )}
-
-                        {homework.length === 0 && !termAgg && (
-                          <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                            <BarChart2 size={24} className="mx-auto text-gray-300 mb-2" />
-                            <p className="text-[12px] text-gray-400">No data yet for this lesson.</p>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
+                lesson?.classId
+                  ? <ClassInsightsTab classId={lesson.classId} />
+                  : (
+                    <div className="p-7">
+                      <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+                        <BarChart2 size={24} className="mx-auto text-gray-300 mb-2" />
+                        <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+                      </div>
+                    </div>
+                  )
               )}
             </>
           )}

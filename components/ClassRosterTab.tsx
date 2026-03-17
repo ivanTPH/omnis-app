@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Loader2, AlertCircle } from 'lucide-react'
-import { getClassRoster, type ClassRosterRow } from '@/app/actions/lessons'
+import { Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { getClassRoster, getStudentClassDetail, type ClassRosterRow, type StudentClassDetail } from '@/app/actions/lessons'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const SEND_BADGE: Record<string, { label: string; cls: string }> = {
@@ -9,10 +9,20 @@ const SEND_BADGE: Record<string, { label: string; cls: string }> = {
   EHCP:        { label: 'EHCP',        cls: 'bg-purple-100 text-purple-700' },
 }
 
+const STATUS_COLORS: Record<string, string> = {
+  RETURNED:           'bg-green-100 text-green-700',
+  MARKED:             'bg-blue-100 text-blue-700',
+  UNDER_REVIEW:       'bg-amber-100 text-amber-700',
+  RESUBMISSION_REQ:   'bg-orange-100 text-orange-700',
+  SUBMITTED:          'bg-gray-100 text-gray-600',
+}
+
 export default function ClassRosterTab({ classId }: { classId: string }) {
-  const [rows,    setRows]    = useState<ClassRosterRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [rows,         setRows]         = useState<ClassRosterRow[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
+  const [expandedId,   setExpandedId]   = useState<string | null>(null)
+  const [detailsCache, setDetailsCache] = useState<Record<string, StudentClassDetail | 'loading'>>({})
 
   useEffect(() => {
     setLoading(true)
@@ -22,6 +32,17 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       .catch(() => setError('Could not load class roster.'))
       .finally(() => setLoading(false))
   }, [classId])
+
+  function handleToggle(id: string) {
+    if (expandedId === id) { setExpandedId(null); return }
+    setExpandedId(id)
+    if (!detailsCache[id]) {
+      setDetailsCache(c => ({ ...c, [id]: 'loading' }))
+      getStudentClassDetail(id, classId)
+        .then(d  => setDetailsCache(c => ({ ...c, [id]: d })))
+        .catch(() => setDetailsCache(c => ({ ...c, [id]: { recentSubmissions: [] } })))
+    }
+  }
 
   if (loading) {
     return (
@@ -77,45 +98,111 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       {/* Student rows */}
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
         {rows.map(row => {
-          const badge = SEND_BADGE[row.sendStatus]
-          const scoreDisplay = row.latestScore != null
-            ? `${Math.round(row.latestScore)}%`
-            : null
+          const badge        = SEND_BADGE[row.sendStatus]
+          const scoreDisplay = row.latestScore != null ? `${Math.round(row.latestScore)}%` : null
+          const isExpanded   = expandedId === row.id
+          const detail       = detailsCache[row.id]
 
           return (
-            <div key={row.id} className="flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors">
-              <StudentAvatar
-                firstName={row.firstName}
-                lastName={row.lastName}
-                avatarUrl={row.avatarUrl}
-                size="sm"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-gray-900 truncate">
-                  {row.firstName} {row.lastName}
-                </p>
-                {row.needArea && (
-                  <p className="text-[10px] text-gray-400 truncate">{row.needArea}</p>
-                )}
-              </div>
+            <div key={row.id}>
+              {/* Row */}
+              <button
+                onClick={() => handleToggle(row.id)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors text-left"
+              >
+                <StudentAvatar
+                  firstName={row.firstName}
+                  lastName={row.lastName}
+                  avatarUrl={row.avatarUrl}
+                  size="sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-gray-900 truncate">
+                    {row.firstName} {row.lastName}
+                  </p>
+                  {row.needArea && (
+                    <p className="text-[10px] text-gray-400 truncate">{row.needArea}</p>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-1.5 shrink-0">
-                {badge && (
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
-                    {badge.label}
-                  </span>
-                )}
-                {row.hasIlp && (
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                    ILP
-                  </span>
-                )}
-                {scoreDisplay && (
-                  <span className="text-[11px] font-medium text-gray-500 w-9 text-right">
-                    {scoreDisplay}
-                  </span>
-                )}
-              </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {badge && (
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  )}
+                  {row.hasIlp && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                      ILP
+                    </span>
+                  )}
+                  {scoreDisplay && (
+                    <span className="text-[11px] font-medium text-gray-500 w-9 text-right">
+                      {scoreDisplay}
+                    </span>
+                  )}
+                  {isExpanded
+                    ? <ChevronDown size={13} className="text-gray-400 shrink-0" />
+                    : <ChevronRight size={13} className="text-gray-300 shrink-0" />
+                  }
+                </div>
+              </button>
+
+              {/* Expanded detail */}
+              {isExpanded && (
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 space-y-3">
+
+                  {/* SEND / ILP info */}
+                  <div className="flex flex-wrap gap-2">
+                    {badge ? (
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">No SEND needs</span>
+                    )}
+                    {row.hasIlp && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Active ILP</span>
+                    )}
+                    {row.needArea && (
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">{row.needArea}</span>
+                    )}
+                  </div>
+
+                  {/* Recent homework */}
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Recent Homework</p>
+                    {detail === 'loading' ? (
+                      <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                        <Loader2 size={12} className="animate-spin" /> Loading…
+                      </div>
+                    ) : !detail || detail.recentSubmissions.length === 0 ? (
+                      <p className="text-[12px] text-gray-400">No submissions for this class yet.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {detail.recentSubmissions.map((s, i) => {
+                          const score = s.finalScore ?? s.autoScore
+                          const pct   = score != null ? Math.round(score) : null
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                                {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
+                              </span>
+                              {pct != null && (
+                                <span className={`text-[11px] font-bold shrink-0 w-10 text-right ${pct >= 70 ? 'text-green-600' : pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                  {pct}%
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
             </div>
           )
         })}

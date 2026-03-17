@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition } from 'react'
-import { X, Download, Plus, Loader2, BookOpen, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Download, Plus, Loader2, BookOpen, ChevronDown, ChevronUp, Eye, ArrowLeft } from 'lucide-react'
 import { getOakLesson, addOakLessonToLesson } from '@/app/actions/oak'
 
 type OakDetail = Awaited<ReturnType<typeof getOakLesson>>
@@ -32,10 +32,11 @@ export default function ResourcePreviewModal({
   onClose:   () => void
   onAdded?:  () => void
 }) {
-  const [detail,   setDetail]   = useState<OakDetail | null>(null)
-  const [loading,  setLoading]  = useState(true)
-  const [added,    setAdded]    = useState(false)
-  const [, startAdd]            = useTransition()
+  const [detail,     setDetail]     = useState<OakDetail | null>(null)
+  const [loading,    setLoading]    = useState(true)
+  const [added,      setAdded]      = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [, startAdd]               = useTransition()
 
   useEffect(() => {
     setLoading(true)
@@ -88,7 +89,34 @@ export default function ResourcePreviewModal({
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          {previewUrl ? (
+            <>
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50 shrink-0">
+                <button
+                  onClick={() => setPreviewUrl(null)}
+                  className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  <ArrowLeft size={12} /> Back
+                </button>
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 border border-gray-200 rounded-lg text-[11px] text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  <Download size={11} /> Download
+                </a>
+              </div>
+              <iframe
+                src={previewUrl}
+                className="flex-1 w-full border-0"
+                title="Resource preview"
+              />
+            </>
+          ) : (
+          <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 size={20} className="animate-spin text-gray-400" />
@@ -170,35 +198,33 @@ export default function ResourcePreviewModal({
                 </CollapsibleSection>
               )}
 
-              {/* Downloads */}
+              {/* Downloads / Preview */}
               {(detail.worksheetUrl || detail.presentationUrl) && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Downloads</p>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Resources</p>
                   <div className="flex flex-wrap gap-2">
                     {detail.worksheetUrl && (
-                      <a
-                        href={detail.worksheetUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => setPreviewUrl(detail.worksheetUrl!)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-[12px] text-gray-700 hover:bg-gray-50 transition-colors"
                       >
-                        <Download size={12} /> Worksheet
-                      </a>
+                        <Eye size={12} /> Worksheet
+                      </button>
                     )}
                     {detail.presentationUrl && (
-                      <a
-                        href={detail.presentationUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => setPreviewUrl(detail.presentationUrl!)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-[12px] text-gray-700 hover:bg-gray-50 transition-colors"
                       >
-                        <Download size={12} /> Slides
-                      </a>
+                        <Eye size={12} /> Slides
+                      </button>
                     )}
                   </div>
                 </div>
               )}
             </>
+          )}
+          </div>
           )}
         </div>
 

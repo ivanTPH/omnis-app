@@ -570,3 +570,140 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
     return []
   }
 }
+
+// ── Student class detail (for expandable roster row) ──────────────────────────
+
+export type StudentClassDetail = {
+  recentSubmissions: {
+    homeworkTitle: string
+    status:        string
+    finalScore:    number | null
+    autoScore:     number | null
+    dueAt:         string
+  }[]
+}
+
+export async function getStudentClassDetail(
+  studentId: string,
+  classId:   string,
+): Promise<StudentClassDetail> {
+  try {
+    const session = await auth()
+    if (!session) return { recentSubmissions: [] }
+    const { schoolId } = session.user as any
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        studentId,
+        schoolId,
+        homework: { lesson: { classId } },
+      },
+      include: { homework: { select: { title: true, dueAt: true } } },
+      orderBy: { submittedAt: 'desc' },
+      take: 5,
+    })
+
+    return {
+      recentSubmissions: submissions.map(s => ({
+        homeworkTitle: s.homework.title,
+        status:        s.status,
+        finalScore:    s.finalScore,
+        autoScore:     s.autoScore,
+        dueAt:         s.homework.dueAt.toISOString(),
+      })),
+    }
+  } catch (err) {
+    console.error('[getStudentClassDetail] error:', err)
+    return { recentSubmissions: [] }
+  }
+}
+
+// ── Class-wide insights ────────────────────────────────────────────────────────
+
+export type ClassInsightsStudent = {
+  studentId:       string
+  name:            string
+  avgScore:        number | null   // 0–100 percentage
+  submissionCount: number
+  totalHomework:   number
+  ragStatus:       'green' | 'amber' | 'red' | 'none'
+}
+
+export type ClassInsightsData = {
+  students:      ClassInsightsStudent[]
+  classAvg:      number | null
+  totalHomework: number
+}
+
+function maxFromBandsServer(bands: unknown): number {
+  if (!bands || typeof bands !== 'object') return 9
+  const keys = Object.keys(bands as Record<string, string>)
+  const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
+  return nums.length ? Math.max(...nums) : 9
+}
+
+export async function getClassInsights(classId: string): Promise<ClassInsightsData> {
+  try {
+    const session = await auth()
+    if (!session) return { students: [], classAvg: null, totalHomework: 0 }
+    const { schoolId } = session.user as any
+
+    const [enrolments, homework] = await Promise.all([
+      prisma.enrolment.findMany({
+        where:   { classId, class: { schoolId } },
+        include: { user: { select: { id: true, firstName: true, lastName: true } } },
+        orderBy: [{ user: { lastName: 'asc' } }],
+      }),
+      prisma.homework.findMany({
+        where: { lesson: { classId, schoolId }, status: { not: 'DRAFT' } },
+        select: {
+          id:           true,
+          gradingBands: true,
+          submissions:  { select: { studentId: true, finalScore: true, autoScore: true, teacherScore: true } },
+        },
+      }),
+    ])
+
+    const totalHomework = homework.length
+
+    const students: ClassInsightsStudent[] = enrolments.map(e => {
+      const studentId = e.user.id
+
+      const pcts = homework.map(hw => {
+        const sub = hw.submissions.find(s => s.studentId === studentId)
+        if (!sub) return null
+        const score = sub.finalScore ?? sub.autoScore ?? sub.teacherScore
+        if (score == null) return null
+        const max = maxFromBandsServer(hw.gradingBands)
+        return Math.round((score / max) * 100)
+      }).filter((v): v is number => v !== null)
+
+      const avgScore        = pcts.length ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null
+      const submissionCount = pcts.length
+
+      const ragStatus: ClassInsightsStudent['ragStatus'] =
+        avgScore == null ? 'none' :
+        avgScore >= 70   ? 'green' :
+        avgScore >= 40   ? 'amber' : 'red'
+
+      return {
+        studentId,
+        name:            `${e.user.firstName} ${e.user.lastName}`,
+        avgScore,
+        submissionCount,
+        totalHomework,
+        ragStatus,
+      }
+    })
+
+    const scored   = students.filter(s => s.avgScore != null)
+    const classAvg = scored.length
+      ? scored.reduce((a, s) => a + s.avgScore!, 0) / scored.length
+      : null
+
+    return { students, classAvg, totalHomework }
+  } catch (err) {
+    console.error('[getClassInsights] error:', err)
+    return { students: [], classAvg: null, totalHomework: 0 }
+  }
+}

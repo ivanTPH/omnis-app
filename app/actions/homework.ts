@@ -499,9 +499,14 @@ Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
     const raw     = (message.content[0] as any).text.trim()
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
 
+    console.log('[generateHomeworkFromResources] RAW AI RESPONSE (first 500):', cleaned.slice(0, 500))
+
     let parsed: any
     try {
       parsed = JSON.parse(cleaned)
+      console.log('[generateHomeworkFromResources] PARSED KEYS:', Object.keys(parsed))
+      console.log('[generateHomeworkFromResources] questionsJson?.questions length:', parsed.questionsJson?.questions?.length ?? 'MISSING')
+      console.log('[generateHomeworkFromResources] root questions length:', parsed.questions?.length ?? 'MISSING')
     } catch (parseErr) {
       console.error('[generateHomeworkFromResources] JSON parse failed:', parseErr, 'Raw (first 200):', cleaned.slice(0, 200))
       return noApiKeyFallback(type, lesson.title, subject)
@@ -534,6 +539,7 @@ Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
     }
     // Last resort: fall back to stub questions rather than silently returning none
     if ((type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER') && (!questionsJson || !Array.isArray((questionsJson as any).questions) || (questionsJson as any).questions.length === 0)) {
+      console.warn('[generateHomeworkFromResources] USING STUB FALLBACK — questionsJson still empty after retry for type:', type)
       const fallback = noApiKeyFallback(type, lesson.title, subject)
       questionsJson = fallback.questionsJson
     }

@@ -42,6 +42,20 @@ export async function searchOakLessons(params: {
 }): Promise<OakLessonSearchResult[]> {
   const { subjectSlug, yearGroup, keystage, examBoard, query, limit = 50 } = params
 
+  // Build OR conditions — split query into individual terms so "Norman Conquest"
+  // matches lessons containing "Norman" OR "Conquest" rather than the exact phrase
+  const queryOr = query
+    ? (() => {
+        const terms = query.split(/\s+/).filter(t => t.length > 2)
+        if (terms.length === 0) return undefined
+        return terms.flatMap(term => [
+          { title:              { contains: term, mode: 'insensitive' as const } },
+          { pupilLessonOutcome: { contains: term, mode: 'insensitive' as const } },
+          { unitSlug:           { contains: term.toLowerCase() } },
+        ])
+      })()
+    : undefined
+
   const rows = await prisma.oakLesson.findMany({
     where: {
       isLegacy:  false,
@@ -52,13 +66,7 @@ export async function searchOakLessons(params: {
       ...(!query && yearGroup ? { yearGroup } : {}),
       ...(keystage  ? { keystage }  : {}),
       ...(examBoard ? { examBoard } : {}),
-      ...(query ? {
-        OR: [
-          { title:              { contains: query, mode: 'insensitive' } },
-          { pupilLessonOutcome: { contains: query, mode: 'insensitive' } },
-          { unitSlug:           { contains: query.toLowerCase().replace(/\s+/g, '-') } },
-        ],
-      } : {}),
+      ...(queryOr   ? { OR: queryOr } : {}),
     },
     select: {
       slug:               true,

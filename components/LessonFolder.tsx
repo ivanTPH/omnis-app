@@ -246,7 +246,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     setSaQuestions(prev => prev.map((q, i) => i === idx ? { ...q, ...patch } : q))
   }
   function removeSaQ(idx: number) { setSaQuestions(prev => prev.filter((_, i) => i !== idx)) }
-  function addSaQ() { setSaQuestions(prev => [...prev, { q: '', modelAnswer: '' }]) }
+  function addSaQ() { setSaQuestions(prev => [...prev, { q: '', modelAnswer: '', markScheme: '', marks: undefined }]) }
 
   // Serialise question cards → flat text for save / textarea preview
   function serializeMCQ(): { instructions: string; modelAnswer: string } {
@@ -291,6 +291,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         setSaQuestions((qs as any[]).map(q => ({
           q:           q.q           ?? '',
           modelAnswer: q.modelAnswer ?? '',
+          markScheme:  q.markScheme  ?? undefined,
+          marks:       q.marks       ?? undefined,
         })))
       }
       // Build "generated from" label
@@ -669,6 +671,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 yearGroup={lesson?.class?.yearGroup ?? undefined}
                 lessonTitle={lesson?.title}
                 onAdded={refreshLesson}
+                onGenerateHomework={() => { setActiveTab('Homework'); setWizardStep(5) }}
               />
             </div>
 
@@ -871,22 +874,48 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 <X size={13} />
                               </button>
                             </div>
-                            <div className="px-4 pb-4 pl-10">
-                              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Model answer</label>
-                              <textarea
-                                rows={3}
-                                value={q.modelAnswer}
-                                onChange={e => updateSaQ(qi, { modelAnswer: e.target.value })}
-                                placeholder="Model answer / mark scheme for this question…"
-                                className={`w-full text-[12px] border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-700 resize-none ${
-                                  !q.modelAnswer.trim()
-                                    ? 'border-amber-300 bg-amber-50/40 placeholder-amber-400'
-                                    : 'border-green-200 bg-green-50/40'
-                                }`}
-                              />
-                              {!q.modelAnswer.trim() && (
-                                <p className="text-[10px] text-amber-600 mt-1">Model answer not generated — add manually before saving</p>
-                              )}
+                            <div className="px-4 pb-4 pl-10 space-y-2">
+                              <div>
+                                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Model answer</label>
+                                <textarea
+                                  rows={3}
+                                  value={q.modelAnswer}
+                                  onChange={e => updateSaQ(qi, { modelAnswer: e.target.value })}
+                                  placeholder="Model answer for this question…"
+                                  className={`w-full text-[12px] border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-700 resize-none ${
+                                    !q.modelAnswer.trim()
+                                      ? 'border-amber-300 bg-amber-50/40 placeholder-amber-400'
+                                      : 'border-green-200 bg-green-50/40'
+                                  }`}
+                                />
+                                {!q.modelAnswer.trim() && (
+                                  <p className="text-[10px] text-amber-600 mt-1">Model answer not generated — add manually before saving</p>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Mark scheme</label>
+                                  <textarea
+                                    rows={2}
+                                    value={q.markScheme ?? ''}
+                                    onChange={e => updateSaQ(qi, { markScheme: e.target.value })}
+                                    placeholder="Award 1 mark for… Award 2 marks for…"
+                                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white resize-none"
+                                  />
+                                </div>
+                                <div className="w-20 shrink-0">
+                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Marks</label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={20}
+                                    value={q.marks ?? ''}
+                                    onChange={e => updateSaQ(qi, { marks: e.target.value ? Number(e.target.value) : undefined })}
+                                    placeholder="4"
+                                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -1240,6 +1269,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       yearGroup={lesson?.class?.yearGroup ?? undefined}
                       lessonTitle={lesson?.title}
                       onAdded={refreshLesson}
+                      onGenerateHomework={() => { setActiveTab('Homework'); setWizardStep(5) }}
                     />
                   )}
                 </div>

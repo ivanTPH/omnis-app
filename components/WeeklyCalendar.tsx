@@ -1,7 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
 import LessonFolder, { type FolderTab } from './LessonFolder'
@@ -223,12 +222,6 @@ export default function WeeklyCalendar({
                 {fmt(days[0])} – {fmt(days[4])}
               </span>
             </div>
-            <Link
-              href="/homework"
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 h-7 rounded-lg text-[12px] font-medium transition-colors"
-            >
-              <Plus size={12} />New Homework
-            </Link>
           </div>
 
           {/* Scrollable grid */}

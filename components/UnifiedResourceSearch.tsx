@@ -229,26 +229,30 @@ export default function UnifiedResourceSearch({
   yearGroup,
   lessonTitle,
   onAdded,
+  onGenerateHomework,
 }: {
-  lessonId:     string
-  subjectSlug?: string
-  yearGroup?:   number
-  lessonTitle?: string
-  onAdded:      () => void
+  lessonId:             string
+  subjectSlug?:         string
+  yearGroup?:           number
+  lessonTitle?:         string
+  onAdded:              () => void
+  onGenerateHomework?:  () => void
 }) {
-  const [query,       setQuery]       = useState('')
-  const [typeFilter,  setTypeFilter]  = useState<'all' | 'worksheet' | 'slides' | 'video' | 'quiz'>('all')
-  const [results,     setResults]     = useState<CombinedResult[]>([])
-  const [loading,     setLoading]     = useState(false)
-  const [broadened,   setBroadened]   = useState(false)
-  const [addingId,    setAddingId]    = useState<string | null>(null)
-  const [addedIds,    setAddedIds]    = useState<Set<string>>(new Set())
-  const [previewSlug, setPreviewSlug] = useState<string | null>(null)
-  const [, startAdd]                  = useTransition()
-  const debounceRef                   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [query,            setQuery]            = useState('')
+  const [typeFilter,       setTypeFilter]       = useState<'all' | 'worksheet' | 'slides' | 'video' | 'quiz'>('all')
+  const [results,          setResults]          = useState<CombinedResult[]>([])
+  const [loading,          setLoading]          = useState(false)
+  const [broadened,        setBroadened]        = useState(false)
+  const [addingId,         setAddingId]         = useState<string | null>(null)
+  const [addedIds,         setAddedIds]         = useState<Set<string>>(new Set())
+  const [previewSlug,      setPreviewSlug]      = useState<string | null>(null)
+  const [showHwBanner,     setShowHwBanner]     = useState(false)
+  const [, startAdd]                            = useTransition()
+  const debounceRef                             = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Initial load: search by lesson title keywords first, then fall back to subject browse
   useEffect(() => {
+    if (!subjectSlug) return
     runSearch(titleToKeywords(lessonTitle))
   }, [subjectSlug, yearGroup, lessonTitle]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -298,6 +302,7 @@ export default function UnifiedResourceSearch({
       setAddedIds(prev => new Set([...prev, slug]))
       setAddingId(null)
       onAdded()
+      if (onGenerateHomework) setShowHwBanner(true)
     })
   }
 
@@ -308,6 +313,7 @@ export default function UnifiedResourceSearch({
       setAddedIds(prev => new Set([...prev, resourceId]))
       setAddingId(null)
       onAdded()
+      if (onGenerateHomework) setShowHwBanner(true)
     })
   }
 
@@ -364,6 +370,27 @@ export default function UnifiedResourceSearch({
         <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
           No exact Year {yearGroup} matches — showing resources from related year groups
         </p>
+      )}
+
+      {/* Homework suggestion banner */}
+      {showHwBanner && onGenerateHomework && (
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles size={13} className="text-blue-500 shrink-0" />
+            <p className="text-[12px] text-blue-800 font-medium truncate">Resource added! Generate homework based on this?</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => { setShowHwBanner(false); onGenerateHomework() }}
+              className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-semibold transition-colors"
+            >
+              Generate Homework →
+            </button>
+            <button onClick={() => setShowHwBanner(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={13} />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Type filter chips */}

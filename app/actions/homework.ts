@@ -272,6 +272,8 @@ export type MCQQuestion = {
 export type SAQuestion = {
   q:           string
   modelAnswer: string
+  markScheme?: string
+  marks?:      number
 }
 
 type ProposalResult = {
@@ -307,7 +309,7 @@ Return this exact JSON structure (questionsJson is required):
 
     case 'SHORT_ANSWER':
       return `Generate exactly 4 short-answer questions directly testing the learning objectives above.
-Each question should require a 3–5 sentence response and include a mark scheme model answer.
+Each question should require a 3–5 sentence response and include a detailed mark scheme.
 
 Return this exact JSON structure (questionsJson is required):
 {
@@ -318,7 +320,7 @@ Return this exact JSON structure (questionsJson is required):
   "targetWordCount": 0,
   "questionsJson": {
     "questions": [
-      {"q": "Question text", "modelAnswer": "Full model answer for this question"},
+      {"q": "Question text", "modelAnswer": "Full model answer for this question", "markScheme": "Award 1 mark for... Award 2 marks for...", "marks": 4},
       ...
     ]
   }

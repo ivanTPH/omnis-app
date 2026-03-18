@@ -108,8 +108,9 @@ export async function createLesson(input: CreateLessonInput) {
 }
 
 export async function getLessonDetails(lessonId: string) {
+  try {
   const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
+  if (!session) return null
   const { schoolId } = session.user as any
 
   const lesson = await prisma.lesson.findFirst({
@@ -186,6 +187,10 @@ export async function getLessonDetails(lessonId: string) {
     planByStudent: Object.fromEntries(planByStudent),
     termAgg,
     subjectMedian,
+  }
+  } catch (err) {
+    console.error('[getLessonDetails] error:', err)
+    return null
   }
 }
 

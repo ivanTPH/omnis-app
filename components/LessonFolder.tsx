@@ -136,21 +136,31 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
   useEffect(() => {
     if (!lessonId) { setLesson(null); return }
-    setLoading(true)
-    getLessonDetails(lessonId).then(l => {
-      setLesson(l)
-      setTitle(l?.title ?? '')
-      setObjectives(l?.objectives ?? [])
-      if (l?.scheduledAt) {
-        const s = new Date(l.scheduledAt)
-        setEditDate(s.toISOString().split('T')[0])
-        setEditStart(s.toTimeString().slice(0, 5))
+    const id = lessonId
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const l = await getLessonDetails(id)
+        if (cancelled) return
+        setLesson(l)
+        setTitle(l?.title ?? '')
+        setObjectives(l?.objectives ?? [])
+        if (l?.scheduledAt) {
+          const s = new Date(l.scheduledAt)
+          setEditDate(s.toISOString().split('T')[0])
+          setEditStart(s.toTimeString().slice(0, 5))
+        }
+        if (l?.endsAt) {
+          setEditEnd(new Date(l.endsAt).toTimeString().slice(0, 5))
+        }
+      } catch (err) {
+        console.error('[LessonFolder] load error:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      if (l?.endsAt) {
-        setEditEnd(new Date(l.endsAt).toTimeString().slice(0, 5))
-      }
-      setLoading(false)
-    })
+    }
+    load()
     setActiveTab(defaultTab ?? 'Overview')
     if (wizardMode) {
       setWizardStep(4)
@@ -164,6 +174,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     } else {
       setWizardStep(null)
     }
+    return () => { cancelled = true }
   }, [lessonId])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-generate homework when wizard reaches step 5

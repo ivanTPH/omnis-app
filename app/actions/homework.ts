@@ -484,6 +484,11 @@ export async function generateHomeworkFromResources(
 
   const typePrompt = buildTypePrompt(type, subject, qualification)
 
+  // When no objectives, base the task instruction on resources instead
+  const taskInstruction = lesson.objectives.length > 0
+    ? `Your homework questions MUST directly test the learning objectives listed above. Students should be able to answer from what they learned in this lesson.`
+    : `Your homework questions MUST be based on the lesson resources listed above. Use the Oak lesson learning outcomes as your targets — generate questions that test exactly what those outcomes describe. Questions must be specific to "${lesson.title}" — do not generate generic "describe key concepts" questions.`
+
   const prompt = `You are an expert UK secondary school ${subject} teacher creating homework for a ${qualification} class${examBoard ? ` (${examBoard})` : ''}.
 
 LESSON CONTEXT
@@ -494,23 +499,21 @@ Year Group: Year ${yearGroup} (${qualification})${examBoard ? `\nExam Board: ${e
 LEARNING OBJECTIVES — what was taught in this lesson:
 ${objectivesContext}
 
-LESSON RESOURCES — materials used:
+LESSON RESOURCES — source material for questions:
 ${resourceContext}
 
 TASK
 ====
-Your homework questions MUST directly test understanding of the learning objectives listed above.
-Students should be able to answer from what they learned in this lesson.
+${taskInstruction}
 
-${typePrompt}
-
-Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
+${typePrompt}`
 
   try {
     const client  = new Anthropic({ apiKey })
     const message = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 4000,
+      system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
       messages:   [{ role: 'user', content: prompt }],
     })
     const raw     = (message.content[0] as any).text.trim()
@@ -521,13 +524,25 @@ Respond ONLY with valid JSON. No markdown fences, no extra text, no comments.`
     let parsed: any
     try {
       parsed = JSON.parse(cleaned)
-      console.log('[generateHomeworkFromResources] PARSED KEYS:', Object.keys(parsed))
-      console.log('[generateHomeworkFromResources] questionsJson?.questions length:', parsed.questionsJson?.questions?.length ?? 'MISSING')
-      console.log('[generateHomeworkFromResources] root questions length:', parsed.questions?.length ?? 'MISSING')
-    } catch (parseErr) {
-      console.error('[generateHomeworkFromResources] JSON parse failed:', parseErr, 'Raw (first 200):', cleaned.slice(0, 200))
-      return noApiKeyFallback(type, lesson.title, subject)
+    } catch {
+      // Repair attempt: replace literal newlines inside JSON string values
+      try {
+        // Replace newlines that appear between quotes with \n sequences
+        const repaired = cleaned
+          .split('\n')
+          .reduce((acc: string, line: string, i: number) => {
+            return i === 0 ? line : acc + '\\n' + line
+          }, '')
+        parsed = JSON.parse(repaired)
+        console.log('[generateHomeworkFromResources] JSON repaired after literal-newline fix')
+      } catch (parseErr) {
+        console.error('[generateHomeworkFromResources] JSON parse failed (raw first 300):', cleaned.slice(0, 300))
+        return noApiKeyFallback(type, lesson.title, subject)
+      }
     }
+    console.log('[generateHomeworkFromResources] PARSED KEYS:', Object.keys(parsed))
+    console.log('[generateHomeworkFromResources] questionsJson?.questions length:', parsed.questionsJson?.questions?.length ?? 'MISSING')
+    console.log('[generateHomeworkFromResources] root questions length:', parsed.questions?.length ?? 'MISSING')
 
     // Validate questionsJson for structured types
     const needsQuestions = type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER'

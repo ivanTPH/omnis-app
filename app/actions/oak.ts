@@ -38,34 +38,41 @@ export async function searchOakLessons(params: {
   keystage?:    string
   examBoard?:   string
   query?:       string
+  andTerms?:    boolean  // true = all terms must match (AND); false = any term matches (OR)
   limit?:       number
 }): Promise<OakLessonSearchResult[]> {
-  const { subjectSlug, yearGroup, keystage, examBoard, query, limit = 50 } = params
+  const { subjectSlug, yearGroup, keystage, examBoard, query, andTerms = false, limit = 50 } = params
 
-  // Build OR conditions — split query into individual terms so "Norman Conquest"
-  // matches lessons containing "Norman" OR "Conquest" rather than the exact phrase
-  const queryOr = query
-    ? (() => {
-        const terms = query.split(/\s+/).filter(t => t.length > 2)
-        if (terms.length === 0) return undefined
-        return terms.flatMap(term => [
+  // Build keyword filter — per-term OR across fields, then AND or OR across terms
+  let keywordFilter: object | undefined
+  if (query) {
+    const terms = query.split(/\s+/).filter(t => t.length > 2)
+    if (terms.length > 0) {
+      const perTermOr = terms.map(term => ({
+        OR: [
           { title:              { contains: term, mode: 'insensitive' as const } },
           { pupilLessonOutcome: { contains: term, mode: 'insensitive' as const } },
           { unitSlug:           { contains: term.toLowerCase() } },
-        ])
-      })()
-    : undefined
+        ] as object[],
+      }))
+      // AND mode: every term must appear in at least one field — prevents "conquest" alone
+      // matching Greek/Persian history when the lesson has no "norman" or "hastings"
+      keywordFilter = andTerms
+        ? { AND: perTermOr }
+        : { OR: perTermOr.flatMap(p => (p as any).OR) }
+    }
+  }
 
   const rows = await prisma.oakLesson.findMany({
     where: {
       isLegacy:  false,
       expired:   false,
       deletedAt: null,
-      ...(subjectSlug ? { subjectSlug } : {}),
-      ...(yearGroup ? { yearGroup } : {}),
-      ...(keystage  ? { keystage }  : {}),
-      ...(examBoard ? { examBoard } : {}),
-      ...(queryOr   ? { OR: queryOr } : {}),
+      ...(subjectSlug  ? { subjectSlug }  : {}),
+      ...(yearGroup    ? { yearGroup }    : {}),
+      ...(keystage     ? { keystage }     : {}),
+      ...(examBoard    ? { examBoard }    : {}),
+      ...(keywordFilter ?? {}),
     },
     select: {
       slug:               true,

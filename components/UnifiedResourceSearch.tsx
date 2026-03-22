@@ -268,15 +268,15 @@ export default function UnifiedResourceSearch({
     setLoading(true)
     setBroadened(false)
     try {
-      // First pass: exact subject + exact year group
+      // First pass: AND terms + year group (all keywords must match — precise)
       let [oakResults, schoolResults] = await Promise.all([
-        searchOakLessons({ subjectSlug, yearGroup, query: q || undefined, limit: 20 }),
+        searchOakLessons({ subjectSlug, yearGroup, query: q || undefined, andTerms: !!q, limit: 20 }),
         getSchoolResourceLibrary(lessonId),
       ])
 
-      // Second pass: if fewer than 3 Oak results, broaden to subject only
-      if (oakResults.length < 3 && subjectSlug) {
-        const broader = await searchOakLessons({ subjectSlug, query: q || undefined, limit: 20 })
+      // Second pass: AND terms, drop year group (finds e.g. Yr7 Norman Conquest for a Yr8 lesson)
+      if (oakResults.length < 3 && subjectSlug && q) {
+        const broader = await searchOakLessons({ subjectSlug, query: q, andTerms: true, limit: 20 })
         if (broader.length > oakResults.length) {
           oakResults = broader
           setBroadened(true)

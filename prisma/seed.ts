@@ -278,7 +278,13 @@ async function main() {
   for (const l of lessonsData) {
     const lesson = await prisma.lesson.upsert({
       where:  { id: l.id },
-      update: { title: l.title, objectives: l.objectives, published: l.published, topic: l.topic, examBoard: l.examBoard },
+      update: {
+        title: l.title, objectives: l.objectives, published: l.published,
+        topic: l.topic, examBoard: l.examBoard,
+        // Refresh to current week so the calendar always shows this week's lessons
+        scheduledAt: lessonDate(0, l.day, l.startH),
+        endsAt:      lessonDate(0, l.day, l.endH),
+      },
       create: {
         id: l.id,
         schoolId: school.id,
@@ -307,7 +313,11 @@ async function main() {
   for (const l of futureLessons) {
     await prisma.lesson.upsert({
       where:  { id: l.id },
-      update: { topic: l.topic, examBoard: l.examBoard },
+      update: {
+        topic: l.topic, examBoard: l.examBoard,
+        scheduledAt: lessonDate(1, l.day, l.startH),
+        endsAt:      lessonDate(1, l.day, l.startH + 1),
+      },
       create: {
         id: l.id, schoolId: school.id, classId: classes[l.classKey].id,
         title: l.title, objectives: [], published: false, lessonType: LessonType.NORMAL,

@@ -212,13 +212,21 @@ function QuickUpload({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-/** Extract the most useful search keywords from a lesson title */
+const STOP_WORDS = new Set([
+  'the', 'and', 'for', 'with', 'that', 'this', 'from', 'are', 'was', 'were',
+  'been', 'have', 'has', 'had', 'its', 'about', 'into', 'their', 'than',
+  'then', 'over', 'under', 'battle', 'study', 'lesson', 'unit', 'topic',
+  'introduction', 'analysis', 'overview', 'review', 'exam', 'test', 'quiz',
+])
+
+/** Extract the most useful search keywords from a lesson title, stripping stop words */
 function titleToKeywords(title: string | undefined): string {
   if (!title) return ''
   return title
-    .replace(/[—\-–]/g, ' ')
+    .replace(/[—\-–:]/g, ' ')
     .split(' ')
-    .filter(w => w.length > 3)
+    .map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''))
+    .filter(w => w.length > 3 && !STOP_WORDS.has(w))
     .slice(0, 4)
     .join(' ')
 }

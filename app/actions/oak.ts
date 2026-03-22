@@ -62,8 +62,7 @@ export async function searchOakLessons(params: {
       expired:   false,
       deletedAt: null,
       ...(subjectSlug ? { subjectSlug } : {}),
-      // When searching by keyword, skip yearGroup so results span all year groups
-      ...(!query && yearGroup ? { yearGroup } : {}),
+      ...(yearGroup ? { yearGroup } : {}),
       ...(keystage  ? { keystage }  : {}),
       ...(examBoard ? { examBoard } : {}),
       ...(queryOr   ? { OR: queryOr } : {}),

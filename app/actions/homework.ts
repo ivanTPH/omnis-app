@@ -449,17 +449,34 @@ export async function generateHomeworkFromResources(
   const topic         = (lesson as any).topic ?? ''
   const type          = forceType ?? 'SHORT_ANSWER'
 
+  console.log('[generateHomeworkFromResources] lesson:', lesson.title, '| resources:', lesson.resources.length, '| type:', type)
+
   // Learning objectives are the primary curriculum context
   const objectivesContext = lesson.objectives.length > 0
     ? lesson.objectives.map((o, i) => `  ${i + 1}. ${o}`).join('\n')
     : '  (No learning objectives specified — generate questions appropriate for the lesson title and topic)'
 
-  // Resources provide supplementary context
-  const relevantResources = lesson.resources.filter(r =>
-    ['PLAN', 'SLIDES', 'WORKSHEET'].includes(r.type),
-  )
-  const resourceContext = relevantResources.length
-    ? relevantResources.map(r => `  - [${r.type}] "${r.label}"${r.url ? ` (${r.url})` : ''}`).join('\n')
+  // Enrich Oak resources (type=LINK with oakContentId) with lesson outcome text
+  const oakSlugs = lesson.resources
+    .filter(r => r.oakContentId)
+    .map(r => r.oakContentId as string)
+  const oakDetails = oakSlugs.length
+    ? await prisma.oakLesson.findMany({
+        where:  { slug: { in: oakSlugs } },
+        select: { slug: true, title: true, pupilLessonOutcome: true },
+      })
+    : []
+  const oakBySlug = Object.fromEntries(oakDetails.map(o => [o.slug, o]))
+
+  // Include ALL resources as context (Oak LINK resources are the primary source material)
+  const resourceContext = lesson.resources.length > 0
+    ? lesson.resources.map(r => {
+        if (r.oakContentId && oakBySlug[r.oakContentId]) {
+          const oak = oakBySlug[r.oakContentId]
+          return `  - [Oak Lesson] "${oak.title}"${oak.pupilLessonOutcome ? `\n      Learning outcome: ${oak.pupilLessonOutcome}` : ''}`
+        }
+        return `  - [${r.type}] "${r.label}"${r.url ? ` (${r.url})` : ''}`
+      }).join('\n')
     : '  - No lesson resources attached'
 
   const apiKey = process.env.ANTHROPIC_API_KEY

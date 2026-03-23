@@ -1,8 +1,38 @@
 # Omnis — SEND Framework
-## Prompt Framework: ILP / EHCP / APDR / Adaptive SEND System
+## Prompt Framework: ILP / EHCP / APDR / K Plan / Adaptive SEND System
 
 > Each entry: **What** (one sentence) · **Prompt** (paste into Claude Code terminal) · **Check** (single verification before moving on)
 > Run `npm run build` cleanly before starting. Commit after each step passes its check.
+
+---
+
+## K Plan / Learning Passport — Concept
+
+A **K Plan** (also called a Learning Passport in some UK authorities) is a one-page pupil profile created collaboratively by the student, their parents, and the SENCO. It sits alongside or within an ILP and answers: *"What works for me in the classroom."* Unlike a clinical ILP target, it is:
+
+- **Student-authored** — written in the student's own voice ("I learn best when…", "Please help me by…", "Don't do this…")
+- **Shareable with every teacher** — surfaces inside the lesson planning view so teachers see it before the lesson, not after
+- **Living document** — updated each APDR cycle, not just at annual review
+- **Not a diagnosis** — never contains clinical labels or test scores; focuses only on classroom strategies
+
+### K Plan fields (schema)
+| Field | Type | Description |
+|---|---|---|
+| `iLearnBestWhen` | `String?` | Free text, student voice |
+| `pleaseHelpMeBy` | `String?` | Specific teacher actions that help |
+| `dontDoThis` | `String?` | Things that are unhelpful or cause anxiety |
+| `myStrengths` | `String[]` | Strengths identified by student / SENCO |
+| `communicationStyle` | `String?` | How the student prefers to receive feedback |
+| `examAccessArrangements` | `String[]` | Formal access arrangements (reader, extra time, etc.) |
+| `lastUpdatedBy` | `String?` | userId of last editor |
+
+### K Plan rules
+- One K Plan per student (`studentId` unique on the model)
+- Always scoped by `schoolId` — never cross-school
+- Visible to: the student, their parents, SENCO, SLT, and any teacher who teaches a class the student is enrolled in
+- Writable by: SENCO only (student and parent input is collected in a form, then SENCO publishes)
+- K Plan content must never be passed to external APIs without explicit consent flag (`gdprConsented: true`)
+- Show in LessonFolder SEND & Inclusion tab alongside ILP targets — use a distinct pastel-green card to visually separate it from clinical data
 
 ---
 
@@ -18,6 +48,11 @@
 | 6 | Homework marks feed ILP evidence | 🟢 Built — IlpHomeworkLink + HomeworkEhcpEvidence exist |
 | 7 | SLT SEND reporting dashboard | 🔴 Not built |
 | 8 | SEND visibility in lesson planning | 🟡 Partial — SEND tab exists in LessonFolder, class-level only |
+| 2A | SEND risk screen on submission | 🟢 Built — Claude Haiku screen fires after submitHomework; stores Submission.sendRiskScore |
+| 2B | SEND flagging to teacher + SENCO | 🟢 Built — SUBMISSION_FLAGGED Notification when sendRiskScore > 60, deduped |
+| 2C | Adaptive profile update after marking | 🟢 Built — sendConcernLevel + lastHomeworkAt on StudentLearningProfile |
+| 9 | K Plan / Learning Passport generation | 🔴 Not built |
+| 10 | In-lesson teacher action strip | 🔴 Not built |
 
 ---
 
@@ -233,9 +268,102 @@ The SEND & Inclusion tab already exists in LessonFolder. Enhance it:
 
 ---
 
+## Step 9 — K Plan / Learning Passport generation
+
+**What:** Creates a student-authored one-page profile (K Plan) describing how they learn best, surfaces it inside the teacher's lesson planning view, and generates a first draft from their ILP and SEND concern history using AI.
+
+**Prompt:**
+```
+Read CLAUDE.md and SEND-FRAMEWORK.md (K Plan concept section) for context. Build the K Plan / Learning Passport feature.
+
+1. Schema — add a new model KPlan to prisma/schema.prisma:
+   model KPlan {
+     id                     String   @id @default(cuid())
+     schoolId               String
+     studentId              String   @unique
+     gdprConsented          Boolean  @default(false)
+     iLearnBestWhen         String?
+     pleaseHelpMeBy         String?
+     dontDoThis             String?
+     myStrengths            String[]
+     communicationStyle     String?
+     examAccessArrangements String[]
+     lastUpdatedBy          String?
+     createdAt              DateTime @default(now())
+     updatedAt              DateTime @updatedAt
+     school   School @relation(fields: [schoolId], references: [id])
+     student  User   @relation(fields: [studentId], references: [id])
+     @@index([schoolId])
+   }
+   Run: source .env.local && npx prisma db push.
+
+2. Server actions — create app/actions/kplan.ts with:
+   a. getKPlan(studentId): fetch KPlan for a student (staff or the student themselves).
+   b. upsertKPlan(studentId, data): SENCO-only; create or update. Write audit entry K_PLAN_UPDATED.
+   c. generateKPlanDraft(studentId): SENCO-only; fetches the student's ILP targets, SEND concerns,
+      and sendConcernLevel from StudentLearningProfile. Calls Claude (claude-sonnet-4-6, max_tokens: 600):
+      "You are a UK SENCO helping a student write their Learning Passport in their own voice.
+       Based on: ILP targets [list], SEND concerns [list], need areas [list].
+       Generate a draft K Plan as JSON:
+       { iLearnBestWhen, pleaseHelpMeBy, dontDoThis, myStrengths: string[], communicationStyle }
+       Write in first person, positive, practical — no clinical language, no diagnosis labels."
+      Guard: only call if KPlan.gdprConsented = true.
+
+3. SENCO UI — add a "K Plan" tab or section to /senco/ilp/[studentId]:
+   - Show the K Plan fields in a pastel-green card.
+   - "Generate draft" button calls generateKPlanDraft.
+   - Editable form fields (SENCO can refine before publishing).
+   - GDPR consent toggle must be on before generating.
+
+4. Teacher visibility — in getLessonDetails (app/actions/lessons.ts), for each enrolled SEND student,
+   also fetch their KPlan (if gdprConsented = true). Return as kPlanByStudent: Record<string, KPlan>.
+   In LessonFolder SEND & Inclusion tab: render the K Plan as a distinct pastel-green card below each
+   student's ILP targets. Show: iLearnBestWhen, pleaseHelpMeBy, examAccessArrangements only.
+
+5. Run: npx tsc --noEmit. Then: npm run build.
+```
+
+**Check:** Log in as SENCO → /senco/ilp/[studentId] → K Plan section visible → toggle GDPR consent on → click "Generate draft" → K Plan fields populated in student's voice → save → log in as teacher → open a lesson for that student's class → SEND & Inclusion tab shows K Plan card in pastel green. Prisma Studio shows KPlan record with gdprConsented = true.
+
+---
+
+## Step 10 — In-lesson teacher action strip
+
+**What:** Adds a compact, always-visible action bar at the top of the SEND & Inclusion tab in LessonFolder that gives teachers one-click access to the four most common mid-lesson SEND responses: request cover support, log a real-time concern, view a student's K Plan, and suggest a quick classroom adaptation.
+
+**Prompt:**
+```
+Read CLAUDE.md and SEND-FRAMEWORK.md (K Plan concept section) for context. Build the in-lesson teacher action strip.
+
+1. In LessonFolder.tsx, inside the SEND & Inclusion tab panel, add a horizontal action strip at the very top (before the student list). The strip has four buttons:
+
+   a. "Request support" — opens a small modal to log a cover/support request:
+      Fields: urgency (low/medium/high), details textarea. Calls a new action requestLessonSupport(lessonId, urgency, details) that creates a Notification for COVER_MANAGER and SENCO.
+
+   b. "Log concern" — opens the existing SendConcern creation flow pre-filled with lessonId and classId. Reuse the existing concern creation server action from app/actions/send-support.ts.
+
+   c. "View K Plans" — toggles an overlay panel listing all K Plans for SEND students in this class (fetched from the already-loaded kPlanByStudent from Step 9). Each shows iLearnBestWhen and pleaseHelpMeBy only. No external API call.
+
+   d. "Quick adapt" — calls suggestLessonAdaptation(classId, lessonId) already built in Step 8 but at class level (not per-student). Returns 3 quick bullet-point suggestions for the whole class based on the SEND profile mix. Display inline below the strip.
+
+2. The strip must be visually distinct: use a light amber background (`bg-amber-50 border border-amber-200`) to signal it is a live-lesson tool, not a planning tool.
+
+3. Add the new action requestLessonSupport to app/actions/lessons.ts or a new app/actions/cover.ts. It must:
+   - Create Notification records for all users with role COVER_MANAGER in the school.
+   - Create Notification records for all users with role SENCO in the school.
+   - Include the lesson date, class name, and teacher name in the notification body.
+   - Write an audit entry: LESSON_PUBLISHED (reuse — or add LESSON_SUPPORT_REQUESTED to AuditAction enum if cleaner).
+
+4. Run: npx tsc --noEmit. Then: npm run build.
+```
+
+**Check:** Open any lesson as teacher → SEND & Inclusion tab → amber action strip visible at the top. Click "Request support" → fill in the form → log in as SENCO in another tab → /notifications shows the support request. Click "View K Plans" → overlay shows K Plans for SEND students. Click "Quick adapt" → 3 bullet suggestions appear inline.
+
+---
+
 ## The Full SEND Loop — Integration smoke test
 
-**What:** Runs through all 8 steps end-to-end in one session to confirm the complete SEND system works together.
+**What:** Runs through all 10 steps end-to-end in one session to confirm the complete SEND system works together.
 
 **Prompt:**
 ```
@@ -251,21 +379,28 @@ Read CLAUDE.md for context. Run an end-to-end smoke test of the SEND framework:
 8. Mark a student submission as teacher → open /senco/ilp/[studentId] → confirm evidence row appears under the linked ILP target.
 9. Log in as SLT (c.roberts@omnisdemo.school / Demo1234!) → /slt/send → confirm SEND dashboard renders with the EHCP and ILP counts updated.
 10. Open any lesson as teacher → SEND & Inclusion tab → confirm ILP targets are visible per student.
+11. As SENCO: toggle GDPR consent on for a student → generate K Plan draft → confirm K Plan fields are populated in student voice. Open the lesson as teacher → SEND & Inclusion tab → confirm K Plan pastel-green card appears.
+12. As teacher in the SEND & Inclusion tab → click "Request support" → confirm SENCO and cover manager receive a notification.
+13. Check Submission.sendRiskScore in Prisma Studio for a recent student submission — confirm it has been set by the async SEND screen (may need to wait ~10s after submission).
 
 Report pass/fail for each step and any errors seen.
 ```
 
-**Check:** All 10 steps report pass. No TypeScript errors (`npx tsc --noEmit`). Clean build (`npm run build`).
+**Check:** All 13 steps report pass. No TypeScript errors (`npx tsc --noEmit`). Clean build (`npm run build`).
 
 ---
 
 ## Notes
 
 - **ILPTarget.status valid values:** `"active"` | `"achieved"` | `"not_achieved"` | `"deferred"` — **never** `"in_progress"`. This has caused production crashes before.
+- **K Plan GDPR gate:** never pass K Plan content to any external API unless `KPlan.gdprConsented = true`. Check this in every server action that calls Claude with K Plan data.
+- **K Plan is student voice, not clinical:** AI generation prompts must explicitly forbid diagnosis labels, test scores, and clinical terminology. Use positive, first-person language only.
+- **K Plan visibility scope:** teachers see K Plan only for students in classes they teach. SENCO sees all. Parents and the student themselves can see their own. Never expose to other students.
 - **Multi-tenancy** — every Prisma query must be scoped with `schoolId` from session. SEND data is especially sensitive.
 - **SEND data is read by SENCO, SLT, and class teachers** — but only for students in their school. Never expose SEND data across school boundaries.
 - **ILP auto-generation falls back silently** — if the Anthropic API call fails, create an empty ILP shell (no targets) rather than blocking. Teachers can add targets manually.
 - **Notifications use the existing pattern** — use the Notification model and the pattern in `lib/send/early-warning.ts`. Do not build a new notification system.
 - **Evidence is immutable** — IlpHomeworkLink and HomeworkEhcpEvidence are INSERT-only. Do not delete evidence records.
-- After completing all steps, run: `git add -A && git commit -m "feat: SEND framework — steps 1-8 complete"`
-- Then update CLAUDE.md: `claude "Update CLAUDE.md to reflect the completed SEND framework — steps 1-8."`
+- **sendRiskScore is async** — it is written to Submission after the student sees their confirmation screen. Never block on it. Teachers see it when they open the marking panel.
+- After completing all steps, run: `git add -A && git commit -m "feat: SEND framework — steps 1-10 complete"`
+- Then update CLAUDE.md: `claude "Update CLAUDE.md to reflect the completed SEND framework — steps 1-10, K Plan model, in-lesson action strip."`

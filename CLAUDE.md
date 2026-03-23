@@ -1,6 +1,18 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-22. Authoritative reference for Claude sessions.
+> Last updated: 2026-03-23. Authoritative reference for Claude sessions.
+
+---
+
+## Active Development Framework
+
+Three prompt-library files live in the project root. Reference these when starting any development task:
+
+| File | Description |
+|---|---|
+| `DEVELOPMENT.md` | General bug/feature prompt library — 18 recipes covering fixes, new pages, schema changes, deploy checks, and more |
+| `ADAPTIVE-LEARNING-LOOP.md` | 7-step teacher lesson → adaptive homework loop — from calendar fix through to per-student adaptive profiles |
+| `SEND-FRAMEWORK.md` | 8-step ILP/EHCP/APDR/adaptive SEND system — from auto-ILP generation through to SLT SEND reporting dashboard |
 
 ---
 

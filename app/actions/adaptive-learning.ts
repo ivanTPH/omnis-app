@@ -27,6 +27,8 @@ export type StudentLearningProfileData = {
   strengthAreas: string[]
   developmentAreas: string[]
   avgCompletionRate: number
+  sendConcernLevel: number | null   // rolling avg of last 10 sendRiskScores (0–100)
+  lastHomeworkAt:   Date | null     // most recent submission timestamp
   profileSummary: string | null
   profileUpdatedAt: Date | null
 }
@@ -91,6 +93,8 @@ export async function getStudentLearningProfile(studentId: string): Promise<Stud
     strengthAreas: profile.strengthAreas,
     developmentAreas: profile.developmentAreas,
     avgCompletionRate: profile.avgCompletionRate,
+    sendConcernLevel: (profile as any).sendConcernLevel ?? null,
+    lastHomeworkAt:   (profile as any).lastHomeworkAt   ?? null,
     profileSummary: profile.profileSummary,
     profileUpdatedAt: profile.profileUpdatedAt,
   }
@@ -110,11 +114,12 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
   const submissions = await prisma.submission.findMany({
     where: { studentId, schoolId },
     select: {
-      finalScore: true,
-      status: true,
-      submittedAt: true,
+      finalScore:   true,
+      status:       true,
+      submittedAt:  true,
       timeSpentMins: true,
       selfAssessment: true,
+      sendRiskScore:  true,   // Phase 2 — for sendConcernLevel rolling avg
       homework: {
         select: {
           homeworkVariantType: true,
@@ -203,6 +208,23 @@ export async function updateLearningProfile(studentId: string): Promise<StudentL
   const strengthAreas = sortedSubjects.slice(0, 2).map(([s]) => s)
   const developmentAreas = sortedSubjects.slice(-2).map(([s]) => s)
 
+  // Phase 2 — sendConcernLevel: rolling average of last 10 non-null sendRiskScores
+  const riskScores = submissions
+    .filter(s => s.sendRiskScore != null)
+    .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    .slice(0, 10)
+    .map(s => s.sendRiskScore as number)
+  const sendConcernLevel: number | null = riskScores.length > 0
+    ? Math.round(riskScores.reduce((a, b) => a + b, 0) / riskScores.length)
+    : null
+
+  // Phase 2 — lastHomeworkAt: most recent submission timestamp
+  const lastHomeworkAt: Date | null = submissions.length > 0
+    ? submissions.reduce((latest, s) =>
+        new Date(s.submittedAt) > new Date(latest.submittedAt) ? s : latest
+      ).submittedAt
+    : null
+
   // AI profile summary — only if profile is old or this is a batch update
   let profileSummary: string | null = null
   const existingProfile = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
@@ -251,6 +273,8 @@ Paragraph 1: Strengths and preferred learning styles. Paragraph 2: Development a
       strengthAreas,
       developmentAreas,
       avgCompletionRate,
+      sendConcernLevel,
+      lastHomeworkAt,
       ...(profileSummary ? { profileSummary, profileUpdatedAt: new Date() } : {}),
     },
     create: {
@@ -263,6 +287,8 @@ Paragraph 1: Strengths and preferred learning styles. Paragraph 2: Development a
       strengthAreas,
       developmentAreas,
       avgCompletionRate,
+      sendConcernLevel,
+      lastHomeworkAt,
       profileSummary,
       profileUpdatedAt: profileSummary ? new Date() : null,
     },
@@ -278,6 +304,8 @@ Paragraph 1: Strengths and preferred learning styles. Paragraph 2: Development a
     strengthAreas: updated.strengthAreas,
     developmentAreas: updated.developmentAreas,
     avgCompletionRate: updated.avgCompletionRate,
+    sendConcernLevel: (updated as any).sendConcernLevel ?? null,
+    lastHomeworkAt:   (updated as any).lastHomeworkAt   ?? null,
     profileSummary: updated.profileSummary,
     profileUpdatedAt: updated.profileUpdatedAt,
   }

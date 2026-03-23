@@ -2,6 +2,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import Anthropic from '@anthropic-ai/sdk'
 
 export async function getStudentHomework(homeworkId: string) {
   const session = await auth()
@@ -62,7 +63,7 @@ export async function submitHomework(homeworkId: string, content: string) {
   })
   if (!hw) throw new Error('Homework not found')
 
-  await prisma.submission.upsert({
+  const saved = await prisma.submission.upsert({
     where: { homeworkId_studentId: { homeworkId, studentId: userId } },
     create: {
       homeworkId,
@@ -84,6 +85,127 @@ export async function submitHomework(homeworkId: string, content: string) {
     },
   })
 
+  // Fire SEND risk screen asynchronously — never blocks or delays the submission
+  void screenSendRisk(saved.id, content.trim(), homeworkId, schoolId, userId).catch(() => {})
+
   revalidatePath(`/student/homework/${homeworkId}`)
   revalidatePath('/student/dashboard')
+}
+
+// ── SEND risk screen (2A + 2B) ────────────────────────────────────────────────
+//
+// Fires after the submission is saved. Analyses the content via a short Claude
+// call (max_tokens 200) for three signals:
+//   • spelling_concern       — likely spelling/phonological difficulties
+//   • engagement_level       — low / medium / high
+//   • response_completeness  — 0–100
+//
+// Score formula (max 100):
+//   spelling_concern true      → +25
+//   engagement low/medium/high → +40 / +20 / 0
+//   completeness gap × 0.35   → up to +35
+//
+// If score > 60 → Notification for class teacher(s) + school SENCO (deduped).
+
+async function screenSendRisk(
+  submissionId: string,
+  content:      string,
+  homeworkId:   string,
+  schoolId:     string,
+  studentId:    string,
+) {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return
+
+  // Fetch homework title + class teachers for notification targeting
+  const hw = await prisma.homework.findFirst({
+    where: { id: homeworkId },
+    select: {
+      id:      true,
+      title:   true,
+      classId: true,
+      class: { select: { teachers: { select: { userId: true } } } },
+    },
+  })
+  if (!hw) return
+
+  const student = await prisma.user.findFirst({
+    where:  { id: studentId },
+    select: { firstName: true, lastName: true },
+  })
+  if (!student) return
+
+  // ── 1. Claude SEND screen (max_tokens: 200) ──────────────────────────────
+  let sendRiskScore = 0
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      system: 'You are a UK SEND specialist. Analyse homework submissions for learning support signals. Respond ONLY with valid JSON — no explanation, no markdown.',
+      messages: [{
+        role:    'user',
+        content: `Analyse this homework submission for SEND risk signals.
+Return ONLY valid JSON with these exact keys:
+{"spelling_concern": boolean, "engagement_level": "low"|"medium"|"high", "response_completeness": 0-100}
+
+Submission: "${content.slice(0, 800)}"`,
+      }],
+    })
+
+    const raw    = (msg.content[0] as { type: string; text: string }).text.trim()
+    const match  = raw.match(/\{[\s\S]*\}/)
+    const parsed = match ? JSON.parse(match[0]) : {}
+
+    const spellScore = parsed.spelling_concern === true ? 25 : 0
+    const engMap: Record<string, number> = { low: 40, medium: 20, high: 0 }
+    const engScore   = engMap[parsed.engagement_level as string] ?? 0
+    const compGap    = Math.max(0, 100 - (typeof parsed.response_completeness === 'number' ? parsed.response_completeness : 100))
+    const compScore  = Math.round(compGap * 0.35)
+    sendRiskScore    = Math.min(100, spellScore + engScore + compScore)
+  } catch {
+    return // Claude unavailable — skip silently, submission already saved
+  }
+
+  // ── 2. Store score on submission (2A) ────────────────────────────────────
+  await prisma.submission.update({
+    where: { id: submissionId },
+    data:  { sendRiskScore },
+  })
+
+  // ── 3. Notify teacher(s) + SENCO when score exceeds threshold (2B) ───────
+  if (sendRiskScore <= 60) return
+
+  const studentName = `${student.firstName} ${student.lastName}`
+  const body        = `Possible SEND need detected in ${studentName}'s submission for "${hw.title}". Review their work.`
+  const linkHref    = `/homework/${hw.id}/mark/${submissionId}`
+
+  const recipientIds = new Set<string>()
+  if (hw.class?.teachers) {
+    for (const t of hw.class.teachers) recipientIds.add(t.userId)
+  }
+  const senco = await prisma.user.findFirst({
+    where:  { schoolId, role: 'SENCO' },
+    select: { id: true },
+  })
+  if (senco) recipientIds.add(senco.id)
+
+  for (const userId of recipientIds) {
+    // Deduplication — don't fire twice for the same submission link
+    const exists = await prisma.notification.findFirst({
+      where: { schoolId, userId, type: 'SUBMISSION_FLAGGED', linkHref },
+    })
+    if (exists) continue
+
+    await prisma.notification.create({
+      data: {
+        schoolId,
+        userId,
+        type:     'SUBMISSION_FLAGGED',
+        title:    'Possible SEND need detected',
+        body,
+        linkHref,
+      },
+    })
+  }
 }

@@ -585,6 +585,9 @@ model Submission {
   teacherReviewed   Boolean  @default(false)
   autoFeedback      String?
 
+  // Phase 2 — SEND risk screening (set asynchronously after submission)
+  sendRiskScore     Float?
+
   integritySignal IntegritySignal?
   attempts        SubmissionAttempt[]
   ehcpEvidence    HomeworkEhcpEvidence[]
@@ -1914,6 +1917,8 @@ model StudentLearningProfile {
   developmentAreas   String[]
   avgCompletionRate  Float     @default(0)
   avgTimeAccuracy    Float     @default(0)
+  sendConcernLevel   Float?    // rolling avg of last 10 sendRiskScores (0–100)
+  lastHomeworkAt     DateTime? // most recent submission timestamp
   profileSummary     String?
   profileUpdatedAt   DateTime?
   updatedAt          DateTime  @updatedAt

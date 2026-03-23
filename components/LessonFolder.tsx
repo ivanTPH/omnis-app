@@ -297,7 +297,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
       }
       // Build "generated from" label
       const objCount = lesson?.objectives?.length ?? 0
-      const resCount = (lesson?.resources ?? []).filter(r => ['PLAN','SLIDES','WORKSHEET'].includes(r.type)).length
+      const resCount = lesson?.resources?.length ?? 0
       const parts: string[] = []
       if (objCount > 0) parts.push(`${objCount} learning objective${objCount !== 1 ? 's' : ''}`)
       if (resCount > 0) parts.push(`${resCount} resource${resCount !== 1 ? 's' : ''}`)

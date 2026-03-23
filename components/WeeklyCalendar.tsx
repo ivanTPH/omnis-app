@@ -303,6 +303,10 @@ export default function WeeklyCalendar({
                                 startReschedule(async () => {
                                   try {
                                     await rescheduleLesson(id, newStart.toISOString(), newEnd.toISOString())
+                                    // Re-fetch immediately so the calendar never goes blank while
+                                    // router.refresh() propagates the server-component update.
+                                    const fresh = await getWeekLessons(weekStart.toISOString())
+                                    setFetchedLessons(fresh)
                                     router.refresh()
                                   } finally {
                                     setOptimisticMoves(m => { const n = new Map(m); n.delete(id); return n })

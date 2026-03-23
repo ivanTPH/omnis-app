@@ -134,7 +134,8 @@ export async function runWondeSync(
   try {
     const students = await fetchWondeStudents(wondeSchoolId, wondeToken)
     for (const stu of students) {
-      const yearInt = yearCodeToInt(stu.year?.data?.code)
+      const yearInt  = yearCodeToInt(stu.year?.data?.code)
+      const photoUrl = stu.photo?.data?.viewed ?? null
       await prisma.wondeStudent.upsert({
         where:  { id: stu.id },
         create: {
@@ -148,6 +149,7 @@ export async function runWondeSync(
           yearGroup:      yearInt,
           formGroup:      stu.form_group?.data?.name ?? null,
           isLeaver:       stu.is_leaver,
+          photoUrl,
           wondeUpdatedAt: parseWondeDate(stu.updated_at),
           syncedAt:       now,
         },
@@ -160,11 +162,37 @@ export async function runWondeSync(
           yearGroup:      yearInt,
           formGroup:      stu.form_group?.data?.name ?? null,
           isLeaver:       stu.is_leaver,
+          photoUrl,
           wondeUpdatedAt: parseWondeDate(stu.updated_at),
           updatedAt:      now,
         },
       })
       result.students.upserted++
+
+      // Bridge photo URL to UserSettings so StudentAvatar picks it up.
+      // Match by firstName + lastName within the school (best effort for demo).
+      if (photoUrl) {
+        try {
+          const matchedUser = await prisma.user.findFirst({
+            where: {
+              schoolId:  omnisSchoolId,
+              firstName: stu.forename,
+              lastName:  stu.surname,
+              role:      'STUDENT',
+            },
+            select: { id: true },
+          })
+          if (matchedUser) {
+            await prisma.userSettings.upsert({
+              where:  { userId: matchedUser.id },
+              create: { userId: matchedUser.id, profilePictureUrl: photoUrl },
+              update: { profilePictureUrl: photoUrl },
+            })
+          }
+        } catch {
+          // Photo bridge is best-effort; don't fail the sync
+        }
+      }
 
       // Contacts
       if (stu.contacts?.data) {

@@ -449,7 +449,13 @@ export async function generateHomeworkFromResources(
   const topic         = (lesson as any).topic ?? ''
   const type          = forceType ?? 'SHORT_ANSWER'
 
-  console.log('[generateHomeworkFromResources] lesson:', lesson.title, '| resources:', lesson.resources.length, '| type:', type)
+  console.log('[generateHomeworkFromResources] START lessonId:', lessonId, '| lesson:', lesson.title, '| resources:', lesson.resources.length, '| type:', type)
+  if (lesson.resources.length > 0) {
+    const r0 = lesson.resources[0]
+    console.log('[generateHomeworkFromResources] first resource — type:', r0.type, '| label:', r0.label, '| url:', r0.url, '| oakContentId:', (r0 as any).oakContentId ?? 'none')
+  } else {
+    console.log('[generateHomeworkFromResources] WARNING: lesson has NO resources — will generate from title only')
+  }
 
   // Learning objectives are the primary curriculum context
   const objectivesContext = lesson.objectives.length > 0
@@ -521,22 +527,23 @@ ${typePrompt}`
 
     console.log('[generateHomeworkFromResources] RAW AI RESPONSE (first 500):', cleaned.slice(0, 500))
 
+    console.log('[generateHomeworkFromResources] RAW AI RESPONSE (first 600):', cleaned.slice(0, 600))
+
     let parsed: any
     try {
       parsed = JSON.parse(cleaned)
     } catch {
-      // Repair attempt: replace literal newlines inside JSON string values
+      // Repair: literal newlines inside JSON string values break JSON.parse.
+      // Fix only the chars inside quoted strings, not the structural whitespace.
       try {
-        // Replace newlines that appear between quotes with \n sequences
-        const repaired = cleaned
-          .split('\n')
-          .reduce((acc: string, line: string, i: number) => {
-            return i === 0 ? line : acc + '\\n' + line
-          }, '')
+        const repaired = cleaned.replace(
+          /"(?:[^"\\]|\\.|\n|\r)*"/g,
+          (m: string) => m.replace(/\n/g, '\\n').replace(/\r/g, '\\r'),
+        )
         parsed = JSON.parse(repaired)
         console.log('[generateHomeworkFromResources] JSON repaired after literal-newline fix')
       } catch (parseErr) {
-        console.error('[generateHomeworkFromResources] JSON parse failed (raw first 300):', cleaned.slice(0, 300))
+        console.error('[generateHomeworkFromResources] JSON parse FAILED (raw first 300):', cleaned.slice(0, 300))
         return noApiKeyFallback(type, lesson.title, subject)
       }
     }

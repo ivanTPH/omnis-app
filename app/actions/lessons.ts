@@ -9,18 +9,19 @@ import { updateSendInsight } from '@/lib/sendInsights'
 
 // ── CalendarLesson shape (mirrors WeeklyCalendar type) ────────────────────────
 export type CalendarLessonData = {
-  id:          string
-  title:       string
-  scheduledAt: string
-  endsAt?:     string
-  published:   boolean
-  className:   string
-  subject:     string
-  lessonType?: string
-  hasPlan:     boolean
-  hasSlides:   boolean
-  hasHomework: boolean
-  hasOther:    boolean
+  id:             string
+  title:          string
+  scheduledAt:    string
+  endsAt?:        string
+  published:      boolean
+  className:      string
+  subject:        string
+  lessonType?:    string
+  hasPlan:        boolean
+  hasSlides:      boolean
+  hasHomework:    boolean
+  homeworkStatus: string | null
+  hasOther:       boolean
 }
 
 export async function getWeekLessons(weekStartISO: string): Promise<CalendarLessonData[]> {
@@ -47,7 +48,7 @@ export async function getWeekLessons(weekStartISO: string): Promise<CalendarLess
       include: {
         class:     true,
         resources: { select: { type: true } },
-        homework:  { select: { id: true } },
+        homework:  { select: { id: true, status: true } },
       },
     })
 
@@ -60,10 +61,11 @@ export async function getWeekLessons(weekStartISO: string): Promise<CalendarLess
       className:   l.class?.name    ?? '—',
       subject:     l.class?.subject ?? '—',
       lessonType:  l.lessonType,
-      hasPlan:     l.resources.some(r => r.type === 'PLAN'),
-      hasSlides:   l.resources.some(r => r.type === 'SLIDES'),
-      hasHomework: l.homework.length > 0,
-      hasOther:    l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
+      hasPlan:        l.resources.some(r => r.type === 'PLAN'),
+      hasSlides:      l.resources.some(r => r.type === 'SLIDES'),
+      hasHomework:    l.homework.length > 0,
+      homeworkStatus: l.homework.length > 0 ? l.homework[0].status : null,
+      hasOther:       l.resources.some(r => r.type !== 'PLAN' && r.type !== 'SLIDES'),
     }))
   } catch (err) {
     console.error('[getWeekLessons] error:', err)

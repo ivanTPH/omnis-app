@@ -38,7 +38,7 @@ export default async function DashboardPage() {
         include: {
           class: true,
           resources: { select: { type: true } },
-          homework:  { select: { id: true } },
+          homework:  { select: { id: true, status: true } },
         },
       }),
 
@@ -85,8 +85,9 @@ export default async function DashboardPage() {
     lessonType:  l.lessonType,
     hasPlan:     l.resources.some((r: { type: string }) => r.type === 'PLAN'),
     hasSlides:   l.resources.some((r: { type: string }) => r.type === 'SLIDES'),
-    hasHomework: l.homework.length > 0,
-    hasOther:    l.resources.some((r: { type: string }) => r.type !== 'PLAN' && r.type !== 'SLIDES'),
+    hasHomework:    l.homework.length > 0,
+    homeworkStatus: l.homework.length > 0 ? l.homework[0].status : null,
+    hasOther:       l.resources.some((r: { type: string }) => r.type !== 'PLAN' && r.type !== 'SLIDES'),
   }))
 
   const unscheduled: UnscheduledLesson[] = futureLessons.map(l => ({

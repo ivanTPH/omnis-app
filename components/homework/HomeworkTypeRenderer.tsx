@@ -8,6 +8,7 @@ type Props = {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  showScaffold?: boolean  // show scaffolding_hint for SEND students
 }
 
 type Question = {
@@ -16,9 +17,10 @@ type Question = {
   options?: string[]
   marks?: number
   hint?: string
+  scaffolding_hint?: string
 }
 
-export default function HomeworkTypeRenderer({ type, structuredContent, value, onChange, disabled }: Props) {
+export default function HomeworkTypeRenderer({ type, structuredContent, value, onChange, disabled, showScaffold }: Props) {
   const content = structuredContent as { questions?: Question[]; prompt?: string; wordCount?: number; steps?: string[] } | null
 
   // Parse stored answers for structured types
@@ -98,6 +100,12 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
               <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
               {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
               {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
+              {showScaffold && q.scaffolding_hint && (
+                <div className="flex items-start gap-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
+                  <span className="text-[10px] font-bold text-purple-600 shrink-0 mt-0.5">HINT</span>
+                  <p className="text-xs text-purple-700">{q.scaffolding_hint}</p>
+                </div>
+              )}
               <textarea
                 value={answers[q.id ?? i] ?? ''}
                 onChange={e => updateAnswer(String(q.id ?? i), e.target.value)}

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Pencil, Lock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
 import LessonFolder, { type FolderTab } from './LessonFolder'
@@ -41,18 +41,19 @@ function fmt(d: Date) { return d.toLocaleDateString('en-GB', { day: 'numeric', m
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type CalendarLesson = {
-  id: string
-  title: string
-  scheduledAt: string
-  endsAt?: string
-  published: boolean
-  className: string
-  subject: string
-  lessonType?: string
-  hasPlan: boolean
-  hasSlides: boolean
-  hasHomework: boolean
-  hasOther: boolean
+  id:             string
+  title:          string
+  scheduledAt:    string
+  endsAt?:        string
+  published:      boolean
+  className:      string
+  subject:        string
+  lessonType?:    string
+  hasPlan:        boolean
+  hasSlides:      boolean
+  hasHomework:    boolean
+  homeworkStatus: string | null
+  hasOther:       boolean
 }
 
 export type UnscheduledLesson = {
@@ -384,7 +385,15 @@ export default function WeeklyCalendar({
                                     <div className="flex gap-0.5 mt-1">
                                       <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan     ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>P</span>
                                       <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides   ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>S</span>
-                                      <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasHomework ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>H</span>
+                                      {lesson.hasHomework ? (
+                                        <span className={`inline-flex items-center px-1 rounded leading-4 h-4 ${lesson.homeworkStatus === 'DRAFT' ? 'bg-amber-400 text-white' : 'bg-green-500 text-white'}`} title={lesson.homeworkStatus === 'DRAFT' ? 'Homework (draft)' : 'Homework (published)'}>
+                                          {lesson.homeworkStatus === 'DRAFT'
+                                            ? <Pencil size={7} strokeWidth={2.5} />
+                                            : <Lock size={7} strokeWidth={2.5} />}
+                                        </span>
+                                      ) : (
+                                        <span className="text-[8px] font-bold px-1 rounded leading-4 bg-white/60 text-gray-400">H</span>
+                                      )}
                                       {lesson.hasOther && <span className="text-[8px] font-bold px-1 rounded leading-4 bg-blue-200 text-blue-800">+</span>}
                                     </div>
                                   </div>

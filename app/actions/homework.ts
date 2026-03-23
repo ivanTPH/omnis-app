@@ -35,14 +35,14 @@ export async function getHomeworkForMarking(homeworkId: string) {
       class: {
         include: {
           enrolments: {
-            include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+            include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, settings: { select: { profilePictureUrl: true } } } } },
             orderBy:  [{ user: { lastName: 'asc' } }],
           },
         },
       },
       lesson:      { select: { id: true, title: true } },
       submissions: {
-        include: { student: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+        include: { student: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, settings: { select: { profilePictureUrl: true } } } } },
         orderBy: { submittedAt: 'asc' },
       },
     },
@@ -58,7 +58,30 @@ export async function getHomeworkForMarking(homeworkId: string) {
     : []
 
   const sendByStudent = Object.fromEntries(sendStatuses.map(s => [s.studentId, s]))
-  return { ...hw, sendByStudent }
+
+  // Merge UserSettings.profilePictureUrl → avatarUrl so StudentAvatar shows Wonde photos
+  const hwMerged = {
+    ...hw,
+    class: hw.class ? {
+      ...hw.class,
+      enrolments: hw.class.enrolments.map(e => ({
+        ...e,
+        user: {
+          ...e.user,
+          avatarUrl: (e.user as any).settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+        },
+      })),
+    } : null,
+    submissions: hw.submissions.map(s => ({
+      ...s,
+      student: {
+        ...s.student,
+        avatarUrl: (s.student as any).settings?.profilePictureUrl ?? s.student.avatarUrl ?? null,
+      },
+    })),
+  }
+
+  return { ...hwMerged, sendByStudent }
 }
 
 export async function getSubmissionForMarking(submissionId: string) {
@@ -69,7 +92,7 @@ export async function getSubmissionForMarking(submissionId: string) {
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
     include: {
-      student:  { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+      student:  { select: { id: true, firstName: true, lastName: true, avatarUrl: true, settings: { select: { profilePictureUrl: true } } } },
       homework: {
         include: {
           class: {
@@ -132,6 +155,10 @@ export async function getSubmissionForMarking(submissionId: string) {
 
   return {
     ...sub,
+    student: {
+      ...sub.student,
+      avatarUrl: (sub.student as any).settings?.profilePictureUrl ?? sub.student.avatarUrl ?? null,
+    },
     sendStatus: sendStatus?.activeStatus !== 'NONE' ? sendStatus : null,
     plan,
     nav: { current: idx + 1, total: ordered.length, prev, next },
@@ -270,10 +297,11 @@ export type MCQQuestion = {
 }
 
 export type SAQuestion = {
-  q:           string
-  modelAnswer: string
-  markScheme?: string
-  marks?:      number
+  q:                string
+  modelAnswer:      string
+  markScheme?:      string
+  marks?:           number
+  scaffolding_hint?: string
 }
 
 type ProposalResult = {
@@ -310,6 +338,7 @@ Return this exact JSON structure (questionsJson is required):
     case 'SHORT_ANSWER':
       return `Generate exactly 4 short-answer questions directly testing the learning objectives above.
 Each question should require a 3–5 sentence response and include a detailed mark scheme.
+For each question, also provide a scaffolding_hint: a short sentence starter or guided prompt to help students who need more support (e.g. "Think about... / Consider the role of... / Start with: The main reason was...").
 
 Return this exact JSON structure (questionsJson is required):
 {
@@ -320,7 +349,7 @@ Return this exact JSON structure (questionsJson is required):
   "targetWordCount": 0,
   "questionsJson": {
     "questions": [
-      {"q": "Question text", "modelAnswer": "Full model answer for this question", "markScheme": "Award 1 mark for... Award 2 marks for...", "marks": 4},
+      {"q": "Question text", "modelAnswer": "Full model answer for this question", "markScheme": "Award 1 mark for... Award 2 marks for...", "marks": 4, "scaffolding_hint": "Think about... / Start your answer with: The key event was..."},
       ...
     ]
   }
@@ -485,6 +514,43 @@ export async function generateHomeworkFromResources(
       }).join('\n')
     : '  - No lesson resources attached'
 
+  // Fetch SEND context for the lesson's class (best-effort — don't fail generation if this errors)
+  let sendContextBlock = ''
+  try {
+    if (lesson.classId) {
+      const [sendStatuses, ilpTargets] = await Promise.all([
+        prisma.sendStatus.findMany({
+          where: {
+            student: { enrolments: { some: { classId: lesson.classId } } },
+            NOT: { activeStatus: 'NONE' },
+          },
+          select: { activeStatus: true, needArea: true },
+        }),
+        prisma.ilpTarget.findMany({
+          where: {
+            status: 'active',
+            ilp: { student: { enrolments: { some: { classId: lesson.classId } } } },
+          },
+          select: { target: true },
+          take: 5,
+        }),
+      ])
+      if (sendStatuses.length > 0) {
+        const ehcpCount = sendStatuses.filter(s => s.activeStatus === 'EHCP').length
+        const senCount  = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT').length
+        const needAreas = [...new Set(sendStatuses.map(s => s.needArea).filter(Boolean))].slice(0, 5)
+        sendContextBlock = `
+CLASS SEND PROFILE
+==================
+This class has ${sendStatuses.length} student${sendStatuses.length !== 1 ? 's' : ''} with SEND needs (${ehcpCount > 0 ? `${ehcpCount} EHCP` : ''}${ehcpCount > 0 && senCount > 0 ? ', ' : ''}${senCount > 0 ? `${senCount} SEN Support` : ''}).${needAreas.length > 0 ? `\nNeed areas: ${needAreas.join(', ')}.` : ''}${ilpTargets.length > 0 ? `\nActive ILP targets include: ${ilpTargets.map(t => t.target).join('; ')}.` : ''}
+The scaffolding_hint for each question should address these specific needs — use sentence starters, break the question into steps, or highlight key vocabulary to scaffold access for these students.
+`
+      }
+    }
+  } catch {
+    // SEND fetch is best-effort; don't block generation
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return noApiKeyFallback(type, lesson.title, subject)
 
@@ -507,7 +573,7 @@ ${objectivesContext}
 
 LESSON RESOURCES — source material for questions:
 ${resourceContext}
-
+${sendContextBlock}
 TASK
 ====
 ${taskInstruction}

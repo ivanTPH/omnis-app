@@ -169,7 +169,10 @@ export async function runWondeSync(
       })
       result.students.upserted++
 
-      // Bridge photo URL to UserSettings so StudentAvatar picks it up.
+      // Bridge photo URL to User.avatarUrl AND UserSettings.profilePictureUrl.
+      // User.avatarUrl is read by homework, messaging, and SEND queries directly.
+      // UserSettings.profilePictureUrl is read by the teacher class roster and AppShell.
+      // Both must be set so photos appear everywhere after a Wonde sync.
       // Match by firstName + lastName within the school (best effort for demo).
       if (photoUrl) {
         try {
@@ -183,11 +186,17 @@ export async function runWondeSync(
             select: { id: true },
           })
           if (matchedUser) {
-            await prisma.userSettings.upsert({
-              where:  { userId: matchedUser.id },
-              create: { userId: matchedUser.id, profilePictureUrl: photoUrl },
-              update: { profilePictureUrl: photoUrl },
-            })
+            await Promise.all([
+              prisma.user.update({
+                where:  { id: matchedUser.id },
+                data:   { avatarUrl: photoUrl },
+              }),
+              prisma.userSettings.upsert({
+                where:  { userId: matchedUser.id },
+                create: { userId: matchedUser.id, profilePictureUrl: photoUrl },
+                update: { profilePictureUrl: photoUrl },
+              }),
+            ])
           }
         } catch {
           // Photo bridge is best-effort; don't fail the sync

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users } from 'lucide-react'
+import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users, Lock } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -41,6 +41,12 @@ function toOakSubjectSlug(subject: string): string {
     'modern foreign languages': 'modern-foreign-languages', 'mfl': 'modern-foreign-languages',
   }
   return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
+function autoResize(el: HTMLTextAreaElement | null) {
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
 }
 
 const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
@@ -788,11 +794,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             <div className="flex items-start gap-2">
                               <span className="text-[11px] font-bold text-gray-400 shrink-0 mt-2.5">Q{qi + 1}</span>
                               <textarea
-                                rows={2}
+                                ref={el => autoResize(el)}
                                 value={q.q}
-                                onChange={e => updateMcqQ(qi, { q: e.target.value })}
+                                onChange={e => { updateMcqQ(qi, { q: e.target.value }); autoResize(e.currentTarget) }}
                                 placeholder="Question text…"
-                                className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none"
+                                className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none overflow-hidden"
                               />
                               <button onClick={() => removeMcqQ(qi)} className="text-gray-300 hover:text-red-400 shrink-0 mt-2">
                                 <X size={13} />
@@ -864,11 +870,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             <div className="flex items-start gap-2 px-4 pt-4 pb-2">
                               <span className="text-[11px] font-bold text-gray-400 shrink-0 mt-2.5">Q{qi + 1}</span>
                               <textarea
-                                rows={2}
+                                ref={el => autoResize(el)}
                                 value={q.q}
-                                onChange={e => updateSaQ(qi, { q: e.target.value })}
+                                onChange={e => { updateSaQ(qi, { q: e.target.value }); autoResize(e.currentTarget) }}
                                 placeholder="Question for pupils…"
-                                className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none"
+                                className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none overflow-hidden"
                               />
                               <button onClick={() => removeSaQ(qi)} className="text-gray-300 hover:text-red-400 shrink-0 mt-2">
                                 <X size={13} />
@@ -878,11 +884,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               <div>
                                 <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Model answer</label>
                                 <textarea
-                                  rows={3}
+                                  ref={el => autoResize(el)}
                                   value={q.modelAnswer}
-                                  onChange={e => updateSaQ(qi, { modelAnswer: e.target.value })}
+                                  onChange={e => { updateSaQ(qi, { modelAnswer: e.target.value }); autoResize(e.currentTarget) }}
                                   placeholder="Model answer for this question…"
-                                  className={`w-full text-[12px] border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-700 resize-none ${
+                                  className={`w-full text-[12px] border rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 text-gray-700 resize-none overflow-hidden ${
                                     !q.modelAnswer.trim()
                                       ? 'border-amber-300 bg-amber-50/40 placeholder-amber-400'
                                       : 'border-green-200 bg-green-50/40'
@@ -896,11 +902,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 <div className="flex-1">
                                   <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Mark scheme</label>
                                   <textarea
-                                    rows={2}
+                                    ref={el => autoResize(el)}
                                     value={q.markScheme ?? ''}
-                                    onChange={e => updateSaQ(qi, { markScheme: e.target.value })}
+                                    onChange={e => { updateSaQ(qi, { markScheme: e.target.value }); autoResize(e.currentTarget) }}
                                     placeholder="Award 1 mark for… Award 2 marks for…"
-                                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white resize-none"
+                                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white resize-none overflow-hidden"
                                   />
                                 </div>
                                 <div className="w-20 shrink-0">
@@ -915,6 +921,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                                   />
                                 </div>
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide block mb-1">SEND scaffolding hint <span className="font-normal text-purple-400 normal-case">(shown to SEND students)</span></label>
+                                <input
+                                  value={q.scaffolding_hint ?? ''}
+                                  onChange={e => updateSaQ(qi, { scaffolding_hint: e.target.value || undefined })}
+                                  placeholder="e.g. Think about… / Start with: The main reason was… / Key vocab: invasion, conquest"
+                                  className="w-full text-[12px] border border-purple-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-purple-400 bg-purple-50/40 text-purple-900 placeholder-purple-300"
+                                />
                               </div>
                             </div>
                           </div>
@@ -1281,22 +1296,24 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 <div className="p-7 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Homework</h3>
-                    <button
-                      onClick={() => {
-                        setHwYesNo('yes')
-                        setHwType('SHORT_ANSWER')
-                        setTypeStore({})
-                        setMcqQuestions([])
-                        setSaQuestions([])
-                        setGenSource(null)
-                        setAiDecision(null)
-                        initHwDates()
-                        setWizardStep(5)
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[12px] font-medium hover:bg-blue-100 transition-colors"
-                    >
-                      <Plus size={12} />Set homework
-                    </button>
+                    {(lesson?.homework?.length ?? 0) === 0 && (
+                      <button
+                        onClick={() => {
+                          setHwYesNo('yes')
+                          setHwType('SHORT_ANSWER')
+                          setTypeStore({})
+                          setMcqQuestions([])
+                          setSaQuestions([])
+                          setGenSource(null)
+                          setAiDecision(null)
+                          initHwDates()
+                          setWizardStep(5)
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[12px] font-medium hover:bg-blue-100 transition-colors"
+                      >
+                        <Plus size={12} />Set homework
+                      </button>
+                    )}
                   </div>
                   {lesson?.homework && lesson.homework.length > 0 ? (
                     <div className="space-y-4">
@@ -1315,19 +1332,41 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Link
-                                  href={`/homework/${hw.id}`}
-                                  className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                                >
-                                  <ExternalLink size={11} />Mark
-                                </Link>
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-                                hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-500'   :
-                                'bg-amber-100 text-amber-700'
-                              }`}>
-                                {hw.status}
-                              </span>
+                                {hw.status === 'DRAFT' ? (
+                                  <button
+                                    onClick={() => {
+                                      setHwYesNo('yes')
+                                      setHwType('SHORT_ANSWER')
+                                      setTypeStore({})
+                                      setMcqQuestions([])
+                                      setSaQuestions([])
+                                      setGenSource(null)
+                                      setAiDecision(null)
+                                      initHwDates()
+                                      setWizardStep(5)
+                                    }}
+                                    className="flex items-center gap-1 text-[11px] font-medium text-amber-600 hover:text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors"
+                                    title="Edit draft homework"
+                                  >
+                                    <Pencil size={11} />Edit draft
+                                  </button>
+                                ) : (
+                                  <Link
+                                    href={`/homework/${hw.id}`}
+                                    className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                                  >
+                                    <ExternalLink size={11} />Mark
+                                  </Link>
+                                )}
+                                <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                  hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
+                                  hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-500'   :
+                                  'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {hw.status === 'PUBLISHED' && <Lock size={9} />}
+                                  {hw.status === 'DRAFT' && <Pencil size={9} />}
+                                  {hw.status}
+                                </span>
                               </div>
                             </div>
 

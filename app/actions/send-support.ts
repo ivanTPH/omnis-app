@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeILPAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
@@ -55,6 +55,19 @@ export type IlpWithTargets = {
   likes: string | null
   dislikes: string | null
   resourcesNeeded: string[]
+  createdAt: Date
+}
+
+export type IlpAuditEntryRow = {
+  id: string
+  ilpId: string
+  userId: string
+  userName: string
+  userRole: string
+  fieldChanged: string
+  previousValue: string
+  newValue: string
+  changeType: string
   createdAt: Date
 }
 
@@ -598,10 +611,53 @@ export async function updateIlpTarget(
   const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
   if (!allowedRoles.includes(user.role)) redirect('/dashboard')
 
+  // Fetch current values before update for audit comparison
+  const current = await prisma.ilpTarget.findUnique({
+    where: { id: targetId },
+    select: {
+      status: true,
+      progressNotes: true,
+      ilpId: true,
+      ilp: { select: { approvedBySenco: true } },
+    },
+  })
+
   await prisma.ilpTarget.update({
     where: { id: targetId },
     data: { status, progressNotes, reviewedAt: new Date() },
   })
+
+  // Audit trail — only after SENCO approval
+  if (current?.ilp.approvedBySenco) {
+    const ilpId   = current.ilpId
+    const userName = `${user.firstName} ${user.lastName}`
+    const pending: Parameters<typeof writeILPAudit>[0][] = []
+
+    if (current.status !== status) {
+      pending.push({
+        ilpId, userId: user.id, userName, userRole: user.role,
+        fieldChanged: 'Target status',
+        previousValue: current.status,
+        newValue: status,
+        changeType: 'EDITED',
+      })
+    }
+    const prevNotes = current.progressNotes ?? ''
+    const nextNotes = progressNotes ?? ''
+    if (prevNotes !== nextNotes) {
+      pending.push({
+        ilpId, userId: user.id, userName, userRole: user.role,
+        fieldChanged: 'Target progress notes',
+        previousValue: prevNotes,
+        newValue: nextNotes,
+        changeType: !prevNotes && nextNotes ? 'ADDED' : !nextNotes ? 'DELETED' : 'EDITED',
+      })
+    }
+
+    if (pending.length > 0) {
+      await Promise.all(pending.map(writeILPAudit))
+    }
+  }
 
   revalidatePath('/senco/ilp')
 }
@@ -612,6 +668,7 @@ export async function scheduleIlpReview(ilpId: string, reviewDate: Date): Promis
 
   const ilp = await prisma.individualLearningPlan.findFirst({
     where: { id: ilpId, schoolId },
+    select: { reviewDate: true, approvedBySenco: true, studentId: true },
   })
   if (!ilp) throw new Error('ILP not found')
 
@@ -619,6 +676,20 @@ export async function scheduleIlpReview(ilpId: string, reviewDate: Date): Promis
     where: { id: ilpId },
     data: { reviewDate },
   })
+
+  // Audit trail — only after SENCO approval
+  if (ilp.approvedBySenco) {
+    await writeILPAudit({
+      ilpId,
+      userId:        user.id,
+      userName:      `${user.firstName} ${user.lastName}`,
+      userRole:      user.role,
+      fieldChanged:  'Review date',
+      previousValue: ilp.reviewDate.toLocaleDateString('en-GB'),
+      newValue:      reviewDate.toLocaleDateString('en-GB'),
+      changeType:    'EDITED',
+    })
+  }
 
   const student = await prisma.user.findUnique({
     where: { id: ilp.studentId },
@@ -641,6 +712,42 @@ export async function scheduleIlpReview(ilpId: string, reviewDate: Date): Promis
   })
 
   revalidatePath('/senco/ilp')
+}
+
+// ─── ILP Audit Log ────────────────────────────────────────────────────────────
+
+/**
+ * Returns audit entries for a given ILP.
+ * SENCO / SCHOOL_ADMIN / SLT see all entries.
+ * Teachers / HOD / HOY see only their own entries.
+ */
+export async function getIlpAuditLog(ilpId: string): Promise<IlpAuditEntryRow[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const fullAccess = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+
+  const entries = await prisma.ilpAuditEntry.findMany({
+    where: {
+      ilpId,
+      ...(fullAccess ? {} : { userId: user.id }),
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return entries.map(e => ({
+    id:            e.id,
+    ilpId:         e.ilpId,
+    userId:        e.userId,
+    userName:      e.userName,
+    userRole:      e.userRole,
+    fieldChanged:  e.fieldChanged,
+    previousValue: e.previousValue,
+    newValue:      e.newValue,
+    changeType:    e.changeType,
+    createdAt:     e.createdAt,
+  }))
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

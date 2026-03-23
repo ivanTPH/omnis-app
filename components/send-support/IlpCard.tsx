@@ -1,9 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { FileHeart, Target, CheckCircle, Clock, XCircle, ChevronDown, Sparkles, ThumbsUp, ThumbsDown, Package, ShieldCheck } from 'lucide-react'
-import type { IlpWithTargets } from '@/app/actions/send-support'
-import { updateIlpTarget, approveGeneratedIlp } from '@/app/actions/send-support'
+import { FileHeart, Target, CheckCircle, Clock, XCircle, ChevronDown, Sparkles, ThumbsUp, ThumbsDown, Package, ShieldCheck, History, ChevronRight } from 'lucide-react'
+import type { IlpWithTargets, IlpAuditEntryRow } from '@/app/actions/send-support'
+import { updateIlpTarget, approveGeneratedIlp, getIlpAuditLog } from '@/app/actions/send-support'
+
+const ROLE_LABELS: Record<string, string> = {
+  SENCO: 'SENCO', TEACHER: 'Teacher', HEAD_OF_DEPT: 'HoD',
+  HEAD_OF_YEAR: 'HoY', SLT: 'SLT', SCHOOL_ADMIN: 'Admin',
+}
 
 const TARGET_STATUS_ICONS: Record<string, React.ReactNode> = {
   active:       <Clock size={14} className="text-blue-500" />,
@@ -20,6 +25,22 @@ export default function IlpCard({ ilp }: Props) {
   const [notes,            setNotes]            = useState('')
   const [approving,        setApproving]        = useState(false)
   const [approved,         setApproved]         = useState(false)
+  const [auditOpen,        setAuditOpen]        = useState(false)
+  const [auditEntries,     setAuditEntries]     = useState<IlpAuditEntryRow[] | null>(null)
+  const [auditLoading,     setAuditLoading]     = useState(false)
+
+  async function handleToggleAudit() {
+    if (!auditOpen && auditEntries === null) {
+      setAuditLoading(true)
+      try {
+        const entries = await getIlpAuditLog(ilp.id)
+        setAuditEntries(entries)
+      } finally {
+        setAuditLoading(false)
+      }
+    }
+    setAuditOpen(prev => !prev)
+  }
 
   async function handleApprove() {
     setApproving(true)
@@ -211,6 +232,57 @@ export default function IlpCard({ ilp }: Props) {
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Success Criteria</p>
           <p className="text-sm text-gray-700">{ilp.successCriteria}</p>
         </div>
+
+        {/* Audit trail — only visible once ILP is approved */}
+        {ilp.approvedBySenco && (
+          <div className="border-t border-gray-100 pt-4">
+            <button
+              onClick={handleToggleAudit}
+              className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 font-medium"
+            >
+              <History size={13} />
+              {auditOpen ? 'Hide' : 'Show'} edit history
+              <ChevronRight size={12} className={`transition-transform ${auditOpen ? 'rotate-90' : ''}`} />
+            </button>
+
+            {auditOpen && (
+              <div className="mt-3">
+                {auditLoading ? (
+                  <p className="text-xs text-gray-400 animate-pulse">Loading…</p>
+                ) : !auditEntries || auditEntries.length === 0 ? (
+                  <p className="text-xs text-gray-400">No edits recorded yet.</p>
+                ) : (
+                  <ol className="relative border-l border-gray-200 space-y-4 pl-4">
+                    {auditEntries.map(entry => (
+                      <li key={entry.id} className="relative">
+                        <span className="absolute -left-[1.15rem] top-1 w-2 h-2 rounded-full bg-blue-400 border-2 border-white" />
+                        <p className="text-xs font-medium text-gray-800">
+                          {entry.userName}
+                          <span className="font-normal text-gray-500">
+                            {' '}({ROLE_LABELS[entry.userRole] ?? entry.userRole})
+                          </span>
+                          {' '}edited <span className="font-medium">{entry.fieldChanged}</span>
+                          {' '}on {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                        {entry.previousValue || entry.newValue ? (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {entry.changeType === 'ADDED' ? (
+                              <>Added: <span className="text-green-700">&ldquo;{entry.newValue}&rdquo;</span></>
+                            ) : entry.changeType === 'DELETED' ? (
+                              <>Removed: <span className="text-red-600 line-through">&ldquo;{entry.previousValue}&rdquo;</span></>
+                            ) : (
+                              <>&ldquo;{entry.previousValue}&rdquo; → &ldquo;{entry.newValue}&rdquo;</>
+                            )}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

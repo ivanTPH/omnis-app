@@ -2,6 +2,12 @@
  * Wonde MIS Sync — full + delta sync
  * Pulls live data from the Wonde API and upserts into the local Wonde* tables.
  * Does NOT modify User/SchoolClass — those are separate provisioning steps.
+ *
+ * Performance design:
+ * - All upsert loops run in parallel batches of BATCH (10) instead of sequentially.
+ * - FK existence checks (employee/group/student/class/period) use in-memory Sets built
+ *   during the loop — zero extra DB round-trips per record.
+ * - Photo bridge uses a single pre-fetched Map of school student Users.
  */
 
 import { prisma } from '@/lib/prisma'
@@ -39,6 +45,13 @@ function yearCodeToInt(code: string | undefined): number | null {
   return isNaN(n) ? null : n
 }
 
+/** Run `fn` over `items` in parallel chunks of `size`. */
+async function inBatches<T>(items: T[], fn: (item: T) => Promise<void>, size = 10): Promise<void> {
+  for (let i = 0; i < items.length; i += size) {
+    await Promise.all(items.slice(i, i + size).map(fn))
+  }
+}
+
 // ── Main sync entry point ─────────────────────────────────────────────────────
 
 export async function runWondeSync(
@@ -63,6 +76,14 @@ export async function runWondeSync(
   }
 
   const now = new Date()
+
+  // ID sets built as each section completes — used for FK existence checks later.
+  // This removes all per-record findUnique existence checks entirely.
+  const knownEmployeeIds = new Set<string>()
+  const knownGroupIds    = new Set<string>()
+  const knownStudentIds  = new Set<string>()
+  const knownClassIds    = new Set<string>()
+  const knownPeriodIds   = new Set<string>()
 
   try {
     // ── 1. Upsert WondeSchool record ──────────────────────────────────────────
@@ -95,7 +116,7 @@ export async function runWondeSync(
   // ── 2. Employees ─────────────────────────────────────────────────────────
   try {
     const employees = await fetchWondeEmployees(wondeSchoolId, wondeToken)
-    for (const emp of employees) {
+    await inBatches(employees, async emp => {
       const subjects = emp.subjects?.data.map(s => s.name) ?? []
       await prisma.wondeEmployee.upsert({
         where:  { id: emp.id },
@@ -124,8 +145,9 @@ export async function runWondeSync(
           updatedAt:      now,
         },
       })
+      knownEmployeeIds.add(emp.id)
       result.employees.upserted++
-    }
+    })
   } catch (err) {
     errors.push(`Employees: ${String(err)}`)
   }
@@ -134,17 +156,16 @@ export async function runWondeSync(
   try {
     const students = await fetchWondeStudents(wondeSchoolId, wondeToken)
 
-    // Pre-fetch all student Users for this school in one query so the photo
-    // bridge below is O(1) per student instead of N round-trips to the DB.
+    // Pre-fetch all school student Users in one query for the photo bridge.
     const schoolStudentUsers = await prisma.user.findMany({
-      where: { schoolId: omnisSchoolId, role: 'STUDENT' },
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
       select: { id: true, firstName: true, lastName: true },
     })
     const userByName = new Map(
       schoolStudentUsers.map(u => [`${u.firstName}|${u.lastName}`, u.id])
     )
 
-    for (const stu of students) {
+    await inBatches(students, async stu => {
       const yearInt  = yearCodeToInt(stu.year?.data?.code)
       const photoUrl = stu.photo?.data?.viewed ?? null
       await prisma.wondeStudent.upsert({
@@ -178,6 +199,7 @@ export async function runWondeSync(
           updatedAt:      now,
         },
       })
+      knownStudentIds.add(stu.id)
       result.students.upserted++
 
       // Bridge photo URL to User.avatarUrl AND UserSettings.profilePictureUrl.
@@ -206,7 +228,7 @@ export async function runWondeSync(
         }
       }
 
-      // Contacts
+      // Contacts — sequential within each student (inner try/catch per record)
       if (stu.contacts?.data) {
         for (const c of stu.contacts.data) {
           try {
@@ -250,7 +272,7 @@ export async function runWondeSync(
           }
         }
       }
-    }
+    })
   } catch (err) {
     errors.push(`Students/Contacts: ${String(err)}`)
   }
@@ -258,7 +280,7 @@ export async function runWondeSync(
   // ── 4. Groups ─────────────────────────────────────────────────────────────
   try {
     const groups = await fetchWondeGroups(wondeSchoolId, wondeToken)
-    for (const g of groups) {
+    await inBatches(groups, async g => {
       await prisma.wondeGroup.upsert({
         where:  { id: g.id },
         create: {
@@ -279,27 +301,23 @@ export async function runWondeSync(
           wondeUpdatedAt: parseWondeDate(g.updated_at),
         },
       })
+      knownGroupIds.add(g.id)
       result.groups.upserted++
-    }
+    })
   } catch (err) {
     errors.push(`Groups: ${String(err)}`)
   }
 
   // ── 5. Classes (+ enrolments) ─────────────────────────────────────────────
+  // FK existence is checked via in-memory Sets — no per-class findUnique calls.
   try {
     const classes = await fetchWondeClasses(wondeSchoolId, wondeToken)
-    for (const cls of classes) {
-      const yearInt = yearCodeToInt(cls.year?.data?.code)
-      const employeeId = cls.employee?.data?.id ?? null
-      const groupId    = cls.group?.data?.id ?? null
 
-      // Only link employee if we have that record
-      const empExists = employeeId
-        ? (await prisma.wondeEmployee.findUnique({ where: { id: employeeId }, select: { id: true } })) !== null
-        : false
-      const grpExists = groupId
-        ? (await prisma.wondeGroup.findUnique({ where: { id: groupId }, select: { id: true } })) !== null
-        : false
+    // Pass 1: upsert all classes in parallel batches
+    await inBatches(classes, async cls => {
+      const yearInt    = yearCodeToInt(cls.year?.data?.code)
+      const employeeId = cls.employee?.data?.id ?? null
+      const groupId    = cls.group?.data?.id    ?? null
 
       await prisma.wondeClass.upsert({
         where:  { id: cls.id },
@@ -310,8 +328,8 @@ export async function runWondeSync(
           name:           cls.name,
           subject:        cls.subject?.data?.name ?? null,
           yearGroup:      yearInt,
-          employeeId:     empExists ? employeeId : null,
-          groupId:        grpExists ? groupId    : null,
+          employeeId:     (employeeId && knownEmployeeIds.has(employeeId)) ? employeeId : null,
+          groupId:        (groupId    && knownGroupIds.has(groupId))       ? groupId    : null,
           wondeUpdatedAt: parseWondeDate(cls.updated_at),
           syncedAt:       now,
         },
@@ -320,30 +338,34 @@ export async function runWondeSync(
           name:           cls.name,
           subject:        cls.subject?.data?.name ?? null,
           yearGroup:      yearInt,
-          employeeId:     empExists ? employeeId : null,
-          groupId:        grpExists ? groupId    : null,
+          employeeId:     (employeeId && knownEmployeeIds.has(employeeId)) ? employeeId : null,
+          groupId:        (groupId    && knownGroupIds.has(groupId))       ? groupId    : null,
           wondeUpdatedAt: parseWondeDate(cls.updated_at),
         },
       })
+      knownClassIds.add(cls.id)
       result.classes.upserted++
+    })
 
-      // Enrolments
+    // Pass 2: upsert all enrolments in parallel batches (all classes now in DB)
+    const allEnrolments: Array<{ classId: string; studentId: string }> = []
+    for (const cls of classes) {
       if (cls.students?.data) {
         for (const stu of cls.students.data) {
-          const stuExists = await prisma.wondeStudent.findUnique({
-            where:  { id: stu.id },
-            select: { id: true },
-          })
-          if (!stuExists) continue
-          await prisma.wondeClassStudent.upsert({
-            where:  { classId_studentId: { classId: cls.id, studentId: stu.id } },
-            create: { classId: cls.id, studentId: stu.id },
-            update: {},
-          })
-          result.enrolments.upserted++
+          if (knownStudentIds.has(stu.id)) {
+            allEnrolments.push({ classId: cls.id, studentId: stu.id })
+          }
         }
       }
     }
+    await inBatches(allEnrolments, async ({ classId, studentId }) => {
+      await prisma.wondeClassStudent.upsert({
+        where:  { classId_studentId: { classId, studentId } },
+        create: { classId, studentId },
+        update: {},
+      })
+      result.enrolments.upserted++
+    })
   } catch (err) {
     errors.push(`Classes/Enrolments: ${String(err)}`)
   }
@@ -351,14 +373,13 @@ export async function runWondeSync(
   // ── 6. Periods ────────────────────────────────────────────────────────────
   try {
     const periods = await fetchWondePeriods(wondeSchoolId, wondeToken)
-    for (const p of periods) {
+    const DAY_MAP: Record<string, number> = {
+      monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
+      friday: 5, saturday: 6, sunday: 7,
+    }
+    await inBatches(periods, async p => {
       // API returns day as a string ("monday") — map to ISO weekday int (1=Mon…7=Sun)
-      const DAY_MAP: Record<string, number> = {
-        monday: 1, tuesday: 2, wednesday: 3, thursday: 4,
-        friday: 5, saturday: 6, sunday: 7,
-      }
       const dayOfWeek = p.day_number ?? (p.day ? (DAY_MAP[p.day.toLowerCase()] ?? null) : null)
-
       await prisma.wondePeriod.upsert({
         where:  { id: p.id },
         create: {
@@ -376,8 +397,9 @@ export async function runWondeSync(
           dayOfWeek,
         },
       })
+      knownPeriodIds.add(p.id)
       result.periods.upserted++
-    }
+    })
   } catch (err) {
     const msg = String(err)
     if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('permission')) {
@@ -388,25 +410,20 @@ export async function runWondeSync(
   }
 
   // ── 7. Timetable entries ──────────────────────────────────────────────────
+  // FK existence is checked via in-memory Sets — no per-entry findUnique calls.
   try {
     const entries = await fetchWondeTimetableEntries(wondeSchoolId, wondeToken)
-    for (const e of entries) {
-      const classId    = e.class?.data?.id ?? null
-      // period and employee come back as flat string IDs (not nested objects)
-      const employeeId = e.employee ?? null
-      const periodId   = e.period ?? null
-
-      if (!classId || !periodId) continue
-
-      const [clsExists, perExists] = await Promise.all([
-        prisma.wondeClass.findUnique({ where: { id: classId }, select: { id: true } }),
-        prisma.wondePeriod.findUnique({ where: { id: periodId }, select: { id: true } }),
-      ])
-      if (!clsExists || !perExists) continue
-
-      const empExists = employeeId
-        ? (await prisma.wondeEmployee.findUnique({ where: { id: employeeId }, select: { id: true } })) !== null
-        : false
+    const validEntries = entries.filter(e => {
+      const classId  = e.class?.data?.id ?? null
+      const periodId = e.period ?? null
+      return classId && periodId && knownClassIds.has(classId) && knownPeriodIds.has(periodId)
+    })
+    await inBatches(validEntries, async e => {
+      const classId    = e.class!.data!.id
+      const periodId   = e.period as string
+      const employeeId = (e.employee && knownEmployeeIds.has(e.employee as string))
+        ? (e.employee as string)
+        : null
 
       await prisma.wondeTimetableEntry.upsert({
         where:  { id: e.id },
@@ -414,7 +431,7 @@ export async function runWondeSync(
           id:            e.id,
           schoolId:      omnisSchoolId,
           classId,
-          employeeId:    empExists ? employeeId : null,
+          employeeId,
           periodId,
           // room is a flat string name in the API response
           roomName:      e.room ?? null,
@@ -422,14 +439,14 @@ export async function runWondeSync(
         },
         update: {
           classId,
-          employeeId:    empExists ? employeeId : null,
+          employeeId,
           periodId,
           roomName:      e.room ?? null,
           effectiveDate: parseWondeDate(e.effective_date),
         },
       })
       result.timetable.upserted++
-    }
+    })
   } catch (err) {
     const msg = String(err)
     if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('permission')) {

@@ -249,6 +249,9 @@ model School {
   studentProfiles      StudentLearningProfile[]
   ehcpPlans            EhcpPlan[]
   msgThreads           MsgThread[]
+
+  // APDR cycles
+  apdrCycles           AssessPlanDoReview[]
 }
 
 model TermDate {
@@ -322,6 +325,11 @@ model User {
   studentIlps          IndividualLearningPlan[] @relation("StudentIlps")
   ilpAuditEntries      IlpAuditEntry[]
   ehcpAuditEntries     EhcpAuditEntry[]
+
+  // APDR
+  studentApdr          AssessPlanDoReview[]     @relation("StudentApdr")
+  apdrCreated          AssessPlanDoReview[]     @relation("ApdrCreator")
+  apdrAuditEntries     ApdrAuditEntry[]
   sendReviewLogs       SendReviewLog[]        @relation("SendActor")
   earlyWarningActioned EarlyWarningFlag[]     @relation("FlagActioner")
 
@@ -1853,6 +1861,54 @@ model IlpAuditEntry {
   user User                   @relation(fields: [userId],   references: [id])
 
   @@index([ilpId])
+  @@index([userId])
+}
+
+// ─── APDR — Assess, Plan, Do, Review ─────────────────────────────────────────
+
+model AssessPlanDoReview {
+  id              String   @id @default(cuid())
+  schoolId        String
+  studentId       String
+  cycleNumber     Int      @default(1)
+  assessContent   String   @default("")
+  planContent     String   @default("")
+  doContent       String   @default("")
+  reviewContent   String   @default("")
+  status          String   @default("ACTIVE") // "ACTIVE" | "COMPLETED"
+  reviewDate      DateTime
+  createdBy       String
+  approvedBySenco Boolean  @default(false)
+  approvedAt      DateTime?
+  approvedBy      String?  // userId of approving SENCO
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school       School         @relation(fields: [schoolId], references: [id])
+  student      User           @relation("StudentApdr", fields: [studentId], references: [id])
+  creator      User           @relation("ApdrCreator", fields: [createdBy], references: [id])
+  auditEntries ApdrAuditEntry[]
+
+  @@index([schoolId, studentId])
+  @@index([schoolId, status])
+}
+
+model ApdrAuditEntry {
+  id             String   @id @default(cuid())
+  apdrId         String
+  userId         String
+  userName       String   // stored at write time
+  userRole       String
+  fieldChanged   String   // "assessContent" | "planContent" | "doContent" | "reviewContent"
+  previousValue  String
+  newValue       String
+  changeType     String   // "ADDED" | "EDITED" | "DELETED"
+  createdAt      DateTime @default(now())
+
+  apdr AssessPlanDoReview @relation(fields: [apdrId], references: [id], onDelete: Cascade)
+  user User               @relation(fields: [userId],  references: [id])
+
+  @@index([apdrId])
   @@index([userId])
 }
 

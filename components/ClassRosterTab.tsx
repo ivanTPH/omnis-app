@@ -1,8 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
 import { getClassRoster, getStudentClassDetail, type ClassRosterRow, type StudentClassDetail } from '@/app/actions/lessons'
+import { getCurrentUserRole } from '@/app/actions/send-support'
 import StudentAvatar from '@/components/StudentAvatar'
+
+const StudentAPDRPanel = dynamic(() => import('@/components/send-support/StudentAPDRPanel'), { ssr: false })
 
 const SEND_BADGE: Record<string, { label: string; cls: string }> = {
   SEN_SUPPORT: { label: 'SEN Support', cls: 'bg-amber-100 text-amber-700' },
@@ -23,12 +27,17 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [error,        setError]        = useState<string | null>(null)
   const [expandedId,   setExpandedId]   = useState<string | null>(null)
   const [detailsCache, setDetailsCache] = useState<Record<string, StudentClassDetail | 'loading'>>({})
+  const [userRole,     setUserRole]     = useState<string>('TEACHER')
+  const [activeTab,    setActiveTab]    = useState<Record<string, 'homework' | 'apdr'>>({})
 
   useEffect(() => {
     setLoading(true)
     setError(null)
-    getClassRoster(classId)
-      .then(setRows)
+    Promise.all([
+      getClassRoster(classId),
+      getCurrentUserRole(),
+    ])
+      .then(([r, role]) => { setRows(r); setUserRole(role ?? 'TEACHER') })
       .catch(() => setError('Could not load class roster.'))
       .finally(() => setLoading(false))
   }, [classId])
@@ -36,12 +45,17 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   function handleToggle(id: string) {
     if (expandedId === id) { setExpandedId(null); return }
     setExpandedId(id)
+    if (!activeTab[id]) setActiveTab(t => ({ ...t, [id]: 'homework' }))
     if (!detailsCache[id]) {
       setDetailsCache(c => ({ ...c, [id]: 'loading' }))
       getStudentClassDetail(id, classId)
         .then(d  => setDetailsCache(c => ({ ...c, [id]: d })))
         .catch(() => setDetailsCache(c => ({ ...c, [id]: { recentSubmissions: [] } })))
     }
+  }
+
+  function setTab(studentId: string, tab: 'homework' | 'apdr') {
+    setActiveTab(t => ({ ...t, [studentId]: tab }))
   }
 
   if (loading) {
@@ -171,40 +185,64 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     )}
                   </div>
 
-                  {/* Recent homework */}
-                  <div>
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Recent Homework</p>
-                    {detail === 'loading' ? (
-                      <div className="flex items-center gap-2 text-[12px] text-gray-400">
-                        <Loader2 size={12} className="animate-spin" /> Loading…
-                      </div>
-                    ) : !detail || detail.recentSubmissions.length === 0 ? (
-                      <p className="text-[12px] text-gray-400">No submissions for this class yet.</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {detail.recentSubmissions.map((s, i) => {
-                          const score    = s.finalScore ?? s.autoScore
-                          const scoreStr = score != null
-                            ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
-                            : null
-                          const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
-                          return (
-                            <div key={i} className="flex items-center gap-3">
-                              <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                                {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
-                              </span>
-                              {scoreStr != null && (
-                                <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                  {scoreStr}
-                                </span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
+                  {/* Tab switcher */}
+                  <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden w-fit">
+                    {(['homework', 'apdr'] as const).map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setTab(row.id, tab)}
+                        className={`text-[11px] font-medium px-3 py-1 transition-colors ${
+                          (activeTab[row.id] ?? 'homework') === tab
+                            ? 'bg-gray-800 text-white'
+                            : 'bg-white text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {tab === 'homework' ? 'Homework' : 'APDR'}
+                      </button>
+                    ))}
                   </div>
+
+                  {/* Homework tab */}
+                  {(activeTab[row.id] ?? 'homework') === 'homework' && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Recent Homework</p>
+                      {detail === 'loading' ? (
+                        <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                          <Loader2 size={12} className="animate-spin" /> Loading…
+                        </div>
+                      ) : !detail || detail.recentSubmissions.length === 0 ? (
+                        <p className="text-[12px] text-gray-400">No submissions for this class yet.</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {detail.recentSubmissions.map((s, i) => {
+                            const score    = s.finalScore ?? s.autoScore
+                            const scoreStr = score != null
+                              ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
+                              : null
+                            const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                                  {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
+                                </span>
+                                {scoreStr != null && (
+                                  <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                    {scoreStr}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* APDR tab */}
+                  {(activeTab[row.id] ?? 'homework') === 'apdr' && (
+                    <StudentAPDRPanel studentId={row.id} userRole={userRole} />
+                  )}
 
                 </div>
               )}

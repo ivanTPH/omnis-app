@@ -807,6 +807,13 @@ export async function generateEHCPFromILP(
     }
 
     revalidatePath('/senco/ehcp')
+
+    // Auto-generate APDR from ILP (now that EHCP is in place)
+    const { generateAPDRForStudent } = await import('./send-support')
+    void generateAPDRForStudent(studentId).catch(err =>
+      console.error('[generateEHCPFromILP] generateAPDRForStudent failed:', err)
+    )
+
     return { success: true }
   } catch (err) {
     console.error('[generateEHCPFromILP]', err)

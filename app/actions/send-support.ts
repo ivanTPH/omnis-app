@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma, writeILPAudit } from '@/lib/prisma'
+import { prisma, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
@@ -61,6 +61,38 @@ export type IlpWithTargets = {
 export type IlpAuditEntryRow = {
   id: string
   ilpId: string
+  userId: string
+  userName: string
+  userRole: string
+  fieldChanged: string
+  previousValue: string
+  newValue: string
+  changeType: string
+  createdAt: Date
+}
+
+export type ApdrRow = {
+  id: string
+  studentId: string
+  schoolId: string
+  cycleNumber: number
+  assessContent: string
+  planContent: string
+  doContent: string
+  reviewContent: string
+  status: string
+  reviewDate: Date
+  createdBy: string
+  approvedBySenco: boolean
+  approvedAt: Date | null
+  approvedBy: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type ApdrAuditEntryRow = {
+  id: string
+  apdrId: string
   userId: string
   userName: string
   userRole: string
@@ -1231,4 +1263,290 @@ export async function approveGeneratedIlp(ilpId: string): Promise<void> {
   }
 
   revalidatePath('/senco/ilp')
+
+  // Auto-generate APDR from approved ILP
+  void generateAPDRInternal(ilp.studentId, user.id, schoolId).catch(err =>
+    console.error('[approveGeneratedIlp] generateAPDRInternal failed:', err)
+  )
+}
+
+// ─── APDR — Assess, Plan, Do, Review ─────────────────────────────────────────
+
+const APDR_FIELD_LABELS: Record<string, string> = {
+  assessContent:  'Assess',
+  planContent:    'Plan',
+  doContent:      'Do',
+  reviewContent:  'Review',
+}
+
+/** Internal helper — creates an APDR cycle from existing ILP/EHCP data. No auth check. */
+async function generateAPDRInternal(
+  studentId: string,
+  createdByUserId: string,
+  schoolId: string,
+): Promise<void> {
+  // Skip if an ACTIVE APDR already exists
+  const existing = await prisma.assessPlanDoReview.findFirst({
+    where: { studentId, schoolId, status: 'ACTIVE' },
+    select: { id: true },
+  })
+  if (existing) return
+
+  const lastCompleted = await prisma.assessPlanDoReview.findFirst({
+    where: { studentId, schoolId },
+    orderBy: { cycleNumber: 'desc' },
+    select: { cycleNumber: true },
+  })
+  const nextCycle = (lastCompleted?.cycleNumber ?? 0) + 1
+
+  const [student, ilp, ehcp] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: studentId },
+      select: { firstName: true, lastName: true, yearGroup: true, sendStatus: { select: { needArea: true } } },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where: { schoolId, studentId, approvedBySenco: true, status: 'active' },
+      include: { targets: { where: { status: 'active' }, take: 3 } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.ehcpPlan.findFirst({
+      where: { schoolId, studentId, status: 'active' },
+      select: { sections: true },
+    }),
+  ])
+  if (!student) return
+
+  let assessContent = ''
+  let planContent   = ''
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (apiKey && ilp) {
+    try {
+      const targetLines = ilp.targets.map((t, i) =>
+        `  ${i + 1}. ${t.target} — strategy: ${t.strategy} — success: ${t.successMeasure}`
+      ).join('\n')
+      const ehcpSections = ehcp?.sections as Record<string, string> | null
+      const ehcpCtx = ehcpSections
+        ? `\nEHCP Section B: ${ehcpSections.B ?? ''}\nEHCP Section F: ${ehcpSections.F ?? ''}`
+        : ''
+
+      const { default: Anthropic } = await import('@anthropic-ai/sdk')
+      const client = new Anthropic({ apiKey })
+      const msg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 600,
+        system: 'You are a UK SENCO writing APDR cycle records. Return ONLY valid JSON, no markdown.',
+        messages: [{
+          role: 'user',
+          content: `Generate Assess and Plan sections for an APDR cycle.
+
+Student: ${student.firstName} ${student.lastName}, Year ${student.yearGroup ?? 9}
+SEND category: ${student.sendStatus?.needArea ?? ilp.sendCategory}
+ILP Strengths: ${ilp.currentStrengths}
+ILP Areas of need: ${ilp.areasOfNeed}
+ILP Strategies: ${ilp.strategies.join('; ')}${ehcpCtx}
+Active targets:
+${targetLines}
+
+Return ONLY JSON:
+{
+  "assessContent": "3-4 sentences: strengths observed in class, areas requiring support, learner's voice and aspirations, key assessment findings",
+  "planContent": "3-4 sentences: specific learning objectives this cycle, teaching strategies, TA support arrangements, how progress will be monitored"
+}`,
+        }],
+      })
+      const raw = (msg.content[0] as { type: string; text: string }).text.trim()
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (match) {
+        const gen = JSON.parse(match[0])
+        assessContent = String(gen.assessContent ?? '')
+        planContent   = String(gen.planContent   ?? '')
+      }
+    } catch (err) {
+      console.error('[generateAPDRInternal] Claude call failed:', err)
+    }
+  }
+
+  if (!assessContent && ilp) assessContent = `Strengths: ${ilp.currentStrengths}. Areas of need: ${ilp.areasOfNeed}`
+  if (!planContent   && ilp) planContent   = `Strategies: ${ilp.strategies.join('; ')}. Success criteria: ${ilp.successCriteria}`
+
+  await prisma.assessPlanDoReview.create({
+    data: {
+      schoolId, studentId, cycleNumber: nextCycle,
+      assessContent:   assessContent || 'To be completed by SENCO.',
+      planContent:     planContent   || 'To be completed by SENCO.',
+      doContent:       '',
+      reviewContent:   '',
+      status:          'ACTIVE',
+      reviewDate:      new Date(Date.now() + 13 * 7 * 24 * 60 * 60 * 1000),
+      createdBy:       createdByUserId,
+      approvedBySenco: false,
+    },
+  })
+}
+
+/** Generate (or regenerate) an APDR for a student — SENCO-callable server action. */
+export async function generateAPDRForStudent(
+  studentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSenco()
+    await generateAPDRInternal(studentId, user.id, user.schoolId)
+    revalidatePath(`/student/${studentId}/send`)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: String(err).slice(0, 200) }
+  }
+}
+
+/** Approve the current APDR — makes content visible to all staff. */
+export async function approveAPDR(apdrId: string): Promise<void> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const apdr = await prisma.assessPlanDoReview.findFirst({
+    where: { id: apdrId, schoolId },
+    select: { id: true, studentId: true },
+  })
+  if (!apdr) throw new Error('APDR not found')
+
+  await prisma.assessPlanDoReview.update({
+    where: { id: apdrId },
+    data:  { approvedBySenco: true, approvedAt: new Date(), approvedBy: user.id },
+  })
+
+  revalidatePath(`/student/${apdr.studentId}/send`)
+}
+
+/** Update a single APDR section (with audit after approval). */
+export async function updateAPDRSection(
+  apdrId: string,
+  section: 'assessContent' | 'planContent' | 'doContent' | 'reviewContent',
+  newContent: string,
+): Promise<void> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) redirect('/dashboard')
+
+  // Only SENCO-tier can edit Assess / Plan / Review; all staff can add Do notes
+  const sencoOnly = ['assessContent', 'planContent', 'reviewContent']
+  if (sencoOnly.includes(section) && !['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) {
+    throw new Error('Only SENCO can edit Assess, Plan and Review sections')
+  }
+
+  const apdr = await prisma.assessPlanDoReview.findFirst({
+    where:  { id: apdrId, schoolId: user.schoolId },
+    select: { assessContent: true, planContent: true, doContent: true, reviewContent: true, approvedBySenco: true, studentId: true },
+  })
+  if (!apdr) throw new Error('APDR not found')
+
+  const previousValue = String(apdr[section] ?? '')
+
+  await prisma.assessPlanDoReview.update({
+    where: { id: apdrId },
+    data:  { [section]: newContent },
+  })
+
+  if (apdr.approvedBySenco && previousValue !== newContent) {
+    await writeAPDRAudit({
+      apdrId,
+      userId:        user.id,
+      userName:      `${user.firstName} ${user.lastName}`,
+      userRole:      user.role,
+      fieldChanged:  APDR_FIELD_LABELS[section] ?? section,
+      previousValue,
+      newValue:      newContent,
+      changeType:    !previousValue && newContent ? 'ADDED' : !newContent ? 'DELETED' : 'EDITED',
+    })
+  }
+
+  revalidatePath(`/student/${apdr.studentId}/send`)
+}
+
+/**
+ * Complete the review for this cycle.
+ * Saves review text, marks COMPLETED, auto-starts next cycle.
+ */
+export async function completeAPDRReview(
+  apdrId: string,
+  reviewContent: string,
+): Promise<void> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const apdr = await prisma.assessPlanDoReview.findFirst({
+    where:  { id: apdrId, schoolId },
+    select: { id: true, studentId: true, approvedBySenco: true, reviewContent: true },
+  })
+  if (!apdr) throw new Error('APDR not found')
+
+  await prisma.assessPlanDoReview.update({
+    where: { id: apdrId },
+    data:  { status: 'COMPLETED', reviewContent },
+  })
+
+  if (apdr.approvedBySenco && (apdr.reviewContent ?? '') !== reviewContent) {
+    await writeAPDRAudit({
+      apdrId,
+      userId:        user.id,
+      userName:      `${user.firstName} ${user.lastName}`,
+      userRole:      user.role,
+      fieldChanged:  'Review',
+      previousValue: apdr.reviewContent ?? '',
+      newValue:      reviewContent,
+      changeType:    !apdr.reviewContent && reviewContent ? 'ADDED' : 'EDITED',
+    })
+  }
+
+  void generateAPDRInternal(apdr.studentId, user.id, schoolId).catch(err =>
+    console.error('[completeAPDRReview] generateAPDRInternal failed:', err)
+  )
+
+  revalidatePath(`/student/${apdr.studentId}/send`)
+}
+
+/** Fetch all APDR cycles for a student — newest first. */
+export async function getStudentAPDRCycles(studentId: string): Promise<ApdrRow[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const cycles = await prisma.assessPlanDoReview.findMany({
+    where:   { studentId, schoolId: user.schoolId },
+    orderBy: { cycleNumber: 'desc' },
+  })
+
+  return cycles.map(c => ({
+    id: c.id, studentId: c.studentId, schoolId: c.schoolId,
+    cycleNumber: c.cycleNumber, assessContent: c.assessContent,
+    planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
+    status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
+    approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
+    approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+  }))
+}
+
+/** Audit log for an APDR — SENCO/SLT/SCHOOL_ADMIN see all; others see own only. */
+export async function getAPDRAuditLog(apdrId: string): Promise<ApdrAuditEntryRow[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const fullAccess = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+  const entries = await prisma.apdrAuditEntry.findMany({
+    where: { apdrId, ...(fullAccess ? {} : { userId: user.id }) },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  return entries.map(e => ({
+    id: e.id, apdrId: e.apdrId, userId: e.userId,
+    userName: e.userName, userRole: e.userRole, fieldChanged: e.fieldChanged,
+    previousValue: e.previousValue, newValue: e.newValue,
+    changeType: e.changeType, createdAt: e.createdAt,
+  }))
+}
+
+/** Returns the current user's role — used by client components. */
+export async function getCurrentUserRole(): Promise<string | null> {
+  const session = await auth()
+  return (session?.user as any)?.role ?? null
 }

@@ -6,10 +6,11 @@ import ConcernList from '@/components/send-support/ConcernList'
 import IlpCard from '@/components/send-support/IlpCard'
 import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
 import RaiseConcernButton from '@/components/send-support/RaiseConcernButton'
-import { AlertTriangle, FileText } from 'lucide-react'
+import StudentAPDRPanel from '@/components/send-support/StudentAPDRPanel'
+import { AlertTriangle, FileText, RefreshCw } from 'lucide-react'
 import StudentAvatar from '@/components/StudentAvatar'
 
-const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN']
+const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT']
 
 export default async function StudentSendPage({
   params,
@@ -20,6 +21,7 @@ export default async function StudentSendPage({
   if (!session) redirect('/login')
   const user = session.user as { role: string; schoolId: string }
   if (!ALLOWED.includes(user.role)) redirect('/dashboard')
+  const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
 
   const { studentId } = await params
 
@@ -108,6 +110,15 @@ export default async function StudentSendPage({
           )}
         </section>
 
+        {/* APDR Cycles */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <RefreshCw size={16} className="text-teal-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Assess, Plan, Do, Review</h2>
+          </div>
+          <StudentAPDRPanel studentId={student.id} userRole={user.role} />
+        </section>
+
         {/* Concerns */}
         <section>
           <div className="flex items-center gap-2 mb-3">
@@ -120,7 +131,7 @@ export default async function StudentSendPage({
             </h2>
           </div>
           <div className="bg-white border border-gray-200 rounded-2xl p-4">
-            <ConcernList concerns={concerns} isSenco={user.role === 'SENCO'} />
+            <ConcernList concerns={concerns} isSenco={isSenco} />
           </div>
         </section>
       </div>

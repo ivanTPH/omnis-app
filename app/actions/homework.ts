@@ -59,6 +59,15 @@ export async function getHomeworkForMarking(homeworkId: string) {
 
   const sendByStudent = Object.fromEntries(sendStatuses.map(s => [s.studentId, s]))
 
+  // K Plan teacher actions for each enrolled student (APPROVED only)
+  const kPlans = enrolledIds.length
+    ? await prisma.learnerPassport.findMany({
+        where:  { studentId: { in: enrolledIds }, schoolId, status: 'APPROVED' },
+        select: { studentId: true, teacherActions: true },
+      })
+    : []
+  const kPlanByStudent = Object.fromEntries(kPlans.map(p => [p.studentId, { teacherActions: p.teacherActions }]))
+
   // Merge UserSettings.profilePictureUrl → avatarUrl so StudentAvatar shows Wonde photos
   const hwMerged = {
     ...hw,
@@ -81,7 +90,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
     })),
   }
 
-  return { ...hwMerged, sendByStudent }
+  return { ...hwMerged, sendByStudent, kPlanByStudent }
 }
 
 export async function getSubmissionForMarking(submissionId: string) {

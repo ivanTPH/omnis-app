@@ -2,7 +2,7 @@
 import { useState, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare } from 'lucide-react'
+import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare, BookOpen } from 'lucide-react'
 import { markSubmission, resendHomeworkReminder } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -93,9 +93,10 @@ type PupilFilter = 'all' | 'submitted' | 'returned' | 'missing' | 'send'
 // ── main component ─────────────────────────────────────────────────────────────
 
 export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
-  const enrolled      = hw.class?.enrolments ?? []
-  const maxScore      = maxFromBands(hw.gradingBands)
-  const sendByStudent = hw.sendByStudent
+  const enrolled       = hw.class?.enrolments ?? []
+  const maxScore       = maxFromBands(hw.gradingBands)
+  const sendByStudent  = hw.sendByStudent
+  const kPlanByStudent = (hw as any).kPlanByStudent as Record<string, { teacherActions: string[] }> | undefined ?? {}
 
   // Map student ID → submission
   const subByStudent = useMemo(
@@ -151,6 +152,9 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const [error,           setError]           = useState<string | null>(null)
   const [remindingId,     setRemindingId]     = useState<string | null>(null)
   const [remindedIds,     setRemindedIds]     = useState<Set<string>>(new Set())
+  const [kPlanOpen,       setKPlanOpen]       = useState(false)
+  const [kPlanChecked,    setKPlanChecked]    = useState<boolean[]>([])
+  const [kPlanStudentId,  setKPlanStudentId]  = useState<string | null>(null)
   const router = useRouter()
 
   // Per-student form state
@@ -207,6 +211,14 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const selectedStudent = selectedId ? pupils.find(p => p.id === selectedId) ?? null : null
   const form            = selectedId ? (formState[selectedId] ?? { score: '', grade: '', feedback: '' }) : null
   const sendInfo        = selectedId ? sendByStudent[selectedId] : null
+  const selectedKPlan   = selectedId ? kPlanByStudent[selectedId] : null
+
+  // Reset checklist when selected student changes
+  if (selectedId !== kPlanStudentId && selectedKPlan) {
+    setKPlanStudentId(selectedId)
+    setKPlanChecked(new Array(selectedKPlan.teacherActions.length).fill(false))
+    setKPlanOpen(false)
+  }
 
   function setField(field: 'score' | 'grade' | 'feedback', value: string) {
     if (!selectedId) return
@@ -649,6 +661,70 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 </p>
               </div>
             </div>
+
+            {/* K Plan lesson actions */}
+            {selectedKPlan && selectedKPlan.teacherActions.length > 0 && (
+              <div className={`border rounded-xl overflow-hidden ${
+                sendInfo?.activeStatus === 'EHCP' ? 'border-purple-200' : 'border-blue-200'
+              }`}>
+                <button
+                  onClick={() => setKPlanOpen(v => !v)}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 transition-colors text-left ${
+                    sendInfo?.activeStatus === 'EHCP'
+                      ? 'bg-purple-50 hover:bg-purple-100'
+                      : 'bg-blue-50 hover:bg-blue-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen size={13} className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
+                    <span className={`text-[12px] font-semibold ${sendInfo?.activeStatus === 'EHCP' ? 'text-purple-800' : 'text-blue-800'}`}>
+                      K Plan — Lesson actions for {selectedStudent?.firstName}
+                    </span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                      sendInfo?.activeStatus === 'EHCP'
+                        ? 'bg-purple-200 text-purple-700'
+                        : 'bg-blue-200 text-blue-700'
+                    }`}>
+                      {selectedKPlan.teacherActions.length} actions
+                    </span>
+                  </div>
+                  {kPlanOpen ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
+                </button>
+                {kPlanOpen && (
+                  <div className="px-4 py-3 space-y-2 bg-white">
+                    <p className="text-[10px] text-gray-400 italic mb-2">Tick off as reminders — not saved</p>
+                    {selectedKPlan.teacherActions.map((action, i) => (
+                      <label key={i} className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={kPlanChecked[i] ?? false}
+                          onChange={() => {
+                            setKPlanChecked(prev => {
+                              const next = [...prev]
+                              next[i] = !next[i]
+                              return next
+                            })
+                          }}
+                          className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 cursor-pointer"
+                          style={{ accentColor: sendInfo?.activeStatus === 'EHCP' ? '#7c3aed' : '#2563eb' }}
+                        />
+                        <span className={`text-[12px] leading-snug ${kPlanChecked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                          {action}
+                        </span>
+                      </label>
+                    ))}
+                    <a
+                      href={`/student/${selectedId}/send`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 mt-1 transition-colors"
+                    >
+                      <ExternalLink size={11} /> Full SEND record
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* submission content */}
             <div>

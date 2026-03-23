@@ -103,6 +103,16 @@ export type ApdrAuditEntryRow = {
   createdAt: Date
 }
 
+export type ClassKPlanAction = {
+  studentId:       string
+  studentName:     string
+  sendStatus:      string | null
+  needArea:        string | null
+  teacherActions:  string[]
+  sendInformation: string
+  passportId:      string
+}
+
 export type LearnerPassportRow = {
   id: string
   studentId: string
@@ -1577,6 +1587,59 @@ export async function getAPDRAuditLog(apdrId: string): Promise<ApdrAuditEntryRow
 export async function getCurrentUserRole(): Promise<string | null> {
   const session = await auth()
   return (session?.user as any)?.role ?? null
+}
+
+/**
+ * Full K Plan data for all students in a class with APPROVED plans.
+ * Used by the Lesson Overview "Class SEND Actions" card.
+ * All staff can call this; returns only APPROVED plans.
+ */
+export async function getClassKPlanActions(classId: string): Promise<ClassKPlanAction[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    include: { user: { select: { id: true, firstName: true, lastName: true } } },
+  })
+  const studentIds = enrolments.map(e => e.userId)
+  if (studentIds.length === 0) return []
+
+  const [passports, sendStatuses] = await Promise.all([
+    prisma.learnerPassport.findMany({
+      where: { studentId: { in: studentIds }, schoolId: user.schoolId, status: 'APPROVED' },
+      select: { id: true, studentId: true, teacherActions: true, sendInformation: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.sendStatus.findMany({
+      where: { studentId: { in: studentIds } },
+      select: { studentId: true, activeStatus: true, needArea: true },
+    }),
+  ])
+
+  const sendMap    = new Map(sendStatuses.map(s => [s.studentId, s]))
+  const studentMap = new Map(enrolments.map(e => [e.userId, e.user]))
+
+  const seen: Set<string> = new Set()
+  const result: ClassKPlanAction[] = []
+  for (const p of passports) {
+    if (seen.has(p.studentId)) continue
+    seen.add(p.studentId)
+    const student = studentMap.get(p.studentId)
+    if (!student) continue
+    const send = sendMap.get(p.studentId)
+    result.push({
+      studentId:       p.studentId,
+      studentName:     `${student.firstName} ${student.lastName}`,
+      sendStatus:      (send?.activeStatus as string | null) ?? null,
+      needArea:        send?.needArea ?? null,
+      teacherActions:  p.teacherActions,
+      sendInformation: p.sendInformation,
+      passportId:      p.id,
+    })
+  }
+  return result.sort((a, b) => a.studentName.localeCompare(b.studentName))
 }
 
 // ─── K Plan (Learning Passport) ───────────────────────────────────────────────

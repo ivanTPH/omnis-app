@@ -32,9 +32,11 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [detailsCache, setDetailsCache] = useState<Record<string, StudentClassDetail | 'loading'>>({})
   const [userRole,     setUserRole]     = useState<string>('TEACHER')
   const [activeTab,    setActiveTab]    = useState<Record<string, 'homework' | 'apdr' | 'kplan'>>({})
-  const [kPlanMap,     setKPlanMap]     = useState<Record<string, KPlanSummary>>({})
-  const [kPlanModal,   setKPlanModal]   = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
-  const [kPlanLoading, setKPlanLoading] = useState<string | null>(null) // studentId being loaded
+  const [kPlanMap,        setKPlanMap]        = useState<Record<string, KPlanSummary>>({})
+  const [kPlanModal,      setKPlanModal]      = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
+  const [kPlanLoading,    setKPlanLoading]    = useState<string | null>(null) // studentId being loaded
+  const [kPlanFullCache,  setKPlanFullCache]  = useState<Record<string, LearnerPassportRow | 'loading'>>({})
+  const [kPlanChecked,    setKPlanChecked]    = useState<Record<string, boolean[]>>({}) // ephemeral checklist
 
   useEffect(() => {
     setLoading(true)
@@ -63,6 +65,17 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
   function setTab(studentId: string, tab: 'homework' | 'apdr' | 'kplan') {
     setActiveTab(t => ({ ...t, [studentId]: tab }))
+    // Auto-load full passport when K Plan tab is first opened
+    if (tab === 'kplan' && !kPlanFullCache[studentId]) {
+      setKPlanFullCache(c => ({ ...c, [studentId]: 'loading' }))
+      getStudentLearnerPassport(studentId)
+        .then(p => {
+          setKPlanFullCache(c => ({ ...c, [studentId]: p ?? ('loading' as any) }))
+          // Initialise checklist state (all unticked)
+          if (p) setKPlanChecked(ch => ({ ...ch, [studentId]: new Array(p.teacherActions.length).fill(false) }))
+        })
+        .catch(() => setKPlanFullCache(c => ({ ...c, [studentId]: 'loading' })))
+    }
   }
 
   async function openKPlanModal(studentId: string, studentName: string) {
@@ -278,40 +291,101 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   )}
 
                   {/* K Plan tab */}
-                  {(activeTab[row.id] ?? 'homework') === 'kplan' && (
-                    <div>
-                      {!kPlan ? (
-                        <p className="text-[12px] text-gray-400 italic">No K Plan for this student.</p>
-                      ) : (
-                        <div className="bg-white border border-gray-200 rounded-xl p-3">
-                          {/* Thumbnail: 2-line preview */}
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <BookOpen size={12} className="text-teal-600 shrink-0" />
-                                <span className="text-[11px] font-semibold text-teal-700">K Plan</span>
-                                {kPlan.status === 'APPROVED'
-                                  ? <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-semibold">Approved</span>
-                                  : <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">Draft</span>
-                                }
-                              </div>
-                              <p className="text-[12px] text-gray-600 line-clamp-2 leading-snug">
-                                {kPlan.sendInformation || <span className="italic text-gray-400">No content yet.</span>}
-                              </p>
+                  {(activeTab[row.id] ?? 'homework') === 'kplan' && (() => {
+                    if (!kPlan) return (
+                      <p className="text-[12px] text-gray-400 italic">No approved K Plan for this student.</p>
+                    )
+                    const fullPassport = kPlanFullCache[row.id]
+                    const checked      = kPlanChecked[row.id] ?? []
+
+                    function toggleCheck(i: number) {
+                      setKPlanChecked(ch => {
+                        const arr = [...(ch[row.id] ?? [])]
+                        arr[i] = !arr[i]
+                        return { ...ch, [row.id]: arr }
+                      })
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {/* SEND info */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
+                          <p className="text-[12px] text-gray-700 leading-relaxed line-clamp-3">
+                            {kPlan.sendInformation}
+                          </p>
+                        </div>
+
+                        {/* Teacher actions checklist */}
+                        <div>
+                          <p className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide mb-1.5">
+                            It would help me if you could
+                            <span className="ml-1.5 text-gray-400 normal-case font-normal">(tick as reminders — not saved)</span>
+                          </p>
+                          {fullPassport === 'loading' ? (
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                              <Loader2 size={11} className="animate-spin" /> Loading…
                             </div>
+                          ) : fullPassport ? (
+                            <ul className="space-y-1.5">
+                              {fullPassport.teacherActions.map((action, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked[i] ?? false}
+                                    onChange={() => toggleCheck(i)}
+                                    className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-purple-600 cursor-pointer"
+                                  />
+                                  <span className={`text-[12px] leading-snug ${checked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                                    {action}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-[12px] text-gray-400 italic">Could not load actions.</p>
+                          )}
+                        </div>
+
+                        {/* Student commitments */}
+                        {fullPassport && fullPassport !== 'loading' && fullPassport.studentCommitments.length > 0 && (
+                          <div>
+                            <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-1.5">
+                              {row.firstName} will help themselves by
+                            </p>
+                            <ul className="space-y-1">
+                              {fullPassport.studentCommitments.map((c, i) => (
+                                <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-600">
+                                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                                  {c}
+                                </li>
+                              ))}
+                            </ul>
                           </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 pt-1">
                           <button
                             onClick={() => openKPlanModal(row.id, studentName)}
                             disabled={kPlanLoading === row.id}
-                            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
                           >
                             {kPlanLoading === row.id ? <Loader2 size={11} className="animate-spin" /> : <BookOpen size={11} />}
-                            View full K Plan
+                            Full view
                           </button>
+                          <a
+                            href={`/student/${row.id}/send`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
+                          >
+                            <ChevronRight size={11} /> SEND record
+                          </a>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )
+                  })()}
 
                 </div>
               )}

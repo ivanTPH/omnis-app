@@ -12,9 +12,10 @@ import dynamic from 'next/dynamic'
 import AddResourcePanel       from '@/components/AddResourcePanel'
 import OakResourcePanel       from '@/components/OakResourcePanel'
 import UnifiedResourceSearch  from '@/components/UnifiedResourceSearch'
-const RevisionAnalysisPanel = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
-const ClassRosterTab        = dynamic(() => import('@/components/ClassRosterTab'),         { ssr: false })
-const ClassInsightsTab      = dynamic(() => import('@/components/ClassInsightsTab'),        { ssr: false })
+const RevisionAnalysisPanel  = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
+const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab'),          { ssr: false })
+const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
+const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
@@ -1125,6 +1126,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   </div>
                   {saving && <p className="text-[11px] text-gray-400">Saving…</p>}
+
+                  {/* Class SEND Actions — K Plan strip */}
+                  {lesson?.class?.id && (
+                    <ClassSendActionsCard classId={lesson.class.id} />
+                  )}
 
                   {/* Date & time */}
                   <div>

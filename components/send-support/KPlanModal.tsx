@@ -17,7 +17,12 @@ type Props = {
 export default function KPlanModal({ passport, studentName, studentId, userRole, onClose, onUpdated }: Props) {
   const [approving,    setApproving]    = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const [checked,      setChecked]      = useState<boolean[]>(() => new Array(passport.teacherActions.length).fill(false))
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(userRole)
+
+  function toggleCheck(i: number) {
+    setChecked(prev => { const next = [...prev]; next[i] = !next[i]; return next })
+  }
 
   async function handleApprove() {
     setApproving(true)
@@ -124,16 +129,27 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
                 {passport.teacherActions.length === 0 ? (
                   <p className="text-[13px] text-gray-400 italic">Not yet generated.</p>
                 ) : (
-                  <ul className="space-y-3">
-                    {passport.teacherActions.map((action, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-[13px] text-purple-900">
-                        <span className="mt-0.5 w-5 h-5 shrink-0 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-[10px] font-bold">
-                          {i + 1}
-                        </span>
-                        {action}
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <p className="text-[10px] text-purple-400 italic mb-3">Tick off as reminders — not saved</p>
+                    <ul className="space-y-3">
+                      {passport.teacherActions.map((action, i) => (
+                        <li key={i}>
+                          <label className="flex items-start gap-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked[i] ?? false}
+                              onChange={() => toggleCheck(i)}
+                              className="mt-0.5 w-4 h-4 rounded border-purple-300 cursor-pointer"
+                              style={{ accentColor: '#7c3aed' }}
+                            />
+                            <span className={`text-[13px] leading-snug ${checked[i] ? 'line-through text-purple-300' : 'text-purple-900'}`}>
+                              {action}
+                            </span>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </div>
             </div>
@@ -164,12 +180,22 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
         </div>
 
         {/* Footer */}
-        {passport.approvedAt && (
-          <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-200 text-[11px] text-gray-500 shrink-0">
-            Approved {new Date(passport.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-            {' · '}This document is confidential. Share only with staff who teach {firstName}.
-          </div>
-        )}
+        <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-200 text-[11px] text-gray-500 shrink-0 flex items-center justify-between gap-4">
+          <span>
+            {passport.approvedAt
+              ? `Approved ${new Date(passport.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · `
+              : ''}
+            This document is confidential. Share only with staff who teach {firstName}.
+          </span>
+          <a
+            href={`/student/${studentId}/send`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 text-blue-500 hover:text-blue-700 font-medium"
+          >
+            Full SEND record →
+          </a>
+        </div>
       </div>
     </div>
   )

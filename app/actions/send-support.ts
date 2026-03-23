@@ -750,6 +750,68 @@ export async function getIlpAuditLog(ilpId: string): Promise<IlpAuditEntryRow[]>
   }))
 }
 
+// ─── SEND Status Management ───────────────────────────────────────────────────
+
+/**
+ * Updates a student's SendStatus.activeStatus.
+ * If transitioning SEN_SUPPORT → EHCP, fires generateEHCPFromILP asynchronously.
+ */
+export async function updateSendStatus(
+  studentId: string,
+  newStatus: 'NONE' | 'SEN_SUPPORT' | 'EHCP',
+  needArea?: string,
+): Promise<void> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  // Verify student belongs to this school
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId, role: 'STUDENT' },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  if (!student) throw new Error('Student not found')
+
+  const existing = await prisma.sendStatus.findUnique({
+    where: { studentId },
+    select: { activeStatus: true },
+  })
+  const previousStatus = existing?.activeStatus ?? 'NONE'
+
+  await prisma.sendStatus.upsert({
+    where: { studentId },
+    update: {
+      activeStatus: newStatus as any,
+      ...(needArea !== undefined ? { needArea } : {}),
+    },
+    create: {
+      studentId,
+      activeStatus: newStatus as any,
+      needArea: needArea ?? null,
+    },
+  })
+
+  await prisma.sendReviewLog.create({
+    data: {
+      schoolId,
+      studentId,
+      action: 'send_status_changed',
+      actorId: user.id,
+      metadata: { from: previousStatus, to: newStatus },
+    },
+  })
+
+  // When escalating SEN_SUPPORT → EHCP, auto-generate an EHCP from the approved ILP
+  if (previousStatus === 'SEN_SUPPORT' && newStatus === 'EHCP') {
+    const { generateEHCPFromILP } = await import('./ehcp')
+    void generateEHCPFromILP(studentId, user.id).catch(err =>
+      console.error('[updateSendStatus] generateEHCPFromILP failed:', err)
+    )
+  }
+
+  revalidatePath('/senco/concerns')
+  revalidatePath('/senco/ehcp')
+}
+
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 export async function getMyNotifications(): Promise<SendNotificationRow[]> {

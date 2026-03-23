@@ -6,6 +6,19 @@ export async function writeAudit(data: { schoolId: string; actorId: string; acti
   await prisma.auditLog.create({ data: { ...data, action: data.action as any, metadata: data.metadata ?? {} } })
 }
 
+export async function writeEHCPAudit(data: {
+  ehcpId: string
+  userId: string
+  userName: string
+  userRole: string
+  fieldChanged: string
+  previousValue: string
+  newValue: string
+  changeType: 'ADDED' | 'EDITED' | 'DELETED'
+}) {
+  await prisma.ehcpAuditEntry.create({ data })
+}
+
 export async function writeILPAudit(data: {
   ilpId: string
   userId: string

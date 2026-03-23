@@ -809,10 +809,19 @@ export async function generateEHCPFromILP(
     revalidatePath('/senco/ehcp')
 
     // Auto-generate APDR from ILP (now that EHCP is in place)
-    const { generateAPDRForStudent } = await import('./send-support')
+    const { generateAPDRForStudent, generateLearnerPassportInternal } = await import('./send-support')
     void generateAPDRForStudent(studentId).catch(err =>
       console.error('[generateEHCPFromILP] generateAPDRForStudent failed:', err)
     )
+
+    // Auto-generate K Plan now that EHCP exists
+    const session = await auth()
+    const triggeredBy = session?.user as { id?: string; schoolId?: string } | undefined
+    if (triggeredBy?.id && triggeredBy?.schoolId) {
+      void generateLearnerPassportInternal(studentId, triggeredBy.id, triggeredBy.schoolId).catch(err =>
+        console.error('[generateEHCPFromILP] generateLearnerPassportInternal failed:', err)
+      )
+    }
 
     return { success: true }
   } catch (err) {

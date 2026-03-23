@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Loader2, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react'
+import { Loader2, AlertCircle, ChevronDown, ChevronRight, BookOpen } from 'lucide-react'
 import { getClassRoster, getStudentClassDetail, type ClassRosterRow, type StudentClassDetail } from '@/app/actions/lessons'
-import { getCurrentUserRole } from '@/app/actions/send-support'
+import { getCurrentUserRole, getClassKPlanSummaries, getStudentLearnerPassport, type LearnerPassportRow } from '@/app/actions/send-support'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const StudentAPDRPanel = dynamic(() => import('@/components/send-support/StudentAPDRPanel'), { ssr: false })
+const KPlanModal       = dynamic(() => import('@/components/send-support/KPlanModal'),       { ssr: false })
 
 const SEND_BADGE: Record<string, { label: string; cls: string }> = {
   SEN_SUPPORT: { label: 'SEN Support', cls: 'bg-amber-100 text-amber-700' },
@@ -21,6 +22,8 @@ const STATUS_COLORS: Record<string, string> = {
   SUBMITTED:          'bg-gray-100 text-gray-600',
 }
 
+type KPlanSummary = { id: string; sendInformation: string; status: string }
+
 export default function ClassRosterTab({ classId }: { classId: string }) {
   const [rows,         setRows]         = useState<ClassRosterRow[]>([])
   const [loading,      setLoading]      = useState(true)
@@ -28,7 +31,10 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [expandedId,   setExpandedId]   = useState<string | null>(null)
   const [detailsCache, setDetailsCache] = useState<Record<string, StudentClassDetail | 'loading'>>({})
   const [userRole,     setUserRole]     = useState<string>('TEACHER')
-  const [activeTab,    setActiveTab]    = useState<Record<string, 'homework' | 'apdr'>>({})
+  const [activeTab,    setActiveTab]    = useState<Record<string, 'homework' | 'apdr' | 'kplan'>>({})
+  const [kPlanMap,     setKPlanMap]     = useState<Record<string, KPlanSummary>>({})
+  const [kPlanModal,   setKPlanModal]   = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
+  const [kPlanLoading, setKPlanLoading] = useState<string | null>(null) // studentId being loaded
 
   useEffect(() => {
     setLoading(true)
@@ -36,8 +42,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     Promise.all([
       getClassRoster(classId),
       getCurrentUserRole(),
+      getClassKPlanSummaries(classId),
     ])
-      .then(([r, role]) => { setRows(r); setUserRole(role ?? 'TEACHER') })
+      .then(([r, role, kplans]) => { setRows(r); setUserRole(role ?? 'TEACHER'); setKPlanMap(kplans) })
       .catch(() => setError('Could not load class roster.'))
       .finally(() => setLoading(false))
   }, [classId])
@@ -54,8 +61,22 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     }
   }
 
-  function setTab(studentId: string, tab: 'homework' | 'apdr') {
+  function setTab(studentId: string, tab: 'homework' | 'apdr' | 'kplan') {
     setActiveTab(t => ({ ...t, [studentId]: tab }))
+  }
+
+  async function openKPlanModal(studentId: string, studentName: string) {
+    setKPlanLoading(studentId)
+    try {
+      const passport = await getStudentLearnerPassport(studentId)
+      if (passport) setKPlanModal({ studentId, studentName, passport })
+    } finally {
+      setKPlanLoading(null)
+    }
+  }
+
+  function refreshKPlanMap() {
+    getClassKPlanSummaries(classId).then(setKPlanMap).catch(() => {})
   }
 
   if (loading) {
@@ -118,6 +139,8 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
             : null
           const isExpanded   = expandedId === row.id
           const detail       = detailsCache[row.id]
+          const kPlan        = kPlanMap[row.id]
+          const studentName  = `${row.firstName} ${row.lastName}`
 
           return (
             <div key={row.id}>
@@ -150,6 +173,11 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   {row.hasIlp && (
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
                       ILP
+                    </span>
+                  )}
+                  {kPlan && kPlan.status === 'APPROVED' && (
+                    <span className="flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">
+                      <BookOpen size={9} /> K Plan
                     </span>
                   )}
                   {scoreDisplay && (
@@ -187,19 +215,24 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
                   {/* Tab switcher */}
                   <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden w-fit">
-                    {(['homework', 'apdr'] as const).map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setTab(row.id, tab)}
-                        className={`text-[11px] font-medium px-3 py-1 transition-colors ${
-                          (activeTab[row.id] ?? 'homework') === tab
-                            ? 'bg-gray-800 text-white'
-                            : 'bg-white text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {tab === 'homework' ? 'Homework' : 'APDR'}
-                      </button>
-                    ))}
+                    {(['homework', 'apdr', 'kplan'] as const).map(tab => {
+                      const label = tab === 'homework' ? 'Homework' : tab === 'apdr' ? 'APDR' : 'K Plan'
+                      const isActive = (activeTab[row.id] ?? 'homework') === tab
+                      return (
+                        <button
+                          key={tab}
+                          onClick={() => setTab(row.id, tab)}
+                          className={`text-[11px] font-medium px-3 py-1 transition-colors ${
+                            isActive ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {label}
+                          {tab === 'kplan' && kPlan?.status === 'APPROVED' && (
+                            <span className="ml-1 w-1.5 h-1.5 rounded-full bg-teal-500 inline-block" />
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
 
                   {/* Homework tab */}
@@ -244,12 +277,60 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     <StudentAPDRPanel studentId={row.id} userRole={userRole} />
                   )}
 
+                  {/* K Plan tab */}
+                  {(activeTab[row.id] ?? 'homework') === 'kplan' && (
+                    <div>
+                      {!kPlan ? (
+                        <p className="text-[12px] text-gray-400 italic">No K Plan for this student.</p>
+                      ) : (
+                        <div className="bg-white border border-gray-200 rounded-xl p-3">
+                          {/* Thumbnail: 2-line preview */}
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <BookOpen size={12} className="text-teal-600 shrink-0" />
+                                <span className="text-[11px] font-semibold text-teal-700">K Plan</span>
+                                {kPlan.status === 'APPROVED'
+                                  ? <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-semibold">Approved</span>
+                                  : <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">Draft</span>
+                                }
+                              </div>
+                              <p className="text-[12px] text-gray-600 line-clamp-2 leading-snug">
+                                {kPlan.sendInformation || <span className="italic text-gray-400">No content yet.</span>}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => openKPlanModal(row.id, studentName)}
+                            disabled={kPlanLoading === row.id}
+                            className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {kPlanLoading === row.id ? <Loader2 size={11} className="animate-spin" /> : <BookOpen size={11} />}
+                            View full K Plan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>
           )
         })}
       </div>
+
+      {/* K Plan Modal */}
+      {kPlanModal && (
+        <KPlanModal
+          passport={kPlanModal.passport}
+          studentName={kPlanModal.studentName}
+          studentId={kPlanModal.studentId}
+          userRole={userRole}
+          onClose={() => setKPlanModal(null)}
+          onUpdated={() => { setKPlanModal(null); refreshKPlanMap() }}
+        />
+      )}
     </div>
   )
 }

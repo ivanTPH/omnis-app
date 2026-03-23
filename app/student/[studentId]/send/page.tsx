@@ -1,13 +1,14 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getStudentConcerns, getStudentIlp, getEarlyWarningFlags } from '@/app/actions/send-support'
+import { getStudentConcerns, getStudentIlp, getEarlyWarningFlags, getStudentLearnerPassport } from '@/app/actions/send-support'
 import { prisma } from '@/lib/prisma'
 import ConcernList from '@/components/send-support/ConcernList'
 import IlpCard from '@/components/send-support/IlpCard'
 import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
 import RaiseConcernButton from '@/components/send-support/RaiseConcernButton'
 import StudentAPDRPanel from '@/components/send-support/StudentAPDRPanel'
-import { AlertTriangle, FileText, RefreshCw } from 'lucide-react'
+import KPlanSection from '@/components/send-support/KPlanSection'
+import { AlertTriangle, FileText, RefreshCw, BookOpen } from 'lucide-react'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT']
@@ -25,7 +26,7 @@ export default async function StudentSendPage({
 
   const { studentId } = await params
 
-  const [student, sendStatus, concerns, ilp, allFlags] = await Promise.all([
+  const [student, sendStatus, concerns, ilp, allFlags, passport] = await Promise.all([
     prisma.user.findFirst({
       where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
       select: { id: true, firstName: true, lastName: true, yearGroup: true, avatarUrl: true },
@@ -37,6 +38,7 @@ export default async function StudentSendPage({
     getStudentConcerns(studentId),
     getStudentIlp(studentId),
     getEarlyWarningFlags(),
+    getStudentLearnerPassport(studentId),
   ])
 
   if (!student) redirect('/dashboard')
@@ -94,6 +96,26 @@ export default async function StudentSendPage({
             <EarlyWarningPanel flags={flags} compact />
           </section>
         )}
+
+        {/* K Plan (Learning Passport) — pinned at top for quick teacher reference */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen size={16} className="text-teal-600" />
+            <h2 className="font-semibold text-gray-900 text-sm">K Plan — Learning Passport</h2>
+            {passport?.status === 'APPROVED' && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Approved</span>
+            )}
+            {passport?.status === 'DRAFT' && isSenco && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Draft — needs approval</span>
+            )}
+          </div>
+          <KPlanSection
+            passport={passport}
+            studentId={student.id}
+            studentName={studentName}
+            userRole={user.role}
+          />
+        </section>
 
         {/* ILP */}
         <section>

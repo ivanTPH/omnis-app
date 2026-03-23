@@ -103,6 +103,24 @@ export type ApdrAuditEntryRow = {
   createdAt: Date
 }
 
+export type LearnerPassportRow = {
+  id: string
+  studentId: string
+  schoolId: string
+  ilpId: string | null
+  ehcpId: string | null
+  apdrId: string | null
+  sendInformation: string
+  teacherActions: string[]
+  studentCommitments: string[]
+  status: string
+  approvedBy: string | null
+  approvedAt: Date | null
+  generatedAt: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
 export type SendNotificationRow = {
   id: string
   type: string
@@ -1268,6 +1286,11 @@ export async function approveGeneratedIlp(ilpId: string): Promise<void> {
   void generateAPDRInternal(ilp.studentId, user.id, schoolId).catch(err =>
     console.error('[approveGeneratedIlp] generateAPDRInternal failed:', err)
   )
+
+  // Auto-generate K Plan from approved ILP
+  void generateLearnerPassportInternal(ilp.studentId, user.id, schoolId).catch(err =>
+    console.error('[approveGeneratedIlp] generateLearnerPassportInternal failed:', err)
+  )
 }
 
 // ─── APDR — Assess, Plan, Do, Review ─────────────────────────────────────────
@@ -1501,6 +1524,11 @@ export async function completeAPDRReview(
     console.error('[completeAPDRReview] generateAPDRInternal failed:', err)
   )
 
+  // Auto-regenerate K Plan when a review cycle completes
+  void generateLearnerPassportInternal(apdr.studentId, user.id, schoolId).catch(err =>
+    console.error('[completeAPDRReview] generateLearnerPassportInternal failed:', err)
+  )
+
   revalidatePath(`/student/${apdr.studentId}/send`)
 }
 
@@ -1549,4 +1577,342 @@ export async function getAPDRAuditLog(apdrId: string): Promise<ApdrAuditEntryRow
 export async function getCurrentUserRole(): Promise<string | null> {
   const session = await auth()
   return (session?.user as any)?.role ?? null
+}
+
+// ─── K Plan (Learning Passport) ───────────────────────────────────────────────
+
+function buildKPlanPrompt(
+  firstName: string,
+  lastName: string,
+  yearGroup: number,
+  needArea: string,
+  ilp: {
+    currentStrengths: string
+    areasOfNeed: string
+    strategies: string[]
+    targets: { target: string; strategy: string }[]
+  } | null,
+  ehcpSections: { B?: string; F?: string } | null,
+  apdr: { assessContent: string; planContent: string; doContent: string } | null,
+): string {
+  const sections: string[] = []
+  if (ilp) {
+    sections.push(`ILP Strengths: ${ilp.currentStrengths}`)
+    sections.push(`ILP Areas of need: ${ilp.areasOfNeed}`)
+    sections.push(`ILP Strategies: ${ilp.strategies.join('; ')}`)
+    if (ilp.targets.length > 0) {
+      sections.push('ILP Targets: ' + ilp.targets.map(t => `${t.target} (${t.strategy})`).join('; '))
+    }
+  }
+  if (ehcpSections?.B) sections.push(`EHCP needs (Section B): ${ehcpSections.B}`)
+  if (ehcpSections?.F) sections.push(`EHCP provision (Section F): ${ehcpSections.F}`)
+  if (apdr?.assessContent) sections.push(`APDR Assess: ${apdr.assessContent}`)
+  if (apdr?.planContent)   sections.push(`APDR Plan: ${apdr.planContent}`)
+  if (apdr?.doContent)     sections.push(`APDR Do (what's working): ${apdr.doContent}`)
+
+  return `Create a K Plan (Learning Passport) for a UK secondary school student.
+
+Student: ${firstName} ${lastName}, Year ${yearGroup}
+SEND category: ${needArea}
+${sections.join('\n')}
+
+Return ONLY valid JSON:
+{
+  "sendInformation": "3–4 sentences describing ${firstName}'s SEND context, key diagnosis or category, characteristic classroom behaviours and learning profile — factual and professional",
+  "teacherActions": [
+    "Seat ${firstName} at the front of the class, away from windows and doors",
+    "Give ${firstName} a printed or digital copy of all handouts before the lesson begins",
+    "Break all verbal instructions into 2–3 steps maximum — check ${firstName} has understood before moving on",
+    "Allow ${firstName} extra processing time on written tasks",
+    "Check in with ${firstName} after each task — brief, private check rather than whole-class",
+    "Provide a visual timer when ${firstName} is working independently",
+    "Allow ${firstName} to use assistive technology or overlays as needed"
+  ],
+  "studentCommitments": [
+    "I will ask for help when I am stuck rather than guessing or giving up",
+    "I will bring my planner and all equipment to every lesson",
+    "I will use my reading overlay for written tasks",
+    "I will tell my teacher if I do not understand the instructions"
+  ]
+}
+
+teacherActions: 6–8 items. Each must be specific, actionable, and use ${firstName}'s name. Not generic advice — concrete classroom instructions.
+studentCommitments: 4–6 items written in first person ("I will..."). Written as if spoken by the student.`
+}
+
+/**
+ * Internal helper — generates or regenerates a LearnerPassport (K Plan) from
+ * the student's latest ILP, EHCP and APDR cycle. No auth — called by triggers.
+ */
+export async function generateLearnerPassportInternal(
+  studentId: string,
+  createdByUserId: string,
+  schoolId: string,
+): Promise<void> {
+  const [student, ilp, ehcp, apdr] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: studentId },
+      select: { firstName: true, lastName: true, yearGroup: true, sendStatus: { select: { needArea: true } } },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where: { schoolId, studentId, status: 'active', approvedBySenco: true },
+      include: { targets: { where: { status: 'active' }, take: 3 } },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.ehcpPlan.findFirst({
+      where: { schoolId, studentId, status: 'active' },
+      select: { id: true, sections: true },
+    }),
+    prisma.assessPlanDoReview.findFirst({
+      where: { schoolId, studentId },
+      orderBy: { cycleNumber: 'desc' },
+      select: { id: true, assessContent: true, planContent: true, doContent: true },
+    }),
+  ])
+  if (!student) return
+
+  const needArea  = student.sendStatus?.needArea ?? 'General Learning Support'
+  const yearGroup = student.yearGroup ?? 9
+
+  let sendInformation    = ''
+  let teacherActions:     string[] = []
+  let studentCommitments: string[] = []
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (apiKey) {
+    try {
+      const { default: Anthropic } = await import('@anthropic-ai/sdk')
+      const client = new Anthropic({ apiKey })
+      const ehcpSecs = ehcp?.sections as Record<string, string> | null
+
+      const msg = await client.messages.create({
+        model: 'claude-sonnet-4-6', max_tokens: 800,
+        system: 'You are a UK SENCO writing a Learning Passport (K Plan). Return ONLY valid JSON, no markdown.',
+        messages: [{
+          role: 'user',
+          content: buildKPlanPrompt(
+            student.firstName, student.lastName, yearGroup, needArea,
+            ilp ? {
+              currentStrengths: ilp.currentStrengths,
+              areasOfNeed:      ilp.areasOfNeed,
+              strategies:       ilp.strategies,
+              targets:          ilp.targets.map(t => ({ target: t.target, strategy: t.strategy })),
+            } : null,
+            ehcpSecs ? { B: ehcpSecs.B, F: ehcpSecs.F } : null,
+            apdr ?? null,
+          ),
+        }],
+      })
+
+      const raw   = (msg.content[0] as { type: string; text: string }).text.trim()
+      const match = raw.match(/\{[\s\S]*\}/)
+      if (match) {
+        const gen = JSON.parse(match[0])
+        sendInformation    = String(gen.sendInformation ?? '')
+        teacherActions     = Array.isArray(gen.teacherActions)     ? gen.teacherActions.map(String)     : []
+        studentCommitments = Array.isArray(gen.studentCommitments) ? gen.studentCommitments.map(String) : []
+      }
+    } catch (err) {
+      console.error('[generateLearnerPassportInternal] Claude call failed:', err)
+    }
+  }
+
+  // Fallback if AI failed
+  if (!sendInformation && ilp) {
+    sendInformation = `${student.firstName} ${student.lastName} is a Year ${yearGroup} student with ${needArea}. ${ilp.currentStrengths}. Areas of need: ${ilp.areasOfNeed}.`
+  }
+  if (teacherActions.length === 0 && ilp) {
+    teacherActions = ilp.strategies.slice(0, 6)
+  }
+  if (studentCommitments.length === 0) {
+    studentCommitments = [
+      'I will ask for help when I am stuck',
+      'I will bring all equipment to every lesson',
+      'I will let my teacher know if I do not understand',
+    ]
+  }
+
+  // Upsert — one LearnerPassport per student (overwrite existing DRAFT, never overwrite APPROVED)
+  const existing = await prisma.learnerPassport.findFirst({
+    where: { studentId, schoolId },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true },
+  })
+
+  if (existing && existing.status === 'APPROVED') {
+    // Create a new DRAFT alongside the approved one
+    await prisma.learnerPassport.create({
+      data: {
+        schoolId, studentId,
+        ilpId:  ilp?.id ?? null,
+        ehcpId: ehcp?.id ?? null,
+        apdrId: apdr?.id ?? null,
+        sendInformation, teacherActions, studentCommitments,
+        status: 'DRAFT',
+        generatedAt: new Date(),
+      },
+    })
+  } else if (existing && existing.status === 'DRAFT') {
+    // Overwrite the existing DRAFT
+    await prisma.learnerPassport.update({
+      where: { id: existing.id },
+      data: {
+        ilpId:  ilp?.id ?? null,
+        ehcpId: ehcp?.id ?? null,
+        apdrId: apdr?.id ?? null,
+        sendInformation, teacherActions, studentCommitments,
+        generatedAt: new Date(),
+      },
+    })
+  } else {
+    await prisma.learnerPassport.create({
+      data: {
+        schoolId, studentId,
+        ilpId:  ilp?.id ?? null,
+        ehcpId: ehcp?.id ?? null,
+        apdrId: apdr?.id ?? null,
+        sendInformation, teacherActions, studentCommitments,
+        status: 'DRAFT',
+        generatedAt: new Date(),
+      },
+    })
+  }
+}
+
+/** Generate (or regenerate) a Learning Passport for a student — SENCO callable. */
+export async function generateLearnerPassport(
+  studentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSenco()
+    await generateLearnerPassportInternal(studentId, user.id, user.schoolId)
+    revalidatePath(`/student/${studentId}/send`)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: String(err).slice(0, 200) }
+  }
+}
+
+/** Regenerate — force-overwrites even an APPROVED plan (creates new DRAFT). SENCO only. */
+export async function regenerateLearnerPassport(
+  studentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSenco()
+    // Delete existing DRAFT to force a fresh create
+    await prisma.learnerPassport.deleteMany({
+      where: { studentId, schoolId: user.schoolId, status: 'DRAFT' },
+    })
+    await generateLearnerPassportInternal(studentId, user.id, user.schoolId)
+    revalidatePath(`/student/${studentId}/send`)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: String(err).slice(0, 200) }
+  }
+}
+
+/** Approve a Learning Passport — makes it visible to all teachers. SENCO only. */
+export async function approveLearnerPassport(passportId: string): Promise<void> {
+  const user = await requireSenco()
+
+  const passport = await prisma.learnerPassport.findFirst({
+    where: { id: passportId, schoolId: user.schoolId },
+    select: { studentId: true },
+  })
+  if (!passport) throw new Error('Learning Passport not found')
+
+  // Mark previous approved plans as superseded (set them to DRAFT so only one is APPROVED)
+  await prisma.learnerPassport.updateMany({
+    where: { studentId: passport.studentId, schoolId: user.schoolId, status: 'APPROVED' },
+    data:  { status: 'DRAFT' },
+  })
+
+  await prisma.learnerPassport.update({
+    where: { id: passportId },
+    data:  { status: 'APPROVED', approvedBy: user.id, approvedAt: new Date() },
+  })
+
+  revalidatePath(`/student/${passport.studentId}/send`)
+}
+
+/** Fetch the latest Learning Passport for a student. All staff can view. */
+export async function getStudentLearnerPassport(studentId: string): Promise<LearnerPassportRow | null> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return null
+
+  // SENCO sees latest (including DRAFT); teachers see APPROVED only
+  const isSencoTier = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+
+  const passport = await prisma.learnerPassport.findFirst({
+    where: {
+      studentId,
+      schoolId: user.schoolId,
+      ...(isSencoTier ? {} : { status: 'APPROVED' }),
+    },
+    orderBy: [
+      { status: 'asc' },   // APPROVED < DRAFT alphabetically → shows APPROVED first
+      { createdAt: 'desc' },
+    ],
+  })
+  if (!passport) return null
+
+  return {
+    id:                 passport.id,
+    studentId:          passport.studentId,
+    schoolId:           passport.schoolId,
+    ilpId:              passport.ilpId,
+    ehcpId:             passport.ehcpId,
+    apdrId:             passport.apdrId,
+    sendInformation:    passport.sendInformation,
+    teacherActions:     passport.teacherActions,
+    studentCommitments: passport.studentCommitments,
+    status:             passport.status,
+    approvedBy:         passport.approvedBy,
+    approvedAt:         passport.approvedAt,
+    generatedAt:        passport.generatedAt,
+    createdAt:          passport.createdAt,
+    updatedAt:          passport.updatedAt,
+  }
+}
+
+/**
+ * Batch-fetch K Plan status for all students in a class.
+ * Returns a map of studentId → { id, sendInformation, status }.
+ * Teachers only see APPROVED plans; SENCO sees all.
+ */
+export async function getClassKPlanSummaries(
+  classId: string,
+): Promise<Record<string, { id: string; sendInformation: string; status: string }>> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return {}
+
+  const isSencoTier = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    select: { userId: true },
+  })
+  const studentIds = enrolments.map(e => e.userId)
+  if (studentIds.length === 0) return {}
+
+  const passports = await prisma.learnerPassport.findMany({
+    where: {
+      studentId: { in: studentIds },
+      schoolId:  user.schoolId,
+      ...(isSencoTier ? {} : { status: 'APPROVED' }),
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, studentId: true, sendInformation: true, status: true },
+  })
+
+  // Keep only the latest per student
+  const result: Record<string, { id: string; sendInformation: string; status: string }> = {}
+  for (const p of passports) {
+    if (!result[p.studentId]) {
+      result[p.studentId] = { id: p.id, sendInformation: p.sendInformation, status: p.status }
+    }
+  }
+  return result
 }

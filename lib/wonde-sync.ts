@@ -133,6 +133,17 @@ export async function runWondeSync(
   // ── 3. Students (+ contacts) ──────────────────────────────────────────────
   try {
     const students = await fetchWondeStudents(wondeSchoolId, wondeToken)
+
+    // Pre-fetch all student Users for this school in one query so the photo
+    // bridge below is O(1) per student instead of N round-trips to the DB.
+    const schoolStudentUsers = await prisma.user.findMany({
+      where: { schoolId: omnisSchoolId, role: 'STUDENT' },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const userByName = new Map(
+      schoolStudentUsers.map(u => [`${u.firstName}|${u.lastName}`, u.id])
+    )
+
     for (const stu of students) {
       const yearInt  = yearCodeToInt(stu.year?.data?.code)
       const photoUrl = stu.photo?.data?.viewed ?? null
@@ -176,24 +187,16 @@ export async function runWondeSync(
       // Match by firstName + lastName within the school (best effort for demo).
       if (photoUrl) {
         try {
-          const matchedUser = await prisma.user.findFirst({
-            where: {
-              schoolId:  omnisSchoolId,
-              firstName: stu.forename,
-              lastName:  stu.surname,
-              role:      'STUDENT',
-            },
-            select: { id: true },
-          })
-          if (matchedUser) {
+          const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
+          if (matchedUserId) {
             await Promise.all([
               prisma.user.update({
-                where:  { id: matchedUser.id },
-                data:   { avatarUrl: photoUrl },
+                where: { id: matchedUserId },
+                data:  { avatarUrl: photoUrl },
               }),
               prisma.userSettings.upsert({
-                where:  { userId: matchedUser.id },
-                create: { userId: matchedUser.id, profilePictureUrl: photoUrl },
+                where:  { userId: matchedUserId },
+                create: { userId: matchedUserId, profilePictureUrl: photoUrl },
                 update: { profilePictureUrl: photoUrl },
               }),
             ])

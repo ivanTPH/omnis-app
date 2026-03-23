@@ -129,9 +129,18 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
     setSyncResult(null)
     try {
       const res = await fetch('/api/wonde/sync', { method: 'POST' })
-      const r = await res.json()
+      const text = await res.text()
+      let r: typeof syncResult
+      try {
+        r = JSON.parse(text)
+      } catch {
+        r = {
+          success: false,
+          error: `Server did not return JSON (HTTP ${res.status}). The sync may have timed out — check the sync history below and re-run if the last entry is stuck as "running".`,
+        }
+      }
       setSyncResult(r)
-      if (r.success) {
+      if (r?.success) {
         window.location.reload()
       }
     } catch (err) {

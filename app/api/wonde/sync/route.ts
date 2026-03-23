@@ -22,6 +22,12 @@ export async function POST() {
     return NextResponse.json({ error: 'Wonde credentials not configured' }, { status: 500 })
   }
 
+  // Mark any stale "running" logs as failed before starting a new run
+  await prisma.wondeSyncLog.updateMany({
+    where:  { schoolId, status: 'running' },
+    data:   { status: 'failed', errors: ['Superseded by a new sync run'], completedAt: new Date() },
+  })
+
   // Create sync log entry
   const log = await prisma.wondeSyncLog.create({
     data: { schoolId, syncType: 'full', status: 'running', startedAt: new Date() },

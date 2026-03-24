@@ -442,22 +442,23 @@ test('Step 7 — ClassRosterTab K Plan tab shows content', async ({ page }) => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STEP 8 — SEND & Inclusion tab: ILP goals, EHCP badge, K Plan thumbnail
+// STEP 8 — Class tab: inline SEND badges, expandable ILP goals, EHCP badge, K Plan
+// (SEND & Inclusion was merged into the Class tab)
 // ─────────────────────────────────────────────────────────────────────────────
-test('Step 8 — SEND & Inclusion tab: ILP goals, EHCP badge, K Plan', async ({ page }) => {
+test('Step 8 — Class tab: inline SEND badges, ILP goals, EHCP badge, K Plan', async ({ page }) => {
   await loginTeacher(page)
   await openFirstLesson(page)
 
-  // Navigate to "SEND & Inclusion" tab
-  const sendTab = page.locator('button').filter({ hasText: /SEND.*Inclusion|SEND & Inclusion/i }).first()
-  await expect(sendTab).toBeVisible({ timeout: 6_000 })
-  await sendTab.click()
+  // Navigate to "Class" tab (SEND content is now merged here)
+  const classTab = page.locator('button').filter({ hasText: /^Class$/ }).first()
+  await expect(classTab).toBeVisible({ timeout: 6_000 })
+  await classTab.click()
   await page.waitForTimeout(800)
 
   // Tab renders without crashing
   await expect(page.locator('body')).toBeVisible()
 
-  // Look for ILP, EHCP, and K Plan content
+  // Look for ILP, EHCP, and K Plan content (visible if class has SEND students)
   const ilpLabel   = page.getByText(/individual learning plan|ilp|strategies/i).first()
   const ehcpBadge  = page.getByText(/EHCP/i).first()
   const kPlanLabel = page.getByText(/k plan|learning passport/i).first()
@@ -466,9 +467,9 @@ test('Step 8 — SEND & Inclusion tab: ILP goals, EHCP badge, K Plan', async ({ 
   const hasEhcp  = await ehcpBadge.isVisible({ timeout: 3_000 }).catch(() => false)
   const hasKPlan = await kPlanLabel.isVisible({ timeout: 3_000 }).catch(() => false)
 
-  console.info(`  SEND & Inclusion tab — ILP: ${hasIlp}, EHCP: ${hasEhcp}, K Plan: ${hasKPlan}`)
-  // Tab must be reachable and not crash; content depends on which class has SEND students
-  expect(true, 'SEND & Inclusion tab navigated successfully').toBeTruthy()
+  console.info(`  Class tab (merged SEND) — ILP: ${hasIlp}, EHCP: ${hasEhcp}, K Plan: ${hasKPlan}`)
+  // Tab must be reachable and not crash; SEND content depends on which class has SEND students
+  expect(true, 'Class tab navigated successfully').toBeTruthy()
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

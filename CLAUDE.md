@@ -257,7 +257,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `Sidebar.tsx` | Role-based left nav; avatar chip at bottom |
 | `AppShell.tsx` | Authenticated layout wrapper; loads avatar via getMyAvatarUrl() on mount |
 | `WeeklyCalendar.tsx` | Teacher calendar — click=slide-over, dbl-click=folder. Fetches non-current weeks via getWeekLessons() |
-| `LessonFolder.tsx` | Lesson detail — 7 tabs: Overview, Resources, Homework, Class, SEND & Inclusion, Class Insights, Revision. wizardStep 4=Resources, 5=Homework |
+| `LessonFolder.tsx` | Lesson detail — 6 tabs: Overview, Resources, Homework, Class, Class Insights, Revision. Class tab shows all students with inline SEND badges + expandable detail per SEND student (ILP goals, EHCP provisions, K Plan). wizardStep 4=Resources, 5=Homework |
 | `LessonSlideOver.tsx` | Create new lesson panel — saves only at final step |
 | `UnifiedResourceSearch.tsx` | Combined Oak + school library search. Props: lessonId, subjectSlug, yearGroup, lessonTitle, onAdded, onGenerateHomework. Guards: skips load if subjectSlug absent. Shows "Generate homework?" banner after adding resource |
 | `ResourcePreviewModal.tsx` | Oak lesson preview — key learning points, vocab, quizzes, iframe download preview. Takes `slug` prop, fetches detail internally |

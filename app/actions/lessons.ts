@@ -151,7 +151,7 @@ export async function getLessonDetails(lessonId: string) {
     ? await Promise.all([
         prisma.sendStatus.findMany({
           where: { studentId: { in: enrolledIds }, NOT: { activeStatus: 'NONE' } },
-          include: { student: { select: { id: true, firstName: true, lastName: true } } },
+          include: { student: { select: { id: true, firstName: true, lastName: true, supportSnapshot: true } } },
         }),
         prisma.plan.findMany({
           where: {

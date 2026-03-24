@@ -6,8 +6,9 @@ import { getClassRoster, getStudentClassDetail, type ClassRosterRow, type Studen
 import { getCurrentUserRole, getClassKPlanSummaries, getStudentLearnerPassport, type LearnerPassportRow } from '@/app/actions/send-support'
 import StudentAvatar from '@/components/StudentAvatar'
 
-const StudentAPDRPanel = dynamic(() => import('@/components/send-support/StudentAPDRPanel'), { ssr: false })
-const KPlanModal       = dynamic(() => import('@/components/send-support/KPlanModal'),       { ssr: false })
+const StudentAPDRPanel       = dynamic(() => import('@/components/send-support/StudentAPDRPanel'), { ssr: false })
+const KPlanModal             = dynamic(() => import('@/components/send-support/KPlanModal'),       { ssr: false })
+const SendDocumentThumbnails = dynamic(() => import('@/components/send/SendDocumentThumbnails'),  { ssr: false })
 
 const SEND_BADGE: Record<string, { label: string; cls: string }> = {
   SEN_SUPPORT: { label: 'SEN Support', cls: 'bg-amber-100 text-amber-700' },
@@ -231,6 +232,15 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     <p className="text-[12px] text-amber-800 italic leading-snug border-l-2 border-amber-300 pl-2.5">
                       {row.supportSnapshot}
                     </p>
+                  )}
+
+                  {/* Document thumbnails for SEND students */}
+                  {row.sendStatus !== 'NONE' && (
+                    <SendDocumentThumbnails
+                      studentId={row.id}
+                      studentName={`${row.firstName} ${row.lastName}`}
+                      userRole={userRole}
+                    />
                   )}
 
                   {/* Tab switcher */}

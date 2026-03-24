@@ -16,6 +16,7 @@ const RevisionAnalysisPanel  = dynamic(() => import('@/components/revision-progr
 const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab'),          { ssr: false })
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
+const SendInclusionTab       = dynamic(() => import('@/components/send-support/SendInclusionTab'),     { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
@@ -1439,157 +1440,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
               {/* ── SEND & Inclusion ── */}
               {activeTab === 'SEND & Inclusion' && (
-                <div className="p-7 space-y-5">
-                  {(() => {
-                    const sendStudents  = lesson?.sendStatuses ?? []
-                    const planByStudent = lesson?.planByStudent ?? {}
-                    const allEnrolled   = lesson?.class?.enrolments ?? []
-                    const sendIds       = new Set(sendStudents.map(s => s.studentId))
-                    const noSendPupils  = allEnrolled.filter(e => !sendIds.has(e.user.id))
-
-                    if (sendStudents.length === 0 && allEnrolled.length === 0) {
-                      return (
-                        <div className="border border-dashed border-gray-200 rounded-2xl p-12 text-center">
-                          <Heart size={28} className="mx-auto text-gray-300 mb-3" />
-                          <p className="text-[13px] font-medium text-gray-500 mb-1">No class assigned</p>
-                          <p className="text-[12px] text-gray-400">Assign this lesson to a class to see SEND profiles.</p>
-                        </div>
-                      )
-                    }
-
-                    return (
-                      <>
-                        {/* Summary bar */}
-                        <div className="flex items-center gap-3">
-                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                            sendStudents.length > 0 ? 'bg-rose-50 text-rose-700' : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {sendStudents.length} pupil{sendStudents.length !== 1 ? 's' : ''} with SEND needs
-                          </span>
-                          <span className="text-[11px] text-gray-400">
-                            {allEnrolled.length} enrolled total
-                          </span>
-                        </div>
-
-                        {/* SEND pupil cards */}
-                        {sendStudents.map(ss => {
-                          const plan = planByStudent[ss.studentId]
-                          const classStrategies  = plan?.strategies.filter(s => s.appliesTo === 'CLASSROOM' || s.appliesTo === 'BOTH') ?? []
-                          const hwStrategies     = plan?.strategies.filter(s => s.appliesTo === 'HOMEWORK'  || s.appliesTo === 'BOTH') ?? []
-
-                          return (
-                            <div key={ss.id} className="border border-gray-200 rounded-2xl overflow-hidden">
-
-                              {/* Card header */}
-                              <div className="flex items-center gap-3 px-5 py-4 bg-rose-50/60 border-b border-rose-100">
-                                <div className="w-9 h-9 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[11px] font-bold shrink-0">
-                                  {ss.student.firstName[0]}{ss.student.lastName[0]}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[13px] font-semibold text-gray-900">{ss.student.firstName} {ss.student.lastName}</p>
-                                  {ss.needArea && (
-                                    <p className="text-[11px] text-rose-600 font-medium mt-0.5">{ss.needArea}</p>
-                                  )}
-                                </div>
-                                <span className={`text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${
-                                  ss.activeStatus === 'EHCP'
-                                    ? 'bg-purple-100 text-purple-700'
-                                    : 'bg-rose-100 text-rose-700'
-                                }`}>
-                                  {ss.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                                </span>
-                              </div>
-
-                              <div className="px-5 py-4 space-y-4">
-
-                                {/* ILP Targets */}
-                                {plan && plan.targets.length > 0 && (
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                                      ILP Targets
-                                      {plan.reviewDate && (
-                                        <span className="ml-2 text-amber-600 normal-case font-medium">
-                                          · Review {new Date(plan.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        </span>
-                                      )}
-                                    </p>
-                                    <div className="space-y-2">
-                                      {plan.targets.map((t, i) => (
-                                        <div key={i} className="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
-                                          <div className="flex items-start justify-between gap-2">
-                                            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{t.needCategory} · {t.metricKey.replace(/_/g, ' ')}</p>
-                                            <span className="text-[10px] text-gray-400 shrink-0">{t.measurementWindow}</span>
-                                          </div>
-                                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                            <span className="text-[11px] text-gray-500 bg-white border border-gray-200 rounded px-1.5 py-0.5">{t.baselineValue}</span>
-                                            <span className="text-[10px] text-gray-400">→</span>
-                                            <span className="text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5">{t.targetValue}</span>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {/* Classroom strategies */}
-                                {classStrategies.length > 0 && (
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">In-lesson Strategies</p>
-                                    <ul className="space-y-1.5">
-                                      {classStrategies.map((s, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
-                                          <span className="mt-1 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                                          {s.strategyText}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-
-                                {/* Homework strategies */}
-                                {hwStrategies.length > 0 && (
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Homework Strategies</p>
-                                    <ul className="space-y-1.5">
-                                      {hwStrategies.map((s, i) => (
-                                        <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
-                                          <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                                          {s.strategyText}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-
-                                {!plan && (
-                                  <p className="text-[12px] text-gray-400 italic">No active ILP on record. Contact the SENCo to create one.</p>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })}
-
-                        {/* No-SEND pupils */}
-                        {noSendPupils.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
-                              No SEND needs on record ({noSendPupils.length})
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {noSendPupils.map(e => (
-                                <div key={e.user.id} className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-full pl-1 pr-3 py-1">
-                                  <div className="w-5 h-5 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[9px] font-bold shrink-0">
-                                    {e.user.firstName[0]}{e.user.lastName[0]}
-                                  </div>
-                                  <span className="text-[11px] text-gray-600">{e.user.firstName} {e.user.lastName}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
+                <div className="p-7">
+                  <SendInclusionTab
+                    sendStudents={lesson?.sendStatuses ?? []}
+                    planByStudent={lesson?.planByStudent ?? {}}
+                    allEnrolled={lesson?.class?.enrolments ?? []}
+                  />
                 </div>
               )}
 

@@ -2012,6 +2012,141 @@ export async function getClassKPlanSummaries(
   return result
 }
 
+// ─── Student SEND Documents ───────────────────────────────────────────────────
+
+export type StudentSendDocuments = {
+  kPlan: {
+    id: string
+    status: string
+    updatedAt: Date
+    approvedAt: Date | null
+    approvedBy: string | null
+    sendInformation: string
+    teacherActions: string[]
+    studentCommitments: string[]
+  } | null
+  ilp: {
+    id: string
+    status: string
+    updatedAt: Date
+    reviewDate: Date
+    approvedAt: Date | null
+    approvedBy: string | null
+    sendCategory: string
+    areasOfNeed: string
+    targets: {
+      id: string
+      target: string
+      strategy: string
+      successMeasure: string
+      targetDate: Date
+      status: string
+    }[]
+  } | null
+  ehcp: {
+    id: string
+    status: string
+    updatedAt: Date
+    reviewDate: Date
+    approvedAt: Date | null
+    approvedBy: string | null
+    sections: Record<string, string> | null
+    outcomes: {
+      id: string
+      section: string
+      outcomeText: string
+      status: string
+      provisionRequired: string | null
+    }[]
+  } | null
+}
+
+/**
+ * Fetch the approved/active K Plan, ILP, and EHCP documents for a student.
+ * Accessible by all staff roles.
+ */
+export async function getStudentSendDocuments(studentId: string): Promise<StudentSendDocuments> {
+  const user = await requireAuth()
+  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return { kPlan: null, ilp: null, ehcp: null }
+
+  const isSencoTier = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+  const schoolId    = user.schoolId
+
+  const [passport, ilp, ehcp] = await Promise.all([
+    prisma.learnerPassport.findFirst({
+      where: {
+        studentId, schoolId,
+        ...(isSencoTier ? {} : { status: 'APPROVED' }),
+      },
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        id: true, status: true, updatedAt: true, approvedAt: true, approvedBy: true,
+        sendInformation: true, teacherActions: true, studentCommitments: true,
+      },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where:   { studentId, schoolId, status: 'active' },
+      orderBy: { approvedAt: 'desc' },
+      include: { targets: { orderBy: { targetDate: 'asc' } } },
+    }),
+    prisma.ehcpPlan.findFirst({
+      where:   { studentId, schoolId, status: 'active' },
+      orderBy: { createdAt: 'desc' },
+      include: { outcomes: { orderBy: { targetDate: 'asc' } } },
+    }),
+  ])
+
+  return {
+    kPlan: passport ? {
+      id:                 passport.id,
+      status:             passport.status,
+      updatedAt:          passport.updatedAt,
+      approvedAt:         passport.approvedAt,
+      approvedBy:         passport.approvedBy,
+      sendInformation:    passport.sendInformation,
+      teacherActions:     passport.teacherActions,
+      studentCommitments: passport.studentCommitments,
+    } : null,
+
+    ilp: ilp ? {
+      id:           ilp.id,
+      status:       ilp.status,
+      updatedAt:    ilp.createdAt,
+      reviewDate:   ilp.reviewDate,
+      approvedAt:   ilp.approvedAt,
+      approvedBy:   ilp.approvedBy,
+      sendCategory: ilp.sendCategory,
+      areasOfNeed:  ilp.areasOfNeed,
+      targets:      ilp.targets.map(t => ({
+        id:              t.id,
+        target:          t.target,
+        strategy:        t.strategy,
+        successMeasure:  t.successMeasure,
+        targetDate:      t.targetDate,
+        status:          t.status,
+      })),
+    } : null,
+
+    ehcp: ehcp ? {
+      id:         ehcp.id,
+      status:     ehcp.status,
+      updatedAt:  ehcp.updatedAt,
+      reviewDate: ehcp.reviewDate,
+      approvedAt: ehcp.approvedAt,
+      approvedBy: ehcp.approvedBy,
+      sections:   ehcp.sections as Record<string, string> | null,
+      outcomes:   ehcp.outcomes.map(o => ({
+        id:                o.id,
+        section:           o.section,
+        outcomeText:       o.outcomeText,
+        status:            o.status,
+        provisionRequired: o.provisionRequired ?? null,
+      })),
+    } : null,
+  }
+}
+
 // ─── Support Snapshot ─────────────────────────────────────────────────────────
 
 /**

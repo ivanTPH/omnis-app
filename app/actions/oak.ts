@@ -152,5 +152,23 @@ export async function addOakLessonToLesson(
     },
   })
 
+  // Populate lesson objectives from Oak data if the lesson has none yet.
+  // keyLearningPoints is [{keyLearningPoint:"..."}]; fall back to pupilLessonOutcome.
+  if ((lesson.objectives as string[]).length === 0) {
+    const klp = oakLesson.keyLearningPoints as { keyLearningPoint: string }[]
+    let objectives: string[] = []
+    if (Array.isArray(klp) && klp.length > 0) {
+      objectives = klp.map(p => p.keyLearningPoint).filter(Boolean)
+    } else if (oakLesson.pupilLessonOutcome) {
+      objectives = [oakLesson.pupilLessonOutcome]
+    }
+    if (objectives.length > 0) {
+      await prisma.lesson.update({
+        where: { id: lessonId },
+        data:  { objectives },
+      })
+    }
+  }
+
   revalidatePath('/dashboard')
 }

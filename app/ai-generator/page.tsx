@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getMyResources, getSchoolResources } from '@/app/actions/ai-generator'
 import { getTeacherLessons } from '@/app/actions/homework'
+import AppShell from '@/components/AppShell'
 import AiGeneratorShell from '@/components/ai-generator/AiGeneratorShell'
 import { ChevronLeft } from 'lucide-react'
 
@@ -11,6 +12,15 @@ const ALLOWED_ROLES = [
 ]
 
 const ADMIN_ROLES = ['SLT', 'SCHOOL_ADMIN']
+
+function roleHome(role: string): string {
+  switch (role) {
+    case 'SENCO':        return '/send/dashboard'
+    case 'SLT':          return '/slt/analytics'
+    case 'SCHOOL_ADMIN': return '/admin/dashboard'
+    default:             return '/dashboard'
+  }
+}
 
 export default async function AiGeneratorPage() {
   const session = await auth()
@@ -33,33 +43,45 @@ export default async function AiGeneratorPage() {
     title: l.title,
   }))
 
-  return (
-    <div className="flex flex-col h-full p-6 gap-4 min-h-0">
-      {/* Header */}
-      <div className="flex-shrink-0">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-600 mb-2 transition-colors"
-        >
-          <ChevronLeft size={13} /> Back to Calendar
-        </Link>
-        <h1 className="text-[20px] font-bold text-gray-900">AI Resource Generator</h1>
-        <p className="text-[13px] text-gray-500 mt-0.5">
-          Generate curriculum-aligned classroom resources in seconds.
-        </p>
-      </div>
+  const backHref = roleHome(user.role)
 
-      {/* Shell */}
-      <div className="flex-1 min-h-0">
-        <AiGeneratorShell
-          schoolId={user.schoolId}
-          userId={user.id}
-          myResources={myResources}
-          schoolResources={schoolResources}
-          canViewAll={canViewAll}
-          userLessons={userLessons}
-        />
+  return (
+    <AppShell
+      role={user.role}
+      firstName={user.firstName}
+      lastName={user.lastName}
+      schoolName={user.schoolName}
+    >
+      <div className="flex flex-col h-full p-6 gap-4 min-h-0">
+
+        {/* Header — matches the icon-button breadcrumb pattern used across the app */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <Link
+            href={backHref}
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
+            title="Back"
+          >
+            <ChevronLeft size={16} />
+          </Link>
+          <div>
+            <h1 className="text-[20px] font-bold text-gray-900 leading-tight">AI Resource Generator</h1>
+            <p className="text-[12px] text-gray-400 mt-0.5">Generate curriculum-aligned classroom resources in seconds.</p>
+          </div>
+        </div>
+
+        {/* Shell */}
+        <div className="flex-1 min-h-0">
+          <AiGeneratorShell
+            schoolId={user.schoolId}
+            userId={user.id}
+            myResources={myResources}
+            schoolResources={schoolResources}
+            canViewAll={canViewAll}
+            userLessons={userLessons}
+          />
+        </div>
+
       </div>
-    </div>
+    </AppShell>
   )
 }

@@ -17,6 +17,7 @@ const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
 const SendInclusionTab       = dynamic(() => import('@/components/send-support/SendInclusionTab'),     { ssr: false })
+const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/HomeworkDetailPanel'),       { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
@@ -130,6 +131,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [generatingHw,    setGeneratingHw]    = useState(false)
   const [genSource,       setGenSource]       = useState<string | null>(null)
   const [headerEditDate,  setHeaderEditDate]  = useState(false)
+  const [viewingHwId,    setViewingHwId]     = useState<string | null>(null)
+  const [viewingHwTitle, setViewingHwTitle]  = useState('')
 
   // Editable overview state
   const [title,      setTitle]      = useState('')
@@ -407,6 +410,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   return (
+    <>
     <div
       className={inline ? '' : 'fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-6'}
       style={inline ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' } : {}}
@@ -1339,6 +1343,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
+                                {/* View button — always visible for non-draft homework */}
+                                {hw.status !== 'DRAFT' && (
+                                  <button
+                                    onClick={() => { setViewingHwId(hw.id); setViewingHwTitle(hw.title) }}
+                                    className="flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                    title="View homework questions and mark scheme"
+                                  >
+                                    <BookOpen size={11} />View
+                                  </button>
+                                )}
                                 {hw.status === 'DRAFT' ? (
                                   <button
                                     onClick={() => {
@@ -1604,5 +1618,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         )}
       </div>
     </div>
+
+    {/* Homework detail panel — teacher-only, portal over lesson folder */}
+    {viewingHwId && (
+      <HomeworkDetailPanel
+        homeworkId={viewingHwId}
+        title={viewingHwTitle}
+        onClose={() => setViewingHwId(null)}
+      />
+    )}
+    </>
   )
 }

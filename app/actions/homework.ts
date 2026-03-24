@@ -195,6 +195,28 @@ export type ClassForHomework = {
   yearGroup: number
 }
 
+// ── Teacher homework detail (questions + mark scheme) ────────────────────────
+
+export async function getHomeworkDetail(homeworkId: string) {
+  const session = await auth()
+  if (!session) return null
+  const { schoolId, role } = session.user as { schoolId: string; role: string }
+
+  const teacherRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!teacherRoles.includes(role)) return null
+
+  return prisma.homework.findFirst({
+    where: { id: homeworkId, schoolId },
+    include: {
+      questions: { orderBy: { orderIndex: 'asc' } },
+      class:     { select: { name: true, subject: true, yearGroup: true } },
+      lesson:    { select: { id: true, title: true } },
+    },
+  })
+}
+
+export type HomeworkDetail = Awaited<ReturnType<typeof getHomeworkDetail>>
+
 export async function getTeacherLessons(): Promise<LessonForHomework[]> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')

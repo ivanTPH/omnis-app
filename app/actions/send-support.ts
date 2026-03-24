@@ -577,7 +577,8 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
   if (!allowedRoles.includes(user.role)) redirect('/dashboard')
 
   const ilp = await prisma.individualLearningPlan.findFirst({
-    where: { schoolId: user.schoolId, studentId, status: 'active' },
+    where: { schoolId: user.schoolId, studentId, status: { in: ['active', 'under_review'] } },
+    orderBy: { createdAt: 'desc' },
     include: { targets: { orderBy: { targetDate: 'asc' } } },
   })
   if (!ilp) return null
@@ -2095,12 +2096,12 @@ export async function getStudentSendDocuments(studentId: string): Promise<Studen
       },
     }),
     prisma.individualLearningPlan.findFirst({
-      where:   { studentId, schoolId, status: 'active' },
-      orderBy: { approvedAt: 'desc' },
+      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      orderBy: { createdAt: 'desc' },
       include: { targets: { orderBy: { targetDate: 'asc' } } },
     }),
     prisma.ehcpPlan.findFirst({
-      where:   { studentId, schoolId, status: 'active' },
+      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
       orderBy: { createdAt: 'desc' },
       include: { outcomes: { orderBy: { targetDate: 'asc' } } },
     }),

@@ -282,6 +282,7 @@ model User {
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   avatarUrl        String?
+  supportSnapshot  String?          // 1–2 sentence plain-English SEND summary for teachers
 
   teacherClasses      ClassTeacher[]
   enrolments          Enrolment[]
@@ -1860,7 +1861,7 @@ model IlpAuditEntry {
   fieldChanged   String   // e.g. "target.status", "reviewDate", "currentStrengths"
   previousValue  String
   newValue       String
-  changeType     String   // "ADDED" | "EDITED" | "DELETED"
+  changeType     String   // "ADDED" | "EDITED" | "DELETED" | "PENDING_EDIT" | "REJECTED"
   createdAt      DateTime @default(now())
 
   ilp  IndividualLearningPlan @relation(fields: [ilpId], references: [id], onDelete: Cascade)

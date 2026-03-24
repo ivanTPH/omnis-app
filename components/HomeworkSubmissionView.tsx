@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitHomework } from '@/app/actions/student'
 import { CheckCircle2, Clock, MessageSquare, Star, AlertCircle } from 'lucide-react'
+import HomeworkTypeRenderer from '@/components/homework/HomeworkTypeRenderer'
 
 type Submission = {
   id: string
@@ -21,6 +22,9 @@ type HwData = {
   maxAttempts: number
   submission: Submission | null
   modelAnswer: string | null
+  homeworkVariantType?: string | null
+  structuredContent?: unknown
+  sendStatus?: string
 }
 
 export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
@@ -127,25 +131,36 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
         </section>
       )}
 
-      {/* Answer textarea */}
+      {/* Answer section */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
             {isReturned ? 'Your Answer' : isAwaitingFeedback ? 'Your Submission' : 'Your Answer'}
           </h2>
-          {!isAwaitingFeedback && (
+          {!isAwaitingFeedback && !hw.homeworkVariantType && (
             <span className="text-[11px] text-gray-400">
               {wordCount} word{wordCount !== 1 ? 's' : ''}
             </span>
           )}
         </div>
-        <textarea
-          className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition"
-          placeholder="Write your answer here..."
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          disabled={textareaDisabled}
-        />
+        {hw.homeworkVariantType && hw.structuredContent ? (
+          <HomeworkTypeRenderer
+            type={hw.homeworkVariantType}
+            structuredContent={hw.structuredContent}
+            value={content}
+            onChange={setContent}
+            disabled={textareaDisabled}
+            showScaffold={(hw.sendStatus ?? 'NONE') !== 'NONE'}
+          />
+        ) : (
+          <textarea
+            className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition"
+            placeholder="Write your answer here..."
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            disabled={textareaDisabled}
+          />
+        )}
       </section>
 
       {/* Submit / resubmit */}

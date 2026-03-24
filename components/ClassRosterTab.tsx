@@ -226,6 +226,13 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     )}
                   </div>
 
+                  {/* Support snapshot */}
+                  {row.supportSnapshot && (
+                    <p className="text-[12px] text-amber-800 italic leading-snug border-l-2 border-amber-300 pl-2.5">
+                      {row.supportSnapshot}
+                    </p>
+                  )}
+
                   {/* Tab switcher */}
                   <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden w-fit">
                     {(['homework', 'apdr', 'kplan'] as const).map(tab => {

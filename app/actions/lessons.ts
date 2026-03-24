@@ -519,15 +519,16 @@ export async function updateResource(
 // ── Class Roster ─────────────────────────────────────────────────────────────
 
 export type ClassRosterRow = {
-  id:          string
-  firstName:   string
-  lastName:    string
-  avatarUrl:   string | null
-  sendStatus:  string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
-  needArea:    string | null
-  hasIlp:      boolean
-  latestScore: number | null
-  maxScore:    number | null
+  id:              string
+  firstName:       string
+  lastName:        string
+  avatarUrl:       string | null
+  sendStatus:      string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  needArea:        string | null
+  hasIlp:          boolean
+  latestScore:     number | null
+  maxScore:        number | null
+  supportSnapshot: string | null
 }
 
 export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
@@ -564,15 +565,16 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
       const sub   = e.user.submissions[0]
       const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
       return {
-        id:          e.user.id,
-        firstName:   e.user.firstName,
-        lastName:    e.user.lastName,
-        avatarUrl:   e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
-        sendStatus:  e.user.sendStatus?.activeStatus ?? 'NONE',
-        needArea:    e.user.sendStatus?.needArea ?? null,
-        hasIlp:      e.user.plans.length > 0,
-        latestScore: score,
-        maxScore:    sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
+        id:              e.user.id,
+        firstName:       e.user.firstName,
+        lastName:        e.user.lastName,
+        avatarUrl:       e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+        sendStatus:      e.user.sendStatus?.activeStatus ?? 'NONE',
+        needArea:        e.user.sendStatus?.needArea ?? null,
+        hasIlp:          e.user.plans.length > 0,
+        latestScore:     score,
+        maxScore:        sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
+        supportSnapshot: e.user.supportSnapshot ?? null,
       }
     })
   } catch (err) {

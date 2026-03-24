@@ -8,7 +8,8 @@ import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
 import RaiseConcernButton from '@/components/send-support/RaiseConcernButton'
 import StudentAPDRPanel from '@/components/send-support/StudentAPDRPanel'
 import KPlanSection from '@/components/send-support/KPlanSection'
-import { AlertTriangle, FileText, RefreshCw, BookOpen } from 'lucide-react'
+import RefreshSnapshotButton from '@/components/send-support/RefreshSnapshotButton'
+import { AlertTriangle, FileText, RefreshCw, BookOpen, Lightbulb } from 'lucide-react'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT']
@@ -29,7 +30,7 @@ export default async function StudentSendPage({
   const [student, sendStatus, concerns, ilp, allFlags, passport] = await Promise.all([
     prisma.user.findFirst({
       where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true, yearGroup: true, avatarUrl: true },
+      select: { id: true, firstName: true, lastName: true, yearGroup: true, avatarUrl: true, supportSnapshot: true },
     }),
     prisma.sendStatus.findFirst({
       where: { studentId },
@@ -94,6 +95,32 @@ export default async function StudentSendPage({
               <h2 className="font-semibold text-gray-900 text-sm">Early Warning Flags</h2>
             </div>
             <EarlyWarningPanel flags={flags} compact />
+          </section>
+        )}
+
+        {/* Support Snapshot — 1–2 sentence plain-English summary for teachers */}
+        {(student.supportSnapshot || isSenco) && (
+          <section className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <Lightbulb size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Support Snapshot</p>
+                  {student.supportSnapshot ? (
+                    <p className="text-[13px] text-amber-900 leading-relaxed">{student.supportSnapshot}</p>
+                  ) : (
+                    <p className="text-[13px] text-amber-700 italic">
+                      No snapshot yet. Approve an ILP or K Plan to auto-generate one, or click &ldquo;Refresh snapshot&rdquo;.
+                    </p>
+                  )}
+                </div>
+              </div>
+              {isSenco && (
+                <div className="shrink-0">
+                  <RefreshSnapshotButton studentId={student.id} />
+                </div>
+              )}
+            </div>
           </section>
         )}
 

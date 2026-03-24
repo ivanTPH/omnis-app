@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, X, FileHeart, Sparkles, Loader2 } from 'lucide-react'
-import type { IlpWithTargets } from '@/app/actions/send-support'
+import { useState, useEffect } from 'react'
+import { Plus, X, FileHeart, Sparkles, Loader2, ClipboardEdit, CheckCircle, XCircle } from 'lucide-react'
+import type { IlpWithTargets, PendingIlpEdit } from '@/app/actions/send-support'
+import { getPendingIlpEdits, approveIlpEdit, rejectIlpEdit } from '@/app/actions/send-support'
 import IlpCard from './IlpCard'
 import IlpForm from './IlpForm'
 
@@ -14,12 +15,20 @@ type GenerateState =
 type Props = { ilps: IlpWithTargets[] }
 
 export default function IlpPageView({ ilps: initial }: Props) {
-  const [ilps,        setIlps]        = useState(initial)
-  const [showForm,    setShowForm]    = useState(false)
-  const [expanded,    setExpanded]    = useState<Set<string>>(new Set())
-  const [studentId,   setStudentId]   = useState('')
-  const [studentName, setStudentName] = useState('')
-  const [genState,    setGenState]    = useState<GenerateState>({ phase: 'idle' })
+  const [ilps,           setIlps]           = useState(initial)
+  const [showForm,       setShowForm]       = useState(false)
+  const [expanded,       setExpanded]       = useState<Set<string>>(new Set())
+  const [studentId,      setStudentId]      = useState('')
+  const [studentName,    setStudentName]    = useState('')
+  const [genState,       setGenState]       = useState<GenerateState>({ phase: 'idle' })
+  const [pendingEdits,   setPendingEdits]   = useState<PendingIlpEdit[]>([])
+  const [editAction,     setEditAction]     = useState<Record<string, 'approving' | 'rejecting'>>({})
+  const [rejectReason,   setRejectReason]   = useState<Record<string, string>>({})
+  const [rejectOpen,     setRejectOpen]     = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    getPendingIlpEdits().then(setPendingEdits).catch(() => {})
+  }, [])
 
   async function handleGenerateIlps() {
     setGenState({ phase: 'loading' })
@@ -47,6 +56,27 @@ export default function IlpPageView({ ilps: initial }: Props) {
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  async function handleApproveEdit(id: string) {
+    setEditAction(a => ({ ...a, [id]: 'approving' }))
+    try {
+      await approveIlpEdit(id)
+      setPendingEdits(prev => prev.filter(e => e.id !== id))
+    } finally {
+      setEditAction(a => { const n = { ...a }; delete n[id]; return n })
+    }
+  }
+
+  async function handleRejectEdit(id: string) {
+    setEditAction(a => ({ ...a, [id]: 'rejecting' }))
+    try {
+      await rejectIlpEdit(id, rejectReason[id] ?? '')
+      setPendingEdits(prev => prev.filter(e => e.id !== id))
+      setRejectOpen(r => { const n = { ...r }; delete n[id]; return n })
+    } finally {
+      setEditAction(a => { const n = { ...a }; delete n[id]; return n })
+    }
   }
 
   const reviewSoon = ilps.filter(i => {
@@ -99,6 +129,76 @@ export default function IlpPageView({ ilps: initial }: Props) {
           </button>
         </div>
       </div>
+
+      {/* Pending teacher edits */}
+      {pendingEdits.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-amber-200 flex items-center gap-2">
+            <ClipboardEdit size={15} className="text-amber-600" />
+            <p className="text-sm font-semibold text-amber-800">
+              Pending teacher edits ({pendingEdits.length})
+            </p>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pendingEdits.map(edit => (
+              <div key={edit.id} className="px-5 py-3 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[13px] font-medium text-gray-900">
+                      {edit.studentName}
+                      <span className="ml-2 text-[11px] text-gray-500 font-normal">field: {edit.fieldChanged}</span>
+                    </p>
+                    <p className="text-[12px] text-gray-500">Proposed by {edit.proposerName}</p>
+                    <div className="mt-1 flex items-center gap-2 text-[12px]">
+                      {edit.previousValue && (
+                        <span className="line-through text-gray-400">&ldquo;{edit.previousValue.slice(0, 60)}&rdquo;</span>
+                      )}
+                      <span className="text-green-700">&rarr; &ldquo;{edit.newValue?.slice(0, 80)}&rdquo;</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleApproveEdit(edit.id)}
+                      disabled={!!editAction[edit.id]}
+                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-green-600 hover:bg-green-500 text-white rounded-lg disabled:opacity-50 transition-colors"
+                    >
+                      {editAction[edit.id] === 'approving'
+                        ? <Loader2 size={11} className="animate-spin" />
+                        : <CheckCircle size={11} />}
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => setRejectOpen(r => ({ ...r, [edit.id]: !r[edit.id] }))}
+                      disabled={!!editAction[edit.id]}
+                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg disabled:opacity-50 transition-colors"
+                    >
+                      <XCircle size={11} /> Reject
+                    </button>
+                  </div>
+                </div>
+                {rejectOpen[edit.id] && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="text"
+                      value={rejectReason[edit.id] ?? ''}
+                      onChange={e => setRejectReason(r => ({ ...r, [edit.id]: e.target.value }))}
+                      placeholder="Reason (optional)…"
+                      className="flex-1 text-[12px] border border-gray-200 rounded-lg px-2.5 py-1"
+                    />
+                    <button
+                      onClick={() => handleRejectEdit(edit.id)}
+                      disabled={editAction[edit.id] === 'rejecting'}
+                      className="text-[11px] font-medium px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg disabled:opacity-50"
+                    >
+                      {editAction[edit.id] === 'rejecting' ? <Loader2 size={11} className="animate-spin" /> : 'Confirm reject'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ILP list */}
       {ilps.length === 0 ? (

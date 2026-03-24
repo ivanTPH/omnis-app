@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { FileHeart, Target, CheckCircle, Clock, XCircle, ChevronDown, Sparkles, ThumbsUp, ThumbsDown, Package, ShieldCheck, History, ChevronRight } from 'lucide-react'
+import { FileHeart, Target, CheckCircle, Clock, XCircle, ChevronDown, Sparkles, ThumbsUp, ThumbsDown, Package, ShieldCheck, History, ChevronRight, Loader2 } from 'lucide-react'
 import type { IlpWithTargets, IlpAuditEntryRow } from '@/app/actions/send-support'
-import { updateIlpTarget, approveGeneratedIlp, getIlpAuditLog } from '@/app/actions/send-support'
+import { updateIlpTarget, approveGeneratedIlp, getIlpAuditLog, updateSendStatus } from '@/app/actions/send-support'
 
 const ROLE_LABELS: Record<string, string> = {
   SENCO: 'SENCO', TEACHER: 'Teacher', HEAD_OF_DEPT: 'HoD',
@@ -28,6 +28,9 @@ export default function IlpCard({ ilp }: Props) {
   const [auditOpen,        setAuditOpen]        = useState(false)
   const [auditEntries,     setAuditEntries]     = useState<IlpAuditEntryRow[] | null>(null)
   const [auditLoading,     setAuditLoading]     = useState(false)
+  const [sendStatus,       setSendStatus]       = useState(ilp.sendStatus ?? 'NONE')
+  const [statusUpdating,   setStatusUpdating]   = useState(false)
+  const [statusToast,      setStatusToast]      = useState<string | null>(null)
 
   async function handleToggleAudit() {
     if (!auditOpen && auditEntries === null) {
@@ -52,6 +55,23 @@ export default function IlpCard({ ilp }: Props) {
     }
   }
 
+  async function handleSendStatusChange(newStatus: 'NONE' | 'SEN_SUPPORT' | 'EHCP') {
+    if (newStatus === sendStatus) return
+    setStatusUpdating(true)
+    try {
+      await updateSendStatus(ilp.studentId, newStatus)
+      setSendStatus(newStatus)
+      const label = newStatus === 'NONE' ? 'No SEND' : newStatus === 'SEN_SUPPORT' ? 'SEN Support' : 'EHCP'
+      setStatusToast(`SEND status updated to ${label}`)
+      setTimeout(() => setStatusToast(null), 3000)
+    } catch {
+      setStatusToast('Failed to update SEND status')
+      setTimeout(() => setStatusToast(null), 3000)
+    } finally {
+      setStatusUpdating(false)
+    }
+  }
+
   async function saveTargetUpdate(targetId: string, status: string) {
     setUpdatingId(targetId)
     try {
@@ -67,6 +87,13 @@ export default function IlpCard({ ilp }: Props) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+      {/* Toast */}
+      {statusToast && (
+        <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-700 font-medium">
+          {statusToast}
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-4 border-b border-gray-100">
         <div className="flex items-start justify-between gap-3">
@@ -80,9 +107,26 @@ export default function IlpCard({ ilp }: Props) {
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 mb-2">
               {ilp.studentName} · {ilp.sendCategory}
             </p>
+            {/* SEND status dropdown */}
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">SEND Status</label>
+              <div className="relative flex items-center gap-1.5">
+                <select
+                  value={sendStatus}
+                  onChange={e => handleSendStatusChange(e.target.value as 'NONE' | 'SEN_SUPPORT' | 'EHCP')}
+                  disabled={statusUpdating}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 pr-6 bg-white disabled:opacity-60 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                >
+                  <option value="NONE">No SEND</option>
+                  <option value="SEN_SUPPORT">SEN Support</option>
+                  <option value="EHCP">EHCP</option>
+                </select>
+                {statusUpdating && <Loader2 size={12} className="animate-spin text-blue-500 shrink-0" />}
+              </div>
+            </div>
           </div>
           <div className="text-right space-y-1">
             <p className={`text-xs font-medium ${reviewSoon ? 'text-orange-600' : 'text-gray-500'}`}>

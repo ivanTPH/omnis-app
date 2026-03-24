@@ -10,34 +10,43 @@ export async function getStudentHomework(homeworkId: string) {
   const { schoolId, id: userId, role } = session.user as any
   if (role !== 'STUDENT') throw new Error('Forbidden')
 
-  const hw = await prisma.homework.findFirst({
-    where: { id: homeworkId, schoolId, status: 'PUBLISHED' },
-    select: {
-      id:           true,
-      title:        true,
-      instructions: true,
-      dueAt:        true,
-      maxAttempts:  true,
-      isAdapted:    true,
-      class: { select: { name: true, subject: true, yearGroup: true } },
-      submissions: {
-        where: { studentId: userId },
-        select: {
-          id:         true,
-          content:    true,
-          status:     true,
-          grade:      true,
-          feedback:   true,
-          finalScore: true,
-          submittedAt: true,
-          markedAt:    true,
+  const [hw, sendStatusRecord] = await Promise.all([
+    prisma.homework.findFirst({
+      where: { id: homeworkId, schoolId, status: 'PUBLISHED' },
+      select: {
+        id:                  true,
+        title:               true,
+        instructions:        true,
+        dueAt:               true,
+        maxAttempts:         true,
+        isAdapted:           true,
+        homeworkVariantType: true,
+        structuredContent:   true,
+        class: { select: { name: true, subject: true, yearGroup: true } },
+        submissions: {
+          where: { studentId: userId },
+          select: {
+            id:          true,
+            content:     true,
+            status:      true,
+            grade:       true,
+            feedback:    true,
+            finalScore:  true,
+            submittedAt: true,
+            markedAt:    true,
+          },
         },
       },
-    },
-  })
+    }),
+    prisma.sendStatus.findUnique({
+      where:  { studentId: userId },
+      select: { activeStatus: true },
+    }),
+  ])
   if (!hw) return null
 
   const submission = hw.submissions[0] ?? null
+  const sendStatus = (sendStatusRecord?.activeStatus ?? 'NONE') as string
 
   // Only reveal model answer once work is returned
   let modelAnswer: string | null = null
@@ -49,7 +58,7 @@ export async function getStudentHomework(homeworkId: string) {
     modelAnswer = full?.modelAnswer ?? null
   }
 
-  return { ...hw, submission, modelAnswer }
+  return { ...hw, submission, modelAnswer, sendStatus }
 }
 
 export async function submitHomework(homeworkId: string, content: string) {

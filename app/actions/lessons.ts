@@ -147,11 +147,11 @@ export async function getLessonDetails(lessonId: string) {
 
   const enrolledIds = lesson.class?.enrolments.map(e => e.user.id) ?? []
 
-  const [sendStatuses, plans] = enrolledIds.length
+  const [sendStatuses, plans, snapshots] = enrolledIds.length
     ? await Promise.all([
         prisma.sendStatus.findMany({
           where: { studentId: { in: enrolledIds }, NOT: { activeStatus: 'NONE' } },
-          include: { student: { select: { id: true, firstName: true, lastName: true, supportSnapshot: true } } },
+          include: { student: { select: { id: true, firstName: true, lastName: true } } },
         }),
         prisma.plan.findMany({
           where: {
@@ -162,8 +162,21 @@ export async function getLessonDetails(lessonId: string) {
           include: { targets: true, strategies: true },
           orderBy: { activatedAt: 'desc' },
         }),
+        // Fetch supportSnapshot separately so a missing column (pending migration)
+        // cannot break the core lesson load — it is only used in the SEND & Inclusion tab.
+        prisma.user.findMany({
+          where: { id: { in: enrolledIds } },
+          select: { id: true, supportSnapshot: true },
+        }).catch(() => [] as { id: string; supportSnapshot: string | null }[]),
       ])
-    : [[], []]
+    : [[], [], []]
+
+  // Merge snapshots onto sendStatuses
+  const snapshotMap = new Map((snapshots as { id: string; supportSnapshot: string | null }[]).map(u => [u.id, u.supportSnapshot]))
+  const sendStatusesWithSnapshot = sendStatuses.map(ss => ({
+    ...ss,
+    student: { ...ss.student, supportSnapshot: snapshotMap.get(ss.studentId) ?? null },
+  }))
 
   // One active plan per student (most recently activated)
   const planByStudent = new Map<string, typeof plans[0]>()
@@ -186,7 +199,7 @@ export async function getLessonDetails(lessonId: string) {
 
   return {
     ...lesson,
-    sendStatuses,
+    sendStatuses: sendStatusesWithSnapshot,
     planByStudent: Object.fromEntries(planByStudent),
     termAgg,
     subjectMedian,

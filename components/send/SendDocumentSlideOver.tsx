@@ -29,7 +29,7 @@ const TARGET_STATUS: Record<string, { label: string; cls: string }> = {
   deferred:     { label: 'Deferred',      cls: 'bg-orange-100 text-orange-700' },
 }
 
-export default function SendDocumentSlideOver({ docType, doc, studentName, studentId, userRole, onClose }: Props) {
+export default function SendDocumentSlideOver({ docType, doc, studentName, userRole, onClose }: Props) {
   const meta = DOC_META[docType]
 
   const [auditOpen,    setAuditOpen]    = useState(false)

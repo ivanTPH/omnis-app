@@ -68,11 +68,20 @@ export default function SendDocumentThumbnails({ studentId, studentName, userRol
   const [active,  setActive]  = useState<DocType | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    getStudentSendDocuments(studentId)
-      .then(setDocs)
-      .catch(() => setDocs(null))
-      .finally(() => setLoading(false))
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const result = await getStudentSendDocuments(studentId)
+        if (!cancelled) setDocs(result)
+      } catch {
+        if (!cancelled) setDocs(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
   }, [studentId])
 
   if (loading) {

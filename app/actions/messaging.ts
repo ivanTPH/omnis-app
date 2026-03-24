@@ -432,3 +432,18 @@ export async function markAllPlatformNotificationsRead(): Promise<void> {
     data:  { read: true },
   })
 }
+
+// ── Unread notification count (used by sidebar badge) ────────────────────────
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const user = await requireAuth()
+  const [sendCount, platformCount] = await Promise.all([
+    prisma.sendNotification.count({
+      where: { recipientId: user.id, isRead: false },
+    }),
+    prisma.notification.count({
+      where: { userId: user.id, schoolId: user.schoolId, read: false },
+    }),
+  ])
+  return sendCount + platformCount
+}

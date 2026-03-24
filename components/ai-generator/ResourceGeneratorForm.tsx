@@ -87,7 +87,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
           content: result.content,
           sendAdapted: sendAdaptations.length > 0,
           sendNotes: sendAdaptations.length > 0 ? sendAdaptations.join(', ') : null,
-          modelVersion: 'claude-sonnet-4-20250514',
+          modelVersion: 'claude-sonnet-4-6',
           createdAt: new Date(),
           linkedLessonId: lessonId ?? null,
         })

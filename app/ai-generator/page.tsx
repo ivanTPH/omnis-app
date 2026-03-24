@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { getMyResources, getSchoolResources } from '@/app/actions/ai-generator'
 import { getTeacherLessons } from '@/app/actions/homework'
 import AiGeneratorShell from '@/components/ai-generator/AiGeneratorShell'
+import { ChevronLeft } from 'lucide-react'
 
 const ALLOWED_ROLES = [
   'TEACHER', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT',
@@ -35,6 +37,12 @@ export default async function AiGeneratorPage() {
     <div className="flex flex-col h-full p-6 gap-4 min-h-0">
       {/* Header */}
       <div className="flex-shrink-0">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-600 mb-2 transition-colors"
+        >
+          <ChevronLeft size={13} /> Back to Calendar
+        </Link>
         <h1 className="text-[20px] font-bold text-gray-900">AI Resource Generator</h1>
         <p className="text-[13px] text-gray-500 mt-0.5">
           Generate curriculum-aligned classroom resources in seconds.

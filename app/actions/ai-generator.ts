@@ -93,12 +93,28 @@ function buildUserPrompt(input: GenerateInput): string {
     typePrompt,
   ]
 
-  if (input.sendAdaptations.length > 0) {
-    lines.push('', 'SEND Adaptations required — apply all of the following:')
-    for (const adapt of input.sendAdaptations) {
-      const prompt = SEND_ADAPTATION_PROMPTS[adapt]
-      if (prompt) lines.push(`- ${adapt.toUpperCase()}: ${prompt}`)
+  if (input.sendAdaptations.length === 1) {
+    const adapt  = input.sendAdaptations[0]
+    const prompt = SEND_ADAPTATION_PROMPTS[adapt]
+    if (prompt) {
+      lines.push('', `SEND Adaptation (${adapt.replace(/_/g, ' ').toUpperCase()}) — apply throughout:`)
+      lines.push(prompt)
     }
+  } else if (input.sendAdaptations.length > 1) {
+    // Combine multiple needs into ONE block so Claude doesn't write separate sections
+    // per need (which inflates response length and risks timeout).
+    const labels   = input.sendAdaptations.map(a => a.replace(/_/g, ' ')).join(', ')
+    const combined = input.sendAdaptations
+      .flatMap(a => {
+        const p = SEND_ADAPTATION_PROMPTS[a]
+        return p ? [p] : []
+      })
+      .join(' ')
+    lines.push(
+      '',
+      `SEND Adaptations (${labels}) — weave all of the following into a single accessible resource; do NOT create a separate section per need:`,
+      combined,
+    )
   }
 
   if (input.additionalNotes?.trim()) {
@@ -143,10 +159,10 @@ export async function generateResource(
   if (apiKey) {
     const client = new Anthropic({ apiKey })
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildUserPrompt({ ...input, ...validated }) }],
+      model:      'claude-sonnet-4-6',
+      max_tokens: 1400,
+      system:     SYSTEM_PROMPT,
+      messages:   [{ role: 'user', content: buildUserPrompt({ ...input, ...validated }) }],
     })
     content = (message.content[0] as { type: string; text: string }).text.trim()
   } else {

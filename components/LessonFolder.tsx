@@ -1119,7 +1119,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           />
                           <button
                             type="button"
-                            onClick={() => { setObjectives(prev => prev.filter((_, j) => j !== i)); saveOverview() }}
+                            onClick={() => {
+                              const next = objectives.filter((_, j) => j !== i)
+                              setObjectives(next)
+                              if (!lessonId) return
+                              startSave(async () => {
+                                await updateLessonOverview(lessonId, { title, objectives: next })
+                                router.refresh()
+                              })
+                            }}
                             className="text-gray-300 hover:text-red-400 transition-colors"
                           >
                             <Trash2 size={13} />

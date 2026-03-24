@@ -6,6 +6,7 @@ import { LessonType, AudienceType, PlanStatus, ResourceType } from '@prisma/clie
 import { type ReviewResult } from '@/lib/sendReview'
 import { sendReviewCached } from '@/lib/sendReviewCached'
 import { updateSendInsight } from '@/lib/sendInsights'
+import Anthropic from '@anthropic-ai/sdk'
 
 // ── CalendarLesson shape (mirrors WeeklyCalendar type) ────────────────────────
 export type CalendarLessonData = {
@@ -105,6 +106,56 @@ export async function createLesson(input: CreateLessonInput) {
       createdBy:    userId,
     },
   })
+
+  // AI-generate learning objectives — fast Haiku call, swallowed on failure
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (apiKey) {
+    try {
+      // Fetch class context (subject + year group) if classId provided
+      let subject   = ''
+      let yearLabel = ''
+      if (input.classId) {
+        const cls = await prisma.schoolClass.findUnique({
+          where:  { id: input.classId },
+          select: { subject: true, yearGroup: true },
+        })
+        if (cls) { subject = cls.subject; yearLabel = `Year ${cls.yearGroup}` }
+      }
+
+      const contextParts = [
+        subject   && `Subject: ${subject}`,
+        yearLabel && `Year group: ${yearLabel}`,
+        input.topic && `Topic: ${input.topic}`,
+      ].filter(Boolean).join('. ')
+
+      const client   = new Anthropic({ apiKey })
+      const response = await client.messages.create({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{
+          role:    'user',
+          content: `Generate exactly 3 clear, specific learning objectives for a UK secondary school lesson titled "${input.title}".${contextParts ? ` ${contextParts}.` : ''}
+Each objective must start with "Students will be able to" and be a single, measurable sentence.
+Respond with ONLY a valid JSON array of 3 strings and nothing else.
+Example format: ["Students will be able to ...", "Students will be able to ...", "Students will be able to ..."]`,
+        }],
+      })
+
+      const text = response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
+      // Strip any markdown code fences if present
+      const cleaned = text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim()
+      const generated = JSON.parse(cleaned) as string[]
+      if (Array.isArray(generated) && generated.length > 0) {
+        await prisma.lesson.update({
+          where: { id: lesson.id },
+          data:  { objectives: generated.map(o => String(o)).slice(0, 5) },
+        })
+      }
+    } catch (err) {
+      console.error('[createLesson] objectives AI generation failed:', err)
+      // Swallow — lesson was created; teacher can add objectives manually
+    }
+  }
 
   revalidatePath('/dashboard')
   return { id: lesson.id }

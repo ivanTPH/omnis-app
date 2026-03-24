@@ -1,9 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Loader2, AlertCircle, ChevronDown, ChevronRight, BookOpen } from 'lucide-react'
+import { Loader2, AlertCircle, ChevronDown, ChevronRight, BookOpen, Info } from 'lucide-react'
 import { getClassRoster, getStudentClassDetail, type ClassRosterRow, type StudentClassDetail } from '@/app/actions/lessons'
-import { getCurrentUserRole, getClassKPlanSummaries, getStudentLearnerPassport, type LearnerPassportRow } from '@/app/actions/send-support'
+import {
+  getCurrentUserRole,
+  getClassKPlanSummaries,
+  getStudentLearnerPassport,
+  getStudentIlp,
+  type LearnerPassportRow,
+  type IlpWithTargets,
+} from '@/app/actions/send-support'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const StudentAPDRPanel       = dynamic(() => import('@/components/send-support/StudentAPDRPanel'), { ssr: false })
@@ -11,8 +18,15 @@ const KPlanModal             = dynamic(() => import('@/components/send-support/K
 const SendDocumentThumbnails = dynamic(() => import('@/components/send/SendDocumentThumbnails'),  { ssr: false })
 
 const SEND_BADGE: Record<string, { label: string; cls: string }> = {
-  SEN_SUPPORT: { label: 'SEN Support', cls: 'bg-amber-100 text-amber-700' },
+  SEN_SUPPORT: { label: 'SEN Support', cls: 'bg-blue-100 text-blue-700' },
   EHCP:        { label: 'EHCP',        cls: 'bg-purple-100 text-purple-700' },
+}
+
+const TARGET_STATUS_CLS: Record<string, string> = {
+  active:       'bg-blue-100 text-blue-700',
+  achieved:     'bg-green-100 text-green-700',
+  not_achieved: 'bg-red-100 text-red-700',
+  deferred:     'bg-orange-100 text-orange-700',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,18 +40,19 @@ const STATUS_COLORS: Record<string, string> = {
 type KPlanSummary = { id: string; sendInformation: string; status: string }
 
 export default function ClassRosterTab({ classId }: { classId: string }) {
-  const [rows,         setRows]         = useState<ClassRosterRow[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [error,        setError]        = useState<string | null>(null)
-  const [expandedId,   setExpandedId]   = useState<string | null>(null)
-  const [detailsCache, setDetailsCache] = useState<Record<string, StudentClassDetail | 'loading'>>({})
-  const [userRole,     setUserRole]     = useState<string>('TEACHER')
-  const [activeTab,    setActiveTab]    = useState<Record<string, 'homework' | 'apdr' | 'kplan'>>({})
-  const [kPlanMap,        setKPlanMap]        = useState<Record<string, KPlanSummary>>({})
-  const [kPlanModal,      setKPlanModal]      = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
-  const [kPlanLoading,    setKPlanLoading]    = useState<string | null>(null) // studentId being loaded
-  const [kPlanFullCache,  setKPlanFullCache]  = useState<Record<string, LearnerPassportRow | 'loading'>>({})
-  const [kPlanChecked,    setKPlanChecked]    = useState<Record<string, boolean[]>>({}) // ephemeral checklist
+  const [rows,            setRows]           = useState<ClassRosterRow[]>([])
+  const [loading,         setLoading]        = useState(true)
+  const [error,           setError]          = useState<string | null>(null)
+  const [expandedId,      setExpandedId]     = useState<string | null>(null)
+  const [detailsCache,    setDetailsCache]   = useState<Record<string, StudentClassDetail | 'loading'>>({})
+  const [ilpCache,        setIlpCache]       = useState<Record<string, IlpWithTargets | 'loading' | null>>({})
+  const [userRole,        setUserRole]       = useState<string>('TEACHER')
+  const [activeTab,       setActiveTab]      = useState<Record<string, 'homework' | 'apdr' | 'kplan'>>({})
+  const [kPlanMap,        setKPlanMap]       = useState<Record<string, KPlanSummary>>({})
+  const [kPlanModal,      setKPlanModal]     = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
+  const [kPlanLoading,    setKPlanLoading]   = useState<string | null>(null)
+  const [kPlanFullCache,  setKPlanFullCache] = useState<Record<string, LearnerPassportRow | 'loading'>>({})
+  const [kPlanChecked,    setKPlanChecked]   = useState<Record<string, boolean[]>>({})
 
   useEffect(() => {
     setLoading(true)
@@ -52,27 +67,36 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       .finally(() => setLoading(false))
   }, [classId])
 
-  function handleToggle(id: string) {
+  function handleToggle(row: ClassRosterRow) {
+    // Only SEND students can expand
+    if (row.sendStatus === 'NONE') return
+    const id = row.id
     if (expandedId === id) { setExpandedId(null); return }
     setExpandedId(id)
     if (!activeTab[id]) setActiveTab(t => ({ ...t, [id]: 'homework' }))
+    // Load homework detail
     if (!detailsCache[id]) {
       setDetailsCache(c => ({ ...c, [id]: 'loading' }))
       getStudentClassDetail(id, classId)
         .then(d  => setDetailsCache(c => ({ ...c, [id]: d })))
         .catch(() => setDetailsCache(c => ({ ...c, [id]: { recentSubmissions: [] } })))
     }
+    // Load ILP targets
+    if (!ilpCache[id]) {
+      setIlpCache(c => ({ ...c, [id]: 'loading' }))
+      getStudentIlp(id)
+        .then(ilp => setIlpCache(c => ({ ...c, [id]: ilp })))
+        .catch(() => setIlpCache(c => ({ ...c, [id]: null })))
+    }
   }
 
   function setTab(studentId: string, tab: 'homework' | 'apdr' | 'kplan') {
     setActiveTab(t => ({ ...t, [studentId]: tab }))
-    // Auto-load full passport when K Plan tab is first opened
     if (tab === 'kplan' && !kPlanFullCache[studentId]) {
       setKPlanFullCache(c => ({ ...c, [studentId]: 'loading' }))
       getStudentLearnerPassport(studentId)
         .then(p => {
           setKPlanFullCache(c => ({ ...c, [studentId]: p ?? ('loading' as any) }))
-          // Initialise checklist state (all unticked)
           if (p) setKPlanChecked(ch => ({ ...ch, [studentId]: new Array(p.teacherActions.length).fill(false) }))
         })
         .catch(() => setKPlanFullCache(c => ({ ...c, [studentId]: 'loading' })))
@@ -115,59 +139,80 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     )
   }
 
-  const sendCount  = rows.filter(r => r.sendStatus !== 'NONE').length
-  const ilpCount   = rows.filter(r => r.hasIlp).length
-  const ehcpCount  = rows.filter(r => r.sendStatus === 'EHCP').length
+  const senSupportCount = rows.filter(r => r.sendStatus === 'SEN_SUPPORT').length
+  const ehcpCount       = rows.filter(r => r.sendStatus === 'EHCP').length
+  const sendCount       = senSupportCount + ehcpCount
+  const ilpCount        = rows.filter(r => r.hasIlp).length
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
 
-      {/* Summary chips */}
-      <div className="flex gap-2 flex-wrap">
+      {/* SEND summary card */}
+      {sendCount > 0 && (
+        <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <Info size={14} className="text-blue-500 mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap gap-3">
+              {senSupportCount > 0 && (
+                <span className="text-[12px] font-semibold text-blue-800">
+                  {senSupportCount} student{senSupportCount !== 1 ? 's' : ''} with SEN Support
+                </span>
+              )}
+              {ehcpCount > 0 && (
+                <span className="text-[12px] font-semibold text-purple-800">
+                  {ehcpCount} student{ehcpCount !== 1 ? 's' : ''} with EHCP
+                </span>
+              )}
+              {ilpCount > 0 && (
+                <span className="text-[12px] text-blue-600">
+                  {ilpCount} active ILP{ilpCount !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <a
+              href="/send/dashboard"
+              className="text-[11px] text-blue-500 hover:text-blue-700 mt-0.5 inline-block"
+            >
+              View SEND dashboard →
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Student count chip */}
+      <div className="flex items-center gap-2">
         <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
           {rows.length} students
         </span>
-        {sendCount > 0 && (
-          <span className="text-[11px] px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
-            {sendCount} SEND
-          </span>
-        )}
-        {ehcpCount > 0 && (
-          <span className="text-[11px] px-2.5 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">
-            {ehcpCount} EHCP
-          </span>
-        )}
-        {ilpCount > 0 && (
-          <span className="text-[11px] px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
-            {ilpCount} active ILP
-          </span>
-        )}
       </div>
 
       {/* Student rows */}
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
         {rows.map(row => {
           const badge        = SEND_BADGE[row.sendStatus]
+          const isSend       = row.sendStatus !== 'NONE'
           const scoreDisplay = row.latestScore != null
             ? (row.maxScore ? `${Math.round(row.latestScore)}/${row.maxScore}` : `${Math.round(row.latestScore)}`)
             : null
           const isExpanded   = expandedId === row.id
           const detail       = detailsCache[row.id]
+          const ilpData      = ilpCache[row.id]
           const kPlan        = kPlanMap[row.id]
           const studentName  = `${row.firstName} ${row.lastName}`
 
           return (
             <div key={row.id}>
               {/* Row */}
-              <button
-                onClick={() => handleToggle(row.id)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 transition-colors text-left"
+              <div
+                onClick={() => handleToggle(row)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 bg-white text-left ${isSend ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
               >
                 <StudentAvatar
                   firstName={row.firstName}
                   lastName={row.lastName}
                   avatarUrl={row.avatarUrl}
                   size="sm"
+                  sendStatus={row.sendStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP'}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-gray-900 truncate">
@@ -199,33 +244,18 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                       {scoreDisplay}
                     </span>
                   )}
-                  {isExpanded
-                    ? <ChevronDown size={13} className="text-gray-400 shrink-0" />
-                    : <ChevronRight size={13} className="text-gray-300 shrink-0" />
-                  }
+                  {/* Only SEND students have an expand chevron */}
+                  {isSend && (
+                    isExpanded
+                      ? <ChevronDown  size={13} className="text-gray-400 shrink-0" />
+                      : <ChevronRight size={13} className="text-gray-300 shrink-0" />
+                  )}
                 </div>
-              </button>
+              </div>
 
-              {/* Expanded detail */}
-              {isExpanded && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 space-y-3">
-
-                  {/* SEND / ILP info */}
-                  <div className="flex flex-wrap gap-2">
-                    {badge ? (
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${badge.cls}`}>
-                        {badge.label}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">No SEND needs</span>
-                    )}
-                    {row.hasIlp && (
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Active ILP</span>
-                    )}
-                    {row.needArea && (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">{row.needArea}</span>
-                    )}
-                  </div>
+              {/* Expanded SEND detail — only for SEND students */}
+              {isExpanded && isSend && (
+                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 space-y-4">
 
                   {/* Support snapshot */}
                   {row.supportSnapshot && (
@@ -234,175 +264,207 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     </p>
                   )}
 
-                  {/* Document thumbnails for SEND students */}
-                  {row.sendStatus !== 'NONE' && (
-                    <SendDocumentThumbnails
-                      studentId={row.id}
-                      studentName={`${row.firstName} ${row.lastName}`}
-                      userRole={userRole}
-                    />
-                  )}
-
-                  {/* Tab switcher */}
-                  <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden w-fit">
-                    {(['homework', 'apdr', 'kplan'] as const).map(tab => {
-                      const label = tab === 'homework' ? 'Homework' : tab === 'apdr' ? 'APDR' : 'K Plan'
-                      const isActive = (activeTab[row.id] ?? 'homework') === tab
-                      return (
-                        <button
-                          key={tab}
-                          onClick={() => setTab(row.id, tab)}
-                          className={`text-[11px] font-medium px-3 py-1 transition-colors ${
-                            isActive ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                          }`}
-                        >
-                          {label}
-                          {tab === 'kplan' && kPlan?.status === 'APPROVED' && (
-                            <span className="ml-1 w-1.5 h-1.5 rounded-full bg-teal-500 inline-block" />
-                          )}
-                        </button>
-                      )
-                    })}
+                  {/* ILP SMART goals */}
+                  <div>
+                    <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-2">
+                      ILP Smart Goals
+                    </p>
+                    {ilpData === 'loading' ? (
+                      <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                        <Loader2 size={11} className="animate-spin" /> Loading…
+                      </div>
+                    ) : !ilpData || ilpData.targets.length === 0 ? (
+                      <p className="text-[12px] text-gray-400 italic">No ILP targets on record.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {ilpData.targets.slice(0, 3).map((t, i) => (
+                          <div key={t.id} className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-[12px] font-medium text-gray-800">{i + 1}. {t.target}</p>
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${TARGET_STATUS_CLS[t.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                                {t.status.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 mt-0.5">{t.strategy}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Homework tab */}
-                  {(activeTab[row.id] ?? 'homework') === 'homework' && (
-                    <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Recent Homework</p>
-                      {detail === 'loading' ? (
-                        <div className="flex items-center gap-2 text-[12px] text-gray-400">
-                          <Loader2 size={12} className="animate-spin" /> Loading…
-                        </div>
-                      ) : !detail || detail.recentSubmissions.length === 0 ? (
-                        <p className="text-[12px] text-gray-400">No submissions for this class yet.</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {detail.recentSubmissions.map((s, i) => {
-                            const score    = s.finalScore ?? s.autoScore
-                            const scoreStr = score != null
-                              ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
-                              : null
-                            const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
-                            return (
-                              <div key={i} className="flex items-center gap-3">
-                                <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                                  {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
-                                </span>
-                                {scoreStr != null && (
-                                  <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                    {scoreStr}
-                                  </span>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                  {/* EHCP Section F provisions */}
+                  {row.sendStatus === 'EHCP' && (
+                    <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5">
+                      <p className="text-[10px] font-semibold text-purple-600 uppercase tracking-wide mb-1">
+                        EHCP Provisions
+                      </p>
+                      <p className="text-[12px] text-purple-700">
+                        Open the EHCP document below to view Section F provisions.
+                      </p>
                     </div>
                   )}
 
-                  {/* APDR tab */}
-                  {(activeTab[row.id] ?? 'homework') === 'apdr' && (
-                    <StudentAPDRPanel studentId={row.id} userRole={userRole} />
-                  )}
+                  {/* Document thumbnails */}
+                  <SendDocumentThumbnails
+                    studentId={row.id}
+                    studentName={studentName}
+                    userRole={userRole}
+                  />
 
-                  {/* K Plan tab */}
-                  {(activeTab[row.id] ?? 'homework') === 'kplan' && (() => {
-                    if (!kPlan) return (
-                      <p className="text-[12px] text-gray-400 italic">No approved K Plan for this student.</p>
-                    )
-                    const fullPassport = kPlanFullCache[row.id]
-                    const checked      = kPlanChecked[row.id] ?? []
+                  {/* "View full plan" link */}
+                  <a
+                    href={`/student/${row.id}/send`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    View full plan <ChevronRight size={11} />
+                  </a>
 
-                    function toggleCheck(i: number) {
-                      setKPlanChecked(ch => {
-                        const arr = [...(ch[row.id] ?? [])]
-                        arr[i] = !arr[i]
-                        return { ...ch, [row.id]: arr }
-                      })
-                    }
+                  {/* Homework / APDR / K Plan tabs */}
+                  <div>
+                    <div className="flex gap-0 border border-gray-200 rounded-lg overflow-hidden w-fit mb-3">
+                      {(['homework', 'apdr', 'kplan'] as const).map(tab => {
+                        const label    = tab === 'homework' ? 'Homework' : tab === 'apdr' ? 'APDR' : 'K Plan'
+                        const isActive = (activeTab[row.id] ?? 'homework') === tab
+                        return (
+                          <button
+                            key={tab}
+                            onClick={() => setTab(row.id, tab)}
+                            className={`text-[11px] font-medium px-3 py-1 transition-colors ${
+                              isActive ? 'bg-gray-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {label}
+                            {tab === 'kplan' && kPlan?.status === 'APPROVED' && (
+                              <span className="ml-1 w-1.5 h-1.5 rounded-full bg-teal-500 inline-block" />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
 
-                    return (
-                      <div className="space-y-3">
-                        {/* SEND info */}
-                        <div>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
-                          <p className="text-[12px] text-gray-700 leading-relaxed line-clamp-3">
-                            {kPlan.sendInformation}
-                          </p>
-                        </div>
-
-                        {/* Teacher actions checklist */}
-                        <div>
-                          <p className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide mb-1.5">
-                            It would help me if you could
-                            <span className="ml-1.5 text-gray-400 normal-case font-normal">(tick as reminders — not saved)</span>
-                          </p>
-                          {fullPassport === 'loading' ? (
-                            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                              <Loader2 size={11} className="animate-spin" /> Loading…
-                            </div>
-                          ) : fullPassport ? (
-                            <ul className="space-y-1.5">
-                              {fullPassport.teacherActions.map((action, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={checked[i] ?? false}
-                                    onChange={() => toggleCheck(i)}
-                                    className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-purple-600 cursor-pointer"
-                                  />
-                                  <span className={`text-[12px] leading-snug ${checked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                    {action}
+                    {/* Homework tab */}
+                    {(activeTab[row.id] ?? 'homework') === 'homework' && (
+                      <div>
+                        {detail === 'loading' ? (
+                          <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                            <Loader2 size={12} className="animate-spin" /> Loading…
+                          </div>
+                        ) : !detail || detail.recentSubmissions.length === 0 ? (
+                          <p className="text-[12px] text-gray-400">No submissions for this class yet.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {detail.recentSubmissions.map((s, i) => {
+                              const score    = s.finalScore ?? s.autoScore
+                              const scoreStr = score != null
+                                ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
+                                : null
+                              const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
+                              return (
+                                <div key={i} className="flex items-center gap-3">
+                                  <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                                    {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
                                   </span>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-[12px] text-gray-400 italic">Could not load actions.</p>
-                          )}
-                        </div>
-
-                        {/* Student commitments */}
-                        {fullPassport && fullPassport !== 'loading' && fullPassport.studentCommitments.length > 0 && (
-                          <div>
-                            <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-1.5">
-                              {row.firstName} will help themselves by
-                            </p>
-                            <ul className="space-y-1">
-                              {fullPassport.studentCommitments.map((c, i) => (
-                                <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-600">
-                                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
-                                  {c}
-                                </li>
-                              ))}
-                            </ul>
+                                  {scoreStr != null && (
+                                    <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                      {scoreStr}
+                                    </span>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
                         )}
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 pt-1">
-                          <button
-                            onClick={() => openKPlanModal(row.id, studentName)}
-                            disabled={kPlanLoading === row.id}
-                            className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
-                          >
-                            {kPlanLoading === row.id ? <Loader2 size={11} className="animate-spin" /> : <BookOpen size={11} />}
-                            Full view
-                          </button>
-                          <a
-                            href={`/student/${row.id}/send`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors"
-                          >
-                            <ChevronRight size={11} /> SEND record
-                          </a>
-                        </div>
                       </div>
-                    )
-                  })()}
+                    )}
+
+                    {/* APDR tab */}
+                    {(activeTab[row.id] ?? 'homework') === 'apdr' && (
+                      <StudentAPDRPanel studentId={row.id} userRole={userRole} />
+                    )}
+
+                    {/* K Plan tab */}
+                    {(activeTab[row.id] ?? 'homework') === 'kplan' && (() => {
+                      if (!kPlan) return (
+                        <p className="text-[12px] text-gray-400 italic">No approved K Plan for this student.</p>
+                      )
+                      const fullPassport = kPlanFullCache[row.id]
+                      const checked      = kPlanChecked[row.id] ?? []
+
+                      function toggleCheck(i: number) {
+                        setKPlanChecked(ch => {
+                          const arr = [...(ch[row.id] ?? [])]
+                          arr[i] = !arr[i]
+                          return { ...ch, [row.id]: arr }
+                        })
+                      }
+
+                      return (
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
+                            <p className="text-[12px] text-gray-700 leading-relaxed line-clamp-3">{kPlan.sendInformation}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide mb-1.5">
+                              It would help me if you could
+                              <span className="ml-1.5 text-gray-400 normal-case font-normal">(tick as reminders — not saved)</span>
+                            </p>
+                            {fullPassport === 'loading' ? (
+                              <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                                <Loader2 size={11} className="animate-spin" /> Loading…
+                              </div>
+                            ) : fullPassport ? (
+                              <ul className="space-y-1.5">
+                                {fullPassport.teacherActions.map((action, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={checked[i] ?? false}
+                                      onChange={() => toggleCheck(i)}
+                                      className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-purple-600 cursor-pointer"
+                                    />
+                                    <span className={`text-[12px] leading-snug ${checked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                                      {action}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-[12px] text-gray-400 italic">Could not load actions.</p>
+                            )}
+                          </div>
+                          {fullPassport && fullPassport !== 'loading' && fullPassport.studentCommitments.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wide mb-1.5">
+                                {row.firstName} will help themselves by
+                              </p>
+                              <ul className="space-y-1">
+                                {fullPassport.studentCommitments.map((c, i) => (
+                                  <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-600">
+                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                                    {c}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              onClick={() => openKPlanModal(row.id, studentName)}
+                              disabled={kPlanLoading === row.id}
+                              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {kPlanLoading === row.id ? <Loader2 size={11} className="animate-spin" /> : <BookOpen size={11} />}
+                              Full view
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
 
                 </div>
               )}

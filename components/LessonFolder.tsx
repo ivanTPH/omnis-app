@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, Heart, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users, Lock } from 'lucide-react'
+import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users, Lock } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -16,7 +16,6 @@ const RevisionAnalysisPanel  = dynamic(() => import('@/components/revision-progr
 const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab'),          { ssr: false })
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
-const SendInclusionTab       = dynamic(() => import('@/components/send-support/SendInclusionTab'),     { ssr: false })
 const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/HomeworkDetailPanel'),       { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
@@ -52,7 +51,7 @@ function autoResize(el: HTMLTextAreaElement | null) {
   el.style.height = `${el.scrollHeight}px`
 }
 
-const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'SEND & Inclusion', 'Class Insights', 'Revision'] as const
+const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Class Insights', 'Revision'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -400,13 +399,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   const TAB_ICONS: Record<Tab, React.ReactNode> = {
-    'Overview':         <BookOpen      size={13} />,
-    'Resources':        <Upload        size={13} />,
-    'Homework':         <ClipboardList size={13} />,
-    'Class':            <Users         size={13} />,
-    'SEND & Inclusion': <Heart         size={13} />,
-    'Class Insights':   <BarChart2     size={13} />,
-    'Revision':         <RotateCcw     size={13} />,
+    'Overview':       <BookOpen      size={13} />,
+    'Resources':      <Upload        size={13} />,
+    'Homework':       <ClipboardList size={13} />,
+    'Class':          <Users         size={13} />,
+    'Class Insights': <BarChart2     size={13} />,
+    'Revision':       <RotateCcw     size={13} />,
   }
 
   return (
@@ -1449,17 +1447,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* ── SEND & Inclusion ── */}
-              {activeTab === 'SEND & Inclusion' && (
-                <div className="p-7">
-                  <SendInclusionTab
-                    sendStudents={lesson?.sendStatuses ?? []}
-                    planByStudent={lesson?.planByStudent ?? {}}
-                    allEnrolled={lesson?.class?.enrolments ?? []}
-                  />
                 </div>
               )}
 

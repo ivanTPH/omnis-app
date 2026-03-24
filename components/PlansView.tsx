@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { FileHeart, Shield, Calendar, ChevronRight, Folder } from 'lucide-react'
+import StudentAvatar from '@/components/StudentAvatar'
 
 type IlpRow = {
   id:           string
@@ -110,9 +111,12 @@ export default function PlansView({
                       href={`/student/${ilp.student.id}/send`}
                       className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-gray-200 bg-white hover:bg-blue-50 hover:border-blue-200 transition-colors"
                     >
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        {ilp.student.firstName[0]}{ilp.student.lastName[0]}
-                      </div>
+                      <StudentAvatar
+                        firstName={ilp.student.firstName}
+                        lastName={ilp.student.lastName}
+                        size="sm"
+                        sendStatus="SEN_SUPPORT"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900">
                           {ilp.student.firstName} {ilp.student.lastName}
@@ -146,9 +150,12 @@ export default function PlansView({
                     href={`/student/${ehcp.student.id}/send`}
                     className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-gray-200 bg-white hover:bg-purple-50 hover:border-purple-200 transition-colors"
                   >
-                    <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      {ehcp.student.firstName[0]}{ehcp.student.lastName[0]}
-                    </div>
+                    <StudentAvatar
+                      firstName={ehcp.student.firstName}
+                      lastName={ehcp.student.lastName}
+                      size="sm"
+                      sendStatus="EHCP"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">
                         {ehcp.student.firstName} {ehcp.student.lastName}

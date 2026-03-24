@@ -348,6 +348,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             lastName={pupil.lastName}
             avatarUrl={(pupil as any).avatarUrl ?? null}
             size="xs"
+            sendStatus={(sendByStudent[pupil.id]?.activeStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP') ?? 'NONE'}
           />
           <div className="flex-1 min-w-0">
             <p className={`text-[12px] font-medium overflow-hidden whitespace-nowrap ${active ? 'text-blue-700' : 'text-gray-800'}`}>
@@ -631,6 +632,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 lastName={selectedStudent.lastName}
                 avatarUrl={(selectedStudent as any).avatarUrl ?? null}
                 size="md"
+                sendStatus={(sendInfo?.activeStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP') ?? 'NONE'}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">

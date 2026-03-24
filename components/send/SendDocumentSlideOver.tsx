@@ -281,23 +281,44 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, stude
                     <p className="text-[11px] text-gray-400">No edits recorded yet.</p>
                   ) : (
                     <ol className="border-l border-gray-200 pl-4 space-y-3">
-                      {auditEntries.filter(e => !['PENDING_EDIT', 'REJECTED'].includes(e.changeType)).map(entry => (
-                        <li key={entry.id} className="relative">
-                          <span className="absolute -left-[1.2rem] top-1 w-2 h-2 rounded-full bg-blue-400 border-2 border-white" />
-                          <p className="text-[11px] font-medium text-gray-700">
-                            {entry.userName}
-                            <span className="font-normal text-gray-400"> · {entry.fieldChanged} · </span>
-                            {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                          {(entry.previousValue || entry.newValue) && (
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              {entry.changeType === 'ADDED'   && <span className="text-green-600">&ldquo;{entry.newValue}&rdquo;</span>}
-                              {entry.changeType === 'DELETED' && <span className="text-red-500 line-through">&ldquo;{entry.previousValue}&rdquo;</span>}
-                              {entry.changeType === 'EDITED'  && <>&ldquo;{entry.previousValue?.slice(0, 40)}&rdquo; → &ldquo;{entry.newValue?.slice(0, 40)}&rdquo;</>}
-                            </p>
-                          )}
-                        </li>
-                      ))}
+                      {auditEntries.map(entry => {
+                        const isPending  = entry.changeType === 'PENDING_EDIT'
+                        const isRejected = entry.changeType === 'REJECTED'
+                        const dotCls     = isPending  ? 'bg-amber-400'
+                                         : isRejected ? 'bg-red-400'
+                                         : 'bg-blue-400'
+                        return (
+                          <li key={entry.id} className="relative">
+                            <span className={`absolute -left-[1.2rem] top-1 w-2 h-2 rounded-full border-2 border-white ${dotCls}`} />
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-[11px] font-medium text-gray-700">
+                                {entry.userName}
+                                <span className="font-normal text-gray-400"> · {entry.fieldChanged} · </span>
+                                {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </p>
+                              {isPending && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                  Pending review
+                                </span>
+                              )}
+                              {isRejected && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
+                                  Not approved
+                                </span>
+                              )}
+                            </div>
+                            {(entry.previousValue || entry.newValue) && (
+                              <p className="text-[11px] text-gray-400 mt-0.5">
+                                {entry.changeType === 'ADDED'        && <span className="text-green-600">&ldquo;{entry.newValue}&rdquo;</span>}
+                                {entry.changeType === 'DELETED'      && <span className="text-red-500 line-through">&ldquo;{entry.previousValue}&rdquo;</span>}
+                                {(entry.changeType === 'EDITED' || isPending || isRejected) && (
+                                  <>&ldquo;{(entry.newValue ?? entry.previousValue ?? '').slice(0, 80)}&rdquo;</>
+                                )}
+                              </p>
+                            )}
+                          </li>
+                        )
+                      })}
                     </ol>
                   )}
                 </div>

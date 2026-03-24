@@ -810,11 +810,20 @@ export async function getIlpAuditLog(ilpId: string): Promise<IlpAuditEntryRow[]>
 
   const fullAccess = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
 
+  // SENCO tier: all entries unrestricted.
+  // Teacher tier: all approved/applied entries from anyone, PLUS only their own PENDING or REJECTED entries.
+  const where = fullAccess
+    ? { ilpId }
+    : {
+        ilpId,
+        OR: [
+          { changeType: { notIn: ['PENDING_EDIT', 'REJECTED'] } },
+          { changeType: { in: ['PENDING_EDIT', 'REJECTED'] }, userId: user.id },
+        ],
+      }
+
   const entries = await prisma.ilpAuditEntry.findMany({
-    where: {
-      ilpId,
-      ...(fullAccess ? {} : { userId: user.id }),
-    },
+    where,
     orderBy: { createdAt: 'desc' },
   })
 

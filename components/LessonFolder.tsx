@@ -1441,6 +1441,19 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       <p className="text-[12px] text-gray-400">No homework linked. Set homework from this lesson.</p>
                     </div>
                   )}
+
+                  {/* ── Launch Revision shortcut ── */}
+                  {lesson?.class?.id && (
+                    <div className="pt-2 border-t border-gray-100">
+                      <button
+                        onClick={() => setActiveTab('Revision')}
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[13px] font-semibold hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                      >
+                        <RotateCcw size={14} />
+                        Launch Revision for this Topic →
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1471,7 +1484,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                     {lesson?.class?.id && (
                       <a
-                        href={`/revision-program/new?classId=${lesson.class.id}`}
+                        href={`/revision-program/new?classId=${lesson.class.id}${lesson.title ? `&topic=${encodeURIComponent(lesson.title)}` : ''}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[12px] font-semibold transition-colors"
@@ -1487,7 +1500,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       periodEnd={new Date(lesson.scheduledAt)}
                       onCreateProgram={() => {
                         if (lesson?.class?.id) {
-                          window.open(`/revision-program/new?classId=${lesson.class.id}`, '_blank')
+                          const topicParam = lesson.title ? `&topic=${encodeURIComponent(lesson.title)}` : ''
+                          window.open(`/revision-program/new?classId=${lesson.class.id}${topicParam}`, '_blank')
                         }
                       }}
                     />

@@ -1,6 +1,6 @@
 'use client'
-import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useTransition, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronRight, ChevronLeft, Loader2, CheckCircle2, AlertCircle, BookMarked } from 'lucide-react'
 import { getClassPerformanceAnalysis, createRevisionProgram } from '@/app/actions/revision-program'
 import { getTeacherClasses } from '@/app/actions/homework'
@@ -310,7 +310,8 @@ export default function RevisionProgramCreator({
 }: {
   classes: { id: string; name: string; subject: string; yearGroup: number }[]
 }) {
-  const router = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
   const [step, setStep] = useState<Step>(1)
   const [analysis, setAnalysis] = useState<ClassPerformanceAnalysis | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -324,6 +325,17 @@ export default function RevisionProgramCreator({
     deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     durationWeeks: 1,
   })
+
+  // Pre-fill class + topic from URL params (set by "Launch Revision for this Topic" button)
+  const prefillTopic = searchParams.get('topic') ?? ''
+  useEffect(() => {
+    const classId = searchParams.get('classId')
+    if (!classId) return
+    const cls = classes.find(c => c.id === classId)
+    if (cls) {
+      setState(prev => ({ ...prev, classId: cls.id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup }))
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function patch(p: Partial<WizardState>) { setState(prev => ({ ...prev, ...p })) }
 
@@ -404,6 +416,12 @@ export default function RevisionProgramCreator({
         </div>
       )}
 
+      {step === 1 && prefillTopic && (
+        <div className="flex items-center gap-2 mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-[13px] text-blue-800">
+          <BookMarked size={14} className="shrink-0 text-blue-500" />
+          <span>Topic focus: <span className="font-semibold">{prefillTopic}</span></span>
+        </div>
+      )}
       {step === 1 && (
         <Step1 classes={classes} state={state} onChange={patch} onNext={handleAnalyse} />
       )}

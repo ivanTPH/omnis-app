@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronRight, CheckCircle, XCircle,
   ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart2, BarChart3, Loader2,
 } from 'lucide-react'
+import StudentAvatar from '@/components/StudentAvatar'
 
 type SubmissionDetail = NonNullable<Awaited<ReturnType<typeof getSubmissionDetail>>>
 type SortCol = 'name' | 'completion' | 'score'
@@ -588,6 +589,13 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         {/* Name + expand */}
         <div onClick={onExpand} className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
           {expanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
+          <StudentAvatar
+            firstName={student.firstName}
+            lastName={student.lastName}
+            avatarUrl={student.avatarUrl}
+            sendStatus={student.sendCategory as 'SEN_SUPPORT' | 'EHCP' | null | undefined}
+            size="xs"
+          />
           <span className="text-sm font-medium text-gray-900 truncate">{student.lastName}, {student.firstName}</span>
           {student.hasSend && (
             <span className="hidden sm:inline text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded ml-1 shrink-0">

@@ -27,7 +27,9 @@ export default async function ClassesPage() {
               firstName:  true,
               lastName:   true,
               yearGroup:  true,
+              avatarUrl:  true,
               sendStatus: { select: { activeStatus: true, needArea: true } },
+              settings:   { select: { profilePictureUrl: true } },
             },
           },
         },
@@ -49,6 +51,7 @@ export default async function ClassesPage() {
       yearGroup:  e.user.yearGroup,
       sendStatus: e.user.sendStatus?.activeStatus ?? 'NONE',
       needArea:   e.user.sendStatus?.needArea ?? null,
+      avatarUrl:  e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
     })).sort((a, b) => a.lastName.localeCompare(b.lastName)),
   }))
 

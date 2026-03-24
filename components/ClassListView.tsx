@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Users, Heart, BookOpen } from 'lucide-react'
+import StudentAvatar from '@/components/StudentAvatar'
 
 type Student = {
   id:         string
@@ -9,6 +10,7 @@ type Student = {
   yearGroup:  number | null
   sendStatus: string
   needArea:   string | null
+  avatarUrl?: string | null
 }
 
 type ClassData = {
@@ -138,13 +140,15 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                             key={s.id}
                             className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_100px_120px] items-center px-5 py-2.5 text-sm hover:bg-gray-50 transition-colors"
                           >
-                            {/* Name + initials */}
+                            {/* Name + avatar */}
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                <span className="text-[10px] font-bold text-blue-700">
-                                  {s.firstName[0]}{s.lastName[0]}
-                                </span>
-                              </div>
+                              <StudentAvatar
+                                firstName={s.firstName}
+                                lastName={s.lastName}
+                                avatarUrl={s.avatarUrl}
+                                sendStatus={s.sendStatus !== 'NONE' ? (s.sendStatus as 'SEN_SUPPORT' | 'EHCP') : undefined}
+                                size="sm"
+                              />
                               <span className="font-medium text-gray-800 truncate">
                                 {s.lastName}, {s.firstName}
                               </span>

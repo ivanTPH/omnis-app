@@ -123,6 +123,7 @@ export type StudentData = {
   id:             string
   firstName:      string
   lastName:       string
+  avatarUrl:      string | null
   completionRate: number      // 0–100
   avgScore:       number | null
   classAvgScore:  number | null
@@ -298,7 +299,13 @@ export async function getStudentPerformance(filters: AnalyticsFilters): Promise<
       : Promise.resolve([]),
     prisma.user.findMany({
       where:   { id: { in: studentIds } },
-      select:  { id: true, firstName: true, lastName: true },
+      select:  {
+        id:        true,
+        firstName: true,
+        lastName:  true,
+        avatarUrl: true,
+        settings:  { select: { profilePictureUrl: true } },
+      },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     }),
     prisma.sendStatus.findMany({
@@ -385,6 +392,7 @@ export async function getStudentPerformance(filters: AnalyticsFilters): Promise<
       id:             student.id,
       firstName:      student.firstName,
       lastName:       student.lastName,
+      avatarUrl:      (student as any).settings?.profilePictureUrl ?? (student as any).avatarUrl ?? null,
       completionRate,
       avgScore,
       classAvgScore,

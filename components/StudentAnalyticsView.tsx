@@ -3,11 +3,13 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
+import { currentTermLabel } from '@/lib/termUtils'
 import {
   ChevronDown, ChevronRight, CheckCircle, XCircle,
-  ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart3, Loader2,
+  ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart3, Loader2, Activity,
 } from 'lucide-react'
 import StudentAvatar from '@/components/StudentAvatar'
+import RagView from '@/components/analytics/RagView'
 
 type SubmissionDetail = NonNullable<Awaited<ReturnType<typeof getSubmissionDetail>>>
 type SortCol = 'name' | 'completion' | 'score'
@@ -88,6 +90,9 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
   // Client-side filter
   const [perfFilter, setPerfFilter] = useState<PerfFilter>('all')
+
+  // Students panel sub-view: detail table or RAG view
+  const [studentView, setStudentView] = useState<'detail' | 'rag'>('detail')
 
   // Student data
   const [data,      setData]         = useState<StudentPerformanceResult | null>(null)
@@ -233,6 +238,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
     (!subject   || c.subject   === subject) &&
     (!yearGroup || c.yearGroup === Number(yearGroup))
   )
+
+  // Derive subject for RAG view from selected class
+  const ragSubject  = filterOptions.classes.find(c => c.id === classId)?.subject ?? ''
+  const ragTermLabel = currentTermLabel()
 
   const perfFiltered = applyPerfFilter(data?.students ?? [], perfFilter)
   const sorted = [...perfFiltered].sort((a, b) => {
@@ -415,6 +424,36 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
         {/* ── STUDENTS PANEL — shown when class or individual student is selected ── */}
         {showStudentsPanel && (
           <>
+            {/* Sub-view toggle — only shown when a class (not individual student) is selected */}
+            {classId && !studentId && (
+              <div className="flex items-center gap-1 mb-5 bg-white border border-gray-200 rounded-xl p-1 w-fit">
+                <button
+                  onClick={() => setStudentView('detail')}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    studentView === 'detail' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Users size={14} />Detail
+                </button>
+                <button
+                  onClick={() => setStudentView('rag')}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    studentView === 'rag' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Activity size={14} />RAG
+                </button>
+              </div>
+            )}
+
+            {/* RAG view */}
+            {studentView === 'rag' && classId && !studentId && (
+              <RagView classId={classId} subject={ragSubject} termLabel={ragTermLabel} />
+            )}
+
+            {/* Detail view */}
+            {(studentView === 'detail' || !classId || studentId) && (
+            <>
             {isPending && (
               <div className="flex items-center justify-center h-64">
                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -484,6 +523,8 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
               <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl px-5 py-4 text-sm text-amber-700">
                 No marked homework yet for this selection. Scores will appear here once homework has been marked.
               </div>
+            )}
+            </>
             )}
           </>
         )}

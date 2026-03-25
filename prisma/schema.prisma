@@ -255,6 +255,10 @@ model School {
 
   // K Plan (Learning Passport)
   learnerPassports     LearnerPassport[]
+
+  // Performance tracking
+  studentBaselines     StudentBaseline[]
+  teacherPredictions   TeacherPrediction[]
 }
 
 model TermDate {
@@ -349,6 +353,11 @@ model User {
   // Messaging (threaded)
   msgParticipants  MsgParticipant[]
   threadMessages   MsgMessage[]     @relation("MsgSender")
+
+  // Performance tracking
+  studentBaselines    StudentBaseline[]   @relation("student_baselines")
+  studentPredictions  TeacherPrediction[] @relation("student_predictions")
+  teacherPredictions  TeacherPrediction[] @relation("teacher_predictions")
 
   @@index([schoolId, role])
 }
@@ -2243,4 +2252,43 @@ model RevisionAnalyticsCache {
   expiresAt   DateTime
 
   @@index([classId])
+}
+
+// ─── Performance vs Predicted (RAG) ──────────────────────────────────────────
+
+model StudentBaseline {
+  id            String   @id @default(cuid())
+  student       User     @relation("student_baselines", fields: [studentId], references: [id])
+  studentId     String
+  school        School   @relation(fields: [schoolId], references: [id])
+  schoolId      String
+  subject       String
+  baselineScore Float    // 0–100 normalised percentage
+  source        String   @default("Manual") // 'SATs' | 'KS2' | 'CATs' | 'Manual' | 'MIS'
+  recordedAt    DateTime @default(now())
+  recordedBy    String?  // userId of the person who entered it
+
+  @@unique([studentId, subject])
+  @@index([schoolId])
+}
+
+model TeacherPrediction {
+  id             String   @id @default(cuid())
+  student        User     @relation("student_predictions", fields: [studentId], references: [id])
+  studentId      String
+  teacher        User     @relation("teacher_predictions", fields: [teacherId], references: [id])
+  teacherId      String
+  school         School   @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  subject        String
+  termLabel      String   // e.g. "Autumn 2025", "Spring 2026"
+  predictedScore Float    // 0–100
+  adjustment     Float    @default(0) // +/- shift on top of predictedScore
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([studentId, teacherId, subject, termLabel])
+  @@index([schoolId, studentId])
+  @@index([schoolId, teacherId])
 }

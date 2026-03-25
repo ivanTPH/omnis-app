@@ -1,53 +1,99 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Wand2, Loader2 } from 'lucide-react'
-import { generateResource } from '@/app/actions/ai-generator'
+import {
+  generateResource,
+  getSubjectsForSchool,
+  getYearGroupsForSubject,
+  getTopicsForSubjectAndYear,
+} from '@/app/actions/ai-generator'
 import type { GenerateInput, GeneratedResourceData } from '@/app/actions/ai-generator'
 
-const SUBJECTS = [
-  'English', 'Mathematics', 'Science', 'Biology', 'Chemistry', 'Physics',
-  'History', 'Geography', 'Religious Studies', 'French', 'Spanish', 'German',
-  'Art & Design', 'Music', 'Drama', 'Physical Education', 'Computer Science',
-  'Design & Technology', 'Business Studies', 'Economics', 'Psychology', 'Sociology',
-]
-
-const YEAR_GROUPS = ['Y7', 'Y8', 'Y9', 'Y10', 'Y11', 'Y12', 'Y13']
-
 const RESOURCE_TYPES = [
-  { value: 'worksheet',           label: 'Worksheet'           },
-  { value: 'quiz',                label: 'Quiz'                },
-  { value: 'lesson_plan',         label: 'Lesson Plan'         },
-  { value: 'exit_ticket',         label: 'Exit Ticket'         },
+  { value: 'worksheet',          label: 'Worksheet'          },
+  { value: 'powerpoint_outline', label: 'PowerPoint Outline' },
+  { value: 'quiz',               label: 'Quiz'               },
+  { value: 'reading_passage',    label: 'Reading Passage'    },
+  { value: 'vocabulary_list',    label: 'Vocabulary List'    },
   { value: 'knowledge_organiser', label: 'Knowledge Organiser' },
 ]
 
 const SEND_OPTIONS = [
-  { value: 'dyslexia',     label: 'Dyslexia'       },
-  { value: 'adhd',         label: 'ADHD'            },
-  { value: 'eal',          label: 'EAL'             },
-  { value: 'low_literacy', label: 'Low Literacy'    },
-  { value: 'autism',       label: 'Autism'          },
+  { value: 'dyslexia',           label: 'Dyslexia'            },
+  { value: 'adhd',               label: 'ADHD'                },
+  { value: 'low_literacy',       label: 'Low Literacy'        },
+  { value: 'eal',                label: 'EAL'                 },
+  { value: 'visual_impairment',  label: 'Visual Impairment'   },
+  { value: 'hearing_impairment', label: 'Hearing Impairment'  },
 ]
 
+const LABEL = 'block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide'
+const SELECT = 'w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed'
+
 type Props = {
-  schoolId: string
-  lessonId?: string
+  schoolId:    string
+  lessonId?:   string
   onGenerated: (result: GeneratedResourceData & { content: string }) => void
 }
 
 export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated }: Props) {
-  const [subject,         setSubject]         = useState('')
-  const [customSubject,   setCustomSubject]   = useState('')
-  const [yearGroup,       setYearGroup]       = useState('Y10')
-  const [topic,           setTopic]           = useState('')
-  const [resourceType,    setResourceType]    = useState('worksheet')
-  const [sendAdaptations, setSendAdaptations] = useState<string[]>([])
-  const [notes,           setNotes]           = useState('')
-  const [error,           setError]           = useState('')
-  const [pending, start]                      = useTransition()
+  // ── cascade data ──────────────────────────────────────────────────────────
+  const [subjects,   setSubjects]   = useState<string[]>([])
+  const [yearGroups, setYearGroups] = useState<number[]>([])
+  const [topics,     setTopics]     = useState<string[]>([])
 
-  const effectiveSubject = subject === '__custom__' ? customSubject : subject
+  const [loadingSubjects,   setLoadingSubjects]   = useState(true)
+  const [loadingYearGroups, setLoadingYearGroups] = useState(false)
+  const [loadingTopics,     setLoadingTopics]     = useState(false)
+
+  // ── selections ────────────────────────────────────────────────────────────
+  const [subject,      setSubject]      = useState('')
+  const [yearGroup,    setYearGroup]    = useState<number | ''>('')
+  const [topic,        setTopic]        = useState('')
+  const [customTopic,  setCustomTopic]  = useState('')
+  const [resourceType, setResourceType] = useState('worksheet')
+  const [sendAdaptations, setSendAdaptations] = useState<string[]>([])
+  const [notes,        setNotes]        = useState('')
+  const [error,        setError]        = useState('')
+  const [pending, start] = useTransition()
+
+  const effectiveTopic = topic === '__custom__' ? customTopic : topic
+
+  // ── load subjects on mount ────────────────────────────────────────────────
+  useEffect(() => {
+    setLoadingSubjects(true)
+    getSubjectsForSchool()
+      .then(setSubjects)
+      .catch(() => {})
+      .finally(() => setLoadingSubjects(false))
+  }, [])
+
+  // ── load year groups when subject changes ─────────────────────────────────
+  useEffect(() => {
+    setYearGroups([])
+    setYearGroup('')
+    setTopics([])
+    setTopic('')
+    if (!subject) return
+    setLoadingYearGroups(true)
+    getYearGroupsForSubject(subject)
+      .then(setYearGroups)
+      .catch(() => {})
+      .finally(() => setLoadingYearGroups(false))
+  }, [subject])
+
+  // ── load topics when year group changes ───────────────────────────────────
+  useEffect(() => {
+    setTopics([])
+    setTopic('')
+    if (!subject || yearGroup === '') return
+    setLoadingTopics(true)
+    getTopicsForSubjectAndYear(subject, yearGroup as number)
+      .then(setTopics)
+      .catch(() => {})
+      .finally(() => setLoadingTopics(false))
+  }, [subject, yearGroup])
 
   function toggleSend(val: string) {
     setSendAdaptations(prev =>
@@ -57,15 +103,16 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!effectiveSubject.trim()) { setError('Subject is required'); return }
-    if (!topic.trim())            { setError('Topic is required'); return }
+    if (!subject)              { setError('Select a subject');    return }
+    if (yearGroup === '')      { setError('Select a year group'); return }
+    if (!effectiveTopic.trim()) { setError('Select a topic');     return }
     setError('')
 
     const input: GenerateInput = {
       schoolId,
-      subject: effectiveSubject,
-      yearGroup,
-      topic,
+      subject,
+      yearGroup:  `Year ${yearGroup}`,
+      topic:       effectiveTopic,
       resourceType,
       sendAdaptations,
       additionalNotes: notes,
@@ -76,122 +123,158 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
       try {
         const result = await generateResource(input)
         onGenerated({
-          id: result.id,
+          id:            result.id,
           schoolId,
-          createdBy: '',
-          title: result.title,
-          subject: effectiveSubject,
-          yearGroup,
+          createdBy:     '',
+          title:         result.title,
+          subject,
+          yearGroup:     `Year ${yearGroup}`,
           resourceType,
-          topic,
-          content: result.content,
-          sendAdapted: sendAdaptations.length > 0,
-          sendNotes: sendAdaptations.length > 0 ? sendAdaptations.join(', ') : null,
-          modelVersion: 'claude-sonnet-4-6',
-          createdAt: new Date(),
+          topic:         effectiveTopic,
+          content:       result.content,
+          sendAdapted:   sendAdaptations.length > 0,
+          sendNotes:     sendAdaptations.length > 0 ? sendAdaptations.join(', ') : null,
+          modelVersion:  'claude-sonnet-4-6',
+          createdAt:     new Date(),
           linkedLessonId: lessonId ?? null,
         })
-      } catch {
-        setError('Failed to generate resource. Please try again.')
+      } catch (err: any) {
+        setError(err?.message ?? 'Failed to generate resource. Please try again.')
       }
     })
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Subject */}
+
+      {/* ── Subject ─────────────────────────────────────────────────────── */}
       <div>
-        <label className="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Subject</label>
-        <select
-          value={subject}
-          onChange={e => setSubject(e.target.value)}
-          className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">Select subject…</option>
-          {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-          <option value="__custom__">Other…</option>
-        </select>
-        {subject === '__custom__' && (
+        <label className={LABEL}>Subject</label>
+        <div className="relative">
+          <select
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+            disabled={loadingSubjects}
+            className={SELECT}
+          >
+            <option value="">
+              {loadingSubjects ? 'Loading subjects…' : 'Select subject…'}
+            </option>
+            {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          {loadingSubjects && (
+            <Loader2 size={13} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          )}
+        </div>
+      </div>
+
+      {/* ── Year Group ──────────────────────────────────────────────────── */}
+      <div>
+        <label className={LABEL}>Year Group</label>
+        <div className="relative">
+          <select
+            value={yearGroup}
+            onChange={e => setYearGroup(e.target.value === '' ? '' : Number(e.target.value))}
+            disabled={!subject || loadingYearGroups}
+            className={SELECT}
+          >
+            <option value="">
+              {!subject
+                ? 'Select a subject first'
+                : loadingYearGroups
+                  ? 'Loading year groups…'
+                  : 'Select year group…'}
+            </option>
+            {yearGroups.map(y => <option key={y} value={y}>Year {y}</option>)}
+          </select>
+          {loadingYearGroups && (
+            <Loader2 size={13} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          )}
+        </div>
+      </div>
+
+      {/* ── Topic ───────────────────────────────────────────────────────── */}
+      <div>
+        <label className={LABEL}>Topic</label>
+        <div className="relative">
+          <select
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            disabled={yearGroup === '' || loadingTopics}
+            className={SELECT}
+          >
+            <option value="">
+              {yearGroup === ''
+                ? 'Select a year group first'
+                : loadingTopics
+                  ? 'Loading topics…'
+                  : topics.length === 0
+                    ? 'No curriculum topics found — choose Other…'
+                    : 'Select topic…'}
+            </option>
+            {topics.map(t => <option key={t} value={t}>{t}</option>)}
+            {yearGroup !== '' && !loadingTopics && (
+              <option value="__custom__">Other (enter manually)…</option>
+            )}
+          </select>
+          {loadingTopics && (
+            <Loader2 size={13} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          )}
+        </div>
+        {topic === '__custom__' && (
           <input
             type="text"
-            value={customSubject}
-            onChange={e => setCustomSubject(e.target.value)}
-            placeholder="Enter subject name"
+            value={customTopic}
+            onChange={e => setCustomTopic(e.target.value)}
+            placeholder="e.g. 'The causes of World War One'"
             className="mt-1.5 w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            autoFocus
           />
         )}
       </div>
 
-      {/* Year Group + Resource Type */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Year Group</label>
-          <select
-            value={yearGroup}
-            onChange={e => setYearGroup(e.target.value)}
-            className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            {YEAR_GROUPS.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Resource Type</label>
-          <select
-            value={resourceType}
-            onChange={e => setResourceType(e.target.value)}
-            className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-          >
-            {RESOURCE_TYPES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-          </select>
-        </div>
+      {/* ── Resource Type ───────────────────────────────────────────────── */}
+      <div>
+        <label className={LABEL}>Resource Type</label>
+        <select
+          value={resourceType}
+          onChange={e => setResourceType(e.target.value)}
+          className={SELECT}
+        >
+          {RESOURCE_TYPES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </select>
       </div>
 
-      {/* Topic */}
+      {/* ── SEND Adaptations ────────────────────────────────────────────── */}
       <div>
-        <label className="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Topic</label>
-        <input
-          type="text"
-          value={topic}
-          onChange={e => setTopic(e.target.value)}
-          placeholder="e.g. 'The causes of World War One' or 'Quadratic equations'"
-          className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-        />
-      </div>
-
-      {/* SEND Adaptations */}
-      <div>
-        <label className="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">SEND Adaptations</label>
-        <div className="flex flex-wrap gap-2">
-          {SEND_OPTIONS.map(o => {
-            const active = sendAdaptations.includes(o.value)
-            return (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => toggleSend(o.value)}
-                className={`px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors ${
-                  active
-                    ? 'bg-purple-600 text-white border-purple-600'
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'
-                }`}
-              >
-                {o.label}
-              </button>
-            )
-          })}
+        <label className={LABEL}>
+          SEND Adaptations <span className="text-gray-300 font-normal normal-case">(optional)</span>
+        </label>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          {SEND_OPTIONS.map(o => (
+            <label key={o.value} className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={sendAdaptations.includes(o.value)}
+                onChange={() => toggleSend(o.value)}
+                className="w-3.5 h-3.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+              />
+              <span className="text-[12px] text-gray-700">{o.label}</span>
+            </label>
+          ))}
         </div>
       </div>
 
-      {/* Additional notes */}
+      {/* ── Additional Notes ────────────────────────────────────────────── */}
       <div>
-        <label className="block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
+        <label className={LABEL}>
           Additional Notes <span className="text-gray-300 font-normal normal-case">(optional)</span>
         </label>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={2}
-          placeholder="e.g. 'Focus on primary source analysis', 'AQA specification', 'For a mixed-ability class'"
+          placeholder="e.g. 'AQA specification', 'Focus on source analysis', 'Mixed-ability class'"
           className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
         />
       </div>
@@ -200,8 +283,8 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
 
       <button
         type="submit"
-        disabled={pending}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold transition-colors disabled:opacity-50"
+        disabled={pending || !subject || yearGroup === '' || !effectiveTopic.trim()}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {pending
           ? <><Loader2 size={14} className="animate-spin" /> Generating…</>

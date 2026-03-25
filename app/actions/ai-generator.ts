@@ -39,7 +39,10 @@ export type GenerateInput = {
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────
 
-const VALID_RESOURCE_TYPES = ['worksheet', 'quiz', 'lesson_plan', 'exit_ticket', 'knowledge_organiser'] as const
+const VALID_RESOURCE_TYPES = [
+  'worksheet', 'powerpoint_outline', 'quiz',
+  'reading_passage', 'vocabulary_list', 'knowledge_organiser',
+] as const
 
 const GenerateInputSchema = z.object({
   subject:      z.string().min(1, 'Subject is required').max(200, 'Subject must not exceed 200 characters'),
@@ -60,12 +63,14 @@ Always respond with the resource content in clean markdown — no preamble, no e
 const RESOURCE_TYPE_PROMPTS: Record<string, string> = {
   worksheet:
     'Create a classroom worksheet with clear instructions, scaffolded tasks (starter → main → extension), and a mark scheme.',
+  powerpoint_outline:
+    'Create a structured PowerPoint presentation outline. For each slide provide: slide number, title, bullet-point content, suggested image or diagram, and teacher notes.',
   quiz:
     'Create a 10-question quiz with a mix of multiple choice and short answer questions. Include an answer key at the end.',
-  lesson_plan:
-    'Create a detailed lesson plan with: learning objectives, starter activity, main activities with timings, plenary, and assessment for learning checkpoints.',
-  exit_ticket:
-    'Create a 3-question exit ticket to assess understanding at the end of the lesson. Include expected answers.',
+  reading_passage:
+    'Create a structured reading passage of 250–350 words, followed by 5 comprehension questions (retrieval, inference, vocabulary) and a glossary of key terms.',
+  vocabulary_list:
+    'Create a comprehensive vocabulary list with: term, definition, example sentence, and a matching exercise at the end.',
   knowledge_organiser:
     'Create a knowledge organiser with key vocabulary, key concepts, key people/dates (if relevant), and a self-quiz section.',
 }
@@ -79,8 +84,10 @@ const SEND_ADAPTATION_PROMPTS: Record<string, string> = {
     'Include a key vocabulary box at the start. Define technical terms in plain English. Use simple sentence structures.',
   low_literacy:
     'Use reading age 9-11 vocabulary. Short sentences. Include sentence starters and writing frames.',
-  autism:
-    'Use explicit, literal language. Avoid metaphors. Provide clear structure with numbered steps. State expectations explicitly.',
+  visual_impairment:
+    'Use clear descriptive text for all diagrams. Avoid colour-only encoding of information. Suggest large print (16pt+) and high-contrast layout.',
+  hearing_impairment:
+    'Use clear written instructions throughout. Avoid any activities that depend on spoken audio. Provide visual cues and written alternatives for all verbal content.',
 }
 
 function buildUserPrompt(input: GenerateInput): string {
@@ -122,6 +129,86 @@ function buildUserPrompt(input: GenerateInput): string {
   }
 
   return lines.join('\n')
+}
+
+// ─── Curriculum cascade helpers ───────────────────────────────────────────────
+
+function subjectToOakSlug(subject: string): string {
+  const s = subject.toLowerCase().trim()
+  const MAP: Record<string, string> = {
+    'mathematics': 'maths', 'math': 'maths',
+    'english language': 'english', 'english literature': 'english',
+    'english lang': 'english', 'english lit': 'english',
+    'eng lang': 'english', 'eng lit': 'english',
+    'combined science': 'science', 'triple science': 'science',
+    'physical education': 'physical-education', 'pe': 'physical-education',
+    'p.e.': 'physical-education', 'p.e': 'physical-education',
+    'art & design': 'art', 'art and design': 'art',
+    'design & technology': 'design-and-technology',
+    'design and technology': 'design-and-technology',
+    'd&t': 'design-and-technology', 'dt': 'design-and-technology',
+    'religious education': 'religious-education', 're': 'religious-education',
+    'r.e.': 'religious-education', 'religious studies': 'religious-education',
+    'rs': 'religious-education', 'pshe': 'rshe-and-pshe',
+    'modern foreign languages': 'modern-foreign-languages', 'mfl': 'modern-foreign-languages',
+  }
+  return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
+/** Subjects taught at this school (from SchoolClass, scoped by session schoolId). */
+export async function getSubjectsForSchool(): Promise<string[]> {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const { schoolId } = session.user as any
+  const rows = await prisma.schoolClass.findMany({
+    where:   { schoolId },
+    select:  { subject: true },
+    orderBy: { subject: 'asc' },
+  })
+  return [...new Set(rows.map(r => r.subject))].sort()
+}
+
+/** Year groups that teach a given subject at this school. */
+export async function getYearGroupsForSubject(subject: string): Promise<number[]> {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const { schoolId } = session.user as any
+  const rows = await prisma.schoolClass.findMany({
+    where:   { schoolId, subject },
+    select:  { yearGroup: true },
+    orderBy: { yearGroup: 'asc' },
+  })
+  return [...new Set(rows.map(r => r.yearGroup))].sort((a, b) => a - b)
+}
+
+/** Oak unit titles for a given subject slug + year group (curriculum topics). */
+export async function getTopicsForSubjectAndYear(
+  subject: string,
+  yearGroup: number,
+): Promise<string[]> {
+  const session = await auth()
+  if (!session) redirect('/login')
+  const subjectSlug = subjectToOakSlug(subject)
+  const lessons = await prisma.oakLesson.findMany({
+    where: {
+      subjectSlug,
+      yearGroup,
+      isLegacy:  false,
+      expired:   false,
+      deletedAt: null,
+    },
+    select:  { unitSlug: true, unit: { select: { title: true } } },
+    orderBy: { unitSlug: 'asc' },
+  })
+  const seen = new Set<string>()
+  const topics: string[] = []
+  for (const l of lessons) {
+    if (!seen.has(l.unitSlug) && l.unit?.title) {
+      seen.add(l.unitSlug)
+      topics.push(l.unit.title)
+    }
+  }
+  return topics.sort()
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────

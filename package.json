@@ -31,6 +31,7 @@
     "@types/marked": "^5.0.2",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "docx": "^9.6.1",
     "lucide-react": "^0.575.0",
     "marked": "^17.0.4",
     "next": "16.1.6",

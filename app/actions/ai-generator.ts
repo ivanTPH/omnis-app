@@ -60,6 +60,8 @@ You create high-quality, classroom-ready resources aligned to the UK National Cu
 Your resources are clear, well-structured, and immediately usable.
 Always respond with the resource content in clean markdown — no preamble, no explanation, just the resource itself starting with a # Title.`
 
+const SLIDE_SYSTEM_PROMPT = `You are an expert UK secondary school teacher. Return ONLY valid JSON — no markdown fences, no explanation, no preamble. The JSON must match this schema exactly: {"title":"string","slides":[{"number":1,"title":"string","bullets":["string"],"imageNote":"string","speakerNotes":"string"}]}`
+
 const RESOURCE_TYPE_PROMPTS: Record<string, string> = {
   worksheet:
     'Create a classroom worksheet with clear instructions, scaffolded tasks (starter → main → extension), and a mark scheme.',
@@ -243,24 +245,80 @@ export async function generateResource(
   let content: string
   let title: string
 
+  const isPptOutline = validated.resourceType === 'powerpoint_outline'
+
   if (apiKey) {
     const client = new Anthropic({ apiKey })
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 1400,
-      system:     SYSTEM_PROMPT,
-      messages:   [{ role: 'user', content: buildUserPrompt({ ...input, ...validated }) }],
-    })
-    content = (message.content[0] as { type: string; text: string }).text.trim()
+
+    if (isPptOutline) {
+      // Structured JSON output for PowerPoint outlines
+      const userPrompt = [
+        `Subject: ${validated.subject}`,
+        `Year Group: ${validated.yearGroup}`,
+        `Topic: ${validated.topic}`,
+        '',
+        'Create a 10–12 slide PowerPoint outline for a lesson on this topic. Each slide must have:',
+        '- number (integer, starting at 1)',
+        '- title (string)',
+        '- bullets (array of 3–5 concise bullet points)',
+        '- imageNote (one sentence describing a suggested image or diagram)',
+        '- speakerNotes (2–3 sentences of teacher guidance)',
+        '',
+        validated.sendAdaptations.length > 0
+          ? `SEND adaptations to weave throughout: ${validated.sendAdaptations.join(', ')}.`
+          : '',
+        validated.additionalNotes?.trim()
+          ? `Additional teacher notes: ${validated.additionalNotes.trim()}`
+          : '',
+        '',
+        'Return ONLY the JSON object — no markdown fences, no explanation.',
+      ].filter(l => l !== undefined).join('\n')
+
+      const message = await client.messages.create({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 2500,
+        system:     SLIDE_SYSTEM_PROMPT,
+        messages:   [{ role: 'user', content: userPrompt }],
+      })
+      const raw = (message.content[0] as { type: string; text: string }).text.trim()
+      // Strip any accidental markdown fences
+      const jsonStr = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+      const deck = JSON.parse(jsonStr) as { title: string; slides: unknown[] }
+      title = deck.title ?? `${validated.topic} — PowerPoint Outline`
+      content = jsonStr
+    } else {
+      const message = await client.messages.create({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 1400,
+        system:     SYSTEM_PROMPT,
+        messages:   [{ role: 'user', content: buildUserPrompt({ ...input, ...validated }) }],
+      })
+      content = (message.content[0] as { type: string; text: string }).text.trim()
+      const titleMatch = content.match(/^#\s+(.+)$/m)
+      title = titleMatch ? titleMatch[1].trim() : `${validated.topic} — ${validated.resourceType}`
+    }
   } else {
     // Fallback stub when API key is absent
     const typeLabel = validated.resourceType.replace(/_/g, ' ')
-    content = `# ${validated.topic} — ${typeLabel}\n\n*AI service unavailable. This is a placeholder resource.*\n\n## Learning Objectives\n- Understand ${validated.topic}\n\n## Activity\n1. Task one\n2. Task two\n\n## Extension\nFurther investigation of ${validated.topic}.`
+    if (isPptOutline) {
+      const stub = {
+        title: `${validated.topic} — PowerPoint Outline`,
+        slides: Array.from({ length: 5 }, (_, i) => ({
+          number: i + 1,
+          title: `Slide ${i + 1}: ${validated.topic}`,
+          bullets: ['Key point one', 'Key point two', 'Key point three'],
+          imageNote: 'Suggested diagram relevant to the topic.',
+          speakerNotes: 'AI service unavailable. This is a placeholder slide.',
+        })),
+      }
+      title = stub.title
+      content = JSON.stringify(stub)
+    } else {
+      content = `# ${validated.topic} — ${typeLabel}\n\n*AI service unavailable. This is a placeholder resource.*\n\n## Learning Objectives\n- Understand ${validated.topic}\n\n## Activity\n1. Task one\n2. Task two\n\n## Extension\nFurther investigation of ${validated.topic}.`
+      const titleMatch = content.match(/^#\s+(.+)$/m)
+      title = titleMatch ? titleMatch[1].trim() : `${validated.topic} — ${validated.resourceType}`
+    }
   }
-
-  // Extract title from first # heading
-  const titleMatch = content.match(/^#\s+(.+)$/m)
-  title = titleMatch ? titleMatch[1].trim() : `${validated.topic} — ${validated.resourceType}`
 
   const sendNotes =
     validated.sendAdaptations.length > 0

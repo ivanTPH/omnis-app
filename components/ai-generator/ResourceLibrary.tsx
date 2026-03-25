@@ -16,8 +16,9 @@ const TYPE_FILTERS = [
   { value: '',                   label: 'All Types'           },
   { value: 'worksheet',          label: 'Worksheets'          },
   { value: 'quiz',               label: 'Quizzes'             },
-  { value: 'lesson_plan',        label: 'Lesson Plans'        },
-  { value: 'exit_ticket',        label: 'Exit Tickets'        },
+  { value: 'powerpoint_outline', label: 'PowerPoint Outlines' },
+  { value: 'reading_passage',    label: 'Reading Passages'    },
+  { value: 'vocabulary_list',    label: 'Vocabulary Lists'    },
   { value: 'knowledge_organiser',label: 'Knowledge Organisers'},
 ]
 

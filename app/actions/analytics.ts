@@ -658,6 +658,30 @@ export async function getClassSummaries(
   })
 }
 
+// ── Teacher defaults for analytics pre-population ────────────────────────────
+
+export type TeacherDefaults = {
+  teacherName:    string
+  teacherClasses: { id: string; name: string; subject: string; yearGroup: number }[]
+}
+
+export async function getTeacherDefaults(): Promise<TeacherDefaults> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { id: userId, schoolId, firstName, lastName } = session.user as any
+
+  const classes = await prisma.schoolClass.findMany({
+    where:   { schoolId, teachers: { some: { userId } } },
+    select:  { id: true, name: true, subject: true, yearGroup: true },
+    orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
+  })
+
+  return {
+    teacherName:    `${firstName} ${lastName}`,
+    teacherClasses: classes,
+  }
+}
+
 // ── Adaptive topic heatmap ──────────────────────────────────────────────────
 
 export type TopicPerformance = {

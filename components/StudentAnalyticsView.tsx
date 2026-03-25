@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
-import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary } from '@/app/actions/analytics'
+import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
 import {
   ChevronDown, ChevronRight, CheckCircle, XCircle,
   ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart2, BarChart3, Loader2,
@@ -64,16 +64,25 @@ function scoreToGrade(score: number): number {
   return 2
 }
 
-export default function StudentAnalyticsView({ filterOptions }: { filterOptions: FilterOptions }) {
+type Props = {
+  filterOptions:    FilterOptions
+  teacherDefaults:  TeacherDefaults
+  isRestrictedRole: boolean
+}
+
+export default function StudentAnalyticsView({ filterOptions, teacherDefaults, isRestrictedRole }: Props) {
   const router = useRouter()
 
-  // Server-side filters — all start as "" = "All ..."
+  // Stable derived constant — safe to use in useState initialisers
+  const firstClass = teacherDefaults.teacherClasses[0]
+
+  // Server-side filters — pre-populate from teacher defaults for restricted roles
   const [preset,     setPreset]     = useState<'this_year' | 'this_month' | 'custom'>('this_year')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo,   setCustomTo]   = useState('')
-  const [subject,    setSubject]    = useState('')
-  const [yearGroup,  setYearGroup]  = useState('')
-  const [classId,    setClassId]    = useState('')
+  const [subject,    setSubject]    = useState(isRestrictedRole ? (firstClass?.subject ?? '') : '')
+  const [yearGroup,  setYearGroup]  = useState(isRestrictedRole ? (firstClass ? String(firstClass.yearGroup) : '') : '')
+  const [classId,    setClassId]    = useState(isRestrictedRole ? (firstClass?.id ?? '') : '')
   const [sendCat,    setSendCat]    = useState('')
   const [studentId,  setStudentId]  = useState('')
 
@@ -168,7 +177,13 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
   }
 
   function clearFilters() {
-    setSubject(''); setYearGroup(''); setClassId('')
+    if (isRestrictedRole) {
+      setSubject(firstClass?.subject ?? '')
+      setYearGroup(firstClass ? String(firstClass.yearGroup) : '')
+      setClassId(firstClass?.id ?? '')
+    } else {
+      setSubject(''); setYearGroup(''); setClassId('')
+    }
     setSendCat(''); setStudentId(''); setPerfFilter('all')
   }
 
@@ -200,7 +215,20 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
   }
 
   const hasFilters = subject || yearGroup || classId || sendCat || studentId || perfFilter !== 'all'
-  const filteredClasses = filterOptions.classes.filter(c =>
+
+  // For restricted roles, scope dropdowns to teacher's own classes/subjects/year groups
+  const teacherClassIds     = new Set(teacherDefaults.teacherClasses.map(c => c.id))
+  const availableClasses    = isRestrictedRole
+    ? filterOptions.classes.filter(c => teacherClassIds.has(c.id))
+    : filterOptions.classes
+  const availableSubjects   = isRestrictedRole
+    ? [...new Set(teacherDefaults.teacherClasses.map(c => c.subject))].sort()
+    : filterOptions.subjects
+  const availableYearGroups = isRestrictedRole
+    ? [...new Set(teacherDefaults.teacherClasses.map(c => c.yearGroup))].sort((a, b) => a - b)
+    : filterOptions.yearGroups
+
+  const filteredClasses = availableClasses.filter(c =>
     (!subject   || c.subject   === subject) &&
     (!yearGroup || c.yearGroup === Number(yearGroup))
   )
@@ -231,15 +259,23 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
             <h1 className="text-xl font-bold text-gray-900">Student Analytics</h1>
             <p className="text-sm text-gray-500 mt-0.5">Select filters and click <strong>Run</strong> to view analytics</p>
           </div>
-          <div className="flex items-center gap-1.5">
-            {(['this_year', 'this_month', 'custom'] as const).map(p => (
-              <button key={p} onClick={() => setPreset(p)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                  preset === p ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}>
-                {p === 'this_year' ? 'This Year' : p === 'this_month' ? 'This Month' : 'Custom Range'}
-              </button>
-            ))}
+          <div className="flex items-center gap-2.5 flex-wrap justify-end">
+            {isRestrictedRole && (
+              <div className="px-2.5 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-[12px] text-gray-600">
+                <span className="font-semibold">{teacherDefaults.teacherName}</span>
+                <span className="text-gray-400"> · your classes</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              {(['this_year', 'this_month', 'custom'] as const).map(p => (
+                <button key={p} onClick={() => setPreset(p)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                    preset === p ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}>
+                  {p === 'this_year' ? 'This Year' : p === 'this_month' ? 'This Month' : 'Custom Range'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -260,7 +296,7 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
             <select value={subject} onChange={e => changeSubject(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-white w-full">
               <option value="">All Subjects</option>
-              {filterOptions.subjects.map(s => <option key={s} value={s}>{s}</option>)}
+              {availableSubjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1">
@@ -268,7 +304,7 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
             <select value={yearGroup} onChange={e => changeYear(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-white w-full">
               <option value="">All Year Groups</option>
-              {filterOptions.yearGroups.map(y => <option key={y} value={y}>Year {y}</option>)}
+              {availableYearGroups.map(y => <option key={y} value={y}>Year {y}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1">
@@ -283,7 +319,7 @@ export default function StudentAnalyticsView({ filterOptions }: { filterOptions:
             <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">SEND Need</label>
             <select value={sendCat} onChange={e => setSendCat(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-white w-full">
-              <option value="">All SEND</option>
+              <option value="">All Pupils</option>
               <option value="__send_only__">Has SEND (any)</option>
               {filterOptions.sendCategories.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
             </select>

@@ -11,13 +11,7 @@ export default async function AdaptiveAnalyticsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Adaptive Learning Analytics</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Homework type performance, Bloom&apos;s taxonomy distribution, and ILP/EHCP evidence coverage across your school.
-        </p>
-      </div>
+    <div className="max-w-5xl mx-auto px-6 py-8">
       <AdaptiveAnalyticsDashboard />
     </div>
   )

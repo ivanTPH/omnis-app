@@ -2,6 +2,7 @@
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { SendStatusValue, HomeworkStatus, Role } from '@prisma/client'
+import { percentToGcseGrade } from '@/lib/grading'
 
 // ── Adaptive analytics ────────────────────────────────────────────────────────
 
@@ -655,4 +656,197 @@ export async function getClassSummaries(
       sendCount,
     }
   })
+}
+
+// ── Adaptive topic heatmap ──────────────────────────────────────────────────
+
+export type TopicPerformance = {
+  topic:           string
+  homeworkId:      string
+  avgScore:        number
+  status:          'green' | 'amber' | 'red'
+  submissionCount: number
+}
+
+export type HeatmapStudent = {
+  id:          string
+  firstName:   string
+  lastName:    string
+  avatarUrl:   string | null
+  hasSend:     boolean
+  topicScores: Record<string, number | null>
+}
+
+export type ClassTopicHeatmap = {
+  classId:   string
+  className: string
+  subject:   string
+  yearGroup: number
+  topics:    TopicPerformance[]
+  students:  HeatmapStudent[]
+}
+
+export async function getClassTopicHeatmap(classId: string): Promise<ClassTopicHeatmap> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const termStart = new Date()
+  termStart.setDate(termStart.getDate() - 90)
+
+  const cls = await prisma.schoolClass.findFirst({
+    where:  { id: classId, schoolId },
+    select: { id: true, name: true, subject: true, yearGroup: true },
+  })
+  if (!cls) throw new Error('Class not found')
+
+  const homeworks = await prisma.homework.findMany({
+    where: {
+      classId,
+      schoolId,
+      status: { not: HomeworkStatus.DRAFT },
+      dueAt:  { gte: termStart },
+    },
+    select: {
+      id:    true,
+      title: true,
+      dueAt: true,
+      submissions: {
+        where:  { finalScore: { not: null } },
+        select: { studentId: true, finalScore: true },
+      },
+    },
+    orderBy: { dueAt: 'asc' },
+    take: 20,
+  })
+
+  // topic key → { homeworkId, studentScores }
+  const topicMap = new Map<string, { homeworkId: string; studentScores: Map<string, number> }>()
+
+  for (const hw of homeworks) {
+    const key = hw.title.length > 50 ? hw.title.slice(0, 50) + '…' : hw.title
+    const entry = topicMap.get(key) ?? { homeworkId: hw.id, studentScores: new Map<string, number>() }
+    entry.homeworkId = hw.id  // last (most recent) wins
+    for (const sub of hw.submissions) {
+      if (sub.finalScore != null) entry.studentScores.set(sub.studentId, sub.finalScore)
+    }
+    topicMap.set(key, entry)
+  }
+
+  const topics: TopicPerformance[] = []
+  for (const [topic, entry] of topicMap) {
+    const scores = [...entry.studentScores.values()]
+    const avgScore = scores.length > 0
+      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+      : 0
+    topics.push({
+      topic,
+      homeworkId:      entry.homeworkId,
+      avgScore,
+      status:          avgScore >= 70 ? 'green' : avgScore >= 50 ? 'amber' : 'red',
+      submissionCount: scores.length,
+    })
+  }
+
+  const enrolments = await prisma.enrolment.findMany({
+    where:   { classId },
+    select:  {
+      user: {
+        select: {
+          id:        true,
+          firstName: true,
+          lastName:  true,
+          avatarUrl: true,
+          settings:  { select: { profilePictureUrl: true } },
+        },
+      },
+    },
+    orderBy: { user: { lastName: 'asc' } },
+  })
+
+  const studentIds = enrolments.map(e => e.user.id)
+  const sendStatuses = studentIds.length > 0
+    ? await prisma.sendStatus.findMany({
+        where:  { studentId: { in: studentIds }, NOT: { activeStatus: 'NONE' } },
+        select: { studentId: true },
+      })
+    : []
+  const sendSet = new Set(sendStatuses.map(s => s.studentId))
+
+  const students: HeatmapStudent[] = enrolments.map(e => ({
+    id:          e.user.id,
+    firstName:   e.user.firstName,
+    lastName:    e.user.lastName,
+    avatarUrl:   (e.user as any).settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+    hasSend:     sendSet.has(e.user.id),
+    topicScores: Object.fromEntries(
+      topics.map(t => [t.topic, topicMap.get(t.topic)?.studentScores.get(e.user.id) ?? null]),
+    ),
+  }))
+
+  return { classId: cls.id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup, topics, students }
+}
+
+export type StudentTopicBreakdown = {
+  studentId:              string
+  firstName:              string
+  lastName:               string
+  hasSend:                boolean
+  sendCategory:           string | null
+  subject:                string
+  yearGroup:              number
+  predictedGradeBaseline: string | null
+  topics: {
+    topic:         string
+    homeworkId:    string
+    myScore:       number | null
+    classAvgScore: number
+    myStatus:      'green' | 'amber' | 'red' | 'missing'
+  }[]
+}
+
+export async function getStudentTopicBreakdown(
+  studentId: string,
+  classId:   string,
+): Promise<StudentTopicBreakdown> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+
+  const heatmap = await getClassTopicHeatmap(classId)
+  const student = heatmap.students.find(s => s.id === studentId)
+  if (!student) throw new Error('Student not found in class')
+
+  const myScores = heatmap.topics
+    .map(t => student.topicScores[t.topic])
+    .filter((s): s is number => s != null)
+  const avgScore = myScores.length > 0
+    ? myScores.reduce((a, b) => a + b, 0) / myScores.length
+    : null
+  const predictedGradeBaseline = avgScore != null
+    ? `Grade ${percentToGcseGrade(Math.round(avgScore))}`
+    : null
+
+  const sendStatus = await prisma.sendStatus.findFirst({
+    where:  { studentId },
+    select: { activeStatus: true },
+  })
+  const hasSend = sendStatus != null && sendStatus.activeStatus !== 'NONE'
+
+  return {
+    studentId,
+    firstName:              student.firstName,
+    lastName:               student.lastName,
+    hasSend,
+    sendCategory:           hasSend ? (sendStatus!.activeStatus as string) : null,
+    subject:                heatmap.subject,
+    yearGroup:              heatmap.yearGroup,
+    predictedGradeBaseline,
+    topics: heatmap.topics.map(t => {
+      const myScore = student.topicScores[t.topic] ?? null
+      const myStatus: 'green' | 'amber' | 'red' | 'missing' = myScore != null
+        ? (myScore >= 70 ? 'green' : myScore >= 50 ? 'amber' : 'red')
+        : 'missing'
+      return { topic: t.topic, homeworkId: t.homeworkId, myScore, classAvgScore: t.avgScore, myStatus }
+    }),
+  }
 }

@@ -1,12 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { ChevronRight, ArrowLeft, Brain, TrendingUp, FileCheck, BookOpen, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
-import { getHomeworkAdaptiveAnalytics } from '@/app/actions/analytics'
-import type { HomeworkAdaptiveAnalytics } from '@/app/actions/analytics'
-import { Brain, TrendingUp, FileCheck, BookOpen } from 'lucide-react'
+import { getClassSummaries, getHomeworkAdaptiveAnalytics } from '@/app/actions/analytics'
+import type { ClassSummary, HomeworkAdaptiveAnalytics } from '@/app/actions/analytics'
+import AdaptiveInfoPanel from './AdaptiveInfoPanel'
+import AdaptiveHeatmapView from './AdaptiveHeatmapView'
+import AdaptiveStudentView from './AdaptiveStudentView'
 
 const BLOOMS_COLOURS: Record<string, string> = {
   remember:   '#6366f1',
@@ -17,159 +20,262 @@ const BLOOMS_COLOURS: Record<string, string> = {
   create:     '#f43f5e',
 }
 
-const TYPE_COLOUR = '#7c3aed'
+type View =
+  | { mode: 'overview' }
+  | { mode: 'heatmap'; classId: string; className: string; subject: string; yearGroup: number }
+  | { mode: 'student'; classId: string; className: string; subject: string; yearGroup: number; studentId: string; studentName: string }
 
 export default function AdaptiveAnalyticsDashboard() {
-  const [data, setData] = useState<HomeworkAdaptiveAnalytics | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [view,     setView]     = useState<View>({ mode: 'overview' })
+  const [classes,  setClasses]  = useState<ClassSummary[]>([])
+  const [loadingC, setLoadingC] = useState(true)
+  const [analytics, setAnalytics] = useState<HomeworkAdaptiveAnalytics | null>(null)
+  const [showCharts, setShowCharts] = useState(false)
 
   useEffect(() => {
-    getHomeworkAdaptiveAnalytics()
-      .then(setData)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+    getClassSummaries().then(setClasses).catch(() => {}).finally(() => setLoadingC(false))
+    getHomeworkAdaptiveAnalytics().then(setAnalytics).catch(() => {})
   }, [])
 
-  if (loading) {
+  // ── Breadcrumb ────────────────────────────────────────────────────────────
+
+  function Breadcrumb() {
+    if (view.mode === 'overview') {
+      return (
+        <nav className="flex items-center gap-1 text-[12px] mb-5">
+          <span className="font-semibold text-gray-900">Adaptive Learning</span>
+        </nav>
+      )
+    }
+    if (view.mode === 'heatmap') {
+      return (
+        <nav className="flex items-center gap-1 text-[12px] mb-5">
+          <button
+            onClick={() => setView({ mode: 'overview' })}
+            className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            <ArrowLeft size={12} />
+            Adaptive Learning
+          </button>
+          <ChevronRight size={12} className="text-gray-300" />
+          <span className="font-semibold text-gray-900">{view.className}</span>
+        </nav>
+      )
+    }
+    // student
     return (
-      <div className="space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse" />
-        ))}
+      <nav className="flex items-center gap-1 text-[12px] mb-5 flex-wrap">
+        <button
+          onClick={() => setView({ mode: 'overview' })}
+          className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
+        >
+          <ArrowLeft size={12} />
+          Adaptive Learning
+        </button>
+        <ChevronRight size={12} className="text-gray-300" />
+        <button
+          onClick={() => setView({ mode: 'heatmap', classId: view.classId, className: view.className, subject: view.subject, yearGroup: view.yearGroup })}
+          className="text-gray-500 hover:text-blue-600 transition-colors"
+        >
+          {view.className}
+        </button>
+        <ChevronRight size={12} className="text-gray-300" />
+        <span className="font-semibold text-gray-900">{view.studentName}</span>
+      </nav>
+    )
+  }
+
+  // ── Overview ──────────────────────────────────────────────────────────────
+
+  if (view.mode === 'overview') {
+    return (
+      <div className="space-y-6">
+        <Breadcrumb />
+        <AdaptiveInfoPanel />
+
+        {/* Class cards */}
+        <div>
+          <h2 className="text-[13px] font-semibold text-gray-700 mb-3">Your Classes — Topic Heatmap</h2>
+          {loadingC ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : classes.length === 0 ? (
+            <p className="text-sm text-gray-400">No classes found. Publish homework to see topic data here.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {classes.map(cls => (
+                <button
+                  key={cls.id}
+                  onClick={() => setView({ mode: 'heatmap', classId: cls.id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup })}
+                  className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-sm transition-all text-left group"
+                >
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                      {cls.name}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {cls.subject} · Year {cls.yearGroup} · {cls.studentCount} students
+                    </p>
+                    {cls.hwCount > 0 && (
+                      <p className="text-[11px] text-gray-400">
+                        {cls.hwCount} homework{cls.hwCount !== 1 ? 's' : ''}
+                        {cls.avgScore != null ? ` · Avg ${cls.avgScore}%` : ''}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {cls.sendCount > 0 && (
+                      <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-200 px-1.5 py-0.5 rounded-full font-medium">
+                        {cls.sendCount} SEND
+                      </span>
+                    )}
+                    <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* School-wide insights (collapsible) */}
+        {analytics && (analytics.typeBreakdown.length > 0 || analytics.bloomsDistribution.length > 0) && (
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setShowCharts(p => !p)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <BarChart2 size={14} className="text-gray-500" />
+                <span className="text-[13px] font-semibold text-gray-700">School-wide Insights</span>
+              </div>
+              {showCharts ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+            </button>
+
+            {showCharts && (
+              <div className="p-5 space-y-6 bg-white">
+                {/* Evidence rates */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileCheck size={16} className="text-green-600" />
+                      <h3 className="text-[12px] font-medium text-gray-900">ILP Evidence Rate</h3>
+                    </div>
+                    <div className="text-3xl font-bold text-green-700 mb-1">{Math.round(analytics.ilpEvidenceRate * 100)}%</div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.round(analytics.ilpEvidenceRate * 100)}%` }} />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">of homework linked to an ILP target</p>
+                  </div>
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Brain size={16} className="text-purple-600" />
+                      <h3 className="text-[12px] font-medium text-gray-900">EHCP Evidence Rate</h3>
+                    </div>
+                    <div className="text-3xl font-bold text-purple-700 mb-1">{Math.round(analytics.ehcpEvidenceRate * 100)}%</div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.round(analytics.ehcpEvidenceRate * 100)}%` }} />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">of homework linked to an EHCP outcome</p>
+                  </div>
+                </div>
+
+                {/* Bloom's distribution */}
+                {analytics.bloomsDistribution.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp size={15} className="text-indigo-600" />
+                      <h3 className="text-[12px] font-medium text-gray-900">Bloom&apos;s Taxonomy Distribution</h3>
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart data={analytics.bloomsDistribution} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                        <XAxis dataKey="level" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: unknown, n: unknown) => [v as number, n === 'count' ? 'Tasks' : 'Avg score']} />
+                        <Bar dataKey="count" name="count" radius={[3, 3, 0, 0]}>
+                          {analytics.bloomsDistribution.map(e => (
+                            <Cell key={e.level} fill={BLOOMS_COLOURS[e.level] ?? '#6366f1'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Type performance */}
+                {analytics.typeBreakdown.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BookOpen size={15} className="text-blue-600" />
+                      <h3 className="text-[12px] font-medium text-gray-900">Performance by Homework Type</h3>
+                    </div>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart
+                        data={analytics.typeBreakdown.map(t => ({ ...t, type: t.type.replace(/_/g, ' ') }))}
+                        margin={{ top: 0, right: 0, left: -20, bottom: 36 }}
+                      >
+                        <XAxis dataKey="type" tick={{ fontSize: 10 }} angle={-25} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
+                        <Tooltip formatter={(v: unknown, n: unknown) => [n === 'avgScore' ? `${Math.round(v as number)}%` : v as number, n === 'avgScore' ? 'Avg score' : 'Tasks']} />
+                        <Bar dataKey="avgScore" name="avgScore" fill="#7c3aed" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+
+                {/* Completion by type */}
+                {analytics.completionByType.length > 0 && (
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <h3 className="text-[12px] font-medium text-gray-900 mb-3">Completion Rate by Type</h3>
+                    <div className="space-y-2.5">
+                      {analytics.completionByType.sort((a, b) => b.completionRate - a.completionRate).map(t => (
+                        <div key={t.type} className="flex items-center gap-3">
+                          <span className="text-[11px] text-gray-600 w-32 shrink-0 capitalize">{t.type.replace(/_/g, ' ')}</span>
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round(t.completionRate * 100)}%` }} />
+                          </div>
+                          <span className="text-[11px] text-gray-700 w-10 text-right">{Math.round(t.completionRate * 100)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     )
   }
 
-  if (error) {
-    return <p className="text-sm text-red-600">{error}</p>
+  // ── Heatmap view ──────────────────────────────────────────────────────────
+
+  if (view.mode === 'heatmap') {
+    return (
+      <div className="space-y-4">
+        <Breadcrumb />
+        <div>
+          <h2 className="text-[15px] font-bold text-gray-900">{view.className}</h2>
+          <p className="text-[12px] text-gray-500 mt-0.5">{view.subject} · Year {view.yearGroup} — last term topic performance</p>
+        </div>
+        <AdaptiveHeatmapView
+          classId={view.classId}
+          onSelectStudent={(studentId, studentName) =>
+            setView({ mode: 'student', classId: view.classId, className: view.className, subject: view.subject, yearGroup: view.yearGroup, studentId, studentName })
+          }
+        />
+      </div>
+    )
   }
 
-  if (!data) return null
-
-  const ilpPct = Math.round(data.ilpEvidenceRate * 100)
-  const ehcpPct = Math.round(data.ehcpEvidenceRate * 100)
+  // ── Student view ──────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-8">
-      {/* Evidence rates */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <FileCheck size={18} className="text-green-600" />
-            <h3 className="font-medium text-gray-900">ILP Evidence Rate</h3>
-          </div>
-          <div className="text-4xl font-bold text-green-700 mb-2">{ilpPct}%</div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-green-500 rounded-full" style={{ width: `${ilpPct}%` }} />
-          </div>
-          <p className="text-xs text-gray-500 mt-2">of homework linked to an ILP target</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Brain size={18} className="text-purple-600" />
-            <h3 className="font-medium text-gray-900">EHCP Evidence Rate</h3>
-          </div>
-          <div className="text-4xl font-bold text-purple-700 mb-2">{ehcpPct}%</div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-purple-500 rounded-full" style={{ width: `${ehcpPct}%` }} />
-          </div>
-          <p className="text-xs text-gray-500 mt-2">of homework linked to an EHCP outcome</p>
-        </div>
-      </div>
-
-      {/* Bloom's distribution */}
-      {data.bloomsDistribution.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={18} className="text-indigo-600" />
-            <h3 className="font-medium text-gray-900">Bloom&apos;s Taxonomy Distribution</h3>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={data.bloomsDistribution} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <XAxis dataKey="level" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip
-                formatter={(value: unknown, name: unknown) => [value as number, name === 'count' ? 'Homework tasks' : 'Avg score']}
-              />
-              <Bar dataKey="count" name="count" radius={[4, 4, 0, 0]}>
-                {data.bloomsDistribution.map((entry) => (
-                  <Cell key={entry.level} fill={BLOOMS_COLOURS[entry.level] ?? '#6366f1'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {data.bloomsDistribution.map(d => (
-              <div key={d.level} className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: BLOOMS_COLOURS[d.level] ?? '#6366f1' }} />
-                <span className="text-xs text-gray-600 capitalize">{d.level}</span>
-                {d.avgScore > 0 && <span className="text-xs text-gray-400">({Math.round(d.avgScore)}% avg)</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Homework type performance */}
-      {data.typeBreakdown.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen size={18} className="text-blue-600" />
-            <h3 className="font-medium text-gray-900">Performance by Homework Type</h3>
-          </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart
-              data={data.typeBreakdown.map(t => ({
-                ...t,
-                type: t.type.replace(/_/g, ' '),
-              }))}
-              margin={{ top: 0, right: 0, left: -20, bottom: 40 }}
-            >
-              <XAxis dataKey="type" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" interval={0} />
-              <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
-              <Tooltip
-                formatter={(value: unknown, name: unknown) => [
-                  name === 'avgScore' ? `${Math.round(value as number)}%` : (value as number),
-                  name === 'avgScore' ? 'Avg score' : 'Tasks',
-                ]}
-              />
-              <Legend verticalAlign="top" />
-              <Bar dataKey="avgScore" name="avgScore" fill={TYPE_COLOUR} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* Completion by type */}
-      {data.completionByType.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <h3 className="font-medium text-gray-900 mb-4">Completion Rate by Type</h3>
-          <div className="space-y-3">
-            {data.completionByType
-              .sort((a, b) => b.completionRate - a.completionRate)
-              .map(t => (
-                <div key={t.type} className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 w-36 shrink-0 capitalize">{t.type.replace(/_/g, ' ')}</span>
-                  <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all"
-                      style={{ width: `${Math.round(t.completionRate * 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-sm text-gray-700 w-12 text-right">{Math.round(t.completionRate * 100)}%</span>
-                </div>
-              ))}
-          </div>
-        </div>
-      )}
-
-      {data.typeBreakdown.length === 0 && data.bloomsDistribution.length === 0 && (
-        <div className="text-center py-16 text-gray-400">
-          <Brain size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No adaptive homework data yet. Publish some homework with Bloom&apos;s levels to see analytics here.</p>
-        </div>
-      )}
+    <div className="space-y-4">
+      <Breadcrumb />
+      <AdaptiveStudentView studentId={view.studentId} classId={view.classId} />
     </div>
   )
 }

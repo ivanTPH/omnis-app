@@ -5,7 +5,7 @@ import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
 import {
   ChevronDown, ChevronRight, CheckCircle, XCircle,
-  ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart2, BarChart3, Loader2,
+  ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart3, Loader2,
 } from 'lucide-react'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -88,9 +88,6 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
   // Client-side filter
   const [perfFilter, setPerfFilter] = useState<PerfFilter>('all')
-
-  // View mode
-  const [viewMode, setViewMode] = useState<'classes' | 'students'>('classes')
 
   // Student data
   const [data,      setData]         = useState<StudentPerformanceResult | null>(null)
@@ -187,10 +184,9 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
     setSendCat(''); setStudentId(''); setPerfFilter('all')
   }
 
-  // Click class row → load its students + switch to student tab (direct user action)
+  // Click class row → load its students (classId drives the switch to students panel)
   function drillIntoClass(cls: ClassSummary) {
     setClassId(cls.id); setSubject(cls.subject); setYearGroup(String(cls.yearGroup))
-    setViewMode('students')
     setHasRun(true)
     const { dateFrom, dateTo } = getDates()
     startTransition(async () => {
@@ -215,6 +211,11 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
   }
 
   const hasFilters = subject || yearGroup || classId || sendCat || studentId || perfFilter !== 'all'
+
+  // Filter-driven view — no toggle state needed
+  // Class/student selection in filters automatically determines which panel renders
+  const showClassesPanel  = hasRun && !classId && !studentId
+  const showStudentsPanel = hasRun && (!!classId || !!studentId)
 
   // For restricted roles, scope dropdowns to teacher's own classes/subjects/year groups
   const teacherClassIds     = new Set(teacherDefaults.teacherClasses.map(c => c.id))
@@ -372,26 +373,6 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       {/* ── Body ── */}
       <div className="flex-1 overflow-auto p-6">
 
-        {/* Tab toggle */}
-        <div className="flex items-center gap-1 mb-5 bg-white border border-gray-200 rounded-xl p-1 w-fit">
-          <button
-            onClick={() => setViewMode('classes')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === 'classes' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <Users size={14} />Classes
-          </button>
-          <button
-            onClick={() => setViewMode('students')}
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              viewMode === 'students' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <BarChart2 size={14} />Students
-          </button>
-        </div>
-
         {/* ── Initial empty state (before first Run) ── */}
         {!hasRun && (
           <div className="flex flex-col items-center justify-center h-64 text-center">
@@ -401,8 +382,8 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
           </div>
         )}
 
-        {/* ── CLASSES TAB ── */}
-        {hasRun && viewMode === 'classes' && (
+        {/* ── CLASSES PANEL — shown when no specific class or student is selected ── */}
+        {showClassesPanel && (
           <>
             {isClassPending && (
               <div className="flex items-center justify-center h-48">
@@ -431,8 +412,8 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
           </>
         )}
 
-        {/* ── STUDENTS TAB ── */}
-        {hasRun && viewMode === 'students' && (
+        {/* ── STUDENTS PANEL — shown when class or individual student is selected ── */}
+        {showStudentsPanel && (
           <>
             {isPending && (
               <div className="flex items-center justify-center h-64">

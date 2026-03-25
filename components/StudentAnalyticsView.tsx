@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
@@ -70,21 +70,28 @@ type Props = {
   filterOptions:    FilterOptions
   teacherDefaults:  TeacherDefaults
   isRestrictedRole: boolean
+  initialFilters?:  { classId?: string; subject?: string; yearGroup?: string }
 }
 
-export default function StudentAnalyticsView({ filterOptions, teacherDefaults, isRestrictedRole }: Props) {
+export default function StudentAnalyticsView({ filterOptions, teacherDefaults, isRestrictedRole, initialFilters }: Props) {
   const router = useRouter()
 
   // Stable derived constant — safe to use in useState initialisers
   const firstClass = teacherDefaults.teacherClasses[0]
 
-  // Server-side filters — pre-populate from teacher defaults for restricted roles
+  // initialFilters (from URL params) take precedence over role-based defaults
   const [preset,     setPreset]     = useState<'this_year' | 'this_month' | 'custom'>('this_year')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo,   setCustomTo]   = useState('')
-  const [subject,    setSubject]    = useState(isRestrictedRole ? (firstClass?.subject ?? '') : '')
-  const [yearGroup,  setYearGroup]  = useState(isRestrictedRole ? (firstClass ? String(firstClass.yearGroup) : '') : '')
-  const [classId,    setClassId]    = useState(isRestrictedRole ? (firstClass?.id ?? '') : '')
+  const [subject,    setSubject]    = useState(
+    initialFilters?.subject ?? (isRestrictedRole ? (firstClass?.subject ?? '') : '')
+  )
+  const [yearGroup,  setYearGroup]  = useState(
+    initialFilters?.yearGroup ?? (isRestrictedRole ? (firstClass ? String(firstClass.yearGroup) : '') : '')
+  )
+  const [classId,    setClassId]    = useState(
+    initialFilters?.classId ?? (isRestrictedRole ? (firstClass?.id ?? '') : '')
+  )
   const [sendCat,    setSendCat]    = useState('')
   const [studentId,  setStudentId]  = useState('')
 
@@ -158,6 +165,15 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
     loadClasses(dateFrom, dateTo)
     fetchStudents()
   }
+
+  // Auto-run once on mount when pre-populated from lesson context (URL params)
+  const autoRanRef = useRef(false)
+  useEffect(() => {
+    if (initialFilters?.classId && !autoRanRef.current) {
+      autoRanRef.current = true
+      handleRun()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Dropdown handlers — pure state updates, NO auto-queries ──────────────
   function changeSubject(val: string) {

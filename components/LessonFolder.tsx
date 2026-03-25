@@ -1516,7 +1516,21 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
               {activeTab === 'Class Insights' && (
                 lesson?.classId
-                  ? <ClassInsightsTab classId={lesson.classId} />
+                  ? (
+                    <>
+                      <ClassInsightsTab classId={lesson.classId} />
+                      {/* Deep-link to full analytics with lesson context pre-applied */}
+                      <div className="px-7 pb-5">
+                        <Link
+                          href={`/analytics?classId=${lesson.classId}${lesson.class?.subject ? `&subject=${encodeURIComponent(lesson.class.subject)}` : ''}${lesson.class?.yearGroup ? `&yearGroup=${lesson.class.yearGroup}` : ''}`}
+                          className="inline-flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <ExternalLink size={11} />
+                          View full analytics for this class
+                        </Link>
+                      </div>
+                    </>
+                  )
                   : (
                     <div className="p-7">
                       <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">

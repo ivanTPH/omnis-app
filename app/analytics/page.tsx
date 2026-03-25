@@ -4,18 +4,27 @@ import AppShell from '@/components/AppShell'
 import StudentAnalyticsView from '@/components/StudentAnalyticsView'
 import { getAnalyticsFilters, getTeacherDefaults } from '@/app/actions/analytics'
 
-export default async function AnalyticsPage() {
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ classId?: string; subject?: string; yearGroup?: string }>
+}) {
   const session = await auth()
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName } = session.user as any
 
-  const [filterOptions, teacherDefaults] = await Promise.all([
+  const [filterOptions, teacherDefaults, params] = await Promise.all([
     getAnalyticsFilters(),
     getTeacherDefaults(),
+    searchParams,
   ])
 
   // TEACHER and HEAD_OF_DEPT see only their own classes; SLT/admin/others see all
   const isRestrictedRole = ['TEACHER', 'HEAD_OF_DEPT'].includes(role)
+
+  const initialFilters = (params.classId || params.subject || params.yearGroup)
+    ? { classId: params.classId, subject: params.subject, yearGroup: params.yearGroup }
+    : undefined
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
@@ -23,6 +32,7 @@ export default async function AnalyticsPage() {
         filterOptions={filterOptions}
         teacherDefaults={teacherDefaults}
         isRestrictedRole={isRestrictedRole}
+        initialFilters={initialFilters}
       />
     </AppShell>
   )

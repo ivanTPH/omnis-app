@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { ChevronLeft, CheckCircle, XCircle, BookOpen, BarChart2, Users, Heart } from 'lucide-react'
 import type { StudentDetailData } from '@/app/actions/analytics'
+import StudentSupportProfile from '@/components/StudentSupportProfile'
 
 const SEND_LABEL: Record<string, string> = {
   SEN_SUPPORT: 'SEN Support',
@@ -27,7 +28,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
     'text-rose-600'
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 sm:px-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 sm:px-8">
 
       {/* Back link */}
       <Link
@@ -37,6 +38,10 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
         <ChevronLeft size={15} />
         Back to Student Analytics
       </Link>
+
+      <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-6 lg:items-start">
+      {/* ── Left column ── */}
+      <div>
 
       {/* ── Student header ── */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-5 flex flex-wrap items-start gap-4">
@@ -117,6 +122,11 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
         </div>
       )}
 
+      {/* ── Support Profile — mobile only (below subject breakdown, above homework) ── */}
+      <div className="lg:hidden mb-5">
+        <StudentSupportProfile profile={data.supportProfile} />
+      </div>
+
       {/* ── Homework timeline ── */}
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
 
@@ -195,6 +205,15 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
           </div>
         )}
       </div>
+
+      </div>{/* end left column */}
+
+      {/* ── Right column — desktop sticky sidebar ── */}
+      <div className="hidden lg:block lg:sticky lg:top-6">
+        <StudentSupportProfile profile={data.supportProfile} />
+      </div>
+
+      </div>{/* end grid */}
     </div>
   )
 }

@@ -259,6 +259,9 @@ model School {
   // Performance tracking
   studentBaselines     StudentBaseline[]
   teacherPredictions   TeacherPrediction[]
+
+  // Quick notes
+  studentQuickNotes    StudentQuickNote[]
 }
 
 model TermDate {
@@ -358,6 +361,10 @@ model User {
   studentBaselines    StudentBaseline[]   @relation("student_baselines")
   studentPredictions  TeacherPrediction[] @relation("student_predictions")
   teacherPredictions  TeacherPrediction[] @relation("teacher_predictions")
+
+  // Quick notes
+  studentQuickNotes  StudentQuickNote[]  @relation("StudentNotes")
+  authoredNotes      StudentQuickNote[]  @relation("NoteAuthor")
 
   @@index([schoolId, role])
 }
@@ -2291,4 +2298,18 @@ model TeacherPrediction {
   @@unique([studentId, teacherId, subject, termLabel])
   @@index([schoolId, studentId])
   @@index([schoolId, teacherId])
+}
+
+model StudentQuickNote {
+  id        String   @id @default(cuid())
+  student   User     @relation("StudentNotes", fields: [studentId], references: [id])
+  studentId String
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  author    User     @relation("NoteAuthor", fields: [authorId], references: [id])
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([studentId, schoolId])
 }

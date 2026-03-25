@@ -12,6 +12,7 @@ import {
   type IlpWithTargets,
 } from '@/app/actions/send-support'
 import StudentAvatar from '@/components/StudentAvatar'
+import StudentContactPanel from '@/components/StudentContactPanel'
 
 const StudentAPDRPanel       = dynamic(() => import('@/components/send-support/StudentAPDRPanel'), { ssr: false })
 const KPlanModal             = dynamic(() => import('@/components/send-support/KPlanModal'),       { ssr: false })
@@ -44,6 +45,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [loading,         setLoading]        = useState(true)
   const [error,           setError]          = useState<string | null>(null)
   const [expandedId,      setExpandedId]     = useState<string | null>(null)
+  const [contactStudentId, setContactStudentId] = useState<string | null>(null)
   const [detailsCache,    setDetailsCache]   = useState<Record<string, StudentClassDetail | 'loading'>>({})
   const [ilpCache,        setIlpCache]       = useState<Record<string, IlpWithTargets | 'loading' | null>>({})
   const [userRole,        setUserRole]       = useState<string>('TEACHER')
@@ -207,17 +209,30 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                 onClick={() => handleToggle(row)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 bg-white text-left ${isSend ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
               >
-                <StudentAvatar
-                  firstName={row.firstName}
-                  lastName={row.lastName}
-                  avatarUrl={row.avatarUrl}
-                  size="sm"
-                  sendStatus={row.sendStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP'}
-                />
+                {/* Avatar — click to open contact panel (stop propagation to avoid SEND expand) */}
+                <button
+                  type="button"
+                  title="View student contact details"
+                  onClick={e => { e.stopPropagation(); setContactStudentId(row.id) }}
+                  className="shrink-0 rounded-full ring-0 hover:ring-2 hover:ring-blue-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <StudentAvatar
+                    firstName={row.firstName}
+                    lastName={row.lastName}
+                    avatarUrl={row.avatarUrl}
+                    size="sm"
+                    sendStatus={row.sendStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP'}
+                  />
+                </button>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-gray-900 truncate">
+                  {/* Name — click to open contact panel */}
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setContactStudentId(row.id) }}
+                    className="text-[13px] font-medium text-gray-900 truncate hover:text-blue-600 transition-colors text-left w-full"
+                  >
                     {row.firstName} {row.lastName}
-                  </p>
+                  </button>
                   {row.needArea && (
                     <p className="text-[10px] text-gray-400 truncate">{row.needArea}</p>
                   )}
@@ -484,6 +499,13 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           onUpdated={() => { setKPlanModal(null); refreshKPlanMap() }}
         />
       )}
+
+      {/* Student contact panel — z-[70] to sit above LessonFolder (z-[60]) */}
+      <StudentContactPanel
+        studentId={contactStudentId}
+        onClose={() => setContactStudentId(null)}
+        zIndex={70}
+      />
     </div>
   )
 }

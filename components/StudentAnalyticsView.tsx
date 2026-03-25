@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import StudentAvatar from '@/components/StudentAvatar'
 import RagView from '@/components/analytics/RagView'
+import StudentContactPanel from '@/components/StudentContactPanel'
 
 type SubmissionDetail = NonNullable<Awaited<ReturnType<typeof getSubmissionDetail>>>
 type SortCol = 'name' | 'completion' | 'score'
@@ -120,6 +121,9 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
   // Submission modal
   const [submission, setSubmission] = useState<SubmissionDetail | null>(null)
   const [subLoading, setSubLoading] = useState(false)
+
+  // Student contact panel
+  const [contactStudentId, setContactStudentId] = useState<string | null>(null)
 
   const isLoading = isPending || isClassPending
 
@@ -526,6 +530,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                         onOpenSubmission={openSubmission}
                         subLoading={subLoading}
                         onNavigate={() => router.push(`/analytics/students/${student.id}`)}
+                        onOpenContact={() => setContactStudentId(student.id)}
                         scoreToGrade={scoreToGrade}
                       />
                     ))}
@@ -547,6 +552,11 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       </div>
 
       {submission && <SubmissionModal detail={submission} onClose={() => setSubmission(null)} />}
+
+      <StudentContactPanel
+        studentId={contactStudentId}
+        onClose={() => setContactStudentId(null)}
+      />
     </div>
   )
 }
@@ -643,9 +653,10 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
   )
 }
 
-function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoading, onNavigate, scoreToGrade }: {
+function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoading, onNavigate, onOpenContact, scoreToGrade }: {
   student: StudentData; expanded: boolean; onExpand: () => void
   onOpenSubmission: (id: string) => Promise<void>; subLoading: boolean; onNavigate: () => void
+  onOpenContact: () => void
   scoreToGrade: (score: number) => number
 }) {
   const sendLabel: Record<string, string> = { SEN_SUPPORT: 'SEN', EHCP: 'EHCP' }
@@ -661,16 +672,33 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
     <>
       <div className="flex sm:grid sm:grid-cols-[1fr_130px_110px_110px_80px] items-center gap-3 sm:gap-0 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 select-none">
         {/* Name + expand */}
-        <div onClick={onExpand} className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
-          {expanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
-          <StudentAvatar
-            firstName={student.firstName}
-            lastName={student.lastName}
-            avatarUrl={student.avatarUrl}
-            sendStatus={student.sendCategory as 'SEN_SUPPORT' | 'EHCP' | null | undefined}
-            size="xs"
-          />
-          <span className="text-sm font-medium text-gray-900 truncate">{student.lastName}, {student.firstName}</span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <button onClick={onExpand} className="shrink-0 text-gray-400">
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+          {/* Avatar — click to open contact panel */}
+          <button
+            type="button"
+            title="View student contact details"
+            onClick={onOpenContact}
+            className="shrink-0 rounded-full ring-0 hover:ring-2 hover:ring-blue-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <StudentAvatar
+              firstName={student.firstName}
+              lastName={student.lastName}
+              avatarUrl={student.avatarUrl}
+              sendStatus={student.sendCategory as 'SEN_SUPPORT' | 'EHCP' | null | undefined}
+              size="xs"
+            />
+          </button>
+          {/* Name — click to open contact panel */}
+          <button
+            type="button"
+            onClick={onOpenContact}
+            className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 transition-colors text-left min-w-0 cursor-pointer"
+          >
+            {student.lastName}, {student.firstName}
+          </button>
           {student.hasSend && (
             <span className="hidden sm:inline text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded ml-1 shrink-0">
               {sendLabel[student.sendCategory ?? ''] ?? student.sendCategory}

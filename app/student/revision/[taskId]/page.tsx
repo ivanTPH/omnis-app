@@ -15,7 +15,7 @@ export default async function StudentRevisionTaskPage({ params }: { params: Prom
 
   const task = await (prisma as any).revisionTask.findFirst({
     where: { id: taskId, studentId: userId, schoolId },
-    include: { program: { select: { title: true, subject: true, mode: true, deadline: true } } },
+    include: { program: { select: { title: true, subject: true, yearGroup: true, mode: true, deadline: true } } },
   })
   if (!task) redirect('/student/revision')
 

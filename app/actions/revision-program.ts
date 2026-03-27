@@ -4,6 +4,7 @@ import { prisma }       from '@/lib/prisma'
 import { redirect }     from 'next/navigation'
 import { analyseClassPerformance, type ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 import { generateRevisionTask } from '@/lib/revision/content-generator'
+import type { TestQuestion, TestAnswer, TestResults } from '@/lib/revision/test-engine'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -819,4 +820,184 @@ export async function createYearRevisionProgram(input: {
     console.error('[createYearRevisionProgram] error:', err)
     throw err
   }
+}
+
+// ── Test Mode ─────────────────────────────────────────────────────────────────
+
+const QUESTIONS_PER_SESSION = 8
+
+export async function startTestSession(
+  taskId:            string,
+  previousSessionId?: string,
+): Promise<{ sessionId: string; question: TestQuestion; totalQuestions: number }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const user = session.user as any
+  if (user.role !== 'STUDENT') throw new Error('Students only')
+
+  const task = await (prisma as any).revisionTask.findFirst({
+    where:   { id: taskId, studentId: user.id, schoolId: user.schoolId },
+    include: { program: { select: { subject: true, yearGroup: true } } },
+  })
+  if (!task) throw new Error('Task not found')
+
+  // Load previous session questions to avoid repeating
+  const excludeTexts: string[] = []
+  if (previousSessionId) {
+    try {
+      const prev = await (prisma as any).revisionTestSession.findFirst({
+        where:  { id: previousSessionId, studentId: user.id },
+        select: { questions: true },
+      })
+      if (prev) {
+        const prevQs = prev.questions as TestQuestion[]
+        excludeTexts.push(...prevQs.map((q: TestQuestion) => q.text.slice(0, 100)))
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  // Determine if student has an ILP (use ilpTargetIds stored on task)
+  const hasIlp = (task.ilpTargetIds?.length ?? 0) > 0
+  let ilpTargets: string[] = []
+  if (hasIlp) {
+    try {
+      const targets = await (prisma as any).iLPTarget.findMany({
+        where:  { id: { in: task.ilpTargetIds }, status: 'active' },
+        select: { description: true },
+      })
+      ilpTargets = targets.map((t: any) => String(t.description))
+    } catch { /* non-fatal */ }
+  }
+
+  const topics = task.focusTopics?.length > 0 ? task.focusTopics : [task.program.subject]
+
+  const { generateQuestion, selectQuestionType } = await import('@/lib/revision/test-engine')
+  const question = await generateQuestion({
+    subject:      task.program.subject,
+    yearGroup:    task.program.yearGroup,
+    topics,
+    type:         selectQuestionType(0, hasIlp),
+    difficulty:   'medium',
+    excludeTexts,
+    ilpTargets,
+  })
+  question.index = 0
+
+  const testSession = await (prisma as any).revisionTestSession.create({
+    data: {
+      taskId,
+      studentId: user.id,
+      schoolId:  user.schoolId,
+      subject:   task.program.subject,
+      yearGroup: task.program.yearGroup,
+      topics,
+      hasIlp,
+      questions: [question] as any,
+      answers:   [] as any,
+      status:    'active',
+    },
+  })
+
+  return { sessionId: testSession.id, question, totalQuestions: QUESTIONS_PER_SESSION }
+}
+
+export async function submitTestAnswer(
+  sessionId: string,
+  answer:    string,
+): Promise<{ nextQuestion: TestQuestion | null; sessionComplete: boolean; results?: TestResults }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const user = session.user as any
+
+  const testSession = await (prisma as any).revisionTestSession.findFirst({
+    where: { id: sessionId, studentId: user.id, schoolId: user.schoolId, status: 'active' },
+  })
+  if (!testSession) throw new Error('Test session not found or already complete')
+
+  const {
+    generateQuestion, evaluateAnswer, calculateResults, selectQuestionType,
+  } = await import('@/lib/revision/test-engine')
+
+  const questions: TestQuestion[] = testSession.questions as TestQuestion[]
+  const answers:   TestAnswer[]   = testSession.answers   as TestAnswer[]
+  const current = questions[questions.length - 1]
+
+  const { score, feedback } = await evaluateAnswer(current, answer, testSession.subject)
+
+  const newAnswer: TestAnswer = {
+    questionIndex: current.index,
+    answer,
+    score,
+    maxScore:     current.marks,
+    topic:        current.topic,
+    questionType: current.type,
+    feedback,
+  }
+  const updatedAnswers = [...answers, newAnswer]
+  const isComplete     = updatedAnswers.length >= QUESTIONS_PER_SESSION
+
+  if (isComplete) {
+    const results = calculateResults(updatedAnswers)
+
+    await (prisma as any).revisionTestSession.update({
+      where: { id: sessionId },
+      data: {
+        answers:        updatedAnswers as any,
+        status:         'completed',
+        finalScore:     results.totalScore,
+        maxScore:       results.maxScore,
+        estimatedGrade: results.estimatedGrade,
+        areasToRevisit: results.areasToRevisit as any,
+        completedAt:    new Date(),
+      },
+    })
+
+    // Auto-submit the revision task with the test score
+    try {
+      await (prisma as any).revisionTask.update({
+        where: { id: testSession.taskId },
+        data: {
+          studentResponse: { testSessionId: sessionId, score: results.percentage } as any,
+          submittedAt:     new Date(),
+          autoScore:       results.percentage,
+          completedAt:     new Date(),
+          status:          'submitted',
+        },
+      })
+    } catch (e) {
+      console.error('[submitTestAnswer] task auto-submit failed (non-fatal):', e)
+    }
+
+    return { nextQuestion: null, sessionComplete: true, results }
+  }
+
+  // Calculate running score for difficulty adjustment
+  const runningMax = updatedAnswers.reduce((s, a) => s + a.maxScore, 0)
+  const runningPct = runningMax > 0
+    ? (updatedAnswers.reduce((s, a) => s + a.score, 0) / runningMax) * 100
+    : 50
+  const nextDifficulty = (runningPct > 70 ? 'hard' : runningPct < 40 ? 'easy' : 'medium') as 'easy' | 'medium' | 'hard'
+  const nextType = selectQuestionType(updatedAnswers.length, testSession.hasIlp)
+  const excludeTexts = questions.map((q: TestQuestion) => q.text.slice(0, 100))
+
+  const nextQ = await generateQuestion({
+    subject:      testSession.subject,
+    yearGroup:    testSession.yearGroup,
+    topics:       testSession.topics,
+    type:         nextType,
+    difficulty:   nextDifficulty,
+    excludeTexts,
+    ilpTargets:   [],
+  })
+  nextQ.index = updatedAnswers.length
+
+  await (prisma as any).revisionTestSession.update({
+    where: { id: sessionId },
+    data: {
+      questions: [...questions, nextQ] as any,
+      answers:   updatedAnswers as any,
+    },
+  })
+
+  return { nextQuestion: nextQ, sessionComplete: false }
 }

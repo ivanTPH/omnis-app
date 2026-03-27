@@ -91,6 +91,141 @@ Return ONLY a JSON object with these fields:
   }
 }
 
+// ── generateYearRevisionTask ───────────────────────────────────────────────────
+
+export interface YearRevisionContent {
+  instructions:      string
+  structuredContent: {
+    type:         'year_revision'
+    genericGuide: {
+      topics: {
+        name:          string
+        keyFacts:      string[]
+        vocabulary:    { term: string; definition: string }[]
+        examQuestions: { question: string; markScheme: string; marks: number }[]
+      }[]
+    }
+    focusAreas: {
+      topics: {
+        name:              string
+        reason:            string
+        practiceQuestions: { question: string; markScheme: string; marks: number }[]
+      }[]
+    }
+  }
+}
+
+function fallbackYearContent(input: {
+  studentName: string; subject: string; allTopics: string[]; focusTopics: string[]
+}): YearRevisionContent {
+  return {
+    instructions: `Review the revision guide for all topics covered this year in ${input.subject}, then complete the practice questions in your Focus Areas.`,
+    structuredContent: {
+      type: 'year_revision',
+      genericGuide: {
+        topics: input.allTopics.map(name => ({
+          name,
+          keyFacts:      [`Key facts for ${name} will be added here.`],
+          vocabulary:    [{ term: 'Key term', definition: 'Definition to be added.' }],
+          examQuestions: [{ question: `Describe the key features of ${name}.`, markScheme: 'Mark scheme to be added.', marks: 4 }],
+        })),
+      },
+      focusAreas: {
+        topics: input.focusTopics.map(name => ({
+          name,
+          reason:            `Practice more on ${name}.`,
+          practiceQuestions: [{ question: `Explain the significance of ${name}.`, markScheme: 'Mark scheme to be added.', marks: 3 }],
+        })),
+      },
+    },
+  }
+}
+
+export async function generateYearRevisionTask(input: {
+  studentName:     string
+  subject:         string
+  yearGroup:       number
+  allTopics:       string[]
+  focusTopics:     string[]
+  focusReasons:    string[]
+  sendAdaptations: string[]
+}): Promise<YearRevisionContent> {
+  if (!process.env.ANTHROPIC_API_KEY) return fallbackYearContent(input)
+
+  const allTopicsStr   = input.allTopics.join(', ')
+  const focusStr       = input.focusTopics.length > 0
+    ? input.focusTopics.join(', ')
+    : 'None identified — produce standard revision for all topics'
+  const focusReasonsStr = input.focusReasons.join('\n- ')
+  const sendStr        = input.sendAdaptations.length > 0
+    ? `Apply SEND adaptations: ${input.sendAdaptations.join(', ')} (simpler language, shorter sentences, bullet points)`
+    : 'Standard language'
+
+  const prompt = `Create a Year Revision resource for ${input.studentName} (Year ${input.yearGroup} ${input.subject}).
+
+ALL TOPICS covered this year: ${allTopicsStr}
+
+FOCUS AREAS (student performed below class average or below predicted grade):
+- ${focusReasonsStr || 'None'}
+
+SEND: ${sendStr}
+
+Return ONLY a JSON object matching this exact structure:
+{
+  "instructions": "2-sentence student-facing instructions covering how to use the guide and focus areas",
+  "structuredContent": {
+    "type": "year_revision",
+    "genericGuide": {
+      "topics": [
+        {
+          "name": "<topic name>",
+          "keyFacts": ["3-5 concise bullet-point facts"],
+          "vocabulary": [{"term": "...", "definition": "..."}],
+          "examQuestions": [{"question": "...", "markScheme": "...", "marks": 4}]
+        }
+      ]
+    },
+    "focusAreas": {
+      "topics": [
+        {
+          "name": "<topic name>",
+          "reason": "<student-friendly explanation of why this is a focus>",
+          "practiceQuestions": [{"question": "...", "markScheme": "...", "marks": 3}, {"question": "...", "markScheme": "...", "marks": 4}]
+        }
+      ]
+    }
+  }
+}
+
+Rules:
+- Include ALL topics in genericGuide (every topic in the list)
+- Only include topics from the FOCUS AREAS list in focusAreas.topics (may be empty array)
+- Keep keyFacts concise (1 sentence each)
+- Exam questions must be exam-style (not "what is X?" — use "Explain", "Analyse", "Evaluate")
+- Mark schemes should reference specific content points`
+
+  try {
+    const response = await client.messages.create({
+      model:      'claude-sonnet-4-6',
+      max_tokens: 8000,
+      system:     'You are a UK secondary school teacher creating comprehensive year revision materials. Return ONLY valid JSON with no markdown fences.',
+      messages:   [{ role: 'user', content: prompt }],
+    })
+
+    const raw     = (response.content[0] as any)?.text ?? ''
+    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const parsed  = JSON.parse(cleaned)
+
+    return {
+      instructions:      parsed.instructions      ?? fallbackYearContent(input).instructions,
+      structuredContent: parsed.structuredContent ?? fallbackYearContent(input).structuredContent,
+    }
+  } catch (err) {
+    console.error('[generateYearRevisionTask] AI error, using fallback:', err)
+    return fallbackYearContent(input)
+  }
+}
+
 function taskTypeSchema(taskType: string): string {
   switch (taskType) {
     case 'quiz':

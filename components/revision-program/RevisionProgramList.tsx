@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { BookMarked, Plus, ChevronRight, Calendar, Users, AlertCircle } from 'lucide-react'
+import { BookMarked, Plus, ChevronRight, Calendar, Users, AlertCircle, GraduationCap } from 'lucide-react'
 
 type ProgramRow = {
   id:             string
@@ -9,7 +9,8 @@ type ProgramRow = {
   subject:        string
   status:         string
   mode:           string
-  classId:        string
+  classId:        string | null
+  programType?:   string
   createdAt:      Date | string
   taskCount:      number
   completedCount: number
@@ -20,9 +21,11 @@ type Filter = 'all' | 'active' | 'study_guide' | 'formal_assignment' | 'closed'
 export default function RevisionProgramList({
   programs,
   onNew,
+  onNewYear,
 }: {
-  programs: ProgramRow[]
-  onNew:    () => void
+  programs:  ProgramRow[]
+  onNew:     () => void
+  onNewYear: () => void
 }) {
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -50,12 +53,20 @@ export default function RevisionProgramList({
           <BookMarked size={20} className="text-gray-500" />
           <h1 className="text-lg font-semibold text-gray-900">Revision Programs</h1>
         </div>
-        <button
-          onClick={onNew}
-          className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
-        >
-          <Plus size={15} /> New Program
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onNewYear}
+            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+          >
+            <GraduationCap size={15} /> Year Revision
+          </button>
+          <button
+            onClick={onNew}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+          >
+            <Plus size={15} /> New Program
+          </button>
+        </div>
       </div>
 
       {/* filter tabs */}
@@ -93,6 +104,11 @@ export default function RevisionProgramList({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-gray-900 truncate">{p.title}</p>
+                      {p.programType === 'year' && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 flex items-center gap-0.5">
+                          <GraduationCap size={9} /> Year
+                        </span>
+                      )}
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAssignment ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                         {isAssignment ? 'Assignment' : 'Study Guide'}
                       </span>

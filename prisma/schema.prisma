@@ -2166,7 +2166,7 @@ model IlpHomeworkLink {
 model RevisionProgram {
   id            String    @id @default(cuid())
   schoolId      String
-  classId       String
+  classId       String?   // null for year-group-wide revision programs
   createdBy     String
   title         String
   subject       String
@@ -2179,11 +2179,12 @@ model RevisionProgram {
   durationWeeks Int       @default(1)
   status        String    @default("draft")
   aiAnalysis    Json?
+  programType   String    @default("class") // "class" | "year"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   tasks RevisionTask[]
-  class SchoolClass     @relation(fields: [classId], references: [id])
+  class SchoolClass?    @relation(fields: [classId], references: [id])
 
   @@index([schoolId, classId])
   @@index([schoolId, status])

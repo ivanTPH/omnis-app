@@ -418,6 +418,23 @@ export async function getStudentPerformance(filters: AnalyticsFilters): Promise<
 
 // ── Student detail (individual dashboard) ──────────────────────────────────
 
+export type SupportProfile = {
+  sendStatus:  string | null   // 'SEN_SUPPORT' | 'EHCP' | null
+  needArea:    string | null   // free-text primary need e.g. 'Specific Learning Difficulty (Dyslexia)'
+  ilp: {
+    id:           string
+    sendCategory: string
+    areasOfNeed:  string
+    targets: { id: string; target: string; status: string; progressNotes: string | null }[]
+  } | null
+  latestTeacherNote: {
+    notes:     string
+    updatedAt: string   // ISO
+    subject:   string
+    termLabel: string
+  } | null
+}
+
 export type StudentDetailData = {
   id:         string
   firstName:  string
@@ -432,6 +449,7 @@ export type StudentDetailData = {
   avgScore:       number | null
   subjectRows:  { subject: string; assigned: number; submitted: number; avgScore: number | null }[]
   homeworks:    (HomeworkRow & { class: string })[]
+  supportProfile: SupportProfile
 }
 
 export async function getStudentDetail(studentId: string): Promise<StudentDetailData | null> {
@@ -445,12 +463,29 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
   })
   if (!student) return null
 
-  const [enrolments, sendStatus] = await Promise.all([
+  const [enrolments, sendStatus, ilp, latestNote] = await Promise.all([
     prisma.enrolment.findMany({
       where:   { userId: studentId },
       include: { class: { select: { id: true, name: true, subject: true, yearGroup: true } } },
     }),
     prisma.sendStatus.findFirst({ where: { studentId } }),
+    prisma.individualLearningPlan.findFirst({
+      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      select:  {
+        id: true, sendCategory: true, areasOfNeed: true,
+        targets: {
+          where:   { status: 'active' },
+          select:  { id: true, target: true, status: true, progressNotes: true },
+          orderBy: { id: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.teacherPrediction.findFirst({
+      where:   { studentId, schoolId, notes: { not: null } },
+      select:  { notes: true, updatedAt: true, subject: true, termLabel: true },
+      orderBy: { updatedAt: 'desc' },
+    }),
   ])
 
   const classes     = enrolments.map(e => e.class)
@@ -515,6 +550,20 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
 
   const hasSend = sendStatus != null && sendStatus.activeStatus !== 'NONE'
 
+  const supportProfile: SupportProfile = {
+    sendStatus:  hasSend ? (sendStatus!.activeStatus as string) : null,
+    needArea:    sendStatus?.needArea ?? null,
+    ilp: ilp ? {
+      id:           ilp.id,
+      sendCategory: ilp.sendCategory,
+      areasOfNeed:  ilp.areasOfNeed,
+      targets:      ilp.targets,
+    } : null,
+    latestTeacherNote: latestNote
+      ? { notes: latestNote.notes!, updatedAt: latestNote.updatedAt.toISOString(), subject: latestNote.subject, termLabel: latestNote.termLabel }
+      : null,
+  }
+
   return {
     id:             student.id,
     firstName:      student.firstName,
@@ -529,6 +578,7 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
     avgScore,
     subjectRows,
     homeworks:      hwRows,
+    supportProfile,
   }
 }
 

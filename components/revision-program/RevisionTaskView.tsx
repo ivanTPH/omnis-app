@@ -232,7 +232,22 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
 
   // Main task phase
   const hasStructured = task.structuredContent && typeof task.structuredContent === 'object'
-  const needsQuiz     = ['quiz','multiple_choice','retrieval_practice','short_answer'].includes(task.taskType) && hasStructured
+  const isYearRevision = task.taskType === 'year_revision'
+  const needsQuiz      = ['quiz','multiple_choice','retrieval_practice','short_answer'].includes(task.taskType) && hasStructured
+
+  if (isYearRevision) {
+    return (
+      <YearRevisionView
+        task={task}
+        response={response}
+        setResponse={setResponse}
+        isPending={isPending}
+        error={error}
+        isStudyGuide={isStudyGuide}
+        onSubmit={handleSubmit}
+      />
+    )
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-6 space-y-5">
@@ -294,6 +309,188 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
       <p className="text-xs text-gray-400 text-right">
         {isStudyGuide ? 'No deadline — take your time.' : 'Once submitted your teacher will review and return with feedback.'}
       </p>
+    </div>
+  )
+}
+
+// ── YearRevisionView ─────────────────────────────────────────────────────────
+
+function YearRevisionView({ task, response, setResponse, isPending, error, isStudyGuide, onSubmit }: {
+  task: RevTask; response: any; setResponse: (v: any) => void
+  isPending: boolean; error: string | null; isStudyGuide: boolean; onSubmit: () => void
+}) {
+  const sc          = task.structuredContent as any
+  const guide       = sc?.genericGuide?.topics   as any[] ?? []
+  const focusTopics = sc?.focusAreas?.topics      as any[] ?? []
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* Instructions */}
+      <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-sm text-gray-800 leading-relaxed">
+        {task.instructions}
+      </div>
+
+      {/* ── Section A: Revision Guide ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">A</span>
+          <h2 className="text-base font-semibold text-gray-900">Revision Guide</h2>
+          <span className="text-xs text-gray-400">All topics covered this year</span>
+        </div>
+        <div className="space-y-4">
+          {guide.map((topic: any, i: number) => (
+            <TopicCard key={i} topic={topic} />
+          ))}
+          {guide.length === 0 && (
+            <p className="text-sm text-gray-400 italic">Revision guide will appear here.</p>
+          )}
+        </div>
+      </section>
+
+      {/* ── Section B: Focus Areas ── */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">B</span>
+          <h2 className="text-base font-semibold text-gray-900">Focus Areas</h2>
+          <span className="text-xs text-amber-600 font-medium">Personalised for you</span>
+        </div>
+        {focusTopics.length === 0 ? (
+          <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-4 text-sm text-green-700">
+            Great work! No specific focus areas identified — your scores are on track across all topics.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {focusTopics.map((topic: any, i: number) => (
+              <FocusTopicCard key={i} topic={topic} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Response ── */}
+      <section>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Your Notes / Response</p>
+        <FreeTextTask
+          value={typeof response === 'string' ? response : (response?.text ?? '')}
+          onChange={v => setResponse({ text: v })}
+        />
+        <p className="text-xs text-gray-400 mt-1">Use this space to make notes, answer exam questions, or summarise key points.</p>
+      </section>
+
+      {task.sendAdaptations.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">
+          <p className="text-xs text-amber-700 font-medium">This guide has been adapted for you: {task.sendAdaptations.join(', ')}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+          <AlertCircle size={14} className="shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-2">
+        <p className="text-xs text-gray-400 flex items-center gap-1">
+          <Clock size={11} /> ~{task.estimatedMins} mins · auto-saved every minute
+        </p>
+        <button
+          onClick={onSubmit}
+          disabled={isPending}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+        >
+          {isPending ? <Loader2 size={14} className="animate-spin" /> : null}
+          {isStudyGuide ? 'Mark as Complete ✓' : 'Submit for Marking →'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function TopicCard({ topic }: { topic: any }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 text-left transition-colors"
+      >
+        <span className="text-sm font-semibold text-gray-800">{topic.name}</span>
+        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3 bg-white border-t border-gray-100">
+          {topic.keyFacts?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-1.5">Key Facts</p>
+              <ul className="space-y-1">
+                {topic.keyFacts.map((f: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                    <span className="text-blue-400 mt-0.5 shrink-0">•</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {topic.vocabulary?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Key Vocabulary</p>
+              <div className="space-y-1">
+                {topic.vocabulary.map((v: any, i: number) => (
+                  <div key={i} className="flex gap-2 text-xs">
+                    <span className="font-semibold text-gray-800 shrink-0">{v.term}</span>
+                    <span className="text-gray-500">— {v.definition}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {topic.examQuestions?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Exam-Style Questions</p>
+              <div className="space-y-2">
+                {topic.examQuestions.map((q: any, i: number) => (
+                  <div key={i} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                    <p className="text-xs font-medium text-gray-800">{q.question} <span className="text-gray-400 font-normal">({q.marks} marks)</span></p>
+                    <details className="mt-1">
+                      <summary className="text-[10px] text-blue-600 cursor-pointer hover:text-blue-800">Show mark scheme</summary>
+                      <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">{q.markScheme}</p>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FocusTopicCard({ topic }: { topic: any }) {
+  return (
+    <div className="border border-amber-200 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 bg-amber-50">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-sm font-semibold text-amber-900">{topic.name}</span>
+        </div>
+        <p className="text-xs text-amber-700">{topic.reason}</p>
+      </div>
+      {topic.practiceQuestions?.length > 0 && (
+        <div className="px-4 py-3 space-y-2 bg-white border-t border-amber-100">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Practice Questions</p>
+          {topic.practiceQuestions.map((q: any, i: number) => (
+            <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              <p className="text-xs font-medium text-gray-800">{q.question} <span className="text-gray-400 font-normal">({q.marks} marks)</span></p>
+              <details className="mt-1">
+                <summary className="text-[10px] text-amber-600 cursor-pointer hover:text-amber-800">Show mark scheme</summary>
+                <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">{q.markScheme}</p>
+              </details>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

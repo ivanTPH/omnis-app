@@ -250,7 +250,8 @@ export async function getRevisionPrograms(classId?: string): Promise<{
   subject: string
   status: string
   mode: string
-  classId: string
+  classId: string | null
+  programType: string
   createdAt: Date
   taskCount: number
   completedCount: number
@@ -275,7 +276,8 @@ export async function getRevisionPrograms(classId?: string): Promise<{
       subject:        p.subject,
       status:         p.status,
       mode:           p.mode,
-      classId:        p.classId,
+      classId:        p.classId ?? null,
+      programType:    p.programType ?? 'class',
       createdAt:      p.createdAt,
       taskCount:      p.tasks.length,
       completedCount: p.tasks.filter((t: any) => ['submitted', 'marked', 'returned'].includes(t.status)).length,
@@ -513,5 +515,308 @@ export async function getStudentRevisionTasks(studentId?: string): Promise<{
   } catch (err) {
     console.error('[getStudentRevisionTasks] error:', err)
     return { active: [], completed: [], upcoming: [] }
+  }
+}
+
+// ── getTeacherSubjectsYearGroups ───────────────────────────────────────────────
+
+export async function getTeacherSubjectsYearGroups(): Promise<
+  { subject: string; yearGroup: number; classCount: number }[]
+> {
+  try {
+    const user = await requireTeacherOrAbove()
+
+    const classes = await prisma.schoolClass.findMany({
+      where: {
+        schoolId: user.schoolId,
+        ...(user.role === 'TEACHER' || user.role === 'HEAD_OF_DEPT'
+          ? { teachers: { some: { userId: user.id } } }
+          : {}),
+      },
+      select: { subject: true, yearGroup: true },
+    })
+
+    // Deduplicate, keeping count
+    const map = new Map<string, { subject: string; yearGroup: number; classCount: number }>()
+    for (const c of classes) {
+      const key = `${c.subject}|${c.yearGroup}`
+      if (!map.has(key)) map.set(key, { subject: c.subject, yearGroup: c.yearGroup, classCount: 0 })
+      map.get(key)!.classCount++
+    }
+
+    return [...map.values()].sort((a, b) =>
+      a.subject.localeCompare(b.subject) || a.yearGroup - b.yearGroup
+    )
+  } catch (err) {
+    console.error('[getTeacherSubjectsYearGroups] error:', err)
+    return []
+  }
+}
+
+// ── getYearTopics ──────────────────────────────────────────────────────────────
+
+export async function getYearTopics(
+  subject: string,
+  yearGroup: number,
+): Promise<{ topics: string[]; studentCount: number; classIds: string[] }> {
+  try {
+    const user = await requireTeacherOrAbove()
+
+    // Academic year start: Sep 1 of current or last calendar year
+    const now      = new Date()
+    const yearStart = now.getMonth() >= 8
+      ? new Date(now.getFullYear(), 8, 1)
+      : new Date(now.getFullYear() - 1, 8, 1)
+
+    // All classes for this subject + year group in the school
+    const classes = await prisma.schoolClass.findMany({
+      where:   { schoolId: user.schoolId, subject, yearGroup },
+      select:  { id: true },
+    })
+    const classIds = classes.map(c => c.id)
+    if (classIds.length === 0) return { topics: [], studentCount: 0, classIds: [] }
+
+    // Past lessons in those classes since academic year start
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        schoolId: user.schoolId,
+        classId:  { in: classIds },
+        scheduledAt: { gte: yearStart, lte: now },
+      },
+      select: { title: true },
+    })
+
+    const topics = [...new Set(
+      lessons.map(l => l.title?.trim()).filter((t): t is string => !!t && t.length > 0)
+    )].sort()
+
+    // Count distinct enrolled students across all these classes
+    const enrolments = await prisma.enrolment.findMany({
+      where:    { classId: { in: classIds } },
+      select:   { userId: true },
+      distinct: ['userId'],
+    })
+
+    return { topics, studentCount: enrolments.length, classIds }
+  } catch (err) {
+    console.error('[getYearTopics] error:', err)
+    return { topics: [], studentCount: 0, classIds: [] }
+  }
+}
+
+// ── createYearRevisionProgram ─────────────────────────────────────────────────
+
+export async function createYearRevisionProgram(input: {
+  subject:      string
+  yearGroup:    number
+  classIds:     string[]
+  selectedTopics: string[]
+  title:        string
+  mode:         'study_guide' | 'formal_assignment'
+  deadline?:    Date
+}): Promise<{ programId: string; taskCount: number }> {
+  try {
+    const user = await requireTeacherOrAbove()
+    const { generateYearRevisionTask } = await import('@/lib/revision/content-generator')
+
+    // Academic year window
+    const now      = new Date()
+    const yearStart = now.getMonth() >= 8
+      ? new Date(now.getFullYear(), 8, 1)
+      : new Date(now.getFullYear() - 1, 8, 1)
+
+    // Deduplicated students across all year-group classes
+    const enrolments = await prisma.enrolment.findMany({
+      where:    { classId: { in: input.classIds }, class: { schoolId: user.schoolId } },
+      select:   { userId: true, user: { select: { id: true, firstName: true, lastName: true } } },
+      distinct: ['userId'],
+    })
+    const students = enrolments.map(e => e.user)
+    if (students.length === 0) throw new Error('No students found for this year group and subject')
+
+    // Per-student scores per topic (from submissions linked to lessons with those titles)
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        schoolId: user.schoolId,
+        classId:  { in: input.classIds },
+        title:    { in: input.selectedTopics },
+        scheduledAt: { gte: yearStart, lte: now },
+      },
+      select: { id: true, title: true, homework: { select: { id: true } } },
+    })
+
+    const homeworkIds = lessons.flatMap(l => l.homework.map((h: any) => h.id))
+    const topicByHw   = new Map<string, string>()
+    for (const l of lessons) {
+      for (const h of l.homework as any[]) topicByHw.set(h.id, l.title!)
+    }
+
+    const allSubmissions = homeworkIds.length > 0
+      ? await prisma.submission.findMany({
+          where: {
+            homeworkId: { in: homeworkIds },
+            studentId:  { in: students.map(s => s.id) },
+            finalScore: { not: null },
+            status:     { in: ['MARKED', 'RETURNED'] },
+          },
+          select: { studentId: true, homeworkId: true, finalScore: true },
+        })
+      : []
+
+    // Compute per-student topic averages + class averages
+    const topicScores = new Map<string, number[]>()   // topic → all scores
+    const studentTopicScores = new Map<string, Map<string, number[]>>() // studentId → topic → scores
+
+    for (const sub of allSubmissions) {
+      const topic = topicByHw.get(sub.homeworkId)
+      if (!topic || sub.finalScore == null) continue
+      if (!topicScores.has(topic)) topicScores.set(topic, [])
+      topicScores.get(topic)!.push(sub.finalScore)
+
+      if (!studentTopicScores.has(sub.studentId)) studentTopicScores.set(sub.studentId, new Map())
+      const sm = studentTopicScores.get(sub.studentId)!
+      if (!sm.has(topic)) sm.set(topic, [])
+      sm.get(topic)!.push(sub.finalScore)
+    }
+
+    const classAvgByTopic = new Map<string, number>()
+    for (const [topic, scores] of topicScores) {
+      classAvgByTopic.set(topic, scores.reduce((a, b) => a + b, 0) / scores.length)
+    }
+
+    // SEND status per student
+    const sendStatuses = await prisma.sendStatus.findMany({
+      where: { studentId: { in: students.map(s => s.id) } },
+      select: { studentId: true, activeStatus: true },
+    })
+    const sendMap = new Map(sendStatuses.map(s => [s.studentId, s.activeStatus]))
+
+    // TeacherPredictions per student for this subject (for predicted grade comparison)
+    const predictions = await (prisma as any).teacherPrediction.findMany({
+      where: {
+        schoolId:  user.schoolId,
+        studentId: { in: students.map(s => s.id) },
+        subject:   input.subject,
+      },
+      select: { studentId: true, predictedScore: true, adjustment: true },
+    })
+    const predMap = new Map(predictions.map((p: any) => [
+      p.studentId,
+      p.predictedScore + p.adjustment,
+    ]))
+
+    // Generate tasks in batches of 5
+    const generated: { studentId: string; content: any }[] = []
+
+    for (let i = 0; i < students.length; i += 5) {
+      const batch = students.slice(i, i + 5)
+      const results = await Promise.all(batch.map(async student => {
+        const sm         = studentTopicScores.get(student.id) ?? new Map<string, number[]>()
+        const predicted  = predMap.get(student.id) as number | undefined
+        const sendStatus = sendMap.get(student.id)
+        const isSend     = !!sendStatus && sendStatus !== 'NONE'
+
+        // Focus topics: below class avg OR below predicted grade threshold
+        const focusTopics = input.selectedTopics.filter(topic => {
+          const classAvg    = classAvgByTopic.get(topic)
+          const studentScrs = sm.get(topic)
+          if (!studentScrs || studentScrs.length === 0) return false
+          const studentAvg  = studentScrs.reduce((a, b) => a + b, 0) / studentScrs.length
+          if (classAvg != null && studentAvg < classAvg) return true
+          if (predicted != null && studentAvg < predicted * 0.85) return true
+          return false
+        })
+
+        // Reasons per topic for student-facing copy
+        const focusReasons = focusTopics.map(topic => {
+          const classAvg    = classAvgByTopic.get(topic)
+          const studentScrs = sm.get(topic) ?? []
+          const studentAvg  = studentScrs.length
+            ? Math.round(studentScrs.reduce((a, b) => a + b, 0) / studentScrs.length)
+            : null
+          if (classAvg != null && studentAvg != null)
+            return `${topic}: your score (${studentAvg}) was below the class average (${Math.round(classAvg)})`
+          return `${topic}: needs more practice`
+        })
+
+        const content = await generateYearRevisionTask({
+          studentName:    `${student.firstName} ${student.lastName}`,
+          subject:        input.subject,
+          yearGroup:      input.yearGroup,
+          allTopics:      input.selectedTopics,
+          focusTopics,
+          focusReasons,
+          sendAdaptations: isSend ? [sendStatus as string] : [],
+        })
+
+        return { studentId: student.id, focusTopics, content }
+      }))
+      generated.push(...results.map(r => ({ studentId: r.studentId, content: r.content, focusTopics: r.focusTopics })))
+    }
+
+    // Save in transaction
+    const result = await prisma.$transaction(async tx => {
+      const program = await (tx as any).revisionProgram.create({
+        data: {
+          schoolId:     user.schoolId,
+          classId:      null,
+          createdBy:    user.id,
+          title:        input.title,
+          subject:      input.subject,
+          yearGroup:    input.yearGroup,
+          periodStart:  yearStart,
+          periodEnd:    now,
+          topics:       input.selectedTopics,
+          mode:         input.mode,
+          deadline:     input.deadline ?? null,
+          durationWeeks: 2,
+          status:       'draft',
+          programType:  'year',
+        },
+      })
+
+      const taskData = generated.map((g: any) => ({
+        programId:        program.id,
+        studentId:        g.studentId,
+        schoolId:         user.schoolId,
+        focusTopics:      g.focusTopics,
+        taskType:         'year_revision',
+        structuredContent: g.content.structuredContent as any,
+        instructions:     g.content.instructions,
+        modelAnswer:      null,
+        weakTopics:       g.focusTopics,
+        strongTopics:     [],
+        sendAdaptations:  [],
+        ilpTargetIds:     [] as string[],
+        estimatedMins:    60,
+      }))
+
+      await (tx as any).revisionTask.createMany({ data: taskData })
+      return { programId: program.id, taskCount: taskData.length }
+    })
+
+    // Notify students
+    if (input.mode === 'formal_assignment') {
+      try {
+        await prisma.notification.createMany({
+          data: students.map(s => ({
+            userId:   s.id,
+            schoolId: user.schoolId,
+            type:     'HOMEWORK_REMINDER',
+            title:    `Year Revision: ${input.title}`,
+            body:     input.deadline
+              ? `Due ${new Date(input.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`
+              : 'Your personalised year revision is ready.',
+            linkHref: '/student/revision',
+            read:     false,
+          })),
+        })
+      } catch { /* non-fatal */ }
+    }
+
+    return result
+  } catch (err) {
+    console.error('[createYearRevisionProgram] error:', err)
+    throw err
   }
 }

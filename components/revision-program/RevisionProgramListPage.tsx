@@ -4,5 +4,11 @@ import RevisionProgramList from './RevisionProgramList'
 
 export default function RevisionProgramListPage({ programs }: { programs: any[] }) {
   const router = useRouter()
-  return <RevisionProgramList programs={programs} onNew={() => router.push('/revision-program/new')} />
+  return (
+    <RevisionProgramList
+      programs={programs}
+      onNew={() => router.push('/revision-program/new')}
+      onNewYear={() => router.push('/revision-program/year')}
+    />
+  )
 }

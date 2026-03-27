@@ -1,6 +1,6 @@
 'use server'
 import { auth }            from '@/lib/auth'
-import { prisma }          from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
@@ -40,6 +40,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
           },
         },
       },
+      questions:   { orderBy: { orderIndex: 'asc' as const } },
       lesson:      { select: { id: true, title: true } },
       submissions: {
         include: { student: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, settings: { select: { profilePictureUrl: true } } } } },
@@ -68,6 +69,38 @@ export async function getHomeworkForMarking(homeworkId: string) {
     : []
   const kPlanByStudent = Object.fromEntries(kPlans.map(p => [p.studentId, { teacherActions: p.teacherActions }]))
 
+  // Active ILP goals for SEND students (for marking sidebar)
+  const sendStudentIds = sendStatuses.map(s => s.studentId)
+  const ilpRecords: Array<{ id: string; studentId: string; needsSummary: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }> = sendStudentIds.length
+    ? await (prisma as any).iLP.findMany({
+        where: { studentId: { in: sendStudentIds }, schoolId, status: 'ACTIVE' },
+        select: {
+          id: true, studentId: true, needsSummary: true,
+          targets: {
+            where: { achieved: false },
+            select: { id: true, description: true, successCriteria: true, subject: true },
+          },
+        },
+      })
+    : []
+  const ilpByStudent: Record<string, { id: string; needsSummary: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }> =
+    Object.fromEntries(ilpRecords.map(r => [r.studentId, r]))
+
+  // Teacher notes for each submission
+  const subIds = hw.submissions.map(s => s.id)
+  const rawNotes: Array<{ id: string; planId: string; note: string; createdAt: Date; teacher: { firstName: string; lastName: string } }> = subIds.length
+    ? await (prisma as any).teacherPlanNote.findMany({
+        where: { planType: 'homework_submission', planId: { in: subIds }, schoolId },
+        select: { id: true, planId: true, note: true, createdAt: true, teacher: { select: { firstName: true, lastName: true } } },
+        orderBy: { createdAt: 'asc' as const },
+      })
+    : []
+  const notesBySubmission: Record<string, Array<{ id: string; note: string; createdAt: Date; teacherName: string }>> = {}
+  for (const n of rawNotes) {
+    if (!notesBySubmission[n.planId]) notesBySubmission[n.planId] = []
+    notesBySubmission[n.planId].push({ id: n.id, note: n.note, createdAt: n.createdAt, teacherName: `${n.teacher.firstName} ${n.teacher.lastName}` })
+  }
+
   // Merge UserSettings.profilePictureUrl → avatarUrl so StudentAvatar shows Wonde photos
   const hwMerged = {
     ...hw,
@@ -90,7 +123,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
     })),
   }
 
-  return { ...hwMerged, sendByStudent, kPlanByStudent }
+  return { ...hwMerged, sendByStudent, kPlanByStudent, ilpByStudent, notesBySubmission }
 }
 
 export async function getSubmissionForMarking(submissionId: string) {
@@ -1180,4 +1213,42 @@ export async function resendHomeworkReminder(homeworkId: string, studentId: stri
   })
 
   return { ok: true }
+}
+
+// ── Teacher notes on submissions ──────────────────────────────────────────────
+
+export async function saveHomeworkTeacherNote(submissionId: string, note: string): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, id: userId } = session.user as any
+
+  const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
+  if (!sub) throw new Error('Submission not found')
+
+  await (prisma as any).teacherPlanNote.create({
+    data: { planType: 'homework_submission', planId: submissionId, teacherId: userId, schoolId, note },
+  })
+
+  await writeAudit({ schoolId, actorId: userId, action: 'SUBMISSION_GRADED', targetType: 'Submission', targetId: submissionId, metadata: { noteAdded: true } })
+  revalidatePath(`/homework/${sub.homeworkId}`)
+}
+
+// ── Link homework to ILP target as evidence ───────────────────────────────────
+
+export async function recordHomeworkAsIlpEvidence(homeworkId: string, ilpTargetId: string): Promise<{ alreadyLinked: boolean }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, id: userId } = session.user as any
+
+  const hw = await prisma.homework.findFirst({ where: { id: homeworkId, schoolId } })
+  if (!hw) throw new Error('Homework not found')
+
+  const existing = await (prisma as any).ilpHomeworkLink.findFirst({ where: { ilpTargetId, homeworkId } })
+  if (existing) return { alreadyLinked: true }
+
+  await (prisma as any).ilpHomeworkLink.create({
+    data: { ilpTargetId, homeworkId, linkedBy: userId },
+  })
+
+  return { alreadyLinked: false }
 }

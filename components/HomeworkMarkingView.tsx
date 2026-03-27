@@ -2,8 +2,8 @@
 import { useState, useMemo, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare, BookOpen } from 'lucide-react'
-import { markSubmission, resendHomeworkReminder } from '@/app/actions/homework'
+import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare, BookOpen, FileText, Target, StickyNote, Plus } from 'lucide-react'
+import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -86,6 +86,132 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// ── QuestionCard ───────────────────────────────────────────────────────────────
+
+function QuestionCard({
+  index, total, prompt, type, optionsJson, correctAnswerJson, rubricJson, explanationText,
+  maxScore, studentAnswer, score, onScoreChange,
+}: {
+  index: number
+  total: number
+  prompt: string
+  type: string
+  optionsJson: unknown
+  correctAnswerJson: unknown
+  rubricJson: unknown
+  explanationText: string | null | undefined
+  maxScore: number
+  studentAnswer: string | undefined
+  score: string
+  onScoreChange: (v: string) => void
+}) {
+  const [showModel, setShowModel] = useState(false)
+  const [showScheme, setShowScheme] = useState(false)
+
+  const modelAnswer = correctAnswerJson == null ? null
+    : typeof correctAnswerJson === 'string' ? correctAnswerJson
+    : typeof correctAnswerJson === 'object' ? JSON.stringify(correctAnswerJson)
+    : String(correctAnswerJson)
+
+  const options: string[] = !optionsJson ? [] : Array.isArray(optionsJson)
+    ? (optionsJson as string[])
+    : Object.values(optionsJson as Record<string, string>)
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-gray-500">Q{index} of {total}</span>
+        <div className="flex items-center gap-1.5">
+          <label className="text-[10px] text-gray-400">Marks:</label>
+          <input
+            type="number"
+            min={0}
+            max={maxScore}
+            value={score}
+            onChange={e => onScoreChange(e.target.value)}
+            className="w-14 border border-gray-300 rounded px-2 py-1 text-[12px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder={`/${maxScore}`}
+          />
+          <span className="text-[11px] text-gray-400">/{maxScore}</span>
+        </div>
+      </div>
+      <div className="px-4 py-3 space-y-2.5">
+        {/* Question prompt */}
+        <p className="text-[13px] font-medium text-gray-800">{prompt}</p>
+
+        {/* MCQ options */}
+        {type === 'MCQ_QUIZ' && options.length > 0 && (
+          <div className="space-y-1 pl-1">
+            {options.map((opt, i) => {
+              const letter = String.fromCharCode(65 + i)
+              const selected = studentAnswer === letter || studentAnswer === opt
+              return (
+                <div key={i} className={`text-[12px] px-2 py-1 rounded flex items-center gap-1.5 ${
+                  selected ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600'
+                }`}>
+                  <span className="font-semibold w-4 shrink-0">{letter}.</span>
+                  <span>{opt}</span>
+                  {selected && <span className="ml-auto text-[10px] text-blue-500">selected</span>}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Student answer */}
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Student&apos;s Answer</p>
+          <div className={`border rounded-lg px-3 py-2 text-[13px] leading-relaxed ${
+            studentAnswer ? 'bg-blue-50 border-blue-100 text-gray-800' : 'bg-gray-50 border-gray-200'
+          }`}>
+            {studentAnswer || <span className="text-gray-400 italic">No answer recorded</span>}
+          </div>
+        </div>
+
+        {/* Model answer toggle */}
+        {modelAnswer != null && (
+          <div>
+            <button
+              onClick={() => setShowModel(v => !v)}
+              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-green-700 transition-colors"
+            >
+              {showModel ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showModel ? 'Hide' : 'Show'} model answer
+            </button>
+            {showModel && (
+              <div className="mt-1.5 bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {modelAnswer}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mark scheme rubric toggle */}
+        {rubricJson != null && (
+          <div>
+            <button
+              onClick={() => setShowScheme(v => !v)}
+              className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-amber-700 transition-colors"
+            >
+              {showScheme ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showScheme ? 'Hide' : 'Show'} mark scheme
+            </button>
+            {showScheme && (
+              <div className="mt-1.5 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-[12px] text-gray-600 leading-relaxed whitespace-pre-wrap">
+                {typeof rubricJson === 'string' ? rubricJson : JSON.stringify(rubricJson, null, 2)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {explanationText != null && explanationText !== '' && (
+          <p className="text-[11px] text-gray-400 italic">{explanationText}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── filter type ────────────────────────────────────────────────────────────────
 
 type PupilFilter = 'all' | 'submitted' | 'returned' | 'missing' | 'send'
@@ -97,6 +223,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const maxScore       = maxFromBands(hw.gradingBands)
   const sendByStudent  = hw.sendByStudent
   const kPlanByStudent = (hw as any).kPlanByStudent as Record<string, { teacherActions: string[] }> | undefined ?? {}
+  const ilpByStudent   = (hw as any).ilpByStudent   as Record<string, { id: string; needsSummary: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }> | undefined ?? {}
+  const notesBySubmission = (hw as any).notesBySubmission as Record<string, Array<{ id: string; note: string; createdAt: string; teacherName: string }>> | undefined ?? {}
 
   // Map student ID → submission
   const subByStudent = useMemo(
@@ -113,7 +241,6 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   )
 
   // ── filter counts ─────────────────────────────────────────────────────────
-  // "submitted" = received but not yet returned to student
   const submittedCount = pupils.filter(p =>
     p.submission && p.submission.status !== 'RETURNED'
   ).length
@@ -126,12 +253,6 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
   const sendCount = pupils.filter(p =>
     sendByStudent[p.id]?.activeStatus && sendByStudent[p.id].activeStatus !== 'NONE'
-  ).length
-
-  const sendMissingCount = pupils.filter(p =>
-    !p.submission &&
-    sendByStudent[p.id]?.activeStatus &&
-    sendByStudent[p.id].activeStatus !== 'NONE'
   ).length
 
   const needsReviewCount = hw.submissions.filter(s =>
@@ -155,13 +276,23 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const [kPlanOpen,       setKPlanOpen]       = useState(false)
   const [kPlanChecked,    setKPlanChecked]    = useState<boolean[]>([])
   const [kPlanStudentId,  setKPlanStudentId]  = useState<string | null>(null)
+  // Per-question scores: studentId → array of score strings
+  const [perQScores,      setPerQScores]      = useState<Record<string, string[]>>({})
+  // Teacher notes
+  const [newNote,         setNewNote]         = useState('')
+  const [noteSaving,      setNoteSaving]      = useState(false)
+  const [noteError,       setNoteError]       = useState<string | null>(null)
+  // ILP evidence
+  const [evidenceSaved,   setEvidenceSaved]   = useState<Record<string, boolean>>({}) // targetId → saved
+  const [evidenceLoading, setEvidenceLoading] = useState<Record<string, boolean>>({})
+  const [showAllTargets,  setShowAllTargets]  = useState(false)
+
   const router = useRouter()
 
   // Per-student form state
   const [formState, setFormState] = useState<Record<string, { score: string; grade: string; feedback: string }>>(() => {
     const init: Record<string, { score: string; grade: string; feedback: string }> = {}
     for (const s of hw.submissions) {
-      // Pre-fill from finalScore; fall back to autoScore when not yet teacher-marked
       let normScore = normalizeScoreForForm(s.finalScore, maxScore)
       if (normScore === '') {
         const autoScore = (s as any).autoScore as number | null
@@ -203,7 +334,6 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     }
   }, [pupils, pupilFilter, sendByStudent])
 
-  // Split for visual divider (submitted above, missing below)
   const listSubmitted = filteredPupils.filter(p => !!p.submission)
   const listMissing   = filteredPupils.filter(p => !p.submission)
 
@@ -212,6 +342,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const form            = selectedId ? (formState[selectedId] ?? { score: '', grade: '', feedback: '' }) : null
   const sendInfo        = selectedId ? sendByStudent[selectedId] : null
   const selectedKPlan   = selectedId ? kPlanByStudent[selectedId] : null
+  const selectedIlp     = selectedId ? ilpByStudent[selectedId] : null
+  const selectedNotes   = selectedSub ? (notesBySubmission[selectedSub.id] ?? []) : []
 
   // Reset checklist when selected student changes
   if (selectedId !== kPlanStudentId && selectedKPlan) {
@@ -219,6 +351,37 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     setKPlanChecked(new Array(selectedKPlan.teacherActions.length).fill(false))
     setKPlanOpen(false)
   }
+
+  // Structured questions
+  const questions = (hw.questions ?? []) as Array<{
+    id: string; orderIndex: number; type: string; prompt: string
+    optionsJson: unknown; correctAnswerJson: unknown; rubricJson: unknown
+    explanationText: string | null; maxScore: number
+  }>
+  const structuredContent = (hw as any).structuredContent as {
+    questions?: Array<{ question: string; answer?: string; modelAnswer?: string; marks?: number }>
+  } | null
+  const structuredAnswers = ((selectedSub?.structuredResponse as { answers?: string[] } | null)?.answers) ?? []
+
+  const hasStructuredQuestions = questions.length > 0 || (structuredContent?.questions?.length ?? 0) > 0
+
+  // Per-question score helpers
+  function handlePerQScore(questionIndex: number, value: string) {
+    if (!selectedId) return
+    setPerQScores(prev => {
+      const current = prev[selectedId] ?? []
+      const next = [...current]
+      next[questionIndex] = value
+      return { ...prev, [selectedId]: next }
+    })
+  }
+
+  const qCount = questions.length > 0 ? questions.length : (structuredContent?.questions?.length ?? 0)
+  const perQScoreArr = selectedId ? (perQScores[selectedId] ?? []) : []
+  const perQFilledCount = perQScoreArr.filter(s => s !== '' && s !== undefined).length
+  const perQRunningTotal = perQFilledCount > 0
+    ? perQScoreArr.reduce((sum, s) => sum + (Number(s) || 0), 0)
+    : null
 
   function setField(field: 'score' | 'grade' | 'feedback', value: string) {
     if (!selectedId) return
@@ -298,6 +461,37 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         setRemindingId(null)
       }
     })
+  }
+
+  async function handleAddNote() {
+    if (!selectedSub || !newNote.trim()) return
+    setNoteSaving(true)
+    setNoteError(null)
+    try {
+      await saveHomeworkTeacherNote(selectedSub.id, newNote.trim())
+      setNewNote('')
+      router.refresh()
+    } catch {
+      setNoteError('Failed to save note. Please try again.')
+    } finally {
+      setNoteSaving(false)
+    }
+  }
+
+  async function handleRecordEvidence(targetId: string) {
+    if (!selectedIlp) return
+    setEvidenceLoading(prev => ({ ...prev, [targetId]: true }))
+    try {
+      const result = await recordHomeworkAsIlpEvidence(hw.id, targetId)
+      setEvidenceSaved(prev => ({ ...prev, [targetId]: true }))
+      if (result.alreadyLinked) {
+        // Already linked — just mark as saved
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setEvidenceLoading(prev => ({ ...prev, [targetId]: false }))
+    }
   }
 
   // ── student list row ─────────────────────────────────────────────────────
@@ -477,6 +671,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     }
   }
 
+  // ILP targets to display in sidebar
+  const ilpTargets = selectedIlp?.targets ?? []
+  const visibleTargets = showAllTargets ? ilpTargets : ilpTargets.slice(0, 3)
+
   return (
     <div className="flex flex-col h-full min-h-0">
 
@@ -616,311 +814,549 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         </div>
       </div>
 
-      {/* ── Right: marking panel ───────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
-        {!selectedSub || !selectedStudent || !form ? (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <p className="text-[13px]">Select a submission to mark</p>
-          </div>
-        ) : (
-          <div className="max-w-2xl mx-auto px-8 py-6 space-y-5">
+      {/* ── Right: marking area (main content + optional SEND sidebar) ─────── */}
+      <div className="flex-1 flex overflow-hidden">
 
-            {/* student header */}
-            <div className="flex items-center gap-3">
-              <StudentAvatar
-                firstName={selectedStudent.firstName}
-                lastName={selectedStudent.lastName}
-                avatarUrl={(selectedStudent as any).avatarUrl ?? null}
-                size="md"
-                sendStatus={(sendInfo?.activeStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP') ?? 'NONE'}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-[16px] font-semibold text-gray-900">
-                    {selectedStudent.firstName} {selectedStudent.lastName}
-                  </p>
-                  {sendInfo && sendInfo.activeStatus !== 'NONE' && (
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      sendInfo.activeStatus === 'EHCP'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {sendInfo.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                      {sendInfo.needArea ? ` · ${sendInfo.needArea}` : ''}
-                    </span>
-                  )}
-                  <StatusBadge status={selectedSub.status} />
-                </div>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  Submitted {new Date(selectedSub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  {isReturned && selectedSub.markedAt &&
-                    new Date(selectedSub.markedAt) >= new Date(selectedSub.submittedAt) && (
-                      <span className="text-green-600 ml-1">
-                        · Returned {new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </span>
-                    )
-                  }
-                </p>
-              </div>
+        {/* Main marking content */}
+        <div className="flex-1 overflow-auto">
+          {!selectedSub || !selectedStudent || !form ? (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              <p className="text-[13px]">Select a submission to mark</p>
             </div>
+          ) : (
+            <div className="max-w-2xl mx-auto px-8 py-6 space-y-5">
 
-            {/* K Plan lesson actions */}
-            {selectedKPlan && selectedKPlan.teacherActions.length > 0 && (
-              <div className={`border rounded-xl overflow-hidden ${
-                sendInfo?.activeStatus === 'EHCP' ? 'border-purple-200' : 'border-blue-200'
-              }`}>
-                <button
-                  onClick={() => setKPlanOpen(v => !v)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 transition-colors text-left ${
-                    sendInfo?.activeStatus === 'EHCP'
-                      ? 'bg-purple-50 hover:bg-purple-100'
-                      : 'bg-blue-50 hover:bg-blue-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <BookOpen size={13} className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
-                    <span className={`text-[12px] font-semibold ${sendInfo?.activeStatus === 'EHCP' ? 'text-purple-800' : 'text-blue-800'}`}>
-                      K Plan — Lesson actions for {selectedStudent?.firstName}
-                    </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
-                      sendInfo?.activeStatus === 'EHCP'
-                        ? 'bg-purple-200 text-purple-700'
-                        : 'bg-blue-200 text-blue-700'
-                    }`}>
-                      {selectedKPlan.teacherActions.length} actions
-                    </span>
-                  </div>
-                  {kPlanOpen ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
-                </button>
-                {kPlanOpen && (
-                  <div className="px-4 py-3 space-y-2 bg-white">
-                    <p className="text-[10px] text-gray-400 italic mb-2">Tick off as reminders — not saved</p>
-                    {selectedKPlan.teacherActions.map((action, i) => (
-                      <label key={i} className="flex items-start gap-2.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={kPlanChecked[i] ?? false}
-                          onChange={() => {
-                            setKPlanChecked(prev => {
-                              const next = [...prev]
-                              next[i] = !next[i]
-                              return next
-                            })
-                          }}
-                          className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 cursor-pointer"
-                          style={{ accentColor: sendInfo?.activeStatus === 'EHCP' ? '#7c3aed' : '#2563eb' }}
-                        />
-                        <span className={`text-[12px] leading-snug ${kPlanChecked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                          {action}
-                        </span>
-                      </label>
-                    ))}
-                    <a
-                      href={`/student/${selectedId}/send`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 mt-1 transition-colors"
-                    >
-                      <ExternalLink size={11} /> Full SEND record
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* submission content */}
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Submission</p>
-              <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
-              </div>
-            </div>
-
-            {/* model answer (collapsible) */}
-            {hw.modelAnswer && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setShowModelAnswer(v => !v)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                >
-                  <span className="text-[12px] font-semibold text-gray-700">Model Answer</span>
-                  {showModelAnswer ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                </button>
-                {showModelAnswer && (
-                  <div className="px-4 py-4 text-[12px] text-gray-700 leading-relaxed bg-white whitespace-pre-wrap">
-                    {hw.modelAnswer}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* grading bands (collapsible) */}
-            {hw.gradingBands && typeof hw.gradingBands === 'object' && !Array.isArray(hw.gradingBands) && Object.keys(hw.gradingBands as object).length > 0 && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => setShowBands(v => !v)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-                >
-                  <span className="text-[12px] font-semibold text-gray-700">Mark Scheme</span>
-                  {showBands ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-                </button>
-                {showBands && (
-                  <div className="divide-y divide-gray-100">
-                    {Object.entries(hw.gradingBands as Record<string, string>).map(([band, desc]) => (
-                      <div key={band} className="flex gap-3 px-4 py-3">
-                        <span className="text-[11px] font-bold text-blue-700 w-10 shrink-0">{band}</span>
-                        <span className="text-[12px] text-gray-600">{desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* AI Suggested Mark section */}
-            {isAutoMarkedPending && (
-              <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-                  <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
-                  <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
-                  <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
-                    {selectedAutoMarked ? 'Auto-marked' : 'AI score available'}
-                  </span>
-                </div>
-                <div className="px-4 py-3 space-y-2">
-                  {selectedAutoScore != null && (() => {
-                    const isLegacyPct = selectedAutoScore > maxScore && maxScore <= 20
-                    const rawScore = isLegacyPct ? Math.round((selectedAutoScore / 100) * maxScore) : selectedAutoScore
-                    const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
-                    return (
-                      <p className="text-sm text-amber-900">
-                        Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
-                      </p>
-                    )
-                  })()}
-                  {selectedAutoFeedback && (
-                    <p className="text-xs text-amber-800 leading-relaxed line-clamp-3">
-                      {selectedAutoFeedback}
+              {/* student header */}
+              <div className="flex items-center gap-3">
+                <StudentAvatar
+                  firstName={selectedStudent.firstName}
+                  lastName={selectedStudent.lastName}
+                  avatarUrl={(selectedStudent as any).avatarUrl ?? null}
+                  size="md"
+                  sendStatus={(sendInfo?.activeStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP') ?? 'NONE'}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-[16px] font-semibold text-gray-900">
+                      {selectedStudent.firstName} {selectedStudent.lastName}
                     </p>
-                  )}
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={handleApprove}
-                      disabled={isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
-                    >
-                      {isPending
-                        ? <Loader2 size={12} className="animate-spin" />
-                        : <CheckCircle2 size={12} />
-                      }
-                      Approve &amp; Return
-                    </button>
-                    <p className="flex items-center text-[11px] text-amber-700 px-2">or edit below ↓</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* marking form */}
-            <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <p className="text-[12px] font-semibold text-gray-700">
-                  {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit before returning' : 'Mark Submission'}
-                </p>
-              </div>
-              <div className="px-4 py-4 space-y-4">
-
-                {/* score + grade row */}
-                <div className="flex items-start gap-4">
-                  <div className="flex-1">
-                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
-                      Score (out of {maxScore})
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={maxScore}
-                      value={form.score}
-                      onChange={e => setField('score', e.target.value)}
-                      className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-[14px] font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="—"
-                    />
-                    {form.score !== '' && Number(form.score) >= 0 && (
-                      <div className="mt-2 h-1.5 w-48 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            Number(form.score) / maxScore >= 0.7 ? 'bg-green-500' :
-                            Number(form.score) / maxScore >= 0.4 ? 'bg-amber-500' : 'bg-rose-500'
-                          }`}
-                          style={{ width: `${Math.min((Number(form.score) / maxScore) * 100, 100)}%` }}
-                        />
-                      </div>
+                    {sendInfo && sendInfo.activeStatus !== 'NONE' && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        sendInfo.activeStatus === 'EHCP'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {sendInfo.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
+                        {sendInfo.needArea ? ` · ${sendInfo.needArea}` : ''}
+                      </span>
                     )}
+                    <StatusBadge status={selectedSub.status} />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Grade</label>
-                    <input
-                      type="text"
-                      value={form.grade}
-                      onChange={e => setField('grade', e.target.value)}
-                      className={`w-20 border rounded-lg px-3 py-2 text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
-                      placeholder="—"
-                    />
-                    <p className={`text-[10px] mt-1 ${
-                      gradeState === 'auto'      ? 'text-amber-600' :
-                      gradeState === 'confirmed' ? 'text-green-600' :
-                      gradeHasValue              ? 'text-amber-500' :
-                      'text-gray-400'
-                    }`}>{gradeLabel}</p>
-                  </div>
-                </div>
-
-                {/* feedback */}
-                <div>
-                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
-                    Feedback to Student
-                  </label>
-                  <textarea
-                    rows={5}
-                    value={form.feedback}
-                    onChange={e => setField('feedback', e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[13px] text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    placeholder="Write constructive feedback for the student…"
-                  />
-                </div>
-
-                {/* error */}
-                {error && (
-                  <p className="text-[12px] text-rose-600 font-medium">{error}</p>
-                )}
-
-                {/* submit */}
-                <div className="flex items-center justify-between pt-1">
-                  {savedId === selectedId ? (
-                    <span className="flex items-center gap-1.5 text-[12px] text-green-600 font-medium">
-                      <CheckCircle2 size={14} /> Returned to student
-                    </span>
-                  ) : <span />}
-                  <button
-                    onClick={handleSave}
-                    disabled={isPending || form.score === ''}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
-                  >
-                    {isPending && <Loader2 size={13} className="animate-spin" />}
-                    {isAutoMarkedPending
-                      ? 'Confirm & Return'
-                      : isReturned ? '✓ Returned — Edit & Resend'
-                      : isAlreadyMarked ? 'Update & Return'
-                      : 'Mark & Return'
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Submitted {new Date(selectedSub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {isReturned && selectedSub.markedAt &&
+                      new Date(selectedSub.markedAt) >= new Date(selectedSub.submittedAt) && (
+                        <span className="text-green-600 ml-1">
+                          · Returned {new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )
                     }
-                  </button>
+                  </p>
                 </div>
               </div>
+
+              {/* K Plan lesson actions */}
+              {selectedKPlan && selectedKPlan.teacherActions.length > 0 && (
+                <div className={`border rounded-xl overflow-hidden ${
+                  sendInfo?.activeStatus === 'EHCP' ? 'border-purple-200' : 'border-blue-200'
+                }`}>
+                  <button
+                    onClick={() => setKPlanOpen(v => !v)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 transition-colors text-left ${
+                      sendInfo?.activeStatus === 'EHCP'
+                        ? 'bg-purple-50 hover:bg-purple-100'
+                        : 'bg-blue-50 hover:bg-blue-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <BookOpen size={13} className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
+                      <span className={`text-[12px] font-semibold ${sendInfo?.activeStatus === 'EHCP' ? 'text-purple-800' : 'text-blue-800'}`}>
+                        K Plan — Lesson actions for {selectedStudent?.firstName}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                        sendInfo?.activeStatus === 'EHCP'
+                          ? 'bg-purple-200 text-purple-700'
+                          : 'bg-blue-200 text-blue-700'
+                      }`}>
+                        {selectedKPlan.teacherActions.length} actions
+                      </span>
+                    </div>
+                    {kPlanOpen ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
+                  </button>
+                  {kPlanOpen && (
+                    <div className="px-4 py-3 space-y-2 bg-white">
+                      <p className="text-[10px] text-gray-400 italic mb-2">Tick off as reminders — not saved</p>
+                      {selectedKPlan.teacherActions.map((action, i) => (
+                        <label key={i} className="flex items-start gap-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={kPlanChecked[i] ?? false}
+                            onChange={() => {
+                              setKPlanChecked(prev => {
+                                const next = [...prev]
+                                next[i] = !next[i]
+                                return next
+                              })
+                            }}
+                            className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 cursor-pointer"
+                            style={{ accentColor: sendInfo?.activeStatus === 'EHCP' ? '#7c3aed' : '#2563eb' }}
+                          />
+                          <span className={`text-[12px] leading-snug ${kPlanChecked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                            {action}
+                          </span>
+                        </label>
+                      ))}
+                      <a
+                        href={`/student/${selectedId}/send`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 mt-1 transition-colors"
+                      >
+                        <ExternalLink size={11} /> Full SEND record
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Q&A Cards (structured questions) ─── */}
+              {hasStructuredQuestions ? (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <FileText size={11} /> Questions &amp; Answers
+                  </p>
+                  <div className="space-y-3">
+                    {questions.length > 0
+                      ? questions.map((q, i) => (
+                          <QuestionCard
+                            key={q.id}
+                            index={i + 1}
+                            total={questions.length}
+                            prompt={q.prompt}
+                            type={q.type}
+                            optionsJson={q.optionsJson}
+                            correctAnswerJson={q.correctAnswerJson}
+                            rubricJson={q.rubricJson}
+                            explanationText={q.explanationText}
+                            maxScore={q.maxScore}
+                            studentAnswer={structuredAnswers[q.orderIndex] ?? structuredAnswers[i]}
+                            score={perQScores[selectedId!]?.[i] ?? ''}
+                            onScoreChange={v => handlePerQScore(i, v)}
+                          />
+                        ))
+                      : structuredContent!.questions!.map((q, i) => (
+                          <QuestionCard
+                            key={i}
+                            index={i + 1}
+                            total={structuredContent!.questions!.length}
+                            prompt={q.question}
+                            type="SHORT_ANSWER"
+                            optionsJson={null}
+                            correctAnswerJson={q.answer ?? q.modelAnswer ?? null}
+                            rubricJson={null}
+                            explanationText={null}
+                            maxScore={q.marks ?? 1}
+                            studentAnswer={structuredAnswers[i]}
+                            score={perQScores[selectedId!]?.[i] ?? ''}
+                            onScoreChange={v => handlePerQScore(i, v)}
+                          />
+                        ))
+                    }
+                  </div>
+                  {/* Per-question running total */}
+                  {perQRunningTotal !== null && (
+                    <div className="mt-3 flex items-center gap-3 px-1">
+                      <span className="text-[12px] text-gray-600 font-medium">
+                        Running total: <span className="font-bold text-blue-700">{perQRunningTotal}/{maxScore}</span>
+                        {qCount > 0 && perQFilledCount < qCount && (
+                          <span className="text-gray-400 font-normal ml-1">({perQFilledCount}/{qCount} questions marked)</span>
+                        )}
+                      </span>
+                      {perQFilledCount === qCount && (
+                        <button
+                          onClick={() => setField('score', String(perQRunningTotal))}
+                          className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                        >
+                          Copy to total ↓
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Flat submission content (extended writing / upload) */
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Submission</p>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* If structured questions + also a free-text content block, show it */}
+              {hasStructuredQuestions && selectedSub.content && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Additional notes</p>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                    {selectedSub.content}
+                  </div>
+                </div>
+              )}
+
+              {/* model answer (collapsible) — for non-structured or overall model answer */}
+              {hw.modelAnswer && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setShowModelAnswer(v => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <span className="text-[12px] font-semibold text-gray-700">Overall Model Answer</span>
+                    {showModelAnswer ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                  </button>
+                  {showModelAnswer && (
+                    <div className="px-4 py-4 text-[12px] text-gray-700 leading-relaxed bg-white whitespace-pre-wrap">
+                      {hw.modelAnswer}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* grading bands (collapsible) */}
+              {hw.gradingBands && typeof hw.gradingBands === 'object' && !Array.isArray(hw.gradingBands) && Object.keys(hw.gradingBands as object).length > 0 && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setShowBands(v => !v)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <span className="text-[12px] font-semibold text-gray-700">Mark Scheme</span>
+                    {showBands ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                  </button>
+                  {showBands && (
+                    <div className="divide-y divide-gray-100">
+                      {Object.entries(hw.gradingBands as Record<string, string>).map(([band, desc]) => (
+                        <div key={band} className="flex gap-3 px-4 py-3">
+                          <span className="text-[11px] font-bold text-blue-700 w-10 shrink-0">{band}</span>
+                          <span className="text-[12px] text-gray-600">{desc}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Suggested Mark section */}
+              {isAutoMarkedPending && (
+                <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
+                    <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
+                    <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
+                    <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                      {selectedAutoMarked ? 'Auto-marked' : 'AI score available'}
+                    </span>
+                  </div>
+                  <div className="px-4 py-3 space-y-2">
+                    {selectedAutoScore != null && (() => {
+                      const isLegacyPct = selectedAutoScore > maxScore && maxScore <= 20
+                      const rawScore = isLegacyPct ? Math.round((selectedAutoScore / 100) * maxScore) : selectedAutoScore
+                      const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
+                      return (
+                        <p className="text-sm text-amber-900">
+                          Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
+                        </p>
+                      )
+                    })()}
+                    {selectedAutoFeedback && (
+                      <p className="text-xs text-amber-800 leading-relaxed line-clamp-3">
+                        {selectedAutoFeedback}
+                      </p>
+                    )}
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleApprove}
+                        disabled={isPending}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                      >
+                        {isPending
+                          ? <Loader2 size={12} className="animate-spin" />
+                          : <CheckCircle2 size={12} />
+                        }
+                        Approve &amp; Return
+                      </button>
+                      <p className="flex items-center text-[11px] text-amber-700 px-2">or edit below ↓</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* marking form */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <p className="text-[12px] font-semibold text-gray-700">
+                    {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit before returning' : 'Mark Submission'}
+                  </p>
+                </div>
+                <div className="px-4 py-4 space-y-4">
+
+                  {/* score + grade row */}
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                        Score (out of {maxScore})
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxScore}
+                        value={form.score}
+                        onChange={e => setField('score', e.target.value)}
+                        className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-[14px] font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="—"
+                      />
+                      {form.score !== '' && Number(form.score) >= 0 && (
+                        <div className="mt-2 h-1.5 w-48 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              Number(form.score) / maxScore >= 0.7 ? 'bg-green-500' :
+                              Number(form.score) / maxScore >= 0.4 ? 'bg-amber-500' : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${Math.min((Number(form.score) / maxScore) * 100, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Grade</label>
+                      <input
+                        type="text"
+                        value={form.grade}
+                        onChange={e => setField('grade', e.target.value)}
+                        className={`w-20 border rounded-lg px-3 py-2 text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
+                        placeholder="—"
+                      />
+                      <p className={`text-[10px] mt-1 ${
+                        gradeState === 'auto'      ? 'text-amber-600' :
+                        gradeState === 'confirmed' ? 'text-green-600' :
+                        gradeHasValue              ? 'text-amber-500' :
+                        'text-gray-400'
+                      }`}>{gradeLabel}</p>
+                    </div>
+                  </div>
+
+                  {/* feedback */}
+                  <div>
+                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                      Feedback to Student
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={form.feedback}
+                      onChange={e => setField('feedback', e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[13px] text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      placeholder="Write constructive feedback for the student…"
+                    />
+                  </div>
+
+                  {/* error */}
+                  {error && (
+                    <p className="text-[12px] text-rose-600 font-medium">{error}</p>
+                  )}
+
+                  {/* submit */}
+                  <div className="flex items-center justify-between pt-1">
+                    {savedId === selectedId ? (
+                      <span className="flex items-center gap-1.5 text-[12px] text-green-600 font-medium">
+                        <CheckCircle2 size={14} /> Returned to student
+                      </span>
+                    ) : <span />}
+                    <button
+                      onClick={handleSave}
+                      disabled={isPending || form.score === ''}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+                    >
+                      {isPending && <Loader2 size={13} className="animate-spin" />}
+                      {isAutoMarkedPending
+                        ? 'Confirm & Return'
+                        : isReturned ? '✓ Returned — Edit & Resend'
+                        : isAlreadyMarked ? 'Update & Return'
+                        : 'Mark & Return'
+                      }
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Teacher Notes ─── */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                  <StickyNote size={13} className="text-gray-400" />
+                  <p className="text-[12px] font-semibold text-gray-700">Teacher Notes</p>
+                  <span className="text-[10px] text-gray-400 ml-auto">Internal only — students never see these</span>
+                </div>
+                <div className="px-4 py-4 space-y-3">
+                  {/* Existing notes */}
+                  {selectedNotes.length > 0 && (
+                    <div className="space-y-2">
+                      {selectedNotes.map(n => (
+                        <div key={n.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2.5">
+                          <p className="text-[12px] text-gray-800 leading-relaxed whitespace-pre-wrap">{n.note}</p>
+                          <p className="text-[10px] text-gray-400 mt-1.5">
+                            {n.teacherName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Add note */}
+                  <div className="flex gap-2">
+                    <textarea
+                      rows={2}
+                      value={newNote}
+                      onChange={e => setNewNote(e.target.value)}
+                      placeholder="Add a private note about this submission…"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-[12px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                    <button
+                      onClick={handleAddNote}
+                      disabled={noteSaving || !newNote.trim()}
+                      className="flex items-center gap-1 self-end bg-gray-700 hover:bg-gray-800 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-medium transition-colors"
+                    >
+                      {noteSaving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                      Add
+                    </button>
+                  </div>
+                  {noteError && <p className="text-[11px] text-rose-600">{noteError}</p>}
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+
+        {/* ── SEND Sidebar — only when selected student has an active ILP ── */}
+        {selectedSub && selectedId && selectedIlp && (
+          <div className="w-72 shrink-0 border-l border-gray-200 overflow-auto bg-white">
+            <div className={`px-4 py-3 border-b sticky top-0 bg-white ${
+              sendInfo?.activeStatus === 'EHCP' ? 'border-purple-100' : 'border-blue-100'
+            }`}>
+              <div className="flex items-center gap-2">
+                <Target size={13} className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
+                <span className={`text-[12px] font-bold ${
+                  sendInfo?.activeStatus === 'EHCP' ? 'text-purple-800' : 'text-blue-800'
+                }`}>SEND Support</span>
+              </div>
+              <p className="text-[11px] text-gray-600 mt-1 leading-snug">{selectedStudent?.firstName} {selectedStudent?.lastName}</p>
+              {sendInfo && sendInfo.activeStatus !== 'NONE' && (
+                <span className={`mt-1.5 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  sendInfo.activeStatus === 'EHCP'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {sendInfo.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
+                  {sendInfo.needArea ? ` · ${sendInfo.needArea}` : ''}
+                </span>
+              )}
             </div>
 
+            <div className="px-4 py-4 space-y-4">
+
+              {/* ILP needs summary */}
+              {selectedIlp.needsSummary && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Area of Need</p>
+                  <p className="text-[12px] text-gray-700 leading-snug">{selectedIlp.needsSummary}</p>
+                </div>
+              )}
+
+              {/* ILP SMART goals */}
+              {ilpTargets.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">ILP Goals</p>
+                  <div className="space-y-2.5">
+                    {visibleTargets.map(target => (
+                      <div key={target.id} className={`border rounded-lg p-3 ${
+                        sendInfo?.activeStatus === 'EHCP' ? 'border-purple-100 bg-purple-50/40' : 'border-blue-100 bg-blue-50/40'
+                      }`}>
+                        <p className="text-[12px] text-gray-800 font-medium leading-snug">{target.description}</p>
+                        {target.successCriteria && (
+                          <p className="text-[11px] text-gray-500 mt-1 leading-snug">
+                            <span className="font-medium">Success:</span> {target.successCriteria}
+                          </p>
+                        )}
+                        {target.subject && (
+                          <span className="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                            {target.subject}
+                          </span>
+                        )}
+                        {/* Record as ILP evidence button */}
+                        <div className="mt-2">
+                          {evidenceSaved[target.id] ? (
+                            <span className="flex items-center gap-1 text-[11px] text-green-600 font-medium">
+                              <CheckCircle2 size={11} /> Linked as evidence
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleRecordEvidence(target.id)}
+                              disabled={evidenceLoading[target.id]}
+                              className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded transition-colors ${
+                                sendInfo?.activeStatus === 'EHCP'
+                                  ? 'bg-purple-100 hover:bg-purple-200 text-purple-700'
+                                  : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                              } disabled:opacity-40`}
+                            >
+                              {evidenceLoading[target.id]
+                                ? <Loader2 size={10} className="animate-spin" />
+                                : <Plus size={10} />
+                              }
+                              Record as ILP evidence
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {ilpTargets.length > 3 && (
+                    <button
+                      onClick={() => setShowAllTargets(v => !v)}
+                      className="mt-2 text-[11px] text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+                    >
+                      {showAllTargets
+                        ? <><ChevronUp size={12} /> Show fewer</>
+                        : <><ChevronDown size={12} /> Show all {ilpTargets.length} goals</>
+                      }
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {ilpTargets.length === 0 && (
+                <p className="text-[12px] text-gray-400 italic">No active ILP goals recorded.</p>
+              )}
+
+              {/* Full SEND record link */}
+              <a
+                href={`/student/${selectedId}/send`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-blue-600 transition-colors"
+              >
+                <ExternalLink size={11} /> Full SEND record
+              </a>
+            </div>
           </div>
         )}
-      </div>
+
+      </div>{/* end right: marking area */}
 
       </div>{/* end two-panel layout */}
     </div>

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { markSubmission } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import {
@@ -224,13 +225,13 @@ export default function SubmissionMarkingView({
                     <span className="text-amber-600">{' · '}Awaiting review</span>
                   )}
                 </p>
-                <a
+                <Link
                   href="/messages"
                   className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
                   title="Message student"
                 >
                   <MessageSquare size={11} /> Message
-                </a>
+                </Link>
               </div>
             </div>
           </div>

@@ -11,7 +11,6 @@ function requireAuth() {
 }
 
 const SENCO_TIER  = ['SENCO', 'SLT', 'SCHOOL_ADMIN']
-const TEACHER_TIER = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR']
 
 // ── Scoped student IDs ────────────────────────────────────────────────────────
 

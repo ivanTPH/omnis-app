@@ -269,6 +269,7 @@ export default function UnifiedResourceSearch({
     setBroadened(false)
     try {
       // First pass: AND terms + year group (all keywords must match — precise)
+      // eslint-disable-next-line prefer-const
       let [oakResults, schoolResults] = await Promise.all([
         searchOakLessons({ subjectSlug, yearGroup, query: q || undefined, andTerms: !!q, limit: 20 }),
         getSchoolResourceLibrary(lessonId),

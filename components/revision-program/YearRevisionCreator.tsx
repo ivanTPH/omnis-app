@@ -37,7 +37,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
   const [title,       setTitle]       = useState('')
 
   // Step 3 state
-  const [isGenerating, startGenerate] = useTransition()
+  const [_isGenerating, startGenerate] = useTransition()
 
   // Unique year groups for selected subject
   const yearGroups = subjectsYearGroups
@@ -298,7 +298,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
           </div>
 
           <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700">
-            <strong>Personalisation:</strong> Each student's guide will include all selected topics plus a
+            <strong>Personalisation:</strong> Each student&apos;s guide will include all selected topics plus a
             highlighted <em>Focus Areas</em> section for topics where their scores were below the class average
             or predicted grade.
           </div>

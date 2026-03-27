@@ -12,12 +12,12 @@ const BASIS_LABELS: Record<string, string> = {
 }
 
 type Props = {
-  children: ChildConsentData[]
+  consents: ChildConsentData[]
 }
 
 type LocalDecision = Record<string, string | null> // purposeId → decision
 
-export default function ParentConsentPortal({ children: childList }: Props) {
+export default function ParentConsentPortal({ consents: childList }: Props) {
   // Track optimistic decisions per student+purpose
   const [decisions, setDecisions] = useState<Record<string, LocalDecision>>(() => {
     const map: Record<string, LocalDecision> = {}

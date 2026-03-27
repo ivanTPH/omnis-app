@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { ChevronDown, ChevronUp, Bot, CheckCircle, MessageSquare } from 'lucide-react'
 import type { ConcernRow } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
@@ -148,13 +149,13 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
                         Review Concern
                       </button>
                     )}
-                    <a
+                    <Link
                       href="/messages"
                       className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
                     >
                       <MessageSquare size={12} />
                       {isSenco ? 'Message teacher' : 'Message SENCO'}
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}

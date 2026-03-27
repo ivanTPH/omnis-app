@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { MessageSquare } from 'lucide-react'
 import type { StudentRow } from '@/app/actions/admin'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -107,13 +108,13 @@ export default function AdminStudentTable({ students }: { students: StudentRow[]
                 </td>
                 <td className="px-5 py-3.5 text-gray-400 text-[12px]">{s.email}</td>
                 <td className="px-5 py-3.5">
-                  <a
+                  <Link
                     href="/messages"
                     className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
                     title="Message parent"
                   >
                     <MessageSquare size={12} /> Message parent
-                  </a>
+                  </Link>
                 </td>
               </tr>
             ))}

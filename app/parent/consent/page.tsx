@@ -34,7 +34,7 @@ export default async function ParentConsentPage() {
               </a>
             </div>
           </div>
-          <ParentConsentPortal children={children} />
+          <ParentConsentPortal consents={children} />
         </div>
       </main>
     </AppShell>

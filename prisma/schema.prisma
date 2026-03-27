@@ -262,6 +262,7 @@ model School {
 
   // Quick notes
   studentQuickNotes    StudentQuickNote[]
+  teacherPlanNotes     TeacherPlanNote[]
 }
 
 model TermDate {
@@ -365,6 +366,7 @@ model User {
   // Quick notes
   studentQuickNotes  StudentQuickNote[]  @relation("StudentNotes")
   authoredNotes      StudentQuickNote[]  @relation("NoteAuthor")
+  teacherPlanNotes   TeacherPlanNote[]   @relation("PlanNoteAuthor")
 
   @@index([schoolId, role])
 }
@@ -2313,4 +2315,19 @@ model StudentQuickNote {
   createdAt DateTime @default(now())
 
   @@index([studentId, schoolId])
+}
+
+model TeacherPlanNote {
+  id        String   @id @default(cuid())
+  planType  String   // 'ilp' | 'ehcp' | 'kplan'
+  planId    String
+  teacher   User     @relation("PlanNoteAuthor", fields: [teacherId], references: [id])
+  teacherId String
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  note      String
+  createdAt DateTime @default(now())
+
+  @@index([planType, planId])
+  @@index([teacherId, schoolId])
 }

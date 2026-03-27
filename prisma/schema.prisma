@@ -2163,6 +2163,28 @@ model IlpHomeworkLink {
   @@index([ilpTargetId])
 }
 
+model IlpEvidenceEntry {
+  id            String   @id @default(cuid())
+  schoolId      String
+  studentId     String
+  ilpTargetId   String
+  submissionId  String
+  homeworkTitle String
+  subject       String?
+  score         Float?
+  maxScore      Float?
+  evidenceType  String   @default("NEUTRAL")  // "PROGRESS" | "CONCERN" | "NEUTRAL"
+  aiSummary     String?
+  teacherNote   String?
+  createdAt     DateTime @default(now())
+  createdBy     String
+
+  @@unique([submissionId, ilpTargetId])
+  @@index([schoolId, studentId])
+  @@index([ilpTargetId])
+  @@index([schoolId, evidenceType, createdAt])
+}
+
 // ─── Phase 7A — Revision Program ─────────────────────────────────────────────
 
 model RevisionProgram {

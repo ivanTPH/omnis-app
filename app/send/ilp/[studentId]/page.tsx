@@ -3,8 +3,9 @@ import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { ChevronLeft, CheckCircle2, Circle, Target, BookOpen, Clock, AlertTriangle, Users } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, Circle, Target, BookOpen, Clock, AlertTriangle, Users, FileCheck } from 'lucide-react'
 import { PlanStatus, StrategyAppliesTo } from '@prisma/client'
+import { getIlpEvidenceForStudent } from '@/app/actions/homework'
 
 export default async function StudentIlpPage({ params }: { params: Promise<{ studentId: string }> }) {
   const session = await auth()
@@ -20,7 +21,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
   })
   if (!student) notFound()
 
-  const [sendStatus, plan, enrolments] = await Promise.all([
+  const [sendStatus, plan, enrolments, ilpEvidence] = await Promise.all([
     prisma.sendStatus.findUnique({ where: { studentId } }),
     prisma.plan.findFirst({
       where: {
@@ -44,6 +45,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
         },
       },
     }),
+    getIlpEvidenceForStudent(studentId),
   ])
 
   const classIds = enrolments.map(e => e.classId)
@@ -247,6 +249,46 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
               )}
 
               {/* Homework submissions by class */}
+              {/* ILP Evidence Timeline */}
+              {ilpEvidence.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
+                    <FileCheck size={14} className="text-blue-500" />
+                    <h2 className="text-[14px] font-semibold text-gray-900">ILP Evidence Timeline</h2>
+                    <span className="ml-auto text-[11px] text-gray-400">{ilpEvidence.length} entr{ilpEvidence.length !== 1 ? 'ies' : 'y'}</span>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {ilpEvidence.slice(0, 10).map((entry: any) => (
+                      <div key={entry.id} className="flex items-start gap-3 px-5 py-3">
+                        <div className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${
+                          entry.evidenceType === 'PROGRESS' ? 'bg-green-400' :
+                          entry.evidenceType === 'CONCERN'  ? 'bg-rose-400' :
+                          'bg-gray-300'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-[12px] font-medium text-gray-800 truncate">{entry.homeworkTitle}</p>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              entry.evidenceType === 'PROGRESS' ? 'bg-green-100 text-green-700' :
+                              entry.evidenceType === 'CONCERN'  ? 'bg-rose-100 text-rose-700' :
+                              'bg-gray-100 text-gray-500'
+                            }`}>{entry.evidenceType}</span>
+                          </div>
+                          {entry.aiSummary && (
+                            <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{entry.aiSummary}</p>
+                          )}
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {entry.subject && ` · ${entry.subject}`}
+                            {entry.score != null && ` · Score: ${entry.score}`}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {Object.entries(subsByClass).length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">

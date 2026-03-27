@@ -1,9 +1,9 @@
 'use client'
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare, BookOpen, FileText, Target, StickyNote, Plus } from 'lucide-react'
-import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence } from '@/app/actions/homework'
+import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare, BookOpen, FileText, Target, StickyNote, Plus, X } from 'lucide-react'
+import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -216,6 +216,19 @@ function QuestionCard({
 
 type PupilFilter = 'all' | 'submitted' | 'returned' | 'missing' | 'send'
 
+type IlpData = {
+  studentId: string
+  ilpId: string
+  targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }>
+}
+
+type IlpClassification = {
+  targetId: string
+  description: string
+  evidenceType: 'PROGRESS' | 'CONCERN' | 'NEUTRAL'
+  aiSummary: string
+}
+
 // ── main component ─────────────────────────────────────────────────────────────
 
 export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
@@ -282,10 +295,18 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const [newNote,         setNewNote]         = useState('')
   const [noteSaving,      setNoteSaving]      = useState(false)
   const [noteError,       setNoteError]       = useState<string | null>(null)
-  // ILP evidence
+  // ILP evidence (existing per-target links)
   const [evidenceSaved,   setEvidenceSaved]   = useState<Record<string, boolean>>({}) // targetId → saved
   const [evidenceLoading, setEvidenceLoading] = useState<Record<string, boolean>>({})
   const [showAllTargets,  setShowAllTargets]  = useState(false)
+  // ILP evidence capture (new AI-classified modal flow)
+  const [ilpPromptData,     setIlpPromptData]     = useState<IlpData | null>(null)
+  const [ilpCountdown,      setIlpCountdown]      = useState<number | null>(null)
+  const [ilpModalOpen,      setIlpModalOpen]      = useState(false)
+  const [ilpClassifying,    setIlpClassifying]    = useState(false)
+  const [ilpClassifications, setIlpClassifications] = useState<IlpClassification[] | null>(null)
+  const [ilpSaving,         setIlpSaving]         = useState(false)
+  const [ilpSaved,          setIlpSaved]          = useState(false)
 
   const router = useRouter()
 
@@ -409,7 +430,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     setError(null)
     startTransition(async () => {
       try {
-        await markSubmission(selectedSub.id, {
+        const result = await markSubmission(selectedSub.id, {
           teacherScore: scoreNum,
           feedback:     form.feedback,
           grade:        form.grade || undefined,
@@ -417,6 +438,13 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         setSavedId(selectedId)
         router.refresh()
         setTimeout(() => setSavedId(null), 2500)
+        if (result?.ilpData) {
+          setIlpPromptData(result.ilpData)
+          setIlpCountdown(10)
+          setIlpSaved(false)
+          setIlpClassifications(null)
+          setIlpModalOpen(false)
+        }
       } catch {
         setError('Failed to save. Please try again.')
       }
@@ -435,7 +463,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     setError(null)
     startTransition(async () => {
       try {
-        await markSubmission(selectedSub.id, {
+        const result = await markSubmission(selectedSub.id, {
           teacherScore: gradeNum,
           feedback:     autoFeedback,
           grade:        gradeStr || undefined,
@@ -443,6 +471,13 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         setSavedId(selectedId)
         router.refresh()
         setTimeout(() => setSavedId(null), 2500)
+        if (result?.ilpData) {
+          setIlpPromptData(result.ilpData)
+          setIlpCountdown(10)
+          setIlpSaved(false)
+          setIlpClassifications(null)
+          setIlpModalOpen(false)
+        }
       } catch {
         setError('Failed to save. Please try again.')
       }
@@ -491,6 +526,79 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       // silently fail
     } finally {
       setEvidenceLoading(prev => ({ ...prev, [targetId]: false }))
+    }
+  }
+
+  // ILP countdown effect
+  useEffect(() => {
+    if (ilpCountdown === null) return
+    if (ilpCountdown <= 0) {
+      setIlpPromptData(null)
+      setIlpCountdown(null)
+      return
+    }
+    const t = setTimeout(() => setIlpCountdown(c => (c ?? 1) - 1), 1000)
+    return () => clearTimeout(t)
+  }, [ilpCountdown])
+
+  async function handleOpenIlpModal() {
+    if (!ilpPromptData || !selectedSub) return
+    setIlpCountdown(null) // stop countdown
+    setIlpModalOpen(true)
+    setIlpClassifying(true)
+    try {
+      const raw = await classifyIlpEvidence({
+        homeworkTitle: (selectedSub as any).homework?.title ?? hw.title ?? 'this homework',
+        subject: (sendInfo?.needArea ?? ''),
+        score: Number(form?.score ?? 0),
+        maxScore,
+        ilpTargets: ilpPromptData.targets,
+      })
+      const mapped: IlpClassification[] = ilpPromptData.targets.map(t => {
+        const found = raw.find(r => r.targetId === t.id)
+        return {
+          targetId: t.id,
+          description: t.description,
+          evidenceType: (found?.evidenceType ?? 'NEUTRAL') as 'PROGRESS' | 'CONCERN' | 'NEUTRAL',
+          aiSummary: found?.aiSummary ?? '',
+        }
+      })
+      setIlpClassifications(mapped)
+    } catch {
+      setIlpClassifications(ilpPromptData.targets.map(t => ({
+        targetId: t.id,
+        description: t.description,
+        evidenceType: 'NEUTRAL' as const,
+        aiSummary: '',
+      })))
+    } finally {
+      setIlpClassifying(false)
+    }
+  }
+
+  function updateClassification(targetId: string, field: 'evidenceType' | 'aiSummary', value: string) {
+    setIlpClassifications(prev => prev ? prev.map(c =>
+      c.targetId === targetId ? { ...c, [field]: value } : c
+    ) : null)
+  }
+
+  async function handleSaveIlpEvidence() {
+    if (!ilpClassifications || !selectedSub) return
+    setIlpSaving(true)
+    try {
+      await saveIlpEvidenceEntries(selectedSub.id, ilpClassifications.map(c => ({
+        ilpTargetId: c.targetId,
+        evidenceType: c.evidenceType,
+        aiSummary: c.aiSummary,
+      })))
+      setIlpSaved(true)
+      setIlpModalOpen(false)
+      setIlpPromptData(null)
+      setTimeout(() => setIlpSaved(false), 3000)
+    } catch {
+      // silently fail
+    } finally {
+      setIlpSaving(false)
     }
   }
 
@@ -1238,6 +1346,35 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 </div>
               </div>
 
+              {/* ILP Evidence prompt — non-blocking banner */}
+              {ilpPromptData && !ilpSaved && (
+                <div className="border border-blue-200 bg-blue-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-blue-800">This student has an active ILP</p>
+                    <p className="text-[11px] text-blue-600 mt-0.5">Record this homework as ILP evidence?</p>
+                  </div>
+                  <button
+                    onClick={handleOpenIlpModal}
+                    className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors"
+                  >
+                    Yes{ilpCountdown !== null ? ` (${ilpCountdown}s)` : ''}
+                  </button>
+                  <button
+                    onClick={() => { setIlpPromptData(null); setIlpCountdown(null) }}
+                    className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              {ilpSaved && (
+                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
+                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
+                    <CheckCircle2 size={13} /> ILP evidence recorded
+                  </p>
+                </div>
+              )}
+
             </div>
           )}
         </div>
@@ -1359,6 +1496,85 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       </div>{/* end right: marking area */}
 
       </div>{/* end two-panel layout */}
+
+      {/* ILP Evidence Modal */}
+      {ilpModalOpen && ilpPromptData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-2 shrink-0">
+              <Target size={16} className="text-blue-600" />
+              <h2 className="text-[15px] font-bold text-gray-900 flex-1">Record ILP Evidence</h2>
+              <button
+                onClick={() => { setIlpModalOpen(false); setIlpPromptData(null) }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {ilpClassifying ? (
+              <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+                <Loader2 size={18} className="animate-spin" />
+                <span className="text-[13px]">Classifying against ILP goals…</span>
+              </div>
+            ) : (
+              <div className="overflow-auto flex-1 px-5 py-4 space-y-4">
+                <p className="text-[12px] text-gray-500">AI has classified each ILP goal based on the homework score. Adjust if needed, then confirm.</p>
+                {(ilpClassifications ?? []).map(c => (
+                  <div key={c.targetId} className="border border-gray-200 rounded-xl p-4 space-y-2.5">
+                    <p className="text-[13px] font-medium text-gray-800 leading-snug">{c.description}</p>
+                    <div className="flex items-center gap-3">
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-20 shrink-0">Classification</label>
+                      <select
+                        value={c.evidenceType}
+                        onChange={e => updateClassification(c.targetId, 'evidenceType', e.target.value)}
+                        className={`flex-1 border rounded-lg px-2.5 py-1.5 text-[12px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          c.evidenceType === 'PROGRESS' ? 'border-green-300 bg-green-50 text-green-700' :
+                          c.evidenceType === 'CONCERN'  ? 'border-rose-300 bg-rose-50 text-rose-700' :
+                          'border-gray-300 bg-white text-gray-700'
+                        }`}
+                      >
+                        <option value="PROGRESS">PROGRESS — on track</option>
+                        <option value="NEUTRAL">NEUTRAL — no clear signal</option>
+                        <option value="CONCERN">CONCERN — at risk</option>
+                      </select>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-20 shrink-0 mt-1.5">AI note</label>
+                      <input
+                        type="text"
+                        value={c.aiSummary}
+                        onChange={e => updateClassification(c.targetId, 'aiSummary', e.target.value)}
+                        placeholder="Optional note…"
+                        className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!ilpClassifying && (
+              <div className="px-5 py-4 border-t border-gray-200 flex items-center justify-between shrink-0">
+                <button
+                  onClick={() => { setIlpModalOpen(false); setIlpPromptData(null) }}
+                  className="text-[13px] text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveIlpEvidence}
+                  disabled={ilpSaving || !ilpClassifications}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
+                >
+                  {ilpSaving && <Loader2 size={13} className="animate-spin" />}
+                  Confirm &amp; Save Evidence
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

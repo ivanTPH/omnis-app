@@ -1092,7 +1092,7 @@ export async function markSubmission(submissionId: string, data: {
   teacherScore: number
   feedback:     string
   grade?:       string
-}) {
+}): Promise<{ ilpData: { studentId: string; ilpId: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> } | null }> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
   const { schoolId } = session.user as any
@@ -1114,6 +1114,22 @@ export async function markSubmission(submissionId: string, data: {
     },
   })
 
+  // Check for active ILP with unachieved targets
+  const studentId = sub.studentId
+  const ilpRecord = await (prisma as any).iLP.findFirst({
+    where: { studentId, schoolId, status: 'ACTIVE' },
+    select: {
+      id: true,
+      targets: {
+        where: { achieved: false },
+        select: { id: true, description: true, successCriteria: true, subject: true },
+      },
+    },
+  })
+  const ilpData = ilpRecord && ilpRecord.targets.length > 0
+    ? { studentId, ilpId: ilpRecord.id as string, targets: ilpRecord.targets as Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }
+    : null
+
   void updateLearningProfile(sub.studentId).catch(() => {})
 
   revalidatePath('/homework')
@@ -1121,6 +1137,8 @@ export async function markSubmission(submissionId: string, data: {
   revalidatePath(`/homework/${sub.homeworkId}/mark/${submissionId}`)
   revalidatePath('/dashboard')
   revalidatePath('/', 'layout')
+
+  return { ilpData }
 }
 
 // ── Bulk auto-mark queue ──────────────────────────────────────────────────────
@@ -1251,4 +1269,155 @@ export async function recordHomeworkAsIlpEvidence(homeworkId: string, ilpTargetI
   })
 
   return { alreadyLinked: false }
+}
+
+// ── ILP Evidence Classification (AI) ──────────────────────────────────────────
+
+export async function classifyIlpEvidence(payload: {
+  homeworkTitle: string
+  subject: string
+  score: number
+  maxScore: number
+  ilpTargets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }>
+}): Promise<Array<{ targetId: string; evidenceType: string; aiSummary: string }>> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return payload.ilpTargets.map(t => ({ targetId: t.id, evidenceType: 'NEUTRAL', aiSummary: '' }))
+  }
+
+  const pct = payload.maxScore > 0 ? Math.round((payload.score / payload.maxScore) * 100) : 0
+
+  const prompt = `A UK secondary school student completed homework titled "${payload.homeworkTitle}" (subject: ${payload.subject}).
+Score: ${payload.score}/${payload.maxScore} (${pct}%).
+
+Active ILP SMART goals:
+${payload.ilpTargets.map((t, i) => `${i + 1}. ${t.description}${t.subject ? ` [${t.subject}]` : ''}\n   Success criteria: ${t.successCriteria}`).join('\n')}
+
+Classify each goal as:
+- PROGRESS: score/subject shows clear progress
+- CONCERN: score/subject suggests this goal is at risk
+- NEUTRAL: no clear indication either way
+
+Return ONLY JSON with no markdown: {"classifications":[{"targetId":"...","evidenceType":"PROGRESS"|"CONCERN"|"NEUTRAL","aiSummary":"one sentence"}]}`
+
+  try {
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = (msg.content[0] as any).text.trim()
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+    const parsed = JSON.parse(text)
+    return parsed.classifications as Array<{ targetId: string; evidenceType: string; aiSummary: string }>
+  } catch {
+    return payload.ilpTargets.map(t => ({ targetId: t.id, evidenceType: 'NEUTRAL', aiSummary: '' }))
+  }
+}
+
+// ── Save ILP Evidence Entries ─────────────────────────────────────────────────
+
+export async function saveIlpEvidenceEntries(
+  submissionId: string,
+  entries: Array<{
+    ilpTargetId: string
+    evidenceType: string
+    aiSummary: string
+    teacherNote?: string
+  }>
+): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, id: userId } = session.user as any
+
+  const sub = await prisma.submission.findFirst({
+    where: { id: submissionId, schoolId },
+    include: {
+      homework: { select: { title: true, class: { select: { subject: true } } } },
+    },
+  })
+  if (!sub) throw new Error('Submission not found')
+
+  await (prisma as any).ilpEvidenceEntry.createMany({
+    data: entries.map(e => ({
+      schoolId,
+      studentId:    sub.studentId,
+      ilpTargetId:  e.ilpTargetId,
+      submissionId,
+      homeworkTitle: sub.homework.title,
+      subject:      (sub.homework as any).class?.subject ?? null,
+      score:        sub.finalScore ?? null,
+      maxScore:     null,
+      evidenceType: e.evidenceType,
+      aiSummary:    e.aiSummary,
+      teacherNote:  e.teacherNote ?? null,
+      createdBy:    userId,
+    })),
+    skipDuplicates: true,
+  })
+
+  revalidatePath(`/send/ilp/${sub.studentId}`)
+}
+
+// ── Get ILP Evidence for Student ──────────────────────────────────────────────
+
+export async function getIlpEvidenceForStudent(studentId: string): Promise<Array<{
+  id: string; ilpTargetId: string; homeworkTitle: string; subject: string | null
+  score: number | null; maxScore: number | null; evidenceType: string
+  aiSummary: string | null; teacherNote: string | null; createdAt: Date
+}>> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  return (prisma as any).ilpEvidenceEntry.findMany({
+    where: { studentId, schoolId },
+    select: {
+      id: true, ilpTargetId: true, homeworkTitle: true, subject: true,
+      score: true, maxScore: true, evidenceType: true,
+      aiSummary: true, teacherNote: true, createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  })
+}
+
+// ── ILP Concerns This Term ────────────────────────────────────────────────────
+
+export async function getIlpConcernsThisTerm(): Promise<Array<{
+  id: string; firstName: string; lastName: string; yearGroup: number | null; concernCount: number
+}>> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const now = new Date()
+  const currentTerm = await prisma.termDate.findFirst({
+    where: { schoolId, startsAt: { lte: now }, endsAt: { gte: now } },
+  })
+  const termStart = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
+
+  const concerns = await (prisma as any).ilpEvidenceEntry.groupBy({
+    by: ['studentId'],
+    where: { schoolId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
+    _count: { studentId: true },
+    having: { studentId: { _count: { gte: 3 } } },
+  }) as Array<{ studentId: string; _count: { studentId: number } }>
+
+  if (!concerns.length) return []
+
+  const studentIds = concerns.map(c => c.studentId)
+  const students = await prisma.user.findMany({
+    where: { id: { in: studentIds }, schoolId },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
+  })
+
+  return students.map(s => {
+    const entry = concerns.find(c => c.studentId === s.id)
+    return { ...s, concernCount: entry?._count.studentId ?? 0 }
+  })
 }

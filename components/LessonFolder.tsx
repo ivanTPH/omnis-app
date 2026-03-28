@@ -51,7 +51,7 @@ function autoResize(el: HTMLTextAreaElement | null) {
   el.style.height = `${el.scrollHeight}px`
 }
 
-const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Class Insights', 'Revision'] as const
+const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Revision'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -409,12 +409,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   const TAB_ICONS: Record<Tab, React.ReactNode> = {
-    'Overview':       <Icon name="menu_book"  size="sm" />,
-    'Resources':      <Icon name="upload"     size="sm" />,
-    'Homework':       <Icon name="assignment" size="sm" />,
-    'Class':          <Icon name="people"     size="sm" />,
-    'Class Insights': <Icon name="bar_chart"  size="sm" />,
-    'Revision':       <Icon name="loop"       size="sm" />,
+    'Overview':  <Icon name="menu_book"  size="sm" />,
+    'Resources': <Icon name="upload"     size="sm" />,
+    'Homework':  <Icon name="assignment" size="sm" />,
+    'Class':     <Icon name="people"     size="sm" />,
+    'Revision':  <Icon name="loop"       size="sm" />,
   }
 
   return (
@@ -1493,21 +1492,46 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 </div>
               )}
 
-              {/* ── Class roster ── */}
+              {/* ── Class (roster + SEND summary + insights) ── */}
               {activeTab === 'Class' && (
-                <div className="p-7">
-                  {lesson?.class?.id ? (
-                    <ClassRosterTab classId={lesson.class.id} />
-                  ) : (
+                lesson?.class?.id ? (
+                  <div className="divide-y divide-gray-100">
+                    {/* SEND summary card */}
+                    <div className="px-7 pt-6 pb-4">
+                      <ClassSendActionsCard classId={lesson.class.id} />
+                    </div>
+
+                    {/* Student roster with SEND badges + expandable ILP/EHCP */}
+                    <div className="px-7 py-5">
+                      <ClassRosterTab classId={lesson.class.id} />
+                    </div>
+
+                    {/* Analytics / insights panel */}
+                    <div>
+                      <div className="px-7 pt-5 pb-1 flex items-center justify-between">
+                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                          <Icon name="bar_chart" size="sm" />Class Performance
+                        </p>
+                        <Link
+                          href={`/analytics?classId=${lesson.class.id}${lesson.class?.subject ? `&subject=${encodeURIComponent(lesson.class.subject)}` : ''}${lesson.class?.yearGroup ? `&yearGroup=${lesson.class.yearGroup}` : ''}`}
+                          className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <Icon name="open_in_new" size="sm" />Full analytics
+                        </Link>
+                      </div>
+                      <ClassInsightsTab classId={lesson.class.id} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-7">
                     <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
                       <Icon name="people" size="lg" className="mx-auto text-gray-300 mb-2" />
                       <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )
               )}
 
-              {/* ── Class Insights ── */}
               {/* ── Revision ── */}
               {activeTab === 'Revision' && (
                 <div className="p-7 space-y-4">
@@ -1550,32 +1574,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 </div>
               )}
 
-              {activeTab === 'Class Insights' && (
-                lesson?.classId
-                  ? (
-                    <>
-                      <ClassInsightsTab classId={lesson.classId} />
-                      {/* Deep-link to full analytics with lesson context pre-applied */}
-                      <div className="px-7 pb-5">
-                        <Link
-                          href={`/analytics?classId=${lesson.classId}${lesson.class?.subject ? `&subject=${encodeURIComponent(lesson.class.subject)}` : ''}${lesson.class?.yearGroup ? `&yearGroup=${lesson.class.yearGroup}` : ''}`}
-                          className="inline-flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          <Icon name="open_in_new" size="sm" />
-                          View full analytics for this class
-                        </Link>
-                      </div>
-                    </>
-                  )
-                  : (
-                    <div className="p-7">
-                      <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                        <Icon name="bar_chart" size="lg" className="mx-auto text-gray-300 mb-2" />
-                        <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
-                      </div>
-                    </div>
-                  )
-              )}
             </>
           )}
         </div>

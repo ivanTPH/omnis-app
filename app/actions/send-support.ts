@@ -1988,7 +1988,7 @@ export async function getStudentLearnerPassport(studentId: string): Promise<Lear
  */
 export async function getClassKPlanSummaries(
   classId: string,
-): Promise<Record<string, { id: string; sendInformation: string; status: string }>> {
+): Promise<Record<string, { id: string; sendInformation: string; status: string; teacherActions: string[] }>> {
   const user = await requireAuth()
   const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
   if (!allowedRoles.includes(user.role)) return {}
@@ -2009,14 +2009,14 @@ export async function getClassKPlanSummaries(
       ...(isSencoTier ? {} : { status: 'APPROVED' }),
     },
     orderBy: { createdAt: 'desc' },
-    select: { id: true, studentId: true, sendInformation: true, status: true },
+    select: { id: true, studentId: true, sendInformation: true, status: true, teacherActions: true },
   })
 
   // Keep only the latest per student
-  const result: Record<string, { id: string; sendInformation: string; status: string }> = {}
+  const result: Record<string, { id: string; sendInformation: string; status: string; teacherActions: string[] }> = {}
   for (const p of passports) {
     if (!result[p.studentId]) {
-      result[p.studentId] = { id: p.id, sendInformation: p.sendInformation, status: p.status }
+      result[p.studentId] = { id: p.id, sendInformation: p.sendInformation, status: p.status, teacherActions: p.teacherActions }
     }
   }
   return result

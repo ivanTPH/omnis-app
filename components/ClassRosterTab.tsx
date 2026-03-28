@@ -38,7 +38,7 @@ const STATUS_COLORS: Record<string, string> = {
   SUBMITTED:          'bg-gray-100 text-gray-600',
 }
 
-type KPlanSummary = { id: string; sendInformation: string; status: string }
+type KPlanSummary = { id: string; sendInformation: string; status: string; teacherActions: string[] }
 
 export default function ClassRosterTab({ classId }: { classId: string }) {
   const [rows,            setRows]           = useState<ClassRosterRow[]>([])
@@ -207,7 +207,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
               {/* Row */}
               <div
                 onClick={() => handleToggle(row)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 bg-white text-left ${isSend ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+                className={`w-full flex items-start gap-3 px-4 py-2.5 bg-white text-left ${isSend ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
               >
                 {/* Avatar — click to open contact panel (stop propagation to avoid SEND expand) */}
                 <button
@@ -236,9 +236,20 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   {row.needArea && (
                     <p className="text-[10px] text-gray-400 truncate">{row.needArea}</p>
                   )}
+                  {/* K Plan at-a-glance bullets — top 4 teacher actions */}
+                  {kPlan?.teacherActions && kPlan.teacherActions.length > 0 && (
+                    <ul className="mt-0.5 space-y-0">
+                      {kPlan.teacherActions.slice(0, 4).map((action, i) => (
+                        <li key={i} className="flex items-start gap-1 text-[10px] text-teal-700 leading-snug">
+                          <span className="mt-[3px] shrink-0 w-1 h-1 rounded-full bg-teal-400 inline-block" />
+                          <span className="truncate">{action}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                   {badge && (
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}

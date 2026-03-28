@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Eye, Type, Zap, AlignLeft, BookOpen, RotateCcw, CheckCircle2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { saveAccessibilitySettings } from '@/app/actions/accessibility'
 import { ACCESSIBILITY_DEFAULTS, hasActiveSettings, settingsToClasses, type AccessibilitySettings } from '@/lib/accessibility'
 
@@ -44,7 +44,7 @@ function applyToHtml(settings: AccessibilitySettings) {
 
 type Setting = {
   key:         keyof Omit<AccessibilitySettings, 'lineSpacing'>
-  icon:        React.ElementType
+  iconName:    string
   label:       string
   description: string
   whoHelps:    string
@@ -53,28 +53,28 @@ type Setting = {
 const SETTINGS: Setting[] = [
   {
     key:         'dyslexiaFont',
-    icon:        BookOpen,
+    iconName:    'menu_book',
     label:       'Dyslexia-Friendly Font',
     description: 'Switches to OpenDyslexic with increased letter and word spacing.',
     whoHelps:    'Helps users with dyslexia, visual stress, or reading difficulties.',
   },
   {
     key:         'highContrast',
-    icon:        Eye,
+    iconName:    'visibility',
     label:       'High Contrast Mode',
     description: 'Dark background with bright, high-contrast text and borders.',
     whoHelps:    'Helps users with low vision, colour blindness, or light sensitivity.',
   },
   {
     key:         'largeText',
-    icon:        Type,
+    iconName:    'text_fields',
     label:       'Larger Text',
     description: 'Increases the base font size by 20% across all pages.',
     whoHelps:    'Helps users with visual impairments or those who prefer larger text.',
   },
   {
     key:         'reducedMotion',
-    icon:        Zap,
+    iconName:    'bolt',
     label:       'Reduced Motion',
     description: 'Disables all animations, transitions, and motion effects.',
     whoHelps:    'Helps users with vestibular disorders, ADHD, or motion sensitivity.',
@@ -120,7 +120,7 @@ export default function AccessibilitySettingsView({
   return (
     <div className="space-y-4">
       {/* Toggle settings */}
-      {SETTINGS.map(({ key, icon: Icon, label, description, whoHelps }) => (
+      {SETTINGS.map(({ key, iconName, label, description, whoHelps }) => (
         <div
           key={key}
           className="bg-white border border-gray-200 rounded-2xl p-5 flex items-start gap-4"
@@ -128,7 +128,7 @@ export default function AccessibilitySettingsView({
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
             settings[key] ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
           }`}>
-            <Icon size={18} />
+            <Icon name={iconName} size="md" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-4 mb-1">
@@ -149,7 +149,7 @@ export default function AccessibilitySettingsView({
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
             settings.lineSpacing !== 'normal' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
           }`}>
-            <AlignLeft size={18} />
+            <Icon name="format_align_left" size="md" />
           </div>
           <div className="flex-1">
             <p className="text-[14px] font-semibold text-gray-900 mb-1">Line Spacing</p>
@@ -185,12 +185,12 @@ export default function AccessibilitySettingsView({
           disabled={!anyActive || pending}
           className="flex items-center gap-1.5 text-[13px] text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
         >
-          <RotateCcw size={13} />
+          <Icon name="loop" size="sm" />
           Reset all to defaults
         </button>
         {saved && (
           <span className="flex items-center gap-1.5 text-[12px] text-green-600 font-medium">
-            <CheckCircle2 size={14} />
+            <Icon name="check_circle" size="sm" />
             Saved
           </span>
         )}

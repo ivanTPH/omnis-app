@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Search, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { searchLessonsWithScores, getOrCreateSendScore } from '@/app/actions/send-scorer'
 import type { LessonWithScore } from '@/app/actions/send-scorer'
 import ScorerResultRow from './ScorerResultRow'
@@ -59,7 +59,7 @@ export default function ScorerView({ canRescore, initialSubjects }: Props) {
       <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={query}
@@ -74,7 +74,7 @@ export default function ScorerView({ canRescore, initialSubjects }: Props) {
             disabled={searching}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold transition-colors disabled:opacity-50"
           >
-            {searching ? <Loader2 size={13} className="animate-spin" /> : 'Search'}
+            {searching ? <Icon name="refresh" size="sm" className="animate-spin" /> : 'Search'}
           </button>
         </div>
 
@@ -116,7 +116,7 @@ export default function ScorerView({ canRescore, initialSubjects }: Props) {
               disabled={scoring}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors disabled:opacity-50"
             >
-              {scoring ? <Loader2 size={12} className="animate-spin" /> : null}
+              {scoring ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
               Score all visible ({unscoredCount})
             </button>
           )}

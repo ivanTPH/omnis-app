@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, ToggleLeft, ToggleRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ConsentPurposeData } from '@/app/actions/gdpr'
 import { togglePurposeActive } from '@/app/actions/gdpr'
 import ConsentPurposeForm from './ConsentPurposeForm'
@@ -62,8 +62,8 @@ export default function ConsentPurposeList({ purposes, schoolId }: Props) {
                 title={p.isActive ? 'Deactivate' : 'Activate'}
               >
                 {p.isActive
-                  ? <ToggleRight size={22} className="text-green-500" />
-                  : <ToggleLeft size={22} />}
+                  ? <Icon name="toggle_on" size="lg" className="text-green-500" />
+                  : <Icon name="toggle_off" size="lg" />}
               </button>
             </div>
           </div>
@@ -83,7 +83,7 @@ export default function ConsentPurposeList({ purposes, schoolId }: Props) {
             onClick={() => setShowForm(true)}
             className="flex items-center gap-2 px-4 py-2 text-[13px] font-semibold text-blue-700 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
           >
-            <Plus size={14} /> Add Purpose
+            <Icon name="add" size="sm" /> Add Purpose
           </button>
         )}
     </div>

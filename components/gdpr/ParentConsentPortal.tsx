@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ShieldCheck, Info } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ChildConsentData } from '@/app/actions/gdpr'
 import { recordConsent } from '@/app/actions/gdpr'
 
@@ -69,7 +69,7 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
     <div className="space-y-8">
       {/* Info banner */}
       <div className="flex gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-        <ShieldCheck size={16} className="text-blue-500 shrink-0 mt-0.5" />
+        <Icon name="verified_user" size="sm" className="text-blue-500 shrink-0 mt-0.5" />
         <div className="text-[12px] text-blue-700 leading-relaxed">
           <p className="font-semibold mb-0.5">Your data rights</p>
           <p>You can grant or withdraw consent at any time. Where processing is based on legitimate interest or legal obligation, it does not require your consent but is listed here for transparency. You have the right to access, correct, or request erasure of your child&apos;s personal data at any time.</p>
@@ -139,7 +139,7 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
                       </button>
                     ) : (
                       <div className="shrink-0 flex items-center gap-1 text-[11px] text-gray-400">
-                        <Info size={12} />
+                        <Icon name="info" size="sm" />
                         Not applicable
                       </div>
                     )}

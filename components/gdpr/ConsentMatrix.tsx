@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Download } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ConsentMatrixStudent, ConsentPurposeData } from '@/app/actions/gdpr'
 import { exportConsentCsv } from '@/app/actions/gdpr'
 
@@ -96,7 +96,7 @@ export default function ConsentMatrix({ purposes, students, schoolId }: Props) {
             disabled={exporting}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold border border-gray-200 rounded-lg bg-white hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            <Download size={13} />{exporting ? 'Exporting…' : 'Export CSV'}
+            <Icon name="download" size="sm" />{exporting ? 'Exporting…' : 'Export CSV'}
           </button>
         </div>
       </div>

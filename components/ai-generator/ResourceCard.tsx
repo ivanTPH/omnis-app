@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { marked } from 'marked'
 import type { GeneratedResourceData } from '@/app/actions/ai-generator'
 import { deleteGeneratedResource } from '@/app/actions/ai-generator'
@@ -72,10 +72,10 @@ export default function ResourceCard({ resource, canDelete, onDelete, onSelect }
               className="p-1 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40"
               title="Delete"
             >
-              <Trash2 size={12} />
+              <Icon name="delete" size="sm" />
             </button>
           )}
-          {expanded ? <ChevronUp size={14} className="text-gray-300" /> : <ChevronDown size={14} className="text-gray-300" />}
+          {expanded ? <Icon name="expand_less" size="sm" className="text-gray-300" /> : <Icon name="expand_more" size="sm" className="text-gray-300" />}
         </div>
       </div>
 

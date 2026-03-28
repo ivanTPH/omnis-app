@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Bot, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ConcernRow } from '@/app/actions/send-support'
 import { reviewConcern, requestAiAnalysis } from '@/app/actions/send-support'
 import { CategoryBadge } from './ConcernList'
@@ -62,7 +62,7 @@ export default function ConcernReviewModal({ concern, onClose }: Props) {
             <h2 className="font-semibold text-gray-900">Review SEND Concern</h2>
             <p className="text-xs text-gray-500 mt-0.5">{concern.studentName} · <CategoryBadge category={concern.category} /></p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -93,7 +93,7 @@ export default function ConcernReviewModal({ concern, onClose }: Props) {
                 disabled={loadingAi}
                 className="flex items-center gap-1.5 px-3 py-1.5 border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg text-xs font-medium"
               >
-                {loadingAi ? <Loader2 size={13} className="animate-spin" /> : <Bot size={13} />}
+                {loadingAi ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="smart_toy" size="sm" />}
                 {aiAnalysis ? 'Refresh Analysis' : 'Request AI Analysis'}
               </button>
             </div>

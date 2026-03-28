@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { BarChart2, TrendingUp, TrendingDown, AlertTriangle, Heart, Shield, ChevronRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
 function termLabel(id: string) {
@@ -125,7 +125,7 @@ export default async function SltAnalyticsPage() {
               {needsAttention.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle size={14} className="text-amber-600" />
+                    <Icon name="warning" size="sm" className="text-amber-600" />
                     <h2 className="text-[12px] font-bold text-amber-900 uppercase tracking-wide">
                       Needs Attention — Below Subject Median
                     </h2>
@@ -248,13 +248,13 @@ export default async function SltAnalyticsPage() {
                                 {/* Trend */}
                                 <div className="w-6">
                                   {agg.predictedDelta >= 0
-                                    ? <TrendingUp  size={16} className="text-green-500" />
-                                    : <TrendingDown size={16} className="text-rose-500"  />}
+                                    ? <Icon name="trending_up"   size="sm" className="text-green-500" />
+                                    : <Icon name="trending_down" size="sm" className="text-rose-500"  />}
                                 </div>
 
                                 {/* Integrity flag */}
                                 {agg.integrityFlagRate > 0.02 && (
-                                  <AlertTriangle size={14} className="text-amber-500 shrink-0" aria-label={`${Math.round(agg.integrityFlagRate * 100)}% flagged`} />
+                                  <Icon name="warning" size="sm" className="text-amber-500 shrink-0" aria-label={`${Math.round(agg.integrityFlagRate * 100)}% flagged`} />
                                 )}
                               </div>
                             ) : (
@@ -292,7 +292,7 @@ export default async function SltAnalyticsPage() {
               {/* SEND overview */}
               <div className="bg-purple-50 border border-purple-100 rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Heart size={14} className="text-purple-600" />
+                  <Icon name="favorite" size="sm" className="text-purple-600" />
                   <h3 className="text-[13px] font-semibold text-purple-900">SEND Overview</h3>
                 </div>
                 <div className="space-y-3">
@@ -308,14 +308,14 @@ export default async function SltAnalyticsPage() {
                   ))}
                 </div>
                 <Link href="/send/dashboard" className="mt-4 flex items-center gap-1 text-[11px] text-purple-700 font-medium hover:underline">
-                  SEND Dashboard <ChevronRight size={11} />
+                  SEND Dashboard <Icon name="chevron_right" size="sm" />
                 </Link>
               </div>
 
               {/* Integrity */}
               <div className="bg-white border border-gray-200 rounded-xl p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Shield size={14} className="text-gray-500" />
+                  <Icon name="shield" size="sm" className="text-gray-500" />
                   <h3 className="text-[13px] font-semibold text-gray-900">Integrity</h3>
                 </div>
                 <div className="space-y-3">

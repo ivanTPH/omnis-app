@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, Plus, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { addExam, deleteExam } from '@/app/actions/revision'
 
 type Exam = {
@@ -88,7 +88,7 @@ export default function ExamList({
           onClick={() => setShowForm(s => !s)}
           className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700"
         >
-          {showForm ? <ChevronUp size={13} /> : <Plus size={13} />}
+          {showForm ? <Icon name="expand_less" size="sm" /> : <Icon name="add" size="sm" />}
           Add Exam
         </button>
       </div>
@@ -173,7 +173,7 @@ export default function ExamList({
                   )}
                   <div className="flex items-center gap-3 mt-1">
                     <span className="flex items-center gap-1 text-[11px] text-gray-400">
-                      <Calendar size={10} />
+                      <Icon name="calendar_today" size="sm" />
                       {new Date(exam.examDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                     {total > 0 && (
@@ -186,7 +186,7 @@ export default function ExamList({
                   disabled={deleting === exam.id}
                   className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5"
                 >
-                  <Trash2 size={13} />
+                  <Icon name="delete" size="sm" />
                 </button>
               </div>
             </div>

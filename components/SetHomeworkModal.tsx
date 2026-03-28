@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { X, Sparkles, CheckCircle, BookOpen, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { HomeworkType } from '@prisma/client'
 import {
   getTeacherLessons,
@@ -141,7 +141,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
             <p className="text-sm text-gray-400">Link to a lesson, generate questions with AI, then publish</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 shrink-0">
-            <X size={18} />
+            <Icon name="close" size="md" />
           </button>
         </div>
 
@@ -160,7 +160,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                 </label>
                 {lessons.length === 0 ? (
                   <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-xl p-3">
-                    <BookOpen size={15} className="text-gray-400 shrink-0" />
+                    <Icon name="menu_book" size="sm" className="text-gray-400 shrink-0" />
                     No lessons found. Create a lesson in the calendar first.
                   </div>
                 ) : (
@@ -283,20 +283,20 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                   >
                     {isGenerating
                       ? <div className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin" />
-                      : <Sparkles size={13} />}
+                      : <Icon name="auto_awesome" size="sm" />}
                     {isGenerating ? 'Generating…' : generated ? 'Re-generate with AI' : 'Generate with AI'}
                   </button>
                 </div>
 
                 {genError && (
                   <div className="flex items-center gap-2 text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2 mb-3">
-                    <AlertCircle size={14} className="shrink-0" />{genError}
+                    <Icon name="error" size="sm" className="shrink-0" />{genError}
                   </div>
                 )}
 
                 {generated && !genError && (
                   <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-1.5 mb-3">
-                    <CheckCircle size={12} />AI generated — review and edit below before publishing
+                    <Icon name="check_circle" size="sm" />AI generated — review and edit below before publishing
                   </div>
                 )}
 
@@ -340,7 +340,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
           >
             {isPublishing
               ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              : <CheckCircle size={15} />}
+              : <Icon name="check_circle" size="sm" />}
             Publish Homework
           </button>
         </div>

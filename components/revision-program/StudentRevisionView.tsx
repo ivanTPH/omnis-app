@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { BookMarked, Clock, CheckCircle2, ChevronRight, Star, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 type RevTask = {
   id:             string
@@ -77,12 +77,12 @@ function TaskCard({ task }: { task: RevTask }) {
 
       <div className="flex items-center gap-4 text-xs text-gray-400">
         <span className="capitalize">{task.taskType.replace(/_/g, ' ')}</span>
-        <span className="flex items-center gap-1"><Clock size={10} /> ~{task.estimatedMins} mins</span>
+        <span className="flex items-center gap-1"><Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins</span>
       </div>
 
       {isAssignment && task.program.deadline && (
         <p className={`text-xs font-semibold flex items-center gap-1 ${overdue ? 'text-rose-600' : dueSoon ? 'text-amber-600' : 'text-gray-500'}`}>
-          {overdue && <AlertCircle size={11} />}
+          {overdue && <Icon name="error" size="sm" />}
           {overdue ? `Overdue by ${Math.abs(due!)} day${Math.abs(due!) !== 1 ? 's' : ''}` :
            due === 0 ? 'Due today' :
            `Due: ${new Date(task.program.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
@@ -96,7 +96,7 @@ function TaskCard({ task }: { task: RevTask }) {
         href={`/student/revision/${task.id}`}
         className="flex items-center justify-center gap-2 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
       >
-        {inProgress ? 'Continue' : 'Start Revision'} <ChevronRight size={15} />
+        {inProgress ? 'Continue' : 'Start Revision'} <Icon name="chevron_right" size="sm" />
       </Link>
     </div>
   )
@@ -108,7 +108,7 @@ function CompletedCard({ task }: { task: RevTask }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
       <div className="flex items-start gap-3">
-        <CheckCircle2 size={18} className="text-green-500 shrink-0 mt-0.5" />
+        <Icon name="check_circle" size="md" className="text-green-500 shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${subjectColour(task.program.subject)}`}>{task.program.subject}</span>
@@ -125,7 +125,7 @@ function CompletedCard({ task }: { task: RevTask }) {
           <p className="text-xs text-gray-500">Your confidence:</p>
           <div className="flex gap-0.5">
             {[1,2,3,4,5].map(n => (
-              <Star key={n} size={12} className={n <= (task.selfConfidence ?? 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} />
+              <Icon key={n} name="star" size="sm" className={n <= (task.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-300'} />
             ))}
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function StudentRevisionView({
     <div className="flex-1 overflow-auto px-4 py-6 max-w-2xl mx-auto w-full">
       {/* header */}
       <div className="flex items-center gap-2 mb-2">
-        <BookMarked size={20} className="text-gray-500" />
+        <Icon name="bookmark" size="md" className="text-gray-500" />
         <h1 className="text-lg font-semibold text-gray-900">My Revision</h1>
       </div>
       <p className="text-xs text-gray-400 mb-5">
@@ -197,7 +197,7 @@ export default function StudentRevisionView({
       {/* content */}
       {shown.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-gray-400">
-          <BookMarked size={36} className="mb-3 opacity-30" />
+          <Icon name="bookmark" size="lg" className="mb-3 opacity-30" />
           <p className="text-sm">{tab === 'completed' ? 'No completed tasks yet' : 'No revision tasks assigned yet'}</p>
         </div>
       ) : (

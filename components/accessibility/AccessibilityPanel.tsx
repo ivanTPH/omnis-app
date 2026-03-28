@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X, RotateCcw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { saveAccessibilitySettings } from '@/app/actions/accessibility'
 import { ACCESSIBILITY_DEFAULTS, settingsToClasses, type AccessibilitySettings } from '@/lib/accessibility'
 
@@ -107,7 +107,7 @@ export default function AccessibilityPanel({
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
         <h2 className="text-[14px] font-bold text-gray-900">Accessibility</h2>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
-          <X size={16} />
+          <Icon name="close" size="sm" />
         </button>
       </div>
 
@@ -171,7 +171,7 @@ export default function AccessibilityPanel({
           disabled={pending}
           className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-gray-600 transition-colors"
         >
-          <RotateCcw size={12} />
+          <Icon name="loop" size="sm" />
           Reset to defaults
         </button>
         {pending && (

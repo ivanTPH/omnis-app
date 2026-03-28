@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, Loader2, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default function ExportPdfButton({
   href,
@@ -49,7 +49,7 @@ export default function ExportPdfButton({
         className={`flex items-center gap-1.5 text-[11px] text-red-600 hover:text-red-700 ${className ?? ''}`}
         title={error}
       >
-        <AlertCircle size={12} />
+        <Icon name="error" size="sm" />
         {error.length > 30 ? 'Export failed' : error}
       </button>
     )
@@ -62,8 +62,8 @@ export default function ExportPdfButton({
       className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 ${className ?? ''}`}
     >
       {loading
-        ? <Loader2 size={12} className="animate-spin" />
-        : <Download size={12} />}
+        ? <Icon name="refresh" size="sm" className="animate-spin" />
+        : <Icon name="download" size="sm" />}
       {loading ? 'Generating…' : label}
     </button>
   )

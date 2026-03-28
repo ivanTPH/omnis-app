@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getClassTopicHeatmap } from '@/app/actions/analytics'
 import type { ClassTopicHeatmap } from '@/app/actions/analytics'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -43,7 +43,7 @@ export default function AdaptiveHeatmapView({ classId, onSelectStudent }: Props)
 
   if (loading) return (
     <div className="flex items-center gap-2 py-10 text-gray-400">
-      <Loader2 size={15} className="animate-spin" />
+      <Icon name="refresh" size="sm" className="animate-spin" />
       <span className="text-sm">Loading topic data…</span>
     </div>
   )

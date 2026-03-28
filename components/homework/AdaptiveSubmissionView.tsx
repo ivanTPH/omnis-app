@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Brain, Link2, Star, ChevronDown, Lightbulb } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { StudentLearningProfileData, AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { getStudentLearningProfile, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { linkSubmissionToEhcpOutcome, linkHomeworkToIlpTarget } from '@/app/actions/ehcp'
@@ -114,7 +114,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
         {/* Self-assessment */}
         {submission.selfAssessment != null && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Star size={14} className="text-amber-500" />
+            <Icon name="star" size="sm" className="text-amber-500" />
             <span>Self-assessment: </span>
             {Array.from({ length: 5 }, (_, i) => (
               <span key={i} className={i < submission.selfAssessment! ? 'text-amber-400' : 'text-gray-300'}>★</span>
@@ -144,7 +144,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
         {suggestions && (suggestions.adaptations.length > 0 || suggestions.scaffolding.length > 0 || suggestions.ilpAlignments.length > 0) && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
-              <Lightbulb size={16} />
+              <Icon name="lightbulb" size="sm" />
               AI Adaptive Suggestions
             </div>
             {suggestions.adaptations.length > 0 && (
@@ -191,7 +191,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
               className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Link2 size={16} className="text-purple-600" />
+                <Icon name="link" size="sm" className="text-purple-600" />
                 Link as Evidence
                 {(linkedIlpTargets.size > 0 || linkedOutcomes.size > 0) && (
                   <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
@@ -199,7 +199,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
                   </span>
                 )}
               </div>
-              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showEvidence ? 'rotate-180' : ''}`} />
+              <Icon name="expand_more" size="sm" className={`text-gray-400 transition-transform ${showEvidence ? 'rotate-180' : ''}`} />
             </button>
 
             {showEvidence && (
@@ -224,7 +224,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
                                   : 'bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50'
                               }`}
                             >
-                              <Link2 size={12} />
+                              <Icon name="link" size="sm" />
                               {isLinked ? '✓ Linked' : linkingIlpTarget === t.id ? '…' : 'Link'}
                             </button>
                             <div className="min-w-0 flex-1">
@@ -267,7 +267,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
                                   : 'bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50'
                               }`}
                             >
-                              <Link2 size={12} />
+                              <Icon name="link" size="sm" />
                               {isLinked ? '✓ Linked' : linkingOutcome === outcome.id ? '…' : 'Link'}
                             </button>
                             <div className="min-w-0">
@@ -292,8 +292,8 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
           onClick={() => setExpandProfile(v => !v)}
           className="w-full flex items-center justify-between text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-xl p-3"
         >
-          <span className="flex items-center gap-2"><Brain size={16} className="text-purple-600" /> Learning Profile</span>
-          <ChevronDown size={16} className={`transition-transform ${expandProfile ? 'rotate-180' : ''}`} />
+          <span className="flex items-center gap-2"><Icon name="psychology" size="sm" className="text-purple-600" /> Learning Profile</span>
+          <Icon name="expand_more" size="sm" className={`transition-transform ${expandProfile ? 'rotate-180' : ''}`} />
         </button>
 
         {expandProfile && (

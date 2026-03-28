@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Wand2, BookOpen, CheckCircle2, SkipForward, Flame } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import ExamList             from './ExamList'
 import WeeklyRevisionGrid   from './WeeklyRevisionGrid'
 import PlanGeneratorModal   from './PlanGeneratorModal'
@@ -46,16 +46,16 @@ type ConfidenceEntry = {
   sessionCount:  number
 }
 
-function StatCard({ icon: Icon, label, value, colour }: {
-  icon:   React.ElementType
-  label:  string
-  value:  string | number
-  colour: string
+function StatCard({ iconName, label, value, colour }: {
+  iconName: string
+  label:    string
+  value:    string | number
+  colour:   string
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center gap-3">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colour}`}>
-        <Icon size={15} />
+        <Icon name={iconName} size="sm" />
       </div>
       <div>
         <div className="text-[18px] font-bold text-gray-900 leading-tight">{value}</div>
@@ -115,10 +115,10 @@ export default function RevisionDashboard({
     <div>
       {/* Stats bar */}
       <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
-        <StatCard icon={BookOpen}    label="Planned"   value={stats.totalPlanned}   colour="bg-blue-100 text-blue-700" />
-        <StatCard icon={CheckCircle2} label="Completed" value={stats.totalCompleted} colour="bg-green-100 text-green-700" />
-        <StatCard icon={SkipForward} label="Skipped"   value={stats.totalSkipped}   colour="bg-gray-100 text-gray-500" />
-        <StatCard icon={Flame}       label="Day streak" value={`${stats.streakDays}🔥`} colour="bg-orange-100 text-orange-600" />
+        <StatCard iconName="menu_book"    label="Planned"   value={stats.totalPlanned}   colour="bg-blue-100 text-blue-700" />
+        <StatCard iconName="check_circle" label="Completed" value={stats.totalCompleted} colour="bg-green-100 text-green-700" />
+        <StatCard iconName="skip_next"    label="Skipped"   value={stats.totalSkipped}   colour="bg-gray-100 text-gray-500" />
+        <StatCard iconName="local_fire_department" label="Day streak" value={`${stats.streakDays}🔥`} colour="bg-orange-100 text-orange-600" />
       </div>
 
       {/* Generate Plan button */}
@@ -127,7 +127,7 @@ export default function RevisionDashboard({
           onClick={() => setShowPlanModal(true)}
           className="flex items-center gap-2 px-5 py-2.5 text-[13px] font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
         >
-          <Wand2 size={14} />
+          <Icon name="auto_fix_high" size="sm" />
           Generate Plan
         </button>
       </div>

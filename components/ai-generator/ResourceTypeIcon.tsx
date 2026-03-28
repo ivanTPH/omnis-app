@@ -1,12 +1,12 @@
-import { FileText, HelpCircle, BookOpen, List, Grid, Presentation } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
-const ICON_MAP: Record<string, React.ElementType> = {
-  worksheet:           FileText,
-  quiz:                HelpCircle,
-  powerpoint_outline:  Presentation,
-  reading_passage:     BookOpen,
-  vocabulary_list:     List,
-  knowledge_organiser: Grid,
+const ICON_MAP: Record<string, string> = {
+  worksheet:           'description',
+  quiz:                'help_outline',
+  powerpoint_outline:  'slideshow',
+  reading_passage:     'menu_book',
+  vocabulary_list:     'list',
+  knowledge_organiser: 'grid_view',
 }
 
 export const RESOURCE_TYPE_LABELS: Record<string, string> = {
@@ -20,13 +20,13 @@ export const RESOURCE_TYPE_LABELS: Record<string, string> = {
 
 export default function ResourceTypeIcon({
   type,
-  size = 14,
+  size,
   className = '',
 }: {
   type: string
   size?: number
   className?: string
 }) {
-  const Icon = ICON_MAP[type] ?? FileText
-  return <Icon size={size} className={className} />
+  const iconName = ICON_MAP[type] ?? 'description'
+  return <Icon name={iconName} size="sm" className={className} />
 }

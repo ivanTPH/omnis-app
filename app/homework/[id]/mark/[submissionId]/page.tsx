@@ -4,7 +4,7 @@ import AppShell from '@/components/AppShell'
 import SubmissionMarkingView from '@/components/SubmissionMarkingView'
 import { getSubmissionForMarking } from '@/app/actions/homework'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default async function SubmissionMarkingPage({
   params,
@@ -34,7 +34,7 @@ export default async function SubmissionMarkingPage({
               href={`/homework/${homeworkId}`}
               className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700 shrink-0"
             >
-              <ChevronLeft size={16} />
+              <Icon name="chevron_left" size="sm" />
             </Link>
             <div className="min-w-0">
               <p className="text-[11px] text-gray-400 truncate">{hw.title}</p>
@@ -58,7 +58,7 @@ export default async function SubmissionMarkingPage({
                   : 'border-gray-100 text-gray-300 pointer-events-none'
               }`}
             >
-              <ChevronLeft size={15} />
+              <Icon name="chevron_left" size="sm" />
             </Link>
             <Link
               href={nav.next ? `/homework/${homeworkId}/mark/${nav.next}` : '#'}
@@ -69,7 +69,7 @@ export default async function SubmissionMarkingPage({
                   : 'border-gray-100 text-gray-300 pointer-events-none'
               }`}
             >
-              <ChevronRight size={15} />
+              <Icon name="chevron_right" size="sm" />
             </Link>
           </div>
         </div>

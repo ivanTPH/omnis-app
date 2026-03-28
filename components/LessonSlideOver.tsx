@@ -1,6 +1,6 @@
 'use client'
 import { useState, useTransition, useEffect } from 'react'
-import { X, ChevronDown, ChevronRight, ChevronLeft, BookOpen, Calendar, Users } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { createLesson } from '@/app/actions/lessons'
 import { LessonType, AudienceType } from '@prisma/client'
 import {
@@ -60,9 +60,9 @@ const YEAR_GROUPS = [7, 8, 9, 10, 11, 12, 13]
 
 // Step indicators
 const STEPS = [
-  { n: 1, label: 'Subject & Class', icon: Users },
-  { n: 2, label: 'Topic & Lesson',  icon: BookOpen },
-  { n: 3, label: 'Schedule',        icon: Calendar },
+  { n: 1, label: 'Subject & Class' },
+  { n: 2, label: 'Topic & Lesson'  },
+  { n: 3, label: 'Schedule'        },
 ]
 
 function SelectField({
@@ -86,7 +86,7 @@ function SelectField({
         >
           {children}
         </select>
-        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
       </div>
     </div>
   )
@@ -231,7 +231,7 @@ export default function LessonSlideOver({
             <p className="text-[11px] text-gray-400 mt-0.5">Step {step} of 3 — {STEPS[step - 1].label}</p>
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-            <X size={16} className="text-gray-500" />
+            <Icon name="close" size="sm" className="text-gray-500" />
           </button>
         </div>
 
@@ -244,7 +244,7 @@ export default function LessonSlideOver({
                 step > s.n  ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
               }`}>{s.n}</div>
               <span className={`text-[11px] font-medium hidden sm:block ${step === s.n ? 'text-gray-700' : 'text-gray-400'}`}>{s.label}</span>
-              {s.n < 3 && <ChevronRight size={12} className="text-gray-300 ml-1" />}
+              {s.n < 3 && <Icon name="chevron_right" size="sm" className="text-gray-300 ml-1" />}
             </div>
           ))}
         </div>
@@ -412,7 +412,7 @@ export default function LessonSlideOver({
                     >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
                 <div>
@@ -426,7 +426,7 @@ export default function LessonSlideOver({
                     >
                       {TIME_OPTIONS.filter(t => t > startTime).map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>
                 </div>
               </div>
@@ -488,7 +488,7 @@ export default function LessonSlideOver({
                 onClick={() => setStep((step - 1) as 1 | 2 | 3)}
                 className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-300 rounded-lg text-[13px] font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                <ChevronLeft size={14} />
+                <Icon name="chevron_left" size="sm" />
                 Back
               </button>
             ) : (
@@ -509,7 +509,7 @@ export default function LessonSlideOver({
                 className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-[13px] font-medium transition-colors"
               >
                 Next
-                <ChevronRight size={14} />
+                <Icon name="chevron_right" size="sm" />
               </button>
             ) : (
               <button

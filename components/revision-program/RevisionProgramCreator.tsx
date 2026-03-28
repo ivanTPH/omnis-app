@@ -1,7 +1,7 @@
 'use client'
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronRight, ChevronLeft, Loader2, CheckCircle2, AlertCircle, BookMarked } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getClassPerformanceAnalysis, createRevisionProgram } from '@/app/actions/revision-program'
 import { getTeacherClasses } from '@/app/actions/homework'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
@@ -179,7 +179,7 @@ function Step1({
         disabled={!canProceed || analysing}
         className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
       >
-        {analysing ? <Loader2 size={16} className="animate-spin" /> : null}
+        {analysing ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
         Analyse Class →
       </button>
     </div>
@@ -274,10 +274,10 @@ function Step2({
 
       <div className="flex gap-3">
         <button onClick={onBack} className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
-          <ChevronLeft size={15} /> Back
+          <Icon name="chevron_left" size="sm" /> Back
         </button>
         <button onClick={onGenerate} disabled={generating} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-          {generating ? <Loader2 size={15} className="animate-spin" /> : null}
+          {generating ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
           Generate Personalised Programs →
         </button>
       </div>
@@ -291,7 +291,7 @@ function Step3({ studentCount }: { studentCount: number }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 space-y-6">
       <div className="flex items-center gap-3">
-        <Loader2 size={24} className="animate-spin text-blue-600" />
+        <Icon name="refresh" size="lg" className="animate-spin text-blue-600" />
         <p className="text-lg font-semibold text-gray-800">Generating personalised revision tasks…</p>
       </div>
       <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -411,14 +411,14 @@ export default function RevisionProgramCreator({
 
       {error && (
         <div className="flex items-center gap-2 mb-4 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
-          <AlertCircle size={14} className="shrink-0" />
+          <Icon name="error" size="sm" className="shrink-0" />
           {error}
         </div>
       )}
 
       {step === 1 && prefillTopic && (
         <div className="flex items-center gap-2 mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl text-[13px] text-blue-800">
-          <BookMarked size={14} className="shrink-0 text-blue-500" />
+          <Icon name="bookmark" size="sm" className="shrink-0 text-blue-500" />
           <span>Topic focus: <span className="font-semibold">{prefillTopic}</span></span>
         </div>
       )}

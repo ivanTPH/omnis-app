@@ -9,7 +9,7 @@ import RaiseConcernButton from '@/components/send-support/RaiseConcernButton'
 import StudentAPDRPanel from '@/components/send-support/StudentAPDRPanel'
 import KPlanSection from '@/components/send-support/KPlanSection'
 import RefreshSnapshotButton from '@/components/send-support/RefreshSnapshotButton'
-import { AlertTriangle, FileText, RefreshCw, BookOpen, Lightbulb } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT']
@@ -91,7 +91,7 @@ export default async function StudentSendPage({
         {flags.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={16} className="text-amber-500" />
+              <Icon name="warning" size="sm" className="text-amber-500" />
               <h2 className="font-semibold text-gray-900 text-sm">Early Warning Flags</h2>
             </div>
             <EarlyWarningPanel flags={flags} compact />
@@ -103,7 +103,7 @@ export default async function StudentSendPage({
           <section className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2.5">
-                <Lightbulb size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                <Icon name="lightbulb" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Support Snapshot</p>
                   {student.supportSnapshot ? (
@@ -127,7 +127,7 @@ export default async function StudentSendPage({
         {/* K Plan (Learning Passport) — pinned at top for quick teacher reference */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <BookOpen size={16} className="text-teal-600" />
+            <Icon name="menu_book" size="sm" className="text-teal-600" />
             <h2 className="font-semibold text-gray-900 text-sm">K Plan — Learning Passport</h2>
             {passport?.status === 'APPROVED' && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Approved</span>
@@ -147,7 +147,7 @@ export default async function StudentSendPage({
         {/* ILP */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <FileText size={16} className="text-blue-500" />
+            <Icon name="description" size="sm" className="text-blue-500" />
             <h2 className="font-semibold text-gray-900 text-sm">Individual Learning Plan</h2>
           </div>
           {ilp ? (
@@ -162,7 +162,7 @@ export default async function StudentSendPage({
         {/* APDR Cycles */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <RefreshCw size={16} className="text-teal-500" />
+            <Icon name="refresh" size="sm" className="text-teal-500" />
             <h2 className="font-semibold text-gray-900 text-sm">Assess, Plan, Do, Review</h2>
           </div>
           <StudentAPDRPanel studentId={student.id} userRole={user.role} />
@@ -171,7 +171,7 @@ export default async function StudentSendPage({
         {/* Concerns */}
         <section>
           <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={16} className="text-red-500" />
+            <Icon name="warning" size="sm" className="text-red-500" />
             <h2 className="font-semibold text-gray-900 text-sm">
               SEND Concerns
               {concerns.length > 0 && (

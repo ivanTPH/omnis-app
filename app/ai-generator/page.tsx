@@ -5,7 +5,7 @@ import { getMyResources, getSchoolResources } from '@/app/actions/ai-generator'
 import { getTeacherLessons } from '@/app/actions/homework'
 import AppShell from '@/components/AppShell'
 import AiGeneratorShell from '@/components/ai-generator/AiGeneratorShell'
-import { ChevronLeft } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const ALLOWED_ROLES = [
   'TEACHER', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT',
@@ -61,7 +61,7 @@ export default async function AiGeneratorPage() {
             className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
             title="Back"
           >
-            <ChevronLeft size={16} />
+            <Icon name="chevron_left" size="sm" />
           </Link>
           <div>
             <h1 className="text-[20px] font-bold text-gray-900 leading-tight">AI Resource Generator</h1>

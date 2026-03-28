@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Loader2, AlertCircle, ChevronDown, ChevronRight, BookOpen, Info } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getClassRoster, getStudentClassDetail, type ClassRosterRow, type StudentClassDetail } from '@/app/actions/lessons'
 import {
   getCurrentUserRole,
@@ -122,7 +122,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 size={20} className="animate-spin text-gray-400" />
+        <Icon name="refresh" size="md" className="animate-spin text-gray-400" />
       </div>
     )
   }
@@ -130,7 +130,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   if (error) {
     return (
       <div className="flex items-center gap-2 text-red-500 py-8 justify-center text-[13px]">
-        <AlertCircle size={15} /> {error}
+        <Icon name="error" size="sm" /> {error}
       </div>
     )
   }
@@ -152,7 +152,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       {/* SEND summary card */}
       {sendCount > 0 && (
         <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-          <Info size={14} className="text-blue-500 mt-0.5 shrink-0" />
+          <Icon name="info" size="sm" className="text-blue-500 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap gap-3">
               {senSupportCount > 0 && (
@@ -251,7 +251,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   )}
                   {kPlan && kPlan.status === 'APPROVED' && (
                     <span className="flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">
-                      <BookOpen size={9} /> K Plan
+                      <Icon name="menu_book" size="sm" /> K Plan
                     </span>
                   )}
                   {scoreDisplay && (
@@ -262,8 +262,8 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   {/* Only SEND students have an expand chevron */}
                   {isSend && (
                     isExpanded
-                      ? <ChevronDown  size={13} className="text-gray-400 shrink-0" />
-                      : <ChevronRight size={13} className="text-gray-300 shrink-0" />
+                      ? <Icon name="expand_more"  size="sm" className="text-gray-400 shrink-0" />
+                      : <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />
                   )}
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     </p>
                     {ilpData === 'loading' ? (
                       <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                        <Loader2 size={11} className="animate-spin" /> Loading…
+                        <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
                       </div>
                     ) : !ilpData || ilpData.targets.length === 0 ? (
                       <p className="text-[12px] text-gray-400 italic">No ILP targets on record.</p>
@@ -333,7 +333,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
                   >
-                    View full plan <ChevronRight size={11} />
+                    View full plan <Icon name="chevron_right" size="sm" />
                   </a>
 
                   {/* Homework / APDR / K Plan tabs */}
@@ -364,7 +364,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                       <div>
                         {detail === 'loading' ? (
                           <div className="flex items-center gap-2 text-[12px] text-gray-400">
-                            <Loader2 size={12} className="animate-spin" /> Loading…
+                            <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
                           </div>
                         ) : !detail || detail.recentSubmissions.length === 0 ? (
                           <p className="text-[12px] text-gray-400">No submissions for this class yet.</p>
@@ -429,7 +429,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                             </p>
                             {fullPassport === 'loading' ? (
                               <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                                <Loader2 size={11} className="animate-spin" /> Loading…
+                                <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
                               </div>
                             ) : fullPassport ? (
                               <ul className="space-y-1.5">
@@ -472,7 +472,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                               disabled={kPlanLoading === row.id}
                               className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
                             >
-                              {kPlanLoading === row.id ? <Loader2 size={11} className="animate-spin" /> : <BookOpen size={11} />}
+                              {kPlanLoading === row.id ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
                               Full view
                             </button>
                           </div>

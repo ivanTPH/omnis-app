@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useTransition } from 'react'
-import { RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { SendQualityScoreData } from '@/app/actions/send-scorer'
 import { forceRescoreLesson } from '@/app/actions/send-scorer'
 import SendScoreBadge from './SendScoreBadge'
@@ -50,7 +50,7 @@ export default function SendScoreCard({ score, onRescore, canRescore = false }: 
             disabled={pending}
             className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
           >
-            <RefreshCw size={12} className={pending ? 'animate-spin' : ''} />
+            <Icon name="refresh" size="sm" className={pending ? 'animate-spin' : ''} />
             Re-score
           </button>
         )}

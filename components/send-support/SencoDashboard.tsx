@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, FileHeart, Radar, Users, Clock, TrendingUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { SencoDashboardData } from '@/app/actions/send-support'
 import { triggerEarlyWarningAnalysis } from '@/app/actions/send-support'
 import { ConcernStatusBadge } from './ConcernList'
@@ -24,10 +24,10 @@ export default function SencoDashboard({ data }: Props) {
   }
 
   const kpis = [
-    { label: 'Open Concerns',      value: data.openConcerns,      icon: AlertTriangle, color: data.openConcerns > 0 ? 'text-amber-600' : 'text-gray-400' },
-    { label: 'High Severity Flags', value: data.highSeverityFlags, icon: Radar,         color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-400' },
-    { label: 'Students with ILP',  value: data.studentsWithIlp,   icon: FileHeart,     color: 'text-blue-600' },
-    { label: 'Reviews Due (14d)',   value: data.ilpReviewsDue,     icon: Clock,         color: data.ilpReviewsDue > 0 ? 'text-orange-600' : 'text-gray-400' },
+    { label: 'Open Concerns',      value: data.openConcerns,      iconName: 'warning',         color: data.openConcerns > 0 ? 'text-amber-600' : 'text-gray-400' },
+    { label: 'High Severity Flags', value: data.highSeverityFlags, iconName: 'radar',           color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-400' },
+    { label: 'Students with ILP',  value: data.studentsWithIlp,   iconName: 'favorite_border', color: 'text-blue-600' },
+    { label: 'Reviews Due (14d)',   value: data.ilpReviewsDue,     iconName: 'schedule',        color: data.ilpReviewsDue > 0 ? 'text-orange-600' : 'text-gray-400' },
   ]
 
   return (
@@ -37,7 +37,7 @@ export default function SencoDashboard({ data }: Props) {
         {kpis.map(k => (
           <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <k.icon size={18} className={k.color} />
+              <Icon name={k.iconName} size="md" className={k.color} />
               <span className="text-xs text-gray-500 font-medium">{k.label}</span>
             </div>
             <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
@@ -52,7 +52,7 @@ export default function SencoDashboard({ data }: Props) {
           disabled={running}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
         >
-          <TrendingUp size={16} />
+          <Icon name="trending_up" size="sm" />
           {running ? 'Analysing…' : 'Run Early Warning Analysis'}
         </button>
         {result && (
@@ -66,7 +66,7 @@ export default function SencoDashboard({ data }: Props) {
         {/* Recent concerns */}
         <div className="bg-white border border-gray-200 rounded-xl">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <AlertTriangle size={16} className="text-amber-500" />
+            <Icon name="warning" size="sm" className="text-amber-500" />
             <h3 className="font-medium text-gray-900 text-sm">Recent Concerns</h3>
           </div>
           {data.recentConcerns.length === 0 ? (
@@ -92,7 +92,7 @@ export default function SencoDashboard({ data }: Props) {
         {/* Active flags */}
         <div className="bg-white border border-gray-200 rounded-xl">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-            <Radar size={16} className="text-blue-500" />
+            <Icon name="radar" size="sm" className="text-blue-500" />
             <h3 className="font-medium text-gray-900 text-sm">Active Warning Flags</h3>
           </div>
           {data.activeFlags.length === 0 ? (
@@ -119,16 +119,16 @@ export default function SencoDashboard({ data }: Props) {
       {/* Links */}
       <div className="flex gap-3 flex-wrap">
         <a href="/senco/concerns" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-          <AlertTriangle size={14} /> All Concerns
+          <Icon name="warning" size="sm" /> All Concerns
         </a>
         <a href="/senco/ilp" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-          <FileHeart size={14} /> ILP Records
+          <Icon name="favorite_border" size="sm" /> ILP Records
         </a>
         <a href="/senco/early-warning" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-          <Radar size={14} /> Early Warning
+          <Icon name="radar" size="sm" /> Early Warning
         </a>
         <a href="/send-scorer" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-          <Users size={14} /> Resource Scorer
+          <Icon name="people" size="sm" /> Resource Scorer
         </a>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Heart, Target, ChevronDown, ChevronUp, FileText, MessageSquare } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { SupportProfile } from '@/app/actions/analytics'
 
 const SEND_LABEL: Record<string, string> = {
@@ -44,7 +44,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
         aria-expanded={!collapsed}
       >
         <div className="flex items-center gap-2">
-          <Heart size={14} className={noSend ? 'text-gray-300' : 'text-amber-500'} />
+          <Icon name="favorite" size="sm" className={noSend ? 'text-gray-300' : 'text-amber-500'} />
           <span className="text-sm font-semibold text-gray-800">Support Profile</span>
           {!noSend && sendStatus && (
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${SEND_BADGE[sendStatus] ?? 'bg-amber-100 text-amber-800'}`}>
@@ -52,8 +52,9 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
             </span>
           )}
         </div>
-        <ChevronDown
-          size={14}
+        <Icon
+          name="expand_more"
+          size="sm"
           className={`text-gray-400 transition-transform duration-200 lg:hidden ${collapsed ? '' : 'rotate-180'}`}
         />
       </button>
@@ -69,7 +70,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
               {/* SEND status */}
               <Section label="SEND Status">
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${SEND_BADGE[sendStatus!] ?? 'bg-amber-100 text-amber-800'}`}>
-                  <Heart size={10} />
+                  <Icon name="favorite" size="sm" />
                   {SEND_LABEL[sendStatus!] ?? sendStatus}
                 </span>
               </Section>
@@ -99,7 +100,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
                 <ul className="space-y-2.5">
                   {visibleTargets.map(t => (
                     <li key={t.id} className="flex items-start gap-2">
-                      <Target size={11} className="text-blue-400 mt-1 shrink-0" />
+                      <Icon name="track_changes" size="sm" className="text-blue-400 mt-1 shrink-0" />
                       <div className="min-w-0">
                         <p className="text-[13px] text-gray-700 leading-snug">{t.target}</p>
                         {t.progressNotes && (
@@ -115,8 +116,8 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
                     className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
                   >
                     {showAllTargets
-                      ? <><ChevronUp size={11} />Show fewer</>
-                      : <><ChevronDown size={11} />Show all {allTargets.length} goals</>}
+                      ? <><Icon name="expand_less" size="sm" />Show fewer</>
+                      : <><Icon name="expand_more" size="sm" />Show all {allTargets.length} goals</>}
                   </button>
                 )}
               </>
@@ -128,7 +129,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
             {latestTeacherNote ? (
               <div className="bg-blue-50 border border-blue-100 rounded-xl px-3 py-3 space-y-1.5">
                 <div className="flex items-start gap-2">
-                  <MessageSquare size={12} className="text-blue-400 mt-0.5 shrink-0" />
+                  <Icon name="chat" size="sm" className="text-blue-400 mt-0.5 shrink-0" />
                   <p className="text-[13px] text-gray-700 leading-relaxed">{latestTeacherNote.notes}</p>
                 </div>
                 <p className="text-[10px] text-gray-400 pl-5">
@@ -146,7 +147,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
           {/* Last ILP evidence — placeholder (no ILPEvidenceEntry model yet) */}
           <Section label="Last ILP Evidence">
             <div className="flex items-center gap-2 text-[13px] text-gray-400 italic">
-              <FileText size={12} className="text-gray-300 shrink-0" />
+              <Icon name="description" size="sm" className="text-gray-300 shrink-0" />
               No evidence entries linked yet.
             </div>
           </Section>

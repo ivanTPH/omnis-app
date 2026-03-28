@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X, Wand2, Loader2, Check, RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { generateRevisionPlan, saveRevisionPlan } from '@/app/actions/revision'
 
 type Exam = {
@@ -103,10 +103,10 @@ export default function PlanGeneratorModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2">
-            <Wand2 size={16} className="text-blue-600" />
+            <Icon name="auto_fix_high" size="sm" className="text-blue-600" />
             <h2 className="text-[15px] font-bold text-gray-900">Generate Revision Plan</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><Icon name="close" size="md" /></button>
         </div>
 
         {/* Step indicator */}
@@ -117,7 +117,7 @@ export default function PlanGeneratorModal({
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
                   step === n ? 'bg-blue-600 text-white' : step > n ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
                 }`}>
-                  {step > n ? <Check size={10} /> : n}
+                  {step > n ? <Icon name="check" size="sm" /> : n}
                 </div>
                 <span className={`text-[11px] ${step === n ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
                   {n === 1 ? 'Select Exams' : n === 2 ? 'Availability' : 'Confidence'}
@@ -290,7 +290,7 @@ export default function PlanGeneratorModal({
                 disabled={pending}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50"
               >
-                {pending ? <><Loader2 size={14} className="animate-spin" />Generating…</> : <><Wand2 size={14} />Generate Plan</>}
+                {pending ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</> : <><Icon name="auto_fix_high" size="sm" />Generate Plan</>}
               </button>
             </>
           )}
@@ -301,7 +301,7 @@ export default function PlanGeneratorModal({
                 disabled={pending}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-[13px] text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50"
               >
-                <RefreshCw size={13} className={pending ? 'animate-spin' : ''} />
+                <Icon name="refresh" size="sm" className={pending ? 'animate-spin' : ''} />
                 Regenerate
               </button>
               <button
@@ -309,7 +309,7 @@ export default function PlanGeneratorModal({
                 disabled={pending || sessions.length === 0}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50"
               >
-                {pending ? <><Loader2 size={14} className="animate-spin" />Saving…</> : <><Check size={14} />Accept Plan</>}
+                {pending ? <><Icon name="refresh" size="sm" className="animate-spin" />Saving…</> : <><Icon name="check" size="sm" />Accept Plan</>}
               </button>
             </>
           )}

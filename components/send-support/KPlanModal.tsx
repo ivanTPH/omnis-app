@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Download, ShieldCheck, RefreshCw, Loader2, CheckCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { LearnerPassportRow } from '@/app/actions/send-support'
 import { approveLearnerPassport, regenerateLearnerPassport } from '@/app/actions/send-support'
 
@@ -60,7 +60,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
           <div className="flex items-center gap-2">
             {passport.status === 'APPROVED' && (
               <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 bg-green-600 text-white rounded-full">
-                <CheckCircle size={11} /> Approved
+                <Icon name="check_circle" size="sm" /> Approved
               </span>
             )}
             {passport.status === 'DRAFT' && (
@@ -75,7 +75,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
                   disabled={regenerating}
                   className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {regenerating ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                  {regenerating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="refresh" size="sm" />}
                   Regenerate
                 </button>
                 {passport.status === 'DRAFT' && (
@@ -84,7 +84,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
                     disabled={approving}
                     className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {approving ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />}
+                    {approving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="verified_user" size="sm" />}
                     Approve
                   </button>
                 )}
@@ -96,10 +96,10 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
             >
-              <Download size={12} /> Export PDF
+              <Icon name="download" size="sm" /> Export PDF
             </a>
             <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
-              <X size={16} />
+              <Icon name="close" size="sm" />
             </button>
           </div>
         </div>

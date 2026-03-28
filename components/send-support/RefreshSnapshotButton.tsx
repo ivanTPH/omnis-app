@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { RefreshCw, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { refreshSupportSnapshot } from '@/app/actions/send-support'
 import { useRouter } from 'next/navigation'
 
@@ -35,8 +35,8 @@ export default function RefreshSnapshotButton({ studentId }: { studentId: string
         className="flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-blue-600 disabled:opacity-50 transition-colors"
       >
         {loading
-          ? <Loader2 size={12} className="animate-spin" />
-          : <RefreshCw size={12} />}
+          ? <Icon name="refresh" size="sm" className="animate-spin" />
+          : <Icon name="refresh" size="sm" />}
         Refresh snapshot
       </button>
       {toast && (

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MessageSquare } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { StudentRow } from '@/app/actions/admin'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -113,7 +113,7 @@ export default function AdminStudentTable({ students }: { students: StudentRow[]
                     className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
                     title="Message parent"
                   >
-                    <MessageSquare size={12} /> Message parent
+                    <Icon name="chat" size="sm" /> Message parent
                   </Link>
                 </td>
               </tr>

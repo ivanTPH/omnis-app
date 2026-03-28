@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitHomework } from '@/app/actions/student'
-import { CheckCircle2, Clock, MessageSquare, Star, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import HomeworkTypeRenderer from '@/components/homework/HomeworkTypeRenderer'
 
 type Submission = {
@@ -58,7 +58,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {/* Status banner */}
       {isReturned && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <CheckCircle2 size={20} className="text-green-600 shrink-0" />
+          <Icon name="check_circle" size="lg" className="text-green-600 shrink-0" />
           <div className="flex-1">
             <p className="text-[13px] font-semibold text-green-800">Marked &amp; Returned</p>
             <p className="text-[12px] text-green-600">
@@ -82,7 +82,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
 
       {isAwaitingFeedback && !submitted && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-          <Clock size={20} className="text-amber-600 shrink-0" />
+          <Icon name="schedule" size="lg" className="text-amber-600 shrink-0" />
           <div>
             <p className="text-[13px] font-semibold text-amber-800">Submitted — Awaiting Feedback</p>
             <p className="text-[12px] text-amber-600">
@@ -94,7 +94,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
 
       {submitted && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <CheckCircle2 size={20} className="text-green-600 shrink-0" />
+          <Icon name="check_circle" size="lg" className="text-green-600 shrink-0" />
           <p className="text-[13px] font-semibold text-green-800">Submitted successfully!</p>
         </div>
       )}
@@ -111,7 +111,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {isReturned && sub!.feedback && (
         <section>
           <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <MessageSquare size={11} /> Teacher Feedback
+            <Icon name="chat" size="sm" /> Teacher Feedback
           </h2>
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-[14px] text-blue-900 leading-relaxed whitespace-pre-wrap">
             {sub!.feedback}
@@ -123,7 +123,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {isReturned && hw.modelAnswer && (
         <section>
           <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <Star size={11} /> Model Answer
+            <Icon name="star" size="sm" /> Model Answer
           </h2>
           <div className="bg-purple-50 border border-purple-100 rounded-xl p-5 text-[14px] text-purple-900 leading-relaxed whitespace-pre-wrap">
             {hw.modelAnswer}
@@ -168,7 +168,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
         <div className="flex items-center justify-between">
           {canResubmit && (
             <p className="text-[12px] text-gray-400 flex items-center gap-1">
-              <AlertCircle size={12} />
+              <Icon name="error" size="sm" />
               You can update your answer and resubmit.
             </p>
           )}

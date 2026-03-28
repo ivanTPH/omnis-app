@@ -2,7 +2,7 @@
 import { useState, useMemo, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, ExternalLink, BotMessageSquare, Bell, MessageSquare, BookOpen, FileText, Target, StickyNote, Plus, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -175,7 +175,7 @@ function QuestionCard({
               onClick={() => setShowModel(v => !v)}
               className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-green-700 transition-colors"
             >
-              {showModel ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showModel ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
               {showModel ? 'Hide' : 'Show'} model answer
             </button>
             {showModel && (
@@ -193,7 +193,7 @@ function QuestionCard({
               onClick={() => setShowScheme(v => !v)}
               className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-amber-700 transition-colors"
             >
-              {showScheme ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showScheme ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
               {showScheme ? 'Hide' : 'Show'} mark scheme
             </button>
             {showScheme && (
@@ -677,10 +677,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               Grade {displayScore}
             </span>
           )}
-          {!missing && isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
-          {!missing && !isDone && sub && <Clock size={13} className="text-amber-400 shrink-0" />}
-          {missing && !isSend && <AlertCircle size={13} className="text-gray-300 shrink-0" />}
-          {missing && isSend  && <AlertCircle size={13} className="text-amber-400 shrink-0" />}
+          {!missing && isDone && <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />}
+          {!missing && !isDone && sub && <Icon name="schedule" size="sm" className="text-amber-400 shrink-0" />}
+          {missing && !isSend && <Icon name="error" size="sm" className="text-gray-300 shrink-0" />}
+          {missing && isSend  && <Icon name="error" size="sm" className="text-amber-400 shrink-0" />}
         </button>
 
         {/* Full-page marking link for submitted */}
@@ -692,7 +692,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               className="px-2 py-1 text-gray-300 hover:text-blue-500 transition-colors"
               onClick={e => e.stopPropagation()}
             >
-              <ExternalLink size={11} />
+              <Icon name="open_in_new" size="sm" />
             </Link>
           </div>
         )}
@@ -711,8 +711,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               }`}
             >
               {remindingId === pupil.id
-                ? <Loader2 size={9} className="animate-spin" />
-                : <Bell size={9} />
+                ? <Icon name="refresh" size="sm" className="animate-spin" />
+                : <Icon name="notifications" size="sm" />
               }
               {reminded ? 'Sent' : 'Remind'}
             </button>
@@ -721,7 +721,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               title={isSend ? 'Message student (SEND — please use sensitive language)' : 'Message student'}
               className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-700 transition-colors"
             >
-              <MessageSquare size={9} />
+              <Icon name="chat" size="sm" />
               Message
               {isSend && <span className="ml-0.5 text-[8px] text-purple-500">SEND</span>}
             </Link>
@@ -792,7 +792,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         {/* Left: back + title */}
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/homework" className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
-            <ChevronLeft size={18} />
+            <Icon name="chevron_left" size="md" />
           </Link>
           <div className="min-w-0">
             <h1 className="font-semibold text-gray-900 truncate text-sm">{hw.title}</h1>
@@ -987,7 +987,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <BookOpen size={13} className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
+                      <Icon name="menu_book" size="sm" className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
                       <span className={`text-[12px] font-semibold ${sendInfo?.activeStatus === 'EHCP' ? 'text-purple-800' : 'text-blue-800'}`}>
                         K Plan — Lesson actions for {selectedStudent?.firstName}
                       </span>
@@ -999,7 +999,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                         {selectedKPlan.teacherActions.length} actions
                       </span>
                     </div>
-                    {kPlanOpen ? <ChevronUp size={13} className="text-gray-400" /> : <ChevronDown size={13} className="text-gray-400" />}
+                    {kPlanOpen ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
                   </button>
                   {kPlanOpen && (
                     <div className="px-4 py-3 space-y-2 bg-white">
@@ -1030,7 +1030,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 mt-1 transition-colors"
                       >
-                        <ExternalLink size={11} /> Full SEND record
+                        <Icon name="open_in_new" size="sm" /> Full SEND record
                       </a>
                     </div>
                   )}
@@ -1041,7 +1041,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               {hasStructuredQuestions ? (
                 <div>
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                    <FileText size={11} /> Questions &amp; Answers
+                    <Icon name="description" size="sm" /> Questions &amp; Answers
                   </p>
                   <div className="space-y-3">
                     {questions.length > 0
@@ -1129,7 +1129,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
                   >
                     <span className="text-[12px] font-semibold text-gray-700">Overall Model Answer</span>
-                    {showModelAnswer ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    {showModelAnswer ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
                   </button>
                   {showModelAnswer && (
                     <div className="px-4 py-4 text-[12px] text-gray-700 leading-relaxed bg-white whitespace-pre-wrap">
@@ -1147,7 +1147,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
                   >
                     <span className="text-[12px] font-semibold text-gray-700">Mark Scheme</span>
-                    {showBands ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                    {showBands ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
                   </button>
                   {showBands && (
                     <div className="divide-y divide-gray-100">
@@ -1166,7 +1166,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               {isAutoMarkedPending && (
                 <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
                   <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-                    <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
+                    <Icon name="smart_toy" size="sm" className="text-amber-600 shrink-0" />
                     <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
                     <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
                       {selectedAutoMarked ? 'Auto-marked' : 'AI score available'}
@@ -1195,8 +1195,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                         className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
                       >
                         {isPending
-                          ? <Loader2 size={12} className="animate-spin" />
-                          : <CheckCircle2 size={12} />
+                          ? <Icon name="refresh" size="sm" className="animate-spin" />
+                          : <Icon name="check_circle" size="sm" />
                         }
                         Approve &amp; Return
                       </button>
@@ -1283,7 +1283,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   <div className="flex items-center justify-between pt-1">
                     {savedId === selectedId ? (
                       <span className="flex items-center gap-1.5 text-[12px] text-green-600 font-medium">
-                        <CheckCircle2 size={14} /> Returned to student
+                        <Icon name="check_circle" size="sm" /> Returned to student
                       </span>
                     ) : <span />}
                     <button
@@ -1291,7 +1291,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       disabled={isPending || form.score === ''}
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
                     >
-                      {isPending && <Loader2 size={13} className="animate-spin" />}
+                      {isPending && <Icon name="refresh" size="sm" className="animate-spin" />}
                       {isAutoMarkedPending
                         ? 'Confirm & Return'
                         : isReturned ? '✓ Returned — Edit & Resend'
@@ -1306,7 +1306,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               {/* ── Teacher Notes ─── */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <StickyNote size={13} className="text-gray-400" />
+                  <Icon name="sticky_note_2" size="sm" className="text-gray-400" />
                   <p className="text-[12px] font-semibold text-gray-700">Teacher Notes</p>
                   <span className="text-[10px] text-gray-400 ml-auto">Internal only — students never see these</span>
                 </div>
@@ -1338,7 +1338,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       disabled={noteSaving || !newNote.trim()}
                       className="flex items-center gap-1 self-end bg-gray-700 hover:bg-gray-800 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-medium transition-colors"
                     >
-                      {noteSaving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                      {noteSaving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="add" size="sm" />}
                       Add
                     </button>
                   </div>
@@ -1363,14 +1363,14 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                     onClick={() => { setIlpPromptData(null); setIlpCountdown(null) }}
                     className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
                   >
-                    <X size={14} />
+                    <Icon name="close" size="sm" />
                   </button>
                 </div>
               )}
               {ilpSaved && (
                 <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
                   <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
-                    <CheckCircle2 size={13} /> ILP evidence recorded
+                    <Icon name="check_circle" size="sm" /> ILP evidence recorded
                   </p>
                 </div>
               )}
@@ -1386,7 +1386,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               sendInfo?.activeStatus === 'EHCP' ? 'border-purple-100' : 'border-blue-100'
             }`}>
               <div className="flex items-center gap-2">
-                <Target size={13} className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
+                <Icon name="track_changes" size="sm" className={sendInfo?.activeStatus === 'EHCP' ? 'text-purple-600' : 'text-blue-600'} />
                 <span className={`text-[12px] font-bold ${
                   sendInfo?.activeStatus === 'EHCP' ? 'text-purple-800' : 'text-blue-800'
                 }`}>SEND Support</span>
@@ -1438,7 +1438,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                         <div className="mt-2">
                           {evidenceSaved[target.id] ? (
                             <span className="flex items-center gap-1 text-[11px] text-green-600 font-medium">
-                              <CheckCircle2 size={11} /> Linked as evidence
+                              <Icon name="check_circle" size="sm" /> Linked as evidence
                             </span>
                           ) : (
                             <button
@@ -1451,8 +1451,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                               } disabled:opacity-40`}
                             >
                               {evidenceLoading[target.id]
-                                ? <Loader2 size={10} className="animate-spin" />
-                                : <Plus size={10} />
+                                ? <Icon name="refresh" size="sm" className="animate-spin" />
+                                : <Icon name="add" size="sm" />
                               }
                               Record as ILP evidence
                             </button>
@@ -1468,8 +1468,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       className="mt-2 text-[11px] text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
                     >
                       {showAllTargets
-                        ? <><ChevronUp size={12} /> Show fewer</>
-                        : <><ChevronDown size={12} /> Show all {ilpTargets.length} goals</>
+                        ? <><Icon name="expand_less" size="sm" /> Show fewer</>
+                        : <><Icon name="expand_more" size="sm" /> Show all {ilpTargets.length} goals</>
                       }
                     </button>
                   )}
@@ -1487,7 +1487,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-blue-600 transition-colors"
               >
-                <ExternalLink size={11} /> Full SEND record
+                <Icon name="open_in_new" size="sm" /> Full SEND record
               </a>
             </div>
           </div>
@@ -1502,19 +1502,19 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-2 shrink-0">
-              <Target size={16} className="text-blue-600" />
+              <Icon name="track_changes" size="sm" className="text-blue-600" />
               <h2 className="text-[15px] font-bold text-gray-900 flex-1">Record ILP Evidence</h2>
               <button
                 onClick={() => { setIlpModalOpen(false); setIlpPromptData(null) }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <X size={16} />
+                <Icon name="close" size="md" />
               </button>
             </div>
 
             {ilpClassifying ? (
               <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
-                <Loader2 size={18} className="animate-spin" />
+                <Icon name="refresh" size="md" className="animate-spin" />
                 <span className="text-[13px]">Classifying against ILP goals…</span>
               </div>
             ) : (
@@ -1567,7 +1567,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   disabled={ilpSaving || !ilpClassifications}
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors"
                 >
-                  {ilpSaving && <Loader2 size={13} className="animate-spin" />}
+                  {ilpSaving && <Icon name="refresh" size="sm" className="animate-spin" />}
                   Confirm &amp; Save Evidence
                 </button>
               </div>

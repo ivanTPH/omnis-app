@@ -4,10 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { markSubmission } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
-import {
-  ChevronDown, ChevronUp, CheckCircle2, Loader2,
-  AlertTriangle, BookOpen, Target, MessageSquare, BotMessageSquare,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { StrategyAppliesTo } from '@prisma/client'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -230,7 +227,7 @@ export default function SubmissionMarkingView({
                   className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
                   title="Message student"
                 >
-                  <MessageSquare size={11} /> Message
+                  <Icon name="chat" size="sm" /> Message
                 </Link>
               </div>
             </div>
@@ -240,7 +237,7 @@ export default function SubmissionMarkingView({
           {isAutoMarkedPending && (
             <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-                <BotMessageSquare size={15} className="text-amber-600 shrink-0" />
+                <Icon name="smart_toy" size="sm" className="text-amber-600 shrink-0" />
                 <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
                 <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">Auto-marked</span>
               </div>
@@ -268,8 +265,8 @@ export default function SubmissionMarkingView({
                     className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
                   >
                     {isPending
-                      ? <Loader2 size={12} className="animate-spin" />
-                      : <CheckCircle2 size={12} />
+                      ? <Icon name="refresh" size="sm" className="animate-spin" />
+                      : <Icon name="check_circle" size="sm" />
                     }
                     Approve &amp; Return
                   </button>
@@ -285,7 +282,7 @@ export default function SubmissionMarkingView({
           {data.plan && (hwStrats.length > 0 || classStrats.length > 0) && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={13} className="text-amber-600 shrink-0" />
+                <Icon name="warning" size="sm" className="text-amber-600 shrink-0" />
                 <p className="text-[12px] font-semibold text-amber-900">
                   SEND Support Plan active — consider these strategies when marking
                 </p>
@@ -322,7 +319,7 @@ export default function SubmissionMarkingView({
           {/* Homework instructions */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <BookOpen size={12} className="text-gray-400" />
+              <Icon name="menu_book" size="sm" className="text-gray-400" />
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Instructions</p>
             </div>
             <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap">
@@ -346,10 +343,10 @@ export default function SubmissionMarkingView({
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition text-left"
               >
                 <div className="flex items-center gap-2">
-                  <Target size={13} className="text-gray-500" />
+                  <Icon name="track_changes" size="sm" className="text-gray-500" />
                   <span className="text-[12px] font-semibold text-gray-700">Model Answer</span>
                 </div>
-                {showModelAnswer ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                {showModelAnswer ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
               </button>
               {showModelAnswer && (
                 <div className="px-5 py-4 text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap border-t border-gray-100">
@@ -367,7 +364,7 @@ export default function SubmissionMarkingView({
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition text-left"
               >
                 <span className="text-[12px] font-semibold text-gray-700">Mark Scheme</span>
-                {showBands ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                {showBands ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
               </button>
               {showBands && (
                 <div className="divide-y divide-gray-100 border-t border-gray-100">
@@ -474,9 +471,9 @@ export default function SubmissionMarkingView({
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-[13px] font-semibold transition-colors"
               >
                 {isPending
-                  ? <><Loader2 size={14} className="animate-spin" /> Saving…</>
+                  ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
                   : saved
-                    ? <><CheckCircle2 size={14} /> {data.nav.next ? 'Saved — moving on…' : 'Returned to student'}</>
+                    ? <><Icon name="check_circle" size="sm" /> {data.nav.next ? 'Saved — moving on…' : 'Returned to student'}</>
                     : isAutoMarkedPending
                     ? 'Confirm & Return to Student'
                     : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
@@ -485,7 +482,7 @@ export default function SubmissionMarkingView({
 
               {saved && !isPending && (
                 <p className="text-[11px] text-green-600 text-center font-medium">
-                  <CheckCircle2 size={11} className="inline mr-1" />
+                  <Icon name="check_circle" size="sm" className="inline mr-1" />
                   {data.nav.next ? 'Moving to next student…' : 'All done!'}
                 </p>
               )}

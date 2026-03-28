@@ -3,7 +3,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { getClassRagData, upsertTeacherPrediction } from '@/app/actions/rag'
 import type { RagStudent, SavePredictionInput } from '@/app/actions/rag'
-import { ChevronDown, ChevronRight, Loader2, Save } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 
 // ── RAG dot ───────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ function PredictionForm({
         disabled={saving || saved}
         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60"
       >
-        {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+        {saving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
         {saved ? 'Saved' : saving ? 'Saving…' : 'Save prediction'}
       </button>
     </div>
@@ -194,8 +194,8 @@ function RagRow({
         {/* Name */}
         <div className="flex items-center gap-2 min-w-0">
           {expanded
-            ? <ChevronDown size={13} className="text-gray-400 shrink-0" />
-            : <ChevronRight size={13} className="text-gray-400 shrink-0" />}
+            ? <Icon name="expand_more" size="sm" className="text-gray-400 shrink-0" />
+            : <Icon name="chevron_right" size="sm" className="text-gray-400 shrink-0" />}
           <StudentAvatar
             firstName={student.firstName}
             lastName={student.lastName}

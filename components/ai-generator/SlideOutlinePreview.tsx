@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Download, ImageIcon, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export type Slide = {
   number: number
@@ -133,7 +133,7 @@ export default function SlideOutlinePreview({ content, deckTitle }: Props) {
           disabled={exporting}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[12px] font-semibold transition-colors disabled:opacity-50"
         >
-          <Download size={12} />
+          <Icon name="download" size="sm" />
           {exporting ? 'Exporting…' : 'Export .docx'}
         </button>
       </div>
@@ -155,7 +155,7 @@ export default function SlideOutlinePreview({ content, deckTitle }: Props) {
                 <span className="flex-1 text-[13px] font-semibold text-gray-800 truncate">
                   {slide.title}
                 </span>
-                {open ? <ChevronUp size={14} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />}
+                {open ? <Icon name="expand_less" size="sm" className="text-gray-400 flex-shrink-0" /> : <Icon name="expand_more" size="sm" className="text-gray-400 flex-shrink-0" />}
               </button>
 
               {/* Expanded body */}
@@ -174,7 +174,7 @@ export default function SlideOutlinePreview({ content, deckTitle }: Props) {
                   {/* Image note */}
                   {slide.imageNote && (
                     <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                      <ImageIcon size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                      <Icon name="image" size="sm" className="text-amber-500 flex-shrink-0 mt-0.5" />
                       <p className="text-[12px] text-amber-800 italic">{slide.imageNote}</p>
                     </div>
                   )}
@@ -182,7 +182,7 @@ export default function SlideOutlinePreview({ content, deckTitle }: Props) {
                   {/* Speaker notes */}
                   {slide.speakerNotes && (
                     <div className="flex items-start gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-lg">
-                      <MessageSquare size={13} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                      <Icon name="chat" size="sm" className="text-blue-500 flex-shrink-0 mt-0.5" />
                       <p className="text-[12px] text-blue-800">{slide.speakerNotes}</p>
                     </div>
                   )}

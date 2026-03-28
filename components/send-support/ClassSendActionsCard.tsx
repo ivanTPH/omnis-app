@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BookOpen, ChevronDown, ChevronUp, Loader2, ExternalLink } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getClassKPlanActions, type ClassKPlanAction } from '@/app/actions/send-support'
 import dynamic from 'next/dynamic'
 import type { LearnerPassportRow } from '@/app/actions/send-support'
@@ -66,7 +66,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
 
   if (loading) return (
     <div className="flex items-center gap-2 text-[12px] text-gray-400 py-2">
-      <Loader2 size={13} className="animate-spin" /> Loading SEND actions…
+      <Icon name="refresh" size="sm" className="animate-spin" /> Loading SEND actions…
     </div>
   )
 
@@ -93,7 +93,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-teal-50 border-b border-teal-100">
           <div className="flex items-center gap-2">
-            <BookOpen size={14} className="text-teal-600 shrink-0" />
+            <Icon name="menu_book" size="sm" className="text-teal-600 shrink-0" />
             <span className="text-[12px] font-semibold text-teal-800">Class SEND Actions</span>
             <span className="text-[10px] px-1.5 py-0.5 bg-teal-100 text-teal-700 rounded-full font-semibold">
               {actions.length} K Plan{actions.length > 1 ? 's' : ''}
@@ -124,7 +124,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                   disabled={loadingModal === a.studentId}
                   className="ml-auto flex items-center gap-1 text-[10px] text-teal-600 hover:text-teal-800 font-medium disabled:opacity-50"
                 >
-                  {loadingModal === a.studentId ? <Loader2 size={10} className="animate-spin" /> : <BookOpen size={10} />}
+                  {loadingModal === a.studentId ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
                   K Plan
                 </button>
                 <a
@@ -134,7 +134,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                   className="text-gray-300 hover:text-blue-500"
                   title="Open full SEND record"
                 >
-                  <ExternalLink size={11} />
+                  <Icon name="open_in_new" size="sm" />
                 </a>
               </div>
 
@@ -169,8 +169,8 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
             className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-teal-600 hover:bg-teal-50 border-t border-teal-100 transition-colors"
           >
             {expanded
-              ? <><ChevronUp size={12} /> Show fewer</>
-              : <><ChevronDown size={12} /> Show all {actions.length} students</>
+              ? <><Icon name="expand_less" size="sm" /> Show fewer</>
+              : <><Icon name="expand_more" size="sm" /> Show all {actions.length} students</>
             }
           </button>
         )}

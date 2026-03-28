@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, AlertTriangle, CheckCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { raiseConcern } from '@/app/actions/send-support'
 
 const CATEGORIES = [
@@ -50,17 +50,17 @@ export default function RaiseConcernModal({ studentId, studentName, onClose }: P
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={18} className="text-amber-500" />
+            <Icon name="warning" size="md" className="text-amber-500" />
             <h2 className="font-semibold text-gray-900">Raise SEND Concern</h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
-            <X size={18} />
+            <Icon name="close" size="md" />
           </button>
         </div>
 
         {done ? (
           <div className="p-8 text-center">
-            <CheckCircle size={40} className="text-green-500 mx-auto mb-3" />
+            <Icon name="check_circle" size="lg" className="text-green-500 mx-auto mb-3" />
             <p className="font-medium text-gray-900">Concern raised</p>
             <p className="text-sm text-gray-500 mt-1">The SENCO has been notified about {studentName}.</p>
             <button onClick={onClose} className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">Close</button>

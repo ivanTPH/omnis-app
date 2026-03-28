@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { Lock, Archive } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ThreadSummary } from '@/app/actions/messaging'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -67,7 +67,7 @@ export default function ThreadList({
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-gray-400">{timeAgo(t.updatedAt)}</span>
-                  {t.isPrivate && <Lock size={10} className="text-purple-400" />}
+                  {t.isPrivate && <Icon name="lock" size="sm" className="text-purple-400" />}
                   {t.unreadCount > 0 && (
                     <span className="w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                       {t.unreadCount > 9 ? '9+' : t.unreadCount}
@@ -102,7 +102,7 @@ export default function ThreadList({
           onClick={() => setShowArchived(v => !v)}
           className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600"
         >
-          <Archive size={12} />
+          <Icon name="archive" size="sm" />
           {showArchived ? 'Hide archived' : 'Show archived'}
         </button>
       </div>

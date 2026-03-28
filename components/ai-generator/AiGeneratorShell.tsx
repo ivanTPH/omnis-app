@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { LayoutGrid, Wand2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { GeneratedResourceData } from '@/app/actions/ai-generator'
 import ResourceGeneratorForm from './ResourceGeneratorForm'
 import ResourcePreview from './ResourcePreview'
@@ -60,7 +60,7 @@ export default function AiGeneratorShell({
       <div className="w-80 flex-shrink-0 flex flex-col">
         <div className="bg-white border border-gray-200 rounded-2xl p-5 flex-1 overflow-auto">
           <h2 className="text-[13px] font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Wand2 size={14} className="text-blue-600" />
+            <Icon name="auto_fix_high" size="sm" className="text-blue-600" />
             Generate Resource
           </h2>
           <ResourceGeneratorForm
@@ -83,7 +83,7 @@ export default function AiGeneratorShell({
                 : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
-            <Wand2 size={12} />
+            <Icon name="auto_fix_high" size="sm" />
             Preview
           </button>
           <button
@@ -94,7 +94,7 @@ export default function AiGeneratorShell({
                 : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
-            <LayoutGrid size={12} />
+            <Icon name="grid_view" size="sm" />
             Library
           </button>
         </div>

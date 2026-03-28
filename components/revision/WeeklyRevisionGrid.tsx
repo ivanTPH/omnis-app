@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import SessionDetailModal from './SessionDetailModal'
 import ExportPdfButton    from '@/components/ExportPdfButton'
 
@@ -113,7 +113,7 @@ export default function WeeklyRevisionGrid({
           )}
           <span className="text-[11px] text-gray-500">{weekLabel} – {weekEndLabel}</span>
           <button onClick={() => navigate(-1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
-            <ChevronLeft size={14} />
+            <Icon name="chevron_left" size="sm" />
           </button>
           <button
             onClick={() => { setWeekStart(getMonday(new Date())); onWeekChange(getMonday(new Date())) }}
@@ -122,7 +122,7 @@ export default function WeeklyRevisionGrid({
             Today
           </button>
           <button onClick={() => navigate(1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
-            <ChevronRight size={14} />
+            <Icon name="chevron_right" size="sm" />
           </button>
         </div>
       </div>

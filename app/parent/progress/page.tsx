@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import { PlanStatus } from '@prisma/client'
-import { CheckCircle2, Circle, Clock, Target, BookOpen } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default async function ParentProgressPage() {
   const session = await auth()
@@ -101,7 +101,7 @@ export default async function ParentProgressPage() {
 
               {byClass.length === 0 && (
                 <div className="text-center py-10 border border-dashed border-gray-200 rounded-2xl text-gray-400">
-                  <BookOpen size={28} className="mx-auto mb-2 opacity-30" />
+                  <Icon name="menu_book" size="lg" className="mx-auto mb-2 opacity-30" />
                   <p className="text-[13px]">No classes enrolled yet</p>
                 </div>
               )}
@@ -154,10 +154,10 @@ export default async function ParentProgressPage() {
                           <div key={h.id} className="flex items-center gap-3 px-5 py-3">
                             <div className="shrink-0">
                               {sub?.status === 'RETURNED'
-                                ? <CheckCircle2 size={15} className="text-green-500" />
+                                ? <Icon name="check_circle" size="sm" className="text-green-500" />
                                 : sub
-                                  ? <Clock size={15} className="text-amber-400" />
-                                  : <Circle size={15} className="text-gray-300" />
+                                  ? <Icon name="schedule" size="sm" className="text-amber-400" />
+                                  : <Icon name="radio_button_unchecked" size="sm" className="text-gray-300" />
                               }
                             </div>
                             <div className="flex-1 min-w-0">
@@ -195,7 +195,7 @@ export default async function ParentProgressPage() {
               {plans.length > 0 && (
                 <div className="mt-2">
                   <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                    <Target size={11} /> Support Plan
+                    <Icon name="track_changes" size="sm" /> Support Plan
                   </h3>
                   {plans.map((plan: any) => (
                     <div key={plan.id} className="bg-purple-50 border border-purple-100 rounded-xl p-5">
@@ -214,8 +214,8 @@ export default async function ParentProgressPage() {
                               <div key={t.id} className="flex items-start gap-3">
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${t.achieved ? 'bg-green-200' : 'bg-purple-200'}`}>
                                   {t.achieved
-                                    ? <CheckCircle2 size={11} className="text-green-700" />
-                                    : <Target size={10} className="text-purple-700" />
+                                    ? <Icon name="check_circle" size="sm" className="text-green-700" />
+                                    : <Icon name="track_changes" size="sm" className="text-purple-700" />
                                   }
                                 </div>
                                 <div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { ChevronDown, ChevronUp, Loader2, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getOrCreateSendScore } from '@/app/actions/send-scorer'
 import type { LessonWithScore, SendQualityScoreData } from '@/app/actions/send-scorer'
 import SendScoreBadge from './SendScoreBadge'
@@ -44,11 +44,11 @@ export default function ScorerResultRow({ lesson, canRescore }: Props) {
             className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors disabled:opacity-50"
           >
             {pending ? (
-              <Loader2 size={11} className="animate-spin" />
+              <Icon name="refresh" size="sm" className="animate-spin" />
             ) : score ? (
-              open ? <ChevronUp size={11} /> : <ChevronDown size={11} />
+              open ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />
             ) : (
-              <><Sparkles size={11} /> Score</>
+              <><Icon name="auto_awesome" size="sm" /> Score</>
             )}
           </button>
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ChevronRight, ArrowLeft, Brain, TrendingUp, FileCheck, BookOpen, ChevronDown, ChevronUp, BarChart2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
@@ -54,10 +54,10 @@ export default function AdaptiveAnalyticsDashboard() {
             onClick={() => setView({ mode: 'overview' })}
             className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
           >
-            <ArrowLeft size={12} />
+            <Icon name="arrow_back" size="sm" />
             Adaptive Learning
           </button>
-          <ChevronRight size={12} className="text-gray-300" />
+          <Icon name="chevron_right" size="sm" className="text-gray-300" />
           <span className="font-semibold text-gray-900">{view.className}</span>
         </nav>
       )
@@ -69,17 +69,17 @@ export default function AdaptiveAnalyticsDashboard() {
           onClick={() => setView({ mode: 'overview' })}
           className="flex items-center gap-1 text-gray-500 hover:text-blue-600 transition-colors"
         >
-          <ArrowLeft size={12} />
+          <Icon name="arrow_back" size="sm" />
           Adaptive Learning
         </button>
-        <ChevronRight size={12} className="text-gray-300" />
+        <Icon name="chevron_right" size="sm" className="text-gray-300" />
         <button
           onClick={() => setView({ mode: 'heatmap', classId: view.classId, className: view.className, subject: view.subject, yearGroup: view.yearGroup })}
           className="text-gray-500 hover:text-blue-600 transition-colors"
         >
           {view.className}
         </button>
-        <ChevronRight size={12} className="text-gray-300" />
+        <Icon name="chevron_right" size="sm" className="text-gray-300" />
         <span className="font-semibold text-gray-900">{view.studentName}</span>
       </nav>
     )
@@ -132,7 +132,7 @@ export default function AdaptiveAnalyticsDashboard() {
                         {cls.sendCount} SEND
                       </span>
                     )}
-                    <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
+                    <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors" />
                   </div>
                 </button>
               ))}
@@ -148,10 +148,10 @@ export default function AdaptiveAnalyticsDashboard() {
               className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <BarChart2 size={14} className="text-gray-500" />
+                <Icon name="bar_chart" size="sm" className="text-gray-500" />
                 <span className="text-[13px] font-semibold text-gray-700">School-wide Insights</span>
               </div>
-              {showCharts ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+              {showCharts ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
             </button>
 
             {showCharts && (
@@ -160,7 +160,7 @@ export default function AdaptiveAnalyticsDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <FileCheck size={16} className="text-green-600" />
+                      <Icon name="task_alt" size="sm" className="text-green-600" />
                       <h3 className="text-[12px] font-medium text-gray-900">ILP Evidence Rate</h3>
                     </div>
                     <div className="text-3xl font-bold text-green-700 mb-1">{Math.round(analytics.ilpEvidenceRate * 100)}%</div>
@@ -171,7 +171,7 @@ export default function AdaptiveAnalyticsDashboard() {
                   </div>
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Brain size={16} className="text-purple-600" />
+                      <Icon name="psychology" size="sm" className="text-purple-600" />
                       <h3 className="text-[12px] font-medium text-gray-900">EHCP Evidence Rate</h3>
                     </div>
                     <div className="text-3xl font-bold text-purple-700 mb-1">{Math.round(analytics.ehcpEvidenceRate * 100)}%</div>
@@ -186,7 +186,7 @@ export default function AdaptiveAnalyticsDashboard() {
                 {analytics.bloomsDistribution.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <TrendingUp size={15} className="text-indigo-600" />
+                      <Icon name="trending_up" size="sm" className="text-indigo-600" />
                       <h3 className="text-[12px] font-medium text-gray-900">Bloom&apos;s Taxonomy Distribution</h3>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>
@@ -208,7 +208,7 @@ export default function AdaptiveAnalyticsDashboard() {
                 {analytics.typeBreakdown.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <BookOpen size={15} className="text-blue-600" />
+                      <Icon name="menu_book" size="sm" className="text-blue-600" />
                       <h3 className="text-[12px] font-medium text-gray-900">Performance by Homework Type</h3>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>

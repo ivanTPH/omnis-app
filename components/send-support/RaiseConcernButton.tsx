@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import RaiseConcernModal from './RaiseConcernModal'
 
 type Props = {
@@ -21,14 +21,14 @@ export default function RaiseConcernButton({ studentId, studentName, variant = '
           title={`Raise concern about ${studentName}`}
           className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600"
         >
-          <AlertTriangle size={14} />
+          <Icon name="warning" size="sm" />
         </button>
       ) : (
         <button
           onClick={() => setOpen(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg text-xs font-medium"
         >
-          <AlertTriangle size={13} />
+          <Icon name="warning" size="sm" />
           Raise Concern
         </button>
       )}

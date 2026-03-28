@@ -2,10 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  BookMarked, ChevronRight, Loader2, AlertCircle,
-  CheckSquare, Square, GraduationCap, BookOpen,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import {
   getYearTopics,
   createYearRevisionProgram,
@@ -111,7 +108,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center space-y-4">
         <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center">
-          <Loader2 size={28} className="animate-spin text-blue-600" />
+          <Icon name="refresh" size="lg" className="animate-spin text-blue-600" />
         </div>
         <p className="text-base font-semibold text-gray-900">Generating Year Revision…</p>
         <p className="text-sm text-gray-500 max-w-sm">
@@ -127,7 +124,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-          <GraduationCap size={20} className="text-indigo-600" />
+          <Icon name="school" size="md" className="text-indigo-600" />
         </div>
         <div>
           <h1 className="text-lg font-semibold text-gray-900">Year Revision</h1>
@@ -140,17 +137,17 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
         <span className={step === 'configure' ? 'font-semibold text-blue-600' : 'text-green-600'}>
           1 Configure
         </span>
-        <ChevronRight size={12} />
+        <Icon name="chevron_right" size="sm" />
         <span className={step === 'topics' ? 'font-semibold text-blue-600' : 'text-gray-400'}>
           2 Select Topics
         </span>
-        <ChevronRight size={12} />
+        <Icon name="chevron_right" size="sm" />
         <span className="text-gray-400">3 Generate</span>
       </div>
 
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
-          <AlertCircle size={14} className="shrink-0" />
+          <Icon name="error" size="sm" className="shrink-0" />
           {error}
         </div>
       )}
@@ -228,7 +225,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
             disabled={isLoading || !subject || !yearGroup}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
           >
-            {isLoading ? <Loader2 size={15} className="animate-spin" /> : <BookOpen size={15} />}
+            {isLoading ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
             {isLoading ? 'Loading topics…' : 'Load Topics →'}
           </button>
         </div>
@@ -288,8 +285,8 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
                 >
                   {selected.has(topic)
-                    ? <CheckSquare size={15} className="text-blue-600 shrink-0" />
-                    : <Square      size={15} className="text-gray-300 shrink-0" />
+                    ? <Icon name="check_box" size="sm" className="text-blue-600 shrink-0" />
+                    : <Icon name="check_box_outline_blank" size="sm" className="text-gray-300 shrink-0" />
                   }
                   <span className="text-sm text-gray-800">{topic}</span>
                 </button>
@@ -317,7 +314,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
               disabled={selected.size === 0 || !title.trim()}
               className="flex-[2] flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
             >
-              <BookMarked size={15} />
+              <Icon name="bookmark" size="sm" />
               Generate for {studentCount} student{studentCount !== 1 ? 's' : ''} →
             </button>
           </div>

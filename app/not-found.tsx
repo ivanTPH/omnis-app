@@ -1,12 +1,12 @@
 import Link from 'next/link'
-import { Construction } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-6">
-          <Construction size={28} className="text-blue-700" />
+          <Icon name="construction" size="lg" className="text-blue-700" />
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Coming soon</h1>
         <p className="text-gray-500 mb-6">This section is still being built.</p>

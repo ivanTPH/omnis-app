@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 import type { Plan, SendStatus, User } from '@prisma/client'
 
@@ -46,7 +46,7 @@ function PlanRow({ plan, ssById, now, in7 }: {
           {rd < now ? `${ago} day${ago !== 1 ? 's' : ''} overdue` : `${left} day${left !== 1 ? 's' : ''} left`}
         </p>
       </div>
-      <ChevronRight size={14} className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
+      <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
     </Link>
   )
 }
@@ -116,7 +116,7 @@ export default async function ReviewDuePage() {
 
           <div className="flex items-center gap-3 mb-8">
             <Link href="/send/dashboard" className="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
-              <ChevronLeft size={16} />
+              <Icon name="chevron_left" size="sm" />
             </Link>
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Reviews Due</h1>
@@ -128,14 +128,14 @@ export default async function ReviewDuePage() {
 
           {plans.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl py-16 text-center text-gray-400">
-              <CheckCircle2 size={32} className="mx-auto mb-3 text-green-400 opacity-60" />
+              <Icon name="check_circle" size="lg" className="mx-auto mb-3 text-green-400 opacity-60" />
               <p className="text-[14px] font-medium text-green-700">All plans are up to date</p>
               <p className="text-[12px] mt-1">No reviews due in the next 30 days</p>
             </div>
           ) : (
             <>
               <Section
-                icon={<AlertTriangle size={14} className="text-red-600" />}
+                icon={<Icon name="warning" size="sm" className="text-red-600" />}
                 title="Overdue"
                 colour="border-red-200 bg-red-50"
                 items={overdue}
@@ -144,7 +144,7 @@ export default async function ReviewDuePage() {
                 in7={in7}
               />
               <Section
-                icon={<AlertTriangle size={14} className="text-amber-600" />}
+                icon={<Icon name="warning" size="sm" className="text-amber-600" />}
                 title="Due Within 7 Days"
                 colour="border-amber-200 bg-amber-50"
                 items={urgent}
@@ -153,7 +153,7 @@ export default async function ReviewDuePage() {
                 in7={in7}
               />
               <Section
-                icon={<Clock size={14} className="text-gray-500" />}
+                icon={<Icon name="schedule" size="sm" className="text-gray-500" />}
                 title="Due Within 30 Days"
                 colour="border-gray-200 bg-white"
                 items={soon}

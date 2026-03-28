@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Heart, FileText } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
 export default async function IlpListPage() {
@@ -50,7 +50,7 @@ export default async function IlpListPage() {
 
           <div className="flex items-center gap-3 mb-8">
             <Link href="/send/dashboard" className="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
-              <ChevronLeft size={16} />
+              <Icon name="chevron_left" size="sm" />
             </Link>
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">ILP Records</h1>
@@ -61,7 +61,7 @@ export default async function IlpListPage() {
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             {sendStatuses.length === 0 ? (
               <div className="py-16 text-center text-gray-400">
-                <Heart size={32} className="mx-auto mb-3 opacity-30" />
+                <Icon name="favorite" size="lg" className="mx-auto mb-3 opacity-30" />
                 <p className="text-[14px] font-medium">No ILP records yet</p>
               </div>
             ) : (
@@ -114,7 +114,7 @@ export default async function IlpListPage() {
                         <span className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-400">No Plan</span>
                       )}
 
-                      <ChevronRight size={14} className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
+                      <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
                     </Link>
                   )
                 })}

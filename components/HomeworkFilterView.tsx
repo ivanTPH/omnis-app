@@ -2,10 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import {
-  ClipboardList, ChevronRight, AlertCircle, CheckCircle2,
-  Clock, Search, X, Plus,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import SetHomeworkModal from './SetHomeworkModal'
 import ExportPdfButton  from '@/components/ExportPdfButton'
 
@@ -129,10 +126,10 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
           hw.submittedCount < hw.totalEnrolled       ? 'bg-blue-50'  :
           'bg-green-50'
         }`}>
-          {hw.status === 'DRAFT'                 ? <ClipboardList size={18} className="text-gray-400"   /> :
-           hw.needsMarkCount > 0                 ? <Clock         size={18} className="text-amber-500" /> :
-           hw.submittedCount < hw.totalEnrolled  ? <AlertCircle   size={18} className="text-blue-500"  /> :
-           <CheckCircle2                           size={18} className="text-green-500" />}
+          {hw.status === 'DRAFT'                 ? <Icon name="assignment" size="md" className="text-gray-400"   /> :
+           hw.needsMarkCount > 0                 ? <Icon name="schedule"     size="md" className="text-amber-500" /> :
+           hw.submittedCount < hw.totalEnrolled  ? <Icon name="error"        size="md" className="text-blue-500"  /> :
+           <Icon name="check_circle" size="md" className="text-green-500" />}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -182,7 +179,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
               <p className="text-[10px] text-gray-400">marked</p>
             </div>
           )}
-          <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-400 transition-colors" />
+          <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors" />
         </div>
       </Link>
       <div className="absolute top-3 right-10 opacity-0 group-hover/card:opacity-100 transition-opacity">
@@ -216,7 +213,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
           onClick={() => setShowModal(true)}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors shrink-0"
         >
-          <Plus size={15} />Set Homework
+          <Icon name="add" size="sm" />Set Homework
         </button>
       </div>
 
@@ -292,7 +289,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
 
         {/* Search */}
         <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -304,7 +301,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
               onClick={() => setSearch('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <X size={13} />
+              <Icon name="close" size="sm" />
             </button>
           )}
         </div>
@@ -319,7 +316,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
                 className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full text-[11px] font-medium hover:bg-blue-100 transition-colors"
               >
                 {chip.label}
-                <X size={10} />
+                <Icon name="close" size="sm" />
               </button>
             ))}
             <button
@@ -362,7 +359,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
       {/* ── Homework list ────────────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <div className="border border-dashed border-gray-200 rounded-2xl p-16 text-center">
-          <ClipboardList size={32} className="mx-auto text-gray-300 mb-3" />
+          <Icon name="assignment" size="lg" className="mx-auto text-gray-300 mb-3" />
           <p className="text-[14px] font-medium text-gray-500">
             {homework.length === 0 ? 'No homework set yet' : 'No homework matches your filters'}
           </p>

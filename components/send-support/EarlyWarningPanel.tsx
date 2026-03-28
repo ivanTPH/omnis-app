@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Radar, TrendingUp, CheckCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { EarlyWarningFlagRow } from '@/app/actions/send-support'
 import { actionFlag, triggerEarlyWarningAnalysis } from '@/app/actions/send-support'
 
@@ -89,7 +89,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
                   disabled={actioning === f.id}
                   className="shrink-0 flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 disabled:opacity-50"
                 >
-                  <CheckCircle size={13} />
+                  <Icon name="check_circle" size="sm" />
                   {actioning === f.id ? 'Saving…' : 'Action'}
                 </button>
               </div>
@@ -106,7 +106,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
       {!compact && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Radar size={18} className="text-blue-600" />
+            <Icon name="radar" size="md" className="text-blue-600" />
             <h2 className="font-semibold text-gray-900">Early Warning Flags</h2>
             {flags.length > 0 && (
               <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">{flags.length}</span>
@@ -119,7 +119,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
               disabled={running}
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
             >
-              <TrendingUp size={14} />
+              <Icon name="trending_up" size="sm" />
               {running ? 'Analysing…' : 'Run Analysis'}
             </button>
           </div>
@@ -128,7 +128,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
 
       {flags.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
-          <Radar size={36} className="mx-auto mb-3 opacity-30" />
+          <Icon name="radar" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">No active early warning flags.</p>
           <p className="text-xs mt-1">Run an analysis to detect patterns in student performance data.</p>
         </div>

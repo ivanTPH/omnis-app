@@ -1,6 +1,6 @@
 'use client'
 import { useState, useTransition, useEffect, useRef } from 'react'
-import { Search, Plus, Upload, Link2, Loader2, BookOpen, Library, ExternalLink, X, CheckCircle2, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { searchOakLessons, addOakLessonToLesson } from '@/app/actions/oak'
 import { getSchoolResourceLibrary, addLibraryResource, addUrlResource, addUploadedResource, updateLessonObjectives } from '@/app/actions/lessons'
 import { extractLearningFromLabel } from '@/app/actions/homework'
@@ -105,13 +105,13 @@ function QuickUpload({
     <div className="border border-blue-200 rounded-xl p-4 space-y-3 bg-blue-50/40">
       {extracting ? (
         <div className="flex items-center gap-2 text-[12px] text-blue-700">
-          <Loader2 size={13} className="animate-spin shrink-0" />
-          <span><Sparkles size={12} className="inline mr-1" />Extracting learning objectives from your file…</span>
+          <Icon name="refresh" size="sm" className="animate-spin shrink-0" />
+          <span><Icon name="auto_awesome" size="sm" className="inline mr-1" />Extracting learning objectives from your file…</span>
         </div>
       ) : extracted && !objectivesApplied ? (
         <>
           <div className="flex items-start gap-2">
-            <CheckCircle2 size={15} className="text-green-500 shrink-0 mt-0.5" />
+            <Icon name="check_circle" size="sm" className="text-green-500 shrink-0 mt-0.5" />
             <p className="text-[12px] font-semibold text-gray-800">File uploaded — learning objectives extracted:</p>
           </div>
           <ul className="space-y-1.5 pl-5">
@@ -132,7 +132,7 @@ function QuickUpload({
               disabled={pending}
               className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
             >
-              {pending ? <Loader2 size={12} className="animate-spin" /> : null}
+              {pending ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
               Use these ✓
             </button>
             <button
@@ -145,10 +145,10 @@ function QuickUpload({
         </>
       ) : objectivesApplied ? (
         <div className="flex items-center gap-2 text-[12px] text-green-700">
-          <CheckCircle2 size={13} className="shrink-0" />
+          <Icon name="check_circle" size="sm" className="shrink-0" />
           Objectives added to lesson!
           <button onClick={() => { setExtracted(null); setFile(null); setLabel(''); setMode(null); if (fileRef.current) fileRef.current.value = '' }}
-            className="ml-auto text-gray-400 hover:text-gray-600"><X size={12} /></button>
+            className="ml-auto text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
         </div>
       ) : null}
     </div>
@@ -158,10 +158,10 @@ function QuickUpload({
     <form onSubmit={handleUpload} className="border border-dashed border-blue-300 rounded-xl p-4 space-y-3 bg-blue-50/40">
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-semibold text-blue-700">Upload a file</p>
-        <button type="button" onClick={() => setMode(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+        <button type="button" onClick={() => setMode(null)} className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
       </div>
       <label className="flex items-center gap-3 border border-dashed border-gray-300 rounded-lg p-3 cursor-pointer bg-white hover:border-blue-400 transition-colors">
-        <Upload size={16} className="text-gray-400 shrink-0" />
+        <Icon name="upload" size="md" className="text-gray-400 shrink-0" />
         <span className="text-[12px] text-gray-600 truncate">{file ? file.name : 'Click to choose file (PDF, PPTX, DOCX)'}</span>
         <input ref={fileRef} type="file" accept=".pdf,.pptx,.ppt,.docx,.doc" onChange={handleFileChange} className="hidden" />
       </label>
@@ -172,7 +172,7 @@ function QuickUpload({
       )}
       <button type="submit" disabled={pending || !file || !label}
         className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors">
-        {pending ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+        {pending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="upload" size="sm" />}
         {pending ? 'Uploading…' : 'Upload'}
       </button>
     </form>
@@ -182,7 +182,7 @@ function QuickUpload({
     <form onSubmit={handleLink} className="border border-dashed border-blue-300 rounded-xl p-4 space-y-3 bg-blue-50/40">
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-semibold text-blue-700">Add a link</p>
-        <button type="button" onClick={() => setMode(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+        <button type="button" onClick={() => setMode(null)} className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
       </div>
       <input type="url" required value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…"
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
@@ -190,7 +190,7 @@ function QuickUpload({
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
       <button type="submit" disabled={pending || !url || !linkLabel}
         className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors">
-        {pending ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
+        {pending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="link" size="sm" />}
         {pending ? 'Adding…' : 'Add link'}
       </button>
     </form>
@@ -200,11 +200,11 @@ function QuickUpload({
     <div className="flex gap-2">
       <button onClick={() => setMode('upload')}
         className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-[12px] text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">
-        <Upload size={12} /> Upload file
+        <Icon name="upload" size="sm" /> Upload file
       </button>
       <button onClick={() => setMode('link')}
         className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-[12px] text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">
-        <Link2 size={12} /> Add link
+        <Icon name="link" size="sm" /> Add link
       </button>
     </div>
   )
@@ -364,14 +364,14 @@ export default function UnifiedResourceSearch({
     <div className="space-y-3">
       {/* Search bar */}
       <div className="relative">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         <input
           value={query}
           onChange={e => handleQueryChange(e.target.value)}
           placeholder="Search Oak Academy &amp; school library…"
           className="w-full pl-8 pr-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
         />
-        {loading && <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
+        {loading && <Icon name="refresh" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
       </div>
 
       {/* Broadened year notice */}
@@ -385,7 +385,7 @@ export default function UnifiedResourceSearch({
       {showHwBanner && onGenerateHomework && (
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
           <div className="flex items-center gap-2 min-w-0">
-            <Sparkles size={13} className="text-blue-500 shrink-0" />
+            <Icon name="auto_awesome" size="sm" className="text-blue-500 shrink-0" />
             <p className="text-[12px] text-blue-800 font-medium truncate">Resource added! Generate homework based on this?</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -396,7 +396,7 @@ export default function UnifiedResourceSearch({
               Generate Homework →
             </button>
             <button onClick={() => setShowHwBanner(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={13} />
+              <Icon name="close" size="sm" />
             </button>
           </div>
         </div>
@@ -436,7 +436,7 @@ export default function UnifiedResourceSearch({
               <div key={`oak-${r.slug}`} className="flex items-start gap-3 p-3 border border-gray-100 rounded-xl bg-white hover:border-gray-200 transition-colors">
                 <div className="shrink-0 mt-0.5">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                    <BookOpen size={9} />Oak
+                    <Icon name="menu_book" size="sm" />Oak
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -468,7 +468,7 @@ export default function UnifiedResourceSearch({
                         : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40'
                     }`}
                   >
-                    {addingId === id ? <Loader2 size={10} className="animate-spin" /> : alreadyAdded ? '✓ Added' : <><Plus size={10} /> Add</>}
+                    {addingId === id ? <Icon name="refresh" size="sm" className="animate-spin" /> : alreadyAdded ? '✓ Added' : <><Icon name="add" size="sm" /> Add</>}
                   </button>
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default function UnifiedResourceSearch({
             <div key={`school-${r.id}`} className="flex items-start gap-3 p-3 border border-gray-100 rounded-xl bg-white hover:border-gray-200 transition-colors">
               <div className="shrink-0 mt-0.5">
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
-                  <Library size={9} />School
+                  <Icon name="local_library" size="sm" />School
                 </span>
               </div>
               <div className="flex-1 min-w-0">
@@ -499,7 +499,7 @@ export default function UnifiedResourceSearch({
                   )}
                   {r.url && (
                     <a href={r.url} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gray-500">
-                      <ExternalLink size={10} />
+                      <Icon name="open_in_new" size="sm" />
                     </a>
                   )}
                 </div>
@@ -514,7 +514,7 @@ export default function UnifiedResourceSearch({
                       : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40'
                   }`}
                 >
-                  {addingId === id ? <Loader2 size={10} className="animate-spin" /> : alreadyAdded ? '✓ Added' : <><Plus size={10} /> Add</>}
+                  {addingId === id ? <Icon name="refresh" size="sm" className="animate-spin" /> : alreadyAdded ? '✓ Added' : <><Icon name="add" size="sm" /> Add</>}
                 </button>
               </div>
             </div>

@@ -4,10 +4,7 @@ import { useRouter } from 'next/navigation'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
 import { currentTermLabel } from '@/lib/termUtils'
-import {
-  ChevronDown, ChevronRight, CheckCircle, XCircle,
-  ExternalLink, Users, TrendingUp, BookOpen, Heart, X, BarChart3, Loader2, Activity,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import RagView from '@/components/analytics/RagView'
 import StudentContactPanel from '@/components/StudentContactPanel'
@@ -379,7 +376,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm"
           >
             {isLoading ? (
-              <><Loader2 size={14} className="animate-spin" />Running...</>
+              <><Icon name="refresh" size="sm" className="animate-spin" />Running...</>
             ) : (
               <>Run</>
             )}
@@ -405,7 +402,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
         {/* ── Initial empty state (before first Run) ── */}
         {!hasRun && (
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <BarChart3 size={40} className="text-gray-200 mb-4" />
+            <Icon name="bar_chart" size="lg" className="text-gray-200 mb-4" />
             <p className="text-gray-600 font-medium mb-1">No data loaded</p>
             <p className="text-sm text-gray-400">Select filters above and click <strong className="text-gray-600">Run</strong> to view analytics</p>
           </div>
@@ -453,7 +450,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                     studentView === 'detail' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  <Users size={14} />Detail
+                  <Icon name="people" size="sm" />Detail
                 </button>
                 <button
                   onClick={() => setStudentView('rag')}
@@ -461,7 +458,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                     studentView === 'rag' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  <Activity size={14} />RAG
+                  <Icon name="monitor_heart" size="sm" />RAG
                 </button>
               </div>
             )}
@@ -493,15 +490,15 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
                 {/* KPI cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                  <KpiCard icon={Users}       label="Students"       value={String(data.totalStudents)}                         color="blue"   />
-                  <KpiCard icon={CheckCircle} label="Avg Completion" value={`${data.avgCompletion}%`}                           color="green"  />
-                  <KpiCard icon={TrendingUp}  label="Avg Score"      value={data.avgScore != null ? `${data.avgScore}` : '—'}   color="purple" />
-                  <KpiCard icon={Heart}       label="SEND Students"  value={String(data.sendCount)}                             color="amber"  />
+                  <KpiCard iconName="people"        label="Students"       value={String(data.totalStudents)}                         color="blue"   />
+                  <KpiCard iconName="check_circle"  label="Avg Completion" value={`${data.avgCompletion}%`}                           color="green"  />
+                  <KpiCard iconName="trending_up"   label="Avg Score"      value={data.avgScore != null ? `${data.avgScore}` : '—'}   color="purple" />
+                  <KpiCard iconName="favorite"      label="SEND Students"  value={String(data.sendCount)}                             color="amber"  />
                 </div>
 
                 {data.students.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-xl py-14 text-center">
-                    <BookOpen size={28} className="text-gray-200 mx-auto mb-3" />
+                    <Icon name="menu_book" size="lg" className="text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-500 text-sm">No students match the selected filters.</p>
                   </div>
                 ) : sorted.length === 0 ? (
@@ -568,7 +565,7 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
       {label}
-      <button onClick={onRemove} className="hover:text-blue-900 ml-0.5"><X size={10} /></button>
+      <button onClick={onRemove} className="hover:text-blue-900 ml-0.5"><Icon name="close" size="sm" /></button>
     </span>
   )
 }
@@ -583,13 +580,13 @@ function SortBtn({ col, active, asc, toggle, children }: {
   )
 }
 
-function KpiCard({ icon: Icon, label, value, color }: {
-  icon: React.ElementType; label: string; value: string; color: 'blue' | 'green' | 'purple' | 'amber'
+function KpiCard({ iconName, label, value, color }: {
+  iconName: string; label: string; value: string; color: 'blue' | 'green' | 'purple' | 'amber'
 }) {
   const colors = { blue: 'bg-blue-50 text-blue-700', green: 'bg-green-50 text-green-700', purple: 'bg-purple-50 text-purple-700', amber: 'bg-amber-50 text-amber-700' }
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${colors[color]}`}><Icon size={15} /></div>
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${colors[color]}`}><Icon name={iconName} size="sm" /></div>
       <div className="text-2xl font-bold text-gray-900">{value}</div>
       <div className="text-[12px] text-gray-500 mt-0.5">{label}</div>
     </div>
@@ -641,14 +638,14 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
       <div className="hidden sm:block text-right">
         {cls.sendCount > 0 ? (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
-            <Heart size={11} />{cls.sendCount}
+            <Icon name="favorite" size="sm" />{cls.sendCount}
           </span>
         ) : (
           <span className="text-xs text-gray-300">—</span>
         )}
       </div>
 
-      <ChevronRight size={15} className="text-gray-400 shrink-0" />
+      <Icon name="chevron_right" size="sm" className="text-gray-400 shrink-0" />
     </div>
   )
 }
@@ -674,7 +671,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         {/* Name + expand */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button onClick={onExpand} className="shrink-0 text-gray-400">
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {expanded ? <Icon name="expand_more" size="sm" /> : <Icon name="chevron_right" size="sm" />}
           </button>
           {/* Avatar — click to open contact panel */}
           <button
@@ -741,7 +738,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         <div className="hidden sm:flex items-center justify-end">
           <button onClick={onNavigate} title="Open student dashboard"
             className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600 transition-colors">
-            <ExternalLink size={12} />
+            <Icon name="open_in_new" size="sm" />
           </button>
         </div>
 
@@ -749,7 +746,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         <div className="flex sm:hidden items-center gap-2 shrink-0">
           <span className="text-xs text-gray-500">{student.completionRate}%</span>
           {student.hasSend && <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">SEN</span>}
-          <button onClick={onNavigate} className="p-1 text-gray-400"><ExternalLink size={11} /></button>
+          <button onClick={onNavigate} className="p-1 text-gray-400"><Icon name="open_in_new" size="sm" /></button>
         </div>
       </div>
 
@@ -781,7 +778,7 @@ function HomeworkTimelineRow({ hw, onOpen, loading, scoreToGrade }: {
   return (
     <div onClick={!loading ? onOpen : undefined}
       className={`flex items-center gap-3 py-2.5 px-1 rounded text-xs ${onOpen ? 'cursor-pointer hover:bg-white transition-colors' : 'opacity-60'}`}>
-      {hw.submitted ? <CheckCircle size={13} className="text-green-500 shrink-0" /> : <XCircle size={13} className="text-gray-300 shrink-0" />}
+      {hw.submitted ? <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" /> : <Icon name="cancel" size="sm" className="text-gray-300 shrink-0" />}
       <span className="flex-1 text-gray-700 truncate">{hw.subject} — {hw.title}</span>
       <span className="text-gray-400 shrink-0">{dateStr}</span>
       {hw.submitted && hw.score != null ? (
@@ -794,7 +791,7 @@ function HomeworkTimelineRow({ hw, onOpen, loading, scoreToGrade }: {
       ) : (
         <span className="text-rose-400 shrink-0">Not submitted</span>
       )}
-      {hw.submissionId && <ExternalLink size={11} className="text-gray-300 shrink-0" />}
+      {hw.submissionId && <Icon name="open_in_new" size="sm" className="text-gray-300 shrink-0" />}
     </div>
   )
 }
@@ -810,7 +807,7 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
             <p className="text-sm text-gray-600 mt-0.5">{detail.homework.title}</p>
             <p className="text-xs text-gray-400 mt-0.5">Submitted {submittedDate}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0"><X size={16} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0"><Icon name="close" size="sm" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           {(detail.finalScore != null || detail.grade) && (
@@ -843,7 +840,7 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
           )}
           <a href={detail.markingUrl} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors">
-            Give Feedback <ExternalLink size={13} />
+            Give Feedback <Icon name="open_in_new" size="sm" />
           </a>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Pencil, Lock } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
 import LessonFolder, { type FolderTab } from './LessonFolder'
@@ -214,10 +214,10 @@ export default function WeeklyCalendar({
                 Today
               </button>
               <button onClick={prevWeek} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                <ChevronLeft size={15} className="text-gray-400" />
+                <Icon name="chevron_left" size="sm" className="text-gray-400" />
               </button>
               <button onClick={nextWeek} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100">
-                <ChevronRight size={15} className="text-gray-400" />
+                <Icon name="chevron_right" size="sm" className="text-gray-400" />
               </button>
               <span className="text-[12px] text-gray-500 font-medium ml-1 w-36 shrink-0">
                 {fmt(days[0])} – {fmt(days[4])}
@@ -345,7 +345,7 @@ export default function WeeklyCalendar({
                                   `}
                                 >
                                   <span className="flex items-center gap-0.5 text-[11px] text-blue-400 font-medium">
-                                    <Plus size={10} />Add lesson
+                                    <Icon name="add" size="sm" />Add lesson
                                   </span>
                                 </div>
                               )}
@@ -388,8 +388,8 @@ export default function WeeklyCalendar({
                                       {lesson.hasHomework ? (
                                         <span className={`inline-flex items-center px-1 rounded leading-4 h-4 ${lesson.homeworkStatus === 'DRAFT' ? 'bg-amber-400 text-white' : 'bg-green-500 text-white'}`} title={lesson.homeworkStatus === 'DRAFT' ? 'Homework (draft)' : 'Homework (published)'}>
                                           {lesson.homeworkStatus === 'DRAFT'
-                                            ? <Pencil size={7} strokeWidth={2.5} />
-                                            : <Lock size={7} strokeWidth={2.5} />}
+                                            ? <Icon name="edit" size="sm" />
+                                            : <Icon name="lock" size="sm" />}
                                         </span>
                                       ) : (
                                         <span className="text-[8px] font-bold px-1 rounded leading-4 bg-white/60 text-gray-400">H</span>
@@ -460,7 +460,7 @@ export default function WeeklyCalendar({
               onClick={() => setSlideOver({ date: new Date().toISOString().split('T')[0], hour: startHour })}
               className="flex items-center justify-center gap-1 w-full py-2 rounded-lg border border-dashed border-gray-300 text-[11px] text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-colors"
             >
-              <Plus size={11} />New lesson
+              <Icon name="add" size="sm" />New lesson
             </button>
           </div>
         </div>

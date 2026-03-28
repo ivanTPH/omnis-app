@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, CheckCircle2, Clock, AlertCircle, Loader2, Star } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { markRevisionTask } from '@/app/actions/revision-program'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -126,7 +126,7 @@ export default function RevisionProgramDetail({
       <div className="flex items-center justify-between px-6 py-3 border-b bg-white shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/revision-program" className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
-            <ChevronLeft size={18} />
+            <Icon name="chevron_left" size="md" />
           </Link>
           <div className="min-w-0">
             <h1 className="font-semibold text-gray-900 truncate text-sm">{program.title}</h1>
@@ -181,9 +181,9 @@ export default function RevisionProgramDetail({
                     <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>{s.firstName} {s.lastName}</p>
                     <p className="text-[10px] text-gray-400">{statusLabel(t.status)}</p>
                   </div>
-                  {isDone && <CheckCircle2 size={13} className="text-green-500 shrink-0" />}
-                  {isPending2 && !isDone && <Clock size={13} className="text-amber-400 shrink-0" />}
-                  {t.status === 'not_started' && <AlertCircle size={13} className="text-gray-300 shrink-0" />}
+                  {isDone && <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />}
+                  {isPending2 && !isDone && <Icon name="schedule" size="sm" className="text-amber-400 shrink-0" />}
+                  {t.status === 'not_started' && <Icon name="error" size="sm" className="text-gray-300 shrink-0" />}
                 </button>
               )
             })}
@@ -259,7 +259,7 @@ export default function RevisionProgramDetail({
                   <p className="text-xs text-gray-500">Self-confidence:</p>
                   <div className="flex gap-0.5">
                     {[1,2,3,4,5].map(n => (
-                      <Star key={n} size={14} className={n <= (selected.selfConfidence ?? 0) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} />
+                      <Icon key={n} name="star" size="sm" className={n <= (selected.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-300'} />
                     ))}
                   </div>
                 </div>
@@ -285,10 +285,10 @@ export default function RevisionProgramDetail({
                     {error && <p className="text-xs text-rose-600">{error}</p>}
                     <div className="flex items-center justify-between pt-1">
                       {savedId === selected.id ? (
-                        <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium"><CheckCircle2 size={13} /> Saved & returned</span>
+                        <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium"><Icon name="check_circle" size="sm" /> Saved & returned</span>
                       ) : <span />}
                       <button onClick={handleMark} disabled={isPending || formScore === ''} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors">
-                        {isPending && <Loader2 size={12} className="animate-spin" />}
+                        {isPending && <Icon name="refresh" size="sm" className="animate-spin" />}
                         Mark & Return
                       </button>
                     </div>

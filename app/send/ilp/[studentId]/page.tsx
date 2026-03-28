@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { ChevronLeft, CheckCircle2, Circle, Target, BookOpen, Clock, AlertTriangle, Users, FileCheck } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { PlanStatus, StrategyAppliesTo } from '@prisma/client'
 import { getIlpEvidenceForStudent } from '@/app/actions/homework'
 
@@ -113,7 +113,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
           {/* Back + header */}
           <div className="flex items-start gap-3 mb-8">
             <Link href="/send/ilp" className="mt-1 p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0">
-              <ChevronLeft size={16} />
+              <Icon name="chevron_left" size="sm" />
             </Link>
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
@@ -154,7 +154,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                     <div className="flex items-center gap-2">
-                      <Target size={14} className="text-blue-600" />
+                      <Icon name="track_changes" size="sm" className="text-blue-600" />
                       <h2 className="text-[14px] font-semibold text-gray-900">Support Plan</h2>
                     </div>
                     <div className="flex items-center gap-2">
@@ -162,7 +162,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                         <span className={`text-[11px] font-semibold ${
                           reviewUrgent ? 'text-red-600' : reviewWarn ? 'text-amber-600' : 'text-gray-400'
                         }`}>
-                          {reviewUrgent && <AlertTriangle size={10} className="inline mr-1" />}
+                          {reviewUrgent && <Icon name="warning" size="sm" className="inline mr-1" />}
                           Review {reviewDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )}
@@ -183,8 +183,8 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                               t.achieved ? 'bg-green-100' : 'bg-blue-50'
                             }`}>
                               {t.achieved
-                                ? <CheckCircle2 size={11} className="text-green-600" />
-                                : <Circle size={10} className="text-blue-400" />
+                                ? <Icon name="check_circle" size="sm" className="text-green-600" />
+                                : <Icon name="radio_button_unchecked" size="sm" className="text-blue-400" />
                               }
                             </div>
                             <div className="flex-1">
@@ -242,7 +242,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                 </div>
               ) : (
                 <div className="bg-white border border-dashed border-gray-200 rounded-xl py-10 text-center text-gray-400">
-                  <Target size={28} className="mx-auto mb-2 opacity-30" />
+                  <Icon name="track_changes" size="lg" className="mx-auto mb-2 opacity-30" />
                   <p className="text-[13px] font-medium">No active plan</p>
                   <p className="text-[11px] mt-1">A plan can be created and assigned by the SENCo</p>
                 </div>
@@ -253,7 +253,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
               {ilpEvidence.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-                    <FileCheck size={14} className="text-blue-500" />
+                    <Icon name="task_alt" size="sm" className="text-blue-500" />
                     <h2 className="text-[14px] font-semibold text-gray-900">ILP Evidence Timeline</h2>
                     <span className="ml-auto text-[11px] text-gray-400">{ilpEvidence.length} entr{ilpEvidence.length !== 1 ? 'ies' : 'y'}</span>
                   </div>
@@ -292,7 +292,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
               {Object.entries(subsByClass).length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-                    <BookOpen size={14} className="text-gray-400" />
+                    <Icon name="menu_book" size="sm" className="text-gray-400" />
                     <h2 className="text-[14px] font-semibold text-gray-900">Homework Submissions</h2>
                   </div>
                   {Object.entries(subsByClass).map(([cls, subs]) => {
@@ -321,8 +321,8 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                             <div key={sub.id} className="flex items-center gap-3 px-5 py-3">
                               <div className="shrink-0">
                                 {sub.status === 'RETURNED'
-                                  ? <CheckCircle2 size={13} className="text-green-500" />
-                                  : <Clock size={13} className="text-amber-400" />
+                                  ? <Icon name="check_circle" size="sm" className="text-green-500" />
+                                  : <Icon name="schedule" size="sm" className="text-amber-400" />
                                 }
                               </div>
                               <p className="flex-1 text-[12px] text-gray-800 truncate">{sub.homework.title}</p>
@@ -353,7 +353,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
               {/* Enrolled classes */}
               <div className="bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users size={13} className="text-gray-400" />
+                  <Icon name="people" size="sm" className="text-gray-400" />
                   <h3 className="text-[12px] font-semibold text-gray-700">Classes</h3>
                 </div>
                 {enrolments.length === 0 ? (

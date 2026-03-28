@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Calendar } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { createCalendarEntry, deleteCalendarEntry } from '@/app/actions/admin'
 import type { CalendarEntry } from '@/app/actions/admin'
 
@@ -120,7 +120,7 @@ export default function AdminCalendar({
             disabled={saving}
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            <Plus size={14} />{saving ? 'Saving…' : 'Add'}
+            <Icon name="add" size="sm" />{saving ? 'Saving…' : 'Add'}
           </button>
         </form>
         {error && <p className="mt-2 text-[12px] text-red-600">{error}</p>}
@@ -129,7 +129,7 @@ export default function AdminCalendar({
       {/* Calendar list */}
       {entries.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl p-16 text-center text-gray-400">
-          <Calendar size={32} className="mx-auto mb-3 opacity-30" />
+          <Icon name="calendar_today" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-[14px] font-medium">No calendar entries yet</p>
           <p className="text-[12px] mt-1">Add term dates, holidays and INSET days above</p>
         </div>
@@ -163,7 +163,7 @@ export default function AdminCalendar({
                       className="p-1.5 text-gray-300 hover:text-red-500 disabled:opacity-30 transition-colors"
                       aria-label="Delete entry"
                     >
-                      <Trash2 size={14} />
+                      <Icon name="delete" size="sm" />
                     </button>
                   </div>
                 ))}

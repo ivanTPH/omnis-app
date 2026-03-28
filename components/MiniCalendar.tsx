@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAY_LABELS = ['M','T','W','T','F','S','S']
@@ -40,7 +40,7 @@ export default function MiniCalendar() {
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
           aria-label="Previous month"
         >
-          <ChevronLeft size={15} className="text-gray-400" />
+          <Icon name="chevron_left" size="sm" className="text-gray-400" />
         </button>
 
         <div className="text-center">
@@ -55,7 +55,7 @@ export default function MiniCalendar() {
           className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
           aria-label="Next month"
         >
-          <ChevronRight size={15} className="text-gray-400" />
+          <Icon name="chevron_right" size="sm" className="text-gray-400" />
         </button>
       </div>
 

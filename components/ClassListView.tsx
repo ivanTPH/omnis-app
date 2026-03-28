@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Users, Heart, BookOpen } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type Student = {
@@ -90,8 +90,8 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                 {/* Expand icon */}
                 <span className="text-gray-400 shrink-0">
                   {isOpen
-                    ? <ChevronDown size={16} />
-                    : <ChevronRight size={16} />}
+                    ? <Icon name="expand_more" size="sm" />
+                    : <Icon name="chevron_right" size="sm" />}
                 </span>
 
                 {/* Year group badge */}
@@ -108,12 +108,12 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                 {/* Stats */}
                 <div className="flex items-center gap-4 shrink-0 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
-                    <Users size={12} />
+                    <Icon name="people" size="sm" />
                     {cls.students.length} students
                   </span>
                   {sendCount > 0 && (
                     <span className="flex items-center gap-1 text-amber-600">
-                      <Heart size={12} />
+                      <Icon name="favorite" size="sm" />
                       {sendCount} SEND
                     </span>
                   )}
@@ -163,7 +163,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                             <div className="text-right">
                               {s.sendStatus !== 'NONE' ? (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800">
-                                  <Heart size={8} />
+                                  <Icon name="favorite" size="sm" />
                                   {SEND_LABEL[s.sendStatus] ?? s.sendStatus}
                                 </span>
                               ) : (
@@ -176,7 +176,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
 
                       {/* Footer summary */}
                       <div className="px-5 py-2.5 border-t border-gray-50 bg-gray-50 flex items-center gap-4 text-[11px] text-gray-400">
-                        <BookOpen size={11} />
+                        <Icon name="menu_book" size="sm" />
                         <span>{cls.students.length} enrolled</span>
                         {sendCount > 0 && (
                           <span className="text-amber-600">{sendCount} with SEND</span>

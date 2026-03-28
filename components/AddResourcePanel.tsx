@@ -1,9 +1,6 @@
 'use client'
 import { useState, useTransition, useEffect, useRef } from 'react'
-import {
-  Library, Link2, Upload, Plus, Search, Loader2, CheckCircle2,
-  ChevronDown, ChevronUp, X, ExternalLink, Pencil, RefreshCw,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { ResourceType } from '@prisma/client'
 import {
   getSchoolResourceLibrary,
@@ -165,8 +162,8 @@ function SendResult({
               className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
             >
               {rereviewing
-                ? <><Loader2 size={12} className="animate-spin" /> Re-scoring…</>
-                : <><RefreshCw size={12} /> Save &amp; re-score SEND</>}
+                ? <><Icon name="refresh" size="sm" className="animate-spin" /> Re-scoring…</>
+                : <><Icon name="refresh" size="sm" /> Save &amp; re-score SEND</>}
             </button>
             <button
               onClick={() => setEditMode(false)}
@@ -184,13 +181,13 @@ function SendResult({
             onClick={() => setEditMode(true)}
             className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
           >
-            <Pencil size={12} /> Edit &amp; improve
+            <Icon name="edit" size="sm" /> Edit &amp; improve
           </button>
           <button
             onClick={onDismiss}
             className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
           >
-            <CheckCircle2 size={12} className="text-green-600" /> Use as-is
+            <Icon name="check_circle" size="sm" className="text-green-600" /> Use as-is
           </button>
         </div>
       )}
@@ -327,7 +324,7 @@ export default function AddResourcePanel({
           onClick={() => setOpen(v => !v)}
           className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[12px] font-semibold transition-colors"
         >
-          {open ? <ChevronUp size={13} /> : <Plus size={13} />}
+          {open ? <Icon name="expand_less" size="sm" /> : <Icon name="add" size="sm" />}
           Add Resource
         </button>
       )}
@@ -338,9 +335,9 @@ export default function AddResourcePanel({
           {/* Section tabs */}
           <div className="flex border-b border-gray-200 bg-gray-50">
             {([
-              { id: 'library', icon: <Library size={12} />,  label: 'School Library' },
-              { id: 'link',    icon: <Link2   size={12} />,  label: 'Add Link'       },
-              { id: 'upload',  icon: <Upload  size={12} />,  label: 'Upload File'    },
+              { id: 'library', icon: <Icon name="corporate_fare" size="sm" />,  label: 'School Library' },
+              { id: 'link',    icon: <Icon name="link"           size="sm" />,  label: 'Add Link'       },
+              { id: 'upload',  icon: <Icon name="upload"         size="sm" />,  label: 'Upload File'    },
             ] as { id: Section; icon: React.ReactNode; label: string }[]).map(s => (
               <button
                 key={s.id}
@@ -360,7 +357,7 @@ export default function AddResourcePanel({
           {activeSection === 'library' && (
             <div className="p-4 space-y-3">
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={libSearch}
                   onChange={e => setLibSearch(e.target.value)}
@@ -371,7 +368,7 @@ export default function AddResourcePanel({
 
               {libLoading ? (
                 <div className="flex items-center justify-center py-8 text-gray-400">
-                  <Loader2 size={18} className="animate-spin" />
+                  <Icon name="refresh" size="md" className="animate-spin" />
                 </div>
               ) : filteredLibrary.length === 0 ? (
                 <p className="text-[12px] text-gray-400 text-center py-6">
@@ -392,7 +389,7 @@ export default function AddResourcePanel({
                       )}
                       {r.url && (
                         <a href={r.url} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gray-500 shrink-0">
-                          <ExternalLink size={11} />
+                          <Icon name="open_in_new" size="sm" />
                         </a>
                       )}
                       <button
@@ -403,7 +400,7 @@ export default function AddResourcePanel({
                         })}
                         className="shrink-0 w-6 h-6 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded transition-colors"
                       >
-                        {libPending ? <Loader2 size={10} className="animate-spin" /> : <Plus size={11} />}
+                        {libPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="add" size="sm" />}
                       </button>
                     </div>
                   ))}
@@ -468,7 +465,7 @@ export default function AddResourcePanel({
                     className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2.5 rounded-lg text-[12px] font-semibold transition-colors"
                   >
                     {linkPending
-                      ? <><Loader2 size={13} className="animate-spin" /> Adding &amp; reviewing for SEND…</>
+                      ? <><Icon name="refresh" size="sm" className="animate-spin" /> Adding &amp; reviewing for SEND…</>
                       : 'Add & Review for SEND'
                     }
                   </button>
@@ -493,7 +490,7 @@ export default function AddResourcePanel({
                     <label className={`flex items-center gap-3 border-2 border-dashed rounded-lg px-4 py-4 cursor-pointer transition-colors ${
                       uploadFile ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-gray-50 hover:border-blue-300'
                     }`}>
-                      <Upload size={18} className={uploadFile ? 'text-blue-500' : 'text-gray-400'} />
+                      <Icon name="upload" size="md" className={uploadFile ? 'text-blue-500' : 'text-gray-400'} />
                       <div className="flex-1 min-w-0">
                         {uploadFile ? (
                           <p className="text-[12px] font-semibold text-blue-700 truncate">{uploadFile.name}</p>
@@ -510,7 +507,7 @@ export default function AddResourcePanel({
                           onClick={e => { e.preventDefault(); setUploadFile(null); setUploadLabel(''); if (fileRef.current) fileRef.current.value = '' }}
                           className="text-gray-400 hover:text-gray-600"
                         >
-                          <X size={14} />
+                          <Icon name="close" size="sm" />
                         </button>
                       )}
                       <input
@@ -565,7 +562,7 @@ export default function AddResourcePanel({
                     className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2.5 rounded-lg text-[12px] font-semibold transition-colors"
                   >
                     {uploadPending
-                      ? <><Loader2 size={13} className="animate-spin" /> Uploading &amp; reviewing for SEND…</>
+                      ? <><Icon name="refresh" size="sm" className="animate-spin" /> Uploading &amp; reviewing for SEND…</>
                       : 'Upload & Review for SEND'
                     }
                   </button>

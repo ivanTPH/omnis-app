@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { RefreshCw, ChevronDown, ChevronUp, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { triggerDeltaSync } from '@/app/actions/platform-admin'
 
 // ─── Types mirrored from Prisma (no import to keep client bundle clean) ───────
@@ -29,16 +29,16 @@ type SyncLog = {
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { colour: string; icon: React.ReactNode }> = {
-    running:   { colour: 'bg-blue-100 text-blue-700',   icon: <Loader2 size={10} className="animate-spin" /> },
-    completed: { colour: 'bg-green-100 text-green-700', icon: <CheckCircle size={10} /> },
-    partial:   { colour: 'bg-amber-100 text-amber-700', icon: <AlertCircle size={10} /> },
-    failed:    { colour: 'bg-red-100 text-red-700',     icon: <XCircle size={10} /> },
+  const map: Record<string, { colour: string; iconName: string; spin?: boolean }> = {
+    running:   { colour: 'bg-blue-100 text-blue-700',   iconName: 'refresh',       spin: true },
+    completed: { colour: 'bg-green-100 text-green-700', iconName: 'check_circle' },
+    partial:   { colour: 'bg-amber-100 text-amber-700', iconName: 'error' },
+    failed:    { colour: 'bg-red-100 text-red-700',     iconName: 'cancel' },
   }
-  const { colour, icon } = map[status] ?? map.partial
+  const { colour, iconName, spin } = map[status] ?? map.partial
   return (
     <span className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${colour}`}>
-      {icon}
+      <Icon name={iconName} size="sm" className={spin ? 'animate-spin' : ''} />
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   )
@@ -78,7 +78,7 @@ function SyncLogRow({ log }: { log: SyncLog }) {
           {log.errorCount > 0 && <span className="text-red-600 font-semibold">{log.errorCount} errors</span>}
         </div>
         <div className="shrink-0 text-gray-300">
-          {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {open ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
         </div>
       </div>
 
@@ -152,7 +152,7 @@ export default function OakSyncStatus({ logs: initialLogs }: Props) {
           disabled={pending}
           className="flex items-center gap-2 px-4 py-2 text-[12px] font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
         >
-          <RefreshCw size={13} className={pending ? 'animate-spin' : ''} />
+          <Icon name="refresh" size="sm" className={pending ? 'animate-spin' : ''} />
           {pending ? 'Running…' : 'Run Delta Sync Now'}
         </button>
       </div>

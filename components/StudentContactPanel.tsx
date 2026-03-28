@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import {
-  X, Loader2, Mail, Phone, Users, Heart, FileText, MessageSquare, Send,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getStudentContactData, saveStudentQuickNote, type StudentContactData } from '@/app/actions/student-contact'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -90,7 +88,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
           >
-            <X size={16} />
+            <Icon name="close" size="sm" />
           </button>
         </div>
 
@@ -98,7 +96,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
         <div className="flex-1 overflow-y-auto">
           {loading && (
             <div className="flex items-center justify-center h-48">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
+              <Icon name="refresh" size="md" className="animate-spin text-gray-400" />
             </div>
           )}
 
@@ -128,7 +126,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                   {data.sendStatus && SEND_BADGE[data.sendStatus] && (
                     <div className="mt-1.5">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${SEND_BADGE[data.sendStatus].cls}`}>
-                        <Heart size={9} />
+                        <Icon name="favorite" size="sm" />
                         {SEND_BADGE[data.sendStatus].label}
                       </span>
                     </div>
@@ -145,7 +143,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                       onClick={onClose}
                       className="inline-flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
                     >
-                      <FileText size={12} />
+                      <Icon name="description" size="sm" />
                       View ILP
                     </Link>
                   )}
@@ -155,7 +153,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                       onClick={onClose}
                       className="inline-flex items-center gap-1.5 text-[12px] text-purple-600 hover:text-purple-800 font-medium"
                     >
-                      <FileText size={12} />
+                      <Icon name="description" size="sm" />
                       View EHCP
                     </Link>
                   )}
@@ -164,8 +162,8 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
 
               {/* ── Student contact ── */}
               <Section label="Student Contact">
-                <ContactRow icon={Mail} value={data.email} href={`mailto:${data.email}`} />
-                {data.phone && <ContactRow icon={Phone} value={data.phone} href={`tel:${data.phone}`} />}
+                <ContactRow iconName="email" value={data.email} href={`mailto:${data.email}`} />
+                {data.phone && <ContactRow iconName="phone" value={data.phone} href={`tel:${data.phone}`} />}
               </Section>
 
               {/* ── Parents / carers ── */}
@@ -177,7 +175,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                     {data.parents.map((p, i) => (
                       <div key={i} className="space-y-1">
                         <div className="flex items-center gap-1.5">
-                          <Users size={11} className="text-gray-400 shrink-0" />
+                          <Icon name="people" size="sm" className="text-gray-400 shrink-0" />
                           <span className="text-[13px] font-medium text-gray-800">
                             {p.firstName} {p.lastName}
                           </span>
@@ -186,8 +184,8 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                             {p.hasParentalResp && ' · PR'}
                           </span>
                         </div>
-                        {p.email && <ContactRow icon={Mail} value={p.email} href={`mailto:${p.email}`} indent />}
-                        {p.phone && <ContactRow icon={Phone} value={p.phone} href={`tel:${p.phone}`} indent />}
+                        {p.email && <ContactRow iconName="email" value={p.email} href={`mailto:${p.email}`} indent />}
+                        {p.phone && <ContactRow iconName="phone" value={p.phone} href={`tel:${p.phone}`} indent />}
                         {!p.email && !p.phone && (
                           <p className="text-[11px] text-gray-400 italic pl-4">No contact details on record.</p>
                         )}
@@ -215,7 +213,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                       disabled={!note.trim() || saving}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[12px] font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
-                      {saving ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                      {saving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="send" size="sm" />}
                       Save note
                     </button>
                   </div>
@@ -227,7 +225,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                     {data.quickNotes.map(n => (
                       <div key={n.id} className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 space-y-1">
                         <div className="flex items-start gap-1.5">
-                          <MessageSquare size={11} className="text-amber-400 mt-0.5 shrink-0" />
+                          <Icon name="chat" size="sm" className="text-amber-400 mt-0.5 shrink-0" />
                           <p className="text-[12px] text-gray-700 leading-relaxed">{n.content}</p>
                         </div>
                         <p className="text-[10px] text-gray-400 pl-4">
@@ -260,15 +258,15 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
-function ContactRow({ icon: Icon, value, href, indent }: {
-  icon:   React.ElementType
-  value:  string
-  href:   string
+function ContactRow({ iconName, value, href, indent }: {
+  iconName: string
+  value:    string
+  href:     string
   indent?: boolean
 }) {
   return (
     <div className={`flex items-center gap-2 ${indent ? 'pl-4' : ''}`}>
-      <Icon size={11} className="text-gray-400 shrink-0" />
+      <Icon name={iconName} size="sm" className="text-gray-400 shrink-0" />
       <a
         href={href}
         className="text-[12px] text-blue-600 hover:text-blue-800 truncate"

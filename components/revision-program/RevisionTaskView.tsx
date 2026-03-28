@@ -2,7 +2,7 @@
 import { useState, useEffect, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Star, CheckCircle2, Loader2, AlertCircle, Clock, FlaskConical } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { submitRevisionTask, selfAssessRevisionTask } from '@/app/actions/revision-program'
 import RevisionTestMode from '@/components/revision-program/RevisionTestMode'
 
@@ -182,7 +182,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
   if (alreadyDone && phase === 'task') {
     return (
       <div className="max-w-xl mx-auto px-6 py-12 text-center space-y-4">
-        <CheckCircle2 size={40} className="text-green-500 mx-auto" />
+        <Icon name="check_circle" size="lg" className="text-green-500 mx-auto" />
         <p className="text-base font-semibold text-gray-900">Task submitted!</p>
         <p className="text-sm text-gray-500">{isStudyGuide ? 'Well done for completing this revision task.' : 'Your teacher will review and return it with feedback.'}</p>
         <Link href="/student/revision" className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors">
@@ -197,7 +197,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
     return (
       <div className="max-w-xl mx-auto px-6 py-12 space-y-6">
         <div className="text-center space-y-2">
-          <CheckCircle2 size={36} className="text-green-500 mx-auto" />
+          <Icon name="check_circle" size="lg" className="text-green-500 mx-auto" />
           <p className="text-base font-semibold text-gray-900">
             {isStudyGuide ? 'Task marked as complete!' : 'Submitted for marking!'}
           </p>
@@ -206,7 +206,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
         <div className="flex justify-center gap-3">
           {[1,2,3,4,5].map(n => (
             <button key={n} onClick={() => setConfidence(n)} className="transition-transform hover:scale-110">
-              <Star size={32} className={n <= confidence ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} />
+              <Icon name="star" size="lg" className={n <= confidence ? 'text-amber-400' : 'text-gray-300'} />
             </button>
           ))}
         </div>
@@ -224,7 +224,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
             disabled={confidence === 0 || isPending}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
           >
-            {isPending ? <Loader2 size={15} className="animate-spin" /> : null}
+            {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
             Save &amp; finish
           </button>
         )}
@@ -307,7 +307,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
 
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
-          <AlertCircle size={14} className="shrink-0" />
+          <Icon name="error" size="sm" className="shrink-0" />
           {error}
         </div>
       )}
@@ -315,7 +315,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
       {/* submit */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <p className="text-xs text-gray-400 flex items-center gap-1">
-          <Clock size={11} /> ~{task.estimatedMins} mins · auto-saved every minute
+          <Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins · auto-saved every minute
         </p>
         <div className="flex gap-2">
           <button
@@ -323,7 +323,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
             onClick={() => setPhase('test')}
             className="flex items-center gap-2 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
-            <FlaskConical size={14} />
+            <Icon name="science" size="sm" />
             Start Test
           </button>
           <button
@@ -331,7 +331,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
             disabled={isPending}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
-            {isPending ? <Loader2 size={14} className="animate-spin" /> : null}
+            {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
             {isStudyGuide ? 'Mark as Complete ✓' : 'Submit for Marking →'}
           </button>
         </div>
@@ -415,14 +415,14 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
 
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
-          <AlertCircle size={14} className="shrink-0" />
+          <Icon name="error" size="sm" className="shrink-0" />
           {error}
         </div>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <p className="text-xs text-gray-400 flex items-center gap-1">
-          <Clock size={11} /> ~{task.estimatedMins} mins · auto-saved every minute
+          <Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins · auto-saved every minute
         </p>
         <div className="flex gap-2">
           <button
@@ -430,7 +430,7 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
             onClick={onStartTest}
             className="flex items-center gap-2 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
-            <FlaskConical size={14} />
+            <Icon name="science" size="sm" />
             Start Test
           </button>
           <button
@@ -438,7 +438,7 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
             disabled={isPending}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
-            {isPending ? <Loader2 size={14} className="animate-spin" /> : null}
+            {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
             {isStudyGuide ? 'Mark as Complete ✓' : 'Submit for Marking →'}
           </button>
         </div>

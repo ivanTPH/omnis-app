@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useMemo } from 'react'
-import { Copy, Check, Trash2, Link, RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { marked } from 'marked'
 import type { GeneratedResourceData } from '@/app/actions/ai-generator'
 import { deleteGeneratedResource, linkResourceToLesson } from '@/app/actions/ai-generator'
@@ -80,22 +80,22 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
           {onRegenerate && (
             <button onClick={onRegenerate} title="Regenerate"
               className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
-              <RefreshCw size={13} />
+              <Icon name="refresh" size="sm" />
             </button>
           )}
           {userLessons.length > 0 && (
             <button onClick={() => setShowLinkModal(true)} title="Link to lesson"
               className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
-              <Link size={13} />
+              <Icon name="link" size="sm" />
             </button>
           )}
           <button onClick={handleCopy} title="Copy to clipboard"
             className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
-            {copied ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
+            {copied ? <Icon name="check" size="sm" className="text-green-600" /> : <Icon name="content_copy" size="sm" />}
           </button>
           <button onClick={handleDelete} disabled={deleting} title="Delete resource"
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
-            <Trash2 size={13} />
+            <Icon name="delete" size="sm" />
           </button>
         </div>
       </div>

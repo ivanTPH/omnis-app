@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getIlpEvidenceDashboard } from '@/app/actions/adaptive-learning'
-import { FileText, AlertTriangle, CheckCircle, Clock, BarChart3 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default async function IlpEvidencePage() {
   const session = await auth()
@@ -42,7 +42,7 @@ export default async function IlpEvidencePage() {
       {data.upcomingReviews.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Clock size={18} className="text-amber-600" />
+            <Icon name="schedule" size="md" className="text-amber-600" />
             <h2 className="font-semibold text-gray-900">ILP Reviews Due in 30 Days</h2>
             <span className="ml-auto text-xs text-gray-400">{data.upcomingReviews.length} student{data.upcomingReviews.length !== 1 ? 's' : ''}</span>
           </div>
@@ -69,7 +69,7 @@ export default async function IlpEvidencePage() {
                           <p className="text-xs font-medium text-gray-500">Evidence gaps:</p>
                           {review.evidenceGaps.map((gap, i) => (
                             <p key={i} className="text-xs text-red-700 flex items-center gap-1">
-                              <AlertTriangle size={10} />
+                              <Icon name="warning" size="sm" />
                               {gap}{gap.length >= 60 ? '…' : ''}
                             </p>
                           ))}
@@ -77,7 +77,7 @@ export default async function IlpEvidencePage() {
                       )}
                       {review.evidenceGaps.length === 0 && (
                         <p className="text-xs text-green-700 flex items-center gap-1">
-                          <CheckCircle size={12} />
+                          <Icon name="check_circle" size="sm" />
                           All targets have evidence
                         </p>
                       )}
@@ -95,14 +95,14 @@ export default async function IlpEvidencePage() {
 
       {data.studentsWithIlp === 0 && (
         <div className="text-center py-16 text-gray-400">
-          <FileText size={40} className="mx-auto mb-3 opacity-30" />
+          <Icon name="description" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">No active ILP plans found. Create ILP records from the ILP Records page.</p>
         </div>
       )}
 
       {data.targetsWithNoEvidence > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <Icon name="warning" size="md" className="text-amber-600 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-amber-800">Action needed</p>
             <p className="text-xs text-amber-700 mt-1">
@@ -116,7 +116,7 @@ export default async function IlpEvidencePage() {
 
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
-          <BarChart3 size={16} className="text-blue-600" />
+          <Icon name="bar_chart" size="sm" className="text-blue-600" />
           <p className="text-sm font-medium text-blue-800">How evidence is collected</p>
         </div>
         <ul className="text-xs text-blue-700 space-y-1">

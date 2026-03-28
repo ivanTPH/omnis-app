@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BookOpen, FileHeart, Shield, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import dynamic from 'next/dynamic'
 import { getStudentSendDocuments, type StudentSendDocuments } from '@/app/actions/send-support'
 
@@ -29,7 +29,7 @@ const DOC_CONFIGS: DocConfig[] = [
   {
     type:    'kPlan',
     label:   'K Plan',
-    icon:    <BookOpen size={18} />,
+    icon:    <Icon name="menu_book" size="md" />,
     bg:      'bg-amber-50 hover:bg-amber-100',
     border:  'border-amber-200',
     iconBg:  'bg-amber-100',
@@ -38,7 +38,7 @@ const DOC_CONFIGS: DocConfig[] = [
   {
     type:    'ilp',
     label:   'ILP',
-    icon:    <FileHeart size={18} />,
+    icon:    <Icon name="favorite_border" size="md" />,
     bg:      'bg-blue-50 hover:bg-blue-100',
     border:  'border-blue-200',
     iconBg:  'bg-blue-100',
@@ -47,7 +47,7 @@ const DOC_CONFIGS: DocConfig[] = [
   {
     type:    'ehcp',
     label:   'EHCP',
-    icon:    <Shield size={18} />,
+    icon:    <Icon name="verified_user" size="md" />,
     bg:      'bg-purple-50 hover:bg-purple-100',
     border:  'border-purple-200',
     iconBg:  'bg-purple-100',
@@ -87,7 +87,7 @@ export default function SendDocumentThumbnails({ studentId, studentName, userRol
   if (loading) {
     return (
       <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-        <Loader2 size={11} className="animate-spin" /> Loading documents…
+        <Icon name="refresh" size="sm" className="animate-spin" /> Loading documents…
       </div>
     )
   }

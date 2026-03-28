@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useState } from 'react'
-import { ChevronLeft, CheckCircle, XCircle, BookOpen, BarChart2, Users, Heart } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { StudentDetailData } from '@/app/actions/analytics'
 import StudentSupportProfile from '@/components/StudentSupportProfile'
 
@@ -35,7 +35,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
         href="/analytics/students"
         className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-5 transition-colors"
       >
-        <ChevronLeft size={15} />
+        <Icon name="chevron_left" size="sm" />
         Back to Student Analytics
       </Link>
 
@@ -59,7 +59,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
             </h1>
             {data.hasSend && data.sendStatus && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                <Heart size={10} />
+                <Icon name="favorite" size="sm" />
                 {SEND_LABEL[data.sendStatus] ?? data.sendStatus}
               </span>
             )}
@@ -74,7 +74,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
                 key={c.id}
                 className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
               >
-                <Users size={9} className="shrink-0" />
+                <Icon name="people" size="sm" className="shrink-0" />
                 {c.name} · {c.subject}
               </span>
             ))}
@@ -84,10 +84,10 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
 
       {/* ── KPI row ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <KpiCard icon={BookOpen}   label="Homework Set"    value={String(data.totalAssigned)} color="blue" />
-        <KpiCard icon={CheckCircle} label="Completion"     value={`${data.completionRate}%`} color={data.completionRate >= 75 ? 'green' : 'amber'} />
-        <KpiCard icon={BarChart2}   label="Avg Score"      value={data.avgScore != null ? `${data.avgScore}` : '—'} color={data.avgScore != null && data.avgScore >= 75 ? 'green' : 'purple'} />
-        <KpiCard icon={Users}       label="Classes"        value={String(data.classes.length)} color="blue" />
+        <KpiCard iconName="menu_book"    label="Homework Set"    value={String(data.totalAssigned)} color="blue" />
+        <KpiCard iconName="check_circle" label="Completion"     value={`${data.completionRate}%`} color={data.completionRate >= 75 ? 'green' : 'amber'} />
+        <KpiCard iconName="bar_chart"    label="Avg Score"      value={data.avgScore != null ? `${data.avgScore}` : '—'} color={data.avgScore != null && data.avgScore >= 75 ? 'green' : 'purple'} />
+        <KpiCard iconName="people"       label="Classes"        value={String(data.classes.length)} color="blue" />
       </div>
 
       {/* ── Per-subject breakdown ── */}
@@ -189,8 +189,8 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
                   {/* Status */}
                   <div className="hidden sm:flex justify-center">
                     {hw.submitted
-                      ? <CheckCircle size={15} className="text-green-500" />
-                      : <XCircle    size={15} className="text-gray-300" />}
+                      ? <Icon name="check_circle" size="sm" className="text-green-500" />
+                      : <Icon name="cancel"       size="sm" className="text-gray-300" />}
                   </div>
 
                   {/* Score */}
@@ -220,8 +220,8 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function KpiCard({ icon: Icon, label, value, color }: {
-  icon:  React.ElementType
+function KpiCard({ iconName, label, value, color }: {
+  iconName: string
   label: string
   value: string
   color: 'blue' | 'green' | 'amber' | 'purple'
@@ -235,7 +235,7 @@ function KpiCard({ icon: Icon, label, value, color }: {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${bg[color]}`}>
-        <Icon size={15} />
+        <Icon name={iconName} size="sm" />
       </div>
       <div className="text-2xl font-bold text-gray-900">{value}</div>
       <div className="text-[12px] text-gray-500 mt-0.5">{label}</div>

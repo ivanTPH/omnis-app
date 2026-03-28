@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, Circle, Plus, FileText } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { EhcpPlanWithOutcomes } from '@/app/actions/ehcp'
 import { updateEhcpOutcomeStatus } from '@/app/actions/ehcp'
 
@@ -62,8 +62,8 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
             <div className="flex items-start gap-3 p-4">
               <div className="shrink-0 pt-0.5">
                 {outcome.status === 'achieved'
-                  ? <CheckCircle size={18} className="text-green-600" />
-                  : <Circle size={18} className="text-gray-400" />
+                  ? <Icon name="check_circle" size="md" className="text-green-600" />
+                  : <Icon name="circle" size="md" className="text-gray-400" />
                 }
               </div>
               <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
             {outcome.evidenceCount === 0 && outcome.status === 'active' && (
               <div className="border-t border-gray-100 px-4 py-2 bg-amber-50">
                 <p className="text-xs text-amber-700 flex items-center gap-1">
-                  <Plus size={12} /> No evidence linked yet — link from the submission marking view
+                  <Icon name="add" size="sm" /> No evidence linked yet — link from the submission marking view
                 </p>
               </div>
             )}
@@ -112,7 +112,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
 
       {outcomes.length === 0 && (
         <div className="text-center py-8 text-gray-400">
-          <FileText size={32} className="mx-auto mb-2 opacity-30" />
+          <Icon name="description" size="lg" className="mx-auto mb-2 opacity-30" />
           <p className="text-sm">No outcomes recorded for this EHCP plan.</p>
         </div>
       )}

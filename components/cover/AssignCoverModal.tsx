@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect } from 'react'
-import { X, UserCheck } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { AssignmentWithDetails, AvailableStaffMember } from '@/app/actions/cover'
 import { getAvailableStaff, assignCover, updateAssignmentStatus } from '@/app/actions/cover'
 
@@ -59,7 +59,7 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[14px] font-bold text-gray-900">Assign Cover</h2>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700">
-            <X size={16} />
+            <Icon name="close" size="sm" />
           </button>
         </div>
 
@@ -82,7 +82,7 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
         {/* Staff selection */}
         <div className="px-5 py-4 space-y-3">
           <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide">
-            <UserCheck size={11} className="inline mr-1" />
+            <Icon name="how_to_reg" size="sm" className="inline mr-1" />
             Available Staff
           </label>
           {loading ? (

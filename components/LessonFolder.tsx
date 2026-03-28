@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
-import { X, Plus, Trash2, Upload, BookOpen, ClipboardList, BarChart2, Loader2, ExternalLink, Pencil, Sparkles, ChevronRight, Check, Calendar, Library, RotateCcw, Users, Lock } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -399,12 +399,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   const TAB_ICONS: Record<Tab, React.ReactNode> = {
-    'Overview':       <BookOpen      size={13} />,
-    'Resources':      <Upload        size={13} />,
-    'Homework':       <ClipboardList size={13} />,
-    'Class':          <Users         size={13} />,
-    'Class Insights': <BarChart2     size={13} />,
-    'Revision':       <RotateCcw     size={13} />,
+    'Overview':       <Icon name="menu_book"  size="sm" />,
+    'Resources':      <Icon name="upload"     size="sm" />,
+    'Homework':       <Icon name="assignment" size="sm" />,
+    'Class':          <Icon name="people"     size="sm" />,
+    'Class Insights': <Icon name="bar_chart"  size="sm" />,
+    'Revision':       <Icon name="loop"       size="sm" />,
   }
 
   return (
@@ -423,14 +423,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         {/* File-drop overlay */}
         {isDragOver && (
           <div className="absolute inset-0 z-10 bg-blue-50/90 rounded-2xl flex flex-col items-center justify-center pointer-events-none">
-            <Upload size={32} className="text-blue-400 mb-3" />
+            <Icon name="upload" size="lg" className="text-blue-400 mb-3" />
             <p className="text-[15px] font-semibold text-blue-700">Drop files to add as resources</p>
             <p className="text-[12px] text-blue-500 mt-1">PDF, PPTX, DOCX supported</p>
           </div>
         )}
         {dropPending && (
           <div className="absolute inset-0 z-10 bg-white/80 rounded-2xl flex items-center justify-center">
-            <Loader2 size={24} className="animate-spin text-blue-500" />
+            <Icon name="refresh" size="lg" className="animate-spin text-blue-500" />
           </div>
         )}
 
@@ -480,7 +480,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       disabled={rescheduling || !editDate || !editStart || !editEnd}
                       className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white rounded text-[11px] font-medium hover:bg-blue-700 disabled:opacity-40 transition-colors"
                     >
-                      {rescheduling ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                      {rescheduling ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
                       Save
                     </button>
                     <button onClick={() => setHeaderEditDate(false)} className="text-[11px] text-gray-400 hover:text-gray-600">Cancel</button>
@@ -494,7 +494,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       title="Edit date & time"
                       className="ml-0.5 w-4 h-4 flex items-center justify-center rounded hover:bg-gray-100 text-gray-300 hover:text-gray-500 transition-colors"
                     >
-                      <Pencil size={9} />
+                      <Icon name="edit" size="sm" />
                     </button>
                   </span>
                 )}
@@ -536,14 +536,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 title="Delete lesson"
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
               >
-                <Trash2 size={15} />
+                <Icon name="delete" size="sm" />
               </button>
             )}
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
             >
-              <X size={18} className="text-gray-500" />
+              <Icon name="close" size="md" className="text-gray-500" />
             </button>
           </div>
         </div>
@@ -575,7 +575,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 4 ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-700'}`}>1</div>
               <span className={`text-[12px] font-medium ${wizardStep === 4 ? 'text-blue-700' : 'text-blue-400'}`}>Add Resources</span>
             </div>
-            <ChevronRight size={13} className="text-blue-300" />
+            <Icon name="chevron_right" size="sm" className="text-blue-300" />
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
               <span className={`text-[12px] font-medium ${wizardStep === 5 ? 'text-blue-700' : 'text-gray-400'}`}>Set Homework</span>
@@ -595,7 +595,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
+              <Icon name="refresh" size="md" className="animate-spin text-gray-400" />
             </div>
           ) : wizardStep === 4 ? (
             /* ── Wizard Step 4: Resources ───────────────────────── */
@@ -632,13 +632,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             disabled={editSaving}
                             className="w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-40"
                           >
-                            <Check size={11} />
+                            <Icon name="check" size="sm" />
                           </button>
                           <button
                             onClick={() => setEditingResourceId(null)}
                             className="text-gray-400 hover:text-gray-600"
                           >
-                            <X size={13} />
+                            <Icon name="close" size="sm" />
                           </button>
                         </div>
                       ) : (
@@ -658,14 +658,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             onClick={() => { setEditingResourceId(r.id); setEditLabel(r.label); setEditUrl(r.url ?? '') }}
                             className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-300 hover:text-gray-600 transition-colors"
                           >
-                            <Pencil size={11} />
+                            <Icon name="edit" size="sm" />
                           </button>
                           <button
                             disabled={removing}
                             onClick={() => startRemove(async () => { await removeResource(r.id); await refreshLesson() })}
                             className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-300 hover:text-red-500 transition-colors"
                           >
-                            <X size={13} />
+                            <Icon name="close" size="sm" />
                           </button>
                         </>
                       )}
@@ -747,15 +747,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       className="flex items-center gap-1.5 px-3 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-[11px] font-semibold hover:bg-purple-100 disabled:opacity-40 transition-colors shrink-0"
                     >
                       {generatingHw
-                        ? <><Loader2 size={11} className="animate-spin" /> Generating…</>
-                        : <><Sparkles size={11} /> {genSource ? 'Regenerate' : 'Generate with AI'}</>}
+                        ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
+                        : <><Icon name="auto_awesome" size="sm" /> {genSource ? 'Regenerate' : 'Generate with AI'}</>}
                     </button>
                   </div>
 
                   {/* AI source indicator */}
                   {genSource && !generatingHw && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-100 rounded-lg">
-                      <Sparkles size={11} className="text-purple-500 shrink-0" />
+                      <Icon name="auto_awesome" size="sm" className="text-purple-500 shrink-0" />
                       <p className="text-[11px] text-purple-700">Generated from {genSource} — edit any question below</p>
                     </div>
                   )}
@@ -763,7 +763,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {/* Loading state */}
                   {generatingHw && (
                     <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                      <Loader2 size={16} className="animate-spin text-purple-600 shrink-0" />
+                      <Icon name="refresh" size="sm" className="animate-spin text-purple-600 shrink-0" />
                       <div>
                         <p className="text-[13px] font-semibold text-purple-800">
                           ⚡ {genSource ? `Regenerating for ${hwType === 'MCQ_QUIZ' ? 'MCQ' : hwType === 'SHORT_ANSWER' ? 'Short Answer' : hwType === 'EXTENDED_WRITING' ? 'Essay' : 'Mixed'} format…` : 'Generating homework from your lesson content…'}
@@ -785,7 +785,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           onClick={addMcqQ}
                           className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium"
                         >
-                          <Plus size={11} /> Add question
+                          <Icon name="add" size="sm" /> Add question
                         </button>
                       </div>
                       {mcqQuestions.length === 0 ? (
@@ -805,7 +805,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none overflow-hidden"
                               />
                               <button onClick={() => removeMcqQ(qi)} className="text-gray-300 hover:text-red-400 shrink-0 mt-2">
-                                <X size={13} />
+                                <Icon name="close" size="sm" />
                               </button>
                             </div>
                             <div className="space-y-1.5 pl-8">
@@ -861,7 +861,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           onClick={addSaQ}
                           className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 font-medium"
                         >
-                          <Plus size={11} /> Add question
+                          <Icon name="add" size="sm" /> Add question
                         </button>
                       </div>
                       {saQuestions.length === 0 ? (
@@ -881,7 +881,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none overflow-hidden"
                               />
                               <button onClick={() => removeSaQ(qi)} className="text-gray-300 hover:text-red-400 shrink-0 mt-2">
-                                <X size={13} />
+                                <Icon name="close" size="sm" />
                               </button>
                             </div>
                             <div className="px-4 pb-4 pl-10 space-y-2">
@@ -1100,7 +1100,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         onClick={() => setObjectives(prev => [...prev, ''])}
                         className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700"
                       >
-                        <Plus size={11} />Add objective
+                        <Icon name="add" size="sm" />Add objective
                       </button>
                     </div>
                     <div className="space-y-2">
@@ -1130,7 +1130,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             }}
                             className="text-gray-300 hover:text-red-400 transition-colors"
                           >
-                            <Trash2 size={13} />
+                            <Icon name="delete" size="sm" />
                           </button>
                         </div>
                       ))}
@@ -1192,8 +1192,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-[12px] font-medium hover:bg-blue-100 disabled:opacity-40 transition-colors"
                     >
                       {rescheduling
-                        ? <><Loader2 size={12} className="animate-spin" /> Saving…</>
-                        : <><Calendar size={12} /> Save new date & time</>
+                        ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
+                        : <><Icon name="calendar_today" size="sm" /> Save new date & time</>
                       }
                     </button>
                   </div>
@@ -1230,13 +1230,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 disabled={editSaving}
                                 className="w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-40"
                               >
-                                <Check size={11} />
+                                <Icon name="check" size="sm" />
                               </button>
                               <button
                                 onClick={() => setEditingResourceId(null)}
                                 className="text-gray-400 hover:text-gray-600"
                               >
-                                <X size={13} />
+                                <Icon name="close" size="sm" />
                               </button>
                             </div>
                           ) : (
@@ -1249,7 +1249,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   className="flex-1 text-[13px] text-blue-600 hover:underline truncate flex items-center gap-1"
                                 >
                                   {r.label}
-                                  <ExternalLink size={10} className="shrink-0 opacity-60" />
+                                  <Icon name="open_in_new" size="sm" className="shrink-0 opacity-60" />
                                 </a>
                               ) : (
                                 <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
@@ -1269,7 +1269,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 onClick={() => { setEditingResourceId(r.id); setEditLabel(r.label); setEditUrl(r.url ?? '') }}
                                 className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-300 hover:text-gray-600 transition-colors"
                               >
-                                <Pencil size={11} />
+                                <Icon name="edit" size="sm" />
                               </button>
                               <button
                                 disabled={removing}
@@ -1279,7 +1279,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 })}
                                 className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40"
                               >
-                                <X size={13} />
+                                <Icon name="close" size="sm" />
                               </button>
                             </>
                           )}
@@ -1288,7 +1288,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   ) : (
                     <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
-                      <Upload size={20} className="mx-auto text-gray-300 mb-2" />
+                      <Icon name="upload" size="md" className="mx-auto text-gray-300 mb-2" />
                       <p className="text-[12px] text-gray-400">No resources yet. Add from the school library, paste a link, or upload a file.</p>
                     </div>
                   )}
@@ -1328,7 +1328,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         }}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[12px] font-medium hover:bg-blue-100 transition-colors"
                       >
-                        <Plus size={12} />Set homework
+                        <Icon name="add" size="sm" />Set homework
                       </button>
                     )}
                   </div>
@@ -1356,7 +1356,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     className="flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
                                     title="View homework questions and mark scheme"
                                   >
-                                    <BookOpen size={11} />View
+                                    <Icon name="menu_book" size="sm" />View
                                   </button>
                                 )}
                                 {hw.status === 'DRAFT' ? (
@@ -1375,14 +1375,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     className="flex items-center gap-1 text-[11px] font-medium text-amber-600 hover:text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors"
                                     title="Edit draft homework"
                                   >
-                                    <Pencil size={11} />Edit draft
+                                    <Icon name="edit" size="sm" />Edit draft
                                   </button>
                                 ) : (
                                   <Link
                                     href={`/homework/${hw.id}`}
                                     className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                                   >
-                                    <ExternalLink size={11} />Mark
+                                    <Icon name="open_in_new" size="sm" />Mark
                                   </Link>
                                 )}
                                 <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
@@ -1390,8 +1390,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-500'   :
                                   'bg-amber-100 text-amber-700'
                                 }`}>
-                                  {hw.status === 'PUBLISHED' && <Lock size={9} />}
-                                  {hw.status === 'DRAFT' && <Pencil size={9} />}
+                                  {hw.status === 'PUBLISHED' && <Icon name="lock" size="sm" />}
+                                  {hw.status === 'DRAFT' && <Icon name="edit" size="sm" />}
                                   {hw.status}
                                 </span>
                               </div>
@@ -1437,7 +1437,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   ) : (
                     <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
-                      <ClipboardList size={20} className="mx-auto text-gray-300 mb-2" />
+                      <Icon name="assignment" size="md" className="mx-auto text-gray-300 mb-2" />
                       <p className="text-[12px] text-gray-400">No homework linked. Set homework from this lesson.</p>
                     </div>
                   )}
@@ -1449,7 +1449,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         onClick={() => setActiveTab('Revision')}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[13px] font-semibold hover:border-blue-400 hover:bg-blue-50 transition-colors"
                       >
-                        <RotateCcw size={14} />
+                        <Icon name="loop" size="sm" />
                         Launch Revision for this Topic →
                       </button>
                     </div>
@@ -1464,7 +1464,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <ClassRosterTab classId={lesson.class.id} />
                   ) : (
                     <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                      <Users size={24} className="mx-auto text-gray-300 mb-2" />
+                      <Icon name="people" size="lg" className="mx-auto text-gray-300 mb-2" />
                       <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
                     </div>
                   )}
@@ -1478,7 +1478,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-[13px] font-semibold text-gray-900 flex items-center gap-2">
-                        <RotateCcw size={14} className="text-blue-500" /> Class Revision Analysis
+                        <Icon name="loop" size="sm" className="text-blue-500" /> Class Revision Analysis
                       </h3>
                       <p className="text-[11px] text-gray-400 mt-0.5">Based on homework performance over the past 4 weeks</p>
                     </div>
@@ -1489,7 +1489,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[12px] font-semibold transition-colors"
                       >
-                        <Plus size={12} /> Create Program
+                        <Icon name="add" size="sm" /> Create Program
                       </a>
                     )}
                   </div>
@@ -1507,7 +1507,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     />
                   ) : (
                     <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                      <RotateCcw size={24} className="mx-auto text-gray-300 mb-2" />
+                      <Icon name="loop" size="lg" className="mx-auto text-gray-300 mb-2" />
                       <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
                     </div>
                   )}
@@ -1525,7 +1525,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           href={`/analytics?classId=${lesson.classId}${lesson.class?.subject ? `&subject=${encodeURIComponent(lesson.class.subject)}` : ''}${lesson.class?.yearGroup ? `&yearGroup=${lesson.class.yearGroup}` : ''}`}
                           className="inline-flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
                         >
-                          <ExternalLink size={11} />
+                          <Icon name="open_in_new" size="sm" />
                           View full analytics for this class
                         </Link>
                       </div>
@@ -1534,7 +1534,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   : (
                     <div className="p-7">
                       <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                        <BarChart2 size={24} className="mx-auto text-gray-300 mb-2" />
+                        <Icon name="bar_chart" size="lg" className="mx-auto text-gray-300 mb-2" />
                         <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
                       </div>
                     </div>
@@ -1558,7 +1558,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors"
             >
               Save &amp; Continue
-              <ChevronRight size={14} />
+              <Icon name="chevron_right" size="sm" />
             </button>
           </div>
         )}
@@ -1616,7 +1616,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               })}
               className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
-              {hwSaving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              {hwSaving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
               Save &amp; done
             </button>
           </div>
@@ -1634,7 +1634,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               disabled={saving}
               className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
-              {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+              {saving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
               Save
             </button>
           </div>

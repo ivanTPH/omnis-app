@@ -1,6 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { Loader2, Plus } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getClassPerformanceAnalysis } from '@/app/actions/revision-program'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 
@@ -52,7 +52,7 @@ export default function RevisionAnalysisPanel({
   if (isPending) {
     return (
       <div className="flex items-center justify-center py-8 gap-2 text-gray-500">
-        <Loader2 size={16} className="animate-spin" />
+        <Icon name="refresh" size="sm" className="animate-spin" />
         <span className="text-sm">Analysing…</span>
       </div>
     )
@@ -84,7 +84,7 @@ export default function RevisionAnalysisPanel({
         onClick={onCreateProgram}
         className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
       >
-        <Plus size={14} /> Create Revision Program
+        <Icon name="add" size="sm" /> Create Revision Program
       </button>
     </div>
   )

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { ClipboardList, ChevronRight, BarChart2, MessageSquare, Target } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
 export default async function ParentDashboardPage() {
@@ -83,7 +83,7 @@ export default async function ParentDashboardPage() {
             </div>
             {unreadMsgs > 0 && (
               <Link href="/parent/messages" className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-[12px] font-semibold rounded-xl hover:bg-blue-700 transition">
-                <MessageSquare size={13} />
+                <Icon name="chat" size="sm" />
                 {unreadMsgs} new message{unreadMsgs !== 1 ? 's' : ''}
               </Link>
             )}
@@ -91,7 +91,7 @@ export default async function ParentDashboardPage() {
 
           {children.length === 0 && (
             <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl text-gray-400">
-              <ClipboardList size={32} className="mx-auto mb-3 opacity-30" />
+              <Icon name="assignment" size="lg" className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">No children linked to your account</p>
               <p className="text-[13px] mt-1">Please contact the school admin</p>
             </div>
@@ -138,7 +138,7 @@ export default async function ParentDashboardPage() {
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
                   <h3 className="text-[13px] font-semibold text-gray-900">Recent Homework</h3>
                   <Link href="/parent/progress" className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline">
-                    View all <ChevronRight size={12} />
+                    View all <Icon name="chevron_right" size="sm" />
                   </Link>
                 </div>
                 <div className="divide-y divide-gray-100">
@@ -177,7 +177,7 @@ export default async function ParentDashboardPage() {
                 <div className="bg-purple-50 border border-purple-100 rounded-xl p-5 mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Target size={14} className="text-purple-600" />
+                      <Icon name="track_changes" size="sm" className="text-purple-600" />
                       <h3 className="text-[13px] font-semibold text-purple-900">Support Plan — Shared with you</h3>
                     </div>
                     <span className="text-[11px] text-purple-500">
@@ -196,7 +196,7 @@ export default async function ParentDashboardPage() {
                     ))}
                   </div>
                   <Link href="/parent/progress" className="mt-3 inline-flex items-center gap-1 text-[11px] text-purple-700 font-medium hover:underline">
-                    View full plan <ChevronRight size={11} />
+                    View full plan <Icon name="chevron_right" size="sm" />
                   </Link>
                 </div>
               )}
@@ -205,23 +205,23 @@ export default async function ParentDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Link href="/parent/progress" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-blue-300 hover:shadow-sm transition group">
                   <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
-                    <BarChart2 size={15} className="text-blue-600" />
+                    <Icon name="bar_chart" size="sm" className="text-blue-600" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">Progress & Grades</p>
                     <p className="text-[11px] text-gray-400">Subject breakdown</p>
                   </div>
-                  <ChevronRight size={14} className="text-gray-300 ml-auto shrink-0 group-hover:text-blue-400 transition" />
+                  <Icon name="chevron_right" size="sm" className="text-gray-300 ml-auto shrink-0 group-hover:text-blue-400 transition" />
                 </Link>
                 <Link href="/parent/messages" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-green-300 hover:shadow-sm transition group">
                   <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center shrink-0">
-                    <MessageSquare size={15} className="text-green-600" />
+                    <Icon name="chat" size="sm" className="text-green-600" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">Messages</p>
                     <p className="text-[11px] text-gray-400">Contact teachers</p>
                   </div>
-                  <ChevronRight size={14} className="text-gray-300 ml-auto shrink-0 group-hover:text-green-400 transition" />
+                  <Icon name="chevron_right" size="sm" className="text-gray-300 ml-auto shrink-0 group-hover:text-green-400 transition" />
                 </Link>
               </div>
 

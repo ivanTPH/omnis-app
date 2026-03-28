@@ -1,9 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition } from 'react'
-import {
-  Search, Loader2, Plus, ChevronDown, ChevronUp, Check,
-  BookOpen, ExternalLink,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import {
   searchOakLessons,
   getOakLesson,
@@ -137,7 +134,7 @@ function LessonDetail({ lesson }: { lesson: OakLessonFull }) {
           rel="noreferrer"
           className="inline-flex items-center gap-1.5 text-[11px] text-blue-600 hover:underline"
         >
-          <ExternalLink size={11} /> View on Oak National Academy
+          <Icon name="open_in_new" size="sm" /> View on Oak National Academy
         </a>
       )}
     </div>
@@ -202,7 +199,7 @@ function ResultRow({
 
         {/* Expand chevron */}
         <div className="shrink-0 text-gray-300">
-          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {isExpanded ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
         </div>
       </div>
 
@@ -211,7 +208,7 @@ function ResultRow({
         <div className="px-3 pb-3 bg-gray-50 border-t border-gray-100">
           {loadingDetail && !expandedDetail ? (
             <div className="flex items-center justify-center py-6 text-gray-300">
-              <Loader2 size={16} className="animate-spin" />
+              <Icon name="refresh" size="md" className="animate-spin" />
             </div>
           ) : (
             expandedDetail && <LessonDetail lesson={expandedDetail} />
@@ -232,10 +229,10 @@ function ResultRow({
               }`}
             >
               {added
-                ? <><Check size={11} /> Added</>
+                ? <><Icon name="check" size="sm" /> Added</>
                 : adding
-                ? <><Loader2 size={11} className="animate-spin" /> Adding…</>
-                : <><Plus size={11} /> Add to lesson</>}
+                ? <><Icon name="refresh" size="sm" className="animate-spin" /> Adding…</>
+                : <><Icon name="add" size="sm" /> Add to lesson</>}
             </button>
           </div>
         </div>
@@ -364,8 +361,8 @@ export default function OakResourcePanel({
         onClick={() => setOpen(v => !v)}
         className="flex items-center gap-2 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[12px] font-semibold transition-colors"
       >
-        <BookOpen size={13} />
-        {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        <Icon name="menu_book" size="sm" />
+        {open ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
         Oak National Academy
       </button>
 
@@ -426,7 +423,7 @@ export default function OakResourcePanel({
             {/* Row 3: Search input + button */}
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Icon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={query}
                   onChange={e => setQuery(e.target.value)}
@@ -441,8 +438,8 @@ export default function OakResourcePanel({
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-[12px] font-semibold transition-colors"
               >
                 {searching
-                  ? <Loader2 size={12} className="animate-spin" />
-                  : <Search size={12} />}
+                  ? <Icon name="refresh" size="sm" className="animate-spin" />
+                  : <Icon name="search" size="sm" />}
                 Search
               </button>
             </div>
@@ -452,7 +449,7 @@ export default function OakResourcePanel({
           <div className="p-3 space-y-2 max-h-96 overflow-auto">
             {searching ? (
               <div className="flex items-center justify-center py-10 text-gray-300">
-                <Loader2 size={20} className="animate-spin" />
+                <Icon name="refresh" size="md" className="animate-spin" />
               </div>
             ) : !hasSearched ? (
               <p className="text-[12px] text-gray-400 text-center py-8">

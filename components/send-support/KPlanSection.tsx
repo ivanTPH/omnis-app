@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BookOpen, Loader2, ShieldCheck, RefreshCw, Download, ChevronDown, ChevronUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { LearnerPassportRow } from '@/app/actions/send-support'
 import { approveLearnerPassport, regenerateLearnerPassport, generateLearnerPassport } from '@/app/actions/send-support'
 import KPlanModal from './KPlanModal'
@@ -70,7 +70,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
     return (
       <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 flex items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <BookOpen size={18} className="text-teal-500 mt-0.5 shrink-0" />
+          <Icon name="menu_book" size="md" className="text-teal-500 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-medium text-teal-800">No K Plan yet</p>
             <p className="text-xs text-teal-600 mt-0.5">
@@ -84,7 +84,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
             disabled={generating}
             className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
           >
-            {generating ? <Loader2 size={14} className="animate-spin" /> : <BookOpen size={14} />}
+            {generating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
             Generate K Plan
           </button>
         )}
@@ -103,11 +103,11 @@ export default function KPlanSection({ passport: initial, studentId, studentName
             onClick={() => setExpanded(e => !e)}
             className="flex items-center gap-2 flex-1 text-left"
           >
-            <BookOpen size={15} className={passport.status === 'APPROVED' ? 'text-teal-600' : 'text-amber-600'} />
+            <Icon name="menu_book" size="sm" className={passport.status === 'APPROVED' ? 'text-teal-600' : 'text-amber-600'} />
             <span className="text-sm font-semibold text-gray-800">
               {passport.status === 'APPROVED' ? 'K Plan — Approved' : 'K Plan — Draft (awaiting SENCO approval)'}
             </span>
-            {expanded ? <ChevronUp size={14} className="text-gray-400 ml-auto" /> : <ChevronDown size={14} className="text-gray-400 ml-auto" />}
+            {expanded ? <Icon name="expand_less" size="sm" className="text-gray-400 ml-auto" /> : <Icon name="expand_more" size="sm" className="text-gray-400 ml-auto" />}
           </button>
           <div className="flex items-center gap-1.5 shrink-0">
             {isSenco && (
@@ -118,7 +118,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
                     disabled={approving}
                     className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
                   >
-                    {approving ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />}
+                    {approving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="verified_user" size="sm" />}
                     Approve
                   </button>
                 )}
@@ -127,7 +127,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
                   disabled={regenerating}
                   className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
-                  {regenerating ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                  {regenerating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="refresh" size="sm" />}
                   Regenerate
                 </button>
               </>
@@ -136,7 +136,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors"
             >
-              <BookOpen size={11} /> Full view
+              <Icon name="menu_book" size="sm" /> Full view
             </button>
             <a
               href={`/api/export/k-plan/${studentId}`}
@@ -144,7 +144,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
             >
-              <Download size={11} /> PDF
+              <Icon name="download" size="sm" /> PDF
             </a>
           </div>
         </div>

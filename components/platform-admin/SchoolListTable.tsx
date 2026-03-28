@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, ChevronDown, ChevronUp, ToggleLeft, ToggleRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { SchoolRow } from '@/app/actions/platform-admin'
 import { toggleSchoolActive } from '@/app/actions/platform-admin'
 import SchoolForm from './SchoolForm'
@@ -39,7 +39,7 @@ export default function SchoolListTable({ schools: initial }: Props) {
           onClick={() => setShowForm(s => !s)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
         >
-          <Plus size={13} /> Add School
+          <Icon name="add" size="sm" /> Add School
         </button>
       </div>
 
@@ -85,7 +85,7 @@ export default function SchoolListTable({ schools: initial }: Props) {
                         onClick={() => setExpanded(e => e === s.id ? null : s.id)}
                         className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium transition-colors"
                       >
-                        Flags {expanded === s.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        Flags {expanded === s.id ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
                       </button>
                       <button
                         onClick={() => handleToggle(s.id)}
@@ -94,8 +94,8 @@ export default function SchoolListTable({ schools: initial }: Props) {
                         title={s.isActive ? 'Deactivate' : 'Activate'}
                       >
                         {s.isActive
-                          ? <ToggleRight size={18} className="text-green-500" />
-                          : <ToggleLeft size={18} />}
+                          ? <Icon name="toggle_on" size="md" className="text-green-500" />
+                          : <Icon name="toggle_off" size="md" />}
                       </button>
                     </div>
                   </td>

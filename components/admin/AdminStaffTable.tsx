@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { StaffMember } from '@/app/actions/admin'
 
 const ROLE_LABEL: Record<string, string> = {
@@ -67,10 +67,10 @@ export default function AdminStaffTable({ staff }: { staff: StaffMember[] }) {
   )
 
   function SortIcon({ k }: { k: SortKey }) {
-    if (sortKey !== k) return <ChevronDown size={11} className="text-gray-300" />
+    if (sortKey !== k) return <Icon name="expand_more" size="sm" className="text-gray-300" />
     return sortAsc
-      ? <ChevronUp   size={11} className="text-blue-600" />
-      : <ChevronDown size={11} className="text-blue-600" />
+      ? <Icon name="expand_less" size="sm" className="text-blue-600" />
+      : <Icon name="expand_more" size="sm" className="text-blue-600" />
   }
 
   const COLS: { k: SortKey; label: string }[] = [

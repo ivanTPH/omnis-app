@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, CheckCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { createIlp } from '@/app/actions/send-support'
 
 const SEND_CATEGORIES = [
@@ -108,7 +108,7 @@ export default function IlpForm({ studentId, studentName, onClose }: Props) {
   if (done) {
     return (
       <div className="p-8 text-center">
-        <CheckCircle size={40} className="text-green-500 mx-auto mb-3" />
+        <Icon name="check_circle" size="lg" className="text-green-500 mx-auto mb-3" />
         <p className="font-medium text-gray-900">ILP created</p>
         <p className="text-sm text-gray-500 mt-1">The ILP for {studentName} has been saved. Teachers have been notified.</p>
         <button onClick={onClose} className="mt-4 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">Close</button>
@@ -162,7 +162,7 @@ export default function IlpForm({ studentId, studentName, onClose }: Props) {
                 <p className="text-sm font-medium text-gray-700">Target {i + 1}</p>
                 {targets.length > 1 && (
                   <button onClick={() => removeTarget(i)} className="p-1 hover:bg-gray-100 rounded text-gray-400">
-                    <Trash2 size={14} />
+                    <Icon name="delete" size="sm" />
                   </button>
                 )}
               </div>
@@ -181,7 +181,7 @@ export default function IlpForm({ studentId, studentName, onClose }: Props) {
           ))}
           {targets.length < 5 && (
             <button onClick={addTarget} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">
-              <Plus size={14} /> Add another target
+              <Icon name="add" size="sm" /> Add another target
             </button>
           )}
           <div className="flex gap-3">

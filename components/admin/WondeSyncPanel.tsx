@@ -1,10 +1,6 @@
 'use client'
 import { useState } from 'react'
-import {
-  RefreshCw, CheckCircle2, XCircle, Clock, Database,
-  Users, BookOpen, UserCheck, Calendar, AlertTriangle,
-  Wifi, WifiOff, ChevronDown, ChevronUp,
-} from 'lucide-react'
+import IconComp from '@/components/ui/Icon'
 import { testWondeConnection } from '@/app/actions/wonde'
 import type { WondeSyncLog } from '@prisma/client'
 
@@ -66,7 +62,7 @@ function LogRow({ log }: { log: WondeSyncLog }) {
           <span className="text-[12px] text-gray-400">{log.recordsProcessed} records</span>
           {errs.length > 0 && (
             <span className="text-[11px] text-amber-600 flex items-center gap-1">
-              <AlertTriangle size={11} /> {errs.length} warning{errs.length > 1 ? 's' : ''}
+              <IconComp name="warning" size="sm" /> {errs.length} warning{errs.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
@@ -77,7 +73,7 @@ function LogRow({ log }: { log: WondeSyncLog }) {
               {((new Date(log.completedAt).getTime() - new Date(log.startedAt).getTime()) / 1000).toFixed(1)}s
             </span>
           )}
-          {open ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+          {open ? <IconComp name="expand_less" size="sm" className="text-gray-400" /> : <IconComp name="expand_more" size="sm" className="text-gray-400" />}
         </div>
       </button>
       {open && errs.length > 0 && (
@@ -160,15 +156,15 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             {config?.connected
-              ? <Wifi size={16} className="text-green-500" />
-              : <WifiOff size={16} className="text-gray-400" />
+              ? <IconComp name="wifi" size="sm" className="text-green-500" />
+              : <IconComp name="wifi_off" size="sm" className="text-gray-400" />
             }
             <h2 className="text-[15px] font-semibold text-gray-900">MIS Connection</h2>
           </div>
           <div className="flex items-center gap-2">
             {config?.connected && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-medium">
-                <CheckCircle2 size={10} /> Connected
+                <IconComp name="check_circle" size="sm" /> Connected
               </span>
             )}
           </div>
@@ -199,7 +195,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
             disabled={!isConfigured || testing}
             className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <Wifi size={14} />
+            <IconComp name="wifi" size="sm" />
             {testing ? 'Testing…' : 'Test Connection'}
           </button>
 
@@ -208,7 +204,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
             disabled={!isConfigured || syncing}
             className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+            <IconComp name="refresh" size="sm" className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'Syncing…' : 'Run Full Sync'}
           </button>
         </div>
@@ -219,8 +215,8 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
             testResult.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
           }`}>
             {testResult.ok
-              ? <><CheckCircle2 size={14} /> Connected to <strong>{testResult.schoolName}</strong> ({testResult.mis})</>
-              : <><XCircle size={14} /> {testResult.error}</>
+              ? <><IconComp name="check_circle" size="sm" /> Connected to <strong>{testResult.schoolName}</strong> ({testResult.mis})</>
+              : <><IconComp name="cancel" size="sm" /> {testResult.error}</>
             }
           </div>
         )}
@@ -233,7 +229,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
             {syncResult.success && syncResult.result ? (
               <div>
                 <div className="flex items-center gap-2 font-medium mb-2">
-                  <CheckCircle2 size={14} />
+                  <IconComp name="check_circle" size="sm" />
                   Sync complete in {(syncResult.result.durationMs / 1000).toFixed(1)}s
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-[12px]">
@@ -250,7 +246,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <XCircle size={14} /> {syncResult.error}
+                <IconComp name="cancel" size="sm" /> {syncResult.error}
               </div>
             )}
           </div>
@@ -260,15 +256,15 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
       {/* Data counts */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: 'Staff',      value: counts.employees, icon: UserCheck },
-          { label: 'Students',   value: counts.students,  icon: Users },
-          { label: 'Classes',    value: counts.classes,   icon: BookOpen },
-          { label: 'Groups',     value: counts.groups,    icon: Users },
-          { label: 'Periods',    value: counts.periods,   icon: Clock },
-          { label: 'Timetable',  value: counts.timetable, icon: Calendar },
-        ].map(({ label, value, icon: Icon }) => (
+          { label: 'Staff',      value: counts.employees, iconName: 'how_to_reg' },
+          { label: 'Students',   value: counts.students,  iconName: 'people' },
+          { label: 'Classes',    value: counts.classes,   iconName: 'menu_book' },
+          { label: 'Groups',     value: counts.groups,    iconName: 'people' },
+          { label: 'Periods',    value: counts.periods,   iconName: 'schedule' },
+          { label: 'Timetable',  value: counts.timetable, iconName: 'calendar_today' },
+        ].map(({ label, value, iconName }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <Icon size={16} className="text-indigo-400 mx-auto mb-1.5" />
+            <IconComp name={iconName} size="sm" className="text-indigo-400 mx-auto mb-1.5" />
             <p className="text-[20px] font-bold text-gray-900">{value.toLocaleString()}</p>
             <p className="text-[11px] text-gray-400 uppercase tracking-wide mt-0.5">{label}</p>
           </div>
@@ -278,7 +274,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
       {/* Sync logs */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="text-[15px] font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Database size={15} className="text-gray-400" />
+          <IconComp name="storage" size="sm" className="text-gray-400" />
           Sync History
         </h2>
         {logs.length === 0 ? (

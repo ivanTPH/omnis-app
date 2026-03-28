@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, FileHeart, BookOpen, Shield, ChevronDown, ChevronRight, Clock, CheckCircle, Send } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { StudentSendDocuments, IlpAuditEntryRow } from '@/app/actions/send-support'
 import { getIlpAuditLog, proposeIlpEdit } from '@/app/actions/send-support'
 
@@ -17,9 +17,9 @@ type Props = {
 }
 
 const DOC_META: Record<DocType, { label: string; icon: React.ReactNode; colour: string }> = {
-  kPlan: { label: 'K Plan — Learning Passport', icon: <BookOpen size={15} />,  colour: 'text-amber-700 bg-amber-100' },
-  ilp:   { label: 'Individual Learning Plan',   icon: <FileHeart size={15} />, colour: 'text-blue-700  bg-blue-100' },
-  ehcp:  { label: 'EHCP Plan',                  icon: <Shield size={15} />,    colour: 'text-purple-700 bg-purple-100' },
+  kPlan: { label: 'K Plan — Learning Passport', icon: <Icon name="menu_book" size="sm" />,      colour: 'text-amber-700 bg-amber-100' },
+  ilp:   { label: 'Individual Learning Plan',   icon: <Icon name="favorite_border" size="sm" />, colour: 'text-blue-700  bg-blue-100' },
+  ehcp:  { label: 'EHCP Plan',                  icon: <Icon name="verified_user" size="sm" />,   colour: 'text-purple-700 bg-purple-100' },
 }
 
 const TARGET_STATUS: Record<string, { label: string; cls: string }> = {
@@ -90,13 +90,13 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
           <div className="flex items-center gap-2 shrink-0">
             {('approvedAt' in doc) && doc.approvedAt ? (
               <span className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 bg-green-600 rounded-full">
-                <CheckCircle size={10} /> Approved {new Date(doc.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                <Icon name="check_circle" size="sm" /> Approved {new Date(doc.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
               </span>
             ) : (
               <span className="text-[11px] font-semibold px-2 py-1 bg-amber-500 rounded-full">Draft</span>
             )}
             <button onClick={onClose} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors">
-              <X size={15} />
+              <Icon name="close" size="sm" />
             </button>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                 <section>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Annual Review Date</p>
                   <p className="text-[13px] text-gray-800 flex items-center gap-1.5">
-                    <Clock size={12} className="text-gray-400" />
+                    <Icon name="schedule" size="sm" className="text-gray-400" />
                     {new Date(ehcp.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
                 </section>
@@ -269,8 +269,8 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                 className="flex items-center gap-2 text-[12px] text-gray-500 hover:text-gray-700 font-medium w-full"
               >
                 {auditOpen
-                  ? <ChevronDown size={13} />
-                  : <ChevronRight size={13} />}
+                  ? <Icon name="expand_more" size="sm" />
+                  : <Icon name="chevron_right" size="sm" />}
                 Edit history
               </button>
               {auditOpen && (
@@ -331,7 +331,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
             <section className="border-t border-gray-100 pt-4">
               {noteDone ? (
                 <div className="flex items-center gap-2 text-[12px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
-                  <CheckCircle size={13} /> Note submitted — pending SENCO review
+                  <Icon name="check_circle" size="sm" /> Note submitted — pending SENCO review
                 </div>
               ) : noteOpen ? (
                 <div className="space-y-2">
@@ -349,7 +349,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                       disabled={noteLoading || !noteText.trim()}
                       className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg disabled:opacity-50 transition-colors"
                     >
-                      <Send size={11} /> {noteLoading ? 'Submitting…' : 'Submit note'}
+                      <Icon name="send" size="sm" /> {noteLoading ? 'Submitting…' : 'Submit note'}
                     </button>
                     <button
                       onClick={() => { setNoteOpen(false); setNoteText('') }}

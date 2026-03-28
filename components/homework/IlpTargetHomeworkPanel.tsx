@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Target, CheckSquare, Square, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getIlpTargetsDueForEvidencing } from '@/app/actions/ehcp'
 import type { IlpTargetDue } from '@/app/actions/ehcp'
 
@@ -27,7 +27,7 @@ export default function IlpTargetHomeworkPanel({ classId, linkedIds, onToggle }:
   if (targets.length === 0) {
     return (
       <div className="bg-gray-50 rounded-xl p-4 text-center text-sm text-gray-500">
-        <Target size={24} className="mx-auto mb-2 opacity-30" />
+        <Icon name="track_changes" size="md" className="mx-auto mb-2 opacity-30" />
         No ILP targets due for evidencing in the next 28 days.
       </div>
     )
@@ -49,11 +49,11 @@ export default function IlpTargetHomeworkPanel({ classId, linkedIds, onToggle }:
               className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${linked ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
             >
               <div className="flex items-start gap-2">
-                {linked ? <CheckSquare size={16} className="text-blue-600 shrink-0 mt-0.5" /> : <Square size={16} className="text-gray-400 shrink-0 mt-0.5" />}
+                {linked ? <Icon name="check_box" size="sm" className="text-blue-600 shrink-0 mt-0.5" /> : <Icon name="check_box_outline_blank" size="sm" className="text-gray-400 shrink-0 mt-0.5" />}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-xs font-medium text-gray-600">{t.studentName}</span>
-                    {urgent && <AlertCircle size={12} className="text-red-500" />}
+                    {urgent && <Icon name="error" size="sm" className="text-red-500" />}
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${urgent ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
                       {t.daysUntilDue}d left
                     </span>

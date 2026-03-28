@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ChevronDown, ChevronUp, Bot, CheckCircle, MessageSquare } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ConcernRow } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -65,7 +65,7 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
   if (concerns.length === 0) {
     return (
       <div className="text-center py-10 text-gray-400">
-        <CheckCircle size={32} className="mx-auto mb-2 opacity-30" />
+        <Icon name="check_circle" size="lg" className="mx-auto mb-2 opacity-30" />
         <p className="text-sm">No concerns on record.</p>
       </div>
     )
@@ -103,7 +103,7 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
                     <p className="text-sm text-gray-700 mt-1 line-clamp-1">{c.description}</p>
                   )}
                 </div>
-                {isOpen ? <ChevronUp size={16} className="text-gray-400 shrink-0 mt-0.5" /> : <ChevronDown size={16} className="text-gray-400 shrink-0 mt-0.5" />}
+                {isOpen ? <Icon name="expand_less" size="sm" className="text-gray-400 shrink-0 mt-0.5" /> : <Icon name="expand_more" size="sm" className="text-gray-400 shrink-0 mt-0.5" />}
               </button>
 
               {isOpen && (
@@ -133,7 +133,7 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
                   {c.aiAnalysis && (
                     <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                       <div className="flex items-center gap-1.5 mb-2">
-                        <Bot size={14} className="text-blue-600" />
+                        <Icon name="smart_toy" size="sm" className="text-blue-600" />
                         <span className="text-xs font-medium text-blue-700">AI-assisted analysis</span>
                       </div>
                       <p className="text-xs text-blue-900 whitespace-pre-wrap leading-relaxed">{c.aiAnalysis}</p>
@@ -153,7 +153,7 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
                       href="/messages"
                       className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
                     >
-                      <MessageSquare size={12} />
+                      <Icon name="chat" size="sm" />
                       {isSenco ? 'Message teacher' : 'Message SENCO'}
                     </Link>
                   </div>

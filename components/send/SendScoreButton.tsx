@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Sparkles, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getExistingScore, getOrCreateSendScore } from '@/app/actions/send-scorer'
 import type { SendQualityScoreData } from '@/app/actions/send-scorer'
 import SendScoreBadge from './SendScoreBadge'
@@ -49,8 +49,8 @@ export default function SendScoreButton({ oakLessonSlug, canRescore = false }: P
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100 text-[11px] font-semibold transition-colors disabled:opacity-50"
         >
           {pending
-            ? <><Loader2 size={11} className="animate-spin" />Scoring…</>
-            : <><Sparkles size={11} />{score ? 'SEND Score' : 'Score for SEND'}</>}
+            ? <><Icon name="refresh" size="sm" className="animate-spin" />Scoring…</>
+            : <><Icon name="auto_awesome" size="sm" />{score ? 'SEND Score' : 'Score for SEND'}</>}
         </button>
         {score && !open && <SendScoreBadge score={score.overallScore} />}
       </div>

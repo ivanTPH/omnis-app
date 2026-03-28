@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, X, Check } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getMyNotifications, markNotificationRead, markAllNotificationsRead } from '@/app/actions/send-support'
 import type { SendNotificationRow } from '@/app/actions/send-support'
 import {
@@ -108,7 +108,7 @@ export default function NotificationBell() {
         className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-600"
         aria-label="Notifications"
       >
-        <Bell size={18} />
+        <Icon name="notifications" size="md" />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
             {unread > 9 ? '9+' : unread}
@@ -123,11 +123,11 @@ export default function NotificationBell() {
             <div className="flex items-center gap-2">
               {unread > 0 && (
                 <button onClick={handleMarkAll} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                  <Check size={11} /> Mark all read
+                  <Icon name="check" size="sm" /> Mark all read
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="p-1 hover:bg-gray-100 rounded">
-                <X size={14} />
+                <Icon name="close" size="sm" />
               </button>
             </div>
           </div>
@@ -161,7 +161,7 @@ export default function NotificationBell() {
                           className="shrink-0 p-1 hover:bg-blue-100 rounded text-blue-500"
                           title="Mark as read"
                         >
-                          <Check size={13} />
+                          <Icon name="check" size="sm" />
                         </button>
                       )}
                     </div>

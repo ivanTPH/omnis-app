@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { DsrRow } from '@/app/actions/gdpr'
 import { updateDsrStatus } from '@/app/actions/gdpr'
 
@@ -47,7 +47,7 @@ export default function DataSubjectRequestList({ dsrs }: Props) {
       <div className="flex items-center justify-between">
         <p className="text-[12px] text-gray-400">{dsrs.length} request{dsrs.length !== 1 ? 's' : ''}</p>
         <div className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-gray-400 border border-dashed border-gray-200 rounded-lg cursor-not-allowed select-none">
-          <Plus size={13} /> New Request <span className="text-[10px] text-gray-300">(coming soon)</span>
+          <Icon name="add" size="sm" /> New Request <span className="text-[10px] text-gray-300">(coming soon)</span>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useTransition, KeyboardEvent } from 'react'
-import { Send, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const MAX_CHARS = 2000
 
@@ -63,7 +63,7 @@ export default function MessageComposer({
           disabled={!body.trim() || tooLong || isPending || disabled}
           className="shrink-0 w-9 h-9 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition-colors"
         >
-          {isPending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+          {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="send" size="sm" />}
         </button>
       </div>
       {body.length > MAX_CHARS - 200 && (

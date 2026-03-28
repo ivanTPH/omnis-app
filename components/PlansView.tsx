@@ -2,11 +2,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter }               from 'next/navigation'
 import Link                        from 'next/link'
-import {
-  FileHeart, Shield, BookOpen, Folder,
-  Calendar, ChevronRight, MessageSquare,
-  StickyNote, Plus, Loader2, ChevronDown, ChevronUp,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import StudentAvatar        from '@/components/StudentAvatar'
 import { savePlanNote, messageSencoAboutPlan } from '@/app/actions/plans'
 import type { IlpRow, EhcpRow, KPlanRow, PlanNote } from '@/app/actions/plans'
@@ -30,7 +26,7 @@ function ReviewDate({ date }: { date: string }) {
   const overdue = isOverdue(date)
   return (
     <div className={`flex items-center gap-1 text-[11px] shrink-0 ${overdue ? 'text-rose-600 font-semibold' : 'text-gray-400'}`}>
-      <Calendar size={11} />
+      <Icon name="calendar_today" size="sm" />
       {overdue
         ? 'Review overdue'
         : `Review ${new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
@@ -74,9 +70,9 @@ function NotesPanel({
         onClick={e => { e.preventDefault(); e.stopPropagation(); setOpen(v => !v) }}
         className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-700 font-medium"
       >
-        <StickyNote size={11} />
+        <Icon name="sticky_note_2" size="sm" />
         {notes.length > 0 ? `${notes.length} note${notes.length > 1 ? 's' : ''}` : 'Add note'}
-        {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+        {open ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
       </button>
 
       {open && (
@@ -110,7 +106,7 @@ function NotesPanel({
               disabled={isPending || !text.trim()}
               className="flex items-center gap-1 text-[11px] font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-2.5 py-1 rounded-lg transition-colors"
             >
-              {isPending ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
+              {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="add" size="sm" />}
               Save note
             </button>
           </div>
@@ -157,7 +153,7 @@ function MessageSencoButton({
         disabled={isPending}
         className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
       >
-        {isPending ? <Loader2 size={10} className="animate-spin" /> : <MessageSquare size={10} />}
+        {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="chat" size="sm" />}
         Message SENCO
       </button>
       {error && <p className="text-[11px] text-rose-600 mt-0.5">{error}</p>}
@@ -190,7 +186,7 @@ export default function PlansView({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Folder size={20} className="text-gray-500" />
+          <Icon name="folder" size="md" className="text-gray-500" />
           <h1 className="text-lg font-semibold text-gray-900">SEND Plans</h1>
           <span className="text-[11px] text-gray-400 font-medium">
             {total} plan{total !== 1 ? 's' : ''}
@@ -201,14 +197,14 @@ export default function PlansView({
             href="/send/ilp"
             className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
           >
-            ILP Records <ChevronRight size={14} />
+            ILP Records <Icon name="chevron_right" size="sm" />
           </Link>
         )}
       </div>
 
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Folder size={40} className="mb-3 opacity-30" />
+          <Icon name="folder" size="lg" className="mb-3 opacity-30" />
           <p className="text-sm">No active SEND plans for your students</p>
           {isSenco && (
             <Link href="/send/ilp" className="mt-3 text-sm text-blue-600 hover:underline">
@@ -223,7 +219,7 @@ export default function PlansView({
           {ilps.length > 0 && (
             <section>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <FileHeart size={11} /> Individual Learning Plans ({ilps.length})
+                <Icon name="favorite_border" size="sm" /> Individual Learning Plans ({ilps.length})
               </p>
               <div className="space-y-2">
                 {ilps.map(ilp => {
@@ -251,7 +247,7 @@ export default function PlansView({
                           {ILP_LABEL[ilp.status] ?? ilp.status}
                         </span>
                         <ReviewDate date={ilp.reviewDate} />
-                        <ChevronRight size={14} className="text-gray-300 shrink-0" />
+                        <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />
                       </Link>
                       <div className="flex items-start justify-between gap-3 mt-1">
                         <NotesPanel planType="ilp" planId={ilp.id} notes={ilp.notes} />
@@ -272,7 +268,7 @@ export default function PlansView({
           {ehcps.length > 0 && (
             <section>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <Shield size={11} /> EHCP Plans ({ehcps.length})
+                <Icon name="verified_user" size="sm" /> EHCP Plans ({ehcps.length})
               </p>
               <div className="space-y-2">
                 {ehcps.map(ehcp => {
@@ -299,7 +295,7 @@ export default function PlansView({
                           EHCP
                         </span>
                         <ReviewDate date={ehcp.reviewDate} />
-                        <ChevronRight size={14} className="text-gray-300 shrink-0" />
+                        <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />
                       </Link>
                       <div className="flex items-start justify-between gap-3 mt-1">
                         <NotesPanel planType="ehcp" planId={ehcp.id} notes={ehcp.notes} />
@@ -320,7 +316,7 @@ export default function PlansView({
           {kplans.length > 0 && (
             <section>
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <BookOpen size={11} /> K Plans / Learning Passports ({kplans.length})
+                <Icon name="menu_book" size="sm" /> K Plans / Learning Passports ({kplans.length})
               </p>
               <div className="space-y-2">
                 {kplans.map(kplan => {
@@ -348,7 +344,7 @@ export default function PlansView({
                           {kplan.status === 'ACTIVE_PARENT_SHARED' ? 'Shared' : 'Active'}
                         </span>
                         <ReviewDate date={kplan.reviewDate} />
-                        <ChevronRight size={14} className="text-gray-300 shrink-0" />
+                        <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />
                       </Link>
                       <div className="flex items-start justify-between gap-3 mt-1">
                         <NotesPanel planType="kplan" planId={kplan.id} notes={kplan.notes} />

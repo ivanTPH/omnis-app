@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getAllEhcpPlans } from '@/app/actions/ehcp'
-import { FileCheck, AlertTriangle, Clock, CheckCircle, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import EhcpCard from '@/components/send-support/EhcpCard'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -48,21 +48,21 @@ export default async function EhcpPlansPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-red-700 mb-1">
-            <AlertTriangle size={16} />
+            <Icon name="warning" size="sm" />
             <span className="text-sm font-medium">Review overdue</span>
           </div>
           <div className="text-3xl font-bold text-red-700">{overdue.length}</div>
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-amber-700 mb-1">
-            <Clock size={16} />
+            <Icon name="schedule" size="sm" />
             <span className="text-sm font-medium">Due within 30 days</span>
           </div>
           <div className="text-3xl font-bold text-amber-700">{dueWithin30.length}</div>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-green-700 mb-1">
-            <CheckCircle size={16} />
+            <Icon name="check_circle" size="sm" />
             <span className="text-sm font-medium">On track</span>
           </div>
           <div className="text-3xl font-bold text-green-700">{onTrack.length}</div>
@@ -72,7 +72,7 @@ export default async function EhcpPlansPage() {
       {/* AI drafts awaiting review */}
       {aiDrafts.length > 0 && isSenco && (
         <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-start gap-2">
-          <Sparkles size={16} className="text-purple-600 shrink-0 mt-0.5" />
+          <Icon name="auto_awesome" size="sm" className="text-purple-600 shrink-0 mt-0.5" />
           <p className="text-sm text-purple-800">
             <span className="font-semibold">{aiDrafts.length} AI-generated EHCP draft{aiDrafts.length > 1 ? 's' : ''}</span>
             {' '}awaiting your review and approval below.
@@ -82,7 +82,7 @@ export default async function EhcpPlansPage() {
 
       {/* UK GDPR notice */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
-        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+        <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
         <p className="text-xs text-amber-800">
           EHCP data is Special Category under UK GDPR (Article 9). Access is logged. Do not share outside authorised staff.
           All annual reviews also require Local Authority sign-off.
@@ -92,7 +92,7 @@ export default async function EhcpPlansPage() {
       {/* Plans list */}
       {plans.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <FileCheck size={40} className="mx-auto mb-3 opacity-30" />
+          <Icon name="task_alt" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">No active EHCP plans recorded.</p>
         </div>
       ) : (
@@ -113,7 +113,7 @@ export default async function EhcpPlansPage() {
                       <h2 className="font-semibold text-gray-900">{plan.studentName}</h2>
                       {isAiDraft && (
                         <span className="flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                          <Sparkles size={10} /> AI draft
+                          <Icon name="auto_awesome" size="sm" /> AI draft
                         </span>
                       )}
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isAiDraft ? 'bg-yellow-100 text-yellow-800' : (STATUS_COLOUR[plan.status] ?? 'bg-gray-100 text-gray-600')}`}>

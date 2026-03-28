@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Loader2, BarChart2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
@@ -36,7 +36,7 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 size={20} className="animate-spin text-gray-400" />
+        <Icon name="refresh" size="md" className="animate-spin text-gray-400" />
       </div>
     )
   }
@@ -45,7 +45,7 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
     return (
       <div className="p-7">
         <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-          <BarChart2 size={24} className="mx-auto text-gray-300 mb-2" />
+          <Icon name="bar_chart" size="lg" className="mx-auto text-gray-300 mb-2" />
           <p className="text-[12px] text-gray-400">No published homework for this class yet.</p>
         </div>
       </div>

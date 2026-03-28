@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Archive, Users, ExternalLink } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
+
 import type { ThreadDetail, MessageRow } from '@/app/actions/messaging'
 import { sendMessage, archiveThread, getThread } from '@/app/actions/messaging'
 import MessageBubble from './MessageBubble'
@@ -65,7 +66,7 @@ export default function ThreadView({
             )}
           </div>
           <div className="flex items-center gap-1 text-[11px] text-gray-400">
-            <Users size={11} />
+            <Icon name="people" size="sm" />
             <span>{thread.participants.map(p => `${p.firstName} ${p.lastName}`).join(', ')}</span>
           </div>
           {thread.contextId && thread.context === 'homework' && (
@@ -73,7 +74,7 @@ export default function ThreadView({
               href={`/homework/${thread.contextId}`}
               className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline mt-0.5"
             >
-              <ExternalLink size={10} /> View homework
+              <Icon name="open_in_new" size="sm" /> View homework
             </a>
           )}
         </div>
@@ -83,7 +84,7 @@ export default function ThreadView({
           className="shrink-0 flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           title="Archive thread"
         >
-          <Archive size={13} />
+          <Icon name="archive" size="sm" />
           Archive
         </button>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, ChevronDown, ChevronUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { StudentSendSummary } from '@/app/actions/send-support'
 import RaiseConcernButton from './RaiseConcernButton'
 
@@ -23,12 +23,12 @@ export default function StudentSendOverlay({ students }: Props) {
         className="w-full flex items-center justify-between px-4 py-2.5 text-left"
       >
         <div className="flex items-center gap-2">
-          <Users size={15} className="text-amber-600" />
+          <Icon name="group" size="sm" className="text-amber-600" />
           <span className="text-sm font-medium text-amber-800">
             {flagged.length} student{flagged.length > 1 ? 's' : ''} with SEND notes
           </span>
         </div>
-        {expanded ? <ChevronUp size={15} className="text-amber-600" /> : <ChevronDown size={15} className="text-amber-600" />}
+        {expanded ? <Icon name="expand_less" size="sm" className="text-amber-600" /> : <Icon name="expand_more" size="sm" className="text-amber-600" />}
       </button>
 
       {expanded && (

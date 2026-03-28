@@ -2,11 +2,7 @@
 
 import { useState, useRef }         from 'react'
 import { useRouter }                from 'next/navigation'
-import {
-  User, Briefcase, Shield, Share2, Lock,
-  Camera, CheckCircle, AlertCircle, Info,
-  Eye, EyeOff,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import {
   saveProfile,
   requestEmailChange,
@@ -22,11 +18,11 @@ const TABS = ['Profile', 'Preferences', 'Privacy', 'Sharing', 'Password'] as con
 type Tab = typeof TABS[number]
 
 const TAB_ICONS: Record<Tab, React.ReactNode> = {
-  'Profile':     <User size={14} />,
-  'Preferences': <Briefcase size={14} />,
-  'Privacy':     <Shield size={14} />,
-  'Sharing':     <Share2 size={14} />,
-  'Password':    <Lock size={14} />,
+  'Profile':     <Icon name="person" size="sm" />,
+  'Preferences': <Icon name="settings" size="sm" />,
+  'Privacy':     <Icon name="security" size="sm" />,
+  'Sharing':     <Icon name="share" size="sm" />,
+  'Password':    <Icon name="lock" size="sm" />,
 }
 
 const SUBJECTS = [
@@ -82,7 +78,7 @@ function Toast({ msg, ok }: { msg: string; ok: boolean }) {
   return (
     <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium shadow-lg
       ${ok ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-      {ok ? <CheckCircle size={15} className="text-green-600 shrink-0" /> : <AlertCircle size={15} className="text-red-600 shrink-0" />}
+      {ok ? <Icon name="check_circle" size="sm" className="text-green-600 shrink-0" /> : <Icon name="error" size="sm" className="text-red-600 shrink-0" />}
       {msg}
     </div>
   )
@@ -106,7 +102,7 @@ function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: b
 }
 
 function FieldError({ msg }: { msg: string }) {
-  return <p className="mt-1 text-xs text-red-600 flex items-center gap-1"><AlertCircle size={11} />{msg}</p>
+  return <p className="mt-1 text-xs text-red-600 flex items-center gap-1"><Icon name="error" size="sm" />{msg}</p>
 }
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -355,7 +351,7 @@ export default function SettingsShell({
                   disabled={avatarUploading}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
-                  <Camera size={14} />
+                  <Icon name="camera_alt" size="sm" />
                   {avatarUrl ? 'Replace photo' : 'Upload photo'}
                 </button>
                 <p className="text-xs text-gray-400">JPG or PNG, max 5 MB</p>
@@ -424,7 +420,7 @@ export default function SettingsShell({
               </div>
               {settings.pendingEmail && (
                 <div className="mt-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                  <AlertCircle size={12} className="text-amber-500 shrink-0" />
+                  <Icon name="error" size="sm" className="text-amber-500 shrink-0" />
                   Email change to <strong>{settings.pendingEmail}</strong> is pending verification.
                 </div>
               )}
@@ -596,7 +592,7 @@ export default function SettingsShell({
           </Section>
 
           <div className="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 flex items-start gap-2.5">
-            <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
+            <Icon name="info" size="sm" className="text-blue-500 shrink-0 mt-0.5" />
             <p className="text-xs text-blue-700">Your data is processed in accordance with UK GDPR. You can withdraw consent at any time. For queries, contact your school Data Protection Officer.</p>
           </div>
 
@@ -659,7 +655,7 @@ export default function SettingsShell({
                       onMouseLeave={() => setShowTooltip(false)}
                       className="text-gray-400 hover:text-gray-600"
                     >
-                      <Info size={13} />
+                      <Icon name="info" size="sm" />
                     </button>
                     {showTooltip && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 px-3 py-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-10">
@@ -676,7 +672,7 @@ export default function SettingsShell({
           </Section>
 
           <div className="rounded-lg bg-amber-50 border border-amber-100 px-4 py-3 flex items-start gap-2.5">
-            <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+            <Icon name="info" size="sm" className="text-amber-500 shrink-0 mt-0.5" />
             <p className="text-xs text-amber-700">AI improvement data is aggregated and anonymised in compliance with UK GDPR. No lesson content, student data, or personal information is ever shared. Opt-out takes effect immediately.</p>
           </div>
 
@@ -715,7 +711,7 @@ export default function SettingsShell({
                     onClick={() => setShowPw(!showPw)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPw ? <Icon name="visibility_off" size="sm" /> : <Icon name="visibility" size="sm" />}
                   </button>
                 </div>
               </div>
@@ -740,13 +736,13 @@ export default function SettingsShell({
 
               {pwError && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
-                  <AlertCircle size={12} className="text-red-500 shrink-0" />
+                  <Icon name="error" size="sm" className="text-red-500 shrink-0" />
                   {pwError}
                 </div>
               )}
               {pwSuccess && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
-                  <CheckCircle size={12} className="text-green-500 shrink-0" />
+                  <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />
                   Password changed successfully. Use your new password next time you log in.
                 </div>
               )}
@@ -779,7 +775,7 @@ export default function SettingsShell({
           <Section title="Active Sessions">
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
               <div className="flex items-start gap-2.5">
-                <Info size={14} className="text-gray-400 shrink-0 mt-0.5" />
+                <Icon name="info" size="sm" className="text-gray-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-gray-500">
                   Active session management requires server-side session storage and is planned for a future release.
                   You can sign out of all devices at any time using the &ldquo;Sign out&rdquo; option in the sidebar.

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Plus, AlertTriangle, CheckCircle, Clock } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { CoverSummary, AbsenceWithStaff, AssignmentWithDetails } from '@/app/actions/cover'
 import { getTodaysCoverSummary } from '@/app/actions/cover'
 import AbsenceList from './AbsenceList'
@@ -46,7 +46,7 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-            <AlertTriangle size={14} className="text-orange-600" />
+            <Icon name="warning" size="sm" className="text-orange-600" />
           </div>
           <div>
             <p className="text-[20px] font-bold text-gray-900 leading-none">{absences.length}</p>
@@ -55,7 +55,7 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
-            <Clock size={14} className="text-red-600" />
+            <Icon name="schedule" size="sm" className="text-red-600" />
           </div>
           <div>
             <p className="text-[20px] font-bold text-gray-900 leading-none">{unassignedCount}</p>
@@ -64,7 +64,7 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-            <CheckCircle size={14} className="text-green-600" />
+            <Icon name="check_circle" size="sm" className="text-green-600" />
           </div>
           <div>
             <p className="text-[20px] font-bold text-gray-900 leading-none">{assignedCount}</p>
@@ -83,7 +83,7 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
               onClick={() => setShowLogModal(true)}
               className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
             >
-              <Plus size={11} />
+              <Icon name="add" size="sm" />
               Log Absence
             </button>
           </div>

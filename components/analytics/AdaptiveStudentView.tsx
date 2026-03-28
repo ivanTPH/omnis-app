@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Loader2, Wand2, Check, ArrowRight, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getStudentTopicBreakdown } from '@/app/actions/analytics'
 import { generateResource } from '@/app/actions/ai-generator'
 import type { StudentTopicBreakdown } from '@/app/actions/analytics'
@@ -48,7 +48,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
 
   if (loading) return (
     <div className="flex items-center gap-2 py-10 text-gray-400">
-      <Loader2 size={15} className="animate-spin" />
+      <Icon name="refresh" size="sm" className="animate-spin" />
       <span className="text-sm">Loading student data…</span>
     </div>
   )
@@ -96,7 +96,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       {/* Red topics alert */}
       {redCount > 0 && (
         <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-[12px] text-red-800">
-          <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+          <Icon name="error" size="sm" className="text-red-500 flex-shrink-0" />
           <span>
             <strong>{redCount} topic{redCount !== 1 ? 's' : ''}</strong> significantly below expected. Use &apos;Generate Revision&apos; to create targeted practice.
           </span>
@@ -168,13 +168,13 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
                           onClick={() => handleGenerate(t.topic)}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-[11px] font-semibold transition-colors border border-red-200"
                         >
-                          <Wand2 size={11} />
+                          <Icon name="auto_fix_high" size="sm" />
                           Generate Revision
                         </button>
                       )}
                       {gen === 'generating' && (
                         <span className="inline-flex items-center gap-1.5 text-gray-400 text-[11px]">
-                          <Loader2 size={11} className="animate-spin" />
+                          <Icon name="refresh" size="sm" className="animate-spin" />
                           Generating…
                         </span>
                       )}
@@ -191,9 +191,9 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
                           href="/ai-generator"
                           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
                         >
-                          <Check size={11} />
+                          <Icon name="check" size="sm" />
                           {(gen as { id: string; title: string }).title.length > 22 ? (gen as { id: string; title: string }).title.slice(0, 22) + '…' : (gen as { id: string; title: string }).title}
-                          <ArrowRight size={10} />
+                          <Icon name="arrow_forward" size="sm" />
                         </a>
                       )}
                     </div>

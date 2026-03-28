@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Trash2, AlertCircle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { AbsenceWithStaff } from '@/app/actions/cover'
 import { deleteAbsence } from '@/app/actions/cover'
 
@@ -42,7 +42,7 @@ export default function AbsenceList({ absences, selectedAbsenceId, onSelect, onD
   if (absences.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-40 text-center">
-        <AlertCircle size={20} className="text-gray-300 mb-2" />
+        <Icon name="error" size="md" className="text-gray-300 mb-2" />
         <p className="text-[12px] text-gray-400">No absences logged for this date.</p>
       </div>
     )
@@ -93,7 +93,7 @@ export default function AbsenceList({ absences, selectedAbsenceId, onSelect, onD
                     className="p-1 text-gray-300 hover:text-red-500 transition-colors"
                     title="Delete absence"
                   >
-                    <Trash2 size={12} />
+                    <Icon name="delete" size="sm" />
                   </button>
                 )}
               </div>

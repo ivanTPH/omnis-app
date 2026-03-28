@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X, CheckCircle2, SkipForward, ExternalLink, Star } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { markSessionComplete, skipSession } from '@/app/actions/revision'
 
 type Session = {
@@ -46,9 +46,10 @@ function ConfidenceStars({ value, onChange }: { value: number; onChange: (v: num
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map(n => (
         <button key={n} onClick={() => onChange(n)}>
-          <Star
-            size={20}
-            className={n <= value ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+          <Icon
+            name="star"
+            size="md"
+            className={n <= value ? 'text-amber-400' : 'text-gray-300'}
           />
         </button>
       ))}
@@ -118,7 +119,7 @@ export default function SessionDetailModal({
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-3 shrink-0">
-            <X size={18} />
+            <Icon name="close" size="md" />
           </button>
         </div>
 
@@ -131,7 +132,7 @@ export default function SessionDetailModal({
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-[12px] text-blue-600 hover:text-blue-700 font-medium"
             >
-              <ExternalLink size={13} />
+              <Icon name="open_in_new" size="sm" />
               {session.oakLessonTitle ?? 'View Oak Lesson'}
             </a>
           )}
@@ -144,8 +145,8 @@ export default function SessionDetailModal({
                   <p className="text-[11px] text-gray-500 mb-1">Confidence after session</p>
                   <div className="flex items-center gap-1">
                     {[1,2,3,4,5].map(n => (
-                      <Star key={n} size={16}
-                        className={n <= (session.confidence ?? 0) ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}
+                      <Icon key={n} name="star" size="sm"
+                        className={n <= (session.confidence ?? 0) ? 'text-amber-400' : 'text-gray-200'}
                       />
                     ))}
                   </div>
@@ -167,7 +168,7 @@ export default function SessionDetailModal({
                 onClick={() => setMarking(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700"
               >
-                <CheckCircle2 size={15} />
+                <Icon name="check_circle" size="sm" />
                 Mark Complete
               </button>
               <button
@@ -175,7 +176,7 @@ export default function SessionDetailModal({
                 disabled={pending}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-semibold border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 disabled:opacity-50"
               >
-                <SkipForward size={15} />
+                <Icon name="skip_next" size="sm" />
                 Skip
               </button>
             </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useTransition, useMemo, useEffect } from 'react'
-import { X, Search, Check, Lock } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { createThread, getContactList } from '@/app/actions/messaging'
 import type { ContactGroup } from '@/app/actions/messaging'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -115,7 +115,7 @@ export default function NewThreadModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">New Message</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={18} />
+            <Icon name="close" size="md" />
           </button>
         </div>
 
@@ -131,13 +131,13 @@ export default function NewThreadModal({
                       onClick={() => toggle(c)}
                       className="flex items-center gap-1 text-[12px] bg-blue-600 text-white px-2 py-0.5 rounded-full"
                     >
-                      {c.firstName} {c.lastName} <X size={10} />
+                      {c.firstName} {c.lastName} <Icon name="close" size="sm" />
                     </button>
                   ))}
                 </div>
               )}
               <div className="relative">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={search}
@@ -171,7 +171,7 @@ export default function NewThreadModal({
                                 {c.firstName} {c.lastName}
                               </span>
                               <span className="text-[10px] text-gray-400 capitalize">{c.role.toLowerCase().replace(/_/g, ' ')}</span>
-                              {isSelected && <Check size={13} className="text-blue-600 shrink-0" />}
+                              {isSelected && <Icon name="check" size="sm" className="text-blue-600 shrink-0" />}
                             </button>
                           )
                         })}
@@ -220,7 +220,7 @@ export default function NewThreadModal({
               </select>
               {context === 'send' && (
                 <div className="flex items-start gap-2 bg-purple-50 border border-purple-100 rounded-xl p-3">
-                  <Lock size={13} className="text-purple-600 mt-0.5 shrink-0" />
+                  <Icon name="lock" size="sm" className="text-purple-600 mt-0.5 shrink-0" />
                   <p className="text-[12px] text-purple-700">
                     This thread will be marked <strong>private</strong> — only participants can see it. SEND-related information is protected.
                   </p>

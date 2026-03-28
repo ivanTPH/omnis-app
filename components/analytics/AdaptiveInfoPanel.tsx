@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Brain, Target, Zap } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const STORAGE_KEY = 'adaptive_info_dismissed'
 
@@ -26,11 +26,11 @@ export default function AdaptiveInfoPanel() {
         title="Dismiss"
         className="absolute top-3 right-3 p-1 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-gray-700 transition-colors"
       >
-        <X size={14} />
+        <Icon name="close" size="sm" />
       </button>
       <div className="flex items-start gap-3 pr-6">
         <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <Brain size={16} className="text-white" />
+          <Icon name="psychology" size="sm" className="text-white" />
         </div>
         <div>
           <h3 className="text-[13px] font-semibold text-gray-900 mb-1">About Adaptive Learning</h3>
@@ -39,11 +39,11 @@ export default function AdaptiveInfoPanel() {
           </p>
           <div className="flex items-center gap-5 mt-2.5">
             <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-              <Target size={11} className="text-blue-500" />
+              <Icon name="track_changes" size="sm" className="text-blue-500" />
               Topic gap detection across the last term
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-              <Zap size={11} className="text-amber-500" />
+              <Icon name="bolt" size="sm" className="text-amber-500" />
               One-click targeted revision generation
             </div>
           </div>

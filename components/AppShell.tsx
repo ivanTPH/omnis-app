@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Menu } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import Sidebar from '@/components/Sidebar'
 import { getMyAvatarUrl } from '@/app/actions/settings'
 
@@ -57,7 +57,7 @@ export default function AppShell({
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
             aria-label="Open menu"
           >
-            <Menu size={20} />
+            <Icon name="menu" size="md" />
           </button>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-blue-700 rounded-lg flex items-center justify-center">

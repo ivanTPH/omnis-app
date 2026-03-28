@@ -2,123 +2,117 @@
 import Link     from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut }     from 'next-auth/react'
-import {
-  Calendar, BookOpen, ClipboardList, Users, Folder,
-  MessageSquare, Bell, BarChart2, Shield, LogOut, GraduationCap,
-  Heart, FileText, AlertTriangle, LayoutDashboard, Settings,
-  UserCheck, Clock, Sparkles, ShieldCheck, Building2, Wand2, CalendarX2, RefreshCw,
-  Accessibility, FileCheck, BarChart3, Brain, BookMarked,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import UnreadBadge from '@/components/messaging/UnreadBadge'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 
 type NavItem =
-  | { label: string; href: string; icon: React.ElementType }
+  | { label: string; href: string; icon: string }
   | { divider: true; label: string }
 
 const navByRole: Record<string, NavItem[]> = {
   TEACHER: [
-    { label: 'Calendar',         href: '/dashboard',          icon: Calendar       },
-    { label: 'Homework',         href: '/homework',           icon: ClipboardList  },
-    { label: 'Revision',         href: '/revision-program',   icon: BookMarked     },
-    { label: 'Classes',          href: '/classes',            icon: Users          },
-    { label: 'Plans',            href: '/plans',              icon: Folder         },
-    { label: 'Messages',         href: '/messages',           icon: MessageSquare  },
-    { label: 'Notifications',    href: '/notifications',      icon: Bell           },
-    { label: 'Analytics',        href: '/analytics',          icon: BarChart3      },
-    { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: Brain         },
-    { label: 'AI Generator',     href: '/ai-generator',       icon: Wand2          },
+    { label: 'Calendar',          href: '/dashboard',          icon: 'calendar_today'  },
+    { label: 'Homework',          href: '/homework',           icon: 'assignment'       },
+    { label: 'Revision',          href: '/revision-program',   icon: 'bookmark'         },
+    { label: 'Classes',           href: '/classes',            icon: 'people'           },
+    { label: 'Plans',             href: '/plans',              icon: 'folder'           },
+    { label: 'Messages',          href: '/messages',           icon: 'chat'             },
+    { label: 'Notifications',     href: '/notifications',      icon: 'notifications'    },
+    { label: 'Analytics',         href: '/analytics',          icon: 'bar_chart'        },
+    { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: 'psychology'       },
+    { label: 'AI Generator',      href: '/ai-generator',       icon: 'auto_fix_high'    },
   ],
   HEAD_OF_DEPT: [
-    { label: 'Calendar',         href: '/dashboard',          icon: Calendar       },
-    { label: 'Homework',         href: '/homework',           icon: ClipboardList  },
-    { label: 'Revision',         href: '/revision-program',   icon: BookMarked     },
-    { label: 'Classes',          href: '/classes',            icon: Users          },
-    { label: 'Analytics',        href: '/analytics',          icon: BarChart3      },
-    { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: Brain         },
-    { label: 'AI Generator',     href: '/ai-generator',       icon: Wand2          },
-    { label: 'Messages',         href: '/messages',           icon: MessageSquare  },
-    { label: 'Notifications',    href: '/notifications',      icon: Bell           },
+    { label: 'Calendar',          href: '/dashboard',          icon: 'calendar_today'  },
+    { label: 'Homework',          href: '/homework',           icon: 'assignment'       },
+    { label: 'Revision',          href: '/revision-program',   icon: 'bookmark'         },
+    { label: 'Classes',           href: '/classes',            icon: 'people'           },
+    { label: 'Analytics',         href: '/analytics',          icon: 'bar_chart'        },
+    { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: 'psychology'       },
+    { label: 'AI Generator',      href: '/ai-generator',       icon: 'auto_fix_high'    },
+    { label: 'Messages',          href: '/messages',           icon: 'chat'             },
+    { label: 'Notifications',     href: '/notifications',      icon: 'notifications'    },
   ],
   HEAD_OF_YEAR: [
-    { label: 'Calendar',         href: '/dashboard',          icon: Calendar       },
-    { label: 'Revision',         href: '/revision-program',   icon: BookMarked     },
-    { label: 'Analytics',        href: '/analytics',          icon: BarChart3      },
-    { label: 'AI Generator',     href: '/ai-generator',       icon: Wand2          },
-    { label: 'Messages',         href: '/messages',           icon: MessageSquare  },
-    { label: 'Notifications',    href: '/notifications',      icon: Bell           },
+    { label: 'Calendar',      href: '/dashboard',          icon: 'calendar_today' },
+    { label: 'Revision',      href: '/revision-program',   icon: 'bookmark'       },
+    { label: 'Analytics',     href: '/analytics',          icon: 'bar_chart'      },
+    { label: 'AI Generator',  href: '/ai-generator',       icon: 'auto_fix_high'  },
+    { label: 'Messages',      href: '/messages',           icon: 'chat'           },
+    { label: 'Notifications', href: '/notifications',      icon: 'notifications'  },
     { divider: true, label: 'Pastoral' },
-    { label: 'Integrity',        href: '/hoy/integrity',      icon: AlertTriangle  },
-    { label: 'SEND Concerns',    href: '/senco/concerns',     icon: Heart          },
-    { label: 'Plans',            href: '/plans',              icon: Folder         },
+    { label: 'Integrity',     href: '/hoy/integrity',      icon: 'warning'        },
+    { label: 'SEND Concerns', href: '/senco/concerns',     icon: 'favorite'       },
+    { label: 'Plans',         href: '/plans',              icon: 'folder'         },
   ],
   SENCO: [
-    { label: 'SENCO Dashboard',  href: '/senco/dashboard',    icon: LayoutDashboard },
-    { label: 'Concerns',         href: '/senco/concerns',     icon: AlertTriangle   },
-    { label: 'ILP Records',      href: '/senco/ilp',          icon: FileText        },
-    { label: 'EHCP Plans',       href: '/senco/ehcp',         icon: FileCheck       },
-    { label: 'ILP Evidence',     href: '/senco/ilp-evidence', icon: BarChart3       },
-    { label: 'Early Warning',    href: '/senco/early-warning', icon: Bell           },
-    { label: 'Resource Scorer',  href: '/send-scorer',        icon: Sparkles        },
-    { label: 'AI Generator',     href: '/ai-generator',       icon: Wand2           },
-    { label: 'Analytics',        href: '/analytics',          icon: BarChart3       },
-    { label: 'Messages',         href: '/messages',           icon: MessageSquare   },
+    { label: 'SENCO Dashboard', href: '/senco/dashboard',    icon: 'dashboard'      },
+    { label: 'Concerns',        href: '/senco/concerns',     icon: 'warning'        },
+    { label: 'ILP Records',     href: '/senco/ilp',          icon: 'description'    },
+    { label: 'EHCP Plans',      href: '/senco/ehcp',         icon: 'fact_check'     },
+    { label: 'ILP Evidence',    href: '/senco/ilp-evidence', icon: 'bar_chart'      },
+    { label: 'Early Warning',   href: '/senco/early-warning', icon: 'notifications' },
+    { label: 'Resource Scorer', href: '/send-scorer',        icon: 'auto_awesome'   },
+    { label: 'AI Generator',    href: '/ai-generator',       icon: 'auto_fix_high'  },
+    { label: 'Analytics',       href: '/analytics',          icon: 'bar_chart'      },
+    { label: 'Messages',        href: '/messages',           icon: 'chat'           },
   ],
   SCHOOL_ADMIN: [
-    { label: 'Dashboard',   href: '/admin/dashboard',  icon: LayoutDashboard },
-    { label: 'Revision',    href: '/revision-program', icon: BookMarked      },
-    { label: 'Staff',       href: '/admin/staff',      icon: UserCheck       },
-    { label: 'Students',    href: '/admin/students',   icon: Users           },
-    { label: 'Classes',     href: '/admin/classes',    icon: BookOpen        },
-    { label: 'Timetable',   href: '/admin/timetable',  icon: Clock           },
-    { label: 'Calendar',    href: '/admin/calendar',   icon: Calendar        },
+    { label: 'Dashboard',      href: '/admin/dashboard',  icon: 'dashboard'       },
+    { label: 'Revision',       href: '/revision-program', icon: 'bookmark'        },
+    { label: 'Staff',          href: '/admin/staff',      icon: 'manage_accounts' },
+    { label: 'Students',       href: '/admin/students',   icon: 'people'          },
+    { label: 'Classes',        href: '/admin/classes',    icon: 'menu_book'       },
+    { label: 'Timetable',      href: '/admin/timetable',  icon: 'schedule'        },
+    { label: 'Calendar',       href: '/admin/calendar',   icon: 'calendar_today'  },
     { divider: true, label: 'Management' },
-    { label: 'Analytics',   href: '/slt/analytics',    icon: BarChart2       },
-    { label: 'Audit Log',   href: '/admin/audit',      icon: Shield          },
-    { label: 'GDPR & Consent', href: '/admin/gdpr',   icon: ShieldCheck     },
-    { label: 'AI Generator', href: '/ai-generator',   icon: Wand2           },
-    { label: 'Cover',        href: '/admin/cover',    icon: CalendarX2      },
-    { label: 'MIS Sync',     href: '/admin/wonde',    icon: RefreshCw       },
-    { label: 'Messages',    href: '/messages',         icon: MessageSquare   },
+    { label: 'Analytics',      href: '/slt/analytics',    icon: 'bar_chart'       },
+    { label: 'Audit Log',      href: '/admin/audit',      icon: 'security'        },
+    { label: 'GDPR & Consent', href: '/admin/gdpr',       icon: 'verified_user'   },
+    { label: 'AI Generator',   href: '/ai-generator',     icon: 'auto_fix_high'   },
+    { label: 'Cover',          href: '/admin/cover',      icon: 'event_busy'      },
+    { label: 'MIS Sync',       href: '/admin/wonde',      icon: 'sync'            },
+    { label: 'Messages',       href: '/messages',         icon: 'chat'            },
   ],
   SLT: [
-    { label: 'Dashboard',     href: '/dashboard',            icon: LayoutDashboard },
-    { label: 'Revision',      href: '/revision-program',     icon: BookMarked      },
-    { label: 'Analytics',     href: '/slt/analytics',        icon: BarChart2       },
-    { label: 'Audit Log',     href: '/slt/audit',            icon: Shield          },
-    { label: 'AI Generator', href: '/ai-generator',         icon: Wand2           },
-    { label: 'Cover',        href: '/admin/cover',          icon: CalendarX2      },
-    { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
-    { label: 'Notifications', href: '/notifications',        icon: Bell            },
+    { label: 'Dashboard',     href: '/dashboard',        icon: 'dashboard'     },
+    { label: 'Revision',      href: '/revision-program', icon: 'bookmark'      },
+    { label: 'Analytics',     href: '/slt/analytics',    icon: 'bar_chart'     },
+    { label: 'Audit Log',     href: '/slt/audit',        icon: 'security'      },
+    { label: 'AI Generator',  href: '/ai-generator',     icon: 'auto_fix_high' },
+    { label: 'Cover',         href: '/admin/cover',      icon: 'event_busy'    },
+    { label: 'Messages',      href: '/messages',         icon: 'chat'          },
+    { label: 'Notifications', href: '/notifications',    icon: 'notifications' },
     { divider: true, label: 'Pastoral' },
-    { label: 'Integrity',     href: '/hoy/integrity',        icon: AlertTriangle   },
-    { label: 'Plans',         href: '/plans',                icon: Folder          },
+    { label: 'Integrity',     href: '/hoy/integrity',    icon: 'warning'       },
+    { label: 'Plans',         href: '/plans',            icon: 'folder'        },
   ],
   COVER_MANAGER: [
-    { label: 'Dashboard',     href: '/dashboard',            icon: LayoutDashboard },
-    { label: 'Cover',         href: '/admin/cover',          icon: CalendarX2      },
-    { label: 'Lessons',       href: '/lessons',              icon: BookOpen        },
-    { label: 'Messages',      href: '/messages',             icon: MessageSquare   },
-    { label: 'Notifications', href: '/notifications',        icon: Bell            },
+    { label: 'Dashboard',     href: '/dashboard',     icon: 'dashboard'    },
+    { label: 'Cover',         href: '/admin/cover',   icon: 'event_busy'   },
+    { label: 'Lessons',       href: '/lessons',       icon: 'menu_book'    },
+    { label: 'Messages',      href: '/messages',      icon: 'chat'         },
+    { label: 'Notifications', href: '/notifications', icon: 'notifications'},
   ],
   STUDENT: [
-    { label: 'Dashboard',         href: '/student/dashboard',    icon: LayoutDashboard },
-    { label: 'Homework',          href: '/student/homework',     icon: ClipboardList   },
-    { label: 'Revision',          href: '/student/revision',     icon: BookMarked      },
-    { label: 'Revision Planner',  href: '/revision',             icon: BookOpen        },
-    { label: 'My Grades',         href: '/student/grades',       icon: GraduationCap   },
-    { label: 'Messages',          href: '/messages',             icon: MessageSquare   },
+    { label: 'Dashboard',        href: '/student/dashboard', icon: 'dashboard'   },
+    { label: 'Homework',         href: '/student/homework',  icon: 'assignment'  },
+    { label: 'Revision',         href: '/student/revision',  icon: 'bookmark'    },
+    { label: 'Revision Planner', href: '/revision',          icon: 'menu_book'   },
+    { label: 'My Grades',        href: '/student/grades',    icon: 'school'      },
+    { label: 'Messages',         href: '/messages',          icon: 'chat'        },
   ],
   PLATFORM_ADMIN: [
-    { label: 'Dashboard', href: '/platform-admin/dashboard', icon: LayoutDashboard },
-    { label: 'Schools',   href: '/platform-admin/schools',   icon: Building2       },
-    { label: 'Oak Sync',  href: '/platform-admin/oak-sync',  icon: RefreshCw       },
+    { label: 'Dashboard', href: '/platform-admin/dashboard', icon: 'dashboard' },
+    { label: 'Schools',   href: '/platform-admin/schools',   icon: 'business'  },
+    { label: 'Oak Sync',  href: '/platform-admin/oak-sync',  icon: 'sync'      },
   ],
   PARENT: [
-    { label: 'Dashboard',       href: '/parent/dashboard', icon: LayoutDashboard },
-    { label: 'Progress',        href: '/parent/progress',  icon: BarChart2       },
-    { label: 'Messages',        href: '/parent/messages',  icon: MessageSquare   },
-    { label: 'Consent Settings', href: '/parent/consent', icon: ShieldCheck     },
+    { label: 'Dashboard',        href: '/parent/dashboard', icon: 'dashboard'      },
+    { label: 'Progress',         href: '/parent/progress',  icon: 'bar_chart'      },
+    { label: 'Messages',         href: '/parent/messages',  icon: 'chat'           },
+    { label: 'Consent Settings', href: '/parent/consent',   icon: 'verified_user'  },
   ],
 }
 
@@ -159,7 +153,6 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               </div>
             )
           }
-          const Icon   = item.icon
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link
@@ -172,15 +165,16 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              <Icon size={15} className="shrink-0" />{item.label}
-              {item.href === '/messages'       && <UnreadBadge />}
-              {item.href === '/notifications'  && <NotificationUnreadBadge />}
+              <Icon name={item.icon} size="sm" className="shrink-0" />
+              {item.label}
+              {item.href === '/messages'      && <UnreadBadge />}
+              {item.href === '/notifications' && <NotificationUnreadBadge />}
             </Link>
           )
         })}
       </nav>
 
-      {/* Settings + User */}
+      {/* Settings + Accessibility */}
       <div className="px-3 pb-1 shrink-0">
         <Link
           href="/settings"
@@ -191,7 +185,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
-          <Settings size={15} className="shrink-0" />Settings
+          <Icon name="settings" size="sm" className="shrink-0" />Settings
         </Link>
         <Link
           href="/settings/accessibility"
@@ -202,10 +196,11 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
-          <Accessibility size={15} className="shrink-0" />Accessibility
+          <Icon name="accessibility" size="sm" className="shrink-0" />Accessibility
         </Link>
       </div>
 
+      {/* User chip + sign out */}
       <div className="px-4 py-4 border-t border-gray-100 shrink-0">
         <Link href="/settings" className="flex items-center gap-2.5 mb-3 hover:opacity-80 transition-opacity">
           {avatarUrl ? (
@@ -224,7 +219,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
           onClick={() => signOut({ callbackUrl: '/login' })}
           className="flex items-center gap-2 text-[12px] text-gray-400 hover:text-red-500 transition-colors"
         >
-          <LogOut size={13} />Sign out
+          <Icon name="logout" size="sm" />Sign out
         </button>
       </div>
     </aside>

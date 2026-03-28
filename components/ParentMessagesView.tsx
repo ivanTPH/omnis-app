@@ -2,7 +2,7 @@
 import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { sendParentMessage } from '@/app/actions/parent'
-import { MessageSquare, Send, User, Info } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 type Message = {
   id:         string
@@ -69,7 +69,7 @@ export default function ParentMessagesView({
         <div className="flex-1 overflow-auto">
           {conversations.length === 0 ? (
             <div className="px-5 py-10 text-center text-gray-400">
-              <MessageSquare size={28} className="mx-auto mb-2 opacity-30" />
+              <Icon name="chat" size="lg" className="mx-auto mb-2 opacity-30" />
               <p className="text-[13px] font-medium">No conversations</p>
               <p className="text-[11px] mt-1">Teachers can open a conversation from their marking view</p>
             </div>
@@ -87,7 +87,7 @@ export default function ParentMessagesView({
                 >
                   <div className="flex items-start gap-2.5">
                     <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0 mt-0.5">
-                      <User size={14} className="text-gray-500" />
+                      <Icon name="person" size="sm" className="text-gray-500" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
@@ -115,7 +115,7 @@ export default function ParentMessagesView({
         {/* Info note */}
         <div className="px-4 py-3 border-t border-gray-100 shrink-0">
           <div className="flex items-start gap-1.5">
-            <Info size={11} className="text-gray-300 mt-0.5 shrink-0" />
+            <Icon name="info" size="sm" className="text-gray-300 mt-0.5 shrink-0" />
             <p className="text-[10px] text-gray-400 leading-snug">
               Conversations are opened by teachers. Contact the school office for urgent matters.
             </p>
@@ -157,7 +157,7 @@ export default function ParentMessagesView({
                   <div key={msg.id} className={`flex ${isParent ? 'justify-end' : 'justify-start'}`}>
                     {!isParent && (
                       <div className="w-7 h-7 bg-gray-200 rounded-full flex items-center justify-center shrink-0 mr-2 mt-1">
-                        <User size={12} className="text-gray-500" />
+                        <Icon name="person" size="sm" className="text-gray-500" />
                       </div>
                     )}
                     <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
@@ -203,7 +203,7 @@ export default function ParentMessagesView({
                     disabled={isPending || !draft.trim()}
                     className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition shrink-0"
                   >
-                    <Send size={16} />
+                    <Icon name="send" size="sm" />
                   </button>
                 </div>
                 <p className="text-[10px] text-gray-300 mt-1.5">Messages are moderated by the school</p>
@@ -215,7 +215,7 @@ export default function ParentMessagesView({
       ) : (
         <div className="flex-1 flex items-center justify-center text-gray-400">
           <div className="text-center">
-            <MessageSquare size={40} className="mx-auto mb-3 opacity-20" />
+            <Icon name="chat" size="lg" className="mx-auto mb-3 opacity-20" />
             <p className="text-[14px] font-medium">No conversations yet</p>
             <p className="text-[12px] mt-1 max-w-xs">
               Teachers can start a conversation from the homework marking view. Contact the school office for urgent matters.

@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
-import { BarChart2, TrendingUp, TrendingDown, AlertTriangle, Users, BookOpen } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function termLabel(id: string) {
   return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -219,7 +219,7 @@ export default async function HoyAnalyticsPage() {
                                   <h3 className="text-[14px] font-bold text-gray-900">{cls.name}</h3>
                                   {agg && agg.integrityFlagRate > 0.02 && (
                                     <span className="text-[10px] text-amber-600 font-medium flex items-center gap-0.5">
-                                      <AlertTriangle size={10} />
+                                      <Icon name="warning" size="sm" />
                                       {Math.round(agg.integrityFlagRate * 100)}% flagged
                                     </span>
                                   )}
@@ -231,8 +231,8 @@ export default async function HoyAnalyticsPage() {
                               {agg && (
                                 <div className="flex items-center gap-1.5">
                                   {agg.predictedDelta >= 0
-                                    ? <TrendingUp  size={14} className="text-green-500" />
-                                    : <TrendingDown size={14} className="text-rose-500"  />}
+                                    ? <Icon name="trending_up"   size="sm" className="text-green-500" />
+                                    : <Icon name="trending_down" size="sm" className="text-rose-500"  />}
                                   <span className={`text-[13px] font-bold ${
                                     agg.predictedDelta >= 0 ? 'text-green-600' : 'text-rose-600'
                                   }`}>
@@ -302,7 +302,7 @@ export default async function HoyAnalyticsPage() {
 
               {allClasses.length === 0 && (
                 <div className="bg-white border border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-400">
-                  <BarChart2 size={32} className="mx-auto mb-3 opacity-30" />
+                  <Icon name="bar_chart" size="lg" className="mx-auto mb-3 opacity-30" />
                   <p className="text-[14px] font-medium">No classes found for this year group</p>
                 </div>
               )}
@@ -315,7 +315,7 @@ export default async function HoyAnalyticsPage() {
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle size={13} className="text-rose-500" />
+                    <Icon name="warning" size="sm" className="text-rose-500" />
                     <p className="text-[12px] font-bold text-gray-700">At-Risk Students</p>
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">&lt;50% submission rate</p>
@@ -367,7 +367,7 @@ export default async function HoyAnalyticsPage() {
               {/* SEND snapshot */}
               <div className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Users size={13} className="text-purple-600" />
+                  <Icon name="people" size="sm" className="text-purple-600" />
                   <p className="text-[12px] font-bold text-purple-900">SEND Overview</p>
                 </div>
                 <div className="space-y-2">
@@ -386,7 +386,7 @@ export default async function HoyAnalyticsPage() {
               {/* Homework snapshot */}
               <div className="bg-white border border-gray-200 rounded-xl px-5 py-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <BookOpen size={13} className="text-blue-500" />
+                  <Icon name="menu_book" size="sm" className="text-blue-500" />
                   <p className="text-[12px] font-bold text-gray-700">Homework</p>
                 </div>
                 <div className="space-y-2">

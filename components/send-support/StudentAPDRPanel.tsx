@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  Loader2, Sparkles, ShieldCheck, CheckCircle, ChevronDown,
-  Pencil, Save, X, RotateCcw, History, ChevronRight, RefreshCw,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { ApdrRow, ApdrAuditEntryRow } from '@/app/actions/send-support'
 import {
   getStudentAPDRCycles, updateAPDRSection, approveAPDR,
@@ -139,7 +136,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 size={16} className="animate-spin text-gray-400" />
+        <Icon name="refresh" size="sm" className="animate-spin text-gray-400" />
       </div>
     )
   }
@@ -164,7 +161,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
             disabled={generating}
             className="flex items-center gap-1.5 text-[11px] bg-purple-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-50"
           >
-            {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+            {generating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="auto_awesome" size="sm" />}
             {generating ? 'Generating…' : 'Generate APDR'}
           </button>
         )}
@@ -175,7 +172,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
             className="flex items-center gap-1.5 text-[11px] border border-gray-200 text-gray-500 px-2 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             title="Regenerate from ILP"
           >
-            <RefreshCw size={11} /> Regenerate
+            <Icon name="refresh" size="sm" /> Regenerate
           </button>
         )}
       </div>
@@ -194,21 +191,21 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
           {!activeCycle.approvedBySenco && isSenco && (
             <div className="flex items-center justify-between bg-purple-50 border-b border-purple-100 px-3 py-2">
               <span className="text-[11px] text-purple-700 flex items-center gap-1">
-                <Sparkles size={11} /> AI draft — review before approving
+                <Icon name="auto_awesome" size="sm" /> AI draft — review before approving
               </span>
               <button
                 onClick={() => handleApprove(activeCycle.id)}
                 disabled={approvingId === activeCycle.id}
                 className="flex items-center gap-1 text-[11px] bg-green-600 text-white px-2.5 py-1 rounded-full hover:bg-green-700 disabled:opacity-50"
               >
-                <ShieldCheck size={11} />
+                <Icon name="verified_user" size="sm" />
                 {approvingId === activeCycle.id ? 'Approving…' : 'Approve'}
               </button>
             </div>
           )}
           {activeCycle.approvedBySenco && (
             <div className="flex items-center gap-1.5 bg-green-50 border-b border-green-100 px-3 py-1.5">
-              <CheckCircle size={11} className="text-green-600" />
+              <Icon name="check_circle" size="sm" className="text-green-600" />
               <span className="text-[11px] text-green-700">Approved · visible to all staff</span>
             </div>
           )}
@@ -234,7 +231,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                         onClick={() => startEdit(activeCycle.id, key as SectionKey, content)}
                         className="flex items-center gap-0.5 text-[10px] text-blue-600 hover:text-blue-800"
                       >
-                        <Pencil size={10} /> Edit
+                        <Icon name="edit" size="sm" /> Edit
                       </button>
                     )}
                   </div>
@@ -254,13 +251,13 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                           disabled={saving}
                           className="flex items-center gap-1 text-[11px] bg-blue-600 text-white px-2.5 py-1 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                         >
-                          <Save size={10} /> {saving ? 'Saving…' : 'Save'}
+                          <Icon name="save" size="sm" /> {saving ? 'Saving…' : 'Save'}
                         </button>
                         <button
                           onClick={() => setEditingSection(null)}
                           className="flex items-center gap-1 text-[11px] border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50"
                         >
-                          <X size={10} /> Cancel
+                          <Icon name="close" size="sm" /> Cancel
                         </button>
                       </div>
                     </div>
@@ -280,7 +277,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
               {reviewMode === activeCycle.id ? (
                 <div className="space-y-2">
                   <p className="text-[11px] font-medium text-gray-700 flex items-center gap-1">
-                    <RotateCcw size={11} /> Complete Review — this will close Cycle {activeCycle.cycleNumber} and start Cycle {activeCycle.cycleNumber + 1}
+                    <Icon name="loop" size="sm" /> Complete Review — this will close Cycle {activeCycle.cycleNumber} and start Cycle {activeCycle.cycleNumber + 1}
                   </p>
                   <textarea
                     value={reviewText}
@@ -296,7 +293,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                       disabled={completing || !reviewText.trim()}
                       className="flex items-center gap-1 text-[11px] bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 disabled:opacity-50"
                     >
-                      <RotateCcw size={10} /> {completing ? 'Completing…' : 'Complete & start next cycle'}
+                      <Icon name="loop" size="sm" /> {completing ? 'Completing…' : 'Complete & start next cycle'}
                     </button>
                     <button
                       onClick={() => { setReviewMode(null); setReviewText('') }}
@@ -311,7 +308,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                   onClick={() => { setReviewMode(activeCycle.id); setReviewText(activeCycle.reviewContent) }}
                   className="flex items-center gap-1.5 text-[11px] text-amber-700 hover:text-amber-900 font-medium"
                 >
-                  <RotateCcw size={11} /> Complete Review (close cycle + start next)
+                  <Icon name="loop" size="sm" /> Complete Review (close cycle + start next)
                 </button>
               )}
             </div>
@@ -324,9 +321,9 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                 onClick={() => handleToggleAudit(activeCycle.id)}
                 className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600"
               >
-                <History size={11} />
+                <Icon name="history" size="sm" />
                 {auditOpen === activeCycle.id ? 'Hide' : 'Show'} edit history
-                <ChevronRight size={10} className={`transition-transform ${auditOpen === activeCycle.id ? 'rotate-90' : ''}`} />
+                <Icon name="chevron_right" size="sm" className={`transition-transform ${auditOpen === activeCycle.id ? 'rotate-90' : ''}`} />
               </button>
 
               {auditOpen === activeCycle.id && (
@@ -372,7 +369,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
             onClick={() => setHistoryOpen(p => !p)}
             className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600 font-medium"
           >
-            <ChevronDown size={11} className={`transition-transform ${historyOpen ? '' : '-rotate-90'}`} />
+            <Icon name="expand_more" size="sm" className={`transition-transform ${historyOpen ? '' : '-rotate-90'}`} />
             {completedCycles.length} completed cycle{completedCycles.length > 1 ? 's' : ''}
           </button>
 

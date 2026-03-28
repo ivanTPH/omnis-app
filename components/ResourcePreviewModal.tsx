@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition } from 'react'
-import { X, Download, Plus, Loader2, BookOpen, ChevronDown, ChevronUp, Eye, ArrowLeft } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getOakLesson, addOakLessonToLesson } from '@/app/actions/oak'
 
 type OakDetail = Awaited<ReturnType<typeof getOakLesson>>
@@ -14,7 +14,7 @@ function CollapsibleSection({ title, children }: { title: string; children: Reac
         className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-left hover:bg-gray-100 transition-colors"
       >
         <span className="text-[12px] font-semibold text-gray-700">{title}</span>
-        {open ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+        {open ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
       </button>
       {open && <div className="px-4 py-3">{children}</div>}
     </div>
@@ -70,7 +70,7 @@ export default function ResourcePreviewModal({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                <BookOpen size={9} />Oak National
+                <Icon name="menu_book" size="sm" />Oak National
               </span>
               {detail?.keystage && (
                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{detail.keystage}</span>
@@ -84,7 +84,7 @@ export default function ResourcePreviewModal({
             )}
           </div>
           <button onClick={onClose} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400">
-            <X size={16} />
+            <Icon name="close" size="sm" />
           </button>
         </div>
 
@@ -97,7 +97,7 @@ export default function ResourcePreviewModal({
                   onClick={() => setPreviewUrl(null)}
                   className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  <ArrowLeft size={12} /> Back
+                  <Icon name="arrow_back" size="sm" /> Back
                 </button>
                 <a
                   href={previewUrl}
@@ -106,7 +106,7 @@ export default function ResourcePreviewModal({
                   download
                   className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 border border-gray-200 rounded-lg text-[11px] text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                  <Download size={11} /> Download
+                  <Icon name="download" size="sm" /> Download
                 </a>
               </div>
               <iframe
@@ -119,7 +119,7 @@ export default function ResourcePreviewModal({
           <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
+              <Icon name="refresh" size="md" className="animate-spin text-gray-400" />
             </div>
           ) : !detail ? (
             <p className="text-sm text-gray-500 text-center py-8">Could not load lesson details.</p>
@@ -208,7 +208,7 @@ export default function ResourcePreviewModal({
                         onClick={() => setPreviewUrl(detail.worksheetUrl!)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-[12px] text-gray-700 hover:bg-gray-50 transition-colors"
                       >
-                        <Eye size={12} /> Worksheet
+                        <Icon name="visibility" size="sm" /> Worksheet
                       </button>
                     )}
                     {detail.presentationUrl && (
@@ -216,7 +216,7 @@ export default function ResourcePreviewModal({
                         onClick={() => setPreviewUrl(detail.presentationUrl!)}
                         className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-[12px] text-gray-700 hover:bg-gray-50 transition-colors"
                       >
-                        <Eye size={12} /> Slides
+                        <Icon name="visibility" size="sm" /> Slides
                       </button>
                     )}
                   </div>
@@ -243,7 +243,7 @@ export default function ResourcePreviewModal({
                 : 'bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white'
             }`}
           >
-            {added ? '✓ Added to lesson' : <><Plus size={14} /> Add to lesson</>}
+            {added ? '✓ Added to lesson' : <><Icon name="add" size="sm" /> Add to lesson</>}
           </button>
         </div>
       </div>

@@ -2,7 +2,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Bell, CheckCheck, ExternalLink, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { markPlatformNotificationRead, markAllPlatformNotificationsRead } from '@/app/actions/messaging'
 import type { PlatformNotificationRow } from '@/app/actions/messaging'
 
@@ -67,7 +67,7 @@ export default function NotificationsView({
       {/* header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <Bell size={20} className="text-gray-500" />
+          <Icon name="notifications" size="md" className="text-gray-500" />
           <h1 className="text-lg font-semibold text-gray-900">Notifications</h1>
           {unreadCount > 0 && (
             <span className="bg-blue-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
@@ -81,7 +81,7 @@ export default function NotificationsView({
             disabled={isPending}
             className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors disabled:opacity-40"
           >
-            {isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCheck size={14} />}
+            {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
             Mark all read
           </button>
         )}
@@ -90,7 +90,7 @@ export default function NotificationsView({
       {/* list */}
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Bell size={40} className="mb-3 opacity-30" />
+          <Icon name="notifications" size="lg" className="mb-3 opacity-30" />
           <p className="text-sm">No notifications yet</p>
         </div>
       ) : (
@@ -132,7 +132,7 @@ export default function NotificationsView({
                       className="text-blue-500 hover:text-blue-700 transition-colors"
                       title="Go to"
                     >
-                      <ExternalLink size={14} />
+                      <Icon name="open_in_new" size="sm" />
                     </Link>
                   )}
                   {!n.read && (

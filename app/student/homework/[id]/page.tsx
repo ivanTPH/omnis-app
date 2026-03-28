@@ -4,7 +4,7 @@ import AppShell from '@/components/AppShell'
 import HomeworkSubmissionView from '@/components/HomeworkSubmissionView'
 import { getStudentHomework } from '@/app/actions/student'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default async function StudentHomeworkPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -31,7 +31,7 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
               href="/student/dashboard"
               className="mt-0.5 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
             >
-              <ChevronLeft size={16} />
+              <Icon name="chevron_left" size="sm" />
             </Link>
             <div>
               <h1 className="text-[16px] font-bold text-gray-900 leading-tight">{hw.title}</h1>

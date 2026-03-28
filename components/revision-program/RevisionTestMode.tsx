@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-  Loader2, AlertCircle, ChevronRight, RotateCcw,
-  CheckCircle2, Trophy, BookOpen,
-} from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { startTestSession, submitTestAnswer } from '@/app/actions/revision-program'
 import type { TestQuestion, TestResults } from '@/lib/revision/test-engine'
 
@@ -291,7 +288,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-3">
         <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
-          <Loader2 size={22} className="animate-spin text-blue-600" />
+          <Icon name="refresh" size="md" className="animate-spin text-blue-600" />
         </div>
         <p className="text-sm font-medium text-gray-700">Preparing your test…</p>
         <p className="text-xs text-gray-400">Generating personalised exam-style questions</p>
@@ -303,7 +300,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
   if (state.status === 'error') {
     return (
       <div className="max-w-xl mx-auto px-6 py-12 text-center space-y-4">
-        <AlertCircle size={32} className="text-rose-400 mx-auto" />
+        <Icon name="error" size="lg" className="text-rose-400 mx-auto" />
         <p className="text-sm font-medium text-gray-800">{state.message}</p>
         <button
           onClick={() => onDone(0)}
@@ -329,7 +326,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
         {/* Score card */}
         <div className={`border rounded-2xl px-6 py-6 text-center ${accent}`}>
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Trophy size={20} />
+            <Icon name="emoji_events" size="md" />
             <h2 className="text-base font-bold text-gray-900">Test Complete!</h2>
           </div>
           <p className={`text-5xl font-bold mb-1 ${accent.split(' ')[0]}`}>{percentage}%</p>
@@ -359,7 +356,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
           </div>
         ) : (
           <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3 flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-green-600 shrink-0" />
+            <Icon name="check_circle" size="sm" className="text-green-600 shrink-0" />
             <p className="text-sm text-green-800">Excellent — no weak areas identified across all topics!</p>
           </div>
         )}
@@ -370,14 +367,14 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
             onClick={() => initSession(previousSessionId)}
             className="w-full flex items-center justify-center gap-2 border border-gray-200 text-gray-700 px-4 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
           >
-            <RotateCcw size={15} />
+            <Icon name="loop" size="sm" />
             Repeat Test (new questions)
           </button>
           <button
             onClick={() => onDone(percentage)}
             className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
           >
-            <CheckCircle2 size={15} />
+            <Icon name="check_circle" size="sm" />
             Finish &amp; Rate My Confidence →
           </button>
         </div>
@@ -443,7 +440,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
       {/* Footer */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          <BookOpen size={11} />
+          <Icon name="menu_book" size="sm" />
           <span>Scores revealed at the end</span>
         </div>
         <button
@@ -452,8 +449,8 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
         >
           {isSubmitting
-            ? <><Loader2 size={14} className="animate-spin" /> Evaluating…</>
-            : <>{number === total ? 'Submit Final Answer' : 'Next Question'} <ChevronRight size={14} /></>
+            ? <><Icon name="refresh" size="sm" className="animate-spin" /> Evaluating…</>
+            : <>{number === total ? 'Submit Final Answer' : 'Next Question'} <Icon name="chevron_right" size="sm" /></>
           }
         </button>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, BookOpen, Loader2, CheckCircle, AlertCircle, Eye, Brain } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { getHomeworkDetail, type HomeworkDetail } from '@/app/actions/homework'
 
 type Props = {
@@ -81,7 +81,7 @@ function SCQuestionCard({ q, i }: { q: SCQuestion; i: number }) {
           <ul className="space-y-1">
             {q.options.map((opt, j) => (
               <li key={j} className={`text-[12px] flex items-center gap-2 ${opt === answer ? 'text-green-700 font-semibold' : 'text-gray-600'}`}>
-                {opt === answer && <CheckCircle size={11} className="text-green-500 shrink-0" />}
+                {opt === answer && <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />}
                 {opt !== answer && <span className="w-3" />}
                 {opt}
               </li>
@@ -102,7 +102,7 @@ function SCQuestionCard({ q, i }: { q: SCQuestion; i: number }) {
       {q.scaffolding_hint && (
         <div className="px-4 py-2.5 bg-purple-50">
           <p className="text-[10px] font-bold uppercase tracking-wide text-purple-600 mb-1 flex items-center gap-1">
-            <Brain size={10} /> SEND scaffolding hint (shown to eligible students only)
+            <Icon name="psychology" size="sm" /> SEND scaffolding hint (shown to eligible students only)
           </p>
           <p className="text-[12px] text-purple-900 italic">{q.scaffolding_hint}</p>
         </div>
@@ -168,7 +168,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-blue-100">
-              <Eye size={14} className="text-blue-700" />
+              <Icon name="visibility" size="sm" className="text-blue-700" />
             </div>
             <div>
               <p className="text-[13px] font-semibold text-gray-900 leading-tight">{title}</p>
@@ -176,7 +176,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
             </div>
           </div>
           <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 transition-colors">
-            <X size={16} className="text-gray-400" />
+            <Icon name="close" size="sm" className="text-gray-400" />
           </button>
         </div>
 
@@ -184,13 +184,13 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {loading && (
             <div className="flex items-center gap-2 text-[12px] text-gray-400 py-8 justify-center">
-              <Loader2 size={14} className="animate-spin" /> Loading homework detail…
+              <Icon name="refresh" size="sm" className="animate-spin" /> Loading homework detail…
             </div>
           )}
 
           {error && (
             <div className="flex items-center gap-2 text-[12px] text-rose-600 py-8 justify-center">
-              <AlertCircle size={14} /> Could not load homework detail.
+              <Icon name="error" size="sm" /> Could not load homework detail.
             </div>
           )}
 
@@ -224,7 +224,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Differentiation notes */}
               {hw.differentiationNotes && (
                 <div className="flex items-start gap-2 bg-purple-50 border border-purple-200 rounded-xl px-4 py-3">
-                  <Brain size={13} className="text-purple-600 mt-0.5 shrink-0" />
+                  <Icon name="psychology" size="sm" className="text-purple-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wide text-purple-600 mb-1">SEND / differentiation notes</p>
                     <p className="text-[12px] text-purple-900 leading-snug">{hw.differentiationNotes}</p>
@@ -236,7 +236,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {scQuestions.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1">
-                    <BookOpen size={10} /> Questions &amp; model answers
+                    <Icon name="menu_book" size="sm" /> Questions &amp; model answers
                   </p>
                   <div className="space-y-3">
                     {scQuestions.map((q, i) => (
@@ -250,7 +250,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {scQuestions.length === 0 && qJson.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1">
-                    <BookOpen size={10} /> Questions &amp; model answers
+                    <Icon name="menu_book" size="sm" /> Questions &amp; model answers
                   </p>
                   <div className="space-y-3">
                     {qJson.map((q, i) => (
@@ -264,7 +264,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {scQuestions.length === 0 && qJson.length === 0 && hqRows.length > 0 && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1">
-                    <BookOpen size={10} /> Questions &amp; mark scheme
+                    <Icon name="menu_book" size="sm" /> Questions &amp; mark scheme
                   </p>
                   <div className="space-y-3">
                     {hqRows.map((q, i) => {
@@ -284,7 +284,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
                                   const isCorrect = Array.isArray(correct) ? correct.includes(opt) : correct === opt
                                   return (
                                     <li key={j} className={`text-[12px] flex items-center gap-2 ${isCorrect ? 'text-green-700 font-semibold' : 'text-gray-600'}`}>
-                                      {isCorrect ? <CheckCircle size={11} className="text-green-500 shrink-0" /> : <span className="w-3" />}
+                                      {isCorrect ? <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" /> : <span className="w-3" />}
                                       {opt}
                                     </li>
                                   )

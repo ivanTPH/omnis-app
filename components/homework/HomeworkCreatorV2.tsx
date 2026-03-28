@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, ChevronRight, ChevronLeft, Sparkles, BookOpen, Upload, PenLine } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import type { LessonForHomework, ClassForHomework, LearningExtraction, GeneratedHomeworkContent } from '@/app/actions/homework'
 import { extractLearningFromLesson, generateHomeworkContent, createHomework } from '@/app/actions/homework'
 import { suggestSpacedRepetition, suggestNextHomework } from '@/app/actions/adaptive-learning'
@@ -150,7 +150,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               ))}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X size={18} /></button>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
         </div>
 
         <div className="p-6 space-y-5">
@@ -163,7 +163,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   onClick={() => setSource('lesson')}
                   className={`p-4 rounded-xl border-2 text-left transition-colors ${source === 'lesson' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
                 >
-                  <BookOpen size={20} className="text-blue-600 mb-2" />
+                  <Icon name="menu_book" size="md" className="text-blue-600 mb-2" />
                   <p className="font-medium text-sm">From a lesson</p>
                   <p className="text-xs text-gray-500 mt-0.5">AI extracts objectives from lesson content</p>
                 </button>
@@ -171,7 +171,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   onClick={() => setSource('manual')}
                   className={`p-4 rounded-xl border-2 text-left transition-colors ${source === 'manual' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
                 >
-                  <PenLine size={20} className="text-blue-600 mb-2" />
+                  <Icon name="edit" size="md" className="text-blue-600 mb-2" />
                   <p className="font-medium text-sm">Manual entry</p>
                   <p className="text-xs text-gray-500 mt-0.5">Set your own objectives and content</p>
                 </button>
@@ -207,7 +207,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                     disabled={!selectedLesson || loading}
                     className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                   >
-                    <Sparkles size={15} />
+                    <Icon name="auto_awesome" size="sm" />
                     {loading ? 'Extracting…' : 'Extract learning objectives'}
                   </button>
                 </div>
@@ -270,10 +270,10 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               )}
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-                  <ChevronLeft size={15} /> Back
+                  <Icon name="chevron_left" size="sm" /> Back
                 </button>
                 <button onClick={() => setStep(3)} className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-                  Next <ChevronRight size={15} />
+                  Next <Icon name="chevron_right" size="sm" />
                 </button>
               </div>
             </div>
@@ -301,14 +301,14 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setStep(2)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-                  <ChevronLeft size={15} /> Back
+                  <Icon name="chevron_left" size="sm" /> Back
                 </button>
                 <button
                   onClick={handleGenerate}
                   disabled={loading}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                 >
-                  <Sparkles size={15} />
+                  <Icon name="auto_awesome" size="sm" />
                   {loading ? 'Generating…' : 'Generate content'}
                 </button>
               </div>
@@ -348,10 +348,10 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setStep(3)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-                  <ChevronLeft size={15} /> Back
+                  <Icon name="chevron_left" size="sm" /> Back
                 </button>
                 <button onClick={() => setStep(5)} className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-                  Next <ChevronRight size={15} />
+                  Next <Icon name="chevron_right" size="sm" />
                 </button>
               </div>
             </div>
@@ -370,10 +370,10 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               />
               <div className="flex gap-3">
                 <button onClick={() => setStep(4)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-                  <ChevronLeft size={15} /> Back
+                  <Icon name="chevron_left" size="sm" /> Back
                 </button>
                 <button onClick={() => setStep(6)} className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
-                  Next <ChevronRight size={15} />
+                  Next <Icon name="chevron_right" size="sm" />
                 </button>
               </div>
             </div>
@@ -403,7 +403,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-3">
                 <button onClick={() => setStep(5)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
-                  <ChevronLeft size={15} /> Back
+                  <Icon name="chevron_left" size="sm" /> Back
                 </button>
                 <button
                   onClick={handlePublish}

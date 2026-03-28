@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { getEarlyWarningFlags } from '@/app/actions/send-support'
 import { getIlpConcernsThisTerm } from '@/app/actions/homework'
 import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
-import { AlertTriangle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default async function EarlyWarningPage() {
   const session = await auth()
@@ -26,7 +26,7 @@ export default async function EarlyWarningPage() {
         <div className="px-6 pb-2 pt-4">
           <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle size={14} className="text-rose-600" />
+              <Icon name="warning" size="sm" className="text-rose-600" />
               <p className="text-[13px] font-bold text-rose-800">ILP Concern Alert</p>
               <span className="ml-auto text-[11px] text-rose-600 font-medium">{ilpConcerns.length} student{ilpConcerns.length !== 1 ? 's' : ''}</span>
             </div>

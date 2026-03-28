@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Wand2, Loader2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import {
   generateResource,
   getSubjectsForSchool,
@@ -163,7 +163,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             {subjects.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {loadingSubjects && (
-            <Loader2 size={13} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           )}
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             {yearGroups.map(y => <option key={y} value={y}>Year {y}</option>)}
           </select>
           {loadingYearGroups && (
-            <Loader2 size={13} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           )}
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             )}
           </select>
           {loadingTopics && (
-            <Loader2 size={13} className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           )}
         </div>
         {topic === '__custom__' && (
@@ -287,8 +287,8 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {pending
-          ? <><Loader2 size={14} className="animate-spin" /> Generating…</>
-          : <><Wand2 size={14} /> Generate Resource</>}
+          ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
+          : <><Icon name="auto_fix_high" size="sm" /> Generate Resource</>}
       </button>
     </form>
   )

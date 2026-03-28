@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { Accessibility } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import AccessibilityPanel from './AccessibilityPanel'
 import { getAccessibilitySettings } from '@/app/actions/accessibility'
 import { ACCESSIBILITY_DEFAULTS, hasActiveSettings, settingsToClasses, type AccessibilitySettings } from '@/lib/accessibility'
@@ -46,7 +46,7 @@ export default function AccessibilityToolbar({ userId }: { userId: string | null
         aria-label="Accessibility settings"
         className="fixed bottom-5 right-5 z-40 w-11 h-11 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
       >
-        <Accessibility size={18} />
+        <Icon name="accessibility" size="md" />
         {loaded && active && (
           <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white" />
         )}

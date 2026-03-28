@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { logAbsence } from '@/app/actions/cover'
 
 const REASONS = [
@@ -52,7 +52,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[14px] font-bold text-gray-900">Log Absence</h2>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700">
-            <X size={16} />
+            <Icon name="close" size="sm" />
           </button>
         </div>
 

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { BookMarked, Plus, ChevronRight, Calendar, Users, AlertCircle, GraduationCap } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 type ProgramRow = {
   id:             string
@@ -50,7 +50,7 @@ export default function RevisionProgramList({
       {/* header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <BookMarked size={20} className="text-gray-500" />
+          <Icon name="bookmark" size="md" className="text-gray-500" />
           <h1 className="text-lg font-semibold text-gray-900">Revision Programs</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -58,13 +58,13 @@ export default function RevisionProgramList({
             onClick={onNewYear}
             className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
           >
-            <GraduationCap size={15} /> Year Revision
+            <Icon name="school" size="sm" /> Year Revision
           </button>
           <button
             onClick={onNew}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
           >
-            <Plus size={15} /> New Program
+            <Icon name="add" size="sm" /> New Program
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function RevisionProgramList({
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <BookMarked size={40} className="mb-3 opacity-30" />
+          <Icon name="bookmark" size="lg" className="mb-3 opacity-30" />
           <p className="text-sm">No revision programs yet</p>
           <button onClick={onNew} className="mt-3 text-sm text-blue-600 hover:underline">Create your first program →</button>
         </div>
@@ -106,7 +106,7 @@ export default function RevisionProgramList({
                       <p className="text-sm font-semibold text-gray-900 truncate">{p.title}</p>
                       {p.programType === 'year' && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 flex items-center gap-0.5">
-                          <GraduationCap size={9} /> Year
+                          <Icon name="school" size="sm" /> Year
                         </span>
                       )}
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAssignment ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -119,8 +119,8 @@ export default function RevisionProgramList({
                       }`}>{p.status}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                      <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(p.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                      <span className="flex items-center gap-1"><Users size={10} /> {p.completedCount}/{p.taskCount} complete</span>
+                      <span className="flex items-center gap-1"><Icon name="calendar_today" size="sm" /> {new Date(p.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span className="flex items-center gap-1"><Icon name="people" size="sm" /> {p.completedCount}/{p.taskCount} complete</span>
                     </div>
                     {/* progress bar */}
                     <div className="mt-2 h-1 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -132,7 +132,7 @@ export default function RevisionProgramList({
                       href={`/revision-program/${p.id}`}
                       className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
                     >
-                      View <ChevronRight size={12} />
+                      View <Icon name="chevron_right" size="sm" />
                     </Link>
                   </div>
                 </div>

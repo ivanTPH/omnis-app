@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Link from 'next/link'
-import { Heart, AlertTriangle, Clock, ChevronRight, Users, FileText, CheckCircle2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
 export default async function SendDashboardPage() {
@@ -75,7 +75,7 @@ export default async function SendDashboardPage() {
           <span className={`text-[12px] font-semibold ${c.chip}`}>
             Review {new Date(plan.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
           </span>
-          <ChevronRight size={14} className={`transition ${c.icon}`} />
+          <Icon name="chevron_right" size="sm" className={`transition ${c.icon}`} />
         </div>
       </Link>
     )
@@ -94,7 +94,7 @@ export default async function SendDashboardPage() {
             </div>
             {pendingReviews > 0 && (
               <Link href="/send/review-due" className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white text-[12px] font-semibold rounded-xl hover:bg-amber-600 transition">
-                <AlertTriangle size={13} />
+                <Icon name="warning" size="sm" />
                 {pendingReviews} pending review{pendingReviews !== 1 ? 's' : ''}
               </Link>
             )}
@@ -126,7 +126,7 @@ export default async function SendDashboardPage() {
               {urgent.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <AlertTriangle size={14} className="text-red-600" />
+                    <Icon name="warning" size="sm" className="text-red-600" />
                     <h2 className="text-[12px] font-bold text-red-900 uppercase tracking-wide">Overdue or Due Within 14 Days</h2>
                   </div>
                   <div className="space-y-2">
@@ -137,7 +137,7 @@ export default async function SendDashboardPage() {
               {warning.length > 0 && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <Clock size={14} className="text-amber-600" />
+                    <Icon name="schedule" size="sm" className="text-amber-600" />
                     <h2 className="text-[12px] font-bold text-amber-900 uppercase tracking-wide">Due Within 30 Days</h2>
                   </div>
                   <div className="space-y-2">
@@ -152,18 +152,18 @@ export default async function SendDashboardPage() {
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <Users size={14} className="text-gray-400" />
+                <Icon name="people" size="sm" className="text-gray-400" />
                 <h2 className="text-[14px] font-semibold text-gray-900">SEND Register</h2>
                 <span className="text-[11px] font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{sendStatuses.length}</span>
               </div>
               <Link href="/send/ilp" className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline">
-                All ILP records <ChevronRight size={12} />
+                All ILP records <Icon name="chevron_right" size="sm" />
               </Link>
             </div>
 
             {sendStatuses.length === 0 ? (
               <div className="py-16 text-center text-gray-400">
-                <Heart size={32} className="mx-auto mb-3 opacity-30" />
+                <Icon name="favorite" size="lg" className="mx-auto mb-3 opacity-30" />
                 <p className="text-[14px] font-medium">No students on the SEND register</p>
                 <p className="text-[12px] mt-1">Students are added when a SEND status is assigned</p>
               </div>
@@ -239,7 +239,7 @@ export default async function SendDashboardPage() {
                         )}
                       </div>
 
-                      <ChevronRight size={14} className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
+                      <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />
                     </Link>
                   )
                 })}
@@ -251,7 +251,7 @@ export default async function SendDashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Link href="/send/ilp" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 hover:border-blue-300 hover:shadow-sm transition group">
               <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
-                <FileText size={15} className="text-blue-600" />
+                <Icon name="description" size="sm" className="text-blue-600" />
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-gray-900">ILP Records</p>
@@ -260,7 +260,7 @@ export default async function SendDashboardPage() {
             </Link>
             <Link href="/send/review-due" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 hover:border-amber-300 hover:shadow-sm transition group">
               <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center shrink-0">
-                <Clock size={15} className="text-amber-600" />
+                <Icon name="schedule" size="sm" className="text-amber-600" />
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-gray-900">Review Due</p>
@@ -269,7 +269,7 @@ export default async function SendDashboardPage() {
             </Link>
             <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 opacity-60">
               <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center shrink-0">
-                <CheckCircle2 size={15} className="text-gray-400" />
+                <Icon name="check_circle" size="sm" className="text-gray-400" />
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-gray-500">Adaptations</p>

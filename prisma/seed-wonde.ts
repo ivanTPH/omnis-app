@@ -373,7 +373,6 @@ async function main() {
           firstName,
           lastName,
           yearGroup:    year,
-          avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${firstName}${lastName}&backgroundColor=3b82f6`,
         },
       })
 

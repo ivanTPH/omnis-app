@@ -6,10 +6,30 @@ type SendStatus = 'NONE' | 'SEN_SUPPORT' | 'EHCP' | null | undefined
 
 const SIZES: Record<Size, number> = { xs: 24, sm: 32, md: 40, lg: 56 }
 
-// Colour is reserved for the SEND ring — initials always use neutral grey
-const INITIALS_BG = '#9ca3af'
+// 10 distinct colours — readable with white text
+const PALETTE = [
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#6366f1', // indigo
+  '#14b8a6', // teal
+  '#f97316', // orange
+  '#84cc16', // lime (dark enough at this saturation)
+]
 
-// White 2px gap then 3px solid colour ring
+/** Deterministic colour derived from the student's full name */
+function nameToColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff
+  }
+  return PALETTE[Math.abs(hash) % PALETTE.length]
+}
+
+// White 2px gap then 3px solid colour ring for SEND indicators
 const RING_SHADOW: Record<string, string> = {
   SEN_SUPPORT: '0 0 0 2px #ffffff, 0 0 0 5px #3b82f6',
   EHCP:        '0 0 0 2px #ffffff, 0 0 0 5px #8b5cf6',
@@ -34,12 +54,16 @@ export default function StudentAvatar({
   className  = '',
   sendStatus,
 }: Props) {
+  const [imgLoaded, setImgLoaded] = useState(false)
   const [imgFailed, setImgFailed] = useState(false)
+
   const px        = SIZES[size]
   const initials  = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
+  const bgColor   = nameToColor(`${firstName}${lastName}`)
   const ringStyle = sendStatus && sendStatus !== 'NONE' ? RING_SHADOW[sendStatus] : undefined
+  const showPhoto = !!avatarUrl && !imgFailed
 
-  const circleStyle: React.CSSProperties = {
+  const circleBase: React.CSSProperties = {
     width:           px,
     height:          px,
     borderRadius:    '50%',
@@ -47,40 +71,52 @@ export default function StudentAvatar({
     display:         'flex',
     alignItems:      'center',
     justifyContent:  'center',
-    backgroundColor: INITIALS_BG,
+    backgroundColor: bgColor,
     color:           'white',
     fontSize:        Math.round(px * 0.38),
     fontWeight:      600,
     letterSpacing:   '0.02em',
     userSelect:      'none',
-    boxShadow:       ringStyle,
   }
 
-  const avatar = (!avatarUrl || imgFailed) ? (
-    <div style={circleStyle} aria-label={`${firstName} ${lastName}`}>
-      {initials}
-    </div>
-  ) : (
-    // Wrapper carries the ring so it stays outside the photo
-    <div style={{ position: 'relative', width: px, height: px, flexShrink: 0, borderRadius: '50%', boxShadow: ringStyle }}>
-      <div style={{ ...circleStyle, position: 'absolute', top: 0, left: 0, boxShadow: undefined }}>
+  const avatar = (
+    <div
+      style={{
+        position:     'relative',
+        width:        px,
+        height:       px,
+        flexShrink:   0,
+        borderRadius: '50%',
+        overflow:     'hidden',
+        boxShadow:    ringStyle,
+      }}
+      aria-label={`${firstName} ${lastName}`}
+    >
+      {/* Coloured initials — always visible until/unless a photo loads */}
+      <div style={{ ...circleBase, position: 'absolute', inset: 0, boxShadow: undefined }}>
         {initials}
       </div>
-      <img
-        src={avatarUrl}
-        alt={initials}
-        style={{
-          width:        px,
-          height:       px,
-          borderRadius: '50%',
-          objectFit:    'cover',
-          position:     'absolute',
-          top:          0,
-          left:         0,
-          display:      'block',
-        }}
-        onError={() => setImgFailed(true)}
-      />
+
+      {/* Photo — rendered on top; opacity 0 until loaded so initials show through */}
+      {showPhoto && (
+        <img
+          src={avatarUrl}
+          alt=""
+          style={{
+            position:   'absolute',
+            inset:      0,
+            width:      px,
+            height:     px,
+            borderRadius: '50%',
+            objectFit:  'cover',
+            display:    'block',
+            opacity:    imgLoaded ? 1 : 0,
+            transition: 'opacity 0.15s ease',
+          }}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgFailed(true)}
+        />
+      )}
     </div>
   )
 

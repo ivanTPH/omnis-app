@@ -1,7 +1,9 @@
 /**
- * One-time patch: set DiceBear avatarUrls on all Student users,
- * and set plausible autoScores on SUBMITTED submissions so the
+ * One-time patch: set plausible autoScores on SUBMITTED submissions so the
  * homework marking UI can demonstrate the AI pre-fill feature.
+ *
+ * Note: avatarUrl is no longer seeded here — StudentAvatar generates
+ * deterministic coloured initials client-side from the student's name.
  *
  * Run with: npx tsx --env-file=.env.local prisma/patch-avatars-autoscore.ts
  */
@@ -11,11 +13,6 @@ const dbUrl = process.env.DATABASE_URL ?? ''
 const connUrl = dbUrl.includes('?') ? dbUrl + '&connection_limit=1' : dbUrl + '?connection_limit=1'
 const prisma = new PrismaClient({ datasources: { db: { url: connUrl } } })
 
-function dicebearUrl(firstName: string, lastName: string) {
-  const seed = encodeURIComponent(`${firstName}${lastName}`)
-  return `https://api.dicebear.com/7.x/initials/png?seed=${seed}&backgroundColor=3b82f6,8b5cf6,ec4899,f59e0b,10b981`
-}
-
 // Plausible autoScore distribution (for 9-point scale)
 // Weighted towards middle scores to look realistic
 const SCORES_POOL = [2, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 7, 7, 7, 8, 8, 9]
@@ -24,24 +21,7 @@ function pickScore(idx: number) {
 }
 
 async function main() {
-  // ── 1. Set avatarUrl on all STUDENT users ──────────────────────────────────
-  const students = await prisma.user.findMany({
-    where: { role: 'STUDENT' },
-    select: { id: true, firstName: true, lastName: true },
-  })
-  console.log(`Patching avatarUrl for ${students.length} students…`)
-
-  let avatarCount = 0
-  for (const s of students) {
-    await prisma.user.update({
-      where: { id: s.id },
-      data: { avatarUrl: dicebearUrl(s.firstName, s.lastName) },
-    })
-    avatarCount++
-  }
-  console.log(`✓ Set avatarUrl on ${avatarCount} students`)
-
-  // ── 2. Set autoScore on SUBMITTED submissions ──────────────────────────────
+  // ── Set autoScore on SUBMITTED submissions ─────────────────────────────────
   const submitted = await prisma.submission.findMany({
     where: { status: 'SUBMITTED', autoScore: null },
     select: { id: true },

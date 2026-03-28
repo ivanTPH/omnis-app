@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-23. Authoritative reference for Claude sessions.
+> Last updated: 2026-03-28. Authoritative reference for Claude sessions.
 
 ---
 
@@ -32,7 +32,7 @@ and a Wonde MIS sync integration. Deployed on Vercel, database on Supabase.
 | Layer | Technology |
 |---|---|
 | Framework | Next.js 16.1.6 (App Router, Turbopack) |
-| UI | React 19.2.3, Tailwind CSS v4, Recharts, Lucide React |
+| UI | React 19.2.3, Tailwind CSS v4, Recharts, Google Material Icons |
 | Auth | NextAuth v5 (`next-auth@5.0.0-beta.30`) — Credentials + JWT |
 | ORM | Prisma v6.19.2 |
 | Database | PostgreSQL via Supabase |
@@ -227,7 +227,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | File | Key exports |
 |---|---|
 | `lessons.ts` | getWeekLessons, createLesson, getLessonDetails, updateLessonOverview, addUrlResource, addUploadedResource, addLibraryResource, removeResource, deleteLesson, rescheduleLesson, updateLessonObjectives, getClassRoster, getStudentClassDetail, getSchoolResourceLibrary |
-| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent, extractLearningFromLabel, resendHomeworkReminder |
+| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent, extractLearningFromLabel, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, getIlpEvidenceForStudent, getIlpConcernsThisTerm |
 | `analytics.ts` | getAnalyticsFilters, getStudentPerformance, getStudentDetail, getClassSummaries, getHomeworkAdaptiveAnalytics |
 | `settings.ts` | getMySettings, getMyAvatarUrl, saveProfile, saveProfessionalPrefs, savePrivacySettings, saveSharingSettings, changePassword |
 | `oak.ts` | getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson |
@@ -265,7 +265,8 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `ClassInsightsTab.tsx` | Class performance insights |
 | `admin/WondeSyncPanel.tsx` | MIS sync — uses fetch('/api/wonde/sync') not server action (avoids Vercel 10s timeout) |
 | `HomeworkFilterView.tsx` | Homework list + filter chips + router.refresh() after create |
-| `HomeworkMarkingView.tsx` | Split-panel marking — filter chips (All/Submitted/Returned/Missing/SEND), SEND badges (EHCP purple, SEN blue), AI score badge, gradeState colours |
+| `HomeworkMarkingView.tsx` | Split-panel marking — filter chips (All/Submitted/Returned/Missing/SEND), SEND badges (EHCP purple, SEN blue), AI score badge, gradeState colours. Right panel: Q&A cards (model answer + rubric collapsible), per-question score inputs, SEND sidebar with ILP goals + ILP evidence capture, teacher notes (date-stamped, audit-logged) |
+| `ui/Icon.tsx` | Shared Google Material Icons wrapper — props: `name` (icon string), `size` ('sm'=16px/'md'=20px/'lg'=24px), `color`, `className`. Use for all icons throughout the app. Do NOT use lucide-react. |
 | `SubmissionMarkingView.tsx` | Full-page per-submission marking |
 | `HomeworkSubmissionView.tsx` | Student submission UI |
 | `homework/HomeworkCreatorV2.tsx` | 6-step homework creation modal |
@@ -348,7 +349,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 - **Homework:** `Homework`, `HomeworkQuestion`, `Submission`, `SubmissionAttempt`, `SubmissionAttemptAnswer`
 - **Integrity:** `SubmissionIntegritySignal`, `IntegrityReviewLog`, `IntegrityPatternCase`
 - **SEND:** `SendStatus`, `SendScoreCache`, `SendQualityScore`, `SendConcern`, `EarlyWarningFlag`, `SendNotification`
-- **ILP/EHCP:** `ILP`, `ILPTarget`, `Plan`, `PlanTarget`, `EhcpPlan`, `EhcpOutcome`, `IlpHomeworkLink`, `HomeworkEhcpEvidence`
+- **ILP/EHCP:** `ILP`, `ILPTarget`, `Plan`, `PlanTarget`, `EhcpPlan`, `EhcpOutcome`, `IlpHomeworkLink`, `HomeworkEhcpEvidence`, `IlpEvidenceEntry`
 - **Adaptive:** `StudentLearningProfile`, `LearningSequence`, `SubjectAdaptationProfile`
 - **Messaging:** `MsgThread`, `MsgParticipant`, `MsgMessage`
 - **Analytics:** `ClassPerformanceAggregate`, `SubjectMedianAggregate`
@@ -442,8 +443,28 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - `UnifiedResourceSearch` skips initial load if `subjectSlug` is absent.
 - Oak subject slug mapping is done by `toOakSubjectSlug()` in `LessonFolder.tsx` — covers "Mathematics"→"maths", "English Literature"→"english", "PE"→"physical-education", etc.
 
+### Icons
+- **All icons use Google Material Icons** via `components/ui/Icon.tsx`. Never add lucide-react. Material Icons font is loaded in `app/layout.tsx`.
+- Icon name reference: https://fonts.google.com/icons — use snake_case names (e.g. `check_circle`, `expand_more`, `auto_fix_high`).
+- Animated spinners: `<Icon name="refresh" size="sm" className="animate-spin" />`
+
+### ILP Evidence Capture
+- After `markSubmission`, the action now returns `{ ilpData: { studentId, ilpId, targets[] } | null }`.
+- `HomeworkMarkingView` shows a blue prompt banner for 10s when a marked student has an active ILP.
+- Clicking "Yes" opens a modal that calls `classifyIlpEvidence` (Claude API, max_tokens 300) to classify each ILP goal as PROGRESS/CONCERN/NEUTRAL.
+- Teacher confirms/adjusts, then `saveIlpEvidenceEntries` bulk-creates `IlpEvidenceEntry` records.
+- Evidence timeline appears on `/send/ilp/[studentId]` page.
+- SENCO early warning dashboard (`/senco/early-warning`) shows a rose alert banner when students have 3+ CONCERN entries in the current term (via `getIlpConcernsThisTerm` which uses `groupBy` with `having`).
+- `IlpEvidenceEntry` model has `@@unique([submissionId, ilpTargetId])` — safe to call `saveIlpEvidenceEntries` multiple times without duplicates.
+
+### Homework Marking View (right panel)
+- `QuestionCard` sub-component: shows question prompt, MCQ options (correct highlighted green), student answer (blue bg), collapsible model answer (green), collapsible rubric (amber), per-question score input.
+- `rubricJson` and `modelAnswer` are typed as `unknown` (Prisma.JsonValue). Use `!= null` checks (not bare truthiness) in JSX to avoid TypeScript error "unknown not assignable to ReactNode".
+- Per-question scores auto-sum to total score field.
+- SEND sidebar (w-72) shows when selected student has an active ILP: ILP summary, up to 3 targets, "Record as ILP evidence" per target.
+- Teacher notes section: yellow sticky-note display with textarea + "Add note" button calling `saveHomeworkTeacherNote`. Notes are date-stamped and audit-logged.
+
 ### Homework
-- `SAQuestion` type has optional `markScheme?: string` and `marks?: number` fields.
 - `generateHomeworkFromResources` logs to console: `RAW AI RESPONSE`, `PARSED KEYS`, `questionsJson?.questions length`, `USING STUB FALLBACK`. Check Vercel function logs after clicking Generate.
 - If `questionsJson` is missing from AI response, it retries once with a follow-up message, then checks `parsed.questions` at root level, then falls back to stubs.
 - Homework grading: `maxScore` is derived from `gradingBands` JSON keys via `maxFromBandsServer()` — Homework model has no `maxScore` field, it uses `gradingBands: Record<string, string>`.
@@ -527,3 +548,20 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - WeeklyCalendar: removed "New Homework" button.
 - vercel.json: removed invalid `functions` block that was breaking all Vercel deployments.
 - All previously listed error boundaries now built (except `app/hoy/error.tsx`).
+
+**Homework Marking Enhancement + ILP Evidence ✅ (2026-03-28)**
+- `HomeworkMarkingView` right panel: `QuestionCard` sub-component with Q&A display, model answers, rubric, per-question scores.
+- SEND sidebar with ILP goals + quick "Record as ILP evidence" per target.
+- Teacher notes: yellow sticky display, date-stamped, audit-logged via `saveHomeworkTeacherNote`.
+- `markSubmission` now returns `{ ilpData }` — triggers 10s countdown banner + ILP evidence modal.
+- `classifyIlpEvidence` calls Claude API (max_tokens 300) to classify each goal as PROGRESS/CONCERN/NEUTRAL.
+- `saveIlpEvidenceEntries` bulk-creates `IlpEvidenceEntry` records.
+- Evidence timeline added to `/send/ilp/[studentId]` page.
+- SENCO early warning page shows rose banner when students have 3+ CONCERN entries this term.
+- New Prisma model: `IlpEvidenceEntry` (applied with `prisma db push`).
+
+**Google Material Icons migration ✅ (2026-03-28)**
+- Added Material Icons font link to `app/layout.tsx`.
+- Created `components/ui/Icon.tsx` — shared wrapper with `name`/`size`/`color`/`className` props.
+- Replaced all lucide-react usages across 131 files with `<Icon name="..." />`.
+- `lucide-react` is no longer used anywhere in the codebase.

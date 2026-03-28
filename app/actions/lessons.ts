@@ -288,6 +288,167 @@ export async function updateLessonOverview(lessonId: string, data: {
   revalidatePath('/dashboard')
 }
 
+// ── AI-generate learning objectives ──────────────────────────────────────────
+
+/** Maps school subject name → Oak subject slug (mirrors LessonFolder.tsx) */
+function toOakSlug(subject: string): string {
+  const s = subject.toLowerCase().trim()
+  const MAP: Record<string, string> = {
+    'mathematics': 'maths', 'math': 'maths',
+    'english language': 'english', 'english literature': 'english',
+    'english lang': 'english', 'english lit': 'english',
+    'eng lang': 'english', 'eng lit': 'english',
+    'combined science': 'science', 'triple science': 'science',
+    'physical education': 'physical-education', 'pe': 'physical-education',
+    'p.e.': 'physical-education', 'p.e': 'physical-education',
+    'art & design': 'art', 'art and design': 'art',
+    'design & technology': 'design-and-technology',
+    'design and technology': 'design-and-technology',
+    'd&t': 'design-and-technology', 'dt': 'design-and-technology',
+    'religious education': 'religious-education', 're': 'religious-education',
+    'r.e.': 'religious-education', 'religious studies': 'religious-education',
+    'rs': 'religious-education', 'pshe': 'rshe-and-pshe',
+    'modern foreign languages': 'modern-foreign-languages', 'mfl': 'modern-foreign-languages',
+  }
+  return MAP[s] ?? s.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+}
+
+/** Score an Oak lesson by keyword overlap with the given search terms */
+function scoreOakLesson(lesson: { title: string; unitSlug: string; pupilLessonOutcome: string | null }, terms: string[]): number {
+  if (terms.length === 0) return 0
+  const haystack = `${lesson.title} ${lesson.unitSlug} ${lesson.pupilLessonOutcome ?? ''}`.toLowerCase()
+  return terms.filter(t => haystack.includes(t.toLowerCase())).length
+}
+
+export async function generateLessonObjectives(lessonId: string): Promise<string[]> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  // Fetch lesson + class context
+  const lesson = await prisma.lesson.findFirst({
+    where: { id: lessonId, schoolId },
+    select: {
+      title: true, topic: true, examBoard: true, objectives: true,
+      class: { select: { subject: true, yearGroup: true } },
+    },
+  })
+  if (!lesson) throw new Error('Lesson not found')
+
+  const subject   = lesson.class?.subject ?? ''
+  const yearGroup = lesson.class?.yearGroup ?? null
+  const topic     = lesson.topic ?? ''
+  const title     = lesson.title
+
+  // ── Query Oak curriculum for matching content ──────────────────────────────
+  const subjectSlug = subject ? toOakSlug(subject) : null
+
+  // Search terms: split title + topic into individual words (3+ chars)
+  const searchTerms = [...title.split(/\s+/), ...topic.split(/\s+/)]
+    .map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''))
+    .filter(w => w.length >= 3)
+
+  let oakContext = ''
+  if (subjectSlug) {
+    const candidates = await prisma.oakLesson.findMany({
+      where: {
+        subjectSlug,
+        ...(yearGroup ? { yearGroup } : {}),
+        NOT: { pupilLessonOutcome: null },
+      },
+      select: {
+        title: true,
+        unitSlug: true,
+        pupilLessonOutcome: true,
+        keyLearningPoints: true,
+      },
+      take: 200,
+    })
+
+    // Score and pick the best match
+    const scored = candidates.map(c => ({
+      ...c,
+      score: scoreOakLesson(c, searchTerms),
+    })).sort((a, b) => b.score - a.score)
+
+    const top = scored.filter(c => c.score > 0).slice(0, 3)
+
+    if (top.length > 0) {
+      const parts: string[] = []
+      for (const c of top) {
+        if (c.pupilLessonOutcome) parts.push(`- ${c.pupilLessonOutcome}`)
+        const klp = (c.keyLearningPoints as Array<{ keyLearningPoint?: string }> | null) ?? []
+        for (const k of klp.slice(0, 3)) {
+          if (k.keyLearningPoint) parts.push(`  • ${k.keyLearningPoint}`)
+        }
+      }
+      if (parts.length > 0) {
+        oakContext = `\n\nRelevant national curriculum content from Oak National Academy for ${subject}${yearGroup ? ` Year ${yearGroup}` : ''}:\n${parts.join('\n')}`
+      }
+    }
+  }
+
+  // ── Placeholder fallback (no AI key or no match) ──────────────────────────
+  const placeholders = [
+    `Students will be able to explain key concepts relating to ${topic || title}.`,
+    `Students will be able to apply their understanding of ${topic || title} to unseen examples.`,
+    `Students will be able to evaluate and critically analyse ${topic || title}.`,
+  ]
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    await prisma.lesson.updateMany({ where: { id: lessonId, schoolId }, data: { objectives: placeholders } })
+    return placeholders
+  }
+
+  // ── Claude Haiku call ─────────────────────────────────────────────────────
+  try {
+    const contextLine = [
+      subject   && `Subject: ${subject}`,
+      yearGroup && `Year group: Year ${yearGroup}`,
+      topic     && `Topic: ${topic}`,
+      lesson.examBoard && `Exam board: ${lesson.examBoard}`,
+    ].filter(Boolean).join('. ')
+
+    const prompt = `Generate exactly 3 clear, specific learning objectives for a UK secondary school lesson.
+
+Lesson title: "${title}"
+${contextLine}${oakContext}
+
+Each objective must:
+- Start with "Students will be able to"
+- Be a single, measurable sentence
+- Be aligned to UK national curriculum expectations
+- Progress from recall → application → analysis/evaluation
+
+Respond with ONLY a valid JSON array of exactly 3 strings and nothing else.
+Example: ["Students will be able to ...", "Students will be able to ...", "Students will be able to ..."]`
+
+    const client = new Anthropic({ apiKey })
+    const response = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+
+    const text    = response.content[0]?.type === 'text' ? response.content[0].text.trim() : ''
+    const cleaned = text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim()
+    const parsed  = JSON.parse(cleaned) as string[]
+
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const objectives = parsed.map(o => String(o)).slice(0, 3)
+      await prisma.lesson.updateMany({ where: { id: lessonId, schoolId }, data: { objectives } })
+      return objectives
+    }
+  } catch (err) {
+    console.error('[generateLessonObjectives] Claude call failed:', err)
+  }
+
+  // Final fallback — save placeholders so the UI is never blank
+  await prisma.lesson.updateMany({ where: { id: lessonId, schoolId }, data: { objectives: placeholders } })
+  return placeholders
+}
+
 // ── Resource library ──────────────────────────────────────────────────────────
 
 export async function getSchoolResourceLibrary(forLessonId?: string) {

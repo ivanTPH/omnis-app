@@ -4,7 +4,7 @@ import Icon from '@/components/ui/Icon'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson } from '@/app/actions/lessons'
+import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives } from '@/app/actions/lessons'
 import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
@@ -134,9 +134,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [viewingHwTitle, setViewingHwTitle]  = useState('')
 
   // Editable overview state
-  const [title,      setTitle]      = useState('')
-  const [objectives, setObjectives] = useState<string[]>([])
-  const [saving,     startSave]     = useTransition()
+  const [title,           setTitle]           = useState('')
+  const [objectives,      setObjectives]      = useState<string[]>([])
+  const [saving,          startSave]          = useTransition()
+  const [objsGenerating,  setObjsGenerating]  = useState(false)
 
   const refreshLesson = useCallback(async () => {
     if (!lessonId) return
@@ -155,7 +156,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         if (cancelled) return
         setLesson(l)
         setTitle(l?.title ?? '')
-        setObjectives(l?.objectives ?? [])
+        const existingObjs = l?.objectives ?? []
+        setObjectives(existingObjs)
+        // Auto-generate objectives when the lesson opens with none set
+        if (existingObjs.length === 0 && l?.title) {
+          setObjsGenerating(true)
+          generateLessonObjectives(id)
+            .then(generated => { if (!cancelled) setObjectives(generated) })
+            .catch(() => {/* swallow — placeholder already set server-side */})
+            .finally(() => { if (!cancelled) setObjsGenerating(false) })
+        }
         if (l?.scheduledAt) {
           const s = new Date(l.scheduledAt)
           setEditDate(s.toISOString().split('T')[0])
@@ -1095,45 +1105,71 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Learning Objectives</h3>
-                      <button
-                        type="button"
-                        onClick={() => setObjectives(prev => [...prev, ''])}
-                        className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700"
-                      >
-                        <Icon name="add" size="sm" />Add objective
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {objectives.length === 0 && (
-                        <p className="text-[12px] text-gray-400 italic">No objectives yet — add one above.</p>
-                      )}
-                      {objectives.map((obj, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-[11px] text-gray-400 font-medium w-5 text-right shrink-0">{i + 1}.</span>
-                          <input
-                            value={obj}
-                            onChange={e => setObjectives(prev => prev.map((o, j) => j === i ? e.target.value : o))}
-                            onBlur={saveOverview}
-                            className="flex-1 text-[13px] text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Pupils will be able to…"
-                          />
+                      <div className="flex items-center gap-2">
+                        {!objsGenerating && (
                           <button
                             type="button"
                             onClick={() => {
-                              const next = objectives.filter((_, j) => j !== i)
-                              setObjectives(next)
                               if (!lessonId) return
-                              startSave(async () => {
-                                await updateLessonOverview(lessonId, { title, objectives: next })
-                                router.refresh()
-                              })
+                              setObjsGenerating(true)
+                              generateLessonObjectives(lessonId)
+                                .then(generated => setObjectives(generated))
+                                .catch(() => {})
+                                .finally(() => setObjsGenerating(false))
                             }}
-                            className="text-gray-300 hover:text-red-400 transition-colors"
+                            className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Re-generate objectives from curriculum"
                           >
-                            <Icon name="delete" size="sm" />
+                            <Icon name="auto_fix_high" size="sm" />Regenerate
                           </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setObjectives(prev => [...prev, ''])}
+                          disabled={objsGenerating}
+                          className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 disabled:opacity-40"
+                        >
+                          <Icon name="add" size="sm" />Add objective
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {objsGenerating ? (
+                        <div className="flex items-center gap-2 py-3 text-[12px] text-gray-400">
+                          <Icon name="refresh" size="sm" className="animate-spin text-blue-400" />
+                          Generating objectives from curriculum…
                         </div>
-                      ))}
+                      ) : objectives.length === 0 ? (
+                        <p className="text-[12px] text-gray-400 italic">No objectives yet — click Add objective or Regenerate above.</p>
+                      ) : (
+                        objectives.map((obj, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-400 font-medium w-5 text-right shrink-0">{i + 1}.</span>
+                            <input
+                              value={obj}
+                              onChange={e => setObjectives(prev => prev.map((o, j) => j === i ? e.target.value : o))}
+                              onBlur={saveOverview}
+                              className="flex-1 text-[13px] text-gray-900 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Students will be able to…"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = objectives.filter((_, j) => j !== i)
+                                setObjectives(next)
+                                if (!lessonId) return
+                                startSave(async () => {
+                                  await updateLessonOverview(lessonId, { title, objectives: next })
+                                  router.refresh()
+                                })
+                              }}
+                              className="text-gray-300 hover:text-red-400 transition-colors"
+                            >
+                              <Icon name="delete" size="sm" />
+                            </button>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                   {saving && <p className="text-[11px] text-gray-400">Saving…</p>}

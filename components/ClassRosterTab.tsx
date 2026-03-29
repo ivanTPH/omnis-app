@@ -11,6 +11,7 @@ import {
   type LearnerPassportRow,
   type IlpWithTargets,
 } from '@/app/actions/send-support'
+import { getStudentEhcp, type EhcpPlanWithOutcomes } from '@/app/actions/ehcp'
 import StudentAvatar from '@/components/StudentAvatar'
 import StudentContactPanel from '@/components/StudentContactPanel'
 
@@ -55,6 +56,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [kPlanLoading,    setKPlanLoading]   = useState<string | null>(null)
   const [kPlanFullCache,  setKPlanFullCache] = useState<Record<string, LearnerPassportRow | 'loading'>>({})
   const [kPlanChecked,    setKPlanChecked]   = useState<Record<string, boolean[]>>({})
+  const [ehcpCache,       setEhcpCache]      = useState<Record<string, EhcpPlanWithOutcomes | 'loading' | null>>({})
 
   useEffect(() => {
     setLoading(true)
@@ -89,6 +91,13 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       getStudentIlp(id)
         .then(ilp => setIlpCache(c => ({ ...c, [id]: ilp })))
         .catch(() => setIlpCache(c => ({ ...c, [id]: null })))
+    }
+    // Load EHCP data for EHCP students
+    if (row.sendStatus === 'EHCP' && !ehcpCache[id]) {
+      setEhcpCache(c => ({ ...c, [id]: 'loading' }))
+      getStudentEhcp(id)
+        .then(ehcp => setEhcpCache(c => ({ ...c, [id]: ehcp })))
+        .catch(() => setEhcpCache(c => ({ ...c, [id]: null })))
     }
   }
 
@@ -200,7 +209,17 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           const detail       = detailsCache[row.id]
           const ilpData      = ilpCache[row.id]
           const kPlan        = kPlanMap[row.id]
+          const ehcpData     = ehcpCache[row.id]
           const studentName  = `${row.firstName} ${row.lastName}`
+
+          // Parse EHCP Section F into individual provision chips
+          const ehcpSectionF = ehcpData && ehcpData !== 'loading' && ehcpData.sections?.F
+            ? ehcpData.sections.F.split(/\n+/).map(s => s.replace(/^[-•*]\s*/, '').trim()).filter(Boolean)
+            : []
+
+          // Build classroom adjustments list
+          const kPlanAdjustments = kPlan?.teacherActions ?? []
+          const hasAdjustments   = kPlanAdjustments.length > 0 || ehcpSectionF.length > 0
 
           return (
             <div key={row.id}>
@@ -290,6 +309,47 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     </p>
                   )}
 
+                  {/* Classroom Adjustments */}
+                  {(hasAdjustments || (row.sendStatus === 'EHCP' && ehcpData === 'loading')) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                      <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-2 flex items-center gap-1">
+                        <Icon name="tune" size="sm" /> Classroom Adjustments
+                      </p>
+                      {row.sendStatus === 'EHCP' && ehcpData === 'loading' && kPlanAdjustments.length === 0 ? (
+                        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                          <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {kPlanAdjustments.length > 0 && (
+                            <div>
+                              <p className="text-[9px] font-semibold text-teal-600 uppercase tracking-wide mb-1.5">K Plan</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {kPlanAdjustments.map((action, i) => (
+                                  <span key={i} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-medium leading-snug">
+                                    {action}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {ehcpSectionF.length > 0 && (
+                            <div>
+                              <p className="text-[9px] font-semibold text-purple-600 uppercase tracking-wide mb-1.5">EHCP Section F</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {ehcpSectionF.map((provision, i) => (
+                                  <span key={i} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-medium leading-snug">
+                                    {provision}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* ILP SMART goals */}
                   <div>
                     <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-2">
@@ -318,17 +378,6 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     )}
                   </div>
 
-                  {/* EHCP Section F provisions */}
-                  {row.sendStatus === 'EHCP' && (
-                    <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5">
-                      <p className="text-[10px] font-semibold text-purple-600 uppercase tracking-wide mb-1">
-                        EHCP Provisions
-                      </p>
-                      <p className="text-[12px] text-purple-700">
-                        Open the EHCP document below to view Section F provisions.
-                      </p>
-                    </div>
-                  )}
 
                   {/* Document thumbnails */}
                   <SendDocumentThumbnails

@@ -101,6 +101,36 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     }
   }
 
+  function handleDocBadge(e: React.MouseEvent, row: ClassRosterRow, jumpTo: 'ilp' | 'ehcp' | 'kplan') {
+    e.stopPropagation()
+    const id = row.id
+    // Expand if not already open
+    if (expandedId !== id) {
+      setExpandedId(id)
+      if (!activeTab[id]) setActiveTab(t => ({ ...t, [id]: 'homework' }))
+      if (!detailsCache[id]) {
+        setDetailsCache(c => ({ ...c, [id]: 'loading' }))
+        getStudentClassDetail(id, classId)
+          .then(d  => setDetailsCache(c => ({ ...c, [id]: d })))
+          .catch(() => setDetailsCache(c => ({ ...c, [id]: { recentSubmissions: [] } })))
+      }
+      if (!ilpCache[id]) {
+        setIlpCache(c => ({ ...c, [id]: 'loading' }))
+        getStudentIlp(id)
+          .then(ilp => setIlpCache(c => ({ ...c, [id]: ilp })))
+          .catch(() => setIlpCache(c => ({ ...c, [id]: null })))
+      }
+      if (row.sendStatus === 'EHCP' && !ehcpCache[id]) {
+        setEhcpCache(c => ({ ...c, [id]: 'loading' }))
+        getStudentEhcp(id)
+          .then(ehcp => setEhcpCache(c => ({ ...c, [id]: ehcp })))
+          .catch(() => setEhcpCache(c => ({ ...c, [id]: null })))
+      }
+    }
+    // Switch to K Plan tab when that badge is clicked
+    if (jumpTo === 'kplan') setTab(id, 'kplan')
+  }
+
   function setTab(studentId: string, tab: 'homework' | 'apdr' | 'kplan') {
     setActiveTab(t => ({ ...t, [studentId]: tab }))
     if (tab === 'kplan' && !kPlanFullCache[studentId]) {
@@ -244,14 +274,50 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   />
                 </button>
                 <div className="flex-1 min-w-0">
-                  {/* Name — click to open contact panel */}
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); setContactStudentId(row.id) }}
-                    className="text-[13px] font-medium text-gray-900 truncate hover:text-blue-600 transition-colors text-left w-full"
-                  >
-                    {row.firstName} {row.lastName}
-                  </button>
+                  {/* Name + document badges row */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setContactStudentId(row.id) }}
+                      className="text-[13px] font-medium text-gray-900 truncate hover:text-blue-600 transition-colors text-left"
+                    >
+                      {row.firstName} {row.lastName}
+                    </button>
+                    {/* Document badges */}
+                    {row.hasIlp && (
+                      <button
+                        type="button"
+                        title="ILP — click to view"
+                        onClick={e => handleDocBadge(e, row, 'ilp')}
+                        className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors shrink-0"
+                      >
+                        <span className="material-icons" style={{ fontSize: '11px', lineHeight: 1 }}>description</span>
+                        ILP
+                      </button>
+                    )}
+                    {row.sendStatus === 'EHCP' && (
+                      <button
+                        type="button"
+                        title="EHCP — click to view"
+                        onClick={e => handleDocBadge(e, row, 'ehcp')}
+                        className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors shrink-0"
+                      >
+                        <span className="material-icons" style={{ fontSize: '11px', lineHeight: 1 }}>description</span>
+                        EHCP
+                      </button>
+                    )}
+                    {kPlan && (
+                      <button
+                        type="button"
+                        title="K Plan — click to view"
+                        onClick={e => handleDocBadge(e, row, 'kplan')}
+                        className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors shrink-0"
+                      >
+                        <span className="material-icons" style={{ fontSize: '11px', lineHeight: 1 }}>description</span>
+                        K Plan
+                      </button>
+                    )}
+                  </div>
                   {row.needArea && (
                     <p className="text-[10px] text-gray-400 truncate">{row.needArea}</p>
                   )}
@@ -272,16 +338,6 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                   {badge && (
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}
-                    </span>
-                  )}
-                  {row.hasIlp && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                      ILP
-                    </span>
-                  )}
-                  {kPlan && kPlan.status === 'APPROVED' && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700">
-                      <Icon name="menu_book" size="sm" /> K Plan
                     </span>
                   )}
                   {scoreDisplay && (

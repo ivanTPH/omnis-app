@@ -3,11 +3,14 @@ import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
+import { getStudentFile } from '@/app/actions/students'
+import type { StudentFileData } from '@/app/actions/students'
 import { currentTermLabel } from '@/lib/termUtils'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import RagView from '@/components/analytics/RagView'
 import StudentContactPanel from '@/components/StudentContactPanel'
+import ClassRosterTab from '@/components/ClassRosterTab'
 
 type SubmissionDetail = NonNullable<Awaited<ReturnType<typeof getSubmissionDetail>>>
 type SortCol = 'name' | 'completion' | 'score'
@@ -96,8 +99,8 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
   // Client-side filter
   const [perfFilter, setPerfFilter] = useState<PerfFilter>('all')
 
-  // Students panel sub-view: detail table or RAG view
-  const [studentView, setStudentView] = useState<'detail' | 'rag'>('detail')
+  // Students panel sub-view: roster / detail table / RAG view
+  const [studentView, setStudentView] = useState<'roster' | 'detail' | 'rag'>('roster')
 
   // Student data
   const [data,      setData]         = useState<StudentPerformanceResult | null>(null)
@@ -121,6 +124,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
   // Student contact panel
   const [contactStudentId, setContactStudentId] = useState<string | null>(null)
+
+  // Individual student deep-dive data
+  const [studentFileData,    setStudentFileData]    = useState<StudentFileData | null>(null)
+  const [studentFilePending, startStudentFileTrans] = useTransition()
 
   const isLoading = isPending || isClassPending
 
@@ -175,6 +182,15 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       handleRun()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load full student file when an individual student is selected
+  useEffect(() => {
+    if (!studentId) { setStudentFileData(null); return }
+    startStudentFileTrans(async () => {
+      const file = await getStudentFile(studentId)
+      setStudentFileData(file)
+    })
+  }, [studentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Dropdown handlers — pure state updates, NO auto-queries ──────────────
   function changeSubject(val: string) {
@@ -283,8 +299,8 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       <div className="px-6 pt-6 pb-5 border-b border-gray-200 bg-white shrink-0">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Student Analytics</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Select filters and click <strong>Run</strong> to view analytics</p>
+            <h1 className="text-xl font-bold text-gray-900">Classes &amp; Analytics</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Select filters and click <strong>Run</strong> to load data</p>
           </div>
           <div className="flex items-center gap-2.5 flex-wrap justify-end">
             {isRestrictedRole && (
@@ -445,12 +461,20 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             {classId && !studentId && (
               <div className="flex items-center gap-1 mb-5 bg-white border border-gray-200 rounded-xl p-1 w-fit">
                 <button
+                  onClick={() => setStudentView('roster')}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    studentView === 'roster' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon name="groups" size="sm" />Roster
+                </button>
+                <button
                   onClick={() => setStudentView('detail')}
                   className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     studentView === 'detail' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon name="people" size="sm" />Detail
+                  <Icon name="bar_chart" size="sm" />Performance
                 </button>
                 <button
                   onClick={() => setStudentView('rag')}
@@ -460,6 +484,13 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 >
                   <Icon name="monitor_heart" size="sm" />RAG
                 </button>
+              </div>
+            )}
+
+            {/* Roster view — SEND badges + K Plan bullets, matching lesson class view */}
+            {studentView === 'roster' && classId && !studentId && (
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                <ClassRosterTab classId={classId} />
               </div>
             )}
 
@@ -543,6 +574,20 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
               </div>
             )}
             </>
+            )}
+
+            {/* Individual student deep-dive — performance vs predicted, ILP, K Plan, homework */}
+            {studentId && (
+              <div className="mt-5">
+                {studentFilePending && (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {studentFileData && !studentFilePending && (
+                  <StudentDeepDive file={studentFileData} />
+                )}
+              </div>
             )}
           </>
         )}
@@ -844,6 +889,137 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
           </a>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── StudentDeepDive — inline panel shown when an individual student is selected ─
+
+function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
+  if (!rag) return null
+  const styles: Record<'green' | 'amber' | 'red', { cls: string; label: string }> = {
+    green: { cls: 'text-emerald-600', label: 'On track' },
+    amber: { cls: 'text-amber-500',   label: 'Borderline' },
+    red:   { cls: 'text-rose-600',    label: 'Needs support' },
+  }
+  const s = styles[rag]
+  return <span className={`text-xs font-semibold ${s.cls}`}>● {s.label}</span>
+}
+
+function StudentDeepDive({ file }: { file: StudentFileData }) {
+  const { student, subjectPerf, recentHomeworks, ilp, kPlan } = file
+  const sendBadgeColor: Record<string, string> = {
+    EHCP:        'bg-purple-100 text-purple-700',
+    SEN_SUPPORT: 'bg-blue-100 text-blue-700',
+  }
+  const activeTargets = ilp?.targets.filter(t => t.status === 'active') ?? []
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-start gap-3">
+        <StudentAvatar firstName={student.firstName} lastName={student.lastName} size="md"
+          sendStatus={student.sendStatus as 'SEN_SUPPORT' | 'EHCP' | null | undefined} />
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900">{student.firstName} {student.lastName}</h3>
+          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+            {student.yearGroup != null && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}
+            {student.sendStatus && student.sendStatus !== 'NONE' && (
+              <span className={`text-xs px-2 py-0.5 rounded font-medium ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
+                {student.sendStatus.replace('_', ' ')}
+              </span>
+            )}
+            {student.needArea != null && <span className="text-xs text-gray-400">{student.needArea}</span>}
+          </div>
+        </div>
+        <a href={`/students/${student.id}`}
+          className="ml-auto shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+          Full file <Icon name="open_in_new" size="sm" />
+        </a>
+      </div>
+
+      {/* Performance vs Predicted */}
+      {subjectPerf.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <h4 className="font-semibold text-sm text-gray-800">Performance vs Predicted</h4>
+          </div>
+          <div className="px-5 py-1.5 grid grid-cols-[1fr_72px_90px_120px] gap-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+            <span>Subject</span><span className="text-right">Avg</span><span className="text-right">Predicted</span><span className="text-right">Status</span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {subjectPerf.map(row => (
+              <div key={row.subject} className="grid grid-cols-[1fr_72px_90px_120px] items-center gap-3 px-5 py-2.5 text-sm">
+                <span className="font-medium text-gray-800 truncate">{row.subject}</span>
+                <span className="text-right text-gray-700">{row.avgScore != null ? `${row.avgScore}%` : '—'}</span>
+                <span className="text-right text-gray-400 text-xs">{row.predictedScore != null ? `${Math.round(row.predictedScore)}%` : '—'}</span>
+                <div className="text-right"><RagDot rag={row.rag} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ILP goals */}
+      {activeTargets.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <h4 className="font-semibold text-sm text-gray-800">ILP Targets</h4>
+          </div>
+          <div className="px-5 py-3 space-y-2">
+            {activeTargets.slice(0, 4).map(t => (
+              <div key={t.id} className="flex items-start gap-2">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                <p className="text-sm text-gray-800">{t.target}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* K Plan teacher actions */}
+      {kPlan != null && kPlan.teacherActions.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <h4 className="font-semibold text-sm text-gray-800">K Plan — Teacher Actions</h4>
+          </div>
+          <div className="px-5 py-3 space-y-2">
+            {kPlan.teacherActions.slice(0, 5).map((action, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-teal-400 shrink-0" />
+                <p className="text-sm text-gray-800">{action}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Latest homework */}
+      {recentHomeworks.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <h4 className="font-semibold text-sm text-gray-800">Latest Homework</h4>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentHomeworks.slice(0, 8).map(hw => (
+              <div key={hw.homeworkId} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+                <Icon name={hw.submitted ? 'check_circle' : 'cancel'} size="sm"
+                  className={hw.submitted ? 'text-green-500 shrink-0' : 'text-gray-300 shrink-0'} />
+                <span className="flex-1 text-gray-700 truncate min-w-0">{hw.subject} — {hw.title}</span>
+                <span className="text-gray-400 text-xs shrink-0">
+                  {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                </span>
+                {hw.finalScore != null
+                  ? <span className="text-gray-800 font-medium shrink-0">{hw.finalScore}%</span>
+                  : hw.submitted
+                    ? <span className="text-blue-600 text-xs shrink-0">Submitted</span>
+                    : <span className="text-rose-400 text-xs shrink-0">Missing</span>
+                }
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

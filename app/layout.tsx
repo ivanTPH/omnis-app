@@ -34,8 +34,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={accessibilityClasses || undefined}>
       <head>
-        {/* Google Material Icons */}
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+        {/* Material Icons are self-hosted via public/fonts/material-icons.woff2
+            and declared in globals.css — no external CDN request needed. */}
         {/* OpenDyslexic font — loaded when dyslexia-font class is active */}
         <link
           rel="stylesheet"

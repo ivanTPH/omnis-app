@@ -34,6 +34,7 @@
     "docx": "^9.6.1",
     "lucide-react": "^0.575.0",
     "marked": "^17.0.4",
+    "material-icons": "^1.13.14",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "prisma": "^6.19.2",

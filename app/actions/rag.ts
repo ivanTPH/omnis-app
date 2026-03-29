@@ -40,6 +40,26 @@ export type SavePredictionInput = {
   notes:          string
 }
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+/**
+ * Derive maxScore from a homework's gradingBands JSON.
+ * Identical logic to maxFromBandsServer() in app/actions/lessons.ts.
+ */
+function maxFromBands(bands: unknown): number {
+  if (!bands || typeof bands !== 'object') return 100
+  const keys = Object.keys(bands as Record<string, string>)
+  const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
+  return nums.length ? Math.max(...nums) : 100
+}
+
+/** Normalise a raw finalScore to 0-100 using the homework's gradingBands. */
+function toPercent(finalScore: number, bands: unknown): number {
+  const max = maxFromBands(bands)
+  if (max <= 0 || max === 100) return Math.round(finalScore)
+  return Math.round((finalScore / max) * 100)
+}
+
 // ── RAG logic ─────────────────────────────────────────────────────────────────
 
 function computeRag(workingAt: number | null, effective: number | null): RagStatus {
@@ -106,7 +126,7 @@ export async function getClassRagData(
           status:     { in: ['MARKED', 'RETURNED'] },
           homework:   { classId, dueAt: { gte: from, lte: to } },
         },
-        select:  { studentId: true, finalScore: true, markedAt: true },
+        select:  { studentId: true, finalScore: true, markedAt: true, homework: { select: { gradingBands: true } } },
         orderBy: { markedAt: 'desc' },
       }),
     ])
@@ -132,10 +152,17 @@ export async function getClassRagData(
       const pred         = predMap.get(u.id) ?? null
       const subs         = submissionsByStudent.get(u.id) ?? []
 
+      // Normalise each submission score to 0-100 before averaging so it's
+      // on the same scale as predictedScore (which is always 0-100).
       const workingAtScore = subs.length > 0
-        ? Math.round(subs.reduce((acc, s) => acc + (s.finalScore ?? 0), 0) / subs.length)
+        ? Math.round(
+            subs.reduce((acc, s) => acc + toPercent(s.finalScore ?? 0, s.homework.gradingBands), 0)
+            / subs.length,
+          )
         : null
-      const lastScore      = subs.length > 0 ? Math.round(subs[0].finalScore ?? 0) : null
+      const lastScore = subs.length > 0
+        ? toPercent(subs[0].finalScore ?? 0, subs[0].homework.gradingBands)
+        : null
 
       const prediction = pred
         ? {

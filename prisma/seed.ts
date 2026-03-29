@@ -2024,6 +2024,137 @@ async function main() {
   }
   console.log(`  ✓ SchoolCalendar seeded (${calendarEntries.length} entries)`)
 
+  // ── RAG demo data — StudentBaseline + TeacherPrediction + submissions ─────
+  // Term label must match currentTermLabel() at runtime.  March 2026 = Spring 2026.
+  const RAG_TERM = 'Spring 2026'
+
+  // Look up 8M/Ma1 students (enrolled via the students loop above)
+  const ragStudents8M = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { email: 'r.ali@students.omnisdemo.school'    } }),
+    prisma.user.findUniqueOrThrow({ where: { email: 'c.harris@students.omnisdemo.school' } }),
+    prisma.user.findUniqueOrThrow({ where: { email: 'w.nguyen@students.omnisdemo.school' } }),
+    prisma.user.findUniqueOrThrow({ where: { email: 'p.evans@students.omnisdemo.school'  } }),
+    prisma.user.findUniqueOrThrow({ where: { email: 'a.scott@students.omnisdemo.school'  } }),
+  ])
+  const [rehanAli, caitlinHarris, williamNguyen, priyaEvans, alexScott] = ragStudents8M
+
+  // StudentBaselines (0-100 normalised %, KS2-derived)
+  const baselines8M = [
+    { studentId: rehanAli.id,      subject: 'Maths', baselineScore: 65, source: 'KS2' },
+    { studentId: caitlinHarris.id, subject: 'Maths', baselineScore: 70, source: 'KS2' },
+    { studentId: williamNguyen.id, subject: 'Maths', baselineScore: 68, source: 'KS2' },
+    { studentId: priyaEvans.id,    subject: 'Maths', baselineScore: 75, source: 'KS2' },
+    { studentId: alexScott.id,     subject: 'Maths', baselineScore: 62, source: 'KS2' },
+  ]
+  for (const b of baselines8M) {
+    await prisma.studentBaseline.upsert({
+      where:  { studentId_subject: { studentId: b.studentId, subject: b.subject } },
+      update: { baselineScore: b.baselineScore, source: b.source },
+      create: { ...b, schoolId: school.id, recordedBy: created['j.patel'].id },
+    })
+  }
+
+  // TeacherPredictions for j.patel — 8M/Ma1 Maths (all on 0-100 scale)
+  const predictions8M = [
+    { studentId: rehanAli.id,      predictedScore: 68, adjustment: 0, notes: 'Strong effort in class; needs to show working clearly' },
+    { studentId: caitlinHarris.id, predictedScore: 72, adjustment: 0, notes: null },
+    { studentId: williamNguyen.id, predictedScore: 70, adjustment: 0, notes: 'Struggling with algebra; receiving extra support' },
+    { studentId: priyaEvans.id,    predictedScore: 80, adjustment: 0, notes: null },
+    { studentId: alexScott.id,     predictedScore: 65, adjustment: 0, notes: null },
+  ]
+  for (const p of predictions8M) {
+    await prisma.teacherPrediction.upsert({
+      where: { studentId_teacherId_subject_termLabel: { studentId: p.studentId, teacherId: created['j.patel'].id, subject: 'Maths', termLabel: RAG_TERM } },
+      update: { predictedScore: p.predictedScore, adjustment: p.adjustment, notes: p.notes },
+      create: { studentId: p.studentId, teacherId: created['j.patel'].id, schoolId: school.id, subject: 'Maths', termLabel: RAG_TERM, predictedScore: p.predictedScore, adjustment: p.adjustment, notes: p.notes },
+    })
+  }
+
+  // Homework for 8M/Ma1 — "Algebra and Equations" (due within Spring 2026 term)
+  // gradingBands keys 0-10, so maxFromBands = 10; raw finalScore ÷ 10 × 100 = pct
+  const ragHw8M = await prisma.homework.upsert({
+    where:  { id: 'demo-rag-hw-8M-algebra' },
+    update: {},
+    create: {
+      id:           'demo-rag-hw-8M-algebra',
+      schoolId:     school.id,
+      classId:      classes['8M/Ma1'].id,
+      title:        'Algebra and Equations — Spring Assessment',
+      instructions: 'Solve the algebra problems showing full working. Marks awarded for method as well as correct answers.',
+      type:         HomeworkType.SHORT_ANSWER,
+      status:       HomeworkStatus.CLOSED,
+      gradingBands: { '0-2': 'Little evidence of algebraic method', '3-5': 'Working towards expected; some correct steps', '6-8': 'Meets expected standard; mostly accurate', '9-10': 'Above expected; accurate with full working shown' },
+      dueAt:        daysAgo(21),
+      createdBy:    created['j.patel'].id,
+    },
+  })
+
+  // RETURNED submissions — finalScores on 0-10 scale; after normalisation these produce
+  // a mix of GREEN / AMBER / RED statuses for a compelling RAG demo view.
+  // Rehan (7/10=70% vs pred 68): +2 → GREEN
+  // Caitlin (6/10=60% vs pred 72): -12 → AMBER
+  // William (4/10=40% vs pred 70): -30 → RED
+  // Priya (9/10=90% vs pred 80): +10 → GREEN
+  // Alex (5/10=50% vs pred 65): -15 → AMBER
+  const submissions8M = [
+    { studentId: rehanAli.id,      finalScore: 7,  grade: '7', feedback: 'Good algebraic reasoning, Rehan. Ensure you always write the equals sign on each line.' },
+    { studentId: caitlinHarris.id, finalScore: 6,  grade: '6', feedback: 'Solid attempt on Q1–3. Review simultaneous equations — some sign errors crept in on Q4.' },
+    { studentId: williamNguyen.id, finalScore: 4,  grade: '4', feedback: 'You attempted all questions which is great. We need to revisit expanding brackets — come see me at lunch.' },
+    { studentId: priyaEvans.id,    finalScore: 9,  grade: '9', feedback: 'Excellent work, Priya. Full marks on Q1–4 and strong method on Q5. Consider entering the Maths Challenge.' },
+    { studentId: alexScott.id,     finalScore: 5,  grade: '5', feedback: 'Good effort. Q1–2 were fully correct. Factorising needs more practice — try the worksheet I shared.' },
+  ]
+  for (const s of submissions8M) {
+    await prisma.submission.upsert({
+      where:  { homeworkId_studentId: { homeworkId: ragHw8M.id, studentId: s.studentId } },
+      update: {},
+      create: {
+        schoolId:     school.id,
+        homeworkId:   ragHw8M.id,
+        studentId:    s.studentId,
+        content:      '',
+        status:       SubmissionStatus.RETURNED,
+        submittedAt:  daysAgo(22),
+        markedAt:     daysAgo(20),
+        teacherScore: s.finalScore,
+        finalScore:   s.finalScore,
+        grade:        s.grade,
+        feedback:     s.feedback,
+        integrityReviewed: true,
+      },
+    })
+  }
+
+  // Also seed English predictions for j.patel's 9E/En1 class so the English RAG
+  // view shows coloured dots.  Aiden Hughes already has a RETURNED AIC submission
+  // (finalScore 7, maxScore 9 from gradingBands → 78%).
+  const ragAiden = created['a.hughes']
+  const ragMaya  = created['m.johnson']
+
+  const baselines9E = [
+    { studentId: ragAiden.id, subject: 'English', baselineScore: 72, source: 'KS2' },
+    { studentId: ragMaya.id,  subject: 'English', baselineScore: 68, source: 'KS2' },
+  ]
+  for (const b of baselines9E) {
+    await prisma.studentBaseline.upsert({
+      where:  { studentId_subject: { studentId: b.studentId, subject: b.subject } },
+      update: { baselineScore: b.baselineScore, source: b.source },
+      create: { ...b, schoolId: school.id, recordedBy: created['j.patel'].id },
+    })
+  }
+
+  const predictions9E = [
+    { studentId: ragAiden.id, predictedScore: 75, adjustment: 0, notes: 'Strong analytical writer; on track for Grade 7+' },
+    { studentId: ragMaya.id,  predictedScore: 70, adjustment: 0, notes: null },
+  ]
+  for (const p of predictions9E) {
+    await prisma.teacherPrediction.upsert({
+      where: { studentId_teacherId_subject_termLabel: { studentId: p.studentId, teacherId: created['j.patel'].id, subject: 'English', termLabel: RAG_TERM } },
+      update: { predictedScore: p.predictedScore, adjustment: p.adjustment, notes: p.notes },
+      create: { studentId: p.studentId, teacherId: created['j.patel'].id, schoolId: school.id, subject: 'English', termLabel: RAG_TERM, predictedScore: p.predictedScore, adjustment: p.adjustment, notes: p.notes },
+    })
+  }
+  console.log('  ✓ RAG demo data — StudentBaseline × 7, TeacherPrediction × 7, Submission × 5 (8M/Ma1 algebra)')
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

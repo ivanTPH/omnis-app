@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useRef, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import {
   generateResource,
@@ -9,6 +9,7 @@ import {
   getTopicsForSubjectAndYear,
 } from '@/app/actions/ai-generator'
 import type { GenerateInput, GeneratedResourceData } from '@/app/actions/ai-generator'
+import { useTeacherProfile } from '@/lib/teacherProfileContext'
 
 const RESOURCE_TYPES = [
   { value: 'worksheet',          label: 'Worksheet'          },
@@ -38,6 +39,8 @@ type Props = {
 }
 
 export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated }: Props) {
+  const profile = useTeacherProfile()
+
   // ── cascade data ──────────────────────────────────────────────────────────
   const [subjects,   setSubjects]   = useState<string[]>([])
   const [yearGroups, setYearGroups] = useState<number[]>([])
@@ -60,6 +63,10 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
 
   const effectiveTopic = topic === '__custom__' ? customTopic : topic
 
+  // Track whether we've already applied teacher defaults
+  const subjectDefaultApplied   = useRef(false)
+  const yearGroupDefaultApplied = useRef(false)
+
   // ── load subjects on mount ────────────────────────────────────────────────
   useEffect(() => {
     setLoadingSubjects(true)
@@ -69,12 +76,23 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
       .finally(() => setLoadingSubjects(false))
   }, [])
 
+  // Apply teacher's default subject once subjects are loaded and no selection made
+  useEffect(() => {
+    if (loadingSubjects || subjectDefaultApplied.current) return
+    if (!profile.isLoaded || !profile.defaultSubject) return
+    if (subjects.includes(profile.defaultSubject)) {
+      subjectDefaultApplied.current = true
+      setSubject(profile.defaultSubject)
+    }
+  }, [subjects, loadingSubjects, profile.isLoaded, profile.defaultSubject])
+
   // ── load year groups when subject changes ─────────────────────────────────
   useEffect(() => {
     setYearGroups([])
     setYearGroup('')
     setTopics([])
     setTopic('')
+    yearGroupDefaultApplied.current = false
     if (!subject) return
     setLoadingYearGroups(true)
     getYearGroupsForSubject(subject)
@@ -82,6 +100,16 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
       .catch(() => {})
       .finally(() => setLoadingYearGroups(false))
   }, [subject])
+
+  // Apply teacher's default year group once year groups are loaded
+  useEffect(() => {
+    if (loadingYearGroups || yearGroupDefaultApplied.current) return
+    if (!profile.isLoaded || profile.defaultYearGroup == null) return
+    if (yearGroups.includes(profile.defaultYearGroup)) {
+      yearGroupDefaultApplied.current = true
+      setYearGroup(profile.defaultYearGroup)
+    }
+  }, [yearGroups, loadingYearGroups, profile.isLoaded, profile.defaultYearGroup])
 
   // ── load topics when year group changes ───────────────────────────────────
   useEffect(() => {

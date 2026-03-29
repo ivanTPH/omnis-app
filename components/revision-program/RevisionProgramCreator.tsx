@@ -326,13 +326,17 @@ export default function RevisionProgramCreator({
     durationWeeks: 1,
   })
 
-  // Pre-fill class + topic from URL params (set by "Launch Revision for this Topic" button)
+  // Pre-fill class + topic from URL params, or default to first class
   const prefillTopic = searchParams.get('topic') ?? ''
   useEffect(() => {
     const classId = searchParams.get('classId')
-    if (!classId) return
-    const cls = classes.find(c => c.id === classId)
-    if (cls) {
+    if (classId) {
+      // URL param takes priority (e.g. launched from a lesson)
+      const cls = classes.find(c => c.id === classId)
+      if (cls) setState(prev => ({ ...prev, classId: cls.id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup }))
+    } else if (classes.length > 0) {
+      // Default to the teacher's first class so the wizard opens ready to go
+      const cls = classes[0]
       setState(prev => ({ ...prev, classId: cls.id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup }))
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps

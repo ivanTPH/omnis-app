@@ -1,10 +1,11 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import SetHomeworkModal from './SetHomeworkModal'
 import ExportPdfButton  from '@/components/ExportPdfButton'
+import { useTeacherProfile } from '@/lib/teacherProfileContext'
 
 export type HomeworkListItem = {
   id:             string
@@ -33,13 +34,24 @@ function statusDisplayLabel(s: string) {
 }
 
 export default function HomeworkFilterView({ homework }: { homework: HomeworkListItem[] }) {
-  const router = useRouter()
+  const router  = useRouter()
+  const profile = useTeacherProfile()
+
   const [subject,   setSubject]   = useState('')
   const [year,      setYear]      = useState('')
   const [classId,   setClassId]   = useState('')
   const [status,    setStatus]    = useState('')
   const [search,    setSearch]    = useState('')
   const [showModal, setShowModal] = useState(false)
+
+  // Apply teacher profile defaults once they arrive from AppShell
+  const defaultsApplied = useRef(false)
+  useEffect(() => {
+    if (defaultsApplied.current || !profile.isLoaded) return
+    defaultsApplied.current = true
+    if (profile.defaultSubject) setSubject(profile.defaultSubject)
+    if (profile.defaultYearGroup != null) setYear(String(profile.defaultYearGroup))
+  }, [profile.isLoaded, profile.defaultSubject, profile.defaultYearGroup])
 
   const now = useMemo(() => new Date(), [])
 

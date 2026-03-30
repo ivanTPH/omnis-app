@@ -593,6 +593,87 @@ async function main() {
   })
   console.log('  ✓ SEND status & Plan for Aiden Hughes')
 
+  // ── IndividualLearningPlan + K Plan for Aiden Hughes ─────────────────────
+  // Required so the Class tab shows the ILP badge (hasIlp=true) and K Plan
+  // classroom tips for students in 9E/En1.
+  const aidenIlp = await prisma.individualLearningPlan.upsert({
+    where:  { id: 'seed-ilp-aiden-hughes' },
+    update: {},
+    create: {
+      id:               'seed-ilp-aiden-hughes',
+      schoolId:         school.id,
+      studentId:        created['a.hughes'].id,
+      createdBy:        created['r.morris'].id,
+      sendCategory:     'SEN_SUPPORT',
+      currentStrengths: 'Verbally articulate and contributes well to class discussions. Good memory for quotations and retrieval of texts read in class. Responds positively to teacher encouragement.',
+      areasOfNeed:      'Extended writing — difficulty sustaining output beyond two paragraphs without a planning scaffold. Processing speed under timed conditions.',
+      strategies: [
+        'Provide a 4-box paragraph planner for all extended written tasks',
+        'Allow 25% extra time on timed assessments',
+        'Seat near the front, away from high-traffic areas',
+        'Break extended tasks into clearly numbered sub-tasks',
+        'Check understanding at each stage before moving on',
+      ],
+      successCriteria: 'Independently complete a structured 4-paragraph essay using planning frame by end of Spring term.',
+      reviewDate:       new Date('2026-06-20'),
+      status:           'active',
+      parentConsent:    true,
+    },
+  })
+
+  await prisma.ilpTarget.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        id:             'seed-ilpt-aiden-1',
+        ilpId:          aidenIlp.id,
+        target:         'Use a planning frame independently to organise extended written responses',
+        strategy:       'Provide 4-box paragraph planner before every extended writing task; teacher models use in starter activity.',
+        successMeasure: 'Uses planner without prompting on 3 consecutive written tasks.',
+        targetDate:     new Date('2026-06-20'),
+        status:         'active',
+      },
+      {
+        id:             'seed-ilpt-aiden-2',
+        ilpId:          aidenIlp.id,
+        target:         'Complete full-length timed responses within GCSE time allowance (with 25% extra time)',
+        strategy:       '25% extra time applied to all in-class assessments; practice timed conditions fortnightly.',
+        successMeasure: 'Completes at least 3 full-length timed responses within adjusted time allowance.',
+        targetDate:     new Date('2026-06-20'),
+        status:         'active',
+      },
+    ],
+  })
+
+  await prisma.learnerPassport.upsert({
+    where:  { id: 'seed-kplan-aiden-hughes' },
+    update: {},
+    create: {
+      id:             'seed-kplan-aiden-hughes',
+      schoolId:       school.id,
+      studentId:      created['a.hughes'].id,
+      ilpId:          aidenIlp.id,
+      sendInformation:'Aiden has Specific Learning Difficulties affecting reading speed and written output under time pressure. He is verbal, confident in discussion, and responds well to structured writing supports. Parents are fully engaged and supportive.',
+      teacherActions: [
+        'Provide 4-box paragraph planner before extended writing tasks',
+        'Allow 25% extra time — flag on seating plan and assessment coversheet',
+        'Seat near the front, away from distractions',
+        'Break tasks into numbered sub-steps and confirm understanding after each',
+        'Accept verbal responses or bullet-point planning as an alternative to prose drafting',
+        'Give quiet 1:1 check-in after whole-class instructions',
+      ],
+      studentCommitments: [
+        'Use the paragraph planner before starting any extended answer',
+        'Ask for the writing frame if feeling stuck rather than sitting in silence',
+        'Read back answers aloud quietly to self-check before submitting',
+      ],
+      status:      'APPROVED',
+      approvedBy:  created['r.morris'].id,
+      approvedAt:  new Date('2026-01-20'),
+    },
+  })
+  console.log('  ✓ ILP + K Plan — Aiden Hughes (9E/En1)')
+
   // ── Analytics aggregates ───────────────────────────────────────────────────
   const termId = 'term-2025-spring'
   const aggregates = [

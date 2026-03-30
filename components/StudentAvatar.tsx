@@ -61,7 +61,12 @@ export default function StudentAvatar({
   const initials  = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
   const bgColor   = nameToColor(`${firstName}${lastName}`)
   const ringStyle = sendStatus && sendStatus !== 'NONE' ? RING_SHADOW[sendStatus] : undefined
-  const showPhoto = !!avatarUrl && !imgFailed
+
+  // Use a deterministic DiceBear illustrated avatar as fallback when no real photo is stored.
+  // Seed = full name → same avatar on every render, unique per person.
+  const seed            = encodeURIComponent(`${firstName}${lastName}`)
+  const effectiveUrl    = avatarUrl ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`
+  const showPhoto       = !imgFailed
 
   const circleBase: React.CSSProperties = {
     width:           px,
@@ -97,10 +102,10 @@ export default function StudentAvatar({
         {initials}
       </div>
 
-      {/* Photo — rendered on top; opacity 0 until loaded so initials show through */}
+      {/* Avatar image — real photo or DiceBear fallback; opacity 0 until loaded */}
       {showPhoto && (
         <img
-          src={avatarUrl}
+          src={effectiveUrl}
           alt=""
           style={{
             position:   'absolute',

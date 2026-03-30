@@ -1,6 +1,6 @@
 'use server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { LessonType, AudienceType, PlanStatus, ResourceType } from '@prisma/client'
 import { type ReviewResult } from '@/lib/sendReview'
@@ -747,10 +747,12 @@ export type ClassRosterRow = {
   id:              string
   firstName:       string
   lastName:        string
+  yearGroup:       number | null
   avatarUrl:       string | null
   sendStatus:      string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
   needArea:        string | null
   hasIlp:          boolean
+  hasEhcp:         boolean
   latestScore:     number | null
   maxScore:        number | null
   supportSnapshot: string | null
@@ -789,14 +791,17 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
     return enrolments.map(e => {
       const sub   = e.user.submissions[0]
       const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
+      const status = e.user.sendStatus?.activeStatus ?? 'NONE'
       return {
         id:              e.user.id,
         firstName:       e.user.firstName,
         lastName:        e.user.lastName,
+        yearGroup:       (e.user as any).yearGroup ?? null,
         avatarUrl:       e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
-        sendStatus:      e.user.sendStatus?.activeStatus ?? 'NONE',
+        sendStatus:      status,
         needArea:        e.user.sendStatus?.needArea ?? null,
         hasIlp:          e.user.studentIlps.length > 0,
+        hasEhcp:         status === 'EHCP',
         latestScore:     score,
         maxScore:        sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
         supportSnapshot: e.user.supportSnapshot ?? null,
@@ -944,5 +949,154 @@ export async function getClassInsights(classId: string): Promise<ClassInsightsDa
   } catch (err) {
     console.error('[getClassInsights] error:', err)
     return { students: [], classAvg: null, totalHomework: 0 }
+  }
+}
+
+// ── Roster Notes + Student Roster Detail ─────────────────────────────────────
+
+export type RosterNote = {
+  id:        string
+  content:   string
+  createdAt: string
+  actorId:   string
+}
+
+export type StudentRosterDetail = {
+  recentHomework: {
+    id:       string
+    title:    string
+    dueAt:    string
+    status:   string
+    score:    number | null
+    maxScore: number
+    grade:    string | null
+  }[]
+  examScores: {
+    id:       string
+    title:    string
+    dueAt:    string
+    score:    number | null
+    maxScore: number
+    grade:    string | null
+  }[]
+  rosterNotes: RosterNote[]
+}
+
+export async function getStudentRosterDetail(
+  studentId: string,
+  classId:   string,
+): Promise<StudentRosterDetail> {
+  try {
+    const session = await auth()
+    if (!session) return { recentHomework: [], examScores: [], rosterNotes: [] }
+    const { schoolId } = session.user as any
+
+    // Recent homework submissions for this student in this class
+    const [classSubs, allSubs, auditNotes] = await Promise.all([
+      prisma.submission.findMany({
+        where:   { studentId, schoolId, homework: { classId } },
+        include: { homework: { select: { id: true, title: true, dueAt: true, gradingBands: true, type: true } } },
+        orderBy: { submittedAt: 'desc' },
+        take:    5,
+      }),
+      // Exam-type submissions across all classes for this student at this school
+      prisma.submission.findMany({
+        where: {
+          studentId,
+          schoolId,
+          OR: [
+            { homework: { title: { contains: 'test',       mode: 'insensitive' } } },
+            { homework: { title: { contains: 'exam',       mode: 'insensitive' } } },
+            { homework: { title: { contains: 'mock',       mode: 'insensitive' } } },
+            { homework: { title: { contains: 'assessment', mode: 'insensitive' } } },
+            { homework: { type: 'MCQ_QUIZ' } },
+          ],
+        },
+        include: { homework: { select: { id: true, title: true, dueAt: true, gradingBands: true, type: true } } },
+        orderBy: { submittedAt: 'desc' },
+        take:    10,
+      }),
+      prisma.auditLog.findMany({
+        where:   { schoolId, targetType: 'RosterNote', targetId: studentId },
+        orderBy: { createdAt: 'desc' },
+        take:    20,
+      }),
+    ])
+
+    function scoreFromSub(s: { finalScore: number | null; teacherScore: number | null; autoScore: number | null }) {
+      return s.finalScore ?? s.teacherScore ?? s.autoScore ?? null
+    }
+
+    function gradeFromScore(score: number | null, maxScore: number): string | null {
+      if (score == null) return null
+      const pct = maxScore && maxScore !== 100 ? Math.round((score / maxScore) * 100) : score
+      if (pct >= 90) return '9'
+      if (pct >= 80) return '8'
+      if (pct >= 70) return '7'
+      if (pct >= 60) return '6'
+      if (pct >= 50) return '5'
+      if (pct >= 40) return '4'
+      if (pct >= 30) return '3'
+      if (pct >= 20) return '2'
+      return '1'
+    }
+
+    const recentHomework = classSubs.map(s => {
+      const score    = scoreFromSub(s)
+      const maxScore = maxFromBandsServer(s.homework.gradingBands)
+      return {
+        id:       s.homework.id,
+        title:    s.homework.title,
+        dueAt:    s.homework.dueAt.toISOString(),
+        status:   s.status,
+        score,
+        maxScore,
+        grade:    gradeFromScore(score, maxScore),
+      }
+    })
+
+    const examScores = allSubs.map(s => {
+      const score    = scoreFromSub(s)
+      const maxScore = maxFromBandsServer(s.homework.gradingBands)
+      return {
+        id:       s.homework.id,
+        title:    s.homework.title,
+        dueAt:    s.homework.dueAt.toISOString(),
+        status:   s.status,
+        score,
+        maxScore,
+        grade:    gradeFromScore(score, maxScore),
+      }
+    })
+
+    const rosterNotes: RosterNote[] = auditNotes.map(n => ({
+      id:        n.id,
+      content:   (n.metadata as any)?.content ?? '',
+      createdAt: n.createdAt.toISOString(),
+      actorId:   n.actorId,
+    }))
+
+    return { recentHomework, examScores, rosterNotes }
+  } catch (err) {
+    console.error('[getStudentRosterDetail] error:', err)
+    return { recentHomework: [], examScores: [], rosterNotes: [] }
+  }
+}
+
+export async function addRosterNote(studentId: string, content: string): Promise<void> {
+  try {
+    const session = await auth()
+    if (!session) return
+    const { schoolId, id: actorId } = session.user as any
+    await writeAudit({
+      schoolId,
+      actorId,
+      action:     'USER_SETTINGS_CHANGED',
+      targetType: 'RosterNote',
+      targetId:   studentId,
+      metadata:   { content },
+    })
+  } catch (err) {
+    console.error('[addRosterNote] error:', err)
   }
 }

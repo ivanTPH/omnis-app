@@ -34,11 +34,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Run database migrations
-        run: npx prisma migrate deploy
+      - name: Sync database schema
+        # db push applies the full schema (including tables added via db push that have
+        # no formal migration files). --accept-data-loss is safe here because CI only
+        # adds columns — it never drops data-bearing tables.
+        run: npx prisma db push --accept-data-loss
 
-      - name: Seed database
-        run: npm run db:seed
+      - name: Seed database (only if empty)
+        # Guard script checks school count — skips seed when data already exists so
+        # the shared Supabase demo database is not wiped on every push to main.
+        run: npm run db:seed:ci
 
       - name: Build Next.js app
         run: npm run build

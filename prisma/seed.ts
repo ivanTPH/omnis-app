@@ -454,10 +454,10 @@ async function main() {
     },
   })
 
-  // AIC homework
+  // AIC homework — gradingBands added so max=9 is explicit (fixes percentage normalisation)
   const aicHW = await prisma.homework.upsert({
     where: { id: 'demo-hw-aic-1' },
-    update: {},
+    update: { gradingBands: { '0-3': 'Limited contextual knowledge; key dates absent or inaccurate', '4-6': 'Developing: relevant context with some link to Priestley\'s message', '7-9': 'Secure: accurate, specific historical context clearly linked to Priestley\'s socialist message' } },
     create: {
       id:            'demo-hw-aic-1',
       schoolId:      school.id,
@@ -466,8 +466,9 @@ async function main() {
       title:         'An Inspector Calls — Context Research',
       instructions:  'Research the historical context of "An Inspector Calls". Write 150 words explaining how the events of 1912 and 1945 are important to understanding Priestley\'s message. Include at least two specific historical facts.',
       modelAnswer:   'Students should reference the Titanic (class divide), WW1/WW2, the 1945 Labour election and the creation of the welfare state as key context points that inform Priestley\'s socialist message.',
-      dueAt:         daysFromNow(3),
-      status:        HomeworkStatus.PUBLISHED,
+      gradingBands:  { '0-3': 'Limited contextual knowledge; key dates absent or inaccurate', '4-6': 'Developing: relevant context with some link to Priestley\'s message', '7-9': 'Secure: accurate, specific historical context clearly linked to Priestley\'s socialist message' },
+      dueAt:         daysAgo(7),
+      status:        HomeworkStatus.CLOSED,
       type:          HomeworkType.SHORT_ANSWER,
       releasePolicy: ReleasePolicy.AUTO_OBJECTIVE,
       maxAttempts:   2,
@@ -1225,6 +1226,9 @@ async function main() {
   const caitlinFox   = await addStudent('c.fox@students.omnisdemo.school',     'Caitlin',  'Fox',     cls11.id)
   const michaelT     = await addStudent('m.torres@students.omnisdemo.school',  'Michael',  'Torres',  cls11.id)
 
+  // 9E/En1 — Fatima Al-Amin (Speech, Language & Communication, SEN Support)
+  const fatimaAlAmin = await addStudent('f.alamin@students.omnisdemo.school',  'Fatima',   'Al-Amin', cls9.id)
+
   // 10M/Ma1 — 8 students
   const rubyPham     = await addStudent('r.pham@students.omnisdemo.school',    'Ruby',     'Pham',    cls10Ma.id)
   const tylerNash    = await addStudent('t.nash@students.omnisdemo.school',    'Tyler',    'Nash',    cls10Ma.id)
@@ -1235,7 +1239,7 @@ async function main() {
   const connorWebb   = await addStudent('c.webb@students.omnisdemo.school',    'Connor',   'Webb',    cls10Ma.id)
   const nadiaP       = await addStudent('n.popescu@students.omnisdemo.school', 'Nadia',    'Popescu', cls10Ma.id)
 
-  console.log('  ✓ 19 new students added across 9E/En1, 10E/En2, 11E/En1, 10M/Ma1')
+  console.log('  ✓ 20 new students added across 9E/En1, 10E/En2, 11E/En1, 10M/Ma1')
 
   // ── SEND profiles ─────────────────────────────────────────────────────────
   type SendSetup = { studentId: string; status: SendStatusValue; needArea: string }
@@ -1248,6 +1252,7 @@ async function main() {
     { studentId: michaelT.id,     status: SendStatusValue.SEN_SUPPORT, needArea: 'Cognition & Learning'                   },
     { studentId: tylerNash.id,    status: SendStatusValue.SEN_SUPPORT, needArea: 'Social, Emotional & Mental Health'      },
     { studentId: laylaHassan.id,  status: SendStatusValue.SEN_SUPPORT, needArea: 'Specific Learning Difficulty (Dyslexia)'},
+    { studentId: fatimaAlAmin.id, status: SendStatusValue.SEN_SUPPORT, needArea: 'Speech, Language & Communication'        },
   ]
   for (const s of sendSetups) {
     await prisma.sendStatus.upsert({
@@ -1256,7 +1261,7 @@ async function main() {
       create: { studentId: s.studentId, activeStatus: s.status, activeSource: 'SENCO', needArea: s.needArea },
     })
   }
-  console.log('  ✓ 8 SEND profiles (2 EHCP, 6 SEN Support)')
+  console.log('  ✓ 9 SEND profiles (2 EHCP, 7 SEN Support)')
 
   // ── ILP Plans ─────────────────────────────────────────────────────────────
   const senco = await prisma.user.findUniqueOrThrow({ where: { email: 'r.morris@omnisdemo.school' } })
@@ -1466,6 +1471,381 @@ async function main() {
   }
   console.log('  ✓ 4 SEND review records (2 overdue, 2 approaching)')
 
+  // ── IndividualLearningPlan + LearnerPassport for all SEND students ─────────
+  // Every student with a SEND badge MUST have an ILP so hasIlp=true and the
+  // classroom tips section renders in the Class tab.
+
+  // Helper — create ILP + optional targets + K Plan in one step (idempotent)
+  async function seedIlpAndKPlan(opts: {
+    ilpId: string; kplanId: string; studentId: string
+    sendCategory: string; strengths: string; areasOfNeed: string
+    strategies: string[]; successCriteria: string; reviewDate: Date
+    sendInfo: string; teacherActions: string[]; studentCommitments: string[]
+    targets?: Array<{ id: string; target: string; strategy: string; successMeasure: string; targetDate: Date }>
+  }) {
+    const ilp = await prisma.individualLearningPlan.upsert({
+      where:  { id: opts.ilpId },
+      update: {},
+      create: {
+        id: opts.ilpId, schoolId: school.id, studentId: opts.studentId,
+        createdBy: senco.id, sendCategory: opts.sendCategory,
+        currentStrengths: opts.strengths, areasOfNeed: opts.areasOfNeed,
+        strategies: opts.strategies, successCriteria: opts.successCriteria,
+        reviewDate: opts.reviewDate, status: 'active', parentConsent: true,
+      },
+    })
+    if (opts.targets?.length) {
+      await prisma.ilpTarget.createMany({
+        skipDuplicates: true,
+        data: opts.targets.map(t => ({ ...t, ilpId: ilp.id })),
+      })
+    }
+    await prisma.learnerPassport.upsert({
+      where:  { id: opts.kplanId },
+      update: {},
+      create: {
+        id: opts.kplanId, schoolId: school.id, studentId: opts.studentId,
+        ilpId: ilp.id, sendInformation: opts.sendInfo,
+        teacherActions: opts.teacherActions, studentCommitments: opts.studentCommitments,
+        status: 'APPROVED', approvedBy: senco.id, approvedAt: new Date('2026-01-15'),
+      },
+    })
+    return ilp
+  }
+
+  // Sophie Chen — SpLD/Dyslexia (9E/En1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-sophie-chen', kplanId: 'seed-kplan-sophie-chen',
+    studentId: sophieChen.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Strong verbal reasoning; contributes well in class discussions. Good memory for texts read aloud. Motivated and responds well to positive feedback.',
+    areasOfNeed: 'Decoding multi-syllabic words under time pressure. Extended written expression — ideas outpace written output. Spelling of subject-specific vocabulary.',
+    strategies: [
+      'Provide writing frames and sentence starters for all extended tasks',
+      'Allow use of coloured overlay and larger-font printed resources',
+      'Pre-teach key vocabulary before the lesson',
+      'Accept bullet-point planning as an alternative to full prose drafting',
+      'Allow 25% extra time on timed written tasks',
+    ],
+    successCriteria: 'Independently produce a structured two-paragraph analytical response using a writing frame by end of Spring term.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Sophie has Specific Learning Difficulties (Dyslexia) affecting reading fluency and written output. Verbal comprehension is strong. Responds well to structured scaffolds and explicit vocabulary support.',
+    teacherActions: [
+      'Provide writing frames and sentence starters for extended tasks',
+      'Allow use of coloured overlay and larger-font resources',
+      'Pre-teach key vocabulary before the lesson',
+      'Allow 25% extra time on timed written tasks',
+    ],
+    studentCommitments: [
+      'Use the writing frame before starting any extended answer',
+      'Ask for vocabulary support if a word is unclear',
+    ],
+    targets: [{ id: 'seed-ilpt-sophie-1', target: 'Independently structure a two-paragraph analytical response using the writing frame', strategy: 'Writing frame provided before every extended task; teacher models use during lesson starter.', successMeasure: 'Uses frame without prompting on 3 consecutive written tasks.', targetDate: new Date('2026-06-20') }],
+  })
+
+  // Marcus Bell — SEMH (9E/En1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-marcus-bell', kplanId: 'seed-kplan-marcus-bell',
+    studentId: marcusBell.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Creative thinker with original ideas when engaged. Good at discussing texts orally. Capable of strong written work when motivated and in the right headspace.',
+    areasOfNeed: 'Emotional regulation — can disengage or become confrontational when anxious. Homework completion is inconsistent. Difficulty sustaining focus for extended tasks.',
+    strategies: [
+      'Quiet check-in before the lesson if there are known stressors',
+      'Give advance warning before cold-calling; never put Marcus on the spot without prior notice',
+      'Break tasks into small timed chunks with a clear checkpoint',
+      'Use a calm-down card or quiet-space protocol if emotional dysregulation begins',
+      'Acknowledge effort explicitly before commenting on accuracy',
+    ],
+    successCriteria: 'Complete at least 3 out of 5 homework tasks each half-term and remain on task for 80% of a 60-minute lesson.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Marcus has Social, Emotional and Mental Health needs. Can become anxious in unstructured situations or when called on unexpectedly. Responds best to predictable routines, positive reinforcement, and quiet 1:1 check-ins.',
+    teacherActions: [
+      'Check in quietly before the lesson if there are known stressors',
+      'Give advance warning before cold-calling',
+      'Break tasks into small chunks with a clear checkpoint',
+      'Use a calm-down card protocol if emotional dysregulation begins',
+    ],
+    studentCommitments: [
+      'Communicate if feeling overwhelmed before a task rather than after',
+      'Attempt each section before asking for help',
+    ],
+    targets: [{ id: 'seed-ilpt-marcus-1', target: 'Complete at least 3 out of 5 homework tasks per half-term', strategy: 'Homework broken into smaller sections; teacher provides a completion checklist.', successMeasure: '3+ tasks submitted per half-term to any standard.', targetDate: new Date('2026-06-20') }],
+  })
+
+  // Rosa Ferretti — EHCP/SpLD (10E/En2)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-rosa-ferretti', kplanId: 'seed-kplan-rosa-ferretti',
+    studentId: rosaFerretti.id, sendCategory: 'EHCP',
+    strengths: 'Determined and persistent — does not give up easily. Good verbal comprehension; can identify relevant evidence from texts when given structured support.',
+    areasOfNeed: 'Decoding, reading fluency and written expression significantly below age-related expectations. Difficulty organising written responses without a detailed scaffold.',
+    strategies: [
+      'Provide essay planning template before any extended writing task',
+      'Allow 25% extra time and laptop access for longer written tasks',
+      'Seat near the teacher, away from distractions',
+      'Pre-teach vocabulary and provide a glossary for new topics',
+      'Offer scribe or voice-to-text for assessed pieces where needed',
+    ],
+    successCriteria: 'Produce a structured essay plan and a full two-paragraph response using scaffold by end of Summer term.',
+    reviewDate: new Date('2026-07-01'),
+    sendInfo: 'Rosa has an EHCP — Specific Learning Difficulty (SpLD). EHCP provision: 25% extra time, laptop access, reader for examinations, writing frames in all subjects.',
+    teacherActions: [
+      'Provide essay planning template before extended writing',
+      'Allow 25% extra time and access to laptop for longer tasks',
+      'Seat near the teacher, away from distractions',
+      'Pre-teach vocabulary and provide a glossary',
+    ],
+    studentCommitments: [
+      'Use the planning template before starting any extended answer',
+      'Request the glossary if vocabulary is unclear',
+    ],
+    targets: [{ id: 'seed-ilpt-rosa-1', target: 'Produce a structured essay plan before writing using the provided template', strategy: 'Planning template provided before every extended task; modelled in lesson starter.', successMeasure: 'Uses template independently on 3 consecutive extended tasks.', targetDate: new Date('2026-07-01') }],
+  })
+
+  // Aaron Walsh — SEMH (10E/En2)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-aaron-walsh', kplanId: 'seed-kplan-aaron-walsh',
+    studentId: aaronWalsh.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Socially perceptive; responds well to genuine relationship-building. Capable of empathetic analytical responses when confident.',
+    areasOfNeed: 'Emotional dysregulation in stressful situations. Homework avoidance — often does not submit. Can become confrontational if challenged publicly about work.',
+    strategies: [
+      'Avoid public confrontation about incomplete work — address privately',
+      'Break tasks into small achievable chunks with individual check-ins',
+      'Use an exit pass or calm-down card if Aaron becomes dysregulated',
+      'Acknowledge partial attempts as positive engagement',
+      'Communicate upcoming assessments in advance to reduce anxiety',
+    ],
+    successCriteria: 'Complete at least 3 out of 5 homework tasks per half-term and manage classroom stress using self-regulation strategies on at least 2 occasions.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Aaron has Social, Emotional and Mental Health needs. Homework avoidance is a key concern. He responds poorly to public challenge but well to trusted adult relationships. Pastoral team involved.',
+    teacherActions: [
+      'Address incomplete work privately, never in front of peers',
+      'Break tasks into small chunks with individual check-ins',
+      'Use an exit pass if Aaron becomes dysregulated',
+      'Communicate upcoming assessments in advance',
+    ],
+    studentCommitments: [
+      'Attempt at least one section of each homework before the deadline',
+      'Use the calm-down card instead of leaving the room unannounced',
+    ],
+    targets: [{ id: 'seed-ilpt-aaron-1', target: 'Submit at least 3 homework tasks per half-term to any standard', strategy: 'Tasks broken into sections; partial submission accepted; teacher checks in individually.', successMeasure: '3+ tasks submitted per half-term.', targetDate: new Date('2026-06-20') }],
+  })
+
+  // Caitlin Fox — EHCP/C&I (11E/En1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-caitlin-fox', kplanId: 'seed-kplan-caitlin-fox',
+    studentId: caitlinFox.id, sendCategory: 'EHCP',
+    strengths: 'Conscientious and tries hard. Good factual recall for plot details. Responds well to clear, structured expectations and consistent classroom routines.',
+    areasOfNeed: 'Difficulty interpreting implicit meaning in texts and figurative language. Extended analytical writing is significantly underdeveloped. Misses implied instructions when given verbally only.',
+    strategies: [
+      'Give written instructions alongside all verbal explanations',
+      'Allow additional processing time before expecting a response',
+      'Use a clear visual lesson structure (objective → tasks → success criteria) on the board',
+      'Break analytical tasks into explicit steps with a worked example',
+      'Provide a sentence-starter sheet for all analytical paragraphs',
+    ],
+    successCriteria: 'Write a three-sentence analytical paragraph using the sentence-starter sheet independently on at least 3 occasions by end of term.',
+    reviewDate: new Date('2026-07-01'),
+    sendInfo: 'Caitlin has an EHCP — Communication and Interaction. Social communication difficulties affect interpretation of implicit meaning and response to verbal-only instructions. EHCP provision: written instructions in all subjects, processing time, laptop access, weekly mentor meeting.',
+    teacherActions: [
+      'Give written instructions alongside verbal explanations',
+      'Allow processing time before expecting a response',
+      'Use a clear visual lesson structure on the board',
+      'Provide sentence-starter sheet for analytical paragraphs',
+    ],
+    studentCommitments: [
+      'Ask for clarification if an instruction is unclear rather than guessing',
+      'Use the sentence-starter sheet before asking for help',
+    ],
+    targets: [{ id: 'seed-ilpt-caitlin-1', target: 'Write a three-sentence PEE paragraph using the sentence-starter sheet independently', strategy: 'Sentence-starter sheet provided before every analytical task; teacher models use.', successMeasure: 'Independently produces a full PEE paragraph on 3 consecutive tasks.', targetDate: new Date('2026-07-01') }],
+  })
+
+  // Michael Torres — Cognition & Learning (11E/En1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-michael-torres', kplanId: 'seed-kplan-michael-torres',
+    studentId: michaelT.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Resilient and good-natured. Quick to grasp concepts when demonstrated step by step. Good at identifying patterns in texts when not under time pressure.',
+    areasOfNeed: 'Working memory difficulties — struggles to hold multi-step instructions simultaneously. Processing speed below age-related expectations. Written output is slow under timed conditions.',
+    strategies: [
+      'Break instructions into single steps and check comprehension after each one',
+      'Provide a worked example before every independent task',
+      'Use concrete visual models (graphic organisers, concept maps)',
+      'Allow additional writing time; accept shorter responses of equivalent quality',
+      'Seat away from distractions; use a task-completion checklist',
+    ],
+    successCriteria: 'Complete at least 3 multi-step written tasks independently using a graphic organiser by end of term.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Michael has Cognition and Learning needs. Working memory difficulties mean he cannot hold multiple instructions simultaneously. Works best with step-by-step modelling, visual organisers, and clearly chunked tasks.',
+    teacherActions: [
+      'Break instructions into single steps',
+      'Provide a worked example before independent tasks',
+      'Use visual organisers and concept maps',
+      'Allow additional writing time',
+    ],
+    studentCommitments: [
+      'Use the task checklist to track progress through each activity',
+      'Ask for a worked example if unsure how to start',
+    ],
+    targets: [{ id: 'seed-ilpt-michael-1', target: 'Complete a multi-step written task using a graphic organiser without teacher prompting', strategy: 'Graphic organiser provided before every multi-step task; teacher models in lesson starter.', successMeasure: 'Independently completes task with organiser on 3 consecutive occasions.', targetDate: new Date('2026-06-20') }],
+  })
+
+  // Tyler Nash — SEMH (10M/Ma1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-tyler-nash', kplanId: 'seed-kplan-tyler-nash',
+    studentId: tylerNash.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Gets correct answers when working at own pace. Responds well to low-stakes practice. Has improved significantly in willingness to attempt tasks this year.',
+    areasOfNeed: 'Significant anxiety around Maths performance and fear of failure in front of peers. Homework avoidance is a consistent pattern. Reluctant to ask for help when stuck.',
+    strategies: [
+      'Acknowledge effort before accuracy in all feedback',
+      'Start each lesson with a short achievable starter activity Tyler can succeed at',
+      'Accept partial homework submissions without penalty; follow up privately',
+      'Avoid asking Tyler to perform on the board in front of peers without consent',
+      'Provide a pre-worked example alongside each homework task',
+    ],
+    successCriteria: 'Submit at least 3 homework tasks per half-term and attempt a full question set (Q1–3) without support on at least 2 occasions.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Tyler has Social, Emotional and Mental Health needs. Maths performance anxiety drives avoidance. Responds best to low-stakes starts, private check-ins, and explicit praise for effort.',
+    teacherActions: [
+      'Acknowledge effort before accuracy',
+      'Offer an achievable starter activity to build confidence',
+      'Accept partial homework submission without penalty',
+      'Avoid cold-calling Tyler to perform on the board without consent',
+    ],
+    studentCommitments: [
+      'Attempt at least Q1–3 of every homework before the deadline',
+      'Signal if feeling anxious rather than shutting down',
+    ],
+    targets: [{ id: 'seed-ilpt-tyler-1', target: 'Submit at least 3 homework tasks per half-term to any standard', strategy: 'Pre-worked example provided; partial submission accepted; teacher follows up privately.', successMeasure: '3+ tasks submitted per half-term.', targetDate: new Date('2026-06-20') }],
+  })
+
+  // Layla Hassan — SpLD/Dyslexia (10M/Ma1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-layla-hassan', kplanId: 'seed-kplan-layla-hassan',
+    studentId: laylaHassan.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Good mental arithmetic and pattern recognition. Understands mathematical concepts well when explained verbally or with visual models. Resilient and does not give up easily.',
+    areasOfNeed: 'Decoding mathematical notation and multi-syllabic vocabulary. Spatial processing of longer written methods. Written output is slow under timed conditions.',
+    strategies: [
+      'Provide enlarged-print or zoomed worksheets for all written tasks',
+      'Allow use of number line, multiplication grid, and calculator where appropriate',
+      'Give a step-by-step method card for all multi-stage calculations',
+      'Pre-teach mathematical vocabulary before new topic introductions',
+      'Allow 25% extra time on timed tasks',
+    ],
+    successCriteria: 'Independently complete a 5-question algebra task using the method card within extended time by end of term.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Layla has Specific Learning Difficulties (Dyslexia) affecting decoding of complex written mathematical notation and written working speed. Visual and verbal processing strengths can be leveraged with appropriate scaffolding.',
+    teacherActions: [
+      'Provide large-print or zoomed worksheets',
+      'Allow use of number line and multiplication grid',
+      'Give step-by-step method card for multi-stage calculations',
+      'Allow 25% extra time on timed tasks',
+    ],
+    studentCommitments: [
+      'Use the method card for multi-stage calculations',
+      'Ask for a zoomed copy of the worksheet if the text is unclear',
+    ],
+    targets: [{ id: 'seed-ilpt-layla-1', target: 'Independently complete a 5-question algebra task using the method card within extended time', strategy: 'Method card provided before every algebra task; teacher checks Layla has the correct card.', successMeasure: 'Completes 5-question set independently with method card on 3 consecutive occasions.', targetDate: new Date('2026-06-20') }],
+  })
+
+  // Fatima Al-Amin — Speech, Language & Communication (9E/En1)
+  await seedIlpAndKPlan({
+    ilpId: 'seed-ilp-fatima-alamin', kplanId: 'seed-kplan-fatima-alamin',
+    studentId: fatimaAlAmin.id, sendCategory: 'SEN_SUPPORT',
+    strengths: 'Highly motivated and conscientious — always attempts homework and engages positively with feedback. Good listening skills and strong comprehension when given sufficient processing time.',
+    areasOfNeed: 'Expressive language — takes significantly longer to formulate verbal responses. Can struggle to access meaning from dense written texts without scaffolded support.',
+    strategies: [
+      'Allow processing time after asking a question — wait at least 10 seconds before prompting',
+      'Seat near the front to facilitate direct teacher communication',
+      'Provide all instructions in written form alongside verbal delivery',
+      'Pre-teach key vocabulary before the lesson using a visual word bank',
+      'Accept written responses where verbal responses are expected when needed',
+    ],
+    successCriteria: 'Independently formulate and deliver a verbal analytical response of 2+ sentences in 3 out of 5 class discussions by end of term.',
+    reviewDate: new Date('2026-06-20'),
+    sendInfo: 'Fatima has Speech, Language and Communication needs. Expressive language processing takes longer than peers. Benefits from advance notice of questions, processing time, and written supports alongside verbal instructions. NHS SALT sessions fortnightly.',
+    teacherActions: [
+      'Allow processing time — wait 10 seconds after asking Fatima a question',
+      'Seat near the front',
+      'Provide written instructions alongside verbal delivery',
+    ],
+    studentCommitments: [
+      'Prepare a written note before class discussions to support verbal responses',
+      'Ask for written instructions if unclear rather than guessing',
+    ],
+    targets: [
+      { id: 'seed-ilpt-fatima-1', target: 'Independently formulate a verbal analytical response of 2+ sentences in class discussion', strategy: 'Pre-warn Fatima of questions; allow processing time; accept written note as scaffold.', successMeasure: '2+ sentence verbal response in 3 of 5 class discussions.', targetDate: new Date('2026-06-20') },
+      { id: 'seed-ilpt-fatima-2', target: 'Decode and follow multi-step written instructions independently without teacher support', strategy: 'Provide written instructions before verbal; visual word bank for new vocabulary.', successMeasure: 'Starts task from written instruction alone on 3 consecutive occasions.', targetDate: new Date('2026-06-20') },
+      { id: 'seed-ilpt-fatima-3', target: 'Write a two-paragraph structured analytical response using sentence-starter scaffold', strategy: 'Sentence-starter sheet provided; written vocabulary bank; teacher checks start before moving on.', successMeasure: 'Produces a full 2-paragraph response with scaffold on 3 consecutive tasks.', targetDate: new Date('2026-06-20') },
+    ],
+  })
+
+  console.log('  ✓ ILP + K Plan — 9 SEND students (Sophie Chen, Marcus Bell, Rosa Ferretti, Aaron Walsh, Caitlin Fox, Michael Torres, Tyler Nash, Layla Hassan, Fatima Al-Amin)')
+
+  // ── EhcpPlan records for Rosa Ferretti & Caitlin Fox ──────────────────────
+  await prisma.ehcpPlan.upsert({
+    where:  { id: 'seed-ehcp-rosa-ferretti' },
+    update: {},
+    create: {
+      id: 'seed-ehcp-rosa-ferretti', schoolId: school.id,
+      studentId: rosaFerretti.id, createdBy: senco.id,
+      localAuthority: 'Oakfield Metropolitan Borough Council',
+      planDate: new Date('2024-09-01'), reviewDate: new Date('2026-07-01'),
+      coordinatorName: 'Ms J. Freeman', status: 'active',
+      outcomes: {
+        create: [
+          {
+            section: 'B',
+            outcomeText: 'Rosa will independently read and interpret GCSE-level written texts using phonics and contextual strategies.',
+            successCriteria: 'Reading comprehension score at or above 60% on standardised assessment at annual review.',
+            targetDate: new Date('2026-07-01'),
+            provisionRequired: 'Coloured overlay, enlarged print, reader for examinations, 25% extra time.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Rosa will produce a structured two-paragraph essay response using a writing frame with decreasing scaffolding across the year.',
+            successCriteria: 'Three consecutive homework tasks producing a full two-paragraph response to teacher standard.',
+            targetDate: new Date('2026-07-01'),
+            provisionRequired: 'Writing frame and planning template in all subjects. Laptop access. Scribe available for assessments.',
+            status: 'active', evidenceCount: 0,
+          },
+        ],
+      },
+    },
+  })
+
+  await prisma.ehcpPlan.upsert({
+    where:  { id: 'seed-ehcp-caitlin-fox' },
+    update: {},
+    create: {
+      id: 'seed-ehcp-caitlin-fox', schoolId: school.id,
+      studentId: caitlinFox.id, createdBy: senco.id,
+      localAuthority: 'Oakfield Metropolitan Borough Council',
+      planDate: new Date('2024-09-01'), reviewDate: new Date('2026-07-01'),
+      coordinatorName: 'Ms J. Freeman', status: 'active',
+      outcomes: {
+        create: [
+          {
+            section: 'C',
+            outcomeText: 'Caitlin will demonstrate two self-regulation strategies when experiencing anxiety in a classroom setting.',
+            successCriteria: 'Pastoral log records independent use of strategies on at least 5 occasions per half-term.',
+            targetDate: new Date('2026-07-01'),
+            provisionRequired: 'Weekly mentor meeting. Calm-down card. Access to pastoral room.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Caitlin will independently follow written instructions to complete a structured analytical task without teacher support.',
+            successCriteria: 'Completes a 3-step written task from written instructions alone on 3 consecutive occasions.',
+            targetDate: new Date('2026-07-01'),
+            provisionRequired: 'Written instructions alongside verbal in all subjects. Sentence-starter sheets. Processing time.',
+            status: 'active', evidenceCount: 0,
+          },
+        ],
+      },
+    },
+  })
+
+  console.log('  ✓ EhcpPlan records — Rosa Ferretti (10E/En2), Caitlin Fox (11E/En1)')
+
   // ── Homework: add more to existing + new published ones ───────────────────
 
   // Look up existing homework
@@ -1505,6 +1885,52 @@ async function main() {
   })
 
   console.log('  ✓ 2 new homework assignments (Yr11 Romeo & Juliet, Yr10 Maths Algebra)')
+
+  // ── 3 past homeworks for 9E/En1 — used for Fatima Al-Amin's RAG submissions ─
+  // max=20 → score 10 = 50%; max=25 → score 12 = 48%; max=20 → score 11 = 55%
+  await prisma.homework.upsert({
+    where:  { id: 'demo-hw-9e-birling' },
+    update: {},
+    create: {
+      id: 'demo-hw-9e-birling', schoolId: school.id, classId: cls9.id,
+      title: 'Character Analysis — How does Priestley present Mr Birling?',
+      instructions: 'Write two paragraphs analysing how Priestley uses Mr Birling to criticise capitalist attitudes. Use at least one quotation and explain the language choices.',
+      modelAnswer: 'Priestley presents Mr Birling as a symbol of capitalist arrogance. The dramatic irony of his claim that the Titanic is "unsinkable" positions him as deluded and morally blind from the very start of the play. By having a 1945 audience watch a 1912 businessman confidently predict a future they know to be catastrophic, Priestley invites us to distrust everything Birling says.',
+      gradingBands: { '0-5': 'Descriptive response with limited textual reference.', '6-10': 'Some analysis with a quotation identified.', '11-15': 'Clear analytical writing with language analysis.', '16-20': 'Detailed, perceptive analysis with sophisticated language focus.' },
+      dueAt: daysAgo(21), status: HomeworkStatus.CLOSED,
+      type: HomeworkType.SHORT_ANSWER, releasePolicy: ReleasePolicy.AUTO_OBJECTIVE,
+      maxAttempts: 1, createdBy: created['j.patel'].id,
+    },
+  })
+  await prisma.homework.upsert({
+    where:  { id: 'demo-hw-9e-quiz' },
+    update: {},
+    create: {
+      id: 'demo-hw-9e-quiz', schoolId: school.id, classId: cls9.id,
+      title: 'Themes Quiz — Power and Control in An Inspector Calls',
+      instructions: 'Answer all 5 questions using full sentences. You must use at least one quotation in your answers.',
+      modelAnswer: 'Power in AIC is exercised through wealth, gender, and social class. The Inspector subverts all three by the end of Act Three, exposing how each Birling used power to avoid responsibility.',
+      gradingBands: { '0-5': 'Minimal understanding shown.', '6-10': 'Some accurate responses.', '11-15': 'Most questions answered accurately with textual support.', '16-20': 'All questions answered with perceptive analysis and well-chosen quotations.', '21-25': 'Exceptional depth and range — every answer explores nuance.' },
+      dueAt: daysAgo(14), status: HomeworkStatus.CLOSED,
+      type: HomeworkType.SHORT_ANSWER, releasePolicy: ReleasePolicy.AUTO_OBJECTIVE,
+      maxAttempts: 1, createdBy: created['j.patel'].id,
+    },
+  })
+  await prisma.homework.upsert({
+    where:  { id: 'demo-hw-9e-closeread' },
+    update: {},
+    create: {
+      id: 'demo-hw-9e-closeread', schoolId: school.id, classId: cls9.id,
+      title: 'Close Reading — Act 1 Opening Scene',
+      instructions: 'Read the opening of Act 1 carefully and answer: How does Priestley establish the Birling family as morally flawed? Write two paragraphs — one on staging/setting and one on character dialogue.',
+      modelAnswer: 'The ostentatious champagne and celebratory mood of the opening contrast sharply with what the audience will come to learn — that this family is morally bankrupt. Priestley deliberately opens with prosperity to expose it as hollow.',
+      gradingBands: { '0-5': 'Descriptive comment on what happens.', '6-10': 'Some link between staging/dialogue and meaning.', '11-15': 'Clear analytical paragraphs with textual detail.', '16-20': 'Insightful structural analysis with language focus.' },
+      dueAt: daysAgo(7), status: HomeworkStatus.CLOSED,
+      type: HomeworkType.EXTENDED_WRITING, releasePolicy: ReleasePolicy.TEACHER_EXTENDED,
+      maxAttempts: 1, createdBy: created['j.patel'].id,
+    },
+  })
+  console.log('  ✓ 3 past 9E/En1 homeworks for Fatima Al-Amin RAG submissions')
 
   // ── Bulk submissions ──────────────────────────────────────────────────────
   type SubInput = {
@@ -1582,9 +2008,15 @@ async function main() {
       { hwId: hwAic.id, studentId: marcusBell.id,
         content: 'Priestley wrote the play in 1945. The Birlings are a posh family. The Inspector asks about Eva Smith.',
         status: SubmissionStatus.SUBMITTED, daysAgoSub: 0 },
+      // Fatima Al-Amin — SLCN, score 4/9 = 44% → contributes to AMBER RAG status
+      { hwId: hwAic.id, studentId: fatimaAlAmin.id,
+        content: 'The play was set in 1912 but written in 1945. Priestley wanted people to think about how we treat each other. The Birlings are selfish because they only care about money and their reputation. Priestley thinks this is wrong.',
+        status: SubmissionStatus.RETURNED, score: 4, grade: '4',
+        feedback: 'Fatima, I can see you have understood the core message about responsibility — well done for identifying the time gap between the setting and writing date. To improve, try to connect this gap to what Priestley was saying to his 1945 audience specifically. What had happened in between? The written vocabulary bank from Monday is in the lesson folder — use it to help you phrase your ideas.',
+        tags: ['limited_contextual_detail'], daysAgoSub: 22 },
     ]
     for (const sub of aicSubs) await upsertSub(sub)
-    console.log('  ✓ AIC homework: 8 submissions added for 9E/En1')
+    console.log('  ✓ AIC homework: 9 submissions added for 9E/En1 (incl. Fatima Al-Amin)')
   }
 
   if (hwMacbeth) {
@@ -1718,6 +2150,28 @@ async function main() {
   ]
   for (const sub of algebraSubs) await upsertSub(sub)
   console.log('  ✓ Algebra homework: 8 submissions added for 10M/Ma1')
+
+  // ── Fatima Al-Amin — 3 additional returned submissions for 9E/En1 ──────────
+  // Scores: 10/20=50%, 12/25=48%, 11/20=55% → avg with AIC 44% = ~49% → AMBER vs prediction 58%
+  const fatimaSubs: SubInput[] = [
+    { hwId: 'demo-hw-9e-birling',   studentId: fatimaAlAmin.id,
+      content: 'Priestley uses Mr Birling to show that rich people in 1912 thought only about money. He says things like he is not responsible for his workers. This is selfish. Priestley disagrees with this attitude and uses the play to show it is wrong.',
+      status: SubmissionStatus.RETURNED, score: 10, grade: '5',
+      feedback: 'Fatima, you have identified the key idea that Priestley disagrees with Birling\'s attitudes — that is a strong foundation. To push higher, try to quote Birling\'s exact words (e.g. "a man has to look after himself and his own") and explain the specific language. What does "look after himself" suggest about his values? The sentence-starter sheet is in the lesson folder — use it to structure your analysis.',
+      tags: ['quotation_not_used'], daysAgoSub: 20 },
+    { hwId: 'demo-hw-9e-quiz',      studentId: fatimaAlAmin.id,
+      content: 'Power in AIC is about money. The Inspector has moral power. Mr Birling has money but the Inspector shows he is wrong. Women in the play have less power like Sheila and Eva Smith. Eva Smith is powerless because she is poor and a woman.',
+      status: SubmissionStatus.RETURNED, score: 12, grade: '5',
+      feedback: 'Fatima, good identification of the different types of power — moral vs financial is exactly the right distinction to make. Your point about Eva Smith being doubly disadvantaged is insightful. For a higher mark, develop one of these ideas with a specific quotation and analyse the language. What does a particular word or phrase tell us about power in the play?',
+      tags: ['ideas_underdeveloped'], daysAgoSub: 13 },
+    { hwId: 'demo-hw-9e-closeread', studentId: fatimaAlAmin.id,
+      content: 'The opening scene shows a wealthy family eating and celebrating. The stage directions say the lighting is pink and intimate which makes them seem comfortable and happy. But we know from the rest of the play that they are not good people. Priestley wants us to notice the contrast between how they look at the start and who they really are. In the dialogue Mr Birling talks a lot about business and money which shows his priorities.',
+      status: SubmissionStatus.RETURNED, score: 11, grade: '6',
+      feedback: 'Excellent observation on the stage directions, Fatima — "pink and intimate" is exactly the right detail to focus on and your point about contrast is very perceptive. This is your best piece yet. To push to 7–8, analyse the specific word "intimate" — what connotations does it carry, and how does Priestley use lighting to create a false sense of closeness in a family that will later fall apart?',
+      tags: [], daysAgoSub: 6 },
+  ]
+  for (const sub of fatimaSubs) await upsertSub(sub)
+  console.log('  ✓ Fatima Al-Amin: 4 submissions total (44%, 50%, 48%, 55%) → avg ~49% → AMBER RAG vs prediction 58%')
 
   // ── Parent conversations with messages ────────────────────────────────────
   const lauraHughes = await prisma.user.findUniqueOrThrow({ where: { email: 'l.hughes@parents.omnisdemo.school' } })
@@ -2213,9 +2667,10 @@ async function main() {
   const ragSophia = await prisma.user.findUniqueOrThrow({ where: { email: 's.ahmed@students.omnisdemo.school' } })
 
   const baselines9E = [
-    { studentId: ragAiden.id,  subject: 'English', baselineScore: 72, source: 'KS2' },
-    { studentId: ragMaya.id,   subject: 'English', baselineScore: 68, source: 'KS2' },
-    { studentId: ragSophia.id, subject: 'English', baselineScore: 68, source: 'KS2' },
+    { studentId: ragAiden.id,      subject: 'English', baselineScore: 72, source: 'KS2' },
+    { studentId: ragMaya.id,       subject: 'English', baselineScore: 68, source: 'KS2' },
+    { studentId: ragSophia.id,     subject: 'English', baselineScore: 68, source: 'KS2' },
+    { studentId: fatimaAlAmin.id,  subject: 'English', baselineScore: 52, source: 'KS2' },
   ]
   for (const b of baselines9E) {
     await prisma.studentBaseline.upsert({
@@ -2226,9 +2681,10 @@ async function main() {
   }
 
   const predictions9E = [
-    { studentId: ragAiden.id,  predictedScore: 75, adjustment: 0, notes: 'Strong analytical writer; on track for Grade 7+' },
-    { studentId: ragMaya.id,   predictedScore: 70, adjustment: 0, notes: null },
-    { studentId: ragSophia.id, predictedScore: 72, adjustment: 0, notes: 'Consistent progress; predicted Grade 6–7 range' },
+    { studentId: ragAiden.id,     predictedScore: 75, adjustment: 0, notes: 'Strong analytical writer; on track for Grade 7+' },
+    { studentId: ragMaya.id,      predictedScore: 70, adjustment: 0, notes: null },
+    { studentId: ragSophia.id,    predictedScore: 72, adjustment: 0, notes: 'Consistent progress; predicted Grade 6–7 range' },
+    { studentId: fatimaAlAmin.id, predictedScore: 58, adjustment: 0, notes: 'SLCN — working hard; predicted Grade 4–5 range. Monitor expressive language in extended writing tasks.' },
   ]
   for (const p of predictions9E) {
     await prisma.teacherPrediction.upsert({
@@ -2237,7 +2693,7 @@ async function main() {
       create: { studentId: p.studentId, teacherId: created['j.patel'].id, schoolId: school.id, subject: 'English', termLabel: RAG_TERM, predictedScore: p.predictedScore, adjustment: p.adjustment, notes: p.notes },
     })
   }
-  console.log('  ✓ RAG demo data — StudentBaseline × 8, TeacherPrediction × 8, Submission × 5 (8M/Ma1 algebra)')
+  console.log('  ✓ RAG demo data — StudentBaseline × 9, TeacherPrediction × 9, Submission × 5 (8M/Ma1 algebra)')
 
   // ── SEND data for Rehan Ali (8M/Ma1) ────────────────────────────────────────
   // SendStatus, IndividualLearningPlan + IlpTargets, LearnerPassport (K Plan)

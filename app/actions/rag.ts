@@ -44,20 +44,23 @@ export type SavePredictionInput = {
 
 /**
  * Derive maxScore from a homework's gradingBands JSON.
- * Identical logic to maxFromBandsServer() in app/actions/lessons.ts.
+ * Defaults to 9 (consistent with maxFromBandsServer in lessons.ts) so that
+ * homework with no explicit gradingBands is treated as out-of-9 rather than
+ * out-of-100 — preventing raw scores like 4 from appearing as 4% instead of 44%.
  */
 function maxFromBands(bands: unknown): number {
-  if (!bands || typeof bands !== 'object') return 100
+  if (!bands || typeof bands !== 'object') return 9
   const keys = Object.keys(bands as Record<string, string>)
   const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
-  return nums.length ? Math.max(...nums) : 100
+  return nums.length ? Math.max(...nums) : 9
 }
 
-/** Normalise a raw finalScore to 0-100 using the homework's gradingBands. */
+/** Normalise a raw finalScore to 0-100 using the homework's gradingBands.
+ *  Always produces a value in [0, 100] — never returns impossible percentages. */
 function toPercent(finalScore: number, bands: unknown): number {
   const max = maxFromBands(bands)
-  if (max <= 0 || max === 100) return Math.round(finalScore)
-  return Math.round((finalScore / max) * 100)
+  if (max <= 0) return 0
+  return Math.min(100, Math.round((finalScore / max) * 100))
 }
 
 // ── RAG logic ─────────────────────────────────────────────────────────────────

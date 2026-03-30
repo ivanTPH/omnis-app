@@ -155,7 +155,7 @@ tail -f /tmp/omnis-dev.log
 /homework                   Homework list + filters
 /homework/[id]              Homework detail — pupil list, marking panel
 /homework/[id]/mark/[subId] Full-page per-submission marking
-/classes                    Class list with student rosters
+/classes                    My Classes — class filter + full roster (TEACHER primary nav; replaces separate Plans + Analytics links)
 /analytics                  Unified analytics — Classes + Students tabs (all staff)
 /analytics/adaptive         Adaptive learning analytics
 /settings                   User settings (5 tabs: Profile, Professional, Privacy, Sharing, Password)
@@ -368,7 +368,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 
 | Role | Nav items |
 |---|---|
-| TEACHER | Calendar, Homework, Classes, Analytics, Adaptive Learning, AI Generator, Messages |
+| TEACHER | Calendar, Homework, My Classes (/classes — roster + plans), Revision, Adaptive Learning, AI Generator, Messages |
 | HEAD_OF_DEPT | Calendar, Homework, Classes, Analytics, Adaptive Learning, AI Generator, Messages |
 | HEAD_OF_YEAR | Calendar, Analytics, Student Analytics, SEND Concerns, Messages |
 | SENCO | SEND Dashboard, Concerns, ILP, Early Warning, EHCP Plans, ILP Evidence, Analytics, Resource Scorer, AI Generator, Messages |

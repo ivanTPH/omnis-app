@@ -12,15 +12,14 @@ type NavItem =
 
 const navByRole: Record<string, NavItem[]> = {
   TEACHER: [
-    { label: 'Calendar',             href: '/dashboard',          icon: 'calendar_today'  },
-    { label: 'Homework',             href: '/homework',           icon: 'assignment'       },
-    { label: 'Revision',             href: '/revision-program',   icon: 'bookmark'         },
-    { label: 'Classes & Analytics',  href: '/analytics',          icon: 'groups'           },
-    { label: 'Plans',                href: '/plans',              icon: 'folder'           },
-    { label: 'Messages',             href: '/messages',           icon: 'chat'             },
-    { label: 'Notifications',        href: '/notifications',      icon: 'notifications'    },
-    { label: 'Adaptive Learning',    href: '/analytics/adaptive', icon: 'psychology'       },
-    { label: 'AI Generator',         href: '/ai-generator',       icon: 'auto_fix_high'    },
+    { label: 'Calendar',          href: '/dashboard',          icon: 'calendar_today' },
+    { label: 'Homework',          href: '/homework',           icon: 'assignment'     },
+    { label: 'My Classes',        href: '/classes',            icon: 'groups'         },
+    { label: 'Revision',          href: '/revision-program',   icon: 'bookmark'       },
+    { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: 'psychology'     },
+    { label: 'AI Generator',      href: '/ai-generator',       icon: 'auto_fix_high'  },
+    { label: 'Messages',          href: '/messages',           icon: 'chat'           },
+    { label: 'Notifications',     href: '/notifications',      icon: 'notifications'  },
   ],
   HEAD_OF_DEPT: [
     { label: 'Calendar',             href: '/dashboard',          icon: 'calendar_today'  },

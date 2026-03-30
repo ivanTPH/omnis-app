@@ -14,6 +14,7 @@ import {
 import {
   getCurrentUserRole,
   getClassKPlanSummaries,
+  getClassEhcpSectionF,
   getStudentIlp,
   type LearnerPassportRow,
   type IlpWithTargets,
@@ -93,7 +94,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [kPlanFullCache, setKPlanFullCache] = useState<Record<string, LearnerPassportRow | 'loading'>>({})
   const [kPlanChecked,   setKPlanChecked]   = useState<Record<string, boolean[]>>({})
 
-  const [ragMap, setRagMap] = useState<Record<string, RagStudent>>({})
+  const [ragMap,       setRagMap]       = useState<Record<string, RagStudent>>({})
+  // EHCP Section F provisions keyed by studentId — loaded at class level for quick tips
+  const [ehcpTipsMap,  setEhcpTipsMap]  = useState<Record<string, string[]>>({})
 
   const [docSlideOver, setDocSlideOver] = useState<{ studentId: string; studentName: string; docType: DocSlideOverDocType } | null>(null)
 
@@ -112,14 +115,16 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       getCurrentUserRole(),
       getClassKPlanSummaries(classId),
       getClassRagData(classId),
+      getClassEhcpSectionF(classId),
     ])
-      .then(([r, role, kplans, rag]) => {
+      .then(([r, role, kplans, rag, ehcpTips]) => {
         setRows(r)
         setUserRole(role ?? 'TEACHER')
         setKPlanMap(kplans)
         const rm: Record<string, RagStudent> = {}
         for (const s of rag) rm[s.id] = s
         setRagMap(rm)
+        setEhcpTipsMap(ehcpTips)
       })
       .catch(() => setError('Could not load class roster.'))
       .finally(() => setLoading(false))
@@ -322,8 +327,24 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           const kPlanAdjustments = kPlan?.teacherActions ?? []
           const hasAdjustments   = kPlanAdjustments.length > 0 || ehcpSectionF.length > 0
 
-          // Quick tip from K Plan
-          const quickTip = kPlan && kPlanAdjustments.length > 0 ? kPlanAdjustments[0] : null
+          // Quick tip: up to 2 tips from K Plan, or EHCP Section F as fallback
+          const kPlanTips = kPlanAdjustments.slice(0, 2)
+          const ehcpFallbackTips = ehcpTipsMap[row.id]?.slice(0, 2) ?? []
+          const tipParts  = kPlanTips.length > 0 ? kPlanTips : ehcpFallbackTips
+          const quickTip  = tipParts.length > 0 ? tipParts.join(' · ') : null
+
+          // Performance indicators
+          // Computes coloured dot status for working-at vs a reference score
+          function perfIndicator(working: number | null, reference: number | null): 'green' | 'amber' | 'red' | 'no_data' {
+            if (working == null || reference == null) return 'no_data'
+            const diff = working - reference
+            if (diff >= -5)  return 'green'
+            if (diff >= -15) return 'amber'
+            return 'red'
+          }
+          const workingAt        = ragStudent?.workingAtScore ?? null
+          const baselineStatus   = perfIndicator(workingAt, ragStudent?.baselineScore ?? null)
+          const predictionStatus = perfIndicator(workingAt, ragStudent?.prediction?.effectiveScore ?? null)
 
           return (
             <div key={row.id}>
@@ -408,6 +429,31 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                  {/* Performance indicator dots */}
+                  <span
+                    title={
+                      baselineStatus === 'no_data'
+                        ? 'Baseline: No prior attainment data set'
+                        : baselineStatus === 'green'
+                          ? 'Baseline: Meeting or close to prior attainment baseline'
+                          : baselineStatus === 'amber'
+                            ? 'Baseline: Slightly below prior attainment baseline (6–15%)'
+                            : 'Baseline: Significantly below prior attainment baseline (>15%)'
+                    }
+                    className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[baselineStatus]}`}
+                  />
+                  <span
+                    title={
+                      predictionStatus === 'no_data'
+                        ? 'Prediction: No teacher prediction set'
+                        : predictionStatus === 'green'
+                          ? 'Prediction: Meeting or close to teacher adjusted prediction'
+                          : predictionStatus === 'amber'
+                            ? 'Prediction: Slightly below teacher adjusted prediction (6–15%)'
+                            : 'Prediction: Significantly below teacher adjusted prediction (>15%)'
+                    }
+                    className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[predictionStatus]}`}
+                  />
                   {/* RAG dot */}
                   {ragStudent && ragStudent.ragStatus !== 'no_data' && (
                     <span

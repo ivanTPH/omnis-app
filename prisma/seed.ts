@@ -2127,12 +2127,14 @@ async function main() {
   // Also seed English predictions for j.patel's 9E/En1 class so the English RAG
   // view shows coloured dots.  Aiden Hughes already has a RETURNED AIC submission
   // (finalScore 7, maxScore 9 from gradingBands → 78%).
-  const ragAiden = created['a.hughes']
-  const ragMaya  = created['m.johnson']
+  const ragAiden  = created['a.hughes']
+  const ragMaya   = created['m.johnson']
+  const ragSophia = await prisma.user.findUniqueOrThrow({ where: { email: 's.ahmed@students.omnisdemo.school' } })
 
   const baselines9E = [
-    { studentId: ragAiden.id, subject: 'English', baselineScore: 72, source: 'KS2' },
-    { studentId: ragMaya.id,  subject: 'English', baselineScore: 68, source: 'KS2' },
+    { studentId: ragAiden.id,  subject: 'English', baselineScore: 72, source: 'KS2' },
+    { studentId: ragMaya.id,   subject: 'English', baselineScore: 68, source: 'KS2' },
+    { studentId: ragSophia.id, subject: 'English', baselineScore: 68, source: 'KS2' },
   ]
   for (const b of baselines9E) {
     await prisma.studentBaseline.upsert({
@@ -2143,8 +2145,9 @@ async function main() {
   }
 
   const predictions9E = [
-    { studentId: ragAiden.id, predictedScore: 75, adjustment: 0, notes: 'Strong analytical writer; on track for Grade 7+' },
-    { studentId: ragMaya.id,  predictedScore: 70, adjustment: 0, notes: null },
+    { studentId: ragAiden.id,  predictedScore: 75, adjustment: 0, notes: 'Strong analytical writer; on track for Grade 7+' },
+    { studentId: ragMaya.id,   predictedScore: 70, adjustment: 0, notes: null },
+    { studentId: ragSophia.id, predictedScore: 72, adjustment: 0, notes: 'Consistent progress; predicted Grade 6–7 range' },
   ]
   for (const p of predictions9E) {
     await prisma.teacherPrediction.upsert({
@@ -2153,7 +2156,7 @@ async function main() {
       create: { studentId: p.studentId, teacherId: created['j.patel'].id, schoolId: school.id, subject: 'English', termLabel: RAG_TERM, predictedScore: p.predictedScore, adjustment: p.adjustment, notes: p.notes },
     })
   }
-  console.log('  ✓ RAG demo data — StudentBaseline × 7, TeacherPrediction × 7, Submission × 5 (8M/Ma1 algebra)')
+  console.log('  ✓ RAG demo data — StudentBaseline × 8, TeacherPrediction × 8, Submission × 5 (8M/Ma1 algebra)')
 
   // ── SEND data for Rehan Ali (8M/Ma1) ────────────────────────────────────────
   // SendStatus, IndividualLearningPlan + IlpTargets, LearnerPassport (K Plan)

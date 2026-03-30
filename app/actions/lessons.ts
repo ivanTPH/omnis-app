@@ -768,8 +768,8 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         user: {
           include: {
             sendStatus: { select: { activeStatus: true, needArea: true } },
-            plans: {
-              where:  { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
+            studentIlps: {
+              where:  { schoolId, status: { in: ['active', 'under_review'] } },
               take:   1,
               select: { id: true },
             },
@@ -796,7 +796,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         avatarUrl:       e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
         sendStatus:      e.user.sendStatus?.activeStatus ?? 'NONE',
         needArea:        e.user.sendStatus?.needArea ?? null,
-        hasIlp:          e.user.plans.length > 0,
+        hasIlp:          e.user.studentIlps.length > 0,
         latestScore:     score,
         maxScore:        sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
         supportSnapshot: e.user.supportSnapshot ?? null,

@@ -2155,6 +2155,104 @@ async function main() {
   }
   console.log('  ✓ RAG demo data — StudentBaseline × 7, TeacherPrediction × 7, Submission × 5 (8M/Ma1 algebra)')
 
+  // ── SEND data for Rehan Ali (8M/Ma1) ────────────────────────────────────────
+  // SendStatus, IndividualLearningPlan + IlpTargets, LearnerPassport (K Plan)
+  // so document badges and Classroom Adjustments render in the Class tab.
+
+  const rehanUserId = rehanAli.id
+
+  // SendStatus — SEN_SUPPORT
+  await prisma.sendStatus.upsert({
+    where:  { studentId: rehanUserId },
+    update: { activeStatus: 'SEN_SUPPORT', needArea: 'Communication and Interaction' },
+    create: {
+      studentId:    rehanUserId,
+      activeStatus: 'SEN_SUPPORT',
+      needArea:     'Communication and Interaction',
+    },
+  })
+
+  // IndividualLearningPlan
+  const rehanIlp = await prisma.individualLearningPlan.upsert({
+    where:  { id: 'seed-ilp-rehan-ali' },
+    update: {},
+    create: {
+      id:              'seed-ilp-rehan-ali',
+      schoolId:        school.id,
+      studentId:       rehanUserId,
+      createdBy:       created['r.morris'].id,
+      sendCategory:    'SEN_SUPPORT',
+      currentStrengths:'Enthusiastic in class discussions; strong visual-spatial reasoning; responds well to structured tasks.',
+      areasOfNeed:     'Extended writing — difficulty organising paragraphs under time pressure. Processing speed when reading multi-step problems.',
+      strategies:      [
+        'Break multi-step problems into clearly numbered sub-tasks',
+        'Allow extra 10% time on timed written tasks',
+        'Use graphic organisers before extended writing',
+        'Seat at the front to reduce distractions',
+      ],
+      successCriteria: 'Independently structure a 4-paragraph extended answer using a planning frame by end of term.',
+      reviewDate:      new Date('2026-06-15'),
+      status:          'active',
+      parentConsent:   true,
+    },
+  })
+
+  // ILP Targets
+  await prisma.ilpTarget.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        id:             'seed-ilpt-rehan-1',
+        ilpId:          rehanIlp.id,
+        target:         'Use a planning frame to structure extended writing before attempting the task',
+        strategy:       'Provide a 4-box paragraph planner for all extended written tasks; model during lesson starter.',
+        successMeasure: 'Independently uses planner on at least 3 consecutive pieces of written work with no prompting.',
+        targetDate:     new Date('2026-05-30'),
+        status:         'active',
+      },
+      {
+        id:             'seed-ilpt-rehan-2',
+        ilpId:          rehanIlp.id,
+        target:         'Demonstrate understanding of multi-step problems by writing out each step clearly',
+        strategy:       'Chunk problem sheets with sub-question numbering; allow rough-working space per sub-step.',
+        successMeasure: 'Shows all working in at least 80% of multi-step questions over a half-term.',
+        targetDate:     new Date('2026-06-15'),
+        status:         'active',
+      },
+    ],
+  })
+
+  // LearnerPassport (K Plan) with teacherActions for Classroom Adjustments section
+  await prisma.learnerPassport.upsert({
+    where:  { id: 'seed-kplan-rehan-ali' },
+    update: {},
+    create: {
+      id:             'seed-kplan-rehan-ali',
+      schoolId:       school.id,
+      studentId:      rehanUserId,
+      ilpId:          rehanIlp.id,
+      sendInformation:'Rehan has Communication and Interaction needs. He benefits from clear structure, visual supports, and chunked instructions. Not on medication. Parents fully engaged.',
+      teacherActions: [
+        'Seat near the front, away from high-traffic areas',
+        'Break instructions into no more than 3 steps at a time',
+        'Provide a written copy of verbal instructions on the board',
+        'Allow paragraph planning frame for all extended writing',
+        'Give 10% extra time on timed written tasks',
+        'Check in quietly after whole-class instruction to confirm understanding',
+      ],
+      studentCommitments: [
+        'Use the paragraph planner before starting extended answers',
+        'Ask for help rather than staying stuck for more than 2 minutes',
+        'Attempt to write out all working steps in maths problems',
+      ],
+      status:      'APPROVED',
+      approvedBy:  created['r.morris'].id,
+      approvedAt:  new Date('2026-01-15'),
+    },
+  })
+
+  console.log('  ✓ SEND data — Rehan Ali: SendStatus, ILP + 2 targets, K Plan (LearnerPassport)')
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

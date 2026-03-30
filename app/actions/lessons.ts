@@ -797,7 +797,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         firstName:       e.user.firstName,
         lastName:        e.user.lastName,
         yearGroup:       (e.user as any).yearGroup ?? null,
-        avatarUrl:       e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+        avatarUrl:       e.user.settings?.profilePictureUrl ?? null,
         sendStatus:      status,
         needArea:        e.user.sendStatus?.needArea ?? null,
         hasIlp:          e.user.studentIlps.length > 0,
@@ -1080,6 +1080,138 @@ export async function getStudentRosterDetail(
   } catch (err) {
     console.error('[getStudentRosterDetail] error:', err)
     return { recentHomework: [], examScores: [], rosterNotes: [] }
+  }
+}
+
+// ── Class performance time series ─────────────────────────────────────────────
+
+export type TimeSeriesPoint = {
+  homeworkId:          string
+  title:               string
+  dueAt:               string   // ISO
+  classAvgScore:       number | null
+  yearAvgScore:        number | null
+  curriculumBaseline:  number          // fixed at 65
+  scores: { studentId: string; name: string; score: number | null }[]
+}
+
+export type ClassTimeSeriesData = {
+  points:       TimeSeriesPoint[]
+  studentNames: { studentId: string; name: string }[]
+}
+
+export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeriesData> {
+  try {
+    const session = await auth()
+    if (!session) return { points: [], studentNames: [] }
+    const { schoolId } = session.user as any
+
+    // 1. Get class metadata
+    const cls = await prisma.schoolClass.findFirst({
+      where:  { id: classId, schoolId },
+      select: { yearGroup: true, subject: true },
+    })
+    if (!cls) return { points: [], studentNames: [] }
+
+    const { yearGroup, subject } = cls
+
+    // 2. Fetch this class's published homework ordered by dueAt
+    const classHomework = await prisma.homework.findMany({
+      where:   { classId, schoolId, status: { not: 'DRAFT' } },
+      select: {
+        id:           true,
+        title:        true,
+        dueAt:        true,
+        gradingBands: true,
+        submissions:  {
+          select: {
+            studentId:   true,
+            finalScore:  true,
+            autoScore:   true,
+            teacherScore: true,
+          },
+        },
+      },
+      orderBy: { dueAt: 'asc' },
+    })
+
+    // 3. Fetch enrolled students
+    const enrolments = await prisma.enrolment.findMany({
+      where:   { classId, class: { schoolId } },
+      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: [{ user: { lastName: 'asc' } }],
+    })
+
+    const studentNames = enrolments.map(e => ({
+      studentId: e.user.id,
+      name:      `${e.user.firstName} ${e.user.lastName}`,
+    }))
+
+    // 4. Compute year group average (excluding this class)
+    const yearHomework = await prisma.homework.findMany({
+      where: {
+        schoolId,
+        classId:  { not: classId },
+        class:    { yearGroup, subject },
+        status:   { not: 'DRAFT' },
+      },
+      select: {
+        gradingBands: true,
+        submissions:  { select: { finalScore: true, autoScore: true } },
+      },
+    })
+
+    // Flatten to percentages
+    const yearPcts: number[] = []
+    for (const hw of yearHomework) {
+      const max = maxFromBandsServer(hw.gradingBands)
+      for (const sub of hw.submissions) {
+        const score = sub.finalScore ?? sub.autoScore
+        if (score != null) yearPcts.push((score / max) * 100)
+      }
+    }
+    const overallYearAvg = yearPcts.length
+      ? yearPcts.reduce((a, b) => a + b, 0) / yearPcts.length
+      : null
+
+    // 5. Build time series points — only for homework with at least one submission
+    const points: TimeSeriesPoint[] = []
+
+    for (const hw of classHomework) {
+      if (hw.submissions.length === 0) continue
+
+      const max = maxFromBandsServer(hw.gradingBands)
+
+      // Per-student scores
+      const studentNameMap = new Map(studentNames.map(s => [s.studentId, s.name]))
+      const scores = enrolments.map(e => {
+        const sub = hw.submissions.find(s => s.studentId === e.user.id)
+        const rawScore = sub ? (sub.finalScore ?? sub.autoScore ?? sub.teacherScore) : null
+        const pct = rawScore != null ? Math.round((rawScore / max) * 100) : null
+        return { studentId: e.user.id, name: studentNameMap.get(e.user.id) ?? '', score: pct }
+      })
+
+      // Class average
+      const classScores = scores.map(s => s.score).filter((v): v is number => v !== null)
+      const classAvgScore = classScores.length
+        ? classScores.reduce((a, b) => a + b, 0) / classScores.length
+        : null
+
+      points.push({
+        homeworkId:         hw.id,
+        title:              hw.title,
+        dueAt:              hw.dueAt.toISOString(),
+        classAvgScore,
+        yearAvgScore:       overallYearAvg,
+        curriculumBaseline: 65,
+        scores,
+      })
+    }
+
+    return { points, studentNames }
+  } catch (err) {
+    console.error('[getClassTimeSeries] error:', err)
+    return { points: [], studentNames: [] }
   }
 }
 

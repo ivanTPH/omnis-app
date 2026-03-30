@@ -2,10 +2,14 @@
 import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Cell, ReferenceLine,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine, Legend,
+  BarChart, Bar, Cell,
 } from 'recharts'
-import { getClassInsights, type ClassInsightsData } from '@/app/actions/lessons'
+import {
+  getClassInsights, getClassTimeSeries,
+  type ClassInsightsData, type ClassTimeSeriesData,
+} from '@/app/actions/lessons'
 
 const RAG_COLOR = {
   green: '#22c55e',
@@ -21,15 +25,40 @@ const RAG_LABEL = {
   none:  { cls: 'bg-gray-100 text-gray-400',   text: 'No data' },
 }
 
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  const d = payload[0]?.payload
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm text-[11px] space-y-1">
+      <p className="font-semibold text-gray-800 mb-1">{d?.title}</p>
+      {payload.map((p: any) => (
+        <p key={p.name} style={{ color: p.color }}>
+          {p.name}: {p.value != null ? `${Math.round(p.value)}%` : '–'}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export default function ClassInsightsTab({ classId }: { classId: string }) {
-  const [data,    setData]    = useState<ClassInsightsData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [data,       setData]       = useState<ClassInsightsData | null>(null)
+  const [timeSeries, setTimeSeries] = useState<ClassTimeSeriesData | null>(null)
+  const [loading,    setLoading]    = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    getClassInsights(classId)
-      .then(setData)
-      .catch(() => setData({ students: [], classAvg: null, totalHomework: 0 }))
+    Promise.all([
+      getClassInsights(classId),
+      getClassTimeSeries(classId),
+    ])
+      .then(([insights, ts]) => {
+        setData(insights)
+        setTimeSeries(ts)
+      })
+      .catch(() => {
+        setData({ students: [], classAvg: null, totalHomework: 0 })
+        setTimeSeries({ points: [], studentNames: [] })
+      })
       .finally(() => setLoading(false))
   }, [classId])
 
@@ -58,12 +87,24 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
   const red   = students.filter(s => s.ragStatus === 'red').length
   const none  = students.filter(s => s.ragStatus === 'none').length
 
+  // Bar chart data (kept for RAG view)
   const chartData = students.map(s => ({
     name:  s.name.split(' ').map(w => w[0]).join('.'),
     full:  s.name,
     score: s.avgScore != null ? Math.round(s.avgScore) : 0,
     fill:  RAG_COLOR[s.ragStatus],
     subs:  s.submissionCount,
+  }))
+
+  // Line chart data
+  const hasTimeSeries = (timeSeries?.points.length ?? 0) >= 2
+  const lineData = (timeSeries?.points ?? []).map((p, i) => ({
+    x:        i + 1,
+    title:    p.title,
+    dueAt:    p.dueAt,
+    classAvg: p.classAvgScore,
+    yearAvg:  p.yearAvgScore,
+    baseline: p.curriculumBaseline,
   }))
 
   return (
@@ -80,7 +121,78 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
         )}
       </div>
 
-      {/* Bar chart */}
+      {/* Line chart — class performance over time */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Class Performance Over Time</p>
+        </div>
+        {hasTimeSeries ? (
+          <div>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={lineData} margin={{ top: 10, right: 16, left: -26, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="x"
+                  tick={{ fontSize: 9, fill: '#9ca3af' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 9, fill: '#9ca3af' }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={v => `${v}%`}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontSize: 9, color: '#9ca3af', paddingTop: 4 }}
+                  formatter={(value: string) => (
+                    <span style={{ fontSize: 9, color: '#6b7280' }}>{value}</span>
+                  )}
+                />
+                {/* Curriculum baseline — dashed grey */}
+                <Line
+                  type="monotone"
+                  dataKey="baseline"
+                  name="Curriculum baseline"
+                  stroke="#9ca3af"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  activeDot={false}
+                />
+                {/* Year group average — light blue dashed */}
+                <Line
+                  type="monotone"
+                  dataKey="yearAvg"
+                  name="Year group avg"
+                  stroke="#93c5fd"
+                  strokeWidth={1.5}
+                  strokeDasharray="3 3"
+                  dot={false}
+                />
+                {/* Class average — solid blue */}
+                <Line
+                  type="monotone"
+                  dataKey="classAvg"
+                  name="Class average"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
+                  activeDot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-24 border border-dashed border-gray-200 rounded-xl">
+            <p className="text-[11px] text-gray-400">Not enough data for trend chart</p>
+          </div>
+        )}
+      </div>
+
+      {/* Bar chart — average score by student */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Average Score by Student</p>

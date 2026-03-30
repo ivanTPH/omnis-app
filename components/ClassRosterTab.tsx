@@ -62,6 +62,16 @@ const SECTION_HEADING = 'text-[10px] font-semibold uppercase tracking-wide text-
 
 type KPlanSummary = { id: string; sendInformation: string; status: string; teacherActions: string[] }
 
+type ExpandedTabKey = 'overview' | 'plans' | 'homework' | 'assessments' | 'notes'
+
+const EXPANDED_TABS: { key: ExpandedTabKey; label: string }[] = [
+  { key: 'overview',    label: 'Overview'    },
+  { key: 'plans',       label: 'Plans'       },
+  { key: 'homework',    label: 'Homework'    },
+  { key: 'assessments', label: 'Assessments' },
+  { key: 'notes',       label: 'Notes'       },
+]
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ClassRosterTab({ classId }: { classId: string }) {
@@ -71,24 +81,27 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
   const [expandedId,       setExpandedId]       = useState<string | null>(null)
   const [contactStudentId, setContactStudentId] = useState<string | null>(null)
 
-  const [detailsCache,     setDetailsCache]     = useState<Record<string, StudentClassDetail | 'loading'>>({})
-  const [ilpCache,         setIlpCache]         = useState<Record<string, IlpWithTargets | 'loading' | null>>({})
-  const [ehcpCache,        setEhcpCache]        = useState<Record<string, EhcpPlanWithOutcomes | 'loading' | null>>({})
+  const [detailsCache,      setDetailsCache]      = useState<Record<string, StudentClassDetail | 'loading'>>({})
+  const [ilpCache,          setIlpCache]          = useState<Record<string, IlpWithTargets | 'loading' | null>>({})
+  const [ehcpCache,         setEhcpCache]         = useState<Record<string, EhcpPlanWithOutcomes | 'loading' | null>>({})
   const [rosterDetailCache, setRosterDetailCache] = useState<Record<string, StudentRosterDetail | 'loading'>>({})
 
-  const [userRole,         setUserRole]         = useState<string>('TEACHER')
-  const [kPlanMap,         setKPlanMap]         = useState<Record<string, KPlanSummary>>({})
-  const [kPlanModal,       setKPlanModal]       = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
-  const [kPlanLoading,     setKPlanLoading]     = useState<string | null>(null)
-  const [kPlanFullCache,   setKPlanFullCache]   = useState<Record<string, LearnerPassportRow | 'loading'>>({})
-  const [kPlanChecked,     setKPlanChecked]     = useState<Record<string, boolean[]>>({})
+  const [userRole,       setUserRole]       = useState<string>('TEACHER')
+  const [kPlanMap,       setKPlanMap]       = useState<Record<string, KPlanSummary>>({})
+  const [kPlanModal,     setKPlanModal]     = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
+  const [kPlanLoading,   setKPlanLoading]   = useState<string | null>(null)
+  const [kPlanFullCache, setKPlanFullCache] = useState<Record<string, LearnerPassportRow | 'loading'>>({})
+  const [kPlanChecked,   setKPlanChecked]   = useState<Record<string, boolean[]>>({})
 
-  const [ragMap,           setRagMap]           = useState<Record<string, RagStudent>>({})
+  const [ragMap, setRagMap] = useState<Record<string, RagStudent>>({})
 
-  const [docSlideOver,     setDocSlideOver]     = useState<{ studentId: string; studentName: string; docType: DocSlideOverDocType } | null>(null)
+  const [docSlideOver, setDocSlideOver] = useState<{ studentId: string; studentName: string; docType: DocSlideOverDocType } | null>(null)
 
-  const [newNotes,         setNewNotes]         = useState<Record<string, string>>({})
-  const [savingNote,       setSavingNote]       = useState<string | null>(null)
+  const [newNotes,   setNewNotes]   = useState<Record<string, string>>({})
+  const [savingNote, setSavingNote] = useState<string | null>(null)
+
+  // New: per-student expanded tab state
+  const [expandedTab, setExpandedTab] = useState<Record<string, ExpandedTabKey>>({})
 
   // Initial load
   useEffect(() => {
@@ -118,6 +131,8 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     const id = row.id
     if (expandedId === id) { setExpandedId(null); return }
     setExpandedId(id)
+    // Set default tab to 'overview' when expanding
+    setExpandedTab(t => ({ ...t, [id]: t[id] ?? 'overview' }))
     loadExpandData(row)
   }
 
@@ -158,6 +173,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     // Also expand the row if not already open
     if (expandedId !== row.id) {
       setExpandedId(row.id)
+      setExpandedTab(t => ({ ...t, [row.id]: t[row.id] ?? 'overview' }))
       loadExpandData(row)
     }
   }
@@ -185,7 +201,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       import('@/app/actions/send-support').then(({ getStudentLearnerPassport }) => {
         getStudentLearnerPassport(studentId)
           .then(p => {
-            setKPlanFullCache(c => ({ ...c, [studentId]: p ?? ('loading' as any) }))
+            setKPlanFullCache(c => ({ ...c, [studentId]: p ?? ('loading' as never) }))
             if (p) setKPlanChecked(ch => ({ ...ch, [studentId]: new Array(p.teacherActions.length).fill(false) }))
           })
           .catch(() => setKPlanFullCache(c => ({ ...c, [studentId]: 'loading' })))
@@ -296,6 +312,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           const rosterDetail = rosterDetailCache[row.id]
           const ragStudent   = ragMap[row.id]
           const studentName  = `${row.firstName} ${row.lastName}`
+          const activeTab    = expandedTab[row.id] ?? 'overview'
 
           // EHCP Section F provisions
           const ehcpSectionF = ehcpData && ehcpData !== 'loading' && ehcpData.sections?.F
@@ -304,6 +321,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
           const kPlanAdjustments = kPlan?.teacherActions ?? []
           const hasAdjustments   = kPlanAdjustments.length > 0 || ehcpSectionF.length > 0
+
+          // Quick tip from K Plan
+          const quickTip = kPlan && kPlanAdjustments.length > 0 ? kPlanAdjustments[0] : null
 
           return (
             <div key={row.id}>
@@ -329,7 +349,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                 </button>
 
                 <div className="flex-1 min-w-0">
-                  {/* Name + year + doc badges */}
+                  {/* Name + year group */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                       type="button"
@@ -341,7 +361,13 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     {row.yearGroup != null && (
                       <span className="text-[10px] text-gray-400 font-medium">Year {row.yearGroup}</span>
                     )}
-                    {/* Doc badges */}
+                  </div>
+                  {/* Quick tip from K Plan */}
+                  {quickTip != null && (
+                    <p className="text-[11px] text-gray-400 italic truncate max-w-[160px]">{quickTip}</p>
+                  )}
+                  {/* Doc badges */}
+                  <div className="flex items-center gap-1 flex-wrap mt-0.5">
                     {row.hasIlp && (
                       <button
                         type="button"
@@ -377,7 +403,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     )}
                   </div>
                   {row.needArea && (
-                    <p className="text-[10px] text-gray-400 truncate">{row.needArea}</p>
+                    <p className="text-[10px] text-gray-400 truncate mt-0.5">{row.needArea}</p>
                   )}
                 </div>
 
@@ -409,387 +435,484 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
               {/* ── Expanded detail ── */}
               {isExpanded && (
-                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 space-y-5">
+                <div className="border-t border-gray-100">
 
-                  {/* Support snapshot */}
-                  {row.supportSnapshot && (
-                    <p className="text-[12px] text-amber-800 italic leading-snug border-l-2 border-amber-300 pl-2.5">
-                      {row.supportSnapshot}
-                    </p>
-                  )}
+                  {/* Tab bar row */}
+                  <div className="flex items-center gap-1 px-2 py-2 bg-gray-50 border-b border-gray-100 overflow-x-auto">
+                    {EXPANDED_TABS.map(tab => (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setExpandedTab(t => ({ ...t, [row.id]: tab.key })) }}
+                        className={`text-[12px] px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors ${
+                          activeTab === tab.key
+                            ? 'bg-white shadow-sm text-gray-900 font-semibold'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                    {/* Close button */}
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setExpandedId(null) }}
+                      className="ml-auto shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-400 transition-colors"
+                    >
+                      <Icon name="close" size="sm" />
+                    </button>
+                  </div>
 
-                  {/* Section 1 — Classroom Adjustments (SEND only) */}
-                  {isSend && (hasAdjustments || (row.sendStatus === 'EHCP' && ehcpData === 'loading')) && (
-                    <section>
-                      <p className={SECTION_HEADING}>Classroom Adjustments</p>
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-                        {row.sendStatus === 'EHCP' && ehcpData === 'loading' && kPlanAdjustments.length === 0 ? (
-                          <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                  {/* Tab content */}
+                  <div className="px-4 py-3 bg-white space-y-4">
+
+                    {/* ── Tab: Overview ── */}
+                    {activeTab === 'overview' && (() => {
+                      const hasRagData = ragStudent && (ragStudent.workingAtScore != null || ragStudent.prediction != null)
+                      const hasSendData = isSend && (row.supportSnapshot || hasAdjustments || (row.hasIlp && (ilpData === 'loading' || (ilpData && ilpData.targets.length > 0))))
+
+                      if (!hasSendData && !hasRagData) {
+                        return (
+                          <p className="text-[12px] text-gray-400 italic">No SEND data or predictions on record.</p>
+                        )
+                      }
+
+                      return (
+                        <>
+                          {/* Support snapshot */}
+                          {row.supportSnapshot && (
+                            <p className="text-[12px] text-amber-800 italic leading-snug border-l-2 border-amber-300 pl-2.5">
+                              {row.supportSnapshot}
+                            </p>
+                          )}
+
+                          {/* Classroom Adjustments (SEND only) */}
+                          {isSend && (hasAdjustments || (row.sendStatus === 'EHCP' && ehcpData === 'loading')) && (
+                            <section>
+                              <p className={SECTION_HEADING}>Classroom Adjustments</p>
+                              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                                {row.sendStatus === 'EHCP' && ehcpData === 'loading' && kPlanAdjustments.length === 0 ? (
+                                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                                    <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {kPlanAdjustments.length > 0 && (
+                                      <div>
+                                        <p className="text-[9px] font-semibold text-teal-600 uppercase tracking-wide mb-1.5">K Plan</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {kPlanAdjustments.map((action, i) => (
+                                            <span key={i} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-medium leading-snug">
+                                              {action}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                    {ehcpSectionF.length > 0 && (
+                                      <div>
+                                        <p className="text-[9px] font-semibold text-purple-600 uppercase tracking-wide mb-1.5">EHCP Section F</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {ehcpSectionF.map((provision, i) => (
+                                            <span key={i} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-medium leading-snug">
+                                              {provision}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </section>
+                          )}
+
+                          {/* ILP Smart Goals (SEND/ILP only) */}
+                          {isSend && row.hasIlp && (
+                            <section>
+                              <p className={SECTION_HEADING}>ILP Smart Goals</p>
+                              {ilpData === 'loading' ? (
+                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                                  <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+                                </div>
+                              ) : !ilpData || ilpData.targets.length === 0 ? (
+                                <p className="text-[12px] text-gray-400 italic">No active ILP targets.</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {ilpData.targets.slice(0, 3).map((t, i) => (
+                                    <div key={t.id} className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <p className="text-[12px] font-medium text-gray-800">{i + 1}. {t.target}</p>
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${TARGET_STATUS_CLS[t.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                                          {t.status.replace(/_/g, ' ')}
+                                        </span>
+                                      </div>
+                                      <p className="text-[11px] text-gray-500 mt-0.5">{t.strategy}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </section>
+                          )}
+
+                          {/* Progress vs Predicted (RAG) */}
+                          {hasRagData && ragStudent && (
+                            <section>
+                              <p className={SECTION_HEADING}>Progress vs Predicted</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                {ragStudent.prediction && (
+                                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Predicted</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                      {ragStudent.prediction.effectiveScore}%
+                                      <span className="text-[11px] font-normal text-gray-500 ml-1">
+                                        Grade {percentToGcseGrade(ragStudent.prediction.effectiveScore)}
+                                      </span>
+                                    </p>
+                                  </div>
+                                )}
+                                {ragStudent.workingAtScore != null && (
+                                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Working At</p>
+                                    <p className="text-[14px] font-bold text-gray-900">
+                                      {ragStudent.workingAtScore}%
+                                      <span className="text-[11px] font-normal text-gray-500 ml-1">
+                                        Grade {percentToGcseGrade(ragStudent.workingAtScore)}
+                                      </span>
+                                    </p>
+                                  </div>
+                                )}
+                                {ragStudent.lastScore != null && (
+                                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5">
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Last Score</p>
+                                    <p className="text-[14px] font-bold text-gray-900">{ragStudent.lastScore}%</p>
+                                  </div>
+                                )}
+                                <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                                  <span className={`w-3 h-3 rounded-full shrink-0 ${RAG_DOT[ragStudent.ragStatus]}`} />
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">RAG</p>
+                                    <p className="text-[13px] font-semibold text-gray-700 capitalize">{ragStudent.ragStatus.replace('_', ' ')}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </section>
+                          )}
+                        </>
+                      )
+                    })()}
+
+                    {/* ── Tab: Plans ── */}
+                    {activeTab === 'plans' && (() => {
+                      const hasDocuments = row.hasIlp || row.hasEhcp || !!kPlan
+
+                      return (
+                        <>
+                          {/* Document cards */}
+                          {hasDocuments ? (
+                            <section>
+                              <p className={SECTION_HEADING}>Documents</p>
+                              <div className="flex flex-wrap gap-2">
+                                {row.hasIlp && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDocSlideOver({ studentId: row.id, studentName, docType: 'ilp' })}
+                                    className="flex items-center gap-2 px-3 py-2 border border-blue-200 rounded-xl bg-white hover:bg-blue-50 transition-colors text-left"
+                                  >
+                                    <span className="material-icons text-blue-500" style={{ fontSize: '18px' }}>description</span>
+                                    <div>
+                                      <p className="text-[11px] font-semibold text-blue-700">ILP</p>
+                                      <p className="text-[10px] text-gray-400">
+                                        {ilpData && ilpData !== 'loading' ? ilpData.status.replace(/_/g, ' ') : '—'}
+                                      </p>
+                                    </div>
+                                    <span className="text-[10px] text-blue-400 ml-1">Open →</span>
+                                  </button>
+                                )}
+                                {row.hasEhcp && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDocSlideOver({ studentId: row.id, studentName, docType: 'ehcp' })}
+                                    className="flex items-center gap-2 px-3 py-2 border border-purple-200 rounded-xl bg-white hover:bg-purple-50 transition-colors text-left"
+                                  >
+                                    <span className="material-icons text-purple-500" style={{ fontSize: '18px' }}>verified_user</span>
+                                    <div>
+                                      <p className="text-[11px] font-semibold text-purple-700">EHCP</p>
+                                      <p className="text-[10px] text-gray-400">
+                                        {ehcpData && ehcpData !== 'loading' ? ehcpData.status.replace(/_/g, ' ') : '—'}
+                                      </p>
+                                    </div>
+                                    <span className="text-[10px] text-purple-400 ml-1">Open →</span>
+                                  </button>
+                                )}
+                                {kPlan && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setDocSlideOver({ studentId: row.id, studentName, docType: 'kplan' })}
+                                    className="flex items-center gap-2 px-3 py-2 border border-green-200 rounded-xl bg-white hover:bg-green-50 transition-colors text-left"
+                                  >
+                                    <span className="material-icons text-green-500" style={{ fontSize: '18px' }}>menu_book</span>
+                                    <div>
+                                      <p className="text-[11px] font-semibold text-green-700">K Plan</p>
+                                      <p className="text-[10px] text-gray-400 capitalize">{kPlan.status.toLowerCase()}</p>
+                                    </div>
+                                    <span className="text-[10px] text-green-400 ml-1">Open →</span>
+                                  </button>
+                                )}
+                              </div>
+                            </section>
+                          ) : (
+                            <p className="text-[12px] text-gray-400 italic">No SEND documents on record.</p>
+                          )}
+
+                          {/* K Plan interactive checklist */}
+                          {isSend && kPlan && (() => {
+                            const fullPassport = kPlanFullCache[row.id]
+                            const checked      = kPlanChecked[row.id] ?? []
+                            if (!fullPassport) {
+                              loadKPlanFull(row.id)
+                            }
+
+                            function toggleCheck(i: number) {
+                              setKPlanChecked(ch => {
+                                const arr = [...(ch[row.id] ?? [])]
+                                arr[i] = !arr[i]
+                                return { ...ch, [row.id]: arr }
+                              })
+                            }
+
+                            return (
+                              <section>
+                                <p className={SECTION_HEADING}>K Plan Quick-view</p>
+                                <div className="space-y-3">
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
+                                    <p className="text-[12px] text-gray-700 leading-relaxed line-clamp-3">{kPlan.sendInformation}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-[9px] font-semibold text-purple-500 uppercase tracking-wide mb-1.5">
+                                      It would help me if you could
+                                      <span className="ml-1.5 text-gray-400 normal-case font-normal">(tick as reminders — not saved)</span>
+                                    </p>
+                                    {fullPassport === 'loading' ? (
+                                      <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                                        <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+                                      </div>
+                                    ) : fullPassport ? (
+                                      <ul className="space-y-1.5">
+                                        {fullPassport.teacherActions.map((action, i) => (
+                                          <li key={i} className="flex items-start gap-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={checked[i] ?? false}
+                                              onChange={() => toggleCheck(i)}
+                                              className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-purple-600 cursor-pointer"
+                                            />
+                                            <span className={`text-[12px] leading-snug ${checked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                                              {action}
+                                            </span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-[12px] text-gray-400 italic">Could not load actions.</p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => openKPlanModal(row.id, studentName)}
+                                      disabled={kPlanLoading === row.id}
+                                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                                    >
+                                      {kPlanLoading === row.id
+                                        ? <Icon name="refresh" size="sm" className="animate-spin" />
+                                        : <Icon name="menu_book" size="sm" />
+                                      }
+                                      Full view
+                                    </button>
+                                  </div>
+                                </div>
+                              </section>
+                            )
+                          })()}
+
+                          {/* APDR panel (SEND only) */}
+                          {isSend && (
+                            <section>
+                              <p className={SECTION_HEADING}>APDR</p>
+                              <StudentAPDRPanel studentId={row.id} userRole={userRole} />
+                            </section>
+                          )}
+
+                          {/* View full SEND plan link (SEND only) */}
+                          {isSend && (
+                            <a
+                              href={`/student/${row.id}/send`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                            >
+                              View full SEND plan <Icon name="chevron_right" size="sm" />
+                            </a>
+                          )}
+                        </>
+                      )
+                    })()}
+
+                    {/* ── Tab: Homework ── */}
+                    {activeTab === 'homework' && (() => {
+                      if (!detail || detail === 'loading') {
+                        return (
+                          <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                            <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+                          </div>
+                        )
+                      }
+                      if (detail.recentSubmissions.length === 0) {
+                        return <p className="text-[12px] text-gray-400 italic">No recent homework for this class.</p>
+                      }
+
+                      const last5 = detail.recentSubmissions.slice(0, 5)
+
+                      // Trend: last 2 scored submissions
+                      const scored = last5.filter(s => (s.finalScore ?? s.autoScore) != null && s.maxScore)
+                      let trendBadge: React.ReactNode = null
+                      if (scored.length >= 2) {
+                        const s0 = scored[0]
+                        const s1 = scored[1]
+                        const pct0 = Math.round(((s0.finalScore ?? s0.autoScore ?? 0) / s0.maxScore!) * 100)
+                        const pct1 = Math.round(((s1.finalScore ?? s1.autoScore ?? 0) / s1.maxScore!) * 100)
+                        if (pct0 > pct1) {
+                          trendBadge = (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">▲ Improving</span>
+                          )
+                        } else if (pct0 < pct1) {
+                          trendBadge = (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">▼ Declining</span>
+                          )
+                        }
+                      }
+
+                      return (
+                        <>
+                          {trendBadge != null && (
+                            <div className="flex items-center gap-2 mb-1">
+                              {trendBadge}
+                            </div>
+                          )}
+                          <div className="space-y-1.5">
+                            {last5.map((s, i) => {
+                              const score    = s.finalScore ?? s.autoScore
+                              const scoreStr = score != null
+                                ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
+                                : null
+                              const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
+                              return (
+                                <div key={i} className="flex items-center gap-3">
+                                  <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
+                                  <span className="text-[10px] text-gray-400">
+                                    {new Date(s.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                  </span>
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                                    {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace(/_/g, ' ')}
+                                  </span>
+                                  {scoreStr != null && (
+                                    <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                      {scoreStr}
+                                    </span>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </>
+                      )
+                    })()}
+
+                    {/* ── Tab: Assessments ── */}
+                    {activeTab === 'assessments' && (() => {
+                      if (!rosterDetail || rosterDetail === 'loading') {
+                        return (
+                          <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                            <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+                          </div>
+                        )
+                      }
+                      if (rosterDetail.examScores.length === 0) {
+                        return <p className="text-[12px] text-gray-400 italic">No test or exam records found.</p>
+                      }
+                      return (
+                        <div className="space-y-1.5">
+                          {rosterDetail.examScores.slice(0, 5).map((s, i) => {
+                            const pct = s.score != null && s.maxScore ? Math.round((s.score / s.maxScore) * 100) : null
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                <span className="text-[12px] text-gray-700 flex-1 truncate">{s.title}</span>
+                                <span className="text-[10px] text-gray-400">
+                                  {new Date(s.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </span>
+                                {s.score != null ? (
+                                  <span className={`text-[11px] font-bold shrink-0 ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                    {s.score}/{s.maxScore}
+                                    {s.grade && <span className="ml-1 text-gray-400">(G{s.grade})</span>}
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] text-gray-400">Not marked</span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
+
+                    {/* ── Tab: Notes ── */}
+                    {activeTab === 'notes' && (
+                      <>
+                        {rosterDetail && rosterDetail !== 'loading' && rosterDetail.rosterNotes.length > 0 ? (
+                          <div className="space-y-2 mb-3">
+                            {rosterDetail.rosterNotes.map(n => (
+                              <div key={n.id} className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2">
+                                <p className="text-[10px] text-yellow-600 font-medium mb-0.5">
+                                  {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </p>
+                                <p className="text-[12px] text-gray-700 leading-relaxed">{n.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : rosterDetail === 'loading' ? (
+                          <div className="flex items-center gap-2 text-[12px] text-gray-400 mb-3">
                             <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            {kPlanAdjustments.length > 0 && (
-                              <div>
-                                <p className="text-[9px] font-semibold text-teal-600 uppercase tracking-wide mb-1.5">K Plan</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {kPlanAdjustments.map((action, i) => (
-                                    <span key={i} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 font-medium leading-snug">
-                                      {action}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {ehcpSectionF.length > 0 && (
-                              <div>
-                                <p className="text-[9px] font-semibold text-purple-600 uppercase tracking-wide mb-1.5">EHCP Section F</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {ehcpSectionF.map((provision, i) => (
-                                    <span key={i} className="inline-flex items-center text-[11px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 font-medium leading-snug">
-                                      {provision}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                          <p className="text-[12px] text-gray-400 italic mb-3">No notes yet.</p>
                         )}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Section 2 — ILP Smart Goals (SEND only) */}
-                  {isSend && row.hasIlp && (
-                    <section>
-                      <p className={SECTION_HEADING}>ILP Smart Goals</p>
-                      {ilpData === 'loading' ? (
-                        <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                          <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
-                        </div>
-                      ) : !ilpData || ilpData.targets.length === 0 ? (
-                        <p className="text-[12px] text-gray-400 italic">No active ILP targets.</p>
-                      ) : (
                         <div className="space-y-2">
-                          {ilpData.targets.slice(0, 3).map((t, i) => (
-                            <div key={t.id} className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-[12px] font-medium text-gray-800">{i + 1}. {t.target}</p>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${TARGET_STATUS_CLS[t.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                                  {t.status.replace(/_/g, ' ')}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-gray-500 mt-0.5">{t.strategy}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </section>
-                  )}
-
-                  {/* Section 3 — Documents */}
-                  {isSend && (row.hasIlp || row.hasEhcp || !!kPlan) && (
-                    <section>
-                      <p className={SECTION_HEADING}>Documents</p>
-                      <div className="flex flex-wrap gap-2">
-                        {row.hasIlp && (
+                          <textarea
+                            value={newNotes[row.id] ?? ''}
+                            onChange={e => setNewNotes(n => ({ ...n, [row.id]: e.target.value }))}
+                            placeholder="Add a note about this student…"
+                            rows={3}
+                            className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          />
                           <button
                             type="button"
-                            onClick={() => setDocSlideOver({ studentId: row.id, studentName, docType: 'ilp' })}
-                            className="flex items-center gap-2 px-3 py-2 border border-blue-200 rounded-xl bg-white hover:bg-blue-50 transition-colors text-left"
+                            onClick={() => handleSaveNote(row.id)}
+                            disabled={savingNote === row.id || !newNotes[row.id]?.trim()}
+                            className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-white rounded-lg disabled:opacity-50 transition-colors"
                           >
-                            <span className="material-icons text-blue-500" style={{ fontSize: '18px' }}>description</span>
-                            <div>
-                              <p className="text-[11px] font-semibold text-blue-700">ILP</p>
-                              <p className="text-[10px] text-gray-400">
-                                {ilpData && ilpData !== 'loading' ? ilpData.status.replace(/_/g, ' ') : '—'}
-                              </p>
-                            </div>
-                            <span className="text-[10px] text-blue-400 ml-1">Open →</span>
+                            {savingNote === row.id
+                              ? <Icon name="refresh" size="sm" className="animate-spin" />
+                              : <Icon name="sticky_note_2" size="sm" />
+                            }
+                            Add note
                           </button>
-                        )}
-                        {row.hasEhcp && (
-                          <button
-                            type="button"
-                            onClick={() => setDocSlideOver({ studentId: row.id, studentName, docType: 'ehcp' })}
-                            className="flex items-center gap-2 px-3 py-2 border border-purple-200 rounded-xl bg-white hover:bg-purple-50 transition-colors text-left"
-                          >
-                            <span className="material-icons text-purple-500" style={{ fontSize: '18px' }}>verified_user</span>
-                            <div>
-                              <p className="text-[11px] font-semibold text-purple-700">EHCP</p>
-                              <p className="text-[10px] text-gray-400">
-                                {ehcpData && ehcpData !== 'loading' ? ehcpData.status.replace(/_/g, ' ') : '—'}
-                              </p>
-                            </div>
-                            <span className="text-[10px] text-purple-400 ml-1">Open →</span>
-                          </button>
-                        )}
-                        {kPlan && (
-                          <button
-                            type="button"
-                            onClick={() => setDocSlideOver({ studentId: row.id, studentName, docType: 'kplan' })}
-                            className="flex items-center gap-2 px-3 py-2 border border-green-200 rounded-xl bg-white hover:bg-green-50 transition-colors text-left"
-                          >
-                            <span className="material-icons text-green-500" style={{ fontSize: '18px' }}>menu_book</span>
-                            <div>
-                              <p className="text-[11px] font-semibold text-green-700">K Plan</p>
-                              <p className="text-[10px] text-gray-400 capitalize">{kPlan.status.toLowerCase()}</p>
-                            </div>
-                            <span className="text-[10px] text-green-400 ml-1">Open →</span>
-                          </button>
-                        )}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Section 4 — Recent Homework */}
-                  <section>
-                    <p className={SECTION_HEADING}>Recent Homework</p>
-                    {!detail || detail === 'loading' ? (
-                      <div className="flex items-center gap-2 text-[12px] text-gray-400">
-                        <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
-                      </div>
-                    ) : detail.recentSubmissions.length === 0 ? (
-                      <p className="text-[12px] text-gray-400 italic">No recent homework for this class.</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {detail.recentSubmissions.slice(0, 3).map((s, i) => {
-                          const score    = s.finalScore ?? s.autoScore
-                          const scoreStr = score != null
-                            ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
-                            : null
-                          const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
-                          return (
-                            <div key={i} className="flex items-center gap-3">
-                              <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
-                              <span className="text-[10px] text-gray-400">
-                                {new Date(s.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              </span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                                {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace(/_/g, ' ')}
-                              </span>
-                              {scoreStr != null && (
-                                <span className={`text-[11px] font-bold shrink-0 w-12 text-right ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                  {scoreStr}
-                                </span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </section>
-
-                  {/* Section 5 — Exam & Test Scores */}
-                  <section>
-                    <p className={SECTION_HEADING}>Exam &amp; Test Scores</p>
-                    {!rosterDetail || rosterDetail === 'loading' ? (
-                      <div className="flex items-center gap-2 text-[12px] text-gray-400">
-                        <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
-                      </div>
-                    ) : rosterDetail.examScores.length === 0 ? (
-                      <p className="text-[12px] text-gray-400 italic">No test or exam records found.</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {rosterDetail.examScores.slice(0, 5).map((s, i) => {
-                          const pct = s.score != null && s.maxScore ? Math.round((s.score / s.maxScore) * 100) : null
-                          return (
-                            <div key={i} className="flex items-center gap-3">
-                              <span className="text-[12px] text-gray-700 flex-1 truncate">{s.title}</span>
-                              <span className="text-[10px] text-gray-400">
-                                {new Date(s.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                              </span>
-                              {s.score != null ? (
-                                <span className={`text-[11px] font-bold shrink-0 ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                  {s.score}/{s.maxScore}
-                                  {s.grade && <span className="ml-1 text-gray-400">(G{s.grade})</span>}
-                                </span>
-                              ) : (
-                                <span className="text-[11px] text-gray-400">Not marked</span>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </section>
-
-                  {/* Section 6 — Teacher Notes */}
-                  <section>
-                    <p className={SECTION_HEADING}>Teacher Notes</p>
-                    {rosterDetail && rosterDetail !== 'loading' && rosterDetail.rosterNotes.length > 0 ? (
-                      <div className="space-y-2 mb-3">
-                        {rosterDetail.rosterNotes.map(n => (
-                          <div key={n.id} className="bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2">
-                            <p className="text-[10px] text-yellow-600 font-medium mb-0.5">
-                              {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </p>
-                            <p className="text-[12px] text-gray-700 leading-relaxed">{n.content}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                    <div className="space-y-2">
-                      <textarea
-                        value={newNotes[row.id] ?? ''}
-                        onChange={e => setNewNotes(n => ({ ...n, [row.id]: e.target.value }))}
-                        placeholder="Add a note about this student…"
-                        rows={3}
-                        className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleSaveNote(row.id)}
-                        disabled={savingNote === row.id || !newNotes[row.id]?.trim()}
-                        className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-white rounded-lg disabled:opacity-50 transition-colors"
-                      >
-                        {savingNote === row.id
-                          ? <Icon name="refresh" size="sm" className="animate-spin" />
-                          : <Icon name="sticky_note_2" size="sm" />
-                        }
-                        Add note
-                      </button>
-                    </div>
-                  </section>
-
-                  {/* Section 7 — Progress vs Predicted */}
-                  <section>
-                    <p className={SECTION_HEADING}>Progress vs Predicted</p>
-                    {!ragStudent || (ragStudent.workingAtScore == null && ragStudent.prediction == null) ? (
-                      <p className="text-[12px] text-gray-400 italic">No predictions set for this term.</p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        {ragStudent.prediction && (
-                          <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Predicted</p>
-                            <p className="text-[14px] font-bold text-gray-900">
-                              {ragStudent.prediction.effectiveScore}%
-                              <span className="text-[11px] font-normal text-gray-500 ml-1">
-                                Grade {percentToGcseGrade(ragStudent.prediction.effectiveScore)}
-                              </span>
-                            </p>
-                          </div>
-                        )}
-                        {ragStudent.workingAtScore != null && (
-                          <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Working At</p>
-                            <p className="text-[14px] font-bold text-gray-900">
-                              {ragStudent.workingAtScore}%
-                              <span className="text-[11px] font-normal text-gray-500 ml-1">
-                                Grade {percentToGcseGrade(ragStudent.workingAtScore)}
-                              </span>
-                            </p>
-                          </div>
-                        )}
-                        {ragStudent.lastScore != null && (
-                          <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5">
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Last Score</p>
-                            <p className="text-[14px] font-bold text-gray-900">{ragStudent.lastScore}%</p>
-                          </div>
-                        )}
-                        <div className="bg-white border border-gray-100 rounded-xl px-3 py-2.5 flex items-center gap-2">
-                          <span className={`w-3 h-3 rounded-full shrink-0 ${RAG_DOT[ragStudent.ragStatus]}`} />
-                          <div>
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">RAG</p>
-                            <p className="text-[13px] font-semibold text-gray-700 capitalize">{ragStudent.ragStatus.replace('_', ' ')}</p>
-                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
-                  </section>
 
-                  {/* APDR panel (SEND only) */}
-                  {isSend && (
-                    <section>
-                      <p className={SECTION_HEADING}>APDR</p>
-                      <StudentAPDRPanel studentId={row.id} userRole={userRole} />
-                    </section>
-                  )}
-
-                  {/* K Plan interactive checklist (SEND only) */}
-                  {isSend && kPlan && (() => {
-                    const fullPassport = kPlanFullCache[row.id]
-                    const checked      = kPlanChecked[row.id] ?? []
-                    if (!fullPassport) {
-                      loadKPlanFull(row.id)
-                    }
-
-                    function toggleCheck(i: number) {
-                      setKPlanChecked(ch => {
-                        const arr = [...(ch[row.id] ?? [])]
-                        arr[i] = !arr[i]
-                        return { ...ch, [row.id]: arr }
-                      })
-                    }
-
-                    return (
-                      <section>
-                        <p className={SECTION_HEADING}>K Plan Quick-view</p>
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
-                            <p className="text-[12px] text-gray-700 leading-relaxed line-clamp-3">{kPlan.sendInformation}</p>
-                          </div>
-                          <div>
-                            <p className="text-[9px] font-semibold text-purple-500 uppercase tracking-wide mb-1.5">
-                              It would help me if you could
-                              <span className="ml-1.5 text-gray-400 normal-case font-normal">(tick as reminders — not saved)</span>
-                            </p>
-                            {fullPassport === 'loading' ? (
-                              <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-                                <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
-                              </div>
-                            ) : fullPassport ? (
-                              <ul className="space-y-1.5">
-                                {fullPassport.teacherActions.map((action, i) => (
-                                  <li key={i} className="flex items-start gap-2">
-                                    <input
-                                      type="checkbox"
-                                      checked={checked[i] ?? false}
-                                      onChange={() => toggleCheck(i)}
-                                      className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-purple-600 cursor-pointer"
-                                    />
-                                    <span className={`text-[12px] leading-snug ${checked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                                      {action}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p className="text-[12px] text-gray-400 italic">Could not load actions.</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 pt-1">
-                            <button
-                              type="button"
-                              onClick={() => openKPlanModal(row.id, studentName)}
-                              disabled={kPlanLoading === row.id}
-                              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50"
-                            >
-                              {kPlanLoading === row.id
-                                ? <Icon name="refresh" size="sm" className="animate-spin" />
-                                : <Icon name="menu_book" size="sm" />
-                              }
-                              Full view
-                            </button>
-                          </div>
-                        </div>
-                      </section>
-                    )
-                  })()}
-
-                  {/* View full SEND plan link (SEND only) */}
-                  {isSend && (
-                    <a
-                      href={`/student/${row.id}/send`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      View full SEND plan <Icon name="chevron_right" size="sm" />
-                    </a>
-                  )}
-
+                  </div>
                 </div>
               )}
             </div>

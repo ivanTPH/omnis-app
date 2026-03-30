@@ -157,7 +157,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+              className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
                 active
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -177,7 +177,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         <Link
           href="/settings"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+          className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
             pathname === '/settings' && !pathname.startsWith('/settings/accessibility')
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -188,7 +188,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         <Link
           href="/settings/accessibility"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+          className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
             pathname === '/settings/accessibility'
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'

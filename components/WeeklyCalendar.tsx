@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useTransition, useMemo } from 'react'
+import { useState, useEffect, useTransition, useMemo, useRef, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
@@ -122,6 +122,55 @@ export default function WeeklyCalendar({
   const [folderTab,    setFolderTab]    = useState<FolderTab>('Overview')
   const [folderWizard, setFolderWizard] = useState(false)
 
+  // Mobile day view
+  const [mobileViewMode, setMobileViewMode] = useState<'week' | 'day'>('week')
+  const [mobileDayIndex, setMobileDayIndex] = useState(() => {
+    const today = new Date()
+    const dow = today.getDay()
+    return dow >= 1 && dow <= 5 ? dow - 1 : 0
+  })
+  const touchStartX = useRef(0)
+
+  useEffect(() => {
+    if (window.innerWidth < 768) setMobileViewMode('day')
+  }, [])
+
+  // Panel resize state
+  const [panelHeight, setPanelHeight] = useState(42)
+  const [isDragging,  setIsDragging]  = useState(false)
+  const dragStartY = useRef(0)
+  const dragStartH = useRef(0)
+
+  function onDragStart(clientY: number) {
+    setIsDragging(true)
+    dragStartY.current = clientY
+    dragStartH.current = panelHeight
+  }
+
+  useEffect(() => {
+    function onMove(e: MouseEvent | TouchEvent) {
+      if (!isDragging) return
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      const deltaY = dragStartY.current - clientY
+      const deltaPercent = (deltaY / window.innerHeight) * 100
+      const newH = Math.max(15, Math.min(78, dragStartH.current + deltaPercent))
+      setPanelHeight(Math.round(newH))
+    }
+    function onEnd() { setIsDragging(false) }
+    if (isDragging) {
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onEnd)
+      window.addEventListener('touchmove', onMove, { passive: false })
+      window.addEventListener('touchend', onEnd)
+    }
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onEnd)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onEnd)
+    }
+  }, [isDragging])
+
   // Drag-to-create
   const [dragCreate, setDragCreate] = useState<{
     dayIdx: number; startHour: number; currentHour: number
@@ -183,10 +232,12 @@ export default function WeeklyCalendar({
   const nextWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setWeekStart(d) }
   const goToday  = () => setWeekStart(getWeekStart(today))
 
+  const isSlim = panelHeight <= 18
+
   return (
     <div style={{
       display:             'grid',
-      gridTemplateRows:    folderId ? '42% 1fr' : '1fr',
+      gridTemplateRows:    folderId ? `1fr ${panelHeight}vh` : '1fr',
       flex:                1,
       minHeight:           0,
       overflow:            'hidden',
@@ -477,13 +528,38 @@ export default function WeeklyCalendar({
           backgroundColor: 'white',
           animation:       'slideUp 0.25s ease-out',
         }}>
-          <LessonFolder
-            lessonId={folderId}
-            defaultTab={folderTab}
-            wizardMode={folderWizard}
-            onClose={() => setFolderId(null)}
-            inline
-          />
+          {/* Drag handle bar */}
+          <div
+            className="h-8 flex items-center justify-center cursor-ns-resize bg-gray-50 border-b border-gray-200 shrink-0 relative select-none touch-none"
+            onMouseDown={e => { e.preventDefault(); onDragStart(e.clientY) }}
+            onTouchStart={e => { e.preventDefault(); onDragStart(e.touches[0].clientY) }}
+          >
+            <div className="w-8 h-1 bg-gray-300 rounded-full" />
+            {isSlim && (
+              <span className="absolute left-4 text-[12px] font-medium text-gray-500 truncate max-w-[60%]">
+                Lesson details
+              </span>
+            )}
+            {isSlim && (
+              <button
+                className="absolute right-3 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors"
+                onClick={() => setFolderId(null)}
+                onMouseDown={e => e.stopPropagation()}
+              >
+                <Icon name="close" size="sm" className="text-gray-500" />
+              </button>
+            )}
+          </div>
+          {/* LessonFolder — hidden in slim mode but not unmounted */}
+          <div style={isSlim ? { visibility: 'hidden', height: 0, overflow: 'hidden' } : { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <LessonFolder
+              lessonId={folderId}
+              defaultTab={folderTab}
+              wizardMode={folderWizard}
+              onClose={() => setFolderId(null)}
+              inline
+            />
+          </div>
         </div>
       )}
 

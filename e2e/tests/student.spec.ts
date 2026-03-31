@@ -21,10 +21,11 @@ test.describe('Student flows', () => {
     await expect(page.locator('body')).toBeVisible()
   })
 
-  test('student sidebar shows student nav items', async ({ page }) => {
-    const sidebar = new SidebarPage(page)
-    await sidebar.expectNavItem('Dashboard')
-    await sidebar.expectNavItem('Homework')
+  test('student bottom nav shows student nav items', async ({ page }) => {
+    // Student uses a mobile layout with a bottom <nav> (Home, Alerts, Progress, Messages)
+    await expect(page.locator('nav')).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByRole('button', { name: 'Home' }).first()).toBeVisible({ timeout: 8_000 })
+    await expect(page.getByRole('button', { name: 'Messages' }).first()).toBeVisible({ timeout: 8_000 })
   })
 
   test('student cannot access SLT analytics', async ({ page }) => {

@@ -21,9 +21,10 @@ test.describe('Student avatars', () => {
   })
 
   test('sidebar shows user initials or avatar chip for student', async ({ page }) => {
+    // Student uses a mobile layout with a bottom nav — no sidebar settings link
     await loginAs(page, USERS.student)
     await expect(page.locator('nav')).toBeVisible({ timeout: 8_000 })
-    const settingsLink = page.locator('a[href="/settings"]').first()
-    await expect(settingsLink).toBeVisible({ timeout: 10_000 })
+    // Student mobile bottom nav has: Home, Alerts, Progress, Messages
+    await expect(page.getByRole('button', { name: 'Home' }).first()).toBeVisible({ timeout: 8_000 })
   })
 })

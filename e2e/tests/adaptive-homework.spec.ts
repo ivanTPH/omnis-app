@@ -23,7 +23,7 @@ test.describe('Adaptive homework', () => {
     await page.goto('/analytics/adaptive')
     await page.waitForLoadState('networkidle')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
-    await expect(page.locator('text=Adaptive Learning Analytics')).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Adaptive Learning', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
   })
 
   test('student cannot access adaptive analytics', async ({ page }) => {
@@ -41,12 +41,12 @@ test.describe('Adaptive homework', () => {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 5_000 })
   })
 
-  test('senco cannot access analytics routes (middleware blocks)', async ({ page }) => {
-    // /analytics prefix is restricted to TEACHER, HEAD_OF_DEPT, HEAD_OF_YEAR, SLT, SCHOOL_ADMIN
-    // SENCO is not in this list so middleware redirects them away
+  test('senco can access analytics routes', async ({ page }) => {
+    // SENCO is included in the /analytics allow-list in auth.config.ts
     await loginAs(page, USERS.senco)
-    await gotoCommit(page, '/analytics/adaptive')
-    await page.waitForTimeout(2000)
-    expect(page.url()).not.toMatch(/\/analytics\/adaptive/)
+    await page.goto('/analytics/adaptive')
+    await page.waitForLoadState('networkidle')
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await expect(page.locator('body')).toBeVisible()
   })
 })

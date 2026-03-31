@@ -1,6 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-28. Authoritative reference for Claude sessions.
+> Last updated: 2026-03-31. Authoritative reference for Claude sessions.
+
+> **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
 ---
 

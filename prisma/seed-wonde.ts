@@ -556,7 +556,144 @@ async function main() {
   }
   console.log(`✓ ${assCount} KS2 assessment results (WondeAssessmentResult)`)
 
-  // ── 12. WondeSyncLog ─────────────────────────────────────────────────────────
+  // ── 12. WondeSenRecord — 1 per SEND student ───────────────────────────────────
+  const SEN_NEEDS = ['Dyslexia', 'ADHD', 'Autism Spectrum Condition', 'Speech, Language and Communication Needs', 'EAL']
+  let senCount = 0
+  for (const year of [7, 8, 9, 10]) {
+    const sendTarget = SEND_PER_YEAR[year]
+    const spacing    = Math.floor(30 / sendTarget)
+    let localSend    = 0
+    const studs      = studentsByYear[year]
+    for (let i = 0; i < studs.length; i++) {
+      if (localSend < sendTarget && i % spacing === 0) {
+        const isEhcp      = localSend < 2
+        const primaryNeed = SEN_NEEDS[localSend % SEN_NEEDS.length]
+        await prisma.wondeSenRecord.upsert({
+          where:  { studentId: studs[i].wondeId },
+          update: { isSen: true, isEhcp, primaryNeed, syncedAt: now },
+          create: { schoolId: school.id, studentId: studs[i].wondeId, isSen: true, isEhcp, primaryNeed, syncedAt: now },
+        })
+        senCount++
+        localSend++
+      } else {
+        await prisma.wondeSenRecord.upsert({
+          where:  { studentId: studs[i].wondeId },
+          update: { isSen: false, isEhcp: false, primaryNeed: null, syncedAt: now },
+          create: { schoolId: school.id, studentId: studs[i].wondeId, isSen: false, isEhcp: false, syncedAt: now },
+        })
+      }
+    }
+  }
+  console.log(`✓ ${senCount} SEN records (WondeSenRecord, ${senCount} SEN students)`)
+
+  // ── 13. Attendance (WondeBehaviourRecord reused as attendance proxy) ──────────
+  // Seed User.attendancePercentage directly for demo
+  let attCount = 0
+  for (const year of [7, 8, 9, 10]) {
+    for (const stud of studentsByYear[year]) {
+      // Most students 88–100%, a few lower
+      const pct = rng() < 0.1 ? ri(70, 89) : (rng() < 0.2 ? ri(90, 94) : ri(95, 100))
+      await prisma.user.update({
+        where: { id: stud.userId },
+        data:  { attendancePercentage: pct },
+      })
+      attCount++
+    }
+  }
+  console.log(`✓ ${attCount} attendance records synced to User.attendancePercentage`)
+
+  // ── 14. Behaviour records ─────────────────────────────────────────────────────
+  const BEH_CATEGORIES  = ['Outstanding Work', 'Participation', 'Helping Others', 'Leadership']
+  const NEG_CATEGORIES  = ['Disruption', 'Late to Lesson', 'Missing Equipment', 'Incomplete Homework']
+  let behCount = 0
+  for (const year of [7, 8, 9, 10]) {
+    for (let i = 0; i < studentsByYear[year].length; i++) {
+      const stud        = studentsByYear[year][i]
+      const numPositive = ri(0, 5)
+      const numNegative = ri(0, 2)
+      for (let p = 0; p < numPositive; p++) {
+        const bid = `WBEH-POS-${stud.wondeId}-${p}`
+        const dt  = new Date(now.getTime() - ri(1, 60) * 86_400_000)
+        await prisma.wondeBehaviourRecord.upsert({
+          where:  { id: bid },
+          update: {},
+          create: {
+            id:        bid,
+            schoolId:  school.id,
+            studentId: stud.wondeId,
+            type:      'positive',
+            category:  BEH_CATEGORIES[p % BEH_CATEGORIES.length],
+            points:    ri(1, 3),
+            occurredAt: dt,
+            syncedAt:   now,
+          },
+        })
+        behCount++
+      }
+      for (let n = 0; n < numNegative; n++) {
+        const bid = `WBEH-NEG-${stud.wondeId}-${n}`
+        const dt  = new Date(now.getTime() - ri(1, 60) * 86_400_000)
+        await prisma.wondeBehaviourRecord.upsert({
+          where:  { id: bid },
+          update: {},
+          create: {
+            id:        bid,
+            schoolId:  school.id,
+            studentId: stud.wondeId,
+            type:      'negative',
+            category:  NEG_CATEGORIES[n % NEG_CATEGORIES.length],
+            points:    null,
+            occurredAt: dt,
+            syncedAt:   now,
+          },
+        })
+        behCount++
+      }
+      // Write summary counts to User
+      await prisma.user.update({
+        where: { id: stud.userId },
+        data:  { behaviourPositive: numPositive, behaviourNegative: numNegative },
+      })
+    }
+  }
+  console.log(`✓ ${behCount} behaviour records (WondeBehaviourRecord)`)
+
+  // ── 15. Exclusion records (rare — ~5% of students) ────────────────────────────
+  let excCount = 0
+  for (const year of [7, 8, 9, 10]) {
+    for (let i = 0; i < studentsByYear[year].length; i++) {
+      if (rng() < 0.05) {  // ~5% chance
+        const stud = studentsByYear[year][i]
+        const eid  = `WEXC-${stud.wondeId}`
+        const start = new Date(now.getTime() - ri(30, 180) * 86_400_000)
+        const length = ri(1, 3)
+        const end = new Date(start.getTime() + length * 86_400_000)
+        await prisma.wondeExclusionRecord.upsert({
+          where:  { id: eid },
+          update: {},
+          create: {
+            id:        eid,
+            schoolId:  school.id,
+            studentId: stud.wondeId,
+            type:      'fixed-term',
+            reason:    'Persistent disruptive behaviour',
+            startDate: start,
+            endDate:   end,
+            lengthDays: length,
+            syncedAt:   now,
+          },
+        })
+        await prisma.user.update({
+          where: { id: stud.userId },
+          data:  { hasExclusion: true },
+        })
+        excCount++
+      }
+    }
+  }
+  console.log(`✓ ${excCount} exclusion records (WondeExclusionRecord)`)
+
+  // ── 17. WondeSyncLog ─────────────────────────────────────────────────────────
   const existingLog = await prisma.wondeSyncLog.findFirst({
     where: { schoolId: school.id, syncType: 'INITIAL_SEED' },
   })
@@ -744,6 +881,8 @@ async function main() {
   console.log(`  Periods:     ${periodCount}`)
   console.log(`  Timetable:   ${ttCount}`)
   console.log(`  Assessments: ${assCount}`)
+  console.log(`  SEN records: ${senCount}`)
+  console.log(`  Behaviour:   ${behCount}`)
   console.log(`  Consent:     ${PURPOSES.length} purposes, ${crCount} records`)
   console.log('═══════════════════════════════════════════\n')
 }

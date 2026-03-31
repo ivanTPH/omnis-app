@@ -744,18 +744,23 @@ export async function updateResource(
 // ── Class Roster ─────────────────────────────────────────────────────────────
 
 export type ClassRosterRow = {
-  id:              string
-  firstName:       string
-  lastName:        string
-  yearGroup:       number | null
-  avatarUrl:       string | null
-  sendStatus:      string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
-  needArea:        string | null
-  hasIlp:          boolean
-  hasEhcp:         boolean
-  latestScore:     number | null
-  maxScore:        number | null
-  supportSnapshot: string | null
+  id:                  string
+  firstName:           string
+  lastName:            string
+  yearGroup:           number | null
+  avatarUrl:           string | null
+  sendStatus:          string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  needArea:            string | null
+  hasIlp:              boolean
+  hasEhcp:             boolean
+  latestScore:         number | null
+  maxScore:            number | null
+  supportSnapshot:     string | null
+  // Wonde MIS data
+  attendancePercentage: number | null
+  behaviourPositive:    number | null
+  behaviourNegative:    number | null
+  hasExclusion:         boolean | null
 }
 
 export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
@@ -796,17 +801,22 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         id:              e.user.id,
         firstName:       e.user.firstName,
         lastName:        e.user.lastName,
-        yearGroup:       (e.user as any).yearGroup ?? null,
+        yearGroup:           e.user.yearGroup ?? null,
         // Prefer UserSettings.profilePictureUrl (teacher-uploaded or Wonde proxy URL set during sync)
         // Fall back to User.avatarUrl (also set by Wonde sync and used by other roster queries)
-        avatarUrl:       e.user.settings?.profilePictureUrl ?? (e.user as any).avatarUrl ?? null,
-        sendStatus:      status,
-        needArea:        e.user.sendStatus?.needArea ?? null,
-        hasIlp:          e.user.studentIlps.length > 0,
-        hasEhcp:         status === 'EHCP',
-        latestScore:     score,
-        maxScore:        sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
-        supportSnapshot: e.user.supportSnapshot ?? null,
+        avatarUrl:           e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+        sendStatus:          status,
+        needArea:            e.user.sendStatus?.needArea ?? null,
+        hasIlp:              e.user.studentIlps.length > 0,
+        hasEhcp:             status === 'EHCP',
+        latestScore:         score,
+        maxScore:            sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
+        supportSnapshot:     e.user.supportSnapshot ?? null,
+        // Wonde MIS data (null when not a Wonde-synced school)
+        attendancePercentage: e.user.attendancePercentage ?? null,
+        behaviourPositive:    e.user.behaviourPositive    ?? null,
+        behaviourNegative:    e.user.behaviourNegative    ?? null,
+        hasExclusion:         e.user.hasExclusion         ?? null,
       }
     })
   } catch (err) {

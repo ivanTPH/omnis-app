@@ -141,6 +141,50 @@ export interface WondeAssessmentResult {
   student?: { data: { id: string } | null }
 }
 
+export interface WondeSenNeed {
+  rank: number | null
+  sen_category: { data: { name: string } | null } | null
+}
+
+export interface WondeStudentSen {
+  id: string
+  /** true when the student is on the SEN register */
+  is_eal: boolean | null
+  sen_needs?: { data: WondeSenNeed[] }
+}
+
+export interface WondeAttendanceSummary {
+  id: string
+  student: { data: { id: string } | null }
+  /** Attendance percentage 0–100 */
+  attendance_percentage: number | null
+  possible_sessions: number | null
+  present_sessions: number | null
+  authorised_absences: number | null
+  unauthorised_absences: number | null
+}
+
+export interface WondeBehaviourItem {
+  id: string
+  student: { data: { id: string } | null }
+  /** "positive" | "negative" | "neutral" */
+  type: string | null
+  category: string | null
+  points: number | null
+  date: { date: string } | null
+}
+
+export interface WondeExclusionItem {
+  id: string
+  student: { data: { id: string } | null }
+  /** "fixed-term" | "permanent" */
+  type: string | null
+  reason: string | null
+  start_date: { date: string } | null
+  end_date: { date: string } | null
+  length: number | null
+}
+
 // ── Core fetch with auth ──────────────────────────────────────────────────────
 
 async function wondeFetch<T>(path: string, token: string): Promise<T> {
@@ -201,7 +245,14 @@ export async function fetchWondeEmployees(schoolId: string, token: string): Prom
 
 export async function fetchWondeStudents(schoolId: string, token: string): Promise<WondeStudent[]> {
   return wondeAll<WondeStudent>(`/schools/${schoolId}/students`, token, {
-    include: 'contacts,year,photo',
+    include: 'contacts,year,photo,sen',
+    per_page: '200',
+  })
+}
+
+export async function fetchWondeSen(schoolId: string, token: string): Promise<WondeStudentSen[]> {
+  return wondeAll<WondeStudentSen>(`/schools/${schoolId}/students`, token, {
+    include: 'sen',
     per_page: '200',
   })
 }
@@ -229,5 +280,33 @@ export async function fetchWondeTimetableEntries(schoolId: string, token: string
   return wondeAll<WondeTimetableEntry>(`/schools/${schoolId}/lessons`, token, {
     include: 'class',
     per_page: '100',
+  })
+}
+
+export async function fetchWondeAttendanceSummaries(schoolId: string, token: string): Promise<WondeAttendanceSummary[]> {
+  return wondeAll<WondeAttendanceSummary>(`/schools/${schoolId}/attendance-summaries`, token, {
+    include: 'student',
+    per_page: '200',
+  })
+}
+
+export async function fetchWondeBehaviours(schoolId: string, token: string): Promise<WondeBehaviourItem[]> {
+  return wondeAll<WondeBehaviourItem>(`/schools/${schoolId}/behaviours`, token, {
+    include: 'student',
+    per_page: '200',
+  })
+}
+
+export async function fetchWondeExclusions(schoolId: string, token: string): Promise<WondeExclusionItem[]> {
+  return wondeAll<WondeExclusionItem>(`/schools/${schoolId}/exclusions`, token, {
+    include: 'student',
+    per_page: '200',
+  })
+}
+
+export async function fetchWondeAssessmentResults(schoolId: string, token: string): Promise<WondeAssessmentResult[]> {
+  return wondeAll<WondeAssessmentResult>(`/schools/${schoolId}/assessment-results`, token, {
+    include: 'student,subject,result-set,aspect,grade',
+    per_page: '200',
   })
 }

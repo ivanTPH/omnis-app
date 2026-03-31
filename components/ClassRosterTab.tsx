@@ -514,10 +514,11 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
                     {/* ── Tab: Overview ── */}
                     {activeTab === 'overview' && (() => {
-                      const hasRagData = ragStudent && (ragStudent.workingAtScore != null || ragStudent.prediction != null)
-                      const hasSendData = isSend && (row.supportSnapshot || hasAdjustments || (row.hasIlp && (ilpData === 'loading' || (ilpData && ilpData.targets.length > 0))))
+                      const hasRagData   = ragStudent && (ragStudent.workingAtScore != null || ragStudent.prediction != null)
+                      const hasSendData  = isSend && (row.supportSnapshot || hasAdjustments || (row.hasIlp && (ilpData === 'loading' || (ilpData && ilpData.targets.length > 0))))
+                      const hasWondeData = row.attendancePercentage != null || row.behaviourPositive != null || row.hasExclusion === true
 
-                      if (!hasSendData && !hasRagData) {
+                      if (!hasSendData && !hasRagData && !hasWondeData) {
                         return (
                           <p className="text-[12px] text-gray-400 italic">No SEND data or predictions on record.</p>
                         )
@@ -641,6 +642,53 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                                     <p className="text-[13px] font-semibold text-gray-700 capitalize">{ragStudent.ragStatus.replace('_', ' ')}</p>
                                   </div>
                                 </div>
+                              </div>
+                            </section>
+                          )}
+
+                          {/* ── Wonde MIS Data ── */}
+                          {hasWondeData && (
+                            <section>
+                              <p className={SECTION_HEADING}>MIS Data <span className="text-gray-300 font-normal normal-case tracking-normal ml-1">via Wonde</span></p>
+                              <div className="flex flex-wrap gap-2">
+                                {/* Attendance */}
+                                {row.attendancePercentage != null && (() => {
+                                  const pct = row.attendancePercentage
+                                  const attCls = pct >= 95 ? 'bg-green-50 border-green-200 text-green-800'
+                                    : pct >= 90 ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                    : 'bg-red-50 border-red-200 text-red-800'
+                                  const attIcon = pct >= 95 ? 'check_circle' : pct >= 90 ? 'warning' : 'cancel'
+                                  const attIconCls = pct >= 95 ? 'text-green-500' : pct >= 90 ? 'text-amber-500' : 'text-red-500'
+                                  return (
+                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12px] font-medium ${attCls}`}>
+                                      <Icon name={attIcon} size="sm" className={attIconCls} />
+                                      {pct.toFixed(1)}% attendance this term
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* Behaviour */}
+                                {row.behaviourPositive != null && (() => {
+                                  const pos = row.behaviourPositive ?? 0
+                                  const neg = row.behaviourNegative ?? 0
+                                  const behCls = neg === 0 ? 'bg-green-50 border-green-200 text-green-800'
+                                    : neg <= 1 ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                    : 'bg-red-50 border-red-200 text-red-800'
+                                  return (
+                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[12px] font-medium ${behCls}`}>
+                                      <Icon name="emoji_events" size="sm" className="text-current opacity-70" />
+                                      {pos} positive · {neg} {neg === 1 ? 'concern' : 'concerns'}
+                                    </div>
+                                  )
+                                })()}
+
+                                {/* Exclusion warning */}
+                                {row.hasExclusion === true && (
+                                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-amber-50 border-amber-200 text-amber-800 text-[12px] font-medium">
+                                    <Icon name="report_problem" size="sm" className="text-amber-500" />
+                                    Exclusion on record
+                                  </div>
+                                )}
                               </div>
                             </section>
                           )}

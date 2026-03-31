@@ -27,19 +27,28 @@ import {
   fetchWondeClasses,
   fetchWondePeriods,
   fetchWondeTimetableEntries,
+  fetchWondeAttendanceSummaries,
+  fetchWondeBehaviours,
+  fetchWondeExclusions,
+  fetchWondeAssessmentResults,
 } from '@/lib/wonde-client'
 
 export interface WondeSyncResult {
-  employees:  { upserted: number }
-  students:   { upserted: number }
-  contacts:   { upserted: number }
-  groups:     { upserted: number }
-  classes:    { upserted: number }
-  enrolments: { upserted: number }
-  periods:    { upserted: number }
-  timetable:  { upserted: number }
-  errors:     string[]
-  durationMs: number
+  employees:   { upserted: number }
+  students:    { upserted: number }
+  contacts:    { upserted: number }
+  groups:      { upserted: number }
+  classes:     { upserted: number }
+  enrolments:  { upserted: number }
+  periods:     { upserted: number }
+  timetable:   { upserted: number }
+  sen:         { upserted: number }
+  attendance:  { upserted: number }
+  behaviours:  { upserted: number }
+  exclusions:  { upserted: number }
+  assessments: { upserted: number }
+  errors:      string[]
+  durationMs:  number
 }
 
 function parseWondeDate(d: { date: string } | null | undefined): Date | null {
@@ -71,16 +80,21 @@ export async function runWondeSync(
   const errors: string[] = []
 
   const result: WondeSyncResult = {
-    employees: { upserted: 0 },
-    students:  { upserted: 0 },
-    contacts:  { upserted: 0 },
-    groups:    { upserted: 0 },
-    classes:   { upserted: 0 },
-    enrolments:{ upserted: 0 },
-    periods:   { upserted: 0 },
-    timetable: { upserted: 0 },
+    employees:   { upserted: 0 },
+    students:    { upserted: 0 },
+    contacts:    { upserted: 0 },
+    groups:      { upserted: 0 },
+    classes:     { upserted: 0 },
+    enrolments:  { upserted: 0 },
+    periods:     { upserted: 0 },
+    timetable:   { upserted: 0 },
+    sen:         { upserted: 0 },
+    attendance:  { upserted: 0 },
+    behaviours:  { upserted: 0 },
+    exclusions:  { upserted: 0 },
+    assessments: { upserted: 0 },
     errors,
-    durationMs: 0,
+    durationMs:  0,
   }
 
   const now = new Date()
@@ -466,6 +480,308 @@ export async function runWondeSync(
       console.warn('[wonde-sync] Timetable sync skipped — enable lessons.read permission in Wonde dashboard to sync timetable data')
     } else {
       errors.push(`Timetable: ${msg}`)
+    }
+  }
+
+  // ── 8. SEN records ────────────────────────────────────────────────────────
+  // SEN is already included in the student fetch (include=sen). We process it
+  // here using the already-fetched students from section 3. The wondeStudent
+  // records are now in DB (knownStudentIds). We map primaryNeed to User.sendStatus.
+  try {
+    // Re-fetch students with sen include for the SEN data
+    const studentsWithSen = await fetchWondeStudents(wondeSchoolId, wondeToken)
+
+    // Pre-fetch all school student Users once more for send status updates
+    const schoolStudentsForSen = await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const userByNameForSen = new Map(
+      schoolStudentsForSen.map(u => [`${u.firstName}|${u.lastName}`, u.id])
+    )
+
+    await inBatches(studentsWithSen, async stu => {
+      if (!knownStudentIds.has(stu.id)) return
+      // `sen_needs` is populated when include=sen is used
+      const senData = (stu as any).sen_needs?.data as Array<{ rank: number | null; sen_category?: { data: { name: string } | null } | null }> | undefined
+      const isSen   = Array.isArray(senData) && senData.length > 0
+      const isEhcp  = (stu as any).has_ehcp === true
+
+      // Primary need = highest priority (rank=1) or first entry
+      const sorted  = isSen ? [...senData].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99)) : []
+      const primaryNeed = sorted[0]?.sen_category?.data?.name ?? null
+
+      await prisma.wondeSenRecord.upsert({
+        where:  { studentId: stu.id },
+        create: { schoolId: omnisSchoolId, studentId: stu.id, isSen, isEhcp, primaryNeed, syncedAt: now },
+        update: { isSen, isEhcp, primaryNeed, syncedAt: now },
+      })
+      result.sen.upserted++
+
+      // Mirror to User.sendStatus so the existing SEND system picks it up
+      if (isSen) {
+        const matchedUserId = userByNameForSen.get(`${stu.forename}|${stu.surname}`)
+        if (matchedUserId) {
+          const sendValue = isEhcp ? 'EHCP' : 'SEN_SUPPORT'
+          try {
+            await prisma.sendStatus.upsert({
+              where:  { studentId: matchedUserId },
+              create: {
+                studentId:      matchedUserId,
+                activeStatus:   sendValue as any,
+                needArea:       primaryNeed,
+                activeSource:   'Wonde MIS sync',
+                latestMisStatus: sendValue as any,
+                misLastSyncedAt: now,
+              },
+              update: {
+                activeStatus:    sendValue as any,
+                needArea:        primaryNeed ?? undefined,
+                latestMisStatus: sendValue as any,
+                misLastSyncedAt: now,
+              },
+            })
+          } catch {
+            // SEND status update is best-effort
+          }
+        }
+      }
+    })
+  } catch (err) {
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+      console.warn('[wonde-sync] SEN sync skipped — enable sen.read permission in Wonde dashboard')
+    } else {
+      errors.push(`SEN: ${msg}`)
+    }
+  }
+
+  // ── 9. Attendance summaries ───────────────────────────────────────────────
+  try {
+    const summaries = await fetchWondeAttendanceSummaries(wondeSchoolId, wondeToken)
+
+    // Map WondeStudent.id → User.id for attendance update
+    const wondeStudentUsers = await prisma.wondeStudent.findMany({
+      where:  { schoolId: omnisSchoolId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const schoolStudentsForAtt = await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const userByNameForAtt = new Map(
+      schoolStudentsForAtt.map(u => [`${u.firstName}|${u.lastName}`, u.id])
+    )
+    const wondeStudentNameById = new Map(
+      wondeStudentUsers.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+    )
+
+    await inBatches(summaries, async s => {
+      const stuId = s.student?.data?.id
+      if (!stuId || !knownStudentIds.has(stuId)) return
+      const pct = s.attendance_percentage
+
+      // Update User.attendancePercentage via name match
+      const nameKey = wondeStudentNameById.get(stuId)
+      if (nameKey && pct != null) {
+        const userId = userByNameForAtt.get(nameKey)
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data:  { attendancePercentage: pct },
+          })
+        }
+      }
+      result.attendance.upserted++
+    })
+  } catch (err) {
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+      console.warn('[wonde-sync] Attendance sync skipped — enable attendance.read permission in Wonde dashboard')
+    } else {
+      errors.push(`Attendance: ${msg}`)
+    }
+  }
+
+  // ── 10. Behaviour records ─────────────────────────────────────────────────
+  try {
+    const behaviours = await fetchWondeBehaviours(wondeSchoolId, wondeToken)
+
+    // Tally per-student counts then write to User + WondeBehaviourRecord
+    const schoolStudentsForBeh = await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const wondeStudentsForBeh = await prisma.wondeStudent.findMany({
+      where:  { schoolId: omnisSchoolId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const userByNameForBeh = new Map(
+      schoolStudentsForBeh.map(u => [`${u.firstName}|${u.lastName}`, u.id])
+    )
+    const wondeStudentNameByIdBeh = new Map(
+      wondeStudentsForBeh.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+    )
+    const positiveCount = new Map<string, number>()
+    const negativeCount = new Map<string, number>()
+
+    await inBatches(behaviours, async b => {
+      const stuId = b.student?.data?.id
+      if (!stuId || !knownStudentIds.has(stuId)) return
+
+      await prisma.wondeBehaviourRecord.upsert({
+        where:  { id: b.id },
+        create: {
+          id:        b.id,
+          schoolId:  omnisSchoolId,
+          studentId: stuId,
+          type:      b.type ?? null,
+          category:  b.category ?? null,
+          points:    b.points ? Math.round(b.points) : null,
+          occurredAt: b.date?.date ? new Date(b.date.date) : null,
+          syncedAt:   now,
+        },
+        update: {
+          type:      b.type ?? null,
+          category:  b.category ?? null,
+          points:    b.points ? Math.round(b.points) : null,
+          occurredAt: b.date?.date ? new Date(b.date.date) : null,
+        },
+      })
+      result.behaviours.upserted++
+
+      const isPositive = (b.type ?? '').toLowerCase() === 'positive'
+      if (isPositive) positiveCount.set(stuId, (positiveCount.get(stuId) ?? 0) + 1)
+      else            negativeCount.set(stuId, (negativeCount.get(stuId) ?? 0) + 1)
+    })
+
+    // Write summarised counts to User model
+    const allStuIds = new Set([...positiveCount.keys(), ...negativeCount.keys()])
+    await inBatches([...allStuIds], async stuId => {
+      const nameKey = wondeStudentNameByIdBeh.get(stuId)
+      if (!nameKey) return
+      const userId = userByNameForBeh.get(nameKey)
+      if (!userId) return
+      await prisma.user.update({
+        where: { id: userId },
+        data:  {
+          behaviourPositive: positiveCount.get(stuId) ?? 0,
+          behaviourNegative: negativeCount.get(stuId) ?? 0,
+        },
+      })
+    })
+  } catch (err) {
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+      console.warn('[wonde-sync] Behaviour sync skipped — enable behaviour.read permission in Wonde dashboard')
+    } else {
+      errors.push(`Behaviours: ${msg}`)
+    }
+  }
+
+  // ── 11. Exclusion records ─────────────────────────────────────────────────
+  try {
+    const exclusions = await fetchWondeExclusions(wondeSchoolId, wondeToken)
+
+    const schoolStudentsForExc = await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const wondeStudentsForExc = await prisma.wondeStudent.findMany({
+      where:  { schoolId: omnisSchoolId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const userByNameForExc = new Map(
+      schoolStudentsForExc.map(u => [`${u.firstName}|${u.lastName}`, u.id])
+    )
+    const wondeStudentNameByIdExc = new Map(
+      wondeStudentsForExc.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+    )
+    const studentsWithExclusions = new Set<string>()
+
+    await inBatches(exclusions, async ex => {
+      const stuId = ex.student?.data?.id
+      if (!stuId || !knownStudentIds.has(stuId)) return
+
+      await prisma.wondeExclusionRecord.upsert({
+        where:  { id: ex.id },
+        create: {
+          id:        ex.id,
+          schoolId:  omnisSchoolId,
+          studentId: stuId,
+          type:      ex.type ?? null,
+          reason:    ex.reason ?? null,
+          startDate: ex.start_date?.date ? new Date(ex.start_date.date) : null,
+          endDate:   ex.end_date?.date   ? new Date(ex.end_date.date)   : null,
+          lengthDays: ex.length ? Math.round(ex.length) : null,
+          syncedAt:   now,
+        },
+        update: {
+          type:      ex.type ?? null,
+          reason:    ex.reason ?? null,
+          startDate: ex.start_date?.date ? new Date(ex.start_date.date) : null,
+          endDate:   ex.end_date?.date   ? new Date(ex.end_date.date)   : null,
+          lengthDays: ex.length ? Math.round(ex.length) : null,
+        },
+      })
+      result.exclusions.upserted++
+      studentsWithExclusions.add(stuId)
+    })
+
+    // Mark User.hasExclusion
+    await inBatches([...studentsWithExclusions], async stuId => {
+      const nameKey = wondeStudentNameByIdExc.get(stuId)
+      if (!nameKey) return
+      const userId = userByNameForExc.get(nameKey)
+      if (!userId) return
+      await prisma.user.update({ where: { id: userId }, data: { hasExclusion: true } })
+    })
+  } catch (err) {
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+      console.warn('[wonde-sync] Exclusion sync skipped — enable exclusion.read permission in Wonde dashboard')
+    } else {
+      errors.push(`Exclusions: ${msg}`)
+    }
+  }
+
+  // ── 12. Assessment results ────────────────────────────────────────────────
+  try {
+    const assessments = await fetchWondeAssessmentResults(wondeSchoolId, wondeToken)
+    await inBatches(assessments, async a => {
+      const stuId = a.student?.data?.id
+      if (!stuId || !knownStudentIds.has(stuId)) return
+      await prisma.wondeAssessmentResult.upsert({
+        where:  { id: a.id },
+        create: {
+          id:            a.id,
+          schoolId:      omnisSchoolId,
+          studentId:     stuId,
+          subjectName:   a.subject?.data?.name  ?? null,
+          resultSetName: a.result_set?.data?.name ?? null,
+          aspectName:    a.aspect?.data?.name   ?? null,
+          result:        a.result               ?? null,
+          gradeValue:    a.grade?.data?.value   ?? null,
+          collectionDate: a.collection_date?.date ? new Date(a.collection_date.date) : null,
+          syncedAt:       now,
+        },
+        update: {
+          subjectName:   a.subject?.data?.name  ?? null,
+          resultSetName: a.result_set?.data?.name ?? null,
+          aspectName:    a.aspect?.data?.name   ?? null,
+          result:        a.result               ?? null,
+          gradeValue:    a.grade?.data?.value   ?? null,
+          collectionDate: a.collection_date?.date ? new Date(a.collection_date.date) : null,
+        },
+      })
+      result.assessments.upserted++
+    })
+  } catch (err) {
+    const msg = String(err)
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
+      console.warn('[wonde-sync] Assessment results sync skipped — enable assessment.read permission in Wonde dashboard')
+    } else {
+      errors.push(`Assessments: ${msg}`)
     }
   }
 

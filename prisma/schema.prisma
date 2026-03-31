@@ -231,6 +231,9 @@ model School {
   wondePeriods           WondePeriod[]
   wondeTimetableEntries  WondeTimetableEntry[]
   wondeAssessmentResults WondeAssessmentResult[]
+  wondeSenRecords        WondeSenRecord[]
+  wondeBehaviourRecords  WondeBehaviourRecord[]
+  wondeExclusionRecords  WondeExclusionRecord[]
   wondeDeletions         WondeDeletion[]
   wondeSyncLogs          WondeSyncLog[]
   staffAbsences          StaffAbsence[]
@@ -288,8 +291,12 @@ model User {
   yearGroup    Int?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
-  avatarUrl        String?
-  supportSnapshot  String?          // 1–2 sentence plain-English SEND summary for teachers
+  avatarUrl            String?
+  supportSnapshot      String?          // 1–2 sentence plain-English SEND summary for teachers
+  attendancePercentage Float?           // Synced from Wonde attendance-summaries
+  behaviourPositive    Int?             // Count of positive behaviour records (Wonde)
+  behaviourNegative    Int?             // Count of negative behaviour records (Wonde)
+  hasExclusion         Boolean?         // Whether any exclusion record exists (Wonde)
 
   teacherClasses      ClassTeacher[]
   enrolments          Enrolment[]
@@ -1094,6 +1101,9 @@ model WondeStudent {
   contacts          WondeContact[]
   classes           WondeClassStudent[]
   assessmentResults WondeAssessmentResult[]
+  senRecord         WondeSenRecord?
+  behaviourRecords  WondeBehaviourRecord[]
+  exclusionRecords  WondeExclusionRecord[]
 
   @@index([schoolId])
   @@index([yearGroup])
@@ -1228,6 +1238,53 @@ model WondeAssessmentResult {
   gradeValue     String?
   collectionDate DateTime?
   syncedAt       DateTime     @default(now())
+
+  @@index([schoolId])
+  @@index([studentId])
+}
+
+model WondeSenRecord {
+  id          String       @id @default(cuid())
+  school      School       @relation(fields: [schoolId], references: [id])
+  schoolId    String
+  student     WondeStudent @relation(fields: [studentId], references: [id])
+  studentId   String       @unique   // 1-to-1 per student
+  isSen       Boolean      @default(false)
+  isEhcp      Boolean      @default(false)
+  primaryNeed String?
+  syncedAt    DateTime     @default(now())
+
+  @@index([schoolId])
+}
+
+model WondeBehaviourRecord {
+  id         String       @id            // Wonde ID
+  school     School       @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  student    WondeStudent @relation(fields: [studentId], references: [id])
+  studentId  String
+  type       String?                     // "positive" | "negative" | "neutral"
+  category   String?
+  points     Int?
+  occurredAt DateTime?
+  syncedAt   DateTime     @default(now())
+
+  @@index([schoolId])
+  @@index([studentId])
+}
+
+model WondeExclusionRecord {
+  id         String       @id            // Wonde ID
+  school     School       @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  student    WondeStudent @relation(fields: [studentId], references: [id])
+  studentId  String
+  type       String?                     // "fixed-term" | "permanent"
+  reason     String?
+  startDate  DateTime?
+  endDate    DateTime?
+  lengthDays Int?
+  syncedAt   DateTime     @default(now())
 
   @@index([schoolId])
   @@index([studentId])

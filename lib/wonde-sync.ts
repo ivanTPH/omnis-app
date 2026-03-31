@@ -8,6 +8,14 @@
  * - FK existence checks (employee/group/student/class/period) use in-memory Sets built
  *   during the loop — zero extra DB round-trips per record.
  * - Photo bridge uses a single pre-fetched Map of school student Users.
+ *
+ * ── Data sourcing note (for Wonde support — April 2026) ─────────────────────
+ * ILP and EHCP data is generated internally by Omnis AI.
+ * We do not import these from Wonde.
+ * We would benefit from: SEN status (synced), EHCP flag,
+ * prior attainment/SATs scores, attendance, behaviour flags
+ * — request made to Wonde support April 2026.
+ * ────────────────────────────────────────────────────────────────────────────
  */
 
 import { prisma } from '@/lib/prisma'
@@ -167,7 +175,7 @@ export async function runWondeSync(
 
     await inBatches(students, async stu => {
       const yearInt  = yearCodeToInt(stu.year?.data?.code)
-      const photoUrl = stu.photo?.data?.viewed ?? null
+      const photoUrl = stu.photo?.data?.url ?? null
       await prisma.wondeStudent.upsert({
         where:  { id: stu.id },
         create: {
@@ -207,19 +215,24 @@ export async function runWondeSync(
       // UserSettings.profilePictureUrl is read by the teacher class roster and AppShell.
       // Both must be set so photos appear everywhere after a Wonde sync.
       // Match by firstName + lastName within the school (best effort for demo).
+      //
+      // We store a proxy URL (/api/student-photo/{userId}) rather than the raw Wonde URL.
+      // The proxy route fetches the image server-side with the Wonde API token, so the
+      // browser never needs to supply an Authorization header.
       if (photoUrl) {
         try {
           const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
           if (matchedUserId) {
+            const proxyUrl = `/api/student-photo/${matchedUserId}`
             await Promise.all([
               prisma.user.update({
                 where: { id: matchedUserId },
-                data:  { avatarUrl: photoUrl },
+                data:  { avatarUrl: proxyUrl },
               }),
               prisma.userSettings.upsert({
                 where:  { userId: matchedUserId },
-                create: { userId: matchedUserId, profilePictureUrl: photoUrl },
-                update: { profilePictureUrl: photoUrl },
+                create: { userId: matchedUserId, profilePictureUrl: proxyUrl },
+                update: { profilePictureUrl: proxyUrl },
               }),
             ])
           }

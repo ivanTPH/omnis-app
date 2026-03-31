@@ -344,9 +344,10 @@ async function main() {
       const dobYear = 2026 - year - 11 + ri(0, 1)
       const dob     = new Date(dobYear, ri(0, 11), ri(1, 28))
 
+      const dicebearUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${firstName}${lastName}&backgroundColor=3b82f6`
       await prisma.wondeStudent.upsert({
         where:  { id: wid },
-        update: {},
+        update: { photoUrl: dicebearUrl },
         create: {
           id:        wid,
           schoolId:  school.id,
@@ -358,7 +359,7 @@ async function main() {
           yearGroup: year,
           formGroup: `${year}${i < 15 ? 'A' : 'B'}`,
           syncedAt:  now,
-          photoUrl:  `https://api.dicebear.com/7.x/initials/svg?seed=${firstName}${lastName}&backgroundColor=3b82f6`,
+          photoUrl:  dicebearUrl,
         },
       })
 
@@ -375,6 +376,21 @@ async function main() {
           yearGroup:    year,
         },
       })
+
+      // Bridge photo: store proxy URL in User.avatarUrl + UserSettings.profilePictureUrl.
+      // Proxy route (/api/student-photo/[userId]) fetches WondeStudent.photoUrl server-side.
+      const proxyUrl = `/api/student-photo/${user.id}`
+      await Promise.all([
+        prisma.user.update({
+          where: { id: user.id },
+          data:  { avatarUrl: proxyUrl },
+        }),
+        prisma.userSettings.upsert({
+          where:  { userId: user.id },
+          create: { userId: user.id, profilePictureUrl: proxyUrl },
+          update: { profilePictureUrl: proxyUrl },
+        }),
+      ])
 
       studentsByYear[year].push({ wondeId: wid, userId: user.id, firstName, lastName })
 

@@ -61,7 +61,7 @@ export interface WondeStudent {
   is_leaver: boolean
   updated_at: { date: string } | null
   contacts?: { data: WondeContact[] }
-  photo?: { data: { viewed: string } | null }
+  photo?: { data: { url: string } | null }
 }
 
 export interface WondeContactRelationship {

@@ -797,7 +797,9 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         firstName:       e.user.firstName,
         lastName:        e.user.lastName,
         yearGroup:       (e.user as any).yearGroup ?? null,
-        avatarUrl:       e.user.settings?.profilePictureUrl ?? null,
+        // Prefer UserSettings.profilePictureUrl (teacher-uploaded or Wonde proxy URL set during sync)
+        // Fall back to User.avatarUrl (also set by Wonde sync and used by other roster queries)
+        avatarUrl:       e.user.settings?.profilePictureUrl ?? (e.user as any).avatarUrl ?? null,
         sendStatus:      status,
         needArea:        e.user.sendStatus?.needArea ?? null,
         hasIlp:          e.user.studentIlps.length > 0,

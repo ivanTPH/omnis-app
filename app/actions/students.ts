@@ -110,9 +110,15 @@ export type StudentFileData = {
     lastName: string
     email: string
     yearGroup: number | null
+    tutorGroup: string | null
+    dateOfBirth: Date | null
     phone: string | null
     sendStatus: string | null
     needArea: string | null
+    attendancePercentage: number | null
+    behaviourPositive: number | null
+    behaviourNegative: number | null
+    hasExclusion: boolean | null
   }
   kPlan: KPlanDoc | null
   ilp: IlpDoc | null
@@ -134,7 +140,10 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
   const student = await prisma.user.findFirst({
     where: { id: studentId, schoolId, role: 'STUDENT' },
     select: {
-      id: true, firstName: true, lastName: true, email: true, yearGroup: true,
+      id: true, firstName: true, lastName: true, email: true,
+      yearGroup: true, tutorGroup: true, dateOfBirth: true,
+      attendancePercentage: true, behaviourPositive: true,
+      behaviourNegative: true, hasExclusion: true,
       settings: { select: { phone: true } },
     },
   })
@@ -389,14 +398,20 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
 
   return {
     student: {
-      id:         student.id,
-      firstName:  student.firstName,
-      lastName:   student.lastName,
-      email:      student.email,
-      yearGroup:  student.yearGroup,
-      phone:      student.settings?.phone ?? null,
-      sendStatus: sendStatus?.activeStatus !== 'NONE' ? (sendStatus?.activeStatus ?? null) : null,
-      needArea:   sendStatus?.needArea ?? null,
+      id:                  student.id,
+      firstName:           student.firstName,
+      lastName:            student.lastName,
+      email:               student.email,
+      yearGroup:           student.yearGroup,
+      tutorGroup:          student.tutorGroup,
+      dateOfBirth:         student.dateOfBirth,
+      phone:               student.settings?.phone ?? null,
+      sendStatus:          sendStatus?.activeStatus !== 'NONE' ? (sendStatus?.activeStatus ?? null) : null,
+      needArea:            sendStatus?.needArea ?? null,
+      attendancePercentage: student.attendancePercentage,
+      behaviourPositive:    student.behaviourPositive,
+      behaviourNegative:    student.behaviourNegative,
+      hasExclusion:         student.hasExclusion,
     },
     kPlan,
     ilp,

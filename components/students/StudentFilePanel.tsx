@@ -10,13 +10,14 @@ import {
 } from '@/app/actions/students'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Documents' | 'Performance' | 'Notes' | 'Contacts'
-const TABS: Tab[] = ['Documents', 'Performance', 'Notes', 'Contacts']
+type Tab = 'Overview' | 'Plans' | 'Homework' | 'Notes' | 'Contact'
+const TABS: Tab[] = ['Overview', 'Plans', 'Homework', 'Notes', 'Contact']
 const TAB_ICONS: Record<Tab, string> = {
-  Documents:   'description',
-  Performance: 'bar_chart',
-  Notes:       'note_alt',
-  Contacts:    'contacts',
+  Overview: 'person',
+  Plans:    'description',
+  Homework: 'assignment',
+  Notes:    'note_alt',
+  Contact:  'contacts',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -583,7 +584,7 @@ function ContactsTab({ student, parentContacts }: { student: StudentFileData['st
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudentFilePanel({ data, role }: { data: StudentFileData; role: string }) {
-  const [activeTab, setActiveTab] = useState<Tab>('Documents')
+  const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
   const { student } = data
   const studentName = `${student.firstName} ${student.lastName}`
@@ -595,39 +596,35 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="flex items-start gap-4 mb-6">
+      {/* Compact header — just name + avatar */}
+      <div className="flex items-center gap-3 mb-5">
         <StudentAvatar
           firstName={student.firstName}
           lastName={student.lastName}
-          size="lg"
+          size="md"
           sendStatus={student.sendStatus as 'EHCP' | 'SEN_SUPPORT' | 'NONE' | null | undefined}
         />
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-gray-900">{studentName}</h1>
-          <div className="flex flex-wrap items-center gap-2 mt-1">
-            {student.yearGroup && (
-              <span className="text-sm text-gray-500">Year {student.yearGroup}</span>
-            )}
+          <h1 className="text-lg font-bold text-gray-900 leading-tight">{studentName}</h1>
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+            {student.yearGroup && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}
+            {student.tutorGroup && <span className="text-xs text-gray-400">· {student.tutorGroup}</span>}
             {student.sendStatus && student.sendStatus !== 'NONE' && (
-              <span className={`text-xs px-2 py-0.5 rounded font-medium ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
                 {student.sendStatus.replace('_', ' ')}
               </span>
-            )}
-            {student.needArea && (
-              <span className="text-xs text-gray-500">{student.needArea}</span>
             )}
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-5 border-b border-gray-200">
+      <div className="flex gap-0.5 mb-5 border-b border-gray-200 overflow-x-auto scrollbar-none">
         {TABS.map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
               activeTab === tab
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -639,8 +636,99 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
         ))}
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'Documents' && (
+      {/* ── Tab: Overview ── */}
+      {activeTab === 'Overview' && (
+        <div className="space-y-4">
+          {/* Student details card */}
+          <SectionCard title="Student details">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Full name</p>
+                <p className="font-medium text-gray-900">{studentName}</p>
+              </div>
+              {student.yearGroup && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Year group</p>
+                  <p className="font-medium text-gray-900">Year {student.yearGroup}</p>
+                </div>
+              )}
+              {student.tutorGroup && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Tutor group</p>
+                  <p className="font-medium text-gray-900">{student.tutorGroup}</p>
+                </div>
+              )}
+              {student.dateOfBirth && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Date of birth</p>
+                  <p className="font-medium text-gray-900">
+                    {new Date(student.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Email</p>
+                <p className="font-medium text-gray-900 truncate">{student.email}</p>
+              </div>
+              {student.phone && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Phone</p>
+                  <p className="font-medium text-gray-900">{student.phone}</p>
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* SEND status */}
+          {(student.sendStatus && student.sendStatus !== 'NONE') && (
+            <SectionCard title="SEND status">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {student.sendStatus.replace('_', ' ')}
+                </span>
+                {student.needArea && (
+                  <span className="text-sm text-gray-700">{student.needArea}</span>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Wonde MIS data */}
+          {(student.attendancePercentage != null || student.behaviourPositive != null || student.hasExclusion) && (
+            <SectionCard title="MIS data · via Wonde">
+              <div className="space-y-2">
+                {student.attendancePercentage != null && (() => {
+                  const pct = student.attendancePercentage!
+                  const cls = pct >= 95 ? 'text-green-700' : pct >= 90 ? 'text-amber-700' : 'text-red-700'
+                  return (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Attendance this term</span>
+                      <span className={`font-semibold ${cls}`}>{pct.toFixed(1)}%</span>
+                    </div>
+                  )
+                })()}
+                {student.behaviourPositive != null && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Behaviour</span>
+                    <span className="font-medium text-gray-800">
+                      {student.behaviourPositive} positive · {student.behaviourNegative ?? 0} concerns
+                    </span>
+                  </div>
+                )}
+                {student.hasExclusion && (
+                  <div className="flex items-center gap-1.5 text-sm text-amber-700">
+                    <Icon name="report_problem" size="sm" className="text-amber-500" />
+                    Exclusion on record
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
+        </div>
+      )}
+
+      {/* ── Tab: Plans ── */}
+      {activeTab === 'Plans' && (
         <div className="space-y-4">
           {!data.kPlan && !data.ilp && !data.ehcp && (
             <p className="text-sm text-gray-400 text-center py-8">No SEND documents on file for this student.</p>
@@ -663,15 +751,18 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
         </div>
       )}
 
-      {activeTab === 'Performance' && (
+      {/* ── Tab: Homework ── */}
+      {activeTab === 'Homework' && (
         <PerformanceTab data={data} studentName={studentName} />
       )}
 
+      {/* ── Tab: Notes ── */}
       {activeTab === 'Notes' && (
         <NotesTab notes={data.notes} studentId={student.id} />
       )}
 
-      {activeTab === 'Contacts' && (
+      {/* ── Tab: Contact ── */}
+      {activeTab === 'Contact' && (
         <ContactsTab student={student} parentContacts={data.parentContacts} />
       )}
     </div>

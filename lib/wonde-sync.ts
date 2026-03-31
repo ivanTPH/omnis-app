@@ -233,6 +233,25 @@ export async function runWondeSync(
       // We store a proxy URL (/api/student-photo/{userId}) rather than the raw Wonde URL.
       // The proxy route fetches the image server-side with the Wonde API token, so the
       // browser never needs to supply an Authorization header.
+      // Bridge MIS fields (tutorGroup, dateOfBirth, photo) to User record.
+      // Always update tutorGroup + dateOfBirth when a matching User exists.
+      try {
+        const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
+        if (matchedUserId) {
+          const formGroup = stu.form_group?.data?.name ?? null
+          const dob       = parseWondeDate(stu.date_of_birth)
+          await prisma.user.update({
+            where: { id: matchedUserId },
+            data: {
+              tutorGroup:  formGroup,
+              dateOfBirth: dob,
+            },
+          })
+        }
+      } catch {
+        // Best-effort — don't fail the sync
+      }
+
       if (photoUrl) {
         try {
           const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)

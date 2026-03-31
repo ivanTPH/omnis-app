@@ -363,17 +363,20 @@ async function main() {
         },
       })
 
+      const tutorGrp = `${year}${i < 15 ? 'A' : 'B'}`
       const user = await prisma.user.upsert({
         where:  { email },
-        update: {},
+        update: { tutorGroup: tutorGrp, dateOfBirth: dob },
         create: {
-          schoolId:     school.id,
+          schoolId:    school.id,
           email,
           passwordHash: pw,
-          role:         Role.STUDENT,
+          role:        Role.STUDENT,
           firstName,
           lastName,
-          yearGroup:    year,
+          yearGroup:   year,
+          tutorGroup:  tutorGrp,
+          dateOfBirth: dob,
         },
       })
 

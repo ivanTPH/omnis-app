@@ -919,6 +919,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
       {/* Header */}
       <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-start gap-3">
         <StudentAvatar firstName={student.firstName} lastName={student.lastName} size="md"
+          avatarUrl={student.avatarUrl}
           sendStatus={student.sendStatus as 'SEN_SUPPORT' | 'EHCP' | null | undefined} />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900">{student.firstName} {student.lastName}</h3>

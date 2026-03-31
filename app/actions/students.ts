@@ -119,6 +119,7 @@ export type StudentFileData = {
     behaviourPositive: number | null
     behaviourNegative: number | null
     hasExclusion: boolean | null
+    avatarUrl: string | null
   }
   kPlan: KPlanDoc | null
   ilp: IlpDoc | null
@@ -143,8 +144,8 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       id: true, firstName: true, lastName: true, email: true,
       yearGroup: true, tutorGroup: true, dateOfBirth: true,
       attendancePercentage: true, behaviourPositive: true,
-      behaviourNegative: true, hasExclusion: true,
-      settings: { select: { phone: true } },
+      behaviourNegative: true, hasExclusion: true, avatarUrl: true,
+      settings: { select: { phone: true, profilePictureUrl: true } },
     },
   })
   if (!student) return null
@@ -412,6 +413,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       behaviourPositive:    student.behaviourPositive,
       behaviourNegative:    student.behaviourNegative,
       hasExclusion:         student.hasExclusion,
+      avatarUrl:           student.settings?.profilePictureUrl ?? student.avatarUrl ?? null,
     },
     kPlan,
     ilp,
@@ -539,14 +541,19 @@ export async function generateRevisionSuggestions(
   const lines = weak.map(s => `- ${s.subject}: avg ${s.avgScore ?? 'no score'}, predicted ${s.predictedScore ?? 'unknown'}`)
 
   const client = new Anthropic({ apiKey })
-  const msg = await client.messages.create({
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 300,
-    messages: [{
-      role:    'user',
-      content: `Student: ${studentName}\nUnder-performing subjects:\n${lines.join('\n')}\n\nWrite 3-5 concise, practical revision recommendations for this student's teacher in plain text. Be specific and actionable.`,
-    }],
-  })
-  const content = msg.content[0]
-  return content.type === 'text' ? content.text : 'Unable to generate suggestions.'
+  try {
+    const msg = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [{
+        role:    'user',
+        content: `Student: ${studentName}\nUnder-performing subjects:\n${lines.join('\n')}\n\nWrite 3-5 concise, practical revision recommendations for this student's teacher in plain text. Be specific and actionable.`,
+      }],
+    })
+    const content = msg.content[0]
+    return content.type === 'text' ? content.text : 'Unable to generate suggestions.'
+  } catch (err) {
+    console.error('[generateRevisionSuggestions] Anthropic API error:', err)
+    return 'Unable to generate AI suggestions at this time. Please try again later.'
+  }
 }

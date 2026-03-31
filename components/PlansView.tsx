@@ -234,6 +234,7 @@ export default function PlansView({
                         <StudentAvatar
                           firstName={ilp.student.firstName}
                           lastName={ilp.student.lastName}
+                          avatarUrl={ilp.student.avatarUrl}
                           size="sm"
                           sendStatus="SEN_SUPPORT"
                         />
@@ -282,6 +283,7 @@ export default function PlansView({
                         <StudentAvatar
                           firstName={ehcp.student.firstName}
                           lastName={ehcp.student.lastName}
+                          avatarUrl={ehcp.student.avatarUrl}
                           size="sm"
                           sendStatus="EHCP"
                         />
@@ -330,6 +332,7 @@ export default function PlansView({
                         <StudentAvatar
                           firstName={kplan.student.firstName}
                           lastName={kplan.student.lastName}
+                          avatarUrl={kplan.student.avatarUrl}
                           size="sm"
                         />
                         <div className="flex-1 min-w-0">

@@ -50,7 +50,7 @@ export type IlpRow = {
   sendCategory: string
   areasOfNeed:  string
   reviewDate:   string   // ISO
-  student:      { id: string; firstName: string; lastName: string }
+  student:      { id: string; firstName: string; lastName: string; avatarUrl: string | null }
   targets:      { id: string; status: string }[]
   notes:        PlanNote[]
 }
@@ -60,7 +60,7 @@ export type EhcpRow = {
   status:         string
   localAuthority: string
   reviewDate:     string   // ISO
-  student:        { id: string; firstName: string; lastName: string }
+  student:        { id: string; firstName: string; lastName: string; avatarUrl: string | null }
   notes:          PlanNote[]
 }
 
@@ -68,7 +68,7 @@ export type KPlanRow = {
   id:         string
   status:     string
   reviewDate: string   // ISO
-  student:    { id: string; firstName: string; lastName: string }
+  student:    { id: string; firstName: string; lastName: string; avatarUrl: string | null }
   notes:      PlanNote[]
 }
 
@@ -107,7 +107,7 @@ export async function getPlansData(): Promise<PlansData> {
         sendCategory: true,
         areasOfNeed:  true,
         reviewDate:   true,
-        student:      { select: { id: true, firstName: true, lastName: true } },
+        student:      { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
         targets:      { select: { id: true, status: true }, take: 3 },
       },
       orderBy: { reviewDate: 'asc' },
@@ -123,7 +123,7 @@ export async function getPlansData(): Promise<PlansData> {
         status:         true,
         localAuthority: true,
         reviewDate:     true,
-        student:        { select: { id: true, firstName: true, lastName: true } },
+        student:        { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
       },
       orderBy: { reviewDate: 'asc' },
     }),
@@ -137,7 +137,7 @@ export async function getPlansData(): Promise<PlansData> {
         id:         true,
         status:     true,
         reviewDate: true,
-        student:    { select: { id: true, firstName: true, lastName: true } },
+        student:    { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
       },
       orderBy: { reviewDate: 'asc' },
     }),

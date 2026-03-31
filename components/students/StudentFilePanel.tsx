@@ -601,6 +601,7 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
         <StudentAvatar
           firstName={student.firstName}
           lastName={student.lastName}
+          avatarUrl={student.avatarUrl}
           size="md"
           sendStatus={student.sendStatus as 'EHCP' | 'SEN_SUPPORT' | 'NONE' | null | undefined}
         />

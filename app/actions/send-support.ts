@@ -2022,6 +2022,39 @@ export async function getClassKPlanSummaries(
   return result
 }
 
+// ─── getClassEhcpSectionF ─────────────────────────────────────────────────────
+
+/** Returns a map of studentId → array of Section F provision strings for all
+ *  EHCP students in the class.  Used by ClassRosterTab for quick-tip display. */
+export async function getClassEhcpSectionF(
+  classId: string,
+): Promise<Record<string, string[]>> {
+  const user = await requireAuth()
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    select: { userId: true },
+  })
+  const studentIds = enrolments.map(e => e.userId)
+  if (studentIds.length === 0) return {}
+
+  const plans = await prisma.ehcpPlan.findMany({
+    where:  { studentId: { in: studentIds }, schoolId: user.schoolId },
+    select: { studentId: true, sections: true },
+  })
+
+  const result: Record<string, string[]> = {}
+  for (const p of plans) {
+    const sectionF = (p.sections as Record<string, string> | null)?.F
+    if (!sectionF) continue
+    result[p.studentId] = sectionF
+      .split(/\n+/)
+      .map((s: string) => s.replace(/^[-•*]\s*/, '').trim())
+      .filter(Boolean)
+  }
+  return result
+}
+
 // ─── Student SEND Documents ───────────────────────────────────────────────────
 
 export type StudentSendDocuments = {
@@ -2451,5 +2484,124 @@ export async function rejectIlpEdit(auditEntryId: string, reason: string): Promi
     return { success: true }
   } catch (err) {
     return { success: false, error: String(err).slice(0, 200) }
+  }
+}
+
+// ─── generateIlpGoalsForStudent ───────────────────────────────────────────────
+
+export type GeneratedIlpGoal = {
+  targetDescription: string
+  successCriteria:   string
+  teacherStrategy:   string
+}
+
+export type GenerateIlpGoalsResult =
+  | { ok: true;  goals: GeneratedIlpGoal[]; studentName: string; sendCategory: string; subject: string }
+  | { ok: false; error: string }
+
+/** Generate 3 SMART ILP goals for one student via Claude.
+ *  Used by the SENCO "Auto-Generate ILP" per-student modal. */
+export async function generateIlpGoalsForStudent(
+  studentId: string,
+): Promise<GenerateIlpGoalsResult> {
+  const user = await requireAuth()
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) {
+    return { ok: false, error: 'Insufficient permissions' }
+  }
+
+  // ── 1. Fetch student data ───────────────────────────────────────────────────
+  const [student, sendStatus, baselines] = await Promise.all([
+    prisma.user.findUnique({
+      where:  { id: studentId },
+      select: { firstName: true, lastName: true },
+    }),
+    prisma.sendStatus.findUnique({
+      where:  { studentId },
+      select: { activeStatus: true, needArea: true },
+    }),
+    prisma.studentBaseline.findMany({
+      where:  { studentId },
+      select: { subject: true, baselineScore: true },
+      orderBy: { recordedAt: 'desc' },
+    }),
+  ])
+
+  if (!student) return { ok: false, error: 'Student not found' }
+  if (!sendStatus || sendStatus.activeStatus === 'NONE') {
+    return { ok: false, error: 'Student has no active SEND status' }
+  }
+
+  const studentName  = `${student.firstName} ${student.lastName}`
+  const sendCategory = sendStatus.needArea ?? sendStatus.activeStatus
+  const subject      = baselines[0]?.subject ?? 'General'
+  const baselinePct  = baselines[0]?.baselineScore ?? null
+
+  // ── 2. Call Claude ──────────────────────────────────────────────────────────
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    // Stub fallback when API key absent
+    return {
+      ok: true,
+      goals: [
+        {
+          targetDescription: `Improve reading comprehension strategies in ${subject}`,
+          successCriteria:   'Student will independently summarise key points from a passage with 80% accuracy',
+          teacherStrategy:   'Provide graphic organisers and chunked reading tasks with regular check-ins',
+        },
+        {
+          targetDescription: `Develop structured written responses in ${subject}`,
+          successCriteria:   'Student will use PEEL paragraph structure in 3 out of 4 written responses',
+          teacherStrategy:   'Provide sentence starters and modelled examples before independent writing tasks',
+        },
+        {
+          targetDescription: 'Build self-regulation and task completion skills',
+          successCriteria:   'Student will complete 80% of set tasks within allotted time over a 6-week period',
+          teacherStrategy:   'Break tasks into clear timed steps using a visible checklist',
+        },
+      ],
+      studentName,
+      sendCategory,
+      subject,
+    }
+  }
+
+  try {
+    const client = new Anthropic({ apiKey })
+    const prompt = `You are a UK SENCO with expertise in writing SMART Individual Learning Plan (ILP) targets.
+
+Student: ${studentName}
+SEND need: ${sendCategory}
+Primary subject: ${subject}${baselinePct != null ? `\nBaseline score: ${baselinePct}% (GCSE 0–100 scale)` : ''}
+
+Write exactly 3 SMART ILP targets tailored to this student's specific SEND need and subject.
+Each target must be specific, measurable, achievable, relevant, and time-bound.
+
+Return ONLY valid JSON — no markdown, no explanation:
+[
+  {
+    "targetDescription": "clear, specific target (1–2 sentences)",
+    "successCriteria": "how success will be measured (1 sentence)",
+    "teacherStrategy": "specific classroom strategy for the teacher (1–2 sentences)"
+  }
+]`
+
+    const msg = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+
+    const raw   = (msg.content[0] as { type: string; text: string }).text.trim()
+    const match = raw.match(/\[[\s\S]*\]/)
+    if (!match) return { ok: false, error: 'AI returned unexpected format — try again' }
+
+    const goals = JSON.parse(match[0]) as GeneratedIlpGoal[]
+    if (!Array.isArray(goals) || goals.length === 0) {
+      return { ok: false, error: 'AI returned no goals — try again' }
+    }
+
+    return { ok: true, goals: goals.slice(0, 3), studentName, sendCategory, subject }
+  } catch (err) {
+    return { ok: false, error: `AI error: ${String(err).slice(0, 100)}` }
   }
 }

@@ -2670,7 +2670,7 @@ async function main() {
     { studentId: ragAiden.id,      subject: 'English', baselineScore: 72, source: 'KS2' },
     { studentId: ragMaya.id,       subject: 'English', baselineScore: 68, source: 'KS2' },
     { studentId: ragSophia.id,     subject: 'English', baselineScore: 68, source: 'KS2' },
-    { studentId: fatimaAlAmin.id,  subject: 'English', baselineScore: 52, source: 'KS2' },
+    { studentId: fatimaAlAmin.id,  subject: 'English', baselineScore: 48, source: 'KS2' },
   ]
   for (const b of baselines9E) {
     await prisma.studentBaseline.upsert({
@@ -2684,7 +2684,7 @@ async function main() {
     { studentId: ragAiden.id,     predictedScore: 75, adjustment: 0, notes: 'Strong analytical writer; on track for Grade 7+' },
     { studentId: ragMaya.id,      predictedScore: 70, adjustment: 0, notes: null },
     { studentId: ragSophia.id,    predictedScore: 72, adjustment: 0, notes: 'Consistent progress; predicted Grade 6–7 range' },
-    { studentId: fatimaAlAmin.id, predictedScore: 58, adjustment: 0, notes: 'SLCN — working hard; predicted Grade 4–5 range. Monitor expressive language in extended writing tasks.' },
+    { studentId: fatimaAlAmin.id, predictedScore: 55, adjustment: 0, notes: 'SLCN — working hard; predicted Grade 4–5 range. Monitor expressive language in extended writing tasks.' },
   ]
   for (const p of predictions9E) {
     await prisma.teacherPrediction.upsert({
@@ -2792,6 +2792,595 @@ async function main() {
   })
 
   console.log('  ✓ SEND data — Rehan Ali: SendStatus, ILP + 2 targets, K Plan (LearnerPassport)')
+
+  // ── Section F: Complete SEND Document Chains (Demo quality) ──────────────────
+  console.log('\n── Section F: SEND Document Chains ──────────────────────────────────')
+
+  const mLewis = await prisma.user.findUniqueOrThrow({ where: { email: 'm.lewis@omnisdemo.school' } })
+
+  // ── Rehan Ali: update to Dyslexia, add History chain ─────────────────────────
+
+  // 1. Update SendStatus needArea to Dyslexia
+  await prisma.sendStatus.update({
+    where: { studentId: rehanAli.id },
+    data: { needArea: 'Specific Learning Difficulty (Dyslexia)' },
+  })
+
+  // 2. Update ILP to Dyslexia-specific content (overwrite the C&I content from earlier)
+  await prisma.individualLearningPlan.update({
+    where: { id: 'seed-ilp-rehan-ali' },
+    data: {
+      sendCategory: 'SEN_SUPPORT',
+      currentStrengths: 'Enthusiastic learner who contributes well to class discussions. Strong auditory memory — retains content delivered verbally very effectively. Good spatial reasoning and visual pattern recognition. Responds very positively to encouragement and achieves well in practical activities.',
+      areasOfNeed: 'Phonological processing and reading fluency — significant difficulty decoding multi-syllabic and subject-specific vocabulary. Extended written responses are brief and lack structure without explicit scaffolding. Working memory under time pressure impacts test performance.',
+      strategies: [
+        'Provide printed copies of board notes before the lesson begins',
+        'Allow use of coloured overlay — Rehan uses blue',
+        'Pre-teach key vocabulary using visual word-image matching cards before each new topic',
+        'Provide a PEEL writing frame for all extended writing tasks in every subject',
+        'Allow 25% extra time on all timed tasks and assessments',
+      ],
+      successCriteria: 'Independently structure a four-paragraph historical essay using a PEEL writing frame by end of Summer term, with no verbal prompting from teacher.',
+      reviewDate: new Date('2026-07-10'),
+    },
+  })
+
+  // 3. Add Dyslexia-specific ILP targets
+  await prisma.ilpTarget.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        id: 'seed-ilpt-rehan-dys-1',
+        ilpId: 'seed-ilp-rehan-ali',
+        target: 'Use a coloured overlay and audio support to read and understand primary sources independently in History',
+        strategy: 'Blue overlay provided in every lesson. Audio versions of key texts on class shared drive. Rehan pre-reads sources at home using audio before classroom discussion.',
+        successMeasure: 'Independently reads and annotates 3 primary sources with overlay in class without teacher prompting, on 3 consecutive lessons.',
+        targetDate: new Date('2026-06-30'),
+        status: 'active',
+      },
+      {
+        id: 'seed-ilpt-rehan-dys-2',
+        ilpId: 'seed-ilp-rehan-ali',
+        target: 'Produce a structured 4-paragraph essay response using a PEEL writing frame independently',
+        strategy: 'PEEL frame provided before every extended writing task. Teacher models use in lesson starter. Rehan highlights each section before writing.',
+        successMeasure: 'Produces a full PEEL essay with frame independently, no verbal prompting, on 3 consecutive extended tasks.',
+        targetDate: new Date('2026-06-30'),
+        status: 'active',
+      },
+      {
+        id: 'seed-ilpt-rehan-dys-3',
+        ilpId: 'seed-ilp-rehan-ali',
+        target: 'Create visual mind maps to organise and retain key historical knowledge independently for revision',
+        strategy: 'Mind maps created using colour coding per topic. Fortnightly mind-mapping session with SENCO. Maps shared with parents via parent portal for home revision.',
+        successMeasure: 'Produces a complete, colour-coded mind map for 3 consecutive topics without teacher support.',
+        targetDate: new Date('2026-07-10'),
+        status: 'active',
+      },
+    ],
+  })
+
+  // 4. Update K Plan with specific Dyslexia strategies
+  await prisma.learnerPassport.update({
+    where: { id: 'seed-kplan-rehan-ali' },
+    data: {
+      sendInformation: 'Rehan has Specific Learning Difficulties (Dyslexia) affecting phonological processing, reading fluency, and written output under time pressure. He has a strong auditory learning style and benefits from verbal explanations paired with written supports. He uses a blue coloured overlay in all lessons. Parents are engaged and supportive of home revision strategies.',
+      teacherActions: [
+        'Provide printed copies of board notes before lesson',
+        'Allow use of coloured overlay — Rehan uses blue',
+        'Seat away from windows to reduce visual distraction',
+        'Give written instructions alongside verbal — never verbal only',
+        'Allow 25% extra time on all timed tasks',
+      ],
+    },
+  })
+
+  // 5. Enroll Rehan in History class 8/Hi1
+  await prisma.enrolment.upsert({
+    where:  { classId_userId: { classId: 'demo-class-8-Hi1', userId: rehanAli.id } },
+    update: {},
+    create: { classId: 'demo-class-8-Hi1', userId: rehanAli.id },
+  })
+
+  // 6. History baselines and predictions for Rehan
+  await prisma.studentBaseline.upsert({
+    where:  { studentId_subject: { studentId: rehanAli.id, subject: 'History' } },
+    update: { baselineScore: 52, source: 'KS2' },
+    create: { studentId: rehanAli.id, subject: 'History', baselineScore: 52, source: 'KS2', schoolId: school.id, recordedBy: created['r.morris'].id },
+  })
+  await prisma.teacherPrediction.upsert({
+    where: { studentId_teacherId_subject_termLabel: { studentId: rehanAli.id, teacherId: mLewis.id, subject: 'History', termLabel: RAG_TERM } },
+    update: { predictedScore: 58, adjustment: 0 },
+    create: { studentId: rehanAli.id, teacherId: mLewis.id, schoolId: school.id, subject: 'History', termLabel: RAG_TERM, predictedScore: 58, adjustment: 0, notes: 'Strong verbal ability; written output held back by SpLD. Predicted Grade 4–5 with scaffolding. On track.' },
+  })
+
+  // 7. History homework (3 assignments for ILP evidence chain)
+  const hwNorman = await prisma.homework.upsert({
+    where:  { id: 'demo-hw-8h-norman' },
+    update: {},
+    create: {
+      id: 'demo-hw-8h-norman', schoolId: school.id, classId: 'demo-class-8-Hi1',
+      title: 'The Norman Conquest — How Did It Change England?',
+      instructions: 'Explain how the Norman Conquest of 1066 changed England. Write two paragraphs: one on political changes and one on cultural and language changes. Use at least one piece of evidence from the lesson in each paragraph.',
+      modelAnswer: 'The Norman Conquest transformed England politically by replacing Anglo-Saxon nobility with Norman lords. William imposed the feudal system, redistributing land to his loyal followers who owed him military service. The Domesday Book (1086) recorded all landholdings in England, demonstrating the extent to which Norman lords had replaced Saxon thegns.\n\nCulturally, the Conquest had a lasting impact on the English language. Norman French became the language of the court and educated classes, introducing hundreds of new words. Today words like "beef", "pork" and "justice" come from French, while "cow", "pig" and "right" survive from Old English — reflecting the class division between Norman rulers and Saxon peasants.',
+      gradingBands: { '0-2': 'Minimal response with no evidence.', '3-4': 'Some relevant points with limited evidence.', '5-6': 'Clear response with relevant evidence and developing explanation.', '7-8': 'Well-structured response with strong evidence and clear explanation.', '9': 'Detailed, analytical response with precise evidence and insightful conceptual links.' },
+      dueAt: daysAgo(28), status: HomeworkStatus.CLOSED,
+      type: HomeworkType.SHORT_ANSWER, releasePolicy: ReleasePolicy.AUTO_OBJECTIVE,
+      maxAttempts: 1, createdBy: mLewis.id,
+    },
+  })
+
+  const hwWWI = await prisma.homework.upsert({
+    where:  { id: 'demo-hw-8h-wwi' },
+    update: {},
+    create: {
+      id: 'demo-hw-8h-wwi', schoolId: school.id, classId: 'demo-class-8-Hi1',
+      title: 'Causes of World War I — How Far Was Germany to Blame?',
+      instructions: 'Write two paragraphs arguing either for or against the view that Germany was mainly to blame for the outbreak of World War I. Use evidence from your lesson notes to support your arguments.',
+      modelAnswer: 'Germany bears significant responsibility for the outbreak of WWI. The "blank cheque" of unconditional support given to Austria-Hungary in July 1914 gave Austria the confidence to issue a harsh ultimatum to Serbia, escalating a regional crisis into a world war. Germany\'s military planning (the Schlieffen Plan) also required a rapid attack on France through neutral Belgium, which brought Britain into the war and transformed a European conflict into a global one.\n\nHowever, to blame Germany alone oversimplifies a complex situation. Austria-Hungary\'s aggressive ultimatum to Serbia, Russia\'s rapid mobilisation, France\'s inflexible alliance commitments, and Britain\'s ambiguous signals all contributed. The alliance system created a situation where a single assassination could trigger a catastrophic chain reaction across Europe.',
+      gradingBands: { '0-2': 'Limited response.', '3-4': 'One side argued with basic evidence.', '5-6': 'Both arguments with some evidence.', '7-8': 'Balanced response with strong evidence and clear judgement.', '9': 'Sophisticated analysis of multiple causes with precise evidence and confident conclusion.' },
+      dueAt: daysAgo(14), status: HomeworkStatus.CLOSED,
+      type: HomeworkType.SHORT_ANSWER, releasePolicy: ReleasePolicy.AUTO_OBJECTIVE,
+      maxAttempts: 1, createdBy: mLewis.id,
+    },
+  })
+
+  const hwMedicine = await prisma.homework.upsert({
+    where:  { id: 'demo-hw-8h-medicine' },
+    update: {},
+    create: {
+      id: 'demo-hw-8h-medicine', schoolId: school.id, classId: 'demo-class-8-Hi1',
+      title: 'Medieval Medicine — Why Did People Have Such Strange Beliefs?',
+      instructions: 'Explain why people in the Middle Ages believed in treatments like bloodletting and herbal remedies. Write two paragraphs: one on the role of the Church and one on the influence of Galen.',
+      modelAnswer: 'The Church had enormous influence over medical thinking in the Middle Ages. It discouraged dissection of human bodies as sinful, which prevented doctors from learning anatomy. The Church promoted the idea that illness was God\'s punishment for sin, meaning prayer and pilgrimage were considered effective treatments. Hospitals were run by monks and nuns who prioritised spiritual care over scientific investigation.\n\nThe ancient Greek doctor Galen\'s writings were treated as absolute authority throughout the Middle Ages. Galen\'s theory of the Four Humours — that disease was caused by an imbalance of blood, phlegm, yellow bile and black bile — dominated medical practice for over 1,000 years. Bloodletting (removing blood to rebalance the humours) was a standard treatment, even though it often weakened patients further.',
+      gradingBands: { '0-2': 'Minimal response.', '3-4': 'One factor explained.', '5-6': 'Both factors with some evidence.', '7-8': 'Both factors with strong evidence and links.', '9': 'Detailed analysis of both factors with precise evidence and sophisticated explanation.' },
+      dueAt: daysAgo(7), status: HomeworkStatus.CLOSED,
+      type: HomeworkType.SHORT_ANSWER, releasePolicy: ReleasePolicy.AUTO_OBJECTIVE,
+      maxAttempts: 1, createdBy: mLewis.id,
+    },
+  })
+
+  // 8. Rehan's History submissions
+  const rehanNormanSub = await prisma.submission.upsert({
+    where:  { homeworkId_studentId: { homeworkId: hwNorman.id, studentId: rehanAli.id } },
+    update: {},
+    create: {
+      schoolId: school.id, homeworkId: hwNorman.id, studentId: rehanAli.id,
+      content: 'The Normans changed England by taking over the land. William gave land to his followers who had to fight for him in return. The Domesday Book shows all the land that was owned. The English language also changed because French words came into English. Words like beef and pork come from French while cow and pig are old English which shows the class divide.',
+      status: SubmissionStatus.RETURNED,
+      submittedAt: daysAgo(25), markedAt: daysAgo(23),
+      teacherScore: 6, finalScore: 6, grade: '6',
+      feedback: 'Rehan, you have identified both political and cultural change and included specific evidence from the Domesday Book — well done. Your point about the language divide between "beef/pork" and "cow/pig" is perceptive and shows real historical thinking. To push to 7–8, use your PEEL frame more explicitly — make sure your explanation tells us WHY the feudal system was significant, not just what it was. The PEEL frame is in the lesson folder.',
+      integrityReviewed: true,
+    },
+  })
+
+  const rehanWwiSub = await prisma.submission.upsert({
+    where:  { homeworkId_studentId: { homeworkId: hwWWI.id, studentId: rehanAli.id } },
+    update: {},
+    create: {
+      schoolId: school.id, homeworkId: hwWWI.id, studentId: rehanAli.id,
+      content: 'Germany was to blame for WWI because they gave Austria the blank cheque support. This meant Austria could be aggressive to Serbia. Germany also had the Schlieffen Plan which meant they had to attack France through Belgium. This brought Britain in.\n\nBut other countries also played a role. Austria-Hungary sent the harsh ultimatum. Russia mobilised quickly. The alliance system meant one thing led to another.',
+      status: SubmissionStatus.RETURNED,
+      submittedAt: daysAgo(11), markedAt: daysAgo(9),
+      teacherScore: 5, finalScore: 5, grade: '5',
+      feedback: 'Rehan, you have shown both sides of the argument — that is exactly the right structure for a "How far" question. Well done for including the blank cheque and Schlieffen Plan as evidence. To improve, develop your second paragraph — why exactly did the alliance system cause problems? The writing frame helped here: your first paragraph follows PEEL closely but the second needs a clearer explanation sentence. Good effort.',
+      integrityReviewed: true,
+    },
+  })
+
+  const rehanMedSub = await prisma.submission.upsert({
+    where:  { homeworkId_studentId: { homeworkId: hwMedicine.id, studentId: rehanAli.id } },
+    update: {},
+    create: {
+      schoolId: school.id, homeworkId: hwMedicine.id, studentId: rehanAli.id,
+      content: 'The Church controlled medicine in the Middle Ages because they ran the hospitals and thought illness was a punishment from God. This meant people prayed instead of looking for scientific reasons. Doctors were not allowed to cut up bodies so they could not learn anatomy properly.\n\nGalen was a Greek doctor whose ideas were used for over 1000 years. He believed in the Four Humours — blood, phlegm, yellow bile and black bile. If these were out of balance you got ill. Bloodletting was used to fix this by removing blood but this often made people worse. However nobody questioned Galen because the Church said his ideas were correct.',
+      status: SubmissionStatus.RETURNED,
+      submittedAt: daysAgo(4), markedAt: daysAgo(2),
+      teacherScore: 7, finalScore: 7, grade: '7',
+      feedback: 'Excellent work, Rehan — this is your best response so far. You have used the PEEL structure independently in both paragraphs and your explanation of WHY bloodletting was still used (Church authority supporting Galen) shows sophisticated historical thinking. The link between Church authority and Galen\'s longevity is exactly the kind of analytical writing I have been asking for. Keep this up.',
+      integrityReviewed: true,
+    },
+  })
+
+  // 9. ILP Evidence entries for Rehan
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: rehanNormanSub.id, ilpTargetId: 'seed-ilpt-rehan-dys-2' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: rehanAli.id,
+      ilpTargetId: 'seed-ilpt-rehan-dys-2', submissionId: rehanNormanSub.id,
+      homeworkTitle: hwNorman.title, subject: 'History', score: 6, maxScore: 9,
+      evidenceType: 'PROGRESS',
+      aiSummary: 'Rehan\'s response demonstrates developing essay structure. He includes specific historical evidence (Domesday Book, French/English vocabulary divide) and makes a perceptive conceptual link. This represents PROGRESS against Target 2 (structured written responses using PEEL). Some prompting from the writing frame is still evident but the analytical content quality exceeds expectations for this stage.',
+      createdBy: mLewis.id,
+    },
+  })
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: rehanWwiSub.id, ilpTargetId: 'seed-ilpt-rehan-dys-2' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: rehanAli.id,
+      ilpTargetId: 'seed-ilpt-rehan-dys-2', submissionId: rehanWwiSub.id,
+      homeworkTitle: hwWWI.title, subject: 'History', score: 5, maxScore: 9,
+      evidenceType: 'NEUTRAL',
+      aiSummary: 'Two-sided response but explanation sentences in both paragraphs remain underdeveloped. Rehan correctly identified key evidence (blank cheque, Schlieffen Plan) but the analytical depth needed for Target 2 is not yet consistently present. NEUTRAL — on track for the target but scaffolding still required for complex causation questions.',
+      createdBy: mLewis.id,
+    },
+  })
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: rehanMedSub.id, ilpTargetId: 'seed-ilpt-rehan-dys-2' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: rehanAli.id,
+      ilpTargetId: 'seed-ilpt-rehan-dys-2', submissionId: rehanMedSub.id,
+      homeworkTitle: hwMedicine.title, subject: 'History', score: 7, maxScore: 9,
+      evidenceType: 'PROGRESS',
+      aiSummary: 'Clear improvement in paragraph structure — PEEL framework used independently in both paragraphs for the first time. Teacher noted "best response so far" and the analytical link between Church authority and Galen\'s longevity shows sophisticated thinking. PROGRESS: Rehan is now meeting Target 2 expectations consistently in a structured task. One more independent performance will meet the success measure.',
+      teacherNote: 'Rehan came to see me at lunch before this homework was due and asked for help starting his second paragraph. After a brief 5-minute conversation about the link between Church authority and Galen, he completed the paragraph independently at home. Real evidence of growing confidence.',
+      createdBy: mLewis.id,
+    },
+  })
+
+  // 10. EHCP for Rehan (full mock with Section B, F, I)
+  await prisma.ehcpPlan.upsert({
+    where:  { id: 'seed-ehcp-rehan-ali' },
+    update: {},
+    create: {
+      id: 'seed-ehcp-rehan-ali', schoolId: school.id,
+      studentId: rehanAli.id, createdBy: created['r.morris'].id,
+      localAuthority: 'Oakfield Metropolitan Borough Council',
+      planDate: new Date('2025-09-01'), reviewDate: new Date('2026-07-10'),
+      coordinatorName: 'Ms J. Freeman (SEND Coordinator, Oakfield LA)',
+      status: 'active', approvedBySenco: true,
+      outcomes: {
+        create: [
+          {
+            section: 'B',
+            outcomeText: 'Rehan has Specific Learning Difficulties (Dyslexia) affecting phonological processing, reading fluency, and written language production. Standardised reading assessment (November 2025) places his reading age at approximately 9 years 6 months (chronological age 12 years 8 months), at the 4th percentile. His non-verbal reasoning (Matrices, CATs) is at the 62nd percentile, confirming significant discrepancy between cognitive ability and written output. Working memory under timed conditions is a particular challenge. Rehan does not have co-occurring ADHD or ASD. He is highly motivated and responds positively to structured support.',
+            successCriteria: 'Standardised reading assessment at or above the 15th percentile at annual review (July 2026). Teacher-assessed writing quality at age-related expectations with scaffolding.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'Standardised SpLD assessment to be repeated annually. Educational Psychologist review by July 2027.',
+            status: 'active', evidenceCount: 3,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Provision 1: Coloured overlay (blue) provided in all lessons and examinations.',
+            successCriteria: 'Overlay in use in all subjects; reading fluency measured at next annual review.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'Blue overlays supplied by SENCO at start of each academic year. All invigilators briefed.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Provision 2: 25% extra time granted for all timed assessments and formal tests, effective from 20 January 2026.',
+            successCriteria: 'All assessments administered with 25% extra time. Access arrangement form on file with exams officer.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'School Access Arrangements coordinator to file Form 8 with JCQ. Annual renewal required.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Provision 3: Printed copies of board notes and lesson resources provided before each lesson in all subjects.',
+            successCriteria: 'Teacher confirmation at each half-term review that notes are being provided consistently.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'All subject teachers briefed at INSET. Resources uploaded to student portal by lesson start.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Provision 4: Subject-specific vocabulary pre-teaching using visual word-image matching cards before each new unit.',
+            successCriteria: 'Vocabulary cards produced for History, English, and Science. Student uses cards independently in assessments.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'SENCO to produce vocabulary card templates. Subject teachers to populate. Review at each unit start.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Provision 5: PEEL writing frame provided for all extended writing tasks in every subject.',
+            successCriteria: 'Three consecutive extended responses produced using PEEL frame independently by July 2026.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'PEEL frames printed and available in class sets. Teacher models use in every extended writing lesson.',
+            status: 'active', evidenceCount: 3,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Provision 6: Fortnightly mind-mapping revision sessions with SENCO. Mind maps shared with parents via Omnis parent portal.',
+            successCriteria: 'At least 12 mind-mapping sessions completed by July 2026. Parent engagement confirmed at each termly review.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'SENCO timetable to include 30-minute fortnightly slot with Rehan. Parent portal notifications set up.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'I',
+            outcomeText: 'Rehan Ali will be educated at Omnis Demo Secondary School, Oakfield. The school has been identified as the appropriate placement based on specialist SEND provision available and parental preference.',
+            successCriteria: 'Placement reviewed at annual review. Any change of placement to be agreed by LA, school, and parents.',
+            targetDate: new Date('2026-07-10'),
+            provisionRequired: 'School to confirm continued SEND provision capacity annually. LA to review placement if needs change significantly.',
+            status: 'active', evidenceCount: 0,
+          },
+        ],
+      },
+    },
+  })
+
+  // 11. APDR (Assess, Plan, Do, Review) cycle for Rehan
+  await prisma.assessPlanDoReview.upsert({
+    where:  { id: 'seed-apdr-rehan-ali' },
+    update: {},
+    create: {
+      id: 'seed-apdr-rehan-ali', schoolId: school.id, studentId: rehanAli.id,
+      cycleNumber: 1,
+      assessContent: `ASSESS — Spring Term 2026\n\nRehan Ali is a Year 8 student with a confirmed diagnosis of Specific Learning Difficulty (Dyslexia). KS2 baseline reading score is at the 4th percentile for his age group (reading age ≈ 9y 6m against chronological age of 12y 8m). Non-verbal CATs score is at the 62nd percentile, confirming a significant discrepancy between cognitive ability and written output — a hallmark of dyslexia.\n\nIn History (his target subject for this APDR cycle): most recent assessed piece scored 6/9 (Norman Conquest). In Maths, Rehan is performing at the 65th percentile for his class — much stronger — confirming that the primary barrier is written language processing.\n\nStrengths: Enthusiastic, verbally articulate, strong auditory recall. Responds very well to adult encouragement. Has not missed a single session of additional support.\n\nAreas for focus this cycle: (1) Reading fluency using overlay; (2) Structured extended writing using PEEL frame; (3) Independent revision strategies using visual mind maps.`,
+      planContent: `PLAN — Spring Term 2026\n\n1. READING SUPPORT\nBlue coloured overlay provided in all lessons and examinations from 20 January 2026. Audio versions of key History texts uploaded to shared class drive. Rehan to pre-read sources at home using audio before classroom discussion. Target: read and annotate 3 primary sources independently in each History unit.\n\n2. WRITING SUPPORT\nPEEL writing frame provided in ALL subjects before every extended writing task — not just History. All form tutors and subject teachers briefed at January INSET. Frame to be modelled in every lesson starter where extended writing is expected. Rehan to highlight each PEEL section in frame before starting.\n\n3. VOCABULARY PRE-TEACHING\nSubject-specific vocabulary card produced for History units: Norman Conquest (10 keywords), WWI Causes (12 keywords), Medieval Medicine (10 keywords). Cards on Rehan's desk during all History lessons and assessments.\n\n4. 25% EXTRA TIME\nAccess Arrangements Form 8 submitted to exams office 20 January 2026 (copy on file in SENCO office). All subject teachers notified. Applies to all timed in-class assessments from this date.\n\n5. MIND-MAPPING SESSIONS\nFortnightly 30-minute sessions with SENCO scheduled for Tuesdays 12:30–1:00. Colour-coded A3 topic maps to be created for each History unit. Photos shared with parents via Omnis parent portal after each session.\n\n6. REVIEW DATE: 30 June 2026. Mid-cycle check-in with form tutor scheduled for 31 March 2026.`,
+      doContent: `DO — Implementation notes (January–March 2026)\n\n✓ All subject teachers briefed at January INSET Day (20 Jan). Confirmation emails from History (Mr Lewis), English (Mr Patel), Science (Ms Ahmed), Maths (Ms Wright) received.\n\n✓ Blue overlay confirmed in use — Rehan is consistently using it in all lessons as of February 2026. History teacher confirms overlay improves reading pace noticeably during source work.\n\n✓ 25% extra time applied to all assessments from 20 January. History SAC form submitted to exams officer.\n\n✓ PEEL writing frames in use: confirmed by History (3 assessed tasks) and English (2 assessed tasks). Maths not applicable.\n\n✓ Vocabulary cards produced for Norman Conquest and WWI units. Rehan reported finding the cards "really useful" during Norman assessment.\n\n✓ Mind-mapping sessions: 3 sessions completed (3 Feb, 17 Feb, 3 Mar). Topics covered: Norman Conquest, Anglo-Saxon England. Rehan produced colour-coded maps for both. Parents confirmed receiving photo via portal.\n\n⚠ Note: Rehan missed one session (17 Feb) due to a field trip — rescheduled to 24 Feb. Otherwise consistent attendance at all sessions.`,
+      reviewContent: '',
+      status: 'ACTIVE',
+      reviewDate: new Date('2026-06-30'),
+      createdBy: created['r.morris'].id,
+      approvedBySenco: true,
+      approvedAt: new Date('2026-01-22'),
+      approvedBy: created['r.morris'].id,
+    },
+  })
+
+  console.log('  ✓ Rehan Ali: Dyslexia profile updated, History chain (3 homeworks, 3 submissions, 3 ILP evidence entries), EHCP, APDR')
+
+  // ── Caitlin Harris: ADHD profile + History chain ──────────────────────────────
+
+  // 1. Create/update SendStatus for Caitlin (currently no SendStatus)
+  await prisma.sendStatus.upsert({
+    where:  { studentId: caitlinHarris.id },
+    update: { activeStatus: SendStatusValue.SEN_SUPPORT, needArea: 'Attention Deficit Hyperactivity Disorder (ADHD)' },
+    create: { studentId: caitlinHarris.id, activeStatus: SendStatusValue.SEN_SUPPORT, activeSource: 'SENCO', needArea: 'Attention Deficit Hyperactivity Disorder (ADHD)' },
+  })
+
+  // 2. ILP for Caitlin
+  const caitlinIlp = await prisma.individualLearningPlan.upsert({
+    where:  { id: 'seed-ilp-caitlin-harris' },
+    update: {},
+    create: {
+      id: 'seed-ilp-caitlin-harris', schoolId: school.id, studentId: caitlinHarris.id,
+      createdBy: created['r.morris'].id,
+      sendCategory: 'SEN_SUPPORT',
+      currentStrengths: 'High energy and enthusiasm when engaged with a topic. Creative thinker who generates original ideas quickly. Responds well to movement, variety, and hands-on tasks. Can produce strong work in short, focused bursts.',
+      areasOfNeed: 'Sustained attention — difficulty maintaining focus for more than 10–15 minutes without a structured break or change of activity. Impulsive responses in class (calling out, off-task behaviour). Emotional regulation — can become frustrated when tasks feel too long or ambiguous. Homework completion is inconsistent.',
+      strategies: [
+        'Use a visible timer — tasks should be chunked into 10–12 minute focused blocks',
+        'Provide a task checklist so Caitlin can tick off stages and see progress',
+        'Allow brief movement breaks between task stages (e.g. hand out resources, sharpen pencil)',
+        'Give brief, clear instructions — no more than 2 steps at a time',
+        'Seat away from peers most likely to cause distraction, ideally near the teacher',
+      ],
+      successCriteria: 'Maintain on-task behaviour for at least 3 consecutive 10-minute focused blocks per lesson, as recorded by teacher in fortnightly observation log, by end of Summer term.',
+      reviewDate: new Date('2026-06-20'),
+      status: 'active', parentConsent: true,
+    },
+  })
+
+  // 3. K Plan for Caitlin
+  await prisma.learnerPassport.upsert({
+    where:  { id: 'seed-kplan-caitlin-harris' },
+    update: {},
+    create: {
+      id: 'seed-kplan-caitlin-harris', schoolId: school.id, studentId: caitlinHarris.id,
+      ilpId: caitlinIlp.id,
+      sendInformation: 'Caitlin has Attention Deficit Hyperactivity Disorder (ADHD, combined presentation). Diagnosed by community paediatrician November 2024. Not currently on medication. Attention difficulties are most pronounced in extended written or reading tasks. She is socially confident, creative, and highly engaged when tasks are varied and time-limited. Parents are fully engaged and have provided useful home strategies.',
+      teacherActions: [
+        'Use a visible countdown timer — chunk tasks into 10–12 minute focused blocks',
+        'Provide a printed task checklist so Caitlin can track her progress',
+        'Allow brief movement breaks between stages (e.g. hand out resources)',
+        'Give no more than 2 steps of instruction at a time — check understanding before giving more',
+        'Seat near the teacher, away from high-distraction peers',
+      ],
+      studentCommitments: [
+        'Use the task checklist to focus on one stage at a time',
+        'Use the fidget tool quietly during whole-class explanations',
+        'Ask the teacher if feeling overwhelmed rather than going off-task',
+      ],
+      status: 'APPROVED', approvedBy: created['r.morris'].id, approvedAt: new Date('2026-01-20'),
+    },
+  })
+
+  // 4. ILP targets for Caitlin
+  await prisma.ilpTarget.createMany({
+    skipDuplicates: true,
+    data: [
+      {
+        id: 'seed-ilpt-caitlin-h-1', ilpId: caitlinIlp.id,
+        target: 'Remain on-task for three consecutive 10-minute focused blocks per lesson using a visible timer',
+        strategy: 'Countdown timer (physical or digital) visible on desk. Tasks pre-chunked into 10-minute blocks with checklist. Teacher acknowledges completion of each block.',
+        successMeasure: 'Teacher observation log records 3+ on-task blocks in at least 3 out of 5 lessons over 2 consecutive weeks.',
+        targetDate: new Date('2026-06-20'), status: 'active',
+      },
+      {
+        id: 'seed-ilpt-caitlin-h-2', ilpId: caitlinIlp.id,
+        target: 'Complete at least 3 out of 5 homework tasks per half-term and submit on time',
+        strategy: 'Homework broken into short daily chunks on a completion timetable. Parents send a weekly check-in message to form tutor. Partial submissions accepted.',
+        successMeasure: '3+ homework tasks submitted per half-term to any standard.',
+        targetDate: new Date('2026-06-20'), status: 'active',
+      },
+      {
+        id: 'seed-ilpt-caitlin-h-3', ilpId: caitlinIlp.id,
+        target: 'Use a calming strategy (deep breathing or exit card) when feeling frustrated before behaviour escalates',
+        strategy: 'Exit card provided. Breathing strategy modelled in PSHE. Caitlin uses "thumb signal" to alert teacher to rising frustration.',
+        successMeasure: 'No more than 1 significant emotional dysregulation incident per half-term (recorded in pastoral log) by end of Summer term.',
+        targetDate: new Date('2026-06-20'), status: 'active',
+      },
+    ],
+  })
+
+  // 5. Enroll Caitlin in History 8/Hi1
+  await prisma.enrolment.upsert({
+    where:  { classId_userId: { classId: 'demo-class-8-Hi1', userId: caitlinHarris.id } },
+    update: {},
+    create: { classId: 'demo-class-8-Hi1', userId: caitlinHarris.id },
+  })
+
+  // 6. History baseline and prediction for Caitlin
+  await prisma.studentBaseline.upsert({
+    where:  { studentId_subject: { studentId: caitlinHarris.id, subject: 'History' } },
+    update: { baselineScore: 61, source: 'KS2' },
+    create: { studentId: caitlinHarris.id, subject: 'History', baselineScore: 61, source: 'KS2', schoolId: school.id, recordedBy: created['r.morris'].id },
+  })
+  await prisma.teacherPrediction.upsert({
+    where: { studentId_teacherId_subject_termLabel: { studentId: caitlinHarris.id, teacherId: mLewis.id, subject: 'History', termLabel: RAG_TERM } },
+    update: { predictedScore: 65, adjustment: 0 },
+    create: { studentId: caitlinHarris.id, teacherId: mLewis.id, schoolId: school.id, subject: 'History', termLabel: RAG_TERM, predictedScore: 65, adjustment: 0, notes: 'Capable student; ADHD affects consistency. Predicted Grade 5 with support. On target when engaged.' },
+  })
+
+  // 7. Caitlin's History submissions (same homeworks as Rehan)
+  const caitlinNormanSub = await prisma.submission.upsert({
+    where:  { homeworkId_studentId: { homeworkId: hwNorman.id, studentId: caitlinHarris.id } },
+    update: {},
+    create: {
+      schoolId: school.id, homeworkId: hwNorman.id, studentId: caitlinHarris.id,
+      content: 'William gave land to his barons and knights who had to provide soldiers. This was called the feudal system. The Domesday Book listed all the land. French became the posh language and English was for peasants. Beef and pork are French words because Normans ate the animals that peasants raised.',
+      status: SubmissionStatus.RETURNED,
+      submittedAt: daysAgo(25), markedAt: daysAgo(23),
+      teacherScore: 5, finalScore: 5, grade: '5',
+      feedback: 'Caitlin, some really good points here — the language observation about French/English words is excellent and shows original thinking. Your first paragraph identifies the feudal system but doesn\'t develop the explanation — WHY was the feudal system significant for England? Use the PEEL frame to structure your explanation sentence. The task checklist I gave you has the PEEL structure on the back.',
+      integrityReviewed: true,
+    },
+  })
+
+  const caitlinWwiSub = await prisma.submission.upsert({
+    where:  { homeworkId_studentId: { homeworkId: hwWWI.id, studentId: caitlinHarris.id } },
+    update: {},
+    create: {
+      schoolId: school.id, homeworkId: hwWWI.id, studentId: caitlinHarris.id,
+      content: 'Germany was mainly to blame because of the blank cheque and the Schlieffen Plan. These show Germany wanted war. Also the alliance system made it worse.',
+      status: SubmissionStatus.RETURNED,
+      submittedAt: daysAgo(11), markedAt: daysAgo(9),
+      teacherScore: 3, finalScore: 3, grade: '3',
+      feedback: 'Caitlin, I can see you know the key facts (blank cheque, Schlieffen Plan) but the response is very brief — only 3 sentences when the task asked for two paragraphs. I know this was submitted late and you told me you ran out of time. For next time, break the task into two separate sessions using the checklist: 15 minutes on paragraph 1, then a break, then 15 minutes on paragraph 2. I believe you can produce a 5–6 response if you use the chunking strategy.',
+      integrityReviewed: true,
+    },
+  })
+
+  // 8. ILP Evidence for Caitlin (1 CONCERN, 1 PROGRESS)
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: caitlinWwiSub.id, ilpTargetId: 'seed-ilpt-caitlin-h-2' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: caitlinHarris.id,
+      ilpTargetId: 'seed-ilpt-caitlin-h-2', submissionId: caitlinWwiSub.id,
+      homeworkTitle: hwWWI.title, subject: 'History', score: 3, maxScore: 9,
+      evidenceType: 'CONCERN',
+      aiSummary: 'Submission is significantly below the expected standard for the assessed piece — 3 sentences against a 2-paragraph requirement. Student acknowledged running out of time. This represents a CONCERN against Target 2 (homework completion). The task required extended written response which aligns with known ADHD-related difficulty with sustained effort. Chunking strategy was not applied. Teacher follow-up recommended.',
+      teacherNote: 'Caitlin said she "started late and ran out of steam." This is a consistent pattern. Discussed the break-and-chunk approach again. Will check in at the start of the next homework deadline.',
+      createdBy: mLewis.id,
+    },
+  })
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: caitlinNormanSub.id, ilpTargetId: 'seed-ilpt-caitlin-h-2' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: caitlinHarris.id,
+      ilpTargetId: 'seed-ilpt-caitlin-h-2', submissionId: caitlinNormanSub.id,
+      homeworkTitle: hwNorman.title, subject: 'History', score: 5, maxScore: 9,
+      evidenceType: 'PROGRESS',
+      aiSummary: 'A complete 2-paragraph response submitted on time — this is itself PROGRESS against Target 2. Content includes specific evidence (feudal system, Domesday Book, French/English vocabulary) and an original analytical observation. The language point about "beef/pork vs cow/pig" shows genuine historical thinking that goes beyond surface description. PROGRESS: homework submitted on time with sustained effort evident.',
+      createdBy: mLewis.id,
+    },
+  })
+
+  // 9. EHCP for Caitlin Harris (ADHD with emotional regulation needs)
+  await prisma.ehcpPlan.upsert({
+    where:  { id: 'seed-ehcp-caitlin-harris' },
+    update: {},
+    create: {
+      id: 'seed-ehcp-caitlin-harris', schoolId: school.id,
+      studentId: caitlinHarris.id, createdBy: created['r.morris'].id,
+      localAuthority: 'Oakfield Metropolitan Borough Council',
+      planDate: new Date('2025-09-01'), reviewDate: new Date('2026-06-20'),
+      coordinatorName: 'Ms J. Freeman (SEND Coordinator, Oakfield LA)',
+      status: 'active', approvedBySenco: true,
+      outcomes: {
+        create: [
+          {
+            section: 'B',
+            outcomeText: 'Caitlin has Attention Deficit Hyperactivity Disorder (ADHD, combined presentation), diagnosed by a community paediatrician in November 2024. She is not currently on medication; parents have declined medication pending a trial period of non-pharmacological support. Assessments show significant difficulty sustaining attention for more than 10–15 minutes without breaks, and impulsive behavioural responses under frustration. Working memory and processing speed are at the 35th and 40th percentiles respectively (CATs, September 2025). Academically, Caitlin is capable of strong work in short, focused bursts — her verbal contributions in class are frequently above the standard of her written output, suggesting the written modality is particularly affected.',
+            successCriteria: 'Teacher and SENCO observation log shows sustained on-task behaviour improving from baseline 1–2 blocks (10 mins each) to 3+ blocks per lesson by July 2026.',
+            targetDate: new Date('2026-06-20'),
+            provisionRequired: 'Fortnightly SENCO observation visits to History and English. Behaviour observation log maintained. Review at each half-term.',
+            status: 'active', evidenceCount: 2,
+          },
+          {
+            section: 'C',
+            outcomeText: 'Caitlin will use two self-regulation strategies (exit card, deep breathing) when experiencing rising frustration before behaviour escalates to disruption.',
+            successCriteria: 'Pastoral log records no more than 1 significant emotional dysregulation incident per half-term by July 2026.',
+            targetDate: new Date('2026-06-20'),
+            provisionRequired: 'Exit card system in place in all classrooms. PSHE-delivered emotional regulation module (Spring term). Weekly pastoral check-in with form tutor.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'All teachers to use a visible countdown timer and chunked task structure (10–12 minute blocks) for all lessons involving Caitlin.',
+            successCriteria: 'All subject teachers confirm timer and chunked tasks in use at each half-term review meeting.',
+            targetDate: new Date('2026-06-20'),
+            provisionRequired: 'Physical countdown timers provided by SENCO for each classroom. All teachers briefed on chunking strategy at INSET. Task checklists produced for each subject.',
+            status: 'active', evidenceCount: 0,
+          },
+          {
+            section: 'F',
+            outcomeText: 'Homework to be broken into short daily sessions on a completion timetable shared between school and parents via the Omnis parent portal.',
+            successCriteria: 'Caitlin submits at least 3 out of 5 homework tasks per half-term. Submission rate measured each half-term.',
+            targetDate: new Date('2026-06-20'),
+            provisionRequired: 'Homework completion timetable produced by form tutor. Uploaded to parent portal. Weekly parent check-in message from form tutor.',
+            status: 'active', evidenceCount: 2,
+          },
+        ],
+      },
+    },
+  })
+
+  console.log('  ✓ Caitlin Harris: ADHD profile, ILP, K Plan, History chain (2 submissions, 2 ILP evidence entries), EHCP')
+
+  // ── Fatima Al-Amin: 2 ILP evidence entries from existing submissions ──────────
+  const fatimaUser = await prisma.user.findUniqueOrThrow({ where: { email: 'f.alamin@students.omnisdemo.school' } })
+
+  const fatimaAicSub = await prisma.submission.findFirst({
+    where: { studentId: fatimaUser.id, homework: { id: 'demo-hw-aic-1' } },
+    select: { id: true },
+  })
+  const fatimaBirlingSub = await prisma.submission.findFirst({
+    where: { studentId: fatimaUser.id, homework: { id: 'demo-hw-9e-birling' } },
+    select: { id: true },
+  })
+
+  if (fatimaAicSub) {
+    await prisma.ilpEvidenceEntry.upsert({
+      where:  { submissionId_ilpTargetId: { submissionId: fatimaAicSub.id, ilpTargetId: 'seed-ilpt-fatima-3' } },
+      update: {},
+      create: {
+        schoolId: school.id, studentId: fatimaUser.id,
+        ilpTargetId: 'seed-ilpt-fatima-3', submissionId: fatimaAicSub.id,
+        homeworkTitle: 'An Inspector Calls — Context Research', subject: 'English',
+        score: 4, maxScore: 9,
+        evidenceType: 'NEUTRAL',
+        aiSummary: 'Fatima demonstrates understanding of the core message but analytical development is limited. She identifies the 1912/1945 time gap (showing basic contextual awareness) but the explanation of why that gap matters is not yet developed. NEUTRAL against Target 3 (structured analytical writing) — foundational ideas are present but scaffolded support is still required for development.',
+        createdBy: created['j.patel'].id,
+      },
+    })
+  }
+  if (fatimaBirlingSub) {
+    await prisma.ilpEvidenceEntry.upsert({
+      where:  { submissionId_ilpTargetId: { submissionId: fatimaBirlingSub.id, ilpTargetId: 'seed-ilpt-fatima-3' } },
+      update: {},
+      create: {
+        schoolId: school.id, studentId: fatimaUser.id,
+        ilpTargetId: 'seed-ilpt-fatima-3', submissionId: fatimaBirlingSub.id,
+        homeworkTitle: 'Character Analysis — How does Priestley present Mr Birling?', subject: 'English',
+        score: 10, maxScore: 20,
+        evidenceType: 'PROGRESS',
+        aiSummary: 'Clearer analytical structure emerging — Fatima identifies "capitalist attitudes" and links to Priestley\'s didactic intent, showing conceptual development beyond simple plot summary. Sentence-starter scaffold is evidently in use. PROGRESS against Target 3: independently structured a paragraph with a point, evidence reference, and developing explanation for the first time.',
+        createdBy: created['j.patel'].id,
+      },
+    })
+  }
+
+  console.log('  ✓ Fatima Al-Amin: 2 ILP evidence entries (NEUTRAL + PROGRESS), baseline updated to 48%, prediction updated to 55%')
+  console.log('  ✓ Section F complete: Rehan Ali (Dyslexia), Caitlin Harris (ADHD), Fatima Al-Amin (SLCN)')
 
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')

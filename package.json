@@ -23,7 +23,9 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
     "topup:seed": "tsx --env-file=.env.local prisma/seed-topup.ts",
-    "send:backfill-snapshots": "tsx --env-file=.env.local scripts/backfill-send-snapshots.ts"
+    "send:backfill-snapshots": "tsx --env-file=.env.local scripts/backfill-send-snapshots.ts",
+    "demo:reset": "tsx --env-file=.env.local scripts/demo-reset.ts",
+    "demo:seed": "npx prisma db seed"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",

@@ -11,9 +11,9 @@ export default async function WondeSyncPage() {
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
   const [config, logs, counts] = await Promise.all([
-    getWondeConfig(),
-    getWondeSyncLogs(20),
-    getWondeCounts(),
+    getWondeConfig().catch(() => null),
+    getWondeSyncLogs(20).catch(() => [] as Awaited<ReturnType<typeof getWondeSyncLogs>>),
+    getWondeCounts().catch(() => ({ employees: 0, students: 0, classes: 0, groups: 0, periods: 0, timetable: 0 })),
   ])
 
   return (

@@ -49,28 +49,35 @@ export async function GET(
   })
 
   if (!wondeStudent?.photoUrl) {
+    console.log(`[student-photo] no photoUrl for user ${userId} (${user.firstName} ${user.lastName})`)
     return NextResponse.json({ error: 'No photo available' }, { status: 404 })
   }
 
-  // ── 3. Fetch photo from Wonde with API token ──────────────────────────────
+  console.log(`[student-photo] fetching photo for user ${userId} (${user.firstName} ${user.lastName}) from ${wondeStudent.photoUrl.slice(0, 60)}...`)
+
+  // ── 3. Fetch photo — only send Wonde auth header for real Wonde URLs ───────
   const token = process.env.WONDE_API_TOKEN
-  if (!token) {
-    return NextResponse.json({ error: 'Wonde not configured' }, { status: 503 })
+  const isWondeUrl = wondeStudent.photoUrl.includes('wonde')
+  const fetchHeaders: Record<string, string> = {}
+  if (isWondeUrl && token) {
+    fetchHeaders['Authorization'] = `Bearer ${token}`
   }
 
   let photoRes: Response
   try {
     photoRes = await fetch(wondeStudent.photoUrl, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: fetchHeaders,
       signal:  AbortSignal.timeout(10_000),
     })
   } catch (err) {
+    console.log(`[student-photo] fetch timeout for user ${userId}`)
     return NextResponse.json({ error: 'Photo fetch timeout' }, { status: 504 })
   }
 
   if (!photoRes.ok) {
+    console.log(`[student-photo] upstream ${photoRes.status} for user ${userId}`)
     return NextResponse.json(
-      { error: `Wonde returned ${photoRes.status}` },
+      { error: `Upstream returned ${photoRes.status}` },
       { status: photoRes.status },
     )
   }

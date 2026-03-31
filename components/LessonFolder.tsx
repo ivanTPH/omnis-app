@@ -16,6 +16,7 @@ const RevisionAnalysisPanel  = dynamic(() => import('@/components/revision-progr
 const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab'),          { ssr: false })
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
+const ClassAnalyticsPanel    = dynamic(() => import('@/components/ClassAnalyticsPanel'),      { ssr: false })
 const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/HomeworkDetailPanel'),       { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
@@ -51,7 +52,7 @@ function autoResize(el: HTMLTextAreaElement | null) {
   el.style.height = `${el.scrollHeight}px`
 }
 
-const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Revision'] as const
+const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Revision', 'Analytics'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -78,6 +79,27 @@ interface Props {
   defaultTab?: FolderTab
   wizardMode?: boolean
   inline?:     boolean
+}
+
+// ── SEND Overview disclosure (Class tab) ──────────────────────────────────────
+function SendOverviewDisclosure({ classId }: { classId: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="px-7 pt-5 pb-4">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-2 text-[12px] font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+      >
+        <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" />
+        SEND Overview
+      </button>
+      {open && (
+        <div className="mt-3">
+          <ClassSendActionsCard classId={classId} />
+        </div>
+      )}
+    </div>
+  )
 }
 
 const HW_TYPES: { value: HomeworkType; label: string }[] = [
@@ -414,6 +436,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     'Homework':  <Icon name="assignment" size="sm" />,
     'Class':     <Icon name="people"     size="sm" />,
     'Revision':  <Icon name="loop"       size="sm" />,
+    'Analytics': <Icon name="analytics"  size="sm" />,
   }
 
   return (
@@ -1496,10 +1519,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               {activeTab === 'Class' && (
                 lesson?.class?.id ? (
                   <div className="divide-y divide-gray-100">
-                    {/* SEND summary card */}
-                    <div className="px-7 pt-6 pb-4">
-                      <ClassSendActionsCard classId={lesson.class.id} />
-                    </div>
+                    {/* SEND summary — collapsible */}
+                    <SendOverviewDisclosure classId={lesson.class.id} />
 
                     {/* Student roster with SEND badges + expandable ILP/EHCP */}
                     <div className="px-7 py-5">
@@ -1572,6 +1593,24 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* ── Analytics ── */}
+              {activeTab === 'Analytics' && (
+                lesson?.class?.id ? (
+                  <ClassAnalyticsPanel
+                    classId={lesson.class.id}
+                    subject={lesson.class.subject}
+                    yearGroup={lesson.class.yearGroup}
+                  />
+                ) : (
+                  <div className="p-7">
+                    <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+                      <Icon name="analytics" size="lg" className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+                    </div>
+                  </div>
+                )
               )}
 
             </>

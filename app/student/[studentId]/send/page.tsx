@@ -62,6 +62,7 @@ export default async function StudentSendPage({
             lastName={student.lastName}
             avatarUrl={student.avatarUrl}
             size="md"
+            userId={student.id}
           />
           <div>
             <h1 className="text-xl font-semibold text-gray-900">{studentName}</h1>

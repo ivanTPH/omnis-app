@@ -176,7 +176,7 @@ export default function RevisionProgramDetail({
                   onClick={() => selectTask(t)}
                   className={`w-full text-left flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-colors ${active ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                 >
-                  <StudentAvatar firstName={s.firstName} lastName={s.lastName} avatarUrl={s.avatarUrl ?? null} size="xs" />
+                  <StudentAvatar firstName={s.firstName} lastName={s.lastName} avatarUrl={s.avatarUrl ?? null} size="xs" userId={t.studentId} />
                   <div className="flex-1 min-w-0">
                     <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>{s.firstName} {s.lastName}</p>
                     <p className="text-[10px] text-gray-400">{statusLabel(t.status)}</p>
@@ -203,7 +203,7 @@ export default function RevisionProgramDetail({
             <div className="max-w-2xl mx-auto px-8 py-6 space-y-5">
               {/* student header */}
               <div className="flex items-center gap-3">
-                <StudentAvatar firstName={selectedStudent.firstName} lastName={selectedStudent.lastName} avatarUrl={selectedStudent.avatarUrl ?? null} size="md" />
+                <StudentAvatar firstName={selectedStudent.firstName} lastName={selectedStudent.lastName} avatarUrl={selectedStudent.avatarUrl ?? null} size="md" userId={selected.studentId} />
                 <div>
                   <p className="text-base font-semibold text-gray-900">{selectedStudent.firstName} {selectedStudent.lastName}</p>
                   <p className="text-xs text-gray-400 mt-0.5 capitalize">{statusLabel(selected.status)}</p>

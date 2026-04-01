@@ -166,7 +166,7 @@ export default function NewThreadModal({
                                 isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
                               }`}
                             >
-                              <StudentAvatar firstName={c.firstName} lastName={c.lastName} avatarUrl={c.avatarUrl} size="xs" />
+                              <StudentAvatar firstName={c.firstName} lastName={c.lastName} avatarUrl={c.avatarUrl} size="xs" userId={c.id} />
                               <span className="text-[13px] font-medium text-gray-800 flex-1">
                                 {c.firstName} {c.lastName}
                               </span>

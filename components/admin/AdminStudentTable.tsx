@@ -90,6 +90,7 @@ export default function AdminStudentTable({ students }: { students: StudentRow[]
                       firstName={s.firstName}
                       lastName={s.lastName}
                       avatarUrl={s.avatarUrl}
+                      userId={s.id}
                       size="xs"
                     />
                     {s.firstName} {s.lastName}

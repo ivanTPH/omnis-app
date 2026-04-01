@@ -731,6 +731,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
               avatarUrl={student.avatarUrl}
               sendStatus={student.sendCategory as 'SEN_SUPPORT' | 'EHCP' | null | undefined}
               size="xs"
+              userId={student.id}
             />
           </button>
           {/* Name — click to open contact panel */}
@@ -920,7 +921,8 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
       <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-start gap-3">
         <StudentAvatar firstName={student.firstName} lastName={student.lastName} size="md"
           avatarUrl={student.avatarUrl}
-          sendStatus={student.sendStatus as 'SEN_SUPPORT' | 'EHCP' | null | undefined} />
+          sendStatus={student.sendStatus as 'SEN_SUPPORT' | 'EHCP' | null | undefined}
+          userId={student.id} />
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-gray-900">{student.firstName} {student.lastName}</h3>
           <div className="flex flex-wrap items-center gap-2 mt-0.5">

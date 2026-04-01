@@ -146,6 +146,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                                 firstName={s.firstName}
                                 lastName={s.lastName}
                                 avatarUrl={s.avatarUrl}
+                                userId={s.id}
                                 sendStatus={s.sendStatus !== 'NONE' ? (s.sendStatus as 'SEN_SUPPORT' | 'EHCP') : undefined}
                                 size="sm"
                               />

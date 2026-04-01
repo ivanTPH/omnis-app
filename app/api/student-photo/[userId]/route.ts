@@ -1,17 +1,19 @@
 /**
  * /api/student-photo/[userId]
  *
- * Server-side proxy for Wonde student photos.
+ * Server-side proxy for student photos.
  *
- * Wonde photo URLs require an Authorization: Bearer header which browsers
+ * Wonde photo URLs require an Authorization: Basic header which browsers
  * cannot supply via a plain <img src="...">. This route:
  *   1. Verifies the caller is authenticated (NextAuth session)
- *   2. Looks up the matching WondeStudent by firstName + lastName within the school
- *   3. Fetches WondeStudent.photoUrl with the WONDE_API_TOKEN
+ *   2. Reads User.avatarUrl directly from the DB
+ *   3. Fetches it server-side — Wonde URLs get Basic auth, public URLs get none
  *   4. Returns the image bytes with a 1-hour private cache header
+ *   5. Returns 404 if avatarUrl is null
  *
- * The sync stores /api/student-photo/{userId} as User.avatarUrl so that
- * StudentAvatar renders correctly without any per-component auth logic.
+ * The Wonde sync stores the raw photo URL in User.avatarUrl.
+ * StudentAvatar always requests /api/student-photo/{userId} so the browser
+ * never needs to supply an Authorization header.
  */
 
 import { auth }   from '@/lib/auth'
@@ -29,60 +31,45 @@ export async function GET(
 
   const { userId } = await params
 
-  // ── 1. Find the user to get their name + school ───────────────────────────
+  // ── 1. Read User.avatarUrl directly ──────────────────────────────────────
   const user = await prisma.user.findUnique({
     where:  { id: userId },
-    select: { firstName: true, lastName: true, schoolId: true },
-  })
-  if (!user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
-  }
-
-  // ── 2. Find matching WondeStudent by name within school ───────────────────
-  const wondeStudent = await prisma.wondeStudent.findFirst({
-    where: {
-      schoolId:  user.schoolId,
-      firstName: user.firstName,
-      lastName:  user.lastName,
-    },
-    select: { photoUrl: true },
+    select: { avatarUrl: true },
   })
 
-  if (!wondeStudent?.photoUrl) {
-    console.log(`[student-photo] no photoUrl for user ${userId} (${user.firstName} ${user.lastName})`)
+  if (!user?.avatarUrl) {
     return NextResponse.json({ error: 'No photo available' }, { status: 404 })
   }
 
-  console.log(`[student-photo] fetching photo for user ${userId} (${user.firstName} ${user.lastName}) from ${wondeStudent.photoUrl.slice(0, 60)}...`)
+  const photoUrl = user.avatarUrl
 
-  // ── 3. Fetch photo — only send Wonde auth header for real Wonde URLs ───────
-  const token = process.env.WONDE_API_TOKEN
-  const isWondeUrl = wondeStudent.photoUrl.includes('wonde')
+  // ── 2. Fetch — Basic auth for Wonde URLs, unauthenticated for public CDNs ─
+  const token   = process.env.WONDE_API_TOKEN
+  const isWonde = photoUrl.includes('wonde')
   const fetchHeaders: Record<string, string> = {}
-  if (isWondeUrl && token) {
-    fetchHeaders['Authorization'] = `Bearer ${token}`
+  if (isWonde && token) {
+    fetchHeaders['Authorization'] =
+      'Basic ' + Buffer.from(token + ':').toString('base64')
   }
 
   let photoRes: Response
   try {
-    photoRes = await fetch(wondeStudent.photoUrl, {
+    photoRes = await fetch(photoUrl, {
       headers: fetchHeaders,
       signal:  AbortSignal.timeout(10_000),
     })
-  } catch (err) {
-    console.log(`[student-photo] fetch timeout for user ${userId}`)
+  } catch {
     return NextResponse.json({ error: 'Photo fetch timeout' }, { status: 504 })
   }
 
   if (!photoRes.ok) {
-    console.log(`[student-photo] upstream ${photoRes.status} for user ${userId}`)
     return NextResponse.json(
       { error: `Upstream returned ${photoRes.status}` },
       { status: photoRes.status },
     )
   }
 
-  // ── 4. Stream image bytes back to client ──────────────────────────────────
+  // ── 3. Stream image bytes back to client ──────────────────────────────────
   const blob        = await photoRes.blob()
   const contentType = photoRes.headers.get('content-type') ?? 'image/jpeg'
 

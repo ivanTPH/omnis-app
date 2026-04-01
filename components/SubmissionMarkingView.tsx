@@ -184,6 +184,7 @@ export default function SubmissionMarkingView({
               lastName={data.student.lastName}
               avatarUrl={data.student.avatarUrl}
               size="md"
+              userId={data.student.id}
             />
             <div>
               <div className="flex items-center gap-2 flex-wrap">

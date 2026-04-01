@@ -39,6 +39,7 @@ export default function MessageBubble({
           lastName={lastName}
           avatarUrl={message.senderAvatar}
           size="xs"
+          userId={message.senderId}
         />
       </div>
       <div className={`max-w-[70%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>

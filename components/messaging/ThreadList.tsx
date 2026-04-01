@@ -59,6 +59,7 @@ export default function ThreadList({
                       lastName={p.lastName}
                       avatarUrl={p.avatarUrl}
                       size="xs"
+                      userId={p.id}
                     />
                   ))}
                   {t.participants.length > 3 && (

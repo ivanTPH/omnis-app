@@ -67,6 +67,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           avatarUrl={null}
           sendStatus={data.hasSend ? (data.sendCategory as any) : null}
           size="md"
+          userId={data.studentId}
         />
         <div className="flex-1 min-w-0">
           <h2 className="text-[15px] font-bold text-gray-900">{data.firstName} {data.lastName}</h2>

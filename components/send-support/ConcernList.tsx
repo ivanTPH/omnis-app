@@ -90,6 +90,7 @@ export default function ConcernList({ concerns, isSenco = false, onRefresh }: Pr
                         lastName={c.studentName.split(' ').slice(1).join(' ') || c.studentName}
                         avatarUrl={c.studentAvatarUrl}
                         size="xs"
+                        userId={c.studentId}
                       />
                       <span className="text-sm font-medium text-gray-900">{c.studentName}</span>
                     </span>

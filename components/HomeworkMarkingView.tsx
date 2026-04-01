@@ -650,6 +650,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             firstName={pupil.firstName}
             lastName={pupil.lastName}
             avatarUrl={(pupil as any).avatarUrl ?? null}
+            userId={pupil.id}
             size="xs"
             sendStatus={(sendByStudent[pupil.id]?.activeStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP') ?? 'NONE'}
           />
@@ -942,6 +943,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   firstName={selectedStudent.firstName}
                   lastName={selectedStudent.lastName}
                   avatarUrl={(selectedStudent as any).avatarUrl ?? null}
+                  userId={selectedStudent.id}
                   size="md"
                   sendStatus={(sendInfo?.activeStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP') ?? 'NONE'}
                 />

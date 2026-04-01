@@ -256,11 +256,15 @@ export async function runWondeSync(
         try {
           const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
           if (matchedUserId) {
+            // User.avatarUrl stores the RAW photo URL so the proxy route
+            // (/api/student-photo/{userId}) can read it directly without name-matching.
+            // UserSettings.profilePictureUrl stores the proxy URL so the student's
+            // own sidebar avatar (read by getMyAvatarUrl) also uses the proxy.
             const proxyUrl = `/api/student-photo/${matchedUserId}`
             await Promise.all([
               prisma.user.update({
                 where: { id: matchedUserId },
-                data:  { avatarUrl: proxyUrl },
+                data:  { avatarUrl: photoUrl },   // raw Wonde URL — read by proxy
               }),
               prisma.userSettings.upsert({
                 where:  { userId: matchedUserId },

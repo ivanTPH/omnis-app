@@ -115,6 +115,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                   avatarUrl={data.avatarUrl}
                   sendStatus={data.sendStatus as 'SEN_SUPPORT' | 'EHCP' | null | undefined}
                   size="md"
+                  userId={data.id}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 text-[15px] truncate">

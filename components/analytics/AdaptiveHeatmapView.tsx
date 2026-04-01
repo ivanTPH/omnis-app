@@ -139,6 +139,7 @@ export default function AdaptiveHeatmapView({ classId, onSelectStudent }: Props)
                       avatarUrl={student.avatarUrl}
                       sendStatus={student.hasSend ? 'SEN_SUPPORT' : null}
                       size="xs"
+                      userId={student.id}
                     />
                     <span className="text-[12px] text-gray-800 whitespace-nowrap">
                       {student.firstName} {student.lastName}

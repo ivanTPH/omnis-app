@@ -229,6 +229,7 @@ export default function ClassAnalyticsPanel({
                   avatarUrl={s.avatarUrl}
                   size="xs"
                   sendStatus={s.hasSend ? (s.sendCategory as 'SEN_SUPPORT' | 'EHCP') : 'NONE'}
+                  userId={s.id}
                 />
                 <span className="flex-1 text-[12px] text-gray-800 font-medium">
                   {s.lastName}, {s.firstName}

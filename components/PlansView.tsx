@@ -237,6 +237,7 @@ export default function PlansView({
                           avatarUrl={ilp.student.avatarUrl}
                           size="sm"
                           sendStatus="SEN_SUPPORT"
+                          userId={ilp.student.id}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900">{studentName}</p>
@@ -286,6 +287,7 @@ export default function PlansView({
                           avatarUrl={ehcp.student.avatarUrl}
                           size="sm"
                           sendStatus="EHCP"
+                          userId={ehcp.student.id}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900">{studentName}</p>
@@ -334,6 +336,7 @@ export default function PlansView({
                           lastName={kplan.student.lastName}
                           avatarUrl={kplan.student.avatarUrl}
                           size="sm"
+                          userId={kplan.student.id}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900">{studentName}</p>

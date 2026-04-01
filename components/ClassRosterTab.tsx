@@ -366,6 +366,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     avatarUrl={row.avatarUrl}
                     size="sm"
                     sendStatus={row.sendStatus as 'NONE' | 'SEN_SUPPORT' | 'EHCP'}
+                    userId={row.id}
                   />
                 </button>
 

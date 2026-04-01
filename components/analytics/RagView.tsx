@@ -202,6 +202,7 @@ function RagRow({
             avatarUrl={student.avatarUrl}
             sendStatus={student.sendCategory as any}
             size="xs"
+            userId={student.id}
           />
           <span className="text-sm font-medium text-gray-900 truncate">
             {student.lastName}, {student.firstName}

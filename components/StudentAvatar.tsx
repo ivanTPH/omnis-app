@@ -39,6 +39,9 @@ type Props = {
   firstName:   string
   lastName:    string
   avatarUrl?:  string | null
+  /** When provided, the proxy URL /api/student-photo/{userId} is used as the
+   *  image src so Wonde photo URLs are fetched server-side with auth headers. */
+  userId?:     string | null
   size?:       Size
   showName?:   boolean
   className?:  string
@@ -49,6 +52,7 @@ export default function StudentAvatar({
   firstName  = '',
   lastName   = '',
   avatarUrl,
+  userId,
   size       = 'sm',
   showName   = false,
   className  = '',
@@ -62,9 +66,11 @@ export default function StudentAvatar({
   const bgColor   = nameToColor(`${firstName}${lastName}`)
   const ringStyle = sendStatus && sendStatus !== 'NONE' ? RING_SHADOW[sendStatus] : undefined
 
-  // Show a photo only when we have an explicit URL.
-  // Falls through to coloured initials when avatarUrl is null.
-  const showPhoto = !!avatarUrl && !imgFailed
+  // When userId is provided, always go through the authenticated proxy so
+  // Wonde photo URLs (which require Basic auth) load correctly.
+  // Fall back to avatarUrl for non-Wonde photos (e.g. uploaded base64 avatars).
+  const photoSrc  = userId ? `/api/student-photo/${userId}` : (avatarUrl ?? null)
+  const showPhoto = !!photoSrc && !imgFailed
 
   const circleBase: React.CSSProperties = {
     width:           px,
@@ -103,7 +109,7 @@ export default function StudentAvatar({
       {/* Avatar image — real photo or DiceBear fallback; opacity 0 until loaded */}
       {showPhoto && (
         <img
-          src={avatarUrl!}
+          src={photoSrc!}
           alt=""
           style={{
             position:   'absolute',

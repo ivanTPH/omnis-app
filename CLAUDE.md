@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-04-01. Authoritative reference for Claude sessions.
+> Last updated: 2026-04-01 (end of day). Authoritative reference for Claude sessions.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -8,13 +8,14 @@
 
 ## Active Development Framework
 
-Three prompt-library files live in the project root. Reference these when starting any development task:
+Prompt-library and planning files live in the project root. Reference these when starting any development task:
 
 | File | Description |
 |---|---|
 | `DEVELOPMENT.md` | General bug/feature prompt library — 18 recipes covering fixes, new pages, schema changes, deploy checks, and more |
 | `ADAPTIVE-LEARNING-LOOP.md` | 7-step teacher lesson → adaptive homework loop — from calendar fix through to per-student adaptive profiles |
 | `SEND-FRAMEWORK.md` | 8-step ILP/EHCP/APDR/adaptive SEND system — from auto-ILP generation through to SLT SEND reporting dashboard |
+| `TRIAL_READINESS_PLAN.md` | Trial readiness checklist — what must be complete before school trial. Read this before starting any new work. |
 
 ---
 
@@ -501,6 +502,12 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 
 ## Outstanding Tasks
 
+### Trial readiness (see `TRIAL_READINESS_PLAN.md`)
+- Read `TRIAL_READINESS_PLAN.md` in the project root before starting any session — it is the authoritative list of what must be done before the school trial.
+
+### Student photos — remaining gap
+- `components/StudentMobileDashboard.tsx` line 321: `StudentAvatar` rendered in sticky header using only top-level props (`firstName`, `lastName`, `avatarUrl`) — no `id` prop exists at that level. Photos will fall back to coloured initials in the mobile dashboard header. Fix: extend component props to accept `userId` and thread it through the call site.
+
 ### Marketing pages (not started)
 - 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`
 - Contact forms → `ivanyardley@me.com` via `resend` package
@@ -578,6 +585,13 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Created `components/ui/Icon.tsx` — shared wrapper with `name`/`size`/`color`/`className` props.
 - Replaced all lucide-react usages across 131 files with `<Icon name="..." />`.
 - `lucide-react` is no longer used anywhere in the codebase.
+
+**Student Photo Proxy — Definitive Fix ✅ (2026-04-01)**
+- `app/api/student-photo/[userId]/route.ts` rewritten: reads `User.avatarUrl` directly from DB (not WondeStudent name-matching); fetches with `Basic` auth for Wonde URLs (`Bearer` was wrong), no auth for public CDNs; returns 404 if `avatarUrl` null; curl confirmed `200 image/png`.
+- `lib/wonde-sync.ts` photo bridge fixed: sync now writes **raw Wonde URL** to `User.avatarUrl` (read by proxy) and proxy URL to `UserSettings.profilePictureUrl` (for sidebar self-avatar). Previous design wrote proxy URL to `User.avatarUrl` — causing circular reference (proxy reads URL → gets proxy URL → loops).
+- `components/StudentAvatar.tsx`: added `userId?: string | null` prop. When set, img src = `/api/student-photo/${userId}` (authenticated proxy); when not set, falls back to `avatarUrl` directly (backward compat).
+- All 21 StudentAvatar call sites updated with `userId` prop across 17 files: `HomeworkMarkingView`, `ClassListView`, `AdminStudentTable`, `StudentAnalyticsView`, `RevisionProgramDetail`, `StudentFilePanel`, `PlansView`, `ConcernList`, `SubmissionMarkingView`, `StudentContactPanel`, `NewThreadModal`, `ThreadList`, `MessageBubble`, `ClassAnalyticsPanel`, `RagView`, `AdaptiveHeatmapView`, `AdaptiveStudentView`, `ClassRosterTab`, `student/[studentId]/send`.
+- **Known remaining gap:** `StudentMobileDashboard.tsx` line 321 — component only receives `firstName/lastName/avatarUrl` props, no `id`, so cannot pass `userId`. Photos will show initials fallback for mobile dashboard header until the component signature is extended.
 
 **GCSE Grading System + Full System Audit + Bug Fixes ✅ (2026-04-01)**
 - `lib/grading.ts` updated: `GCSE_LETTERS` map (9=A**, 8=A*, 7=A, 6=B, 5=C+, 4=C, 3=D, 2=E, 1=F), `percentToGcseGrade()`, `gradeLabel()`, `gradePillClass()`.

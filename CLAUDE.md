@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-03-31. Authoritative reference for Claude sessions.
+> Last updated: 2026-04-01. Authoritative reference for Claude sessions.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -308,7 +308,8 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `lib/auth.ts` | NextAuth full config — Credentials provider, bcrypt, Prisma adapter, JWT callbacks |
 | `auth.config.ts` | Edge-safe auth config — middleware role routing only, no Prisma/bcrypt |
 | `lib/prisma.ts` | Prisma singleton + `writeAudit()` helper |
-| `lib/grading.ts` | `percentToGcseGrade()`, `suggestGrade()`, `normalizeScoreForForm()`, `formatScore()` |
+| `lib/grading.ts` | `percentToGcseGrade()`, `suggestGrade()`, `normalizeScoreForForm()`, `formatScore()`, `gradeLabel()`, `gradePillClass()`, `GCSE_LETTERS` |
+| `lib/gradeUtils.ts` | Display helpers built on grading.ts: `formatGrade()`, `formatRawScore()`, `scoreToGcseGrade()`, `formatAvgGrade()` (returns `{ main, sub }` for analytics avg display) |
 | `lib/accessibility.ts` | `settingsToClasses()`, defaults |
 | `lib/sendReview.ts` / `sendReviewCached.ts` | SEND accessibility scoring via Claude — score 0–100 |
 | `lib/sendInsights.ts` | SEND insight aggregation |
@@ -393,9 +394,9 @@ Route-level `error.tsx` files exist for: `dashboard`, `analytics`, `homework`,
 `classes`, `messages`, `notifications`, `parent`, `plans`, `platform-admin`,
 `revision`, `revision-program`, `send`, `send-scorer`, `senco`, `settings`,
 `slt`, `ai-generator`, `student/revision`, `student/revision/[taskId]`,
-`revision-program/[programId]`, `admin/dashboard`.
+`revision-program/[programId]`, `admin/dashboard`, `hoy`.
 
-**Still missing:** `app/hoy/error.tsx`
+**All route error boundaries are now present.**
 
 ---
 
@@ -459,6 +460,14 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - SENCO early warning dashboard (`/senco/early-warning`) shows a rose alert banner when students have 3+ CONCERN entries in the current term (via `getIlpConcernsThisTerm` which uses `groupBy` with `having`).
 - `IlpEvidenceEntry` model has `@@unique([submissionId, ilpTargetId])` — safe to call `saveIlpEvidenceEntries` multiple times without duplicates.
 
+### Grade Display
+- **All scores must be shown as GCSE grades 1–9**, never as raw numbers or "pts".
+- `percentToGcseGrade(pct)` converts 0–100 → grade 1–9.
+- `gradeLabel(grade)` → "7 (A)" — compact label for pill display.
+- `formatRawScore(score)` from `lib/gradeUtils.ts` — smart conversion for scores that could be 0–9 or 0–100 (e.g., from parent/ILP views where `gradingBands` not available).
+- `formatAvgGrade(avgScore)` from `lib/gradeUtils.ts` — for analytics where `ClassPerformanceAggregate.avgScore` is on **0–9 scale**. Returns `{ main: "Gr 7 (A)", sub: "avg 6.8" }`.
+- **`ClassPerformanceAggregate.avgScore` is on 0–9 scale** — use `formatAvgGrade()`, never `.toFixed(1)`.
+
 ### Homework Marking View (right panel)
 - `QuestionCard` sub-component: shows question prompt, MCQ options (correct highlighted green), student answer (blue bg), collapsible model answer (green), collapsible rubric (amber), per-question score input.
 - `rubricJson` and `modelAnswer` are typed as `unknown` (Prisma.JsonValue). Use `!= null` checks (not bare truthiness) in JSX to avoid TypeScript error "unknown not assignable to ReactNode".
@@ -505,12 +514,14 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Wonde sync: `e2e/tests/wonde-sync.spec.ts`
 - Revision Program: `e2e/tests/revision-program.spec.ts` (currently stubbed/skipped)
 
-### Missing error boundary
-- `app/hoy/error.tsx`
-
-### Unbuilt routes (show not-found)
-- `/lessons`, `/resources`, `/hoy/integrity`, `/admin/audit`, `/slt/audit`
-- `/student/grades`, `/student/homework` (list — individual homework items exist)
+### Unbuilt routes (stub pages with AppShell — show "coming soon")
+- `/lessons` — `app/lessons/page.tsx` stub (Cover Manager nav)
+- `/hoy/integrity` — `app/hoy/integrity/page.tsx` stub (HOY + SLT nav)
+- `/admin/audit` — `app/admin/audit/page.tsx` stub (Admin nav + dashboard quick link)
+- `/slt/audit` — `app/slt/audit/page.tsx` stub (SLT nav)
+- `/student/grades` — `app/student/grades/page.tsx` stub (Student nav)
+- `/student/homework` — redirects to `/student/dashboard` (list not yet built; individual items exist)
+- `/resources` — not-found (no stub yet)
 
 ---
 
@@ -567,3 +578,19 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Created `components/ui/Icon.tsx` — shared wrapper with `name`/`size`/`color`/`className` props.
 - Replaced all lucide-react usages across 131 files with `<Icon name="..." />`.
 - `lucide-react` is no longer used anywhere in the codebase.
+
+**GCSE Grading System + Full System Audit + Bug Fixes ✅ (2026-04-01)**
+- `lib/grading.ts` updated: `GCSE_LETTERS` map (9=A**, 8=A*, 7=A, 6=B, 5=C+, 4=C, 3=D, 2=E, 1=F), `percentToGcseGrade()`, `gradeLabel()`, `gradePillClass()`.
+- `lib/gradeUtils.ts` created: `formatGrade()`, `formatRawScore()`, `scoreToGcseGrade()`, `formatAvgGrade()`.
+- `app/actions/rag.ts`: grade-based RAG (green=at/above predicted, amber=1 below, red=2+ below); `RagStudent` now includes `workingAtGrade`, `predictedGrade`, `recentGrades`.
+- `ClassAnalyticsPanel`: class avg card coloured by GCSE grade tier; SEND attainment labels use `gradeLabel()`; student rows show trend arrow + grade pill + predicted grade.
+- `AdaptiveHeatmapView`: cells and headers show GCSE grade 1–9; colour thresholds grade-based.
+- `HomeworkMarkingView`: grade picker 1–9 buttons; `displayScore` always routed through `percentToGcseGrade()`; AI badge shows "Gr X (Y)" not percentage.
+- Full system BUGS.md audit produced (26 bugs + 14 feature gaps).
+- BUG-001/010: AppShell added to `app/students/[studentId]` and `app/senco/ilp-evidence`.
+- BUG-002/003/004/021: Grade display consistency — no more "pts", "Grade 75", or raw decimals.
+- BUG-007/009/013/015/016/018/020: 6 dead sidebar links resolved with stub pages; student/homework redirects to dashboard.
+- BUG-012: `gap?.length` null safety.
+- BUG-019: `app/hoy/error.tsx` error boundary created.
+- BUG-022: `app/settings/accessibility` — AppShell added + "← Settings" back link.
+- BUG-024: Inline SVG in parent/consent replaced with `<Icon name="chat" />`.

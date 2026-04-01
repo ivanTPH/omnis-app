@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import { PlanStatus } from '@prisma/client'
 import Icon from '@/components/ui/Icon'
+import { formatRawScore } from '@/lib/gradeUtils'
 
 export default async function ParentProgressPage() {
   const session = await auth()
@@ -172,7 +173,7 @@ export default async function ParentProgressPage() {
                                 <span className="inline-block bg-green-100 text-green-800 font-bold text-[12px] px-2.5 py-0.5 rounded-lg">{sub.grade}</span>
                               )}
                               {sub?.finalScore != null && !sub.grade && (
-                                <span className="text-[12px] font-semibold text-gray-700">{sub.finalScore} pts</span>
+                                <span className="text-[12px] font-semibold text-gray-700">{formatRawScore(sub.finalScore)}</span>
                               )}
                               {!sub && (
                                 <span className={`text-[11px] font-medium ${overdue ? 'text-rose-500' : 'text-gray-400'}`}>

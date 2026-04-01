@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PlanStatus, StrategyAppliesTo } from '@prisma/client'
 import { getIlpEvidenceForStudent } from '@/app/actions/homework'
+import { formatRawScore } from '@/lib/gradeUtils'
 
 export default async function StudentIlpPage({ params }: { params: Promise<{ studentId: string }> }) {
   const session = await auth()
@@ -331,7 +332,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                                   <span className="text-[11px] font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded-lg">{sub.grade}</span>
                                 )}
                                 {sub.finalScore != null && !sub.grade && (
-                                  <span className="text-[11px] font-semibold text-gray-600">{sub.finalScore} pts</span>
+                                  <span className="text-[11px] font-semibold text-gray-600">{formatRawScore(sub.finalScore)}</span>
                                 )}
                                 <span className="text-[10px] text-gray-400">
                                   {new Date(sub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}

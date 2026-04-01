@@ -5,6 +5,7 @@ import AppShell from '@/components/AppShell'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
+import { formatAvgGrade } from '@/lib/gradeUtils'
 
 function termLabel(id: string) {
   return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -153,7 +154,7 @@ export default async function SltAnalyticsPage() {
                               </div>
                               <div>
                                 <p className={`text-[13px] font-bold ${agg.avgScore < mJson.avgScore ? 'text-rose-600' : 'text-gray-700'}`}>
-                                  {agg.avgScore.toFixed(1)}
+                                  {formatAvgGrade(agg.avgScore).main}
                                 </p>
                                 <p className="text-[10px] text-gray-400">avg score</p>
                               </div>
@@ -187,7 +188,7 @@ export default async function SltAnalyticsPage() {
                             <p className="text-[10px] text-gray-400">avg completion</p>
                           </div>
                           <div>
-                            <p className="text-[13px] font-bold text-gray-900">{subAvgScore.toFixed(1)}</p>
+                            <p className="text-[13px] font-bold text-gray-900">{formatAvgGrade(subAvgScore).main}</p>
                             <p className="text-[10px] text-gray-400">avg score</p>
                           </div>
                         </div>
@@ -234,8 +235,8 @@ export default async function SltAnalyticsPage() {
                                 </div>
 
                                 {/* Score */}
-                                <div className="text-right w-16">
-                                  <p className="text-[13px] font-bold text-gray-900">{agg.avgScore.toFixed(1)}</p>
+                                <div className="text-right w-20">
+                                  <p className="text-[12px] font-bold text-gray-900">{formatAvgGrade(agg.avgScore).main}</p>
                                   {mJson && (
                                     <p className={`text-[10px] font-bold ${
                                       agg.avgScore >= mJson.avgScore ? 'text-green-600' : 'text-rose-600'

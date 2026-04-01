@@ -27,6 +27,7 @@
 
 ### BUG-001
 - **ID:** BUG-001
+- **Status:** ✅ FIXED — `app/students/[studentId]/page.tsx` wrapped in `AppShell`
 - **Role:** Teacher (also affects SENCO, HOY, SLT, Admin)
 - **Area:** Student Detail Page — Navigation
 - **Severity:** High
@@ -38,6 +39,7 @@
 
 ### BUG-002
 - **ID:** BUG-002
+- **Status:** ✅ FIXED — `displayScore` always converted via `percentToGcseGrade()`
 - **Role:** Teacher
 - **Area:** Homework Marking — Grade Display
 - **Severity:** High
@@ -49,6 +51,7 @@
 
 ### BUG-003
 - **ID:** BUG-003
+- **Status:** ✅ FIXED — AI badge now shows "AI: Gr 7 (A) ↗"
 - **Role:** Teacher
 - **Area:** Homework Marking — AI Score Badge
 - **Severity:** Medium
@@ -60,6 +63,7 @@
 
 ### BUG-004
 - **ID:** BUG-004
+- **Status:** ✅ FIXED — SEND attainment labels now show `gradeLabel()` output
 - **Role:** Teacher
 - **Area:** Analytics — Class Insights Tab
 - **Severity:** Medium
@@ -97,6 +101,7 @@
 
 ### BUG-007
 - **ID:** BUG-007
+- **Status:** ✅ FIXED — `app/student/grades/page.tsx` stub created with AppShell
 - **Role:** Student
 - **Area:** Navigation — My Grades
 - **Severity:** High
@@ -108,6 +113,7 @@
 
 ### BUG-008
 - **ID:** BUG-008
+- **Status:** ✅ FIXED — "pts" replaced with `formatRawScore()` in parent/progress and send/ilp
 - **Role:** Student / Parent
 - **Area:** Grade Display — Progress / ILP Views
 - **Severity:** Medium
@@ -119,6 +125,7 @@
 
 ### BUG-009
 - **ID:** BUG-009
+- **Status:** ✅ FIXED — `app/student/homework/page.tsx` redirects to `/student/dashboard`
 - **Role:** Student
 - **Area:** Navigation — Homework List
 - **Severity:** Medium
@@ -134,6 +141,7 @@
 
 ### BUG-010
 - **ID:** BUG-010
+- **Status:** ✅ FIXED — `app/senco/ilp-evidence/page.tsx` wrapped in `AppShell`
 - **Role:** SENCO
 - **Area:** ILP Evidence — Navigation
 - **Severity:** High
@@ -156,6 +164,7 @@
 
 ### BUG-012
 - **ID:** BUG-012
+- **Status:** ✅ FIXED — `gap?.length ?? 0` optional chaining applied
 - **Role:** SENCO
 - **Area:** ILP Evidence — Null Safety
 - **Severity:** Medium
@@ -171,6 +180,7 @@
 
 ### BUG-013
 - **ID:** BUG-013
+- **Status:** ✅ FIXED — `app/admin/audit/page.tsx` stub created with AppShell
 - **Role:** Admin
 - **Area:** Navigation — Audit Log
 - **Severity:** High
@@ -202,6 +212,7 @@
 
 ### BUG-015
 - **ID:** BUG-015
+- **Status:** ✅ FIXED — `app/slt/audit/page.tsx` stub created with AppShell
 - **Role:** SLT
 - **Area:** Navigation — Audit Log
 - **Severity:** High
@@ -213,6 +224,7 @@
 
 ### BUG-016
 - **ID:** BUG-016
+- **Status:** ✅ FIXED — `app/hoy/integrity/page.tsx` stub created with AppShell
 - **Role:** SLT / HOY
 - **Area:** Navigation — Integrity
 - **Severity:** High
@@ -252,6 +264,7 @@
 
 ### BUG-019
 - **ID:** BUG-019
+- **Status:** ✅ FIXED — `app/hoy/error.tsx` created
 - **Role:** HOY
 - **Area:** Error Handling
 - **Severity:** Low
@@ -267,6 +280,7 @@
 
 ### BUG-020
 - **ID:** BUG-020
+- **Status:** ✅ FIXED — `app/lessons/page.tsx` stub created with AppShell
 - **Role:** Cover Manager
 - **Area:** Navigation — Lessons
 - **Severity:** High
@@ -282,6 +296,7 @@
 
 ### BUG-021
 - **ID:** BUG-021
+- **Status:** ✅ FIXED — "pts" → `formatRawScore()`; HOY/SLT `avgScore.toFixed(1)` → `formatAvgGrade().main`
 - **Role:** All (Teacher, SENCO, HOY, SLT, Admin)
 - **Area:** Grade Display — Global Inconsistency
 - **Severity:** High
@@ -299,6 +314,7 @@
 
 ### BUG-022
 - **ID:** BUG-022
+- **Status:** ✅ FIXED — `app/settings/accessibility/page.tsx` now has AppShell + "← Settings" back link
 - **Role:** All
 - **Area:** Navigation — Accessibility Page Sidebar
 - **Severity:** Medium
@@ -323,6 +339,7 @@
 
 ### BUG-024
 - **ID:** BUG-024
+- **Status:** ✅ FIXED — inline SVG replaced with `<Icon name="chat" size="sm" />`
 - **Role:** All (primarily Parent)
 - **Area:** Icon Consistency
 - **Severity:** Low
@@ -334,6 +351,7 @@
 
 ### BUG-025
 - **ID:** BUG-025
+- **Status:** ℹ️ FALSE POSITIVE — `/send` IS already in `auth.config.ts` ROLE_ROUTES at line 30. No fix needed.
 - **Role:** All
 - **Area:** Auth / Route Protection
 - **Severity:** Low

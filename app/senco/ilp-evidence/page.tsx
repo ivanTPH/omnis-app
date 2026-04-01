@@ -2,16 +2,18 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getIlpEvidenceDashboard } from '@/app/actions/adaptive-learning'
 import Icon from '@/components/ui/Icon'
+import AppShell from '@/components/AppShell'
 
 export default async function IlpEvidencePage() {
   const session = await auth()
   if (!session) redirect('/login')
-  const user = session.user as { schoolId: string; role: string }
+  const user = session.user as { schoolId: string; role: string; firstName: string; lastName: string; schoolName: string }
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) redirect('/dashboard')
 
   const data = await getIlpEvidenceDashboard(user.schoolId)
 
   return (
+    <AppShell role={user.role} firstName={user.firstName} lastName={user.lastName} schoolName={user.schoolName}>
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">ILP Evidence Dashboard</h1>
@@ -70,7 +72,7 @@ export default async function IlpEvidencePage() {
                           {review.evidenceGaps.map((gap, i) => (
                             <p key={i} className="text-xs text-red-700 flex items-center gap-1">
                               <Icon name="warning" size="sm" />
-                              {gap}{gap.length >= 60 ? '…' : ''}
+                              {gap}{(gap?.length ?? 0) >= 60 ? '…' : ''}
                             </p>
                           ))}
                         </div>
@@ -127,5 +129,6 @@ export default async function IlpEvidencePage() {
         </ul>
       </div>
     </div>
+    </AppShell>
   )
 }

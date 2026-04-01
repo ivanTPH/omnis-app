@@ -165,7 +165,7 @@ export default function ClassAnalyticsPanel({
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[12px] text-blue-700 font-medium">SEN / EHCP students ({sendStudents.length})</span>
-                  <span className="text-[12px] font-semibold text-gray-800">{sendAvg != null ? `${sendAvg}%` : '—'}</span>
+                  <span className="text-[12px] font-semibold text-gray-800">{sendAvg != null ? gradeLabel(percentToGcseGrade(sendAvg)) : '—'}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div
@@ -179,7 +179,7 @@ export default function ClassAnalyticsPanel({
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[12px] text-gray-600 font-medium">Rest of class ({nonSendStudents.length})</span>
-                  <span className="text-[12px] font-semibold text-gray-800">{nonSendAvg != null ? `${nonSendAvg}%` : '—'}</span>
+                  <span className="text-[12px] font-semibold text-gray-800">{nonSendAvg != null ? gradeLabel(percentToGcseGrade(nonSendAvg)) : '—'}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                   <div

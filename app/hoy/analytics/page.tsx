@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Icon from '@/components/ui/Icon'
+import { formatAvgGrade } from '@/lib/gradeUtils'
 
 function termLabel(id: string) {
   return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -271,7 +272,7 @@ export default async function HoyAnalyticsPage() {
                                   <div className="flex items-center justify-between mb-1.5">
                                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Avg Score</p>
                                     <div className="flex items-center gap-1.5">
-                                      <span className="text-[13px] font-bold text-gray-900">{agg.avgScore.toFixed(1)}</span>
+                                      <span className="text-[13px] font-bold text-gray-900">{formatAvgGrade(agg.avgScore).main}</span>
                                       {scoreDelta !== null && (
                                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
                                           scoreDelta >= 0 ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'
@@ -287,7 +288,7 @@ export default async function HoyAnalyticsPage() {
                                       agg.avgScore / 9 >= 0.5 ? 'bg-amber-500' : 'bg-rose-500'
                                     }`} style={{ width: `${(agg.avgScore / 9) * 100}%` }} />
                                   </div>
-                                  {mJson && <p className="text-[10px] text-gray-400 mt-1">Median {mJson.avgScore.toFixed(1)}</p>}
+                                  {mJson && <p className="text-[10px] text-gray-400 mt-1">Median {formatAvgGrade(mJson.avgScore).main}</p>}
                                 </div>
                               </div>
                             ) : (

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getMyChildrenConsents } from '@/app/actions/gdpr'
 import ParentConsentPortal from '@/components/gdpr/ParentConsentPortal'
+import Icon from '@/components/ui/Icon'
 
 export default async function ParentConsentPage() {
   const session = await auth()
@@ -29,7 +30,7 @@ export default async function ParentConsentPage() {
                 href="/parent/messages"
                 className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-[13px] font-medium hover:bg-blue-100"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <Icon name="chat" size="sm" />
                 Message teacher
               </a>
             </div>

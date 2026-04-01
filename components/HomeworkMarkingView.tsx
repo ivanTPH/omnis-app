@@ -616,11 +616,12 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     const reminded = remindedIds.has(pupil.id)
 
     const rawFinalScore = sub?.finalScore
-    const displayScore  = rawFinalScore != null
+    // Always show as GCSE grade 1–9, never raw/percentage
+    const displayScore: number | null = rawFinalScore != null
       ? (rawFinalScore > maxScore && maxScore <= 20
-        ? percentToGcseGrade(rawFinalScore)
-        : fState?.score ? Number(fState.score) : rawFinalScore)
-      : (fState?.score ? Number(fState.score) : null)
+        ? percentToGcseGrade(rawFinalScore)                                    // auto-mark %
+        : percentToGcseGrade(Math.round((rawFinalScore / maxScore) * 100)))    // raw score
+      : (fState?.score ? percentToGcseGrade(Math.round((Number(fState.score) / maxScore) * 100)) : null)
 
     const autoScore       = (sub as any)?.autoScore ?? null
     const autoMarked      = (sub as any)?.autoMarked ?? false
@@ -663,10 +664,11 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               </span>
               {showAiBadge && autoScore != null && (() => {
                 const isLegPct = autoScore > maxScore && maxScore <= 20
-                const pct = isLegPct ? Math.round(autoScore) : Math.round((autoScore / maxScore) * 100)
+                const pct   = isLegPct ? Math.round(autoScore) : Math.round((autoScore / maxScore) * 100)
+                const grade = percentToGcseGrade(pct)
                 return (
                   <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
-                    AI: {pct}% ↗
+                    AI: Gr {grade} ({GCSE_LETTERS[grade]}) ↗
                   </span>
                 )
               })()}

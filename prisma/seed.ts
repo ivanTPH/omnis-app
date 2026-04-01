@@ -859,7 +859,12 @@ async function main() {
 
   const engLesson = await prisma.lesson.upsert({
     where:  { id: 'demo-lesson-7A-eng' },
-    update: { title: 'Descriptive Writing — Sensory Detail', objectives: ['Use sensory language to create vivid descriptive writing', 'Identify and analyse the effect of sensory imagery in a model text', 'Draft and refine a descriptive paragraph independently'] },
+    update: {
+      title: 'Descriptive Writing — Sensory Detail',
+      objectives: ['Use sensory language to create vivid descriptive writing', 'Identify and analyse the effect of sensory imagery in a model text', 'Draft and refine a descriptive paragraph independently'],
+      scheduledAt: lessonDate(0, 1, 14),   // Tue 14:00 — refresh to current week
+      endsAt:      lessonDate(0, 1, 15),
+    },
     create: {
       id: 'demo-lesson-7A-eng', schoolId: school.id, classId: class7A.id,
       title: 'Descriptive Writing — Sensory Detail',
@@ -876,7 +881,12 @@ async function main() {
 
   const mathLesson = await prisma.lesson.upsert({
     where:  { id: 'demo-lesson-7B-maths' },
-    update: { title: 'Fractions — Adding & Subtracting with Different Denominators', objectives: ['Find the lowest common multiple (LCM) of two numbers', 'Add and subtract fractions with different denominators', 'Simplify answers to lowest terms'] },
+    update: {
+      title: 'Fractions — Adding & Subtracting with Different Denominators',
+      objectives: ['Find the lowest common multiple (LCM) of two numbers', 'Add and subtract fractions with different denominators', 'Simplify answers to lowest terms'],
+      scheduledAt: lessonDate(0, 3, 9),    // Thu 09:00 — refresh to current week
+      endsAt:      lessonDate(0, 3, 10),
+    },
     create: {
       id: 'demo-lesson-7B-maths', schoolId: school.id, classId: class7B.id,
       title: 'Fractions — Adding & Subtracting with Different Denominators',

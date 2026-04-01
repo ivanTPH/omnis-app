@@ -898,10 +898,8 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                           <div className="space-y-1.5">
                             {last5.map((s, i) => {
                               const score    = s.finalScore ?? s.autoScore
-                              const scoreStr = score != null
-                                ? (s.maxScore ? `${Math.round(score)}/${s.maxScore}` : `${Math.round(score)}`)
-                                : null
-                              const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : score
+                              const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : (score != null ? Math.round(score) : null)
+                              const scoreStr = pct != null ? `${pct}%` : null
                               return (
                                 <div key={i} className="flex items-center gap-3">
                                   <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>

@@ -1,18 +1,21 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import AppShell from '@/components/AppShell'
 import AdaptiveAnalyticsDashboard from '@/components/analytics/AdaptiveAnalyticsDashboard'
 
 export default async function AdaptiveAnalyticsPage() {
   const session = await auth()
   if (!session) redirect('/login')
-  const role = (session.user as any).role
+  const { role, firstName, lastName, schoolName } = session.user as any
   if (!['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) {
     redirect('/dashboard')
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
-      <AdaptiveAnalyticsDashboard />
-    </div>
+    <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <AdaptiveAnalyticsDashboard />
+      </div>
+    </AppShell>
   )
 }

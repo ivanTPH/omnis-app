@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import { getClassRagData, type RagStudent } from '@/app/actions/rag'
+import { percentToGcseGrade, gradeLabel, gradePillClass } from '@/lib/grading'
 
 // ── RAG helpers ────────────────────────────────────────────────────────────────
 
@@ -94,20 +95,30 @@ export default function ClassAnalyticsPanel({
 
       {/* ── Summary cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">
-        <div className={`rounded-xl border p-4 text-center ${
-          classAvg == null ? 'bg-white border-gray-200' :
-          classAvg >= 70   ? 'bg-green-50 border-green-200' :
-          classAvg >= 50   ? 'bg-amber-50 border-amber-200' :
-                             'bg-red-50 border-red-200'
-        }`}>
-          <p className={`text-2xl font-bold ${
-            classAvg == null ? 'text-gray-900' :
-            classAvg >= 70   ? 'text-green-700' :
-            classAvg >= 50   ? 'text-amber-700' :
-                               'text-red-700'
-          }`}>{classAvg != null ? `${classAvg}%` : '—'}</p>
-          <p className="text-[11px] text-gray-500 mt-0.5">Class avg score</p>
-        </div>
+        {(() => {
+          const avgGrade = classAvg != null ? percentToGcseGrade(classAvg) : null
+          const isGreen  = avgGrade != null && avgGrade >= 6
+          const isAmber  = avgGrade != null && avgGrade >= 4 && avgGrade < 6
+          return (
+            <div className={`rounded-xl border p-4 text-center ${
+              avgGrade == null ? 'bg-white border-gray-200' :
+              isGreen          ? 'bg-green-50 border-green-200' :
+              isAmber          ? 'bg-amber-50 border-amber-200' :
+                                 'bg-red-50 border-red-200'
+            }`}>
+              <p className={`text-2xl font-bold ${
+                avgGrade == null ? 'text-gray-900' :
+                isGreen          ? 'text-green-700' :
+                isAmber          ? 'text-amber-700' :
+                                   'text-red-700'
+              }`}>{avgGrade != null ? `Grade ${avgGrade}` : '—'}</p>
+              {classAvg != null && (
+                <p className="text-[11px] text-gray-400 mt-0.5">{classAvg}% avg</p>
+              )}
+              <p className="text-[11px] text-gray-500 mt-0.5">Class avg grade</p>
+            </div>
+          )
+        })()}
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-2xl font-bold text-gray-900">{completionPct}%</p>
           <p className="text-[11px] text-gray-500 mt-0.5">Completion rate</p>
@@ -196,36 +207,67 @@ export default function ClassAnalyticsPanel({
           <h3 className="text-[12px] font-semibold text-gray-700">Individual students</h3>
         </div>
         <div className="divide-y divide-gray-50">
-          {students.map(s => (
-            <Link
-              key={s.id}
-              href={`/student/${s.id}/send`}
-              className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors"
-            >
-              <StudentAvatar
-                firstName={s.firstName}
-                lastName={s.lastName}
-                avatarUrl={s.avatarUrl}
-                size="xs"
-                sendStatus={s.hasSend ? (s.sendCategory as 'SEN_SUPPORT' | 'EHCP') : 'NONE'}
-              />
-              <span className="flex-1 text-[12px] text-gray-800 font-medium">
-                {s.lastName}, {s.firstName}
-              </span>
-              {s.hasSend && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${s.sendCategory === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                  {s.sendCategory === 'EHCP' ? 'EHCP' : 'SEN'}
+          {students.map(s => {
+            const trend =
+              s.recentGrades.length >= 2
+                ? s.recentGrades[0] > s.recentGrades[s.recentGrades.length - 1] ? '↑'
+                : s.recentGrades[0] < s.recentGrades[s.recentGrades.length - 1] ? '↓'
+                : '→'
+                : null
+            const trendColor =
+              trend === '↑' ? 'text-green-600' :
+              trend === '↓' ? 'text-red-500'   : 'text-gray-400'
+            return (
+              <Link
+                key={s.id}
+                href={`/student/${s.id}/send`}
+                className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors"
+              >
+                <StudentAvatar
+                  firstName={s.firstName}
+                  lastName={s.lastName}
+                  avatarUrl={s.avatarUrl}
+                  size="xs"
+                  sendStatus={s.hasSend ? (s.sendCategory as 'SEN_SUPPORT' | 'EHCP') : 'NONE'}
+                />
+                <span className="flex-1 text-[12px] text-gray-800 font-medium">
+                  {s.lastName}, {s.firstName}
                 </span>
-              )}
-              {s.lastScore != null && (
-                <span className="text-[12px] text-gray-500 w-12 text-right">{s.lastScore}%</span>
-              )}
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[s.ragStatus]}`}
-                title={RAG_LABEL[s.ragStatus]}
-              />
-            </Link>
-          ))}
+                {s.hasSend && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${s.sendCategory === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {s.sendCategory === 'EHCP' ? 'EHCP' : 'SEN'}
+                  </span>
+                )}
+                {/* Trend arrow */}
+                {trend && (
+                  <span className={`text-[13px] font-bold shrink-0 ${trendColor}`} title="Recent trend">
+                    {trend}
+                  </span>
+                )}
+                {/* Working-at grade pill */}
+                {s.workingAtGrade != null ? (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 ${gradePillClass(s.workingAtGrade)}`}
+                    title={`Working at: Grade ${gradeLabel(s.workingAtGrade)}`}
+                  >
+                    {s.workingAtGrade}
+                  </span>
+                ) : (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-400">—</span>
+                )}
+                {/* Predicted grade */}
+                {s.predictedGrade != null && (
+                  <span className="text-[10px] text-gray-400 shrink-0" title={`Predicted: Grade ${s.predictedGrade}`}>
+                    P{s.predictedGrade}
+                  </span>
+                )}
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[s.ragStatus]}`}
+                  title={RAG_LABEL[s.ragStatus]}
+                />
+              </Link>
+            )
+          })}
         </div>
       </div>
     </div>

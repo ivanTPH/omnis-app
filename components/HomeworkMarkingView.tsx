@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
-import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
+import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getHomeworkForMarking>>>
@@ -412,8 +412,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       if (field === 'score' && value !== '') {
         const n = Number(value)
         if (!isNaN(n)) {
-          const suggested = suggestGrade(n, hw.gradingBands)
-          next.grade = suggested || String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
+          // Always auto-suggest as a single GCSE digit (1-9), never a band range
+          next.grade = String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
         }
       }
       return { ...prev, [selectedId]: next }
@@ -1243,20 +1243,42 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       )}
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Grade</label>
-                      <input
-                        type="text"
-                        value={form.grade}
-                        onChange={e => setField('grade', e.target.value)}
-                        className={`w-20 border rounded-lg px-3 py-2 text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
-                        placeholder="—"
-                      />
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                        GCSE Grade
+                      </label>
+                      <div className="flex gap-1 flex-wrap">
+                        {(['9','8','7','6','5','4','3','2','1'] as const).map(g => {
+                          const gNum = Number(g)
+                          const isSelected = form.grade === g
+                          const colorCls = isSelected
+                            ? (gNum >= 8 ? 'bg-green-700 text-white border-green-700' :
+                               gNum >= 6 ? 'bg-green-500 text-white border-green-500' :
+                               gNum >= 4 ? 'bg-amber-400 text-white border-amber-400' :
+                                           'bg-red-500 text-white border-red-500')
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                          return (
+                            <button
+                              key={g}
+                              type="button"
+                              title={`Grade ${g} (${GCSE_LETTERS[gNum]})`}
+                              onClick={() => setField('grade', isSelected ? '' : g)}
+                              className={`w-8 h-8 rounded-lg text-[12px] font-bold border transition-colors ${colorCls}`}
+                            >
+                              {g}
+                            </button>
+                          )
+                        })}
+                      </div>
                       <p className={`text-[10px] mt-1 ${
                         gradeState === 'auto'      ? 'text-amber-600' :
                         gradeState === 'confirmed' ? 'text-green-600' :
                         gradeHasValue              ? 'text-amber-500' :
                         'text-gray-400'
-                      }`}>{gradeLabel}</p>
+                      }`}>
+                        {form.grade && GCSE_LETTERS[Number(form.grade)]
+                          ? `Grade ${form.grade} (${GCSE_LETTERS[Number(form.grade)]}) — ${gradeLabel}`
+                          : gradeLabel}
+                      </p>
                     </div>
                   </div>
 

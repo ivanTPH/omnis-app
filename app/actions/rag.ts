@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { writeAudit } from '@/lib/prisma'
 import { currentTermLabel, termLabelToDates } from '@/lib/termUtils'
+import { percentToGcseGrade } from '@/lib/grading'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -26,8 +27,11 @@ export type RagStudent = {
     notes:          string | null
     updatedAt:      Date
   } | null
-  workingAtScore:  number | null   // avg finalScore this term
-  lastScore:       number | null   // most recent finalScore
+  workingAtScore:  number | null   // avg percentage this term (0-100)
+  workingAtGrade:  number | null   // GCSE grade 1-9 derived from workingAtScore
+  predictedGrade:  number | null   // GCSE grade 1-9 derived from effectiveScore
+  recentGrades:    number[]        // last 3 GCSE grades (desc) for trend arrow
+  lastScore:       number | null   // most recent percentage
   ragStatus:       RagStatus
 }
 
@@ -65,11 +69,19 @@ function toPercent(finalScore: number, bands: unknown): number {
 
 // ── RAG logic ─────────────────────────────────────────────────────────────────
 
+/**
+ * Grade-based RAG:
+ *   green  = at or above predicted GCSE grade
+ *   amber  = 1 grade below predicted
+ *   red    = 2+ grades below predicted
+ */
 function computeRag(workingAt: number | null, effective: number | null): RagStatus {
   if (workingAt == null || effective == null) return 'no_data'
-  const diff = workingAt - effective
-  if (diff >= -5)  return 'green'
-  if (diff >= -15) return 'amber'
+  const workingGrade   = percentToGcseGrade(workingAt)
+  const predictedGrade = percentToGcseGrade(effective)
+  const diff = workingGrade - predictedGrade
+  if (diff >= 0)  return 'green'
+  if (diff >= -1) return 'amber'
   return 'red'
 }
 
@@ -181,6 +193,10 @@ export async function getClassRagData(
       const effectivePredicted =
         prediction?.effectiveScore ?? baseline?.baselineScore ?? null
 
+      const recentGrades = subs.slice(0, 3).map(s =>
+        percentToGcseGrade(toPercent(s.finalScore ?? 0, s.homework.gradingBands)),
+      )
+
       return {
         id:             u.id,
         firstName:      u.firstName,
@@ -192,6 +208,9 @@ export async function getClassRagData(
         baselineSource: baseline?.source ?? null,
         prediction,
         workingAtScore,
+        workingAtGrade:  workingAtScore != null ? percentToGcseGrade(workingAtScore) : null,
+        predictedGrade:  effectivePredicted != null ? percentToGcseGrade(effectivePredicted) : null,
+        recentGrades,
         lastScore,
         ragStatus: computeRag(workingAtScore, effectivePredicted),
       }

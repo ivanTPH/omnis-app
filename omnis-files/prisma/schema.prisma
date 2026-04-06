@@ -1,0 +1,323 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  SLT
+  HEAD_OF_DEPT
+  HEAD_OF_YEAR
+  COVER_MANAGER
+  TEACHER
+  SENCO
+  STUDENT
+  PARENT
+}
+
+enum HomeworkStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  RESUBMISSION_REQ
+  MARKED
+  RETURNED
+}
+
+enum ILPStatus {
+  DRAFT
+  ACTIVE
+  UNDER_REVIEW
+  ARCHIVED
+}
+
+enum AuditAction {
+  HOMEWORK_CREATED
+  HOMEWORK_PUBLISHED
+  HOMEWORK_ADAPTED
+  SUBMISSION_GRADED
+  GRADE_OVERRIDDEN
+  SUBMISSION_RETURNED
+  RESUBMISSION_REQUESTED
+  ILP_CREATED
+  ILP_ACTIVATED
+  ILP_REVIEWED
+  ILP_SHARED_WITH_PARENT
+  SEND_STATUS_CHANGED
+  INTEGRITY_FLAGGED
+  INTEGRITY_REVIEWED
+  MESSAGE_SENT
+  USER_CREATED
+  USER_ROLE_CHANGED
+  USER_DEACTIVATED
+  LESSON_PUBLISHED
+  WONDE_SYNC_COMPLETED
+}
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  wondeId   String?  @unique
+  aiOptIn   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  users       User[]
+  classes     SchoolClass[]
+  lessons     Lesson[]
+  homework    Homework[]
+  submissions Submission[]
+  ilps        ILP[]
+  messages    Message[]
+  auditLogs   AuditLog[]
+  termDates   TermDate[]
+  integritySignals IntegritySignal[]
+}
+
+model TermDate {
+  id       String   @id @default(cuid())
+  school   School   @relation(fields: [schoolId], references: [id])
+  schoolId String
+  label    String
+  startsAt DateTime
+  endsAt   DateTime
+}
+
+model User {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  firstName    String
+  lastName     String
+  department   String?
+  yearGroup    Int?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  teacherClasses   ClassTeacher[]
+  enrolments       Enrolment[]
+  parentLinks      ParentStudentLink[]
+  childLinks       ParentStudentLink[] @relation("child")
+  submissions      Submission[]
+  ilpNotes         ILPNote[]
+  sentMessages     Message[]           @relation("sender")
+  receivedMessages MessageRecipient[]
+  auditLogs        AuditLog[]
+
+  @@index([schoolId, role])
+}
+
+model SchoolClass {
+  id         String   @id @default(cuid())
+  school     School   @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  name       String
+  subject    String
+  yearGroup  Int
+  department String
+
+  teachers   ClassTeacher[]
+  enrolments Enrolment[]
+  lessons    Lesson[]
+  homework   Homework[]
+
+  @@index([schoolId])
+}
+
+model ClassTeacher {
+  classId String
+  userId  String
+  class   SchoolClass @relation(fields: [classId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+  @@id([classId, userId])
+}
+
+model Enrolment {
+  classId String
+  userId  String
+  class   SchoolClass @relation(fields: [classId], references: [id])
+  user    User        @relation(fields: [userId], references: [id])
+  @@id([classId, userId])
+}
+
+model ParentStudentLink {
+  parentId  String
+  studentId String
+  parent    User   @relation(fields: [parentId], references: [id])
+  child     User   @relation("child", fields: [studentId], references: [id])
+  @@id([parentId, studentId])
+}
+
+model Lesson {
+  id           String   @id @default(cuid())
+  school       School   @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  class        SchoolClass @relation(fields: [classId], references: [id])
+  classId      String
+  title        String
+  objectives   String[]
+  scheduledAt  DateTime
+  published    Boolean  @default(false)
+  createdBy    String
+  createdAt    DateTime @default(now())
+
+  homework     Homework[]
+
+  @@index([schoolId, classId])
+}
+
+model Homework {
+  id           String         @id @default(cuid())
+  school       School         @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  class        SchoolClass    @relation(fields: [classId], references: [id])
+  classId      String
+  lesson       Lesson?        @relation(fields: [lessonId], references: [id])
+  lessonId     String?
+  title        String
+  instructions String
+  modelAnswer  String?
+  gradingBands Json?
+  dueAt        DateTime
+  status       HomeworkStatus @default(DRAFT)
+  isAdapted    Boolean        @default(false)
+  adaptedFor   String?
+  createdBy    String
+  createdAt    DateTime       @default(now())
+
+  submissions  Submission[]
+
+  @@index([schoolId, classId])
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  school       School           @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  homework     Homework         @relation(fields: [homeworkId], references: [id])
+  homeworkId   String
+  student      User             @relation(fields: [studentId], references: [id])
+  studentId    String
+  content      String
+  grade        String?
+  feedback     String?
+  status       SubmissionStatus @default(SUBMITTED)
+  submittedAt  DateTime         @default(now())
+  markedAt     DateTime?
+
+  integritySignal IntegritySignal?
+
+  @@unique([homeworkId, studentId])
+  @@index([schoolId, studentId])
+}
+
+model IntegritySignal {
+  id             String     @id @default(cuid())
+  school         School     @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  submission     Submission @relation(fields: [submissionId], references: [id])
+  submissionId   String     @unique
+  pasteCount     Int        @default(0)
+  pasteCharRatio Float      @default(0)
+  timeOnTaskSecs Int        @default(0)
+  flagged        Boolean    @default(false)
+  flagReason     String?
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  createdAt      DateTime   @default(now())
+
+  @@index([schoolId])
+}
+
+model ILP {
+  id           String    @id @default(cuid())
+  school       School    @relation(fields: [schoolId], references: [id])
+  schoolId     String
+  studentId    String
+  status       ILPStatus @default(DRAFT)
+  needsSummary String
+  reviewDueAt  DateTime?
+  activatedAt  DateTime?
+  activatedBy  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  targets  ILPTarget[]
+  notes    ILPNote[]
+
+  @@index([schoolId, studentId])
+}
+
+model ILPTarget {
+  id              String   @id @default(cuid())
+  ilp             ILP      @relation(fields: [ilpId], references: [id])
+  ilpId           String
+  description     String
+  successCriteria String
+  achieved        Boolean  @default(false)
+  subject         String?
+}
+
+model ILPNote {
+  id         String   @id @default(cuid())
+  ilp        ILP      @relation(fields: [ilpId], references: [id])
+  ilpId      String
+  author     User     @relation(fields: [authorId], references: [id])
+  authorId   String
+  content    String
+  isInternal Boolean  @default(true)
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id         String             @id @default(cuid())
+  school     School             @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  sender     User               @relation("sender", fields: [senderId], references: [id])
+  senderId   String
+  subject    String
+  body       String
+  sentAt     DateTime           @default(now())
+  recipients MessageRecipient[]
+
+  @@index([schoolId, senderId])
+}
+
+model MessageRecipient {
+  messageId String
+  userId    String
+  read      Boolean @default(false)
+  message   Message @relation(fields: [messageId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+  @@id([messageId, userId])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  school     School      @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  actor      User        @relation(fields: [actorId], references: [id])
+  actorId    String
+  action     AuditAction
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([schoolId, action])
+  @@index([schoolId, createdAt])
+}

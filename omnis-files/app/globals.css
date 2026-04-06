@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --omnis-blue: #1e40af;
+  --omnis-teal: #0d9488;
+  --omnis-amber: #d97706;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}

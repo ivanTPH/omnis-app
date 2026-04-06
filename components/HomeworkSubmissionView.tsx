@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitHomework } from '@/app/actions/student'
 import Icon from '@/components/ui/Icon'
+import { gradeLabel } from '@/lib/grading'
 import HomeworkTypeRenderer from '@/components/homework/HomeworkTypeRenderer'
 
 type Submission = {
@@ -68,12 +69,9 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            {sub!.finalScore != null && (
-              <span className="text-[14px] font-semibold text-green-700">{sub!.finalScore} pts</span>
-            )}
             {sub!.grade && (
               <span className="text-[22px] font-bold text-green-700 bg-green-100 px-4 py-1 rounded-xl">
-                {sub!.grade}
+                {gradeLabel(Number(sub!.grade))}
               </span>
             )}
           </div>

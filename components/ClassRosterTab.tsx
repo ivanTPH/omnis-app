@@ -310,7 +310,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           const badge        = SEND_BADGE[row.sendStatus]
           const isSend       = row.sendStatus !== 'NONE'
           const scoreDisplay = row.latestScore != null
-            ? (row.maxScore ? `${Math.round(row.latestScore)}/${row.maxScore}` : `${Math.round(row.latestScore)}`)
+            ? gradeLabel(percentToGcseGrade(
+                row.maxScore ? Math.round((row.latestScore / row.maxScore) * 100) : Math.round(row.latestScore)
+              ))
             : null
           const isExpanded   = expandedId === row.id
           const detail       = detailsCache[row.id]
@@ -903,7 +905,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                             {last5.map((s, i) => {
                               const score    = s.finalScore ?? s.autoScore
                               const pct = score != null && s.maxScore ? Math.round((score / s.maxScore) * 100) : (score != null ? Math.round(score) : null)
-                              const scoreStr = pct != null ? `${pct}%` : null
+                              const scoreStr = pct != null ? gradeLabel(percentToGcseGrade(pct)) : null
                               return (
                                 <div key={i} className="flex items-center gap-3">
                                   <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>

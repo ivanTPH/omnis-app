@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
-import { percentToGcseGrade } from '@/lib/grading'
+import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -81,9 +81,9 @@ function ProgressBar({ pct, grade }: { pct: number; grade: number }) {
           style={{ width: `${Math.min(100, pct)}%` }}
         />
       </div>
-      <span className={`text-[12px] font-bold w-6 text-right ${
+      <span className={`text-[12px] font-bold w-10 text-right ${
         pct >= 70 ? 'text-green-700' : pct >= 55 ? 'text-amber-600' : 'text-red-600'
-      }`}>G{grade}</span>
+      }`}>{gradeLabel(grade)}</span>
       <span className="text-[11px] text-gray-400 w-8 text-right">{pct}%</span>
     </div>
   )
@@ -162,7 +162,7 @@ export default function StudentMobileDashboard({
                   </div>
                   <div className="shrink-0 text-right">
                     {hw.grade ? (
-                      <span className="text-[13px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">{hw.grade}</span>
+                      <span className="text-[13px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">{gradeLabel(Number(hw.grade))}</span>
                     ) : (
                       <span className={`text-[12px] ${STATUS_LABEL[hw.status].cls}`}>{STATUS_LABEL[hw.status].text}</span>
                     )}
@@ -228,7 +228,7 @@ export default function StudentMobileDashboard({
               {graded.slice(0, 5).map(hw => (
                 <li key={hw.id}>
                   <Link href={`/student/homework/${hw.id}`} className="text-[13px] text-green-800 underline">
-                    {hw.title} — {hw.grade}
+                    {hw.title} — {hw.grade ? gradeLabel(Number(hw.grade)) : hw.grade}
                   </Link>
                 </li>
               ))}

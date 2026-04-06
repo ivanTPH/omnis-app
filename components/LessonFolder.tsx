@@ -8,6 +8,8 @@ import { getLessonDetails, updateLessonOverview, removeResource, updateResource,
 import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
+import { gradeLabel } from '@/lib/grading'
+import { formatRawScore } from '@/lib/gradeUtils'
 import dynamic from 'next/dynamic'
 import AddResourcePanel       from '@/components/AddResourcePanel'
 import OakResourcePanel       from '@/components/OakResourcePanel'
@@ -1466,13 +1468,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     <span className="flex-1 text-[12px] text-gray-800">
                                       {s.student.firstName} {s.student.lastName}
                                     </span>
-                                    {s.finalScore != null && (
-                                      <span className="text-[11px] font-semibold text-gray-700">{s.finalScore}/9</span>
-                                    )}
                                     {s.grade && (
                                       <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded">
-                                        Grade {s.grade}
+                                        {gradeLabel(Number(s.grade))}
                                       </span>
+                                    )}
+                                    {!s.grade && s.finalScore != null && (
+                                      <span className="text-[11px] font-semibold text-gray-700">{formatRawScore(s.finalScore)}</span>
                                     )}
                                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                                       s.status === 'RETURNED'          ? 'bg-green-100 text-green-700'  :

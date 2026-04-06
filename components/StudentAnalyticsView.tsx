@@ -514,7 +514,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 {/* Class stats bar */}
                 {studentScores.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 mb-5 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                    <span className="text-gray-500">Class average: <strong className="text-gray-900">{data.avgScore ?? '—'}</strong></span>
+                    <span className="text-gray-500">Class average: <strong className="text-gray-900">{data.avgScore != null ? gradeLabel(percentToGcseGrade(data.avgScore)) : '—'}</strong></span>
                     <span className="text-gray-500">Highest: <strong className="text-green-700">{classHighest}</strong></span>
                     <span className="text-gray-500">Lowest: <strong className="text-rose-600">{classLowest}</strong></span>
                     <span className="text-gray-500">SEND: <strong className="text-amber-700">{data.sendCount}</strong></span>
@@ -525,7 +525,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                   <KpiCard iconName="people"        label="Students"       value={String(data.totalStudents)}                         color="blue"   />
                   <KpiCard iconName="check_circle"  label="Avg Completion" value={`${data.avgCompletion}%`}                           color="green"  />
-                  <KpiCard iconName="trending_up"   label="Avg Score"      value={data.avgScore != null ? `${data.avgScore}` : '—'}   color="purple" />
+                  <KpiCard iconName="trending_up"   label="Avg Score"      value={data.avgScore != null ? gradeLabel(percentToGcseGrade(data.avgScore)) : '—'}   color="purple" />
                   <KpiCard iconName="favorite"      label="SEND Students"  value={String(data.sendCount)}                             color="amber"  />
                 </div>
 
@@ -761,9 +761,9 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
 
         {/* Avg score */}
         <div onClick={onExpand} className="hidden sm:block text-sm text-gray-700 cursor-pointer px-1"
-          title={student.avgScore != null ? `Running average across all homework tasks (${student.avgScore} ≈ Grade ${scoreToGrade(student.avgScore)})` : undefined}>
+          title={student.avgScore != null ? `Running average across all homework tasks` : undefined}>
           {student.avgScore != null ? (
-            <span>{student.avgScore} <span className="text-xs text-gray-400">≈{scoreToGrade(student.avgScore)}</span></span>
+            <span>{gradeLabel(scoreToGrade(student.avgScore))}</span>
           ) : (
             <span className="text-gray-400">—</span>
           )}
@@ -859,16 +859,16 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
         <div className="px-6 py-5 space-y-4">
           {(detail.finalScore != null || detail.grade) && (
             <div className="flex items-center gap-3">
-              {detail.finalScore != null && (
-                <div className="bg-blue-50 rounded-xl px-4 py-2.5 text-center min-w-[60px]">
-                  <div className="text-2xl font-bold text-blue-700">{Math.round(detail.finalScore)}</div>
-                  <div className="text-[10px] text-blue-500 mt-0.5">This task</div>
-                </div>
-              )}
               {detail.grade && (
                 <div className="bg-purple-50 rounded-xl px-4 py-2.5 text-center min-w-[60px]">
-                  <div className="text-2xl font-bold text-purple-700">{detail.grade}</div>
+                  <div className="text-2xl font-bold text-purple-700">{gradeLabel(Number(detail.grade))}</div>
                   <div className="text-[10px] text-purple-500 mt-0.5">Grade</div>
+                </div>
+              )}
+              {!detail.grade && detail.finalScore != null && (
+                <div className="bg-blue-50 rounded-xl px-4 py-2.5 text-center min-w-[60px]">
+                  <div className="text-2xl font-bold text-blue-700">{formatRawScore(detail.finalScore)}</div>
+                  <div className="text-[10px] text-blue-500 mt-0.5">Score</div>
                 </div>
               )}
             </div>

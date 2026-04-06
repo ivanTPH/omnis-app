@@ -107,7 +107,7 @@ export default async function SltAnalyticsPage() {
               { label: 'Classes',       value: allClasses.length,                        colour: 'text-gray-900' },
               { label: 'Homework Set',  value: totalHw,                                  colour: 'text-gray-900' },
               { label: 'Avg Completion',value: `${Math.round(schoolCompletion * 100)}%`, colour: 'text-blue-600' },
-              { label: 'Avg Score',     value: schoolScore.toFixed(1),                   colour: 'text-gray-900' },
+              { label: 'Avg Score',     value: formatAvgGrade(schoolScore).main,         colour: 'text-gray-900' },
               { label: 'Flagged Classes',value: flaggedCount, colour: flaggedCount > 0 ? 'text-amber-600' : 'text-gray-300' },
             ].map(k => (
               <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-5">

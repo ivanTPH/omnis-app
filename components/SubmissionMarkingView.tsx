@@ -164,10 +164,8 @@ export default function SubmissionMarkingView({
   const displayFinalScore = (() => {
     const raw = data.finalScore
     if (raw == null) return null
-    if (raw > maxScore && maxScore <= 20) {
-      return `${raw}% (Grade ${percentToGcseGrade(raw)})`
-    }
-    return `${raw} / ${maxScore}`
+    const pct = maxScore > 0 ? Math.round((raw / maxScore) * 100) : raw
+    return gcseGradeLabel(percentToGcseGrade(pct > 100 ? raw : pct))
   })()
 
   return (
@@ -498,7 +496,7 @@ export default function SubmissionMarkingView({
                 {data.finalScore != null && (
                   <p>Score: <span className="font-semibold text-gray-700">{displayFinalScore}</span></p>
                 )}
-                {data.grade && <p>Grade: <span className="font-bold text-green-700">{data.grade}</span></p>}
+                {data.grade && <p>Grade: <span className="font-bold text-green-700">{gcseGradeLabel(Number(data.grade))}</span></p>}
                 {data.markedAt && new Date(data.markedAt) >= new Date(data.submittedAt) && (
                   <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 )}

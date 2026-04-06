@@ -134,7 +134,7 @@ export default async function ParentProgressPage() {
                           </div>
                           {avgScore != null && (
                             <div>
-                              <p className="text-[18px] font-bold text-blue-600">{avgScore}</p>
+                              <p className="text-[18px] font-bold text-blue-600">{formatRawScore(avgScore)}</p>
                               <p className="text-[10px] text-gray-400 uppercase tracking-wide">Avg Score</p>
                             </div>
                           )}

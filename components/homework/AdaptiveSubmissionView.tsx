@@ -5,6 +5,8 @@ import Icon from '@/components/ui/Icon'
 import type { StudentLearningProfileData, AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { getStudentLearningProfile, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { linkSubmissionToEhcpOutcome, linkHomeworkToIlpTarget } from '@/app/actions/ehcp'
+import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
+import { formatRawScore } from '@/lib/gradeUtils'
 
 type Submission = {
   id: string
@@ -105,7 +107,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
           </div>
           {scoreDisplay !== null && (
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-700">{scoreDisplay}%</div>
+              <div className="text-3xl font-bold text-purple-700">{formatRawScore(scoreDisplay)}</div>
               <div className="text-xs text-gray-400">{submission.autoScore != null ? 'Auto-marked' : 'Teacher scored'}</div>
             </div>
           )}
@@ -348,7 +350,7 @@ export default function AdaptiveSubmissionView({ submission, homeworkId, ehcpOut
                                 style={{ width: `${data.avgScore}%` }}
                               />
                             </div>
-                            <span className="text-xs text-gray-500 w-8 text-right">{Math.round(data.avgScore)}%</span>
+                            <span className="text-xs text-gray-500 w-12 text-right">{gradeLabel(percentToGcseGrade(Math.round(data.avgScore)))}</span>
                           </div>
                         ))}
                     </div>

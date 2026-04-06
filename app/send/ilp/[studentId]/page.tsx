@@ -311,7 +311,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                             </div>
                             {avg != null && (
                               <div>
-                                <span className="text-[13px] font-bold text-blue-600">{avg}</span>
+                                <span className="text-[13px] font-bold text-blue-600">{formatRawScore(avg)}</span>
                                 <span className="text-[11px] text-gray-400 ml-1">avg</span>
                               </div>
                             )}
@@ -444,7 +444,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                       return (
                         <div className="flex justify-between text-[12px]">
                           <span className="text-gray-500">Avg score</span>
-                          <span className="font-semibold text-blue-600">{Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}</span>
+                          <span className="font-semibold text-blue-600">{formatRawScore(Math.round(scores.reduce((a, b) => a + b, 0) / scores.length))}</span>
                         </div>
                       )
                     })()}

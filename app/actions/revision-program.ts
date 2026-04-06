@@ -133,6 +133,17 @@ export async function createRevisionProgram(input: {
       input.classId, user.schoolId, input.periodStart, input.periodEnd, prisma,
     )
 
+    // Fetch most recent lesson in period for curriculum-mapped question context
+    const recentLesson = await (prisma as any).lesson.findFirst({
+      where: {
+        classId:  input.classId,
+        schoolId: user.schoolId,
+        startsAt: { gte: input.periodStart, lte: input.periodEnd },
+      },
+      orderBy: { startsAt: 'desc' },
+      select: { title: true, objectives: true },
+    })
+
     // Batch AI generation — max 5 concurrent
     const taskInputs = enrolledStudents.map((student: any) => {
       const studentAnalysis = analysis.studentAnalysis.find(s => s.studentId === student.id)
@@ -153,16 +164,18 @@ export async function createRevisionProgram(input: {
       const results = await Promise.all(
         batch.map(async (t: any) => {
           const content = await generateRevisionTask({
-            studentId:      t.student.id,
-            studentName:    `${t.student.firstName} ${t.student.lastName}`,
-            subject:        input.subject,
-            yearGroup:      schoolClass.yearGroup,
-            weakTopics:     t.weakTopics,
-            strongTopics:   t.strongTopics,
-            taskType:       t.taskType,
+            studentId:       t.student.id,
+            studentName:     `${t.student.firstName} ${t.student.lastName}`,
+            subject:         input.subject,
+            yearGroup:       schoolClass.yearGroup,
+            weakTopics:      t.weakTopics,
+            strongTopics:    t.strongTopics,
+            taskType:        t.taskType,
             sendAdaptations: t.sendAdaptations,
-            ilpTargets:     t.ilpTargets,
-            durationMins:   input.durationWeeks * 30,
+            ilpTargets:      t.ilpTargets,
+            durationMins:    input.durationWeeks * 30,
+            lessonTitle:     recentLesson?.title,
+            objectives:      recentLesson?.objectives ?? [],
           })
           return { studentId: t.student.id, content }
         }),

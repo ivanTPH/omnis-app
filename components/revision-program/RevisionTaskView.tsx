@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { submitRevisionTask, selfAssessRevisionTask } from '@/app/actions/revision-program'
 import RevisionTestMode from '@/components/revision-program/RevisionTestMode'
+import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 
 type RevTask = {
   id:               string
@@ -74,7 +75,14 @@ function QuizTask({ content, value, onChange }: { content: any; value: Record<st
     <div className="space-y-4">
       {questions.map((q: any, i: number) => (
         <div key={q.id ?? i} className="border border-gray-200 rounded-xl px-4 py-4">
-          <p className="text-sm font-medium text-gray-800 mb-2">{i + 1}. {q.question}</p>
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
+            {q.marks != null && (
+              <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                {q.marks} mark{q.marks !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           {q.options ? (
             <div className="space-y-2">
               {q.options.map((opt: any) => (
@@ -99,11 +107,150 @@ function QuizTask({ content, value, onChange }: { content: any; value: Record<st
   )
 }
 
+// ── MarkSchemeReview ─────────────────────────────────────────────────────────
+
+function MarkSchemeReview({ task, response, onContinue }: {
+  task: RevTask
+  response: any
+  onContinue: () => void
+}) {
+  const sc        = task.structuredContent as any
+  const questions = sc?.questions ?? []
+  const objectives = sc?.objectives as string[] ?? []
+  const lessonTitle = sc?.lessonTitle as string | undefined
+
+  const [selfMarks, setSelfMarks] = useState<Record<string, number>>({})
+  const [revealed, setRevealed]   = useState(false)
+
+  const totalAvailable = questions.reduce((sum: number, q: any) => sum + (q.marks ?? 0), 0)
+  const totalEarned    = Object.values(selfMarks).reduce((s: number, v) => s + (v as number), 0)
+  const pct            = totalAvailable > 0 ? Math.round((totalEarned / totalAvailable) * 100) : 0
+  const gcseGrade      = gradeLabel(percentToGcseGrade(pct))
+
+  const allMarked = questions.length > 0 && questions.every((q: any) => selfMarks[q.id] !== undefined)
+
+  // Objectives to revisit: those mapped to questions where marks < 50%
+  const weakObjectiveIndices = new Set<number>()
+  questions.forEach((q: any) => {
+    const earned    = selfMarks[q.id] ?? 0
+    const available = q.marks ?? 1
+    if (allMarked && earned < available * 0.5 && q.objectiveIndex != null) {
+      weakObjectiveIndices.add(q.objectiveIndex)
+    }
+  })
+  const objectivesToRevisit = objectives.filter((_: string, i: number) => weakObjectiveIndices.has(i))
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-6 space-y-5">
+      <div className="flex items-center gap-3">
+        <Icon name="check_circle" size="lg" className="text-green-500 shrink-0" />
+        <div>
+          <p className="text-base font-semibold text-gray-900">Submitted! Now mark your work.</p>
+          {lessonTitle && <p className="text-xs text-gray-500">Topic: {lessonTitle}</p>}
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-800">
+        Read each mark scheme, compare with your answer, then award yourself marks honestly.
+        Total: <strong>{totalAvailable} marks</strong>
+      </div>
+
+      <div className="space-y-4">
+        {questions.map((q: any, i: number) => {
+          const studentAnswer = response[q.id ?? i] ?? ''
+          const mark = selfMarks[q.id]
+          return (
+            <div key={q.id ?? i} className="border border-gray-200 rounded-xl overflow-hidden">
+              {/* Question header */}
+              <div className="bg-gray-50 px-4 py-3 flex items-start justify-between gap-3">
+                <p className="text-sm font-medium text-gray-800">
+                  Q{i + 1}. {q.question}
+                </p>
+                <span className="shrink-0 text-xs text-gray-400 bg-white border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                {/* Student answer */}
+                {studentAnswer && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Your answer</p>
+                    <p className="text-sm text-gray-700 bg-blue-50 rounded-lg px-3 py-2 whitespace-pre-wrap">{studentAnswer}</p>
+                  </div>
+                )}
+                {/* Mark scheme */}
+                <div>
+                  <p className="text-[10px] font-semibold text-green-700 uppercase mb-1">Mark scheme</p>
+                  <p className="text-sm text-green-800 bg-green-50 rounded-lg px-3 py-2">{q.markScheme}</p>
+                </div>
+                {/* Self-mark selector */}
+                <div className="flex items-center gap-3">
+                  <p className="text-xs text-gray-500">How many marks did you earn?</p>
+                  <div className="flex gap-1">
+                    {Array.from({ length: (q.marks ?? 1) + 1 }, (_, n) => (
+                      <button
+                        key={n}
+                        onClick={() => setSelfMarks(prev => ({ ...prev, [q.id]: n }))}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors ${
+                          mark === n
+                            ? n === q.marks ? 'bg-green-500 text-white' : n === 0 ? 'bg-red-400 text-white' : 'bg-amber-400 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Grade result */}
+      {allMarked && (
+        <div className={`rounded-xl border px-5 py-4 text-center space-y-1 ${
+          pct >= 70 ? 'bg-green-50 border-green-200' :
+          pct >= 50 ? 'bg-amber-50 border-amber-200' :
+                      'bg-rose-50 border-rose-200'
+        }`}>
+          <p className="text-xs text-gray-500">Your score</p>
+          <p className={`text-3xl font-bold ${pct >= 70 ? 'text-green-700' : pct >= 50 ? 'text-amber-700' : 'text-rose-700'}`}>
+            {totalEarned}/{totalAvailable} — {gcseGrade}
+          </p>
+          {objectivesToRevisit.length > 0 && (
+            <div className="mt-3 text-left">
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Objectives to revisit</p>
+              <ul className="space-y-1">
+                {objectivesToRevisit.map((obj: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
+                    <span className="text-amber-500 shrink-0 mt-0.5">→</span>
+                    {obj}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={onContinue}
+        disabled={!allMarked}
+        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
+      >
+        {allMarked ? 'Rate your confidence →' : 'Mark all questions above to continue'}
+      </button>
+    </div>
+  )
+}
+
 export default function RevisionTaskView({ task }: { task: RevTask }) {
   const router  = useRouter()
   const [response, setResponse] = useState<any>({})
   const [confidence, setConfidence]   = useState<number>(task.selfConfidence ?? 0)
-  const [phase, setPhase]             = useState<'task' | 'test' | 'assess' | 'done'>('task')
+  const [phase, setPhase]             = useState<'task' | 'test' | 'review' | 'assess' | 'done'>('task')
   const [isPending, startTransition]  = useTransition()
   const [error, setError]             = useState<string | null>(null)
   const [saved, setSaved]             = useState(false)
@@ -145,6 +292,13 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
     return Math.round((Date.now() - startTimeRef.current) / 60000)
   }
 
+  const hasCurriculumQuestions = !!(
+    task.structuredContent &&
+    typeof task.structuredContent === 'object' &&
+    Array.isArray((task.structuredContent as any).questions) &&
+    (task.structuredContent as any).questions[0]?.markScheme
+  )
+
   function handleSubmit() {
     setError(null)
     const mins = getMinutes()
@@ -155,7 +309,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
           localStorage.removeItem(`revision_draft_${task.id}`)
           localStorage.removeItem(`revision_start_${task.id}`)
         }
-        setPhase('assess')
+        setPhase(hasCurriculumQuestions ? 'review' : 'assess')
       } catch {
         setError('Submission failed. Your answers are saved — please try again.')
         if (typeof window !== 'undefined') {
@@ -189,6 +343,17 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
           Back to Revision
         </Link>
       </div>
+    )
+  }
+
+  // Mark-scheme review phase
+  if (phase === 'review') {
+    return (
+      <MarkSchemeReview
+        task={task}
+        response={response}
+        onContinue={() => setPhase('assess')}
+      />
     )
   }
 

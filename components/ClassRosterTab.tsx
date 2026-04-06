@@ -108,6 +108,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
   // Initial load
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
     setError(null)
     Promise.all([
@@ -118,6 +119,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
       getClassEhcpSectionF(classId),
     ])
       .then(([r, role, kplans, rag, ehcpTips]) => {
+        if (cancelled) return
         setRows(r)
         setUserRole(role ?? 'TEACHER')
         setKPlanMap(kplans)
@@ -126,8 +128,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
         setRagMap(rm)
         setEhcpTipsMap(ehcpTips)
       })
-      .catch((err) => { console.error('[ClassRosterTab] load error:', err); setError('Could not load class roster.') })
-      .finally(() => setLoading(false))
+      .catch((err) => { if (!cancelled) { console.error('[ClassRosterTab] load error:', err); setError('Could not load class roster.') } })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [classId])
 
   // ── Expand / collapse ──────────────────────────────────────────────────────

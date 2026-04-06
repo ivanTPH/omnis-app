@@ -469,7 +469,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         {/* Header */}
         <div className="flex items-start justify-between px-7 pt-6 pb-4 border-b border-gray-200 shrink-0">
           <div className="flex-1 min-w-0 pr-4">
-            {loading ? (
+            {(loading || (!!lessonId && !lesson)) ? (
               <div className="h-6 w-48 bg-gray-100 rounded animate-pulse" />
             ) : (
               <input

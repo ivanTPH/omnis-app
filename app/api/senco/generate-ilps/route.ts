@@ -59,8 +59,15 @@ export async function POST() {
   })
   const existingSet = new Set(existingIlps.map(r => r.studentId))
 
+  // Only generate for students already identified as needing SEND support
+  const sendStudentIds = await prisma.sendStatus.findMany({
+    where: { studentId: { not: '' }, activeStatus: { in: ['SEN_SUPPORT', 'EHCP'] as any } },
+    select: { studentId: true },
+  })
+  const sendSet = new Set(sendStudentIds.map(r => r.studentId))
+
   const students = await prisma.user.findMany({
-    where:  { schoolId, role: 'STUDENT', isActive: true },
+    where:  { schoolId, role: 'STUDENT', isActive: true, id: { in: [...sendSet] } },
     select: {
       id: true, firstName: true, lastName: true, yearGroup: true,
       sendStatus: { select: { needArea: true } },

@@ -598,8 +598,14 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
   const allowedRoles = ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR', 'TEACHER', 'HEAD_OF_DEPT']
   if (!allowedRoles.includes(user.role)) redirect('/dashboard')
 
+  // Teachers and HoY only see approved ILPs; SENCO/SLT/Admin also see drafts under review
+  const isSencoOrAbove = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+  const statusFilter = isSencoOrAbove
+    ? { in: ['active', 'under_review'] }
+    : { in: ['active'] }
+
   const ilp = await prisma.individualLearningPlan.findFirst({
-    where: { schoolId: user.schoolId, studentId, status: { in: ['active', 'under_review'] } },
+    where: { schoolId: user.schoolId, studentId, status: statusFilter },
     orderBy: { createdAt: 'desc' },
     include: { targets: { orderBy: { targetDate: 'asc' } } },
   })
@@ -762,6 +768,89 @@ export async function updateIlpTarget(
     if (pending.length > 0) {
       await Promise.all(pending.map(writeILPAudit))
     }
+  }
+
+  revalidatePath('/senco/ilp')
+}
+
+/** Edit main ILP fields while still in under_review (draft) state — no audit needed. */
+export async function updateIlpDraft(
+  ilpId: string,
+  data: {
+    currentStrengths?: string
+    areasOfNeed?: string
+    successCriteria?: string
+    strategies?: string[]
+  },
+): Promise<void> {
+  const user = await requireSencoOnly()
+  const schoolId = user.schoolId
+
+  const ilp = await prisma.individualLearningPlan.findFirst({
+    where: { id: ilpId, schoolId, status: 'under_review' },
+  })
+  if (!ilp) throw new Error('ILP not found or not in draft state')
+
+  await prisma.individualLearningPlan.update({
+    where: { id: ilpId },
+    data: {
+      ...(data.currentStrengths !== undefined ? { currentStrengths: data.currentStrengths } : {}),
+      ...(data.areasOfNeed      !== undefined ? { areasOfNeed:      data.areasOfNeed      } : {}),
+      ...(data.successCriteria  !== undefined ? { successCriteria:  data.successCriteria  } : {}),
+      ...(data.strategies       !== undefined ? { strategies:       data.strategies       } : {}),
+    },
+  })
+
+  revalidatePath('/senco/ilp')
+}
+
+/** Edit a target's text field (target / strategy / successMeasure).
+ *  Logs to audit trail if the ILP has already been approved. */
+export async function updateIlpTargetText(
+  targetId: string,
+  field: 'target' | 'strategy' | 'successMeasure',
+  newValue: string,
+): Promise<void> {
+  const user = await requireSencoOnly()
+  const schoolId = user.schoolId
+
+  const current = await prisma.ilpTarget.findUnique({
+    where: { id: targetId },
+    select: {
+      target: true,
+      strategy: true,
+      successMeasure: true,
+      ilpId: true,
+      ilp: { select: { approvedBySenco: true, schoolId: true } },
+    },
+  })
+  if (!current) throw new Error('Target not found')
+  if (current.ilp.schoolId !== schoolId) throw new Error('Forbidden')
+
+  const prismaField = field === 'successMeasure' ? 'successMeasure' : field
+  const previousValue = current[field as keyof typeof current] as string
+
+  await prisma.ilpTarget.update({
+    where: { id: targetId },
+    data: { [prismaField]: newValue },
+  })
+
+  // Audit trail — only after SENCO approval
+  if (current.ilp.approvedBySenco) {
+    const fieldLabel =
+      field === 'target'         ? 'SMART target'   :
+      field === 'strategy'       ? 'Target strategy' :
+                                   'Success measure'
+    await writeILPAudit({
+      ilpId:         current.ilpId,
+      userId:        user.id,
+      userName:      `${user.firstName} ${user.lastName}`,
+      userRole:      user.role,
+      fieldChanged:  fieldLabel,
+      previousValue: previousValue ?? '',
+      newValue,
+      changeType:    'EDITED',
+    })
   }
 
   revalidatePath('/senco/ilp')

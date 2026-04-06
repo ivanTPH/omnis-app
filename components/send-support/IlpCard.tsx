@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import type { IlpWithTargets, IlpAuditEntryRow } from '@/app/actions/send-support'
-import { updateIlpTarget, approveGeneratedIlp, getIlpAuditLog, updateSendStatus } from '@/app/actions/send-support'
+import { updateIlpTarget, approveGeneratedIlp, getIlpAuditLog, updateSendStatus, updateIlpDraft, updateIlpTargetText } from '@/app/actions/send-support'
 
 const ROLE_LABELS: Record<string, string> = {
   SENCO: 'SENCO', TEACHER: 'Teacher', HEAD_OF_DEPT: 'HoD',
@@ -32,6 +32,17 @@ export default function IlpCard({ ilp }: Props) {
   const [statusUpdating,   setStatusUpdating]   = useState(false)
   const [statusToast,      setStatusToast]      = useState<string | null>(null)
 
+  // Edit-before-approve state (for under_review ILPs)
+  const [editMode,         setEditMode]         = useState(false)
+  const [draftStrengths,   setDraftStrengths]   = useState(ilp.currentStrengths)
+  const [draftNeeds,       setDraftNeeds]       = useState(ilp.areasOfNeed)
+  const [draftCriteria,    setDraftCriteria]    = useState(ilp.successCriteria)
+  const [savingDraft,      setSavingDraft]      = useState(false)
+
+  // Inline target text editing (works on both draft and approved ILPs)
+  const [editingTarget,    setEditingTarget]    = useState<{ id: string; field: 'target' | 'strategy' | 'successMeasure'; value: string } | null>(null)
+  const [savingTargetText, setSavingTargetText] = useState(false)
+
   async function handleToggleAudit() {
     if (!auditOpen && auditEntries === null) {
       setAuditLoading(true)
@@ -52,6 +63,40 @@ export default function IlpCard({ ilp }: Props) {
       setApproved(true)
     } finally {
       setApproving(false)
+    }
+  }
+
+  async function handleSaveDraft() {
+    setSavingDraft(true)
+    try {
+      await updateIlpDraft(ilp.id, {
+        currentStrengths: draftStrengths,
+        areasOfNeed:      draftNeeds,
+        successCriteria:  draftCriteria,
+      })
+      setEditMode(false)
+    } catch (err) {
+      console.error('[IlpCard] draft save failed:', err)
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  async function handleSaveTargetText() {
+    if (!editingTarget) return
+    setSavingTargetText(true)
+    try {
+      await updateIlpTargetText(editingTarget.id, editingTarget.field, editingTarget.value)
+      // Refresh audit log if open
+      if (auditOpen) {
+        const entries = await getIlpAuditLog(ilp.id)
+        setAuditEntries(entries)
+      }
+      setEditingTarget(null)
+    } catch (err) {
+      console.error('[IlpCard] target text save failed:', err)
+    } finally {
+      setSavingTargetText(false)
     }
   }
 
@@ -153,15 +198,48 @@ export default function IlpCard({ ilp }: Props) {
       </div>
 
       <div className="p-5 space-y-5">
+        {/* Edit mode toggle for draft ILPs */}
+        {ilp.status === 'under_review' && !approved && (
+          <div className="flex items-center justify-between pb-1 border-b border-amber-100">
+            <span className="text-xs text-amber-700 font-medium flex items-center gap-1.5">
+              <Icon name="edit_note" size="sm" /> Review &amp; edit before approving
+            </span>
+            <button
+              onClick={() => setEditMode(v => !v)}
+              className={`text-xs px-3 py-1 rounded-lg border transition-colors ${editMode ? 'bg-amber-100 border-amber-300 text-amber-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              {editMode ? 'Exit edit mode' : 'Edit fields'}
+            </button>
+          </div>
+        )}
+
         {/* Strengths & Needs */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-1">Current Strengths</p>
-            <p className="text-sm text-gray-700">{ilp.currentStrengths}</p>
+            {editMode ? (
+              <textarea
+                value={draftStrengths}
+                onChange={e => setDraftStrengths(e.target.value)}
+                rows={3}
+                className="w-full border border-green-300 rounded-lg px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            ) : (
+              <p className="text-sm text-gray-700">{ilp.currentStrengths}</p>
+            )}
           </div>
           <div>
             <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">Areas of Need</p>
-            <p className="text-sm text-gray-700">{ilp.areasOfNeed}</p>
+            {editMode ? (
+              <textarea
+                value={draftNeeds}
+                onChange={e => setDraftNeeds(e.target.value)}
+                rows={3}
+                className="w-full border border-amber-300 rounded-lg px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            ) : (
+              <p className="text-sm text-gray-700">{ilp.areasOfNeed}</p>
+            )}
           </div>
         </div>
 
@@ -174,9 +252,84 @@ export default function IlpCard({ ilp }: Props) {
                 <div className="flex items-start gap-2">
                   {TARGET_STATUS_ICONS[t.status] ?? <Icon name="track_changes" size="sm" className="text-gray-400" />}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{t.target}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Strategy: {t.strategy}</p>
-                    <p className="text-xs text-gray-500">Success measure: {t.successMeasure}</p>
+                    {editingTarget?.id === t.id && editingTarget.field === 'target' ? (
+                      <div className="flex items-start gap-2 mb-1">
+                        <textarea
+                          value={editingTarget.value}
+                          onChange={e => setEditingTarget(et => et && ({ ...et, value: e.target.value }))}
+                          rows={2}
+                          autoFocus
+                          className="flex-1 border border-blue-300 rounded-lg px-2 py-1 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <button onClick={handleSaveTargetText} disabled={savingTargetText} className="shrink-0 text-xs px-2 py-1 bg-blue-600 text-white rounded-lg disabled:opacity-50">
+                          {savingTargetText ? '…' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditingTarget(null)} className="shrink-0 text-xs px-2 py-1 border border-gray-200 rounded-lg">×</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-1 mb-0.5 group">
+                        <p className="text-sm font-medium text-gray-900 flex-1">{t.target}</p>
+                        <button
+                          onClick={() => setEditingTarget({ id: t.id, field: 'target', value: t.target })}
+                          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100"
+                          title="Edit SMART target"
+                        >
+                          <Icon name="edit" size="sm" className="text-gray-400" />
+                        </button>
+                      </div>
+                    )}
+                    {editingTarget?.id === t.id && editingTarget.field === 'strategy' ? (
+                      <div className="flex items-start gap-2 mb-1">
+                        <textarea
+                          value={editingTarget.value}
+                          onChange={e => setEditingTarget(et => et && ({ ...et, value: e.target.value }))}
+                          rows={2}
+                          autoFocus
+                          className="flex-1 border border-blue-300 rounded-lg px-2 py-1 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <button onClick={handleSaveTargetText} disabled={savingTargetText} className="shrink-0 text-xs px-2 py-1 bg-blue-600 text-white rounded-lg disabled:opacity-50">
+                          {savingTargetText ? '…' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditingTarget(null)} className="shrink-0 text-xs px-2 py-1 border border-gray-200 rounded-lg">×</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <p className="text-xs text-gray-500 mt-0.5 flex-1">Strategy: {t.strategy}</p>
+                        <button
+                          onClick={() => setEditingTarget({ id: t.id, field: 'strategy', value: t.strategy })}
+                          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100"
+                          title="Edit strategy"
+                        >
+                          <Icon name="edit" size="sm" className="text-gray-400" />
+                        </button>
+                      </div>
+                    )}
+                    {editingTarget?.id === t.id && editingTarget.field === 'successMeasure' ? (
+                      <div className="flex items-start gap-2 mb-1">
+                        <textarea
+                          value={editingTarget.value}
+                          onChange={e => setEditingTarget(et => et && ({ ...et, value: e.target.value }))}
+                          rows={2}
+                          autoFocus
+                          className="flex-1 border border-blue-300 rounded-lg px-2 py-1 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <button onClick={handleSaveTargetText} disabled={savingTargetText} className="shrink-0 text-xs px-2 py-1 bg-blue-600 text-white rounded-lg disabled:opacity-50">
+                          {savingTargetText ? '…' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditingTarget(null)} className="shrink-0 text-xs px-2 py-1 border border-gray-200 rounded-lg">×</button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 group">
+                        <p className="text-xs text-gray-500 flex-1">Success measure: {t.successMeasure}</p>
+                        <button
+                          onClick={() => setEditingTarget({ id: t.id, field: 'successMeasure', value: t.successMeasure })}
+                          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-gray-100"
+                          title="Edit success measure"
+                        >
+                          <Icon name="edit" size="sm" className="text-gray-400" />
+                        </button>
+                      </div>
+                    )}
                     {t.progressNotes && (
                       <p className="text-xs text-blue-700 bg-blue-50 rounded px-2 py-1 mt-1">{t.progressNotes}</p>
                     )}
@@ -274,8 +427,37 @@ export default function IlpCard({ ilp }: Props) {
         {/* Success criteria */}
         <div>
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Success Criteria</p>
-          <p className="text-sm text-gray-700">{ilp.successCriteria}</p>
+          {editMode ? (
+            <textarea
+              value={draftCriteria}
+              onChange={e => setDraftCriteria(e.target.value)}
+              rows={2}
+              className="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          ) : (
+            <p className="text-sm text-gray-700">{ilp.successCriteria}</p>
+          )}
         </div>
+
+        {/* Save draft button — only shown in edit mode */}
+        {editMode && (
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+            <button
+              onClick={() => setEditMode(false)}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveDraft}
+              disabled={savingDraft}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {savingDraft ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
+              Save changes
+            </button>
+          </div>
+        )}
 
         {/* Audit trail — only visible once ILP is approved */}
         {ilp.approvedBySenco && (

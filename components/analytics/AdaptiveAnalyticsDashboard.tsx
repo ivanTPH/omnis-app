@@ -10,6 +10,7 @@ import type { ClassSummary, HomeworkAdaptiveAnalytics } from '@/app/actions/anal
 import AdaptiveInfoPanel from './AdaptiveInfoPanel'
 import AdaptiveHeatmapView from './AdaptiveHeatmapView'
 import AdaptiveStudentView from './AdaptiveStudentView'
+import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 
 const BLOOMS_COLOURS: Record<string, string> = {
   remember:   '#6366f1',
@@ -122,7 +123,7 @@ export default function AdaptiveAnalyticsDashboard() {
                     {cls.hwCount > 0 && (
                       <p className="text-[11px] text-gray-400">
                         {cls.hwCount} homework{cls.hwCount !== 1 ? 's' : ''}
-                        {cls.avgScore != null ? ` · Avg ${cls.avgScore}%` : ''}
+                        {cls.avgScore != null ? ` · Avg ${gradeLabel(percentToGcseGrade(cls.avgScore))}` : ''}
                       </p>
                     )}
                   </div>

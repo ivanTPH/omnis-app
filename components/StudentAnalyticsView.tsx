@@ -6,6 +6,8 @@ import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkR
 import { getStudentFile } from '@/app/actions/students'
 import type { StudentFileData } from '@/app/actions/students'
 import { currentTermLabel } from '@/lib/termUtils'
+import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
+import { formatRawScore } from '@/lib/gradeUtils'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import RagView from '@/components/analytics/RagView'
@@ -677,7 +679,7 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
       </div>
 
       <div className={`hidden sm:block text-right text-sm font-semibold ${scoreColor}`}>
-        {cls.avgScore != null ? cls.avgScore : '—'}
+        {cls.avgScore != null ? gradeLabel(percentToGcseGrade(cls.avgScore)) : '—'}
       </div>
 
       <div className="hidden sm:block text-right">
@@ -829,8 +831,7 @@ function HomeworkTimelineRow({ hw, onOpen, loading, scoreToGrade }: {
       <span className="text-gray-400 shrink-0">{dateStr}</span>
       {hw.submitted && hw.score != null ? (
         <span className="text-gray-700 shrink-0 font-medium w-20 text-right">
-          {Math.round(hw.score)}
-          {grade && <span className="text-gray-400 font-normal"> (Grade {grade})</span>}
+          {grade ? gradeLabel(Number(grade)) : gradeLabel(percentToGcseGrade(Math.round(hw.score)))}
         </span>
       ) : hw.submitted ? (
         <span className="text-gray-400 shrink-0">Submitted</span>
@@ -954,8 +955,8 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             {subjectPerf.map(row => (
               <div key={row.subject} className="grid grid-cols-[1fr_72px_90px_120px] items-center gap-3 px-5 py-2.5 text-sm">
                 <span className="font-medium text-gray-800 truncate">{row.subject}</span>
-                <span className="text-right text-gray-700">{row.avgScore != null ? `${row.avgScore}%` : '—'}</span>
-                <span className="text-right text-gray-400 text-xs">{row.predictedScore != null ? `${Math.round(row.predictedScore)}%` : '—'}</span>
+                <span className="text-right text-gray-700">{row.avgScore != null ? gradeLabel(percentToGcseGrade(row.avgScore)) : '—'}</span>
+                <span className="text-right text-gray-400 text-xs">{row.predictedScore != null ? gradeLabel(percentToGcseGrade(Math.round(row.predictedScore))) : '—'}</span>
                 <div className="text-right"><RagDot rag={row.rag} /></div>
               </div>
             ))}
@@ -1013,7 +1014,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
                   {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
                 {hw.finalScore != null
-                  ? <span className="text-gray-800 font-medium shrink-0">{hw.finalScore}%</span>
+                  ? <span className="text-gray-800 font-medium shrink-0">{formatRawScore(hw.finalScore)}</span>
                   : hw.submitted
                     ? <span className="text-blue-600 text-xs shrink-0">Submitted</span>
                     : <span className="text-rose-400 text-xs shrink-0">Missing</span>

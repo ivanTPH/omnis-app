@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import type { StudentDetailData } from '@/app/actions/analytics'
+import { formatRawScore } from '@/lib/gradeUtils'
 import StudentSupportProfile from '@/components/StudentSupportProfile'
 
 const SEND_LABEL: Record<string, string> = {
@@ -86,7 +87,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <KpiCard iconName="menu_book"    label="Homework Set"    value={String(data.totalAssigned)} color="blue" />
         <KpiCard iconName="check_circle" label="Completion"     value={`${data.completionRate}%`} color={data.completionRate >= 75 ? 'green' : 'amber'} />
-        <KpiCard iconName="bar_chart"    label="Avg Score"      value={data.avgScore != null ? `${data.avgScore}` : '—'} color={data.avgScore != null && data.avgScore >= 75 ? 'green' : 'purple'} />
+        <KpiCard iconName="bar_chart"    label="Avg Score"      value={data.avgScore != null ? formatRawScore(data.avgScore) : '—'} color={data.avgScore != null && data.avgScore >= 75 ? 'green' : 'purple'} />
         <KpiCard iconName="people"       label="Classes"        value={String(data.classes.length)} color="blue" />
       </div>
 
@@ -108,7 +109,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
                   </div>
                   <div className="text-xs text-gray-500 w-9 text-right shrink-0">{rate}%</div>
                   <div className={`text-xs font-semibold w-8 text-right shrink-0 ${scoreColor(row.avgScore)}`}>
-                    {row.avgScore != null ? row.avgScore : '—'}
+                    {row.avgScore != null ? formatRawScore(row.avgScore) : '—'}
                   </div>
                 </div>
               )
@@ -196,7 +197,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
                   {/* Score */}
                   <div className={`text-right font-semibold ${scoreColor(hw.score)}`}>
                     {hw.submitted
-                      ? hw.score != null ? hw.score : <span className="text-gray-400 font-normal text-xs">Pending</span>
+                      ? hw.score != null ? formatRawScore(hw.score) : <span className="text-gray-400 font-normal text-xs">Pending</span>
                       : <span className="text-gray-300 font-normal text-xs">—</span>}
                   </div>
                 </div>

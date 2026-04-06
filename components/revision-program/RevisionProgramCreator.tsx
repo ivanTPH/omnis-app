@@ -2,6 +2,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
+import { gradeLabel } from '@/lib/grading'
 import { getClassPerformanceAnalysis, createRevisionProgram } from '@/app/actions/revision-program'
 import { getTeacherClasses } from '@/app/actions/homework'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
@@ -251,7 +252,7 @@ function Step2({
                   </td>
                   <td className="px-3 py-2">
                     <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-600' : s.avgScore >= 4.5 ? 'text-amber-600' : 'text-rose-600'}`}>
-                      {s.avgScore}/9
+                      {gradeLabel(Math.round(s.avgScore))}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-gray-500">{s.weakTopics.slice(0, 2).join(', ') || '—'}</td>

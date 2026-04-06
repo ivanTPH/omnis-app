@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
-import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS } from '@/lib/grading'
+import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getHomeworkForMarking>>>
@@ -1183,7 +1183,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
                       return (
                         <p className="text-sm text-amber-900">
-                          Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
+                          AI score: <strong>{gcseGradeLabel(percentToGcseGrade(pct))}</strong>
                         </p>
                       )
                     })()}

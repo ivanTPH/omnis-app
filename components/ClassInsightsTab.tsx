@@ -10,6 +10,7 @@ import {
   getClassInsights, getClassTimeSeries,
   type ClassInsightsData, type ClassTimeSeriesData,
 } from '@/app/actions/lessons'
+import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 
 const RAG_COLOR = {
   green: '#22c55e',
@@ -253,7 +254,7 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
                   {s.submissionCount}/{totalHomework} submitted
                 </span>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${rag.cls}`}>
-                  {s.avgScore != null ? `${Math.round(s.avgScore)}%` : rag.text}
+                  {s.avgScore != null ? gradeLabel(percentToGcseGrade(Math.round(s.avgScore))) : rag.text}
                 </span>
               </div>
             )

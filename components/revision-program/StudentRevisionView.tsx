@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { gradeLabel } from '@/lib/grading'
 
 type RevTask = {
   id:             string
@@ -116,7 +117,7 @@ function CompletedCard({ task }: { task: RevTask }) {
           <p className="text-sm font-semibold text-gray-900">{task.program.title}</p>
         </div>
         {score != null && (
-          <span className="text-lg font-bold text-green-600 shrink-0">{score}/9</span>
+          <span className="text-lg font-bold text-green-600 shrink-0">{gradeLabel(score)}</span>
         )}
       </div>
 

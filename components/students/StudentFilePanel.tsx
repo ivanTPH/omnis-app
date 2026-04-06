@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
+import { formatRawScore } from '@/lib/gradeUtils'
 import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc, SubjectPerf,
   HomeworkHistoryRow, NoteRow, StudentContact,
@@ -360,7 +361,7 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
           <p className="text-xs text-gray-500 mt-0.5">Completion rate</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-2xl font-bold text-gray-900">{data.avgScore != null ? `${data.avgScore}%` : '—'}</p>
+          <p className="text-2xl font-bold text-gray-900">{data.avgScore != null ? formatRawScore(data.avgScore) : '—'}</p>
           <p className="text-xs text-gray-500 mt-0.5">Avg score</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
@@ -385,10 +386,10 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
                   </div>
                   <div className="flex items-center gap-4">
                     {row.avgScore != null && (
-                      <span className="text-sm text-gray-600">{row.avgScore}% avg</span>
+                      <span className="text-sm text-gray-600">{formatRawScore(row.avgScore)} avg</span>
                     )}
                     {row.predictedScore != null && (
-                      <span className="text-xs text-gray-400">pred. {Math.round(row.predictedScore)}%</span>
+                      <span className="text-xs text-gray-400">pred. {formatRawScore(row.predictedScore)}</span>
                     )}
                     <RagDot rag={row.rag} />
                   </div>
@@ -397,7 +398,7 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
                   <div className="pb-3 px-7">
                     <div className="text-xs text-gray-500 mb-2">
                       {row.assigned} assigned · {row.submitted} submitted
-                      {row.baselineScore != null && ` · baseline ${Math.round(row.baselineScore)}%`}
+                      {row.baselineScore != null && ` · baseline ${formatRawScore(row.baselineScore)}`}
                     </div>
                     <div className="space-y-1">
                       {subjectHw(row.subject).slice(0, 8).map(hw => (
@@ -406,7 +407,7 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
                           <div className="flex items-center gap-3">
                             <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                             {hw.finalScore != null
-                              ? <span className="font-medium text-gray-800">{hw.finalScore}%</span>
+                              ? <span className="font-medium text-gray-800">{formatRawScore(hw.finalScore)}</span>
                               : hw.submitted
                                 ? <span className="text-blue-600">Submitted</span>
                                 : <span className="text-red-500">Missing</span>

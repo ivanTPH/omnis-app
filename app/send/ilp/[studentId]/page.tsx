@@ -281,7 +281,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                           <p className="text-[10px] text-gray-400 mt-0.5">
                             {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             {entry.subject && ` · ${entry.subject}`}
-                            {entry.score != null && ` · Score: ${entry.score}`}
+                            {entry.score != null && ` · ${formatRawScore(entry.score)}`}
                           </p>
                         </div>
                       </div>

@@ -21,7 +21,7 @@ import {
 } from '@/app/actions/send-support'
 import { getStudentEhcp, type EhcpPlanWithOutcomes } from '@/app/actions/ehcp'
 import { getClassRagData, type RagStudent } from '@/app/actions/rag'
-import { percentToGcseGrade } from '@/lib/grading'
+import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 import StudentContactPanel from '@/components/StudentContactPanel'
 import type { DocSlideOverDocType } from '@/components/send/DocSlideOver'
@@ -950,8 +950,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                                 </span>
                                 {s.score != null ? (
                                   <span className={`text-[11px] font-bold shrink-0 ${pct != null && pct >= 70 ? 'text-green-600' : pct != null && pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
-                                    {s.score}/{s.maxScore}
-                                    {s.grade && <span className="ml-1 text-gray-400">(G{s.grade})</span>}
+                                    {pct != null ? gradeLabel(percentToGcseGrade(pct)) : '—'}
                                   </span>
                                 ) : (
                                   <span className="text-[11px] text-gray-400">Not marked</span>

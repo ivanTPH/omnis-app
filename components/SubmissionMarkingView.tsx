@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { markSubmission } from '@/app/actions/homework'
-import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
+import { percentToGcseGrade, normalizeScoreForForm, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import Icon from '@/components/ui/Icon'
 import { StrategyAppliesTo } from '@prisma/client'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -250,7 +250,7 @@ export default function SubmissionMarkingView({
                   const pct = isLegacyPct ? as_ : Math.round((as_ / maxScore) * 100)
                   return (
                     <p className="text-sm text-amber-900">
-                      Score: <strong>{rawScore}/{maxScore} ({pct}% · Grade {percentToGcseGrade(pct)})</strong>
+                      AI score: <strong>{gcseGradeLabel(percentToGcseGrade(pct))}</strong>
                     </p>
                   )
                 })()}

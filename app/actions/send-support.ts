@@ -163,6 +163,7 @@ export type SencoDashboardData = {
   ilpReviewsDue: number
   recentConcerns: ConcernRow[]
   activeFlags: EarlyWarningFlagRow[]
+  openConcernsList: ConcernRow[]
 }
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
@@ -428,6 +429,27 @@ export async function reviewConcern(
       metadata: { concernId, status, reviewNotes: reviewNotes.slice(0, 200) },
     },
   })
+
+  // Notify the teacher who raised the concern (unless it was the SENCO themselves)
+  if (concern.raisedBy !== user.id) {
+    const reviewedStudent = await prisma.user.findUnique({
+      where: { id: concern.studentId },
+      select: { firstName: true, lastName: true },
+    })
+    const reviewedStudentName = reviewedStudent
+      ? `${reviewedStudent.firstName} ${reviewedStudent.lastName}`
+      : 'a student'
+    await prisma.sendNotification.create({
+      data: {
+        schoolId,
+        recipientId: concern.raisedBy,
+        concernId,
+        type: 'concern_reviewed',
+        title: 'SENCO has reviewed your concern',
+        body: `Your concern about ${reviewedStudentName} has been marked "${status}".${reviewNotes ? ` Notes: ${reviewNotes.slice(0, 100)}` : ''}`,
+      },
+    })
+  }
 
   if (status === 'escalated') {
     const sltHoy = await prisma.user.findMany({
@@ -1020,6 +1042,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     ilpReviewsDue,
     recentConcernsRaw,
     activeFlagsRaw,
+    openConcernsRaw,
   ] = await Promise.all([
     prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
@@ -1035,12 +1058,18 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
       take: 5,
     }),
+    prisma.sendConcern.findMany({
+      where: { schoolId, status: 'open' },
+      orderBy: { createdAt: 'asc' },
+    }),
   ])
 
   const userIds = [...new Set([
     ...recentConcernsRaw.map(c => c.studentId),
     ...recentConcernsRaw.map(c => c.raisedBy),
     ...activeFlagsRaw.map(f => f.studentId),
+    ...openConcernsRaw.map(c => c.studentId),
+    ...openConcernsRaw.map(c => c.raisedBy),
   ])]
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
@@ -1081,6 +1110,23 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       isActioned: f.isActioned,
       createdAt: f.createdAt,
       expiresAt: f.expiresAt,
+    })),
+    openConcernsList: openConcernsRaw.map(c => ({
+      id: c.id,
+      studentId: c.studentId,
+      studentName: userMap.get(c.studentId)?.name ?? 'Unknown',
+      studentAvatarUrl: userMap.get(c.studentId)?.avatarUrl ?? null,
+      raisedBy: c.raisedBy,
+      raiserName: userMap.get(c.raisedBy)?.name ?? 'Unknown',
+      source: c.source,
+      category: c.category,
+      description: c.description,
+      evidenceNotes: c.evidenceNotes,
+      status: c.status,
+      aiAnalysis: c.aiAnalysis,
+      createdAt: c.createdAt,
+      reviewedAt: c.reviewedAt,
+      reviewNotes: c.reviewNotes,
     })),
   }
 }

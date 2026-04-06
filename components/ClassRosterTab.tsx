@@ -16,6 +16,7 @@ import {
   getClassKPlanSummaries,
   getClassEhcpSectionF,
   getStudentIlp,
+  raiseConcern,
   type LearnerPassportRow,
   type IlpWithTargets,
 } from '@/app/actions/send-support'
@@ -100,8 +101,9 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
   const [docSlideOver, setDocSlideOver] = useState<{ studentId: string; studentName: string; docType: DocSlideOverDocType } | null>(null)
 
-  const [newNotes,   setNewNotes]   = useState<Record<string, string>>({})
-  const [savingNote, setSavingNote] = useState<string | null>(null)
+  const [newNotes,          setNewNotes]          = useState<Record<string, string>>({})
+  const [savingNote,        setSavingNote]        = useState<string | null>(null)
+  const [flagConcernStudent, setFlagConcernStudent] = useState<{ id: string; name: string } | null>(null)
 
   // New: per-student expanded tab state
   const [expandedTab, setExpandedTab] = useState<Record<string, ExpandedTabKey>>({})
@@ -477,6 +479,15 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                       {scoreDisplay}
                     </span>
                   )}
+                  {/* Flag concern button */}
+                  <button
+                    type="button"
+                    title="Flag a SEND concern for this student"
+                    onClick={e => { e.stopPropagation(); setFlagConcernStudent({ id: row.id, name: `${row.firstName} ${row.lastName}` }) }}
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-amber-50 text-gray-300 hover:text-amber-500 transition-colors shrink-0"
+                  >
+                    <Icon name="flag" size="sm" />
+                  </button>
                   {/* Chevron for all students */}
                   {isExpanded
                     ? <Icon name="expand_more"  size="sm" className="text-gray-400 shrink-0" />
@@ -1046,6 +1057,151 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
         />
       )}
 
+      {flagConcernStudent && (
+        <FlagConcernModal
+          studentId={flagConcernStudent.id}
+          studentName={flagConcernStudent.name}
+          onClose={() => setFlagConcernStudent(null)}
+        />
+      )}
+
+    </div>
+  )
+}
+
+// ── FlagConcernModal ──────────────────────────────────────────────────────────
+
+function FlagConcernModal({
+  studentId,
+  studentName,
+  onClose,
+}: {
+  studentId: string
+  studentName: string
+  onClose: () => void
+}) {
+  const [description, setDescription] = useState('')
+  const [urgency,     setUrgency]     = useState<'routine' | 'urgent'>('routine')
+  const [submitting,  setSubmitting]  = useState(false)
+  const [success,     setSuccess]     = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (description.trim().length < 10) {
+      setError('Please provide at least 10 characters.')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await raiseConcern({
+        studentId,
+        category: 'other',
+        description: description.trim(),
+        evidenceNotes: `urgency:${urgency}`,
+      })
+      setSuccess(true)
+      setTimeout(onClose, 1500)
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to raise concern. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Icon name="flag" size="sm" className="text-amber-500" />
+            <h2 className="text-base font-semibold text-gray-900">Flag SEND Concern</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
+            <Icon name="close" size="sm" />
+          </button>
+        </div>
+
+        {success ? (
+          <div className="px-5 py-8 text-center space-y-2">
+            <Icon name="check_circle" size="lg" className="text-green-500 mx-auto" />
+            <p className="text-sm font-semibold text-gray-900">Concern raised</p>
+            <p className="text-xs text-gray-500">The SENCO has been notified about {studentName}.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+            <div>
+              <p className="text-sm text-gray-500 mb-3">Student: <span className="font-medium text-gray-900">{studentName}</span></p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Description <span className="text-red-400">*</span></label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={4}
+                placeholder="Describe the concern — what have you observed? Include specific examples if possible."
+                className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">{description.length}/1000 characters (min 10)</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">Urgency</label>
+              <div className="flex gap-3">
+                {(['routine', 'urgent'] as const).map(u => (
+                  <label key={u} className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl border-2 transition-colors ${
+                    urgency === u
+                      ? u === 'urgent' ? 'border-red-400 bg-red-50' : 'border-blue-400 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="urgency"
+                      value={u}
+                      checked={urgency === u}
+                      onChange={() => setUrgency(u)}
+                      className="sr-only"
+                    />
+                    <span className={`text-sm font-medium capitalize ${urgency === u ? (u === 'urgent' ? 'text-red-700' : 'text-blue-700') : 'text-gray-600'}`}>
+                      {u === 'routine' ? 'Routine' : 'Urgent'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {urgency === 'urgent' && (
+                <p className="text-xs text-red-600 mt-1.5">Urgent concerns are flagged prominently on the SENCO dashboard.</p>
+              )}
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700">
+                <Icon name="error" size="sm" className="shrink-0" />
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting || description.trim().length < 10}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                {submitting ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="flag" size="sm" />}
+                Raise Concern
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   )
 }

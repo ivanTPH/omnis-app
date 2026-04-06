@@ -245,7 +245,7 @@ export async function fetchWondeEmployees(schoolId: string, token: string): Prom
 
 export async function fetchWondeStudents(schoolId: string, token: string): Promise<WondeStudent[]> {
   return wondeAll<WondeStudent>(`/schools/${schoolId}/students`, token, {
-    include: 'contacts,year,photo,sen',
+    include: 'contacts,year,photo',
     per_page: '200',
   })
 }

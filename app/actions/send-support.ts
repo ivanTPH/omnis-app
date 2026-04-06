@@ -2750,3 +2750,101 @@ Return ONLY valid JSON — no markdown, no explanation:
     return { ok: false, error: `AI error: ${String(err).slice(0, 100)}` }
   }
 }
+
+// ─── Class SEND summary (for lesson Overview tab) ─────────────────────────────
+
+export type ClassSendSummary = {
+  senSupportCount: number
+  ehcpCount:       number
+}
+
+export async function getClassSendSummary(classId: string): Promise<ClassSendSummary> {
+  const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return { senSupportCount: 0, ehcpCount: 0 }
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    select: { userId: true },
+  })
+  const studentIds = enrolments.map(e => e.userId)
+  if (studentIds.length === 0) return { senSupportCount: 0, ehcpCount: 0 }
+
+  const statuses = await prisma.sendStatus.findMany({
+    where: { studentId: { in: studentIds }, activeStatus: { not: 'NONE' } },
+    select: { activeStatus: true },
+  })
+
+  let senSupportCount = 0
+  let ehcpCount = 0
+  for (const s of statuses) {
+    if (s.activeStatus === 'EHCP') ehcpCount++
+    else if (s.activeStatus === 'SEN_SUPPORT') senSupportCount++
+  }
+  return { senSupportCount, ehcpCount }
+}
+
+// ─── Class ILP summary (per-student primary need + top active ILP goal) ────────
+
+export type ClassIlpStudentSummary = {
+  studentId:   string
+  studentName: string
+  sendStatus:  string | null
+  needArea:    string | null
+  topIlpGoal:  string | null
+}
+
+export async function getClassIlpSummary(classId: string): Promise<ClassIlpStudentSummary[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    include: { user: { select: { id: true, firstName: true, lastName: true } } },
+  })
+  const studentIds = enrolments.map(e => e.userId)
+  if (studentIds.length === 0) return []
+
+  const [sendStatuses, ilps] = await Promise.all([
+    prisma.sendStatus.findMany({
+      where: { studentId: { in: studentIds }, activeStatus: { not: 'NONE' } },
+      select: { studentId: true, activeStatus: true, needArea: true },
+    }),
+    prisma.individualLearningPlan.findMany({
+      where: {
+        studentId: { in: studentIds },
+        schoolId:  user.schoolId,
+        status:    'active',
+      },
+      select: {
+        studentId:    true,
+        sendCategory: true,
+        targets: {
+          where:   { status: 'active' },
+          select:  { target: true },
+          orderBy: { targetDate: 'asc' },
+          take:    1,
+        },
+      },
+    }),
+  ])
+
+  const sendMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  const ilpMap  = new Map(ilps.map(i => [i.studentId, i]))
+
+  const result: ClassIlpStudentSummary[] = []
+  for (const e of enrolments) {
+    const send = sendMap.get(e.userId)
+    if (!send) continue
+    const ilp  = ilpMap.get(e.userId)
+    result.push({
+      studentId:   e.userId,
+      studentName: `${e.user.firstName} ${e.user.lastName}`,
+      sendStatus:  (send.activeStatus as string | null) ?? null,
+      needArea:    send.needArea ?? ilp?.sendCategory ?? null,
+      topIlpGoal:  ilp?.targets[0]?.target ?? null,
+    })
+  }
+  return result.sort((a, b) => a.studentName.localeCompare(b.studentName))
+}

@@ -2,9 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
-import { getClassKPlanActions, type ClassKPlanAction } from '@/app/actions/send-support'
+import {
+  getClassKPlanActions,
+  getClassIlpSummary,
+  type ClassKPlanAction,
+  type ClassIlpStudentSummary,
+  type LearnerPassportRow,
+} from '@/app/actions/send-support'
 import dynamic from 'next/dynamic'
-import type { LearnerPassportRow } from '@/app/actions/send-support'
 
 const KPlanModal = dynamic(() => import('./KPlanModal'), { ssr: false })
 
@@ -53,14 +58,21 @@ function SendBadge({ status, needArea }: { status: string | null; needArea: stri
 
 export default function ClassSendActionsCard({ classId }: { classId: string }) {
   const [actions,     setActions]     = useState<ClassKPlanAction[]>([])
+  const [ilpSummary,  setIlpSummary]  = useState<ClassIlpStudentSummary[]>([])
   const [loading,     setLoading]     = useState(true)
   const [expanded,    setExpanded]    = useState(false) // show all vs first 4
   const [modal,       setModal]       = useState<{ action: ClassKPlanAction; passport: LearnerPassportRow } | null>(null)
   const [loadingModal, setLoadingModal] = useState<string | null>(null) // studentId
 
   useEffect(() => {
-    getClassKPlanActions(classId)
-      .then(setActions)
+    Promise.all([
+      getClassKPlanActions(classId),
+      getClassIlpSummary(classId),
+    ])
+      .then(([acts, ilp]) => {
+        setActions(acts)
+        setIlpSummary(ilp)
+      })
       .finally(() => setLoading(false))
   }, [classId])
 
@@ -70,8 +82,9 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
     </div>
   )
 
-  if (actions.length === 0) return null
+  if (actions.length === 0 && ilpSummary.length === 0) return null
 
+  const ilpMap      = new Map(ilpSummary.map(s => [s.studentId, s]))
   const summaryLine = buildSummaryLine(actions)
   const SHOW_MAX    = 4
   const shown       = expanded ? actions : actions.slice(0, SHOW_MAX)
@@ -110,14 +123,18 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
 
         {/* Student cards */}
         <div className="divide-y divide-gray-100">
-          {shown.map(a => (
+          {shown.map(a => {
+            const ilp         = ilpMap.get(a.studentId)
+            const resolvedNeed = a.needArea ?? ilp?.needArea ?? null
+            const topGoal      = ilp?.topIlpGoal ?? null
+            return (
             <div key={a.studentId} className="px-4 py-3">
               {/* Name row */}
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[13px] font-semibold text-gray-900">{a.studentName}</span>
-                <SendBadge status={a.sendStatus} needArea={a.needArea} />
-                {a.needArea && (
-                  <span className="text-[10px] text-gray-400 truncate">{a.needArea}</span>
+                <SendBadge status={a.sendStatus} needArea={resolvedNeed} />
+                {resolvedNeed && (
+                  <span className="text-[10px] text-gray-400 truncate">{resolvedNeed}</span>
                 )}
                 <button
                   onClick={() => openModal(a)}
@@ -137,6 +154,14 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                   <Icon name="open_in_new" size="sm" />
                 </a>
               </div>
+
+              {/* Top ILP goal */}
+              {topGoal && (
+                <div className="mb-2 flex items-start gap-1.5">
+                  <Icon name="flag" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-blue-700 leading-snug">{topGoal}</p>
+                </div>
+              )}
 
               {/* Top 3 actions */}
               <ul className="space-y-1">
@@ -159,7 +184,8 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                 )}
               </ul>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Show all / collapse */}

@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives } from '@/app/actions/lessons'
+import { getClassSendSummary, type ClassSendSummary } from '@/app/actions/send-support'
 import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
 import { HomeworkType } from '@prisma/client'
@@ -81,6 +82,54 @@ interface Props {
   defaultTab?: FolderTab
   wizardMode?: boolean
   inline?:     boolean
+}
+
+// ── Class SEND Summary card (Overview tab) ────────────────────────────────────
+function ClassSendSummaryCard({ classId }: { classId: string }) {
+  const [summary, setSummary] = useState<ClassSendSummary | null>(null)
+
+  useEffect(() => {
+    getClassSendSummary(classId)
+      .then(setSummary)
+      .catch(() => {})
+  }, [classId])
+
+  if (!summary) return null
+  if (summary.senSupportCount === 0 && summary.ehcpCount === 0) return null
+
+  return (
+    <div className="border border-blue-200 rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border-b border-blue-100">
+        <div className="flex items-center gap-2">
+          <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
+          <span className="text-[12px] font-semibold text-blue-800">Class SEND</span>
+        </div>
+        <Link
+          href="/senco/ilp"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-medium"
+        >
+          <Icon name="open_in_new" size="sm" />
+          Full ILP list
+        </Link>
+      </div>
+      <div className="flex items-center gap-4 px-4 py-3">
+        {summary.senSupportCount > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">SEN</span>
+            <span className="text-[12px] text-gray-700 font-medium">{summary.senSupportCount} student{summary.senSupportCount !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+        {summary.ehcpCount > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">EHCP</span>
+            <span className="text-[12px] text-gray-700 font-medium">{summary.ehcpCount} student{summary.ehcpCount !== 1 ? 's' : ''}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ── SEND Overview disclosure (Class tab) ──────────────────────────────────────
@@ -1197,6 +1246,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   </div>
                   {saving && <p className="text-[11px] text-gray-400">Saving…</p>}
+
+                  {/* Class SEND summary */}
+                  {lesson?.class?.id && (
+                    <ClassSendSummaryCard classId={lesson.class.id} />
+                  )}
 
                   {/* Class SEND Actions — K Plan strip */}
                   {lesson?.class?.id && (

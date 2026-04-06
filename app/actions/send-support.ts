@@ -1989,6 +1989,7 @@ export async function getStudentLearnerPassport(studentId: string): Promise<Lear
 export async function getClassKPlanSummaries(
   classId: string,
 ): Promise<Record<string, { id: string; sendInformation: string; status: string; teacherActions: string[] }>> {
+  try {
   const user = await requireAuth()
   const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
   if (!allowedRoles.includes(user.role)) return {}
@@ -2020,6 +2021,10 @@ export async function getClassKPlanSummaries(
     }
   }
   return result
+  } catch (err) {
+    console.error('[getClassKPlanSummaries] error:', err)
+    return {}
+  }
 }
 
 // ─── getClassEhcpSectionF ─────────────────────────────────────────────────────
@@ -2029,6 +2034,7 @@ export async function getClassKPlanSummaries(
 export async function getClassEhcpSectionF(
   classId: string,
 ): Promise<Record<string, string[]>> {
+  try {
   const user = await requireAuth()
 
   const enrolments = await prisma.enrolment.findMany({
@@ -2053,6 +2059,10 @@ export async function getClassEhcpSectionF(
       .filter(Boolean)
   }
   return result
+  } catch (err) {
+    console.error('[getClassEhcpSectionF] error:', err)
+    return {}
+  }
 }
 
 // ─── Student SEND Documents ───────────────────────────────────────────────────

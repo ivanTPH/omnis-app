@@ -91,8 +91,9 @@ export async function getClassRagData(
   classId:    string,
   termLabel?: string,
 ): Promise<RagStudent[]> {
+  try {
   const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
+  if (!session) return []
   const { schoolId, id: teacherId } = session.user as any
 
   const term       = termLabel ?? currentTermLabel()
@@ -216,6 +217,10 @@ export async function getClassRagData(
       }
     })
     .sort((a, b) => `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`))
+  } catch (err) {
+    console.error('[getClassRagData] error:', err)
+    return []
+  }
 }
 
 // ── upsertTeacherPrediction ────────────────────────────────────────────────────

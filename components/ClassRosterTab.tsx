@@ -126,7 +126,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
         setRagMap(rm)
         setEhcpTipsMap(ehcpTips)
       })
-      .catch(() => setError('Could not load class roster.'))
+      .catch((err) => { console.error('[ClassRosterTab] load error:', err); setError('Could not load class roster.') })
       .finally(() => setLoading(false))
   }, [classId])
 

@@ -33,6 +33,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
   const [content, setContent]   = useState(hw.submission?.content ?? '')
   const [isPending, startTransition] = useTransition()
   const [submitted, setSubmitted]    = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const sub        = hw.submission
   const status     = sub?.status
@@ -40,12 +41,21 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
   const isAwaitingFeedback = !!sub && !isReturned
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length
+  const draftKey  = `hw-draft-${hw.id}`
 
   function handleSubmit() {
+    setSubmitError(null)
+    // Back up content to localStorage before hitting the network
+    try { localStorage.setItem(draftKey, content) } catch { /* storage unavailable */ }
     startTransition(async () => {
-      await submitHomework(hw.id, content)
-      setSubmitted(true)
-      router.refresh()
+      try {
+        await submitHomework(hw.id, content)
+        try { localStorage.removeItem(draftKey) } catch { /* ignore */ }
+        setSubmitted(true)
+        router.refresh()
+      } catch {
+        setSubmitError('Submission failed — please check your connection and try again. Your answer has been saved locally.')
+      }
     })
   }
 
@@ -94,6 +104,23 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
           <Icon name="check_circle" size="lg" className="text-green-600 shrink-0" />
           <p className="text-[13px] font-semibold text-green-800">Submitted successfully!</p>
+        </div>
+      )}
+
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+          <Icon name="wifi_off" size="lg" className="text-red-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-[13px] font-semibold text-red-800">Submission failed</p>
+            <p className="text-[12px] text-red-600">{submitError}</p>
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="shrink-0 px-3 py-1.5 bg-red-600 text-white text-[12px] font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+          >
+            Retry
+          </button>
         </div>
       )}
 

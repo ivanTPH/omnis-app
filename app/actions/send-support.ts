@@ -1396,7 +1396,8 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
     revalidatePath('/senco/ilp')
     return { success: true }
   } catch (err) {
-    return { success: false, error: String(err).slice(0, 200) }
+    console.error('[generateILPForStudent]', err)
+    return { success: false, error: 'Generation failed — please try again. If the problem persists, check your connection.' }
   }
 }
 
@@ -2756,7 +2757,8 @@ Return ONLY valid JSON — no markdown, no explanation:
 
     return { ok: true, goals: goals.slice(0, 3), studentName, sendCategory, subject }
   } catch (err) {
-    return { ok: false, error: `AI error: ${String(err).slice(0, 100)}` }
+    console.error('[generateIlpGoalsForStudent]', err)
+    return { ok: false, error: 'Generation failed — please try again. If the problem persists, check your connection.' }
   }
 }
 

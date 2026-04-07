@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
+import type { ApdrRow } from '@/app/actions/send-support'
 
 // ── Auth helpers ────────────────────────────────────────────────────────────
 
@@ -124,6 +125,7 @@ export type StudentFileData = {
   kPlan: KPlanDoc | null
   ilp: IlpDoc | null
   ehcp: EhcpDoc | null
+  apdrCycles: ApdrRow[]
   subjectPerf: SubjectPerf[]
   recentHomeworks: HomeworkHistoryRow[]
   completionRate: number
@@ -163,6 +165,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     notes,
     parentLinks,
     wondeContacts,
+    apdrCyclesRaw,
   ] = await Promise.all([
     prisma.sendStatus.findFirst({ where: { studentId } }),
 
@@ -225,6 +228,11 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
         ...(student.yearGroup != null ? { yearGroup: student.yearGroup } : {}),
       },
       include: { contacts: true },
+    }),
+
+    prisma.assessPlanDoReview.findMany({
+      where:   { studentId, schoolId },
+      orderBy: { cycleNumber: 'desc' },
     }),
   ])
 
@@ -418,6 +426,14 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     kPlan,
     ilp,
     ehcp,
+    apdrCycles: apdrCyclesRaw.map(c => ({
+      id: c.id, studentId: c.studentId, schoolId: c.schoolId,
+      cycleNumber: c.cycleNumber, assessContent: c.assessContent,
+      planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
+      status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
+      approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
+      approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+    })) as ApdrRow[],
     subjectPerf,
     recentHomeworks,
     completionRate,

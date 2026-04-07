@@ -9,13 +9,18 @@ import {
   saveStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
   generateRevisionSuggestions,
 } from '@/app/actions/students'
+import type { ApdrRow } from '@/app/actions/send-support'
+import {
+  updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent,
+} from '@/app/actions/send-support'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Overview' | 'Plans' | 'Homework' | 'Notes' | 'Contact'
-const TABS: Tab[] = ['Overview', 'Plans', 'Homework', 'Notes', 'Contact']
+type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Notes' | 'Contact'
+const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Notes', 'Contact']
 const TAB_ICONS: Record<Tab, string> = {
   Overview: 'person',
   Plans:    'description',
+  APDR:     'loop',
   Homework: 'assignment',
   Notes:    'note_alt',
   Contact:  'contacts',
@@ -582,11 +587,286 @@ function ContactsTab({ student, parentContacts }: { student: StudentFileData['st
   )
 }
 
+// ── APDR Tab ──────────────────────────────────────────────────────────────────
+
+type ApdrSection = 'assessContent' | 'planContent' | 'doContent' | 'reviewContent'
+
+function ApdrSectionEditor({
+  label, value, apdrId, section, canEdit, placeholder,
+}: {
+  label: string
+  value: string
+  apdrId: string
+  section: ApdrSection
+  canEdit: boolean
+  placeholder?: string
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [saved, setSaved] = useState(false)
+  const [pending, startTransition] = useTransition()
+
+  function handleSave() {
+    startTransition(async () => {
+      await updateAPDRSection(apdrId, section, draft)
+      setSaved(true)
+      setTimeout(() => { setSaved(false); setEditing(false) }, 1200)
+    })
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+        {canEdit && !editing && (
+          <button
+            onClick={() => { setDraft(value); setEditing(true) }}
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+          >
+            <Icon name="edit" size="sm" />Edit
+          </button>
+        )}
+      </div>
+      {editing ? (
+        <div className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            rows={5}
+            placeholder={placeholder}
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={pending}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              {saved ? 'Saved ✓' : pending ? 'Saving…' : 'Save'}
+            </button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 text-gray-600 text-sm">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-800 whitespace-pre-wrap">{value || <span className="text-gray-400 italic">{placeholder ?? 'Not yet completed.'}</span>}</p>
+      )}
+    </div>
+  )
+}
+
+function ApdrCycleCard({
+  cycle, isSenco, isTA, studentId,
+}: {
+  cycle: ApdrRow
+  isSenco: boolean
+  isTA: boolean
+  studentId: string
+}) {
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewDraft, setReviewDraft] = useState(cycle.reviewContent ?? '')
+  const [completing, startCompleteTransition] = useTransition()
+  const [approving, startApproveTransition] = useTransition()
+  const [approved, setApproved] = useState(cycle.approvedBySenco)
+  const isActive  = cycle.status === 'ACTIVE'
+  const isComplete = cycle.status === 'COMPLETED'
+
+  function handleApprove() {
+    startApproveTransition(async () => {
+      await approveAPDR(cycle.id)
+      setApproved(true)
+    })
+  }
+
+  function handleCompleteReview() {
+    startCompleteTransition(async () => {
+      await completeAPDRReview(cycle.id, reviewDraft)
+      setShowReviewForm(false)
+    })
+  }
+
+  const statusColors: Record<string, string> = {
+    ACTIVE:    'bg-emerald-100 text-emerald-700',
+    COMPLETED: 'bg-gray-100 text-gray-500',
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-sm text-gray-800">Cycle {cycle.cycleNumber}</h3>
+          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColors[cycle.status] ?? 'bg-gray-100 text-gray-600'}`}>
+            {cycle.status.toLowerCase()}
+          </span>
+          {approved && (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+              <Icon name="verified" size="sm" />Approved
+            </span>
+          )}
+        </div>
+        <span className="text-xs text-gray-400">
+          Review due: {new Date(cycle.reviewDate).toLocaleDateString('en-GB')}
+        </span>
+      </div>
+      <div className="px-5 py-4 space-y-5">
+        <ApdrSectionEditor
+          label="Assess"
+          value={cycle.assessContent}
+          apdrId={cycle.id}
+          section="assessContent"
+          canEdit={isSenco && isActive}
+          placeholder="Current assessment: strengths, areas of need, baseline data."
+        />
+        <ApdrSectionEditor
+          label="Plan"
+          value={cycle.planContent}
+          apdrId={cycle.id}
+          section="planContent"
+          canEdit={isSenco && isActive}
+          placeholder="Strategies, targets, TA support and monitoring approach."
+        />
+        <ApdrSectionEditor
+          label="Do — observations & notes"
+          value={cycle.doContent}
+          apdrId={cycle.id}
+          section="doContent"
+          canEdit={(isSenco || isTA) && isActive}
+          placeholder="Add observations during this cycle — what is working, what needs adjustment."
+        />
+        {(isSenco || cycle.reviewContent) && (
+          <ApdrSectionEditor
+            label="Review"
+            value={cycle.reviewContent ?? ''}
+            apdrId={cycle.id}
+            section="reviewContent"
+            canEdit={isSenco && isActive}
+            placeholder="End-of-cycle review: impact on progress, next steps."
+          />
+        )}
+
+        {isSenco && isActive && !approved && (
+          <button
+            onClick={handleApprove}
+            disabled={approving}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+          >
+            <Icon name="check_circle" size="sm" />
+            {approving ? 'Approving…' : 'Approve APDR'}
+          </button>
+        )}
+
+        {isSenco && isActive && !showReviewForm && (
+          <button
+            onClick={() => setShowReviewForm(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium"
+          >
+            <Icon name="rate_review" size="sm" />Complete review &amp; start next cycle
+          </button>
+        )}
+
+        {isSenco && isActive && showReviewForm && (
+          <div className="space-y-3 border-t border-gray-100 pt-4">
+            <p className="text-sm font-medium text-gray-700">Review notes (saved on completion)</p>
+            <textarea
+              value={reviewDraft}
+              onChange={e => setReviewDraft(e.target.value)}
+              rows={4}
+              placeholder="Summarise impact of this cycle and recommendations for next cycle…"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCompleteReview}
+                disabled={completing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                <Icon name="done_all" size="sm" />
+                {completing ? 'Completing…' : 'Mark complete + start next cycle'}
+              </button>
+              <button onClick={() => setShowReviewForm(false)} className="px-3 py-1.5 text-gray-600 text-sm">Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {isComplete && (
+          <p className="text-xs text-gray-400 flex items-center gap-1">
+            <Icon name="check" size="sm" />Cycle completed
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ApdrTab({
+  cycles, isSenco, isTA, studentId,
+}: {
+  cycles: ApdrRow[]
+  isSenco: boolean
+  isTA: boolean
+  studentId: string
+}) {
+  const [generating, startGenerateTransition] = useTransition()
+
+  function handleGenerate() {
+    startGenerateTransition(async () => {
+      await generateAPDRForStudent(studentId)
+    })
+  }
+
+  if (cycles.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-8 text-center">
+          <Icon name="loop" size="lg" color="#d1d5db" />
+          <p className="text-sm text-gray-500 mt-2">No APDR cycles on file.</p>
+          {isSenco && (
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            >
+              <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
+              {generating ? 'Generating…' : 'Generate APDR from ILP'}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      {isSenco && (
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+          >
+            <Icon name={generating ? 'refresh' : 'add_circle_outline'} size="sm" className={generating ? 'animate-spin' : ''} />
+            {generating ? 'Generating…' : 'New cycle from ILP'}
+          </button>
+        </div>
+      )}
+      {cycles.map(cycle => (
+        <ApdrCycleCard
+          key={cycle.id}
+          cycle={cycle}
+          isSenco={isSenco}
+          isTA={isTA}
+          studentId={studentId}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudentFilePanel({ data, role }: { data: StudentFileData; role: string }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
+  const isTA    = role === 'TA'
   const { student } = data
   const studentName = `${student.firstName} ${student.lastName}`
 
@@ -752,6 +1032,16 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
             </SectionCard>
           )}
         </div>
+      )}
+
+      {/* ── Tab: APDR ── */}
+      {activeTab === 'APDR' && (
+        <ApdrTab
+          cycles={data.apdrCycles}
+          isSenco={isSenco}
+          isTA={isTA}
+          studentId={student.id}
+        />
       )}
 
       {/* ── Tab: Homework ── */}

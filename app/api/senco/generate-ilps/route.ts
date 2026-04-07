@@ -82,7 +82,7 @@ export async function POST() {
   const errors: string[] = []
 
   const client = new Anthropic({ apiKey })
-  const BATCH  = 10   // parallel Claude calls per round
+  const BATCH  = 5    // parallel Claude calls per round — conservative to stay clear of rate limits
 
   for (let i = 0; i < toProcess.length; i += BATCH) {
     const batch = toProcess.slice(i, i + BATCH)
@@ -144,6 +144,11 @@ export async function POST() {
         errors.push(`${student.firstName} ${student.lastName}: ${String(err).slice(0, 100)}`)
       }
     }))
+
+    // 1s pause between batches — avoids hitting Anthropic RPM limits on large cohorts
+    if (i + BATCH < toProcess.length) {
+      await new Promise(r => setTimeout(r, 1000))
+    }
   }
 
   skipped = students.length - toProcess.length

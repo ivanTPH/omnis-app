@@ -417,6 +417,7 @@ model Enrolment {
   user    User        @relation(fields: [userId], references: [id])
 
   @@id([classId, userId])
+  @@index([userId])     // speeds up lookups by student across all classes
 }
 
 model ParentStudentLink {

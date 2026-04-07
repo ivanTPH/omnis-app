@@ -1,6 +1,7 @@
 'use server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { unstable_cache } from 'next/cache'
 import { SendStatusValue, HomeworkStatus, Role } from '@prisma/client'
 import { percentToGcseGrade } from '@/lib/grading'
 
@@ -152,12 +153,9 @@ export type FilterOptions = {
   teachers:       { id: string; firstName: string; lastName: string }[]
 }
 
-export async function getAnalyticsFilters(): Promise<FilterOptions> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
-
-  try {
+// Cache filter options per school for 60s — these change rarely (class lists, teacher lists)
+const fetchFilterOptions = unstable_cache(
+  async (schoolId: string): Promise<FilterOptions> => {
     const [rawClasses, students, sendStatuses, teachers] = await Promise.all([
       prisma.schoolClass.findMany({
         where:   { schoolId },
@@ -187,6 +185,17 @@ export async function getAnalyticsFilters(): Promise<FilterOptions> {
     const sendCategories = sendStatuses.map(s => s.activeStatus as string)
 
     return { subjects, yearGroups, classes, students, sendCategories, teachers }
+  },
+  ['analytics-filter-options'],
+  { revalidate: 60 }
+)
+
+export async function getAnalyticsFilters(): Promise<FilterOptions> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+  try {
+    return await fetchFilterOptions(schoolId)
   } catch {
     return { subjects: [], yearGroups: [], classes: [], students: [], sendCategories: [], teachers: [] }
   }

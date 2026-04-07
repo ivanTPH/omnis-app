@@ -614,8 +614,8 @@ export async function generateHomeworkFromResources(
   let sendContextBlock = ''
   try {
     if (lesson.classId) {
-      const classSize = await prisma.enrolment.count({ where: { classId: lesson.classId } })
-      const [sendStatuses, ilpData] = await Promise.all([
+      const [classSize, sendStatuses, ilpData] = await Promise.all([
+        prisma.enrolment.count({ where: { classId: lesson.classId } }),
         prisma.sendStatus.findMany({
           where: {
             student: { enrolments: { some: { classId: lesson.classId } } },

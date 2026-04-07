@@ -69,22 +69,35 @@ export async function getHomeworkForMarking(homeworkId: string) {
     : []
   const kPlanByStudent = Object.fromEntries(kPlans.map(p => [p.studentId, { teacherActions: p.teacherActions }]))
 
-  // Active ILP goals for SEND students (for marking sidebar)
+  // Active ILP goals for SEND students — use new IndividualLearningPlan model (Phase 2.2)
   const sendStudentIds = sendStatuses.map(s => s.studentId)
-  const ilpRecords: Array<{ id: string; studentId: string; needsSummary: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }> = sendStudentIds.length
-    ? await (prisma as any).iLP.findMany({
-        where: { studentId: { in: sendStudentIds }, schoolId, status: 'ACTIVE' },
+  const ilpRaw: any[] = sendStudentIds.length
+    ? await (prisma as any).individualLearningPlan.findMany({
+        where: { studentId: { in: sendStudentIds }, schoolId, status: 'active', approvedBySenco: true },
         select: {
-          id: true, studentId: true, needsSummary: true,
+          id: true, studentId: true, areasOfNeed: true,
           targets: {
-            where: { achieved: false },
-            select: { id: true, description: true, successCriteria: true, subject: true },
+            where: { status: 'active' },
+            select: { id: true, target: true, strategy: true, successMeasure: true },
           },
         },
       })
     : []
+  // Normalise to the shape the marking view expects
   const ilpByStudent: Record<string, { id: string; needsSummary: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }> =
-    Object.fromEntries(ilpRecords.map(r => [r.studentId, r]))
+    Object.fromEntries(ilpRaw.map((r: any) => [
+      r.studentId,
+      {
+        id:           r.id,
+        needsSummary: r.areasOfNeed ?? '',
+        targets: (r.targets as any[]).map((t: any) => ({
+          id:              t.id,
+          description:     t.target,
+          successCriteria: t.strategy,
+          subject:         null as string | null,
+        })),
+      },
+    ]))
 
   // Teacher notes for each submission
   const subIds = hw.submissions.map(s => s.id)
@@ -1171,20 +1184,29 @@ export async function markSubmission(submissionId: string, data: {
     },
   })
 
-  // Check for active ILP with unachieved targets
+  // Check for active approved ILP with active targets (new IndividualLearningPlan model)
   const studentId = sub.studentId
-  const ilpRecord = await (prisma as any).iLP.findFirst({
-    where: { studentId, schoolId, status: 'ACTIVE' },
+  const ilpRecord = await (prisma as any).individualLearningPlan.findFirst({
+    where: { studentId, schoolId, status: 'active', approvedBySenco: true },
     select: {
       id: true,
       targets: {
-        where: { achieved: false },
-        select: { id: true, description: true, successCriteria: true, subject: true },
+        where: { status: 'active' },
+        select: { id: true, target: true, strategy: true, successMeasure: true },
       },
     },
   })
   const ilpData = ilpRecord && ilpRecord.targets.length > 0
-    ? { studentId, ilpId: ilpRecord.id as string, targets: ilpRecord.targets as Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }
+    ? {
+        studentId,
+        ilpId:   ilpRecord.id as string,
+        targets: (ilpRecord.targets as any[]).map(t => ({
+          id:              t.id,
+          description:     t.target,
+          successCriteria: t.strategy,
+          subject:         null as string | null,
+        })),
+      }
     : null
 
   void updateLearningProfile(sub.studentId).catch(() => {})
@@ -1417,7 +1439,47 @@ export async function saveIlpEvidenceEntries(
     skipDuplicates: true,
   })
 
+  // Auto-raise SENCO notification if student now has 3+ CONCERN entries this term
+  const hasConcern = entries.some(e => e.evidenceType === 'CONCERN')
+  if (hasConcern) {
+    try {
+      const now = new Date()
+      const currentTerm = await prisma.termDate.findFirst({
+        where: { schoolId, startsAt: { lte: now }, endsAt: { gte: now } },
+      })
+      const termStart = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
+      const concernCount = await (prisma as any).ilpEvidenceEntry.count({
+        where: { schoolId, studentId: sub.studentId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
+      })
+      if (concernCount >= 3) {
+        const notifLinkHref = `/student/${sub.studentId}/send`
+        const alreadyNotified = await prisma.notification.findFirst({
+          where: { schoolId, type: 'ILP_CONCERN_THRESHOLD', linkHref: notifLinkHref },
+        })
+        if (!alreadyNotified) {
+          const student = await prisma.user.findUnique({ where: { id: sub.studentId }, select: { firstName: true, lastName: true } })
+          const senco   = await prisma.user.findFirst({ where: { schoolId, role: 'SENCO' }, select: { id: true } })
+          if (student && senco) {
+            await prisma.notification.create({
+              data: {
+                schoolId,
+                userId:   senco.id,
+                type:     'ILP_CONCERN_THRESHOLD',
+                title:    `ILP concern alert: ${student.firstName} ${student.lastName}`,
+                body:     `${student.firstName} ${student.lastName} now has ${concernCount} CONCERN entries on their ILP this term. Review their progress.`,
+                linkHref: notifLinkHref,
+              },
+            })
+          }
+        }
+      }
+    } catch {
+      // Notification is best-effort; don't fail the evidence save
+    }
+  }
+
   revalidatePath(`/send/ilp/${sub.studentId}`)
+  revalidatePath('/senco/early-warning')
 }
 
 // ── Get ILP Evidence for Student ──────────────────────────────────────────────

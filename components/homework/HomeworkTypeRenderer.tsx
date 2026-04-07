@@ -8,8 +8,11 @@ type Props = {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
-  showScaffold?: boolean  // show scaffolding_hint for SEND students
+  sendStatus?: string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  showScaffold?: boolean // legacy — treated as SEN_SUPPORT if sendStatus not provided
 }
+
+type VocabEntry = { term: string; definition: string }
 
 type Question = {
   id: string
@@ -18,20 +21,59 @@ type Question = {
   marks?: number
   hint?: string
   scaffolding_hint?: string
+  ehcp_adaptation?: string
+  vocab_support?: VocabEntry[]
 }
 
-export default function HomeworkTypeRenderer({ type, structuredContent, value, onChange, disabled, showScaffold }: Props) {
+function VocabGlossary({ terms }: { terms: VocabEntry[] }) {
+  const [open, setOpen] = useState(false)
+  if (!terms || terms.length === 0) return null
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 hover:text-purple-900"
+      >
+        <span className="text-[10px]">{open ? '▾' : '▸'}</span>
+        Key vocabulary ({terms.length} terms)
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg border border-purple-200 bg-purple-50 divide-y divide-purple-100">
+          {terms.map((v, i) => (
+            <div key={i} className="flex gap-2 px-3 py-1.5">
+              <span className="text-xs font-semibold text-purple-800 shrink-0 min-w-[110px]">{v.term}</span>
+              <span className="text-xs text-purple-700">{v.definition}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function HomeworkTypeRenderer({ type, structuredContent, value, onChange, disabled, sendStatus, showScaffold }: Props) {
   const content = structuredContent as { questions?: Question[]; prompt?: string; wordCount?: number; steps?: string[] } | null
+
+  // Resolve effective SEND level
+  const effectiveSend = sendStatus ?? (showScaffold ? 'SEN_SUPPORT' : 'NONE')
+  const isEhcp    = effectiveSend === 'EHCP'
+  const isSen     = effectiveSend === 'SEN_SUPPORT'
 
   // Parse stored answers for structured types
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
     try { return JSON.parse(value) } catch { return {} }
   })
+  const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({})
 
   function updateAnswer(id: string, answer: string) {
     const updated = { ...answers, [id]: answer }
     setAnswers(updated)
     onChange(JSON.stringify(updated))
+  }
+
+  function toggleOriginal(id: string) {
+    setShowOriginal(prev => ({ ...prev, [id]: !prev[id] }))
   }
 
   switch (type) {
@@ -79,6 +121,7 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
     }
 
     case 'short_answer':
+    case 'SHORT_ANSWER':
     case 'retrieval_practice': {
       const questions = content?.questions ?? []
       if (questions.length === 0) {
@@ -95,27 +138,61 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
       }
       return (
         <div className="space-y-5">
-          {questions.map((q, i) => (
-            <div key={q.id ?? i} className="space-y-1.5">
-              <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
-              {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
-              {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
-              {showScaffold && q.scaffolding_hint && (
-                <div className="flex items-start gap-2 px-3 py-2 bg-purple-50 border border-purple-200 rounded-lg">
-                  <span className="text-[10px] font-bold text-purple-600 shrink-0 mt-0.5">HINT</span>
-                  <p className="text-xs text-purple-700">{q.scaffolding_hint}</p>
-                </div>
-              )}
-              <textarea
-                value={answers[q.id ?? i] ?? ''}
-                onChange={e => updateAnswer(String(q.id ?? i), e.target.value)}
-                disabled={disabled}
-                placeholder="Your answer…"
-                rows={3}
-                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none disabled:bg-gray-50"
-              />
-            </div>
-          ))}
+          {questions.map((q, i) => {
+            const qId = q.id ?? String(i)
+            // For EHCP: show adapted question text; for others: standard question
+            const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
+            const isShowingOriginal = showOriginal[qId]
+
+            return (
+              <div key={qId} className="space-y-1.5">
+                {/* Question text */}
+                {isEhcp && q.ehcp_adaptation && isShowingOriginal ? (
+                  <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
+                ) : (
+                  <p className="text-sm font-medium text-gray-800">{i + 1}. {questionText}</p>
+                )}
+
+                {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
+                {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
+
+                {/* EHCP: vocab glossary + show original toggle */}
+                {isEhcp && (
+                  <>
+                    {q.vocab_support && q.vocab_support.length > 0 && (
+                      <VocabGlossary terms={q.vocab_support} />
+                    )}
+                    {q.ehcp_adaptation && (
+                      <button
+                        type="button"
+                        onClick={() => toggleOriginal(qId)}
+                        className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                      >
+                        {isShowingOriginal ? 'Show simplified question' : 'Show original question'}
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* SEN Support: scaffolding hint in blue box */}
+                {isSen && q.scaffolding_hint && (
+                  <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
+                    <p className="text-xs text-blue-700">{q.scaffolding_hint}</p>
+                  </div>
+                )}
+
+                <textarea
+                  value={answers[qId] ?? ''}
+                  onChange={e => updateAnswer(qId, e.target.value)}
+                  disabled={disabled}
+                  placeholder="Your answer…"
+                  rows={3}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none disabled:bg-gray-50"
+                />
+              </div>
+            )
+          })}
         </div>
       )
     }

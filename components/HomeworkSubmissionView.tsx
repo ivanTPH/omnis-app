@@ -148,7 +148,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             value={content}
             onChange={setContent}
             disabled={textareaDisabled}
-            showScaffold={(hw.sendStatus ?? 'NONE') !== 'NONE'}
+            sendStatus={hw.sendStatus ?? 'NONE'}
           />
         ) : (
           <textarea

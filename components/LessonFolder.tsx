@@ -382,10 +382,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         })))
       } else if (type === 'SHORT_ANSWER' && qs.length > 0) {
         setSaQuestions((qs as any[]).map(q => ({
-          q:           q.q           ?? '',
-          modelAnswer: q.modelAnswer ?? '',
-          markScheme:  q.markScheme  ?? undefined,
-          marks:       q.marks       ?? undefined,
+          q:                q.q                ?? '',
+          modelAnswer:      q.modelAnswer      ?? '',
+          markScheme:       q.markScheme       ?? undefined,
+          marks:            q.marks            ?? undefined,
+          scaffolding_hint: q.scaffolding_hint ?? undefined,
+          ehcp_adaptation:  q.ehcp_adaptation  ?? undefined,
+          vocab_support:    q.vocab_support    ?? undefined,
         })))
       }
       // Build "generated from" label

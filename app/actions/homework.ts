@@ -361,11 +361,13 @@ export type MCQQuestion = {
 }
 
 export type SAQuestion = {
-  q:                string
-  modelAnswer:      string
-  markScheme?:      string
-  marks?:           number
+  q:                 string
+  modelAnswer:       string
+  markScheme?:       string
+  marks?:            number
   scaffolding_hint?: string
+  ehcp_adaptation?:  string
+  vocab_support?:    { term: string; definition: string }[]
 }
 
 type ProposalResult = {
@@ -402,7 +404,11 @@ Return this exact JSON structure (questionsJson is required):
     case 'SHORT_ANSWER':
       return `Generate exactly 4 short-answer questions directly testing the learning objectives above.
 Each question should require a 3–5 sentence response and include a detailed mark scheme.
-For each question, also provide a scaffolding_hint: a short sentence starter or guided prompt to help students who need more support (e.g. "Think about... / Consider the role of... / Start with: The main reason was...").
+
+For EVERY question provide all four accessibility fields:
+- scaffolding_hint: a sentence starter or step-by-step scaffold for SEN Support students (e.g. "Think about... / Start with: The main reason was...")
+- ehcp_adaptation: a simplified version of the question in plain, short sentences for EHCP students (same mark scheme applies — lower reading demand, same thinking demand)
+- vocab_support: array of exactly 5 key terms with simple one-sentence definitions relevant to this question
 
 Return this exact JSON structure (questionsJson is required):
 {
@@ -413,8 +419,21 @@ Return this exact JSON structure (questionsJson is required):
   "targetWordCount": 0,
   "questionsJson": {
     "questions": [
-      {"q": "Question text", "modelAnswer": "Full model answer for this question", "markScheme": "Award 1 mark for... Award 2 marks for...", "marks": 4, "scaffolding_hint": "Think about... / Start your answer with: The key event was..."},
-      ...
+      {
+        "q": "Standard question text",
+        "modelAnswer": "Full model answer for this question",
+        "markScheme": "Award 1 mark for... Award 2 marks for...",
+        "marks": 4,
+        "scaffolding_hint": "Think about... / Start your answer with: The key...",
+        "ehcp_adaptation": "Simpler version of the question using shorter sentences and plain words.",
+        "vocab_support": [
+          {"term": "Key term 1", "definition": "Simple one-sentence definition"},
+          {"term": "Key term 2", "definition": "Simple one-sentence definition"},
+          {"term": "Key term 3", "definition": "Simple one-sentence definition"},
+          {"term": "Key term 4", "definition": "Simple one-sentence definition"},
+          {"term": "Key term 5", "definition": "Simple one-sentence definition"}
+        ]
+      }
     ]
   }
 }`
@@ -582,32 +601,70 @@ export async function generateHomeworkFromResources(
   let sendContextBlock = ''
   try {
     if (lesson.classId) {
-      const [sendStatuses, ilpTargets] = await Promise.all([
+      const classSize = await prisma.enrolment.count({ where: { classId: lesson.classId } })
+      const [sendStatuses, ilpData] = await Promise.all([
         prisma.sendStatus.findMany({
           where: {
             student: { enrolments: { some: { classId: lesson.classId } } },
             NOT: { activeStatus: 'NONE' },
           },
-          select: { activeStatus: true, needArea: true },
+          select: { studentId: true, activeStatus: true, needArea: true },
         }),
-        prisma.ilpTarget.findMany({
+        (prisma as any).individualLearningPlan.findMany({
           where: {
+            approvedBySenco: true,
             status: 'active',
-            ilp: { student: { enrolments: { some: { classId: lesson.classId } } } },
+            student: { enrolments: { some: { classId: lesson.classId } } },
           },
-          select: { target: true },
-          take: 5,
+          select: {
+            studentId:   true,
+            sendCategory: true,
+            areasOfNeed:  true,
+            targets: {
+              where: { status: 'active' },
+              select: { target: true },
+              take: 2,
+            },
+          },
         }),
       ])
       if (sendStatuses.length > 0) {
-        const ehcpCount = sendStatuses.filter(s => s.activeStatus === 'EHCP').length
-        const senCount  = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT').length
-        const needAreas = [...new Set(sendStatuses.map(s => s.needArea).filter(Boolean))].slice(0, 5)
+        const ilpByStudent: Record<string, { sendCategory: string; areasOfNeed: string; targets: { target: string }[] }> =
+          Object.fromEntries(ilpData.map((i: any) => [i.studentId, i]))
+
+        const ehcpStudents = sendStatuses.filter(s => s.activeStatus === 'EHCP')
+        const senStudents  = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT')
+        const noneCount    = Math.max(0, classSize - sendStatuses.length)
+
+        const senNeeds = [...new Set(
+          senStudents.map(s => ilpByStudent[s.studentId]?.sendCategory || s.needArea || 'SEN Support').filter(Boolean)
+        )].slice(0, 4)
+
+        const senTargets = senStudents
+          .flatMap(s => ilpByStudent[s.studentId]?.targets.map(t => t.target) ?? [])
+          .slice(0, 3)
+
+        const ehcpNeeds = [...new Set(
+          ehcpStudents.map(s => ilpByStudent[s.studentId]?.sendCategory || s.needArea || 'EHCP').filter(Boolean)
+        )].slice(0, 4)
+
+        const ehcpAreas = ehcpStudents
+          .map(s => ilpByStudent[s.studentId]?.areasOfNeed)
+          .filter(Boolean)
+          .slice(0, 2)
+
         sendContextBlock = `
-CLASS SEND PROFILE
-==================
-This class has ${sendStatuses.length} student${sendStatuses.length !== 1 ? 's' : ''} with SEND needs (${ehcpCount > 0 ? `${ehcpCount} EHCP` : ''}${ehcpCount > 0 && senCount > 0 ? ', ' : ''}${senCount > 0 ? `${senCount} SEN Support` : ''}).${needAreas.length > 0 ? `\nNeed areas: ${needAreas.join(', ')}.` : ''}${ilpTargets.length > 0 ? `\nActive ILP targets include: ${ilpTargets.map(t => t.target).join('; ')}.` : ''}
-The scaffolding_hint for each question should address these specific needs — use sentence starters, break the question into steps, or highlight key vocabulary to scaffold access for these students.
+CLASS SEND PROFILE — use this to generate all accessibility fields in every question
+=====================================================================================
+- ${noneCount} student${noneCount !== 1 ? 's' : ''}: standard questions only
+- ${senStudents.length} student${senStudents.length !== 1 ? 's' : ''} SEN Support — needs: ${senNeeds.join(', ') || 'general learning support'}
+  ILP targets: ${senTargets.join('; ') || 'not yet recorded'}
+  → For these students: scaffolding_hint must be a sentence starter or step-by-step scaffold
+- ${ehcpStudents.length} student${ehcpStudents.length !== 1 ? 's' : ''} EHCP — categories: ${ehcpNeeds.join(', ') || 'EHCP'}
+  Areas of need: ${ehcpAreas.join('; ') || 'not yet recorded'}
+  → For these students: ehcp_adaptation must simplify the question into plain language and shorter sentences; vocab_support must define 5 key subject terms simply
+
+ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support fields regardless of class size.
 `
       }
     }

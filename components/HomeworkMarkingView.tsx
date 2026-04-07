@@ -379,9 +379,17 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     optionsJson: unknown; correctAnswerJson: unknown; rubricJson: unknown
     explanationText: string | null; maxScore: number
   }>
-  const structuredContent = (hw as any).structuredContent as {
+  // Use structuredContent if available; fall back to questionsJson for LessonFolder-created homework
+  const rawQuestionsJson = (hw as any).questionsJson as { questions?: Array<{ q?: string; question?: string; modelAnswer?: string; markScheme?: string; marks?: number; ehcp_adaptation?: string; scaffolding_hint?: string }> } | null
+  const structuredContent = ((hw as any).structuredContent as {
     questions?: Array<{ question: string; answer?: string; modelAnswer?: string; marks?: number }>
-  } | null
+  } | null) ?? (rawQuestionsJson?.questions ? {
+    questions: rawQuestionsJson.questions.map(q => ({
+      question:    q.q ?? q.question ?? '',
+      modelAnswer: q.modelAnswer ?? q.markScheme ?? undefined,
+      marks:       q.marks,
+    })),
+  } : null)
   const structuredAnswers = ((selectedSub?.structuredResponse as { answers?: string[] } | null)?.answers) ?? []
 
   const hasStructuredQuestions = questions.length > 0 || (structuredContent?.questions?.length ?? 0) > 0
@@ -977,6 +985,20 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 </div>
               </div>
 
+              {/* SEND adaptation indicator */}
+              {sendInfo && sendInfo.activeStatus !== 'NONE' && rawQuestionsJson?.questions?.some(q => q.ehcp_adaptation || q.scaffolding_hint) && (
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                  sendInfo.activeStatus === 'EHCP'
+                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                }`}>
+                  <span className="text-[10px]">{sendInfo.activeStatus === 'EHCP' ? '♿' : '⭐'}</span>
+                  {sendInfo.activeStatus === 'EHCP'
+                    ? 'This student saw a simplified question with vocab glossary'
+                    : 'This student saw the standard question with a scaffolding hint'}
+                </div>
+              )}
+
               {/* K Plan lesson actions */}
               {selectedKPlan && selectedKPlan.teacherActions.length > 0 && (
                 <div className={`border rounded-xl overflow-hidden ${
@@ -1074,7 +1096,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                             prompt={q.question}
                             type="SHORT_ANSWER"
                             optionsJson={null}
-                            correctAnswerJson={q.answer ?? q.modelAnswer ?? null}
+                            correctAnswerJson={(q as any).answer ?? q.modelAnswer ?? null}
                             rubricJson={null}
                             explanationText={null}
                             maxScore={q.marks ?? 1}

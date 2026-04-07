@@ -20,8 +20,10 @@ export async function getStudentHomework(homeworkId: string) {
         dueAt:               true,
         maxAttempts:         true,
         isAdapted:           true,
+        type:                true,
         homeworkVariantType: true,
         structuredContent:   true,
+        questionsJson:       true,
         class: { select: { name: true, subject: true, yearGroup: true } },
         submissions: {
           where: { studentId: userId },
@@ -58,7 +60,49 @@ export async function getStudentHomework(homeworkId: string) {
     modelAnswer = full?.modelAnswer ?? null
   }
 
-  return { ...hw, submission, modelAnswer, sendStatus }
+  // Convert questionsJson → structuredContent when homework was created via LessonFolder
+  // (LessonFolder stores AI questions in questionsJson, not structuredContent)
+  let resolvedVariantType  = hw.homeworkVariantType
+  let resolvedStructuredContent: unknown = hw.structuredContent
+
+  if (!resolvedStructuredContent && hw.questionsJson) {
+    const qj = hw.questionsJson as { questions?: any[] }
+    if (Array.isArray(qj.questions) && qj.questions.length > 0) {
+      if (hw.type === 'SHORT_ANSWER') {
+        resolvedVariantType = 'short_answer'
+        resolvedStructuredContent = {
+          questions: qj.questions.map((q: any, i: number) => ({
+            id:               String(i + 1),
+            question:         q.q ?? q.question ?? '',
+            marks:            q.marks,
+            scaffolding_hint: q.scaffolding_hint,
+            ehcp_adaptation:  q.ehcp_adaptation,
+            vocab_support:    q.vocab_support,
+          })),
+        }
+      } else if (hw.type === 'MCQ_QUIZ') {
+        resolvedVariantType = 'quiz'
+        resolvedStructuredContent = {
+          questions: qj.questions.map((q: any, i: number) => ({
+            id:      String(i + 1),
+            question: q.q ?? q.question ?? '',
+            options:  q.options,
+            marks:    q.marks,
+          })),
+        }
+      }
+    }
+  }
+
+  const { questionsJson: _qj, type: _type, ...hwRest } = hw
+  return {
+    ...hwRest,
+    homeworkVariantType: resolvedVariantType,
+    structuredContent:   resolvedStructuredContent,
+    submission,
+    modelAnswer,
+    sendStatus,
+  }
 }
 
 export async function submitHomework(homeworkId: string, content: string) {

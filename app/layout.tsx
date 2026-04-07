@@ -11,6 +11,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title:       'Omnis Education',
   description: 'Secondary Learning & SEND Intelligence Platform',
+  icons: {
+    icon:   '/favicon.png',
+    apple:  '/favicon.png',
+  },
 }
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 }
 

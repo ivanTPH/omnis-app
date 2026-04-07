@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { prisma, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
+import { prisma, writeAudit, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
@@ -1425,6 +1425,15 @@ export async function approveGeneratedIlp(ilpId: string): Promise<void> {
       approvedAt:      new Date(),
       approvedBy:      user.id,
     },
+  })
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'ILP_ACTIVATED',
+    targetType: 'IndividualLearningPlan',
+    targetId:   ilpId,
+    metadata:   { studentId: ilp.studentId, sendCategory: ilp.sendCategory, approvedBy: `${user.firstName} ${user.lastName}` },
   })
 
   // Notify class teachers and HoY that an ILP is now active

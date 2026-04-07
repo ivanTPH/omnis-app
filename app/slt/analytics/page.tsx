@@ -46,12 +46,38 @@ export default async function SltAnalyticsPage() {
   }
 
   // SEND overview
-  const in30days = new Date(Date.now() + 30 * 86_400_000) // eslint-disable-line react-hooks/purity
-  const [sendTotal, activePlans, reviewsDue] = await Promise.all([
+  const in30days  = new Date(Date.now() + 30 * 86_400_000) // eslint-disable-line react-hooks/purity
+  const last30days = new Date(Date.now() - 30 * 86_400_000)
+
+  const [sendTotal, senSupportCount, ehcpCount, ilpCoverage, reviewsDue] = await Promise.all([
     prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
-    prisma.plan.count({ where: { schoolId, status: { in: [PlanStatus.ACTIVE_INTERNAL, PlanStatus.ACTIVE_PARENT_SHARED] } } }),
+    prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'SEN_SUPPORT' } }),
+    prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'EHCP' } }),
+    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', approvedBySenco: true } }),
     prisma.plan.count({ where: { schoolId, reviewDate: { lte: in30days }, status: { notIn: [PlanStatus.ARCHIVED] } } }),
   ])
+
+  // Attainment gap: SEND vs school avg (last 30 days, finalScore on 0–9 scale)
+  const sendIds = (await prisma.sendStatus.findMany({
+    where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
+    select: { studentId: true },
+  })).map(s => s.studentId)
+
+  const [sendAvgResult, allAvgResult] = await Promise.all([
+    sendIds.length > 0
+      ? prisma.submission.aggregate({
+          where: { schoolId, studentId: { in: sendIds }, finalScore: { not: null }, submittedAt: { gte: last30days } },
+          _avg: { finalScore: true },
+        })
+      : Promise.resolve({ _avg: { finalScore: null } }),
+    prisma.submission.aggregate({
+      where: { schoolId, finalScore: { not: null }, submittedAt: { gte: last30days } },
+      _avg: { finalScore: true },
+    }),
+  ])
+  const sendAvgScore  = sendAvgResult._avg.finalScore  ?? null
+  const allAvgScore   = allAvgResult._avg.finalScore   ?? null
+  const ilpCoveragePC = sendTotal > 0 ? Math.round(ilpCoverage / sendTotal * 100) : 0
 
   // School-wide live submission stats
   const [totalHw, totalSubs, pendingMark] = await Promise.all([
@@ -296,19 +322,77 @@ export default async function SltAnalyticsPage() {
                   <Icon name="favorite" size="sm" className="text-purple-600" />
                   <h3 className="text-[13px] font-semibold text-purple-900">SEND Overview</h3>
                 </div>
-                <div className="space-y-3">
-                  {[
-                    { label: 'On register',    value: sendTotal,    colour: 'text-purple-900' },
-                    { label: 'Active plans',   value: activePlans,  colour: 'text-teal-700'   },
-                    { label: 'Reviews due (30d)', value: reviewsDue, colour: reviewsDue > 0 ? 'text-amber-600' : 'text-gray-400' },
-                  ].map(s => (
-                    <div key={s.label} className="flex items-center justify-between">
-                      <span className="text-[12px] text-purple-700">{s.label}</span>
-                      <span className={`text-[14px] font-bold ${s.colour}`}>{s.value}</span>
-                    </div>
-                  ))}
+
+                {/* Register breakdown */}
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] text-purple-700">On register</span>
+                    <span className="text-[14px] font-bold text-purple-900">{sendTotal}</span>
+                  </div>
+                  <div className="flex items-center justify-between pl-2">
+                    <span className="text-[11px] text-purple-600">SEN Support</span>
+                    <span className="text-[12px] font-semibold text-purple-800">{senSupportCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between pl-2">
+                    <span className="text-[11px] text-purple-600">EHCP</span>
+                    <span className="text-[12px] font-semibold text-purple-800">{ehcpCount}</span>
+                  </div>
                 </div>
-                <Link href="/send/dashboard" className="mt-4 flex items-center gap-1 text-[11px] text-purple-700 font-medium hover:underline">
+
+                {/* ILP coverage */}
+                <div className="border-t border-purple-200 pt-3 mb-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[12px] text-purple-700">ILP coverage</span>
+                    <span className="text-[12px] font-bold text-teal-700">{ilpCoveragePC}%</span>
+                  </div>
+                  <div className="h-1.5 bg-purple-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-teal-500 rounded-full" style={{ width: `${ilpCoveragePC}%` }} />
+                  </div>
+                  <p className="text-[10px] text-purple-500 mt-1">{ilpCoverage} of {sendTotal} SEND students have an active ILP</p>
+                </div>
+
+                {/* Attainment gap */}
+                {allAvgScore != null && (
+                  <div className="border-t border-purple-200 pt-3 mb-4">
+                    <p className="text-[12px] text-purple-700 font-medium mb-2">Attainment gap (last 30 days)</p>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-gray-500">School avg</span>
+                          <span className="text-[11px] font-bold text-gray-700">{formatAvgGrade(allAvgScore).main}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-400 rounded-full" style={{ width: `${Math.min(100, (allAvgScore / 9) * 100)}%` }} />
+                        </div>
+                      </div>
+                      {sendAvgScore != null ? (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-purple-600">SEND avg</span>
+                            <span className={`text-[11px] font-bold ${sendAvgScore < allAvgScore - 0.5 ? 'text-rose-600' : 'text-purple-700'}`}>
+                              {formatAvgGrade(sendAvgScore).main}
+                            </span>
+                          </div>
+                          <div className="h-1.5 bg-purple-200 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${sendAvgScore < allAvgScore - 0.5 ? 'bg-rose-400' : 'bg-purple-400'}`}
+                                 style={{ width: `${Math.min(100, (sendAvgScore / 9) * 100)}%` }} />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-purple-400">No SEND submissions in last 30 days</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between border-t border-purple-200 pt-3">
+                  <div className="flex items-center justify-between flex-1">
+                    <span className="text-[12px] text-purple-700">Reviews due (30d)</span>
+                    <span className={`text-[14px] font-bold ${reviewsDue > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{reviewsDue}</span>
+                  </div>
+                </div>
+
+                <Link href="/send/dashboard" className="mt-3 flex items-center gap-1 text-[11px] text-purple-700 font-medium hover:underline">
                   SEND Dashboard <Icon name="chevron_right" size="sm" />
                 </Link>
               </div>

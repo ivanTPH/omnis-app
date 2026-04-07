@@ -464,8 +464,18 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
         {showClassesPanel && (
           <>
             {isClassPending && (
-              <div className="flex items-center justify-center h-48">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden animate-pulse">
+                <div className="h-9 bg-gray-50 border-b border-gray-100" />
+                {[1,2,3,4,5].map(i => (
+                  <div key={i} className="grid grid-cols-[1fr_90px_130px_90px_70px_32px] items-center px-4 py-3.5 border-b border-gray-50 gap-3">
+                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded ml-auto w-10" />
+                    <div className="h-3 bg-gray-100 rounded mx-auto w-16" />
+                    <div className="h-3 bg-gray-100 rounded ml-auto w-10" />
+                    <div className="h-3 bg-gray-100 rounded ml-auto w-8" />
+                    <div className="w-5 h-5 bg-gray-100 rounded ml-auto" />
+                  </div>
+                ))}
               </div>
             )}
             {!isClassPending && classSummaries !== null && (
@@ -539,8 +549,27 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             {(studentView === 'detail' || !classId || studentId) && (
             <>
             {isPending && (
-              <div className="flex items-center justify-center h-64">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="space-y-3 animate-pulse">
+                {/* KPI cards skeleton */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[1,2,3,4].map(i => <div key={i} className="h-20 bg-white border border-gray-200 rounded-xl" />)}
+                </div>
+                {/* Student table skeleton */}
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="h-9 bg-gray-50 border-b border-gray-100" />
+                  {[1,2,3,4,5,6].map(i => (
+                    <div key={i} className="grid grid-cols-[1fr_130px_110px_110px_80px] items-center px-4 py-3.5 border-b border-gray-50 gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 bg-gray-200 rounded-full shrink-0" />
+                        <div className="h-3 bg-gray-200 rounded w-32" />
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded mx-auto w-20" />
+                      <div className="h-3 bg-gray-100 rounded mx-auto w-12" />
+                      <div className="h-3 bg-gray-100 rounded mx-auto w-12" />
+                      <div className="h-5 bg-gray-100 rounded mx-auto w-10" />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             {data && !isPending && (
@@ -616,8 +645,12 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             {studentId && (
               <div className="mt-5">
                 {studentFilePending && (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="space-y-3 animate-pulse">
+                    <div className="h-24 bg-white border border-gray-200 rounded-xl" />
+                    <div className="grid grid-cols-3 gap-3">
+                      {[1,2,3].map(i => <div key={i} className="h-16 bg-white border border-gray-200 rounded-xl" />)}
+                    </div>
+                    <div className="h-32 bg-white border border-gray-200 rounded-xl" />
                   </div>
                 )}
                 {studentFileData && !studentFilePending && (

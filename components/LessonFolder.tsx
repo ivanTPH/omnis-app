@@ -202,6 +202,21 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [saQuestions,     setSaQuestions]     = useState<SAQuestion[]>([])
   const [generatingHw,    setGeneratingHw]    = useState(false)
   const [genSource,       setGenSource]       = useState<string | null>(null)
+  const [hwGenProgress,   setHwGenProgress]   = useState(0)
+
+  // Simulated progress during homework generation (target < 30s)
+  useEffect(() => {
+    if (!generatingHw) { setHwGenProgress(0); return }
+    setHwGenProgress(0)
+    const interval = setInterval(() => {
+      setHwGenProgress(p => {
+        if (p >= 88) return p
+        const step = p < 40 ? 12 : p < 70 ? 6 : 2
+        return Math.min(p + step, 88)
+      })
+    }, 600)
+    return () => clearInterval(interval)
+  }, [generatingHw])
   const [headerEditDate,  setHeaderEditDate]  = useState(false)
   const [viewingHwId,    setViewingHwId]     = useState<string | null>(null)
   const [viewingHwTitle, setViewingHwTitle]  = useState('')
@@ -848,13 +863,24 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                   {/* Loading state */}
                   {generatingHw && (
-                    <div className="flex items-center gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-                      <Icon name="refresh" size="sm" className="animate-spin text-purple-600 shrink-0" />
-                      <div>
-                        <p className="text-[13px] font-semibold text-purple-800">
-                          ⚡ {genSource ? `Regenerating for ${hwType === 'MCQ_QUIZ' ? 'MCQ' : hwType === 'SHORT_ANSWER' ? 'Short Answer' : hwType === 'EXTENDED_WRITING' ? 'Essay' : 'Mixed'} format…` : 'Generating homework from your lesson content…'}
-                        </p>
-                        <p className="text-[11px] text-purple-600 mt-0.5">Creating {hwType === 'MCQ_QUIZ' ? 'quiz questions' : hwType === 'SHORT_ANSWER' ? 'questions and model answers' : 'homework content'} based on what was taught.</p>
+                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Icon name="auto_awesome" size="sm" className="text-purple-600 shrink-0 animate-pulse" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-purple-800">
+                            {genSource ? `Regenerating for ${hwType === 'MCQ_QUIZ' ? 'MCQ' : hwType === 'SHORT_ANSWER' ? 'Short Answer' : hwType === 'EXTENDED_WRITING' ? 'Essay' : 'Mixed'} format…` : 'Generating homework from lesson content…'}
+                          </p>
+                          <p className="text-[11px] text-purple-600 mt-0.5">
+                            {hwGenProgress < 35 ? 'Analysing lesson content…' : hwGenProgress < 65 ? 'Drafting questions…' : hwGenProgress < 85 ? 'Adding model answers…' : 'Almost ready…'}
+                          </p>
+                        </div>
+                        <span className="text-[11px] text-purple-500 shrink-0">{Math.round(hwGenProgress)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-purple-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500 rounded-full transition-all duration-600 ease-out"
+                          style={{ width: `${hwGenProgress}%` }}
+                        />
                       </div>
                     </div>
                   )}

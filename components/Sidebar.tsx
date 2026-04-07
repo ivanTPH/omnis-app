@@ -131,7 +131,12 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
       <div className="px-5 py-4 border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-blue-700 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-sm">O</span>
+            <svg viewBox="0 0 32 32" className="w-5 h-5" aria-hidden="true">
+              <polygon points="16,4 29,11 16,18 3,11" fill="white"/>
+              <path d="M9 13.5V21C9 23.5 12 25.5 16 25.5C20 25.5 23 23.5 23 21V13.5L16 17.5L9 13.5Z" fill="white"/>
+              <line x1="29" y1="11" x2="29" y2="20" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <circle cx="29" cy="22" r="2" fill="white"/>
+            </svg>
           </div>
           <div className="min-w-0">
             <div className="font-bold text-gray-900 text-[14px] leading-tight">Omnis</div>

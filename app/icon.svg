@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Mortarboard cap board (diamond) -->
+  <polygon points="16,4 29,11 16,18 3,11" fill="#1d4ed8"/>
+  <!-- Cap body -->
+  <path d="M9 13.5V21C9 23.5 12 25.5 16 25.5C20 25.5 23 23.5 23 21V13.5L16 17.5L9 13.5Z" fill="#1d4ed8"/>
+  <!-- Tassel cord -->
+  <line x1="29" y1="11" x2="29" y2="20" stroke="#1d4ed8" stroke-width="2" stroke-linecap="round"/>
+  <!-- Tassel ball -->
+  <circle cx="29" cy="22" r="2" fill="#1d4ed8"/>
+</svg>

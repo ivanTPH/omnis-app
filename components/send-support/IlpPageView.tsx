@@ -44,6 +44,24 @@ export default function IlpPageView({ ilps: initial }: Props) {
   const [studentId,      setStudentId]      = useState('')
   const [studentName,    setStudentName]    = useState('')
   const [genState,       setGenState]       = useState<GenerateState>({ phase: 'idle' })
+  const [ilpProgress,    setIlpProgress]    = useState(0)
+
+  // Simulated progress bar for bulk ILP generation (up to 60s)
+  useEffect(() => {
+    if (genState.phase !== 'loading') {
+      if (genState.phase === 'done') setIlpProgress(100)
+      return
+    }
+    setIlpProgress(0)
+    const interval = setInterval(() => {
+      setIlpProgress(p => {
+        if (p >= 88) return p
+        const step = p < 40 ? 9 : p < 65 ? 5 : p < 80 ? 2 : 0.5
+        return Math.min(p + step, 88)
+      })
+    }, 700)
+    return () => clearInterval(interval)
+  }, [genState.phase])
   const [pendingEdits,   setPendingEdits]   = useState<PendingIlpEdit[]>([])
   const [editAction,     setEditAction]     = useState<Record<string, 'approving' | 'rejecting'>>({})
   const [rejectReason,   setRejectReason]   = useState<Record<string, string>>({})
@@ -306,6 +324,36 @@ export default function IlpPageView({ ilps: initial }: Props) {
 
   return (
     <div className="space-y-4">
+
+      {/* ILP generation progress overlay */}
+      {genState.phase === 'loading' && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-7 text-center space-y-5">
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+              <Icon name="auto_awesome" size="md" className="text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-gray-900">Generating ILP Goals</h3>
+              <p className="text-[12px] text-gray-500 mt-1">
+                {ilpProgress < 30 ? 'Fetching student performance data…'
+                  : ilpProgress < 60 ? 'Generating personalised targets…'
+                  : ilpProgress < 85 ? 'Finalising ILP goals…'
+                  : 'Almost done…'}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${ilpProgress}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 text-right">{Math.round(ilpProgress)}%</p>
+            </div>
+            <p className="text-[11px] text-gray-400">This may take up to 60 seconds</p>
+          </div>
+        </div>
+      )}
       {/* Summary */}
       {reviewSoon.length > 0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 text-sm text-orange-800">

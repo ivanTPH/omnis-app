@@ -95,8 +95,11 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
   const [classId,    setClassId]    = useState(
     initialFilters?.classId ?? (isRestrictedRole ? (firstClass?.id ?? '') : '')
   )
-  const [sendCat,    setSendCat]    = useState('')
-  const [studentId,  setStudentId]  = useState('')
+  const [sendCat,        setSendCat]        = useState('')
+  const [studentId,      setStudentId]      = useState('')
+  const [teacherFilter,  setTeacherFilter]  = useState(
+    isRestrictedRole ? teacherDefaults.teacherUserId : ''
+  )
 
   // Client-side filter
   const [perfFilter, setPerfFilter] = useState<PerfFilter>('all')
@@ -143,11 +146,12 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
   function buildFilters(overrides: Partial<AnalyticsFilters> = {}): AnalyticsFilters {
     return {
-      subject:      subject   || undefined,
+      subject:      subject        || undefined,
       yearGroup:    yearGroup ? Number(yearGroup) : undefined,
-      classId:      classId   || undefined,
-      sendCategory: sendCat   || undefined,
-      studentId:    studentId || undefined,
+      classId:      classId        || undefined,
+      sendCategory: sendCat        || undefined,
+      studentId:    studentId      || undefined,
+      teacherId:    teacherFilter  || undefined,
       ...getDates(),
       ...overrides,
     }
@@ -176,10 +180,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
     fetchStudents()
   }
 
-  // Auto-run once on mount when pre-populated from lesson context (URL params)
+  // Auto-run once on mount: for URL-param navigation OR for restricted-role (teacher) landing
   const autoRanRef = useRef(false)
   useEffect(() => {
-    if (initialFilters?.classId && !autoRanRef.current) {
+    if (!autoRanRef.current && (initialFilters?.classId || isRestrictedRole)) {
       autoRanRef.current = true
       handleRun()
     }
@@ -195,6 +199,11 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
   }, [studentId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Dropdown handlers — pure state updates, NO auto-queries ──────────────
+  function changeTeacher(val: string) {
+    setTeacherFilter(val)
+    setSubject(''); setYearGroup(''); setClassId('')
+  }
+
   function changeSubject(val: string) {
     setSubject(val)
     setClassId('')
@@ -218,8 +227,9 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       setSubject(firstClass?.subject ?? '')
       setYearGroup(firstClass ? String(firstClass.yearGroup) : '')
       setClassId(firstClass?.id ?? '')
+      // teacherFilter stays locked for restricted roles
     } else {
-      setSubject(''); setYearGroup(''); setClassId('')
+      setSubject(''); setYearGroup(''); setClassId(''); setTeacherFilter('')
     }
     setSendCat(''); setStudentId(''); setPerfFilter('all')
   }
@@ -250,7 +260,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
     } finally { setSubLoading(false) }
   }
 
-  const hasFilters = subject || yearGroup || classId || sendCat || studentId || perfFilter !== 'all'
+  const hasFilters = subject || yearGroup || classId || sendCat || studentId || perfFilter !== 'all' || (!isRestrictedRole && teacherFilter)
 
   // Filter-driven view — no toggle state needed
   // Class/student selection in filters automatically determines which panel renders
@@ -270,8 +280,9 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
     : filterOptions.yearGroups
 
   const filteredClasses = availableClasses.filter(c =>
-    (!subject   || c.subject   === subject) &&
-    (!yearGroup || c.yearGroup === Number(yearGroup))
+    (!subject        || c.subject   === subject) &&
+    (!yearGroup      || c.yearGroup === Number(yearGroup)) &&
+    (!teacherFilter  || c.teacherIds.includes(teacherFilter))
   )
 
   // Derive subject for RAG view from selected class
@@ -336,6 +347,28 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
         {/* Filter dropdowns */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+
+          {/* Teacher filter — locked badge for teachers, full dropdown for SLT/admin */}
+          {isRestrictedRole ? (
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Teacher</label>
+              <div className="text-sm border border-gray-200 rounded-lg px-2.5 py-2 bg-gray-50 text-gray-600 w-full truncate">
+                {teacherDefaults.teacherName}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Teacher</label>
+              <select value={teacherFilter} onChange={e => changeTeacher(e.target.value)}
+                className="text-sm border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-white w-full">
+                <option value="">All Teachers</option>
+                {filterOptions.teachers.map(t => (
+                  <option key={t.id} value={t.id}>{t.lastName}, {t.firstName}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Subject</label>
             <select value={subject} onChange={e => changeSubject(e.target.value)}
@@ -376,7 +409,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
               {PERF_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 lg:col-span-1 sm:col-span-2 col-span-2">
             <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Individual</label>
             <select value={studentId} onChange={e => setStudentId(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-white w-full">
@@ -402,6 +435,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
           {hasFilters && (
             <div className="flex flex-wrap items-center gap-2">
+              {!isRestrictedRole && teacherFilter && <Chip label={(() => { const t = filterOptions.teachers.find(t => t.id === teacherFilter); return t ? `${t.lastName}, ${t.firstName}` : '' })()} onRemove={() => changeTeacher('')} />}
               {subject   && <Chip label={subject} onRemove={() => changeSubject('')} />}
               {yearGroup && <Chip label={`Year ${yearGroup}`} onRemove={() => changeYear('')} />}
               {classId   && <Chip label={filterOptions.classes.find(c => c.id === classId)?.name ?? classId} onRemove={() => changeClass('')} />}

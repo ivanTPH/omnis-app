@@ -104,6 +104,7 @@ export type AnalyticsFilters = {
   classId?:      string
   sendCategory?: string   // 'SEN_SUPPORT' | 'EHCP'
   studentId?:    string
+  teacherId?:    string
   dateFrom?:     string   // ISO date string
   dateTo?:       string   // ISO date string
 }
@@ -145,9 +146,10 @@ export type StudentPerformanceResult = {
 export type FilterOptions = {
   subjects:       string[]
   yearGroups:     number[]
-  classes:        { id: string; name: string; subject: string; yearGroup: number }[]
+  classes:        { id: string; name: string; subject: string; yearGroup: number; teacherIds: string[] }[]
   students:       { id: string; firstName: string; lastName: string }[]
   sendCategories: string[]
+  teachers:       { id: string; firstName: string; lastName: string }[]
 }
 
 export async function getAnalyticsFilters(): Promise<FilterOptions> {
@@ -156,10 +158,10 @@ export async function getAnalyticsFilters(): Promise<FilterOptions> {
   const { schoolId } = session.user as any
 
   try {
-    const [classes, students, sendStatuses] = await Promise.all([
+    const [rawClasses, students, sendStatuses, teachers] = await Promise.all([
       prisma.schoolClass.findMany({
         where:   { schoolId },
-        select:  { id: true, name: true, subject: true, yearGroup: true },
+        select:  { id: true, name: true, subject: true, yearGroup: true, teachers: { select: { userId: true } } },
         orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
       }),
       prisma.user.findMany({
@@ -172,15 +174,21 @@ export async function getAnalyticsFilters(): Promise<FilterOptions> {
         select:   { activeStatus: true },
         distinct: ['activeStatus'],
       }),
+      prisma.user.findMany({
+        where:   { schoolId, role: Role.TEACHER, isActive: true },
+        select:  { id: true, firstName: true, lastName: true },
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      }),
     ])
 
+    const classes        = rawClasses.map(c => ({ id: c.id, name: c.name, subject: c.subject, yearGroup: c.yearGroup, teacherIds: c.teachers.map(t => t.userId) }))
     const subjects       = [...new Set(classes.map(c => c.subject))].sort()
     const yearGroups     = [...new Set(classes.map(c => c.yearGroup))].sort((a, b) => a - b)
     const sendCategories = sendStatuses.map(s => s.activeStatus as string)
 
-    return { subjects, yearGroups, classes, students, sendCategories }
+    return { subjects, yearGroups, classes, students, sendCategories, teachers }
   } catch {
-    return { subjects: [], yearGroups: [], classes: [], students: [], sendCategories: [] }
+    return { subjects: [], yearGroups: [], classes: [], students: [], sendCategories: [], teachers: [] }
   }
 }
 
@@ -199,6 +207,7 @@ export async function getStudentPerformance(filters: AnalyticsFilters): Promise<
     if (filters.classId)   classFilter.id        = filters.classId
     if (filters.subject)   classFilter.subject   = filters.subject
     if (filters.yearGroup) classFilter.yearGroup  = Number(filters.yearGroup)
+    if (filters.teacherId && !filters.classId) classFilter.teachers = { some: { userId: filters.teacherId } }
 
     const enrolments = await prisma.enrolment.findMany({
       where:    { class: classFilter },
@@ -712,6 +721,7 @@ export async function getClassSummaries(
 
 export type TeacherDefaults = {
   teacherName:    string
+  teacherUserId:  string
   teacherClasses: { id: string; name: string; subject: string; yearGroup: number }[]
 }
 
@@ -728,6 +738,7 @@ export async function getTeacherDefaults(): Promise<TeacherDefaults> {
 
   return {
     teacherName:    `${firstName} ${lastName}`,
+    teacherUserId:  userId,
     teacherClasses: classes,
   }
 }

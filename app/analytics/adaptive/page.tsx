@@ -13,9 +13,7 @@ export default async function AdaptiveAnalyticsPage() {
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        <AdaptiveAnalyticsDashboard />
-      </div>
+      <AdaptiveAnalyticsDashboard />
     </AppShell>
   )
 }

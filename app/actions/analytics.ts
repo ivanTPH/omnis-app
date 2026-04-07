@@ -881,6 +881,7 @@ export type StudentTopicBreakdown = {
   subject:                string
   yearGroup:              number
   predictedGradeBaseline: string | null
+  learningFormatNotes:    string | null
   topics: {
     topic:         string
     homeworkId:    string
@@ -911,10 +912,16 @@ export async function getStudentTopicBreakdown(
     ? `Grade ${percentToGcseGrade(Math.round(avgScore))}`
     : null
 
-  const sendStatus = await prisma.sendStatus.findFirst({
-    where:  { studentId },
-    select: { activeStatus: true },
-  })
+  const [sendStatus, learningProfile] = await Promise.all([
+    prisma.sendStatus.findFirst({
+      where:  { studentId },
+      select: { activeStatus: true },
+    }),
+    prisma.studentLearningProfile.findUnique({
+      where:  { studentId },
+      select: { learningFormatNotes: true },
+    }),
+  ])
   const hasSend = sendStatus != null && sendStatus.activeStatus !== 'NONE'
 
   return {
@@ -926,6 +933,7 @@ export async function getStudentTopicBreakdown(
     subject:                heatmap.subject,
     yearGroup:              heatmap.yearGroup,
     predictedGradeBaseline,
+    learningFormatNotes:    (learningProfile as any)?.learningFormatNotes ?? null,
     topics: heatmap.topics.map(t => {
       const myScore = student.topicScores[t.topic] ?? null
       const myStatus: 'green' | 'amber' | 'red' | 'missing' = myScore != null

@@ -739,3 +739,16 @@ Return a JSON object with:
 
   return results
 }
+
+// ─── Learning Format Notes ────────────────────────────────────────────────────
+
+export async function saveLearningFormatNotes(studentId: string, notes: string): Promise<void> {
+  const user = await requireStaff()
+  const { schoolId } = user
+
+  await prisma.studentLearningProfile.upsert({
+    where:  { studentId },
+    update: { learningFormatNotes: notes },
+    create: { studentId, schoolId, learningFormatNotes: notes },
+  })
+}

@@ -66,10 +66,10 @@ export default function StudentAvatar({
   const bgColor   = nameToColor(`${firstName}${lastName}`)
   const ringStyle = sendStatus && sendStatus !== 'NONE' ? RING_SHADOW[sendStatus] : undefined
 
-  // When userId is provided, always go through the authenticated proxy so
-  // Wonde photo URLs (which require Basic auth) load correctly.
-  // Fall back to avatarUrl for non-Wonde photos (e.g. uploaded base64 avatars).
-  const photoSrc  = userId ? `/api/student-photo/${userId}` : (avatarUrl ?? null)
+  // Prefer avatarUrl directly — Wonde photo URLs are CDN-hosted and need no auth.
+  // Fall back to proxy only when userId is provided but avatarUrl is absent
+  // (handles legacy records where only the proxy path was stored).
+  const photoSrc  = avatarUrl ?? (userId ? `/api/student-photo/${userId}` : null)
   const showPhoto = !!photoSrc && !imgFailed
 
   const circleBase: React.CSSProperties = {

@@ -40,6 +40,12 @@ async function main() {
   console.log(`Enrolments:  ${result.enrolments.upserted}`)
   console.log(`Periods:     ${result.periods.upserted}`)
   console.log(`Timetable:   ${result.timetable.upserted}`)
+  console.log(`SEN records: ${result.sen.upserted}`)
+  console.log(`Attendance:  ${result.attendance.upserted}`)
+  console.log(`Behaviours:  ${result.behaviours.upserted}`)
+  console.log(`Exclusions:  ${result.exclusions.upserted}`)
+  console.log(`Assessments: ${result.assessments.upserted}`)
+  console.log(`Baselines:   ${result.baselines.upserted}`)
   console.log(`Duration:    ${result.durationMs}ms`)
 
   if (result.errors.length > 0) {
@@ -52,11 +58,46 @@ async function main() {
   const total     = await db.user.count()
   console.log(`\navatarUrl populated: ${withPhoto} / ${total} users`)
 
-  // Sample one
+  // Verify Dean Abimbola specifically
+  const dean = await db.wondeStudent.findFirst({
+    where: { id: 'A1204976375' },
+    select: { id: true, firstName: true, lastName: true, photoUrl: true },
+  })
+  if (dean) {
+    console.log(`\nDean Abimbola (A1204976375): photoUrl = ${dean.photoUrl ?? 'NULL'}`)
+    // Check if bridged to User
+    const deanUser = await db.user.findFirst({
+      where: { firstName: dean.firstName, lastName: dean.lastName },
+      select: { id: true, email: true, avatarUrl: true },
+    })
+    if (deanUser) {
+      console.log(`  User match: ${deanUser.email} → avatarUrl = ${deanUser.avatarUrl ?? 'NULL'}`)
+    } else {
+      console.log(`  No matching User record for ${dean.firstName} ${dean.lastName}`)
+    }
+  } else {
+    console.log('\nDean Abimbola (A1204976375): not found in WondeStudent — check school ID')
+  }
+
+  // SEN stats
+  const senCount = await db.sendStatus.count({ where: { activeSource: 'Wonde MIS sync' } })
+  console.log(`\nSendStatus records from Wonde: ${senCount}`)
+
+  // Attendance stats
+  const attCount = await db.wondeAttendanceRecord.count()
+  console.log(`WondeAttendanceRecord total:  ${attCount}`)
+
+  // Assessment stats
+  const assCount = await db.wondeAssessmentResult.count()
+  const baseCount = await db.studentBaseline.count({ where: { source: 'MIS' } })
+  console.log(`WondeAssessmentResult total:  ${assCount}`)
+  console.log(`StudentBaseline (MIS source): ${baseCount}`)
+
+  // Sample user with photo
   const sample = await db.user.findFirst({ where: { avatarUrl: { not: null } }, select: { id: true, email: true, avatarUrl: true } })
   if (sample) {
-    console.log(`\nSample user: ${sample.email}`)
-    console.log(`avatarUrl:   ${sample.avatarUrl}`)
+    console.log(`\nSample user with photo: ${sample.email}`)
+    console.log(`avatarUrl: ${sample.avatarUrl}`)
   }
 
   await db.$disconnect()

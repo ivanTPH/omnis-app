@@ -61,7 +61,11 @@ export interface WondeStudent {
   is_leaver: boolean
   updated_at: { date: string } | null
   contacts?: { data: WondeContact[] }
-  photo?: { data: { url: string } | null }
+  photo?: { data: { id?: string; url?: string; content?: string } | null }
+  /** Populated when include=sen — student's SEN needs list */
+  sen_needs?: { data: WondeSenNeed[] }
+  /** Populated when include=sen — true if student has an EHCP */
+  has_ehcp?: boolean | null
 }
 
 export interface WondeContactRelationship {
@@ -251,8 +255,9 @@ export async function fetchWondeStudents(schoolId: string, token: string): Promi
 }
 
 export async function fetchWondeSen(schoolId: string, token: string): Promise<WondeStudentSen[]> {
+  // Wonde v1: SEN include keyword is 'sen-needs' (not 'sen')
   return wondeAll<WondeStudentSen>(`/schools/${schoolId}/students`, token, {
-    include: 'sen',
+    include: 'sen-needs',
     per_page: '200',
   })
 }
@@ -291,15 +296,15 @@ export async function fetchWondeAttendanceSummaries(schoolId: string, token: str
 }
 
 export async function fetchWondeBehaviours(schoolId: string, token: string): Promise<WondeBehaviourItem[]> {
+  // student data is embedded by default on the behaviours endpoint
   return wondeAll<WondeBehaviourItem>(`/schools/${schoolId}/behaviours`, token, {
-    include: 'student',
     per_page: '200',
   })
 }
 
 export async function fetchWondeExclusions(schoolId: string, token: string): Promise<WondeExclusionItem[]> {
+  // student data is embedded by default on the exclusions endpoint
   return wondeAll<WondeExclusionItem>(`/schools/${schoolId}/exclusions`, token, {
-    include: 'student',
     per_page: '200',
   })
 }

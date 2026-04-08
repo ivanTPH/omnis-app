@@ -23,6 +23,7 @@ import {
   fetchWondeSchool,
   fetchWondeEmployees,
   fetchWondeStudents,
+  fetchWondeSen,
   fetchWondeGroups,
   fetchWondeClasses,
   fetchWondePeriods,
@@ -47,6 +48,7 @@ export interface WondeSyncResult {
   behaviours:  { upserted: number }
   exclusions:  { upserted: number }
   assessments: { upserted: number }
+  baselines:   { upserted: number }
   errors:      string[]
   durationMs:  number
 }
@@ -93,6 +95,7 @@ export async function runWondeSync(
     behaviours:  { upserted: 0 },
     exclusions:  { upserted: 0 },
     assessments: { upserted: 0 },
+    baselines:   { upserted: 0 },
     errors,
     durationMs:  0,
   }
@@ -188,8 +191,12 @@ export async function runWondeSync(
     )
 
     await inBatches(students, async stu => {
-      const yearInt  = yearCodeToInt(stu.year?.data?.code)
-      const photoUrl = stu.photo?.data?.url ?? null
+      const yearInt     = yearCodeToInt(stu.year?.data?.code)
+      const photoData   = stu.photo?.data ?? null
+      // Wonde returns photo as base64 content (not a URL). Build a data URL.
+      const photoUrl    = photoData?.content
+        ? `data:image/jpeg;base64,${photoData.content}`
+        : (photoData?.url ?? null)
       await prisma.wondeStudent.upsert({
         where:  { id: stu.id },
         create: {
@@ -256,20 +263,17 @@ export async function runWondeSync(
         try {
           const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
           if (matchedUserId) {
-            // User.avatarUrl stores the RAW photo URL so the proxy route
-            // (/api/student-photo/{userId}) can read it directly without name-matching.
-            // UserSettings.profilePictureUrl stores the proxy URL so the student's
-            // own sidebar avatar (read by getMyAvatarUrl) also uses the proxy.
-            const proxyUrl = `/api/student-photo/${matchedUserId}`
+            // Store the direct Wonde CDN URL in both User.avatarUrl and
+            // UserSettings.profilePictureUrl — no proxy needed; URL is publicly accessible.
             await Promise.all([
               prisma.user.update({
                 where: { id: matchedUserId },
-                data:  { avatarUrl: photoUrl },   // raw Wonde URL — read by proxy
+                data:  { avatarUrl: photoUrl },
               }),
               prisma.userSettings.upsert({
                 where:  { userId: matchedUserId },
-                create: { userId: matchedUserId, profilePictureUrl: proxyUrl },
-                update: { profilePictureUrl: proxyUrl },
+                create: { userId: matchedUserId, profilePictureUrl: photoUrl },
+                update: { profilePictureUrl: photoUrl },
               }),
             ])
           }
@@ -507,14 +511,21 @@ export async function runWondeSync(
   }
 
   // ── 8. SEN records ────────────────────────────────────────────────────────
-  // SEN is already included in the student fetch (include=sen). We process it
-  // here using the already-fetched students from section 3. The wondeStudent
-  // records are now in DB (knownStudentIds). We map primaryNeed to User.sendStatus.
+  // Fetched via dedicated SEN endpoint (include=sen-needs).
+  // WondeStudentSen has no name fields — name lookup is done via WondeStudent DB records.
   try {
-    // Re-fetch students with sen include for the SEN data
-    const studentsWithSen = await fetchWondeStudents(wondeSchoolId, wondeToken)
+    const senStudents = await fetchWondeSen(wondeSchoolId, wondeToken)
 
-    // Pre-fetch all school student Users once more for send status updates
+    // Build WondeStudent id → name key from DB (already synced in section 3)
+    const wondeStudentsForSen = await prisma.wondeStudent.findMany({
+      where:  { schoolId: omnisSchoolId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const wondeNameByIdForSen = new Map(
+      wondeStudentsForSen.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+    )
+
+    // Pre-fetch all school student Users for send status updates
     const schoolStudentsForSen = await prisma.user.findMany({
       where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
       select: { id: true, firstName: true, lastName: true },
@@ -523,15 +534,17 @@ export async function runWondeSync(
       schoolStudentsForSen.map(u => [`${u.firstName}|${u.lastName}`, u.id])
     )
 
-    await inBatches(studentsWithSen, async stu => {
+    await inBatches(senStudents, async stu => {
       if (!knownStudentIds.has(stu.id)) return
-      // `sen_needs` is populated when include=sen is used
-      const senData = (stu as any).sen_needs?.data as Array<{ rank: number | null; sen_category?: { data: { name: string } | null } | null }> | undefined
+      const senData = stu.sen_needs?.data
       const isSen   = Array.isArray(senData) && senData.length > 0
-      const isEhcp  = (stu as any).has_ehcp === true
+      const isEhcp  = isSen && senData!.some(s =>
+        (s.sen_category?.data?.name ?? '').toLowerCase().includes('ehcp') ||
+        (s.sen_category?.data?.name ?? '').toLowerCase().includes('education, health and care')
+      )
 
       // Primary need = highest priority (rank=1) or first entry
-      const sorted  = isSen ? [...senData].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99)) : []
+      const sorted      = isSen ? [...senData!].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99)) : []
       const primaryNeed = sorted[0]?.sen_category?.data?.name ?? null
 
       await prisma.wondeSenRecord.upsert({
@@ -543,17 +556,18 @@ export async function runWondeSync(
 
       // Mirror to User.sendStatus so the existing SEND system picks it up
       if (isSen) {
-        const matchedUserId = userByNameForSen.get(`${stu.forename}|${stu.surname}`)
+        const nameKey       = wondeNameByIdForSen.get(stu.id)
+        const matchedUserId = nameKey ? userByNameForSen.get(nameKey) : undefined
         if (matchedUserId) {
           const sendValue = isEhcp ? 'EHCP' : 'SEN_SUPPORT'
           try {
             await prisma.sendStatus.upsert({
               where:  { studentId: matchedUserId },
               create: {
-                studentId:      matchedUserId,
-                activeStatus:   sendValue as any,
-                needArea:       primaryNeed,
-                activeSource:   'Wonde MIS sync',
+                studentId:       matchedUserId,
+                activeStatus:    sendValue as any,
+                needArea:        primaryNeed,
+                activeSource:    'Wonde MIS sync',
                 latestMisStatus: sendValue as any,
                 misLastSyncedAt: now,
               },
@@ -572,8 +586,9 @@ export async function runWondeSync(
     })
   } catch (err) {
     const msg = String(err)
-    if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
-      console.warn('[wonde-sync] SEN sync skipped — enable sen.read permission in Wonde dashboard')
+    if (msg.includes('403') || msg.toLowerCase().includes('forbidden') ||
+        msg.includes('invalid_include') || msg.includes('400')) {
+      console.warn('[wonde-sync] SEN sync skipped — sen-needs include not available for this school')
     } else {
       errors.push(`SEN: ${msg}`)
     }
@@ -604,7 +619,30 @@ export async function runWondeSync(
       if (!stuId || !knownStudentIds.has(stuId)) return
       const pct = s.attendance_percentage
 
-      // Update User.attendancePercentage via name match
+      // Store full attendance record
+      await prisma.wondeAttendanceRecord.upsert({
+        where:  { id: s.id },
+        create: {
+          id:                   s.id,
+          schoolId:             omnisSchoolId,
+          studentId:            stuId,
+          possibleSessions:     s.possible_sessions   != null ? Math.round(s.possible_sessions)   : null,
+          presentSessions:      s.present_sessions    != null ? Math.round(s.present_sessions)    : null,
+          attendancePercentage: pct,
+          authorisedAbsences:   s.authorised_absences != null ? Math.round(s.authorised_absences) : null,
+          unauthorisedAbsences: s.unauthorised_absences != null ? Math.round(s.unauthorised_absences) : null,
+          syncedAt:             now,
+        },
+        update: {
+          possibleSessions:     s.possible_sessions   != null ? Math.round(s.possible_sessions)   : null,
+          presentSessions:      s.present_sessions    != null ? Math.round(s.present_sessions)    : null,
+          attendancePercentage: pct,
+          authorisedAbsences:   s.authorised_absences != null ? Math.round(s.authorised_absences) : null,
+          unauthorisedAbsences: s.unauthorised_absences != null ? Math.round(s.unauthorised_absences) : null,
+        },
+      })
+
+      // Also update User.attendancePercentage via name match
       const nameKey = wondeStudentNameById.get(stuId)
       if (nameKey && pct != null) {
         const userId = userByNameForAtt.get(nameKey)
@@ -803,11 +841,102 @@ export async function runWondeSync(
     const msg = String(err)
     if (msg.includes('403') || msg.toLowerCase().includes('forbidden')) {
       console.warn('[wonde-sync] Assessment results sync skipped — enable assessment.read permission in Wonde dashboard')
+    } else if (msg.includes('404') || msg.toLowerCase().includes('resource_not_found') || msg.toLowerCase().includes('not found')) {
+      console.warn('[wonde-sync] Assessment results not available for this school')
     } else {
       errors.push(`Assessments: ${msg}`)
     }
   }
 
+  // ── 13. Student baselines from assessment results ─────────────────────────
+  // Convert the most recent WondeAssessmentResult per (student, subject) into
+  // StudentBaseline records so analytics can use MIS grades as predicted grades.
+  try {
+    // Build WondeStudent id → User id mapping via name
+    const wondeStudentsForBaseline = await prisma.wondeStudent.findMany({
+      where:  { schoolId: omnisSchoolId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const schoolUsersForBaseline = await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    const userByNameForBaseline = new Map(
+      schoolUsersForBaseline.map(u => [`${u.firstName}|${u.lastName}`, u.id])
+    )
+    const wondeNameByIdForBaseline = new Map(
+      wondeStudentsForBaseline.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+    )
+
+    // Fetch latest assessment result per (studentId, subjectName)
+    const latestAssessments = await prisma.wondeAssessmentResult.findMany({
+      where:   { schoolId: omnisSchoolId, subjectName: { not: null } },
+      orderBy: { collectionDate: 'desc' },
+    })
+    // Keep only most recent per (studentId, subject)
+    const seen = new Set<string>()
+    const latest = latestAssessments.filter(a => {
+      const key = `${a.studentId}|${a.subjectName}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    await inBatches(latest, async a => {
+      if (!a.subjectName) return
+      const score = assessmentToBaselineScore(a.result, a.gradeValue)
+      if (score == null) return
+
+      const wondeName = wondeNameByIdForBaseline.get(a.studentId)
+      if (!wondeName) return
+      const userId = userByNameForBaseline.get(wondeName)
+      if (!userId) return
+
+      await prisma.studentBaseline.upsert({
+        where:  { studentId_subject: { studentId: userId, subject: a.subjectName } },
+        create: {
+          studentId:     userId,
+          schoolId:      omnisSchoolId,
+          subject:       a.subjectName,
+          baselineScore: score,
+          source:        'MIS',
+          recordedAt:    a.collectionDate ?? now,
+        },
+        update: {
+          baselineScore: score,
+          source:        'MIS',
+          recordedAt:    a.collectionDate ?? now,
+        },
+      })
+      result.baselines.upserted++
+    })
+  } catch (err) {
+    errors.push(`Baselines: ${String(err)}`)
+  }
+
   result.durationMs = Date.now() - startedAt
   return result
+}
+
+/** Convert Wonde assessment result/grade to a 0–100 normalised score. */
+function assessmentToBaselineScore(result: string | null, gradeValue: string | null): number | null {
+  if (result) {
+    const n = parseFloat(result)
+    if (!isNaN(n)) {
+      // GCSE grade 1–9
+      if (n >= 1 && n <= 9 && Number.isInteger(n)) return Math.round((n / 9) * 100)
+      // Percentage
+      if (n >= 0 && n <= 100) return n
+    }
+  }
+  if (gradeValue) {
+    const n = parseFloat(gradeValue)
+    if (!isNaN(n) && n >= 1 && n <= 9) return Math.round((n / 9) * 100)
+    const gradeMap: Record<string, number> = {
+      'A*': 97, 'A': 85, 'B': 75, 'C': 65, 'D': 55, 'E': 45, 'F': 35, 'U': 15,
+      'Distinction*': 97, 'Distinction': 85, 'Merit': 70, 'Pass': 55,
+    }
+    return gradeMap[gradeValue] ?? null
+  }
+  return null
 }

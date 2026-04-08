@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-04-01 (end of day). Authoritative reference for Claude sessions.
+> Last updated: 2026-04-08. Authoritative reference for Claude sessions.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -608,3 +608,9 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - BUG-019: `app/hoy/error.tsx` error boundary created.
 - BUG-022: `app/settings/accessibility` — AppShell added + "← Settings" back link.
 - BUG-024: Inline SVG in parent/consent replaced with `<Icon name="chat" />`.
+
+**Phase 4 — Trial Readiness ✅ (2026-04-08)**
+- Phase 4.1 (Data safety): schoolId scoping confirmed on all queries; SEND data not accessible to student/parent roles; ILP audit trail via writeAudit().
+- Phase 4.2 (Performance): Loading skeletons on ClassRosterTab, StudentAnalyticsView, IlpPageView; progress bars on ILP gen (60s) and homework gen (30s); DB indexes added (`@@index([userId])` on Enrolment); analytics filter queries wrapped in 60s unstable_cache; classSize parallelised into Promise.all; ILP batch reduced 10→5 with 1s inter-batch delay.
+- Phase 4.3 (Error handling): `app/admin/error.tsx` + `app/student/error.tsx` added (all routes now have error boundaries); `HomeworkSubmissionView` saves draft to localStorage before submit, try/catch with retry button on failure; AI error messages in `generateIlpGoalsForStudent` + `generateILPForStudent` changed from raw `String(err)` to user-friendly strings.
+- Phase 4.4 (Smoke test): Full 16-step end-to-end code audit — all PASS. Adaptive SEND homework (scaffolding_hint/ehcp_adaptation/vocab_support) confirmed generated and rendered. Concern flagging → SENCO notification confirmed. SEND attainment gap in SLT analytics confirmed.

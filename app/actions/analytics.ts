@@ -488,7 +488,7 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
     }),
     prisma.sendStatus.findFirst({ where: { studentId } }),
     prisma.individualLearningPlan.findFirst({
-      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      where:   { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
       select:  {
         id: true, sendCategory: true, areasOfNeed: true,
         targets: {

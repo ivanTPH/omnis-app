@@ -175,13 +175,13 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     }),
 
     prisma.individualLearningPlan.findFirst({
-      where: { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      where: { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
       include: { targets: { orderBy: { targetDate: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     }),
 
     prisma.ehcpPlan.findFirst({
-      where: { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      where: { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
       include: { outcomes: { orderBy: { targetDate: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     }),

@@ -390,7 +390,18 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       marks:       q.marks,
     })),
   } : null)
-  const structuredAnswers = ((selectedSub?.structuredResponse as { answers?: string[] } | null)?.answers) ?? []
+  // Student answers: prefer structuredResponse (adaptive homework), fall back to parsing content JSON
+  const structuredAnswers: string[] = (() => {
+    const fromResponse = (selectedSub?.structuredResponse as { answers?: string[] } | null)?.answers
+    if (fromResponse?.length) return fromResponse
+    try {
+      const parsed = selectedSub?.content ? JSON.parse(selectedSub.content) : null
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return Object.values(parsed) as string[]
+      }
+    } catch { /* plain-text content */ }
+    return []
+  })()
 
   const hasStructuredQuestions = questions.length > 0 || (structuredContent?.questions?.length ?? 0) > 0
 

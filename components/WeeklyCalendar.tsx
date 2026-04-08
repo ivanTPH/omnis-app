@@ -22,11 +22,12 @@ const PALETTES = [
   { bg: 'bg-orange-100',  border: 'border-l-orange-500',  text: 'text-orange-900'  },
 ]
 
-const colorCache = new Map<string, typeof PALETTES[0]>()
-let colorIdx = 0
 function palette(subject: string) {
-  if (!colorCache.has(subject)) colorCache.set(subject, PALETTES[colorIdx++ % PALETTES.length])
-  return colorCache.get(subject)!
+  let hash = 0
+  for (let i = 0; i < subject.length; i++) {
+    hash = (hash * 31 + subject.charCodeAt(i)) & 0xffffffff
+  }
+  return PALETTES[Math.abs(hash) % PALETTES.length]
 }
 
 function getWeekStart(d: Date): Date {

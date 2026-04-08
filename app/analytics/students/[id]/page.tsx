@@ -1,5 +1,5 @@
 import { auth }           from '@/lib/auth'
-import { redirect, notFound } from 'next/navigation'
+import { redirect }       from 'next/navigation'
 import AppShell           from '@/components/AppShell'
 import StudentDashboard   from '@/components/StudentDashboard'
 import { getStudentDetail } from '@/app/actions/analytics'
@@ -17,7 +17,7 @@ export default async function StudentDetailPage({
 
   const { id } = await params
   const data = await getStudentDetail(id)
-  if (!data) notFound()
+  if (!data) redirect('/analytics')
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

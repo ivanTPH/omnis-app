@@ -776,7 +776,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
           include: {
             sendStatus: { select: { activeStatus: true, needArea: true } },
             studentIlps: {
-              where:  { schoolId, status: { in: ['active', 'under_review'] } },
+              where:  { schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
               take:   1,
               select: { id: true },
             },

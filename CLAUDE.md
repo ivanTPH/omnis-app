@@ -430,6 +430,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - **Server actions:** All in `app/actions/`. Always `'use server'` at top. Session via `auth()` from `lib/auth.ts`.
 - **Multi-tenancy:** Every Prisma query scoped with `schoolId` from session. Never query without it.
 - **Prisma:** Singleton in `lib/prisma.ts`. Restart dev server after schema changes or queries fail silently.
+- **Prisma enum case sensitivity:** Enum values must match the exact casing defined in `schema.prisma`. `ILPStatus` values are `ACTIVE`, `UNDER_REVIEW` (uppercase). Using lowercase strings like `'active'` in a `where` clause causes Prisma to silently return null/empty with no error. Always check `schema.prisma` for the exact enum value casing before writing queries.
 - **`SchoolClass.department`** is required (not nullable).
 - **Lesson `classId`** is optional (supports out-of-hours/intervention lessons).
 - **`createHomework`** requires `setAt` and `dueAt` as ISO strings; defaults to `status: 'PUBLISHED'`.

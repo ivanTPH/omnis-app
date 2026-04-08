@@ -1,6 +1,10 @@
 # Omnis App — Claude Reference
 
 > Last updated: 2026-04-08. Authoritative reference for Claude sessions.
+>
+> **TRIAL STATUS: APP IS TRIAL-READY AS OF 2026-04-08.**
+> All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
+> Next step: live school trial with real students and teachers.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

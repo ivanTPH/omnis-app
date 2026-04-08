@@ -1,22 +1,27 @@
 'use client'
 import { useState } from 'react'
 import ClassRosterTab from '@/components/ClassRosterTab'
+import StudentSearch from '@/components/StudentSearch'
 
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
 
-export default function MyClassesView({ classes }: { classes: ClassOption[] }) {
+export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
   const [selectedId, setSelectedId] = useState<string>(classes[0]?.id ?? '')
 
   if (classes.length === 0) {
     return (
-      <p className="text-[13px] text-gray-400 text-center py-16">
-        No classes assigned to your account yet.
-      </p>
+      <>
+        <StudentSearch role={role} />
+        <p className="text-[13px] text-gray-400 text-center py-16">
+          No classes assigned to your account yet.
+        </p>
+      </>
     )
   }
 
   return (
     <div className="space-y-4">
+      <StudentSearch role={role} />
       {/* Class filter pills */}
       <div className="flex flex-wrap gap-2">
         {classes.map(c => (

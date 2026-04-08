@@ -5,6 +5,7 @@ import AppShell from '@/components/AppShell'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
+import StudentSearch from '@/components/StudentSearch'
 
 export default async function SendDashboardPage() {
   const session = await auth()
@@ -99,6 +100,9 @@ export default async function SendDashboardPage() {
               </Link>
             )}
           </div>
+
+          {/* Student search */}
+          <StudentSearch role={role} />
 
           {/* KPI row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">

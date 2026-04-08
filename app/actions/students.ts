@@ -104,6 +104,53 @@ export type NoteRow = {
   createdAt: string
 }
 
+export type StudentSearchResult = {
+  id: string
+  firstName: string
+  lastName: string
+  yearGroup: number | null
+}
+
+export async function searchStudents(query: string): Promise<StudentSearchResult[]> {
+  const user = await requireStaff()
+  const { schoolId, id: userId, role } = user
+
+  const trimmed = query.trim()
+  if (trimmed.length < 2) return []
+
+  const terms = trimmed.split(/\s+/).slice(0, 3)
+  const nameConditions = terms.map(term => ({
+    OR: [
+      { firstName: { contains: term, mode: 'insensitive' as const } },
+      { lastName:  { contains: term, mode: 'insensitive' as const } },
+    ],
+  }))
+
+  let enrolmentFilter: object = {}
+  if (role === 'TEACHER') {
+    const teacherClasses = await prisma.classTeacher.findMany({
+      where:  { userId },
+      select: { classId: true },
+    })
+    const classIds = teacherClasses.map(ct => ct.classId)
+    enrolmentFilter = { enrolments: { some: { classId: { in: classIds } } } }
+  }
+
+  const students = await prisma.user.findMany({
+    where: {
+      schoolId,
+      role: 'STUDENT',
+      AND: nameConditions,
+      ...enrolmentFilter,
+    },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
+    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    take: 10,
+  })
+
+  return students
+}
+
 export type StudentFileData = {
   student: {
     id: string

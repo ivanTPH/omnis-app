@@ -20,7 +20,7 @@ export default async function ClassesPage() {
             Select a class to view students, plans, and performance data.
           </p>
         </div>
-        <MyClassesView classes={teacherClasses} />
+        <MyClassesView classes={teacherClasses} role={role} />
       </div>
     </AppShell>
   )

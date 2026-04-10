@@ -5,6 +5,9 @@ import { signOut }     from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
 import UnreadBadge from '@/components/messaging/UnreadBadge'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
+import StudentSearch from '@/components/StudentSearch'
+
+const STAFF_ROLES = new Set(['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','COVER_MANAGER'])
 
 type NavItem =
   | { label: string; href: string; icon: string }
@@ -139,6 +142,13 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
           </div>
         </div>
       </div>
+
+      {/* Student search — staff roles only */}
+      {STAFF_ROLES.has(role) && (
+        <div className="px-3 pt-2 pb-1 shrink-0 border-b border-gray-100">
+          <StudentSearch role={role} />
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 overflow-auto py-3 px-3">

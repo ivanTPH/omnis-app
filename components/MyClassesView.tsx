@@ -1,7 +1,6 @@
 'use client'
 import { useState, useTransition } from 'react'
 import ClassRosterTab from '@/components/ClassRosterTab'
-import StudentSearch from '@/components/StudentSearch'
 import Icon from '@/components/ui/Icon'
 import { bulkGenerateLearningPassports } from '@/app/actions/students'
 
@@ -14,18 +13,14 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
 
   if (classes.length === 0) {
     return (
-      <>
-        <StudentSearch role={role} />
-        <p className="text-[13px] text-gray-400 text-center py-16">
-          No classes assigned to your account yet.
-        </p>
-      </>
+      <p className="text-[13px] text-gray-400 text-center py-16">
+        No classes assigned to your account yet.
+      </p>
     )
   }
 
   return (
     <div className="space-y-4">
-      <StudentSearch role={role} />
       {/* Class filter pills + generate button */}
       <div className="flex flex-wrap items-center gap-2">
         {classes.map(c => (

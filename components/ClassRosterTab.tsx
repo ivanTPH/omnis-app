@@ -360,8 +360,11 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
             return 'red'
           }
           const workingAt        = ragStudent?.workingAtScore ?? null
-          const baselineStatus   = perfIndicator(workingAt, ragStudent?.baselineScore ?? null)
-          const predictionStatus = perfIndicator(workingAt, ragStudent?.prediction?.effectiveScore ?? null)
+          // Use best available reference: StudentBaseline → passport predicted, TeacherPrediction → passport predicted
+          const baselineRef      = ragStudent?.baselineScore ?? ragStudent?.effectivePredictedScore ?? null
+          const predictionRef    = ragStudent?.prediction?.effectiveScore ?? ragStudent?.effectivePredictedScore ?? null
+          const baselineStatus   = perfIndicator(workingAt, baselineRef)
+          const predictionStatus = perfIndicator(workingAt, predictionRef)
 
           return (
             <div key={row.id}>

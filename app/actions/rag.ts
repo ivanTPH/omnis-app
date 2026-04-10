@@ -27,9 +27,10 @@ export type RagStudent = {
     notes:          string | null
     updatedAt:      Date
   } | null
-  workingAtScore:  number | null   // avg percentage this term (0-100)
-  workingAtGrade:  number | null   // GCSE grade 1-9 derived from workingAtScore
-  predictedGrade:  number | null   // GCSE grade 1-9 derived from effectiveScore
+  workingAtScore:          number | null   // avg percentage this term (0-100)
+  workingAtGrade:          number | null   // GCSE grade 1-9 derived from workingAtScore
+  predictedGrade:          number | null   // GCSE grade 1-9 derived from effectiveScore
+  effectivePredictedScore: number | null   // best available predicted score: TeacherPrediction → StudentBaseline → Passport
   recentGrades:    number[]        // last 3 GCSE grades (desc) for trend arrow
   lastScore:       number | null   // most recent percentage
   ragStatus:       RagStatus
@@ -117,7 +118,7 @@ export async function getClassRagData(
   if (studentIds.length === 0) return []
 
   // ── 3. Bulk-fetch supporting data ───────────────────────────────────────────
-  const [users, sendStatuses, baselines, predictions, submissionsThisTerm] =
+  const [users, sendStatuses, baselines, predictions, submissionsThisTerm, passportProfiles] =
     await Promise.all([
       prisma.user.findMany({
         where:  { id: { in: studentIds } },
@@ -135,15 +136,37 @@ export async function getClassRagData(
         where:  { studentId: { in: studentIds }, teacherId, subject, termLabel: term },
         select: { id: true, studentId: true, predictedScore: true, adjustment: true, notes: true, updatedAt: true },
       }),
-      prisma.submission.findMany({
-        where: {
-          studentId:  { in: studentIds },
-          finalScore: { not: null },
-          status:     { in: ['MARKED', 'RETURNED'] },
-          homework:   { classId, dueAt: { gte: from, lte: to } },
-        },
-        select:  { studentId: true, finalScore: true, markedAt: true, homework: { select: { gradingBands: true } } },
-        orderBy: { markedAt: 'desc' },
+      // Current-term submissions — fall back to all-time for this class if none found
+      (async () => {
+        const termSubs = await prisma.submission.findMany({
+          where: {
+            studentId:  { in: studentIds },
+            finalScore: { not: null },
+            status:     { in: ['MARKED', 'RETURNED'] },
+            homework:   { classId, dueAt: { gte: from, lte: to } },
+          },
+          select:  { studentId: true, finalScore: true, markedAt: true, homework: { select: { gradingBands: true } } },
+          orderBy: { markedAt: 'desc' },
+        })
+        // If no current-term data, widen to all-time for this class
+        if (termSubs.length === 0) {
+          return prisma.submission.findMany({
+            where: {
+              studentId:  { in: studentIds },
+              finalScore: { not: null },
+              status:     { in: ['MARKED', 'RETURNED'] },
+              homework:   { classId },
+            },
+            select:  { studentId: true, finalScore: true, markedAt: true, homework: { select: { gradingBands: true } } },
+            orderBy: { markedAt: 'desc' },
+          })
+        }
+        return termSubs
+      })(),
+      // Passport predicted grades — fallback when no TeacherPrediction or StudentBaseline
+      prisma.studentLearningProfile.findMany({
+        where:  { studentId: { in: studentIds } },
+        select: { studentId: true, predictedGrade: true },
       }),
     ])
 
@@ -151,6 +174,7 @@ export async function getClassRagData(
   const sendMap       = new Map(sendStatuses.map(s => [s.studentId, s.activeStatus]))
   const baselineMap   = new Map(baselines.map(b => [b.studentId, b]))
   const predMap       = new Map(predictions.map(p => [p.studentId, p]))
+  const passportMap   = new Map(passportProfiles.map(p => [p.studentId, p]))
 
   // Group submissions per student (already ordered desc by markedAt from DB)
   const submissionsByStudent = new Map<string, typeof submissionsThisTerm>()
@@ -191,8 +215,12 @@ export async function getClassRagData(
           }
         : null
 
+      // Passport fallback: convert GCSE grade 1-9 → 0-100 percentage
+      const passportGrade = passportMap.get(u.id)?.predictedGrade ?? null
+      const passportScore = passportGrade != null ? Math.round(passportGrade * 11.11) : null
+
       const effectivePredicted =
-        prediction?.effectiveScore ?? baseline?.baselineScore ?? null
+        prediction?.effectiveScore ?? baseline?.baselineScore ?? passportScore
 
       const recentGrades = subs.slice(0, 3).map(s =>
         percentToGcseGrade(toPercent(s.finalScore ?? 0, s.homework.gradingBands)),
@@ -209,8 +237,9 @@ export async function getClassRagData(
         baselineSource: baseline?.source ?? null,
         prediction,
         workingAtScore,
-        workingAtGrade:  workingAtScore != null ? percentToGcseGrade(workingAtScore) : null,
-        predictedGrade:  effectivePredicted != null ? percentToGcseGrade(effectivePredicted) : null,
+        workingAtGrade:          workingAtScore != null ? percentToGcseGrade(workingAtScore) : null,
+        predictedGrade:          effectivePredicted != null ? percentToGcseGrade(effectivePredicted) : null,
+        effectivePredictedScore: effectivePredicted,
         recentGrades,
         lastScore,
         ragStatus: computeRag(workingAtScore, effectivePredicted),

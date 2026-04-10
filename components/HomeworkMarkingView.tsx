@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
+import { addPassportRecommendation } from '@/app/actions/students'
 import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -307,6 +308,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   const [ilpClassifications, setIlpClassifications] = useState<IlpClassification[] | null>(null)
   const [ilpSaving,         setIlpSaving]         = useState(false)
   const [ilpSaved,          setIlpSaved]          = useState(false)
+  // Grade-drop AI recommendation
+  type GradeDrop = { studentId: string; studentName: string; previousGrade: number; newGrade: number; drop: number; suggestion: string }
+  const [gradeDrop,         setGradeDrop]         = useState<GradeDrop | null>(null)
+  const [passportAdded,     setPassportAdded]     = useState(false)
 
   const router = useRouter()
 
@@ -464,6 +469,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           setIlpClassifications(null)
           setIlpModalOpen(false)
         }
+        if (result?.gradeDrop) {
+          setGradeDrop(result.gradeDrop)
+          setPassportAdded(false)
+        }
       } catch {
         setError('Failed to save. Please try again.')
       }
@@ -496,6 +505,10 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           setIlpSaved(false)
           setIlpClassifications(null)
           setIlpModalOpen(false)
+        }
+        if (result?.gradeDrop) {
+          setGradeDrop(result.gradeDrop)
+          setPassportAdded(false)
         }
       } catch {
         setError('Failed to save. Please try again.')
@@ -1430,6 +1443,49 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
                   <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
                     <Icon name="check_circle" size="sm" /> ILP evidence recorded
+                  </p>
+                </div>
+              )}
+
+              {/* Grade-drop recommendation banner */}
+              {gradeDrop && !passportAdded && (
+                <div className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <Icon name="trending_down" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-amber-900">
+                        Grade drop detected — {gradeDrop.studentName}
+                      </p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        Grade {gradeDrop.previousGrade} → Grade {gradeDrop.newGrade} (↓{gradeDrop.drop}). Add a strategy to their Learning Passport?
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          await addPassportRecommendation(gradeDrop.studentId, gradeDrop.suggestion)
+                          setPassportAdded(true)
+                        }}
+                        className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
+                      >
+                        <Icon name="add" size="sm" />
+                        Add to Passport
+                      </button>
+                      <button
+                        onClick={() => setGradeDrop(null)}
+                        className="text-amber-400 hover:text-amber-600 transition-colors"
+                      >
+                        <Icon name="close" size="sm" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {passportAdded && gradeDrop && (
+                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
+                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
+                    <Icon name="check_circle" size="sm" />
+                    Strategy added to {gradeDrop.studentName}&apos;s Learning Passport
                   </p>
                 </div>
               )}

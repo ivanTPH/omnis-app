@@ -594,6 +594,39 @@ export async function approveLearningPassport(studentId: string): Promise<void> 
   revalidatePath(`/students/${studentId}`)
 }
 
+// ── Passport recommendation (grade-drop suggestion) ───────────────────────────
+
+export async function addPassportRecommendation(
+  studentId:  string,
+  suggestion: string,
+): Promise<void> {
+  await requireStaff()
+
+  const existing = await (prisma as any).studentLearningProfile.findUnique({
+    where:  { studentId },
+    select: { classroomStrategies: true },
+  })
+
+  if (existing) {
+    const updated = [...(existing.classroomStrategies ?? []), suggestion]
+    await (prisma as any).studentLearningProfile.update({
+      where: { studentId },
+      data:  { classroomStrategies: updated, passportStatus: 'DRAFT' },
+    })
+  } else {
+    await (prisma as any).studentLearningProfile.create({
+      data: {
+        studentId,
+        classroomStrategies: [suggestion],
+        passportStatus:      'DRAFT',
+        approvedByTeacher:   false,
+      },
+    })
+  }
+
+  revalidatePath(`/students/${studentId}`)
+}
+
 // ── ILP amendment ─────────────────────────────────────────────────────────────
 
 export async function proposeIlpFieldEdit(

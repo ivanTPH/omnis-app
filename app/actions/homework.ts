@@ -5,6 +5,7 @@ import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
+import { percentToGcseGrade }   from '@/lib/grading'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -1162,7 +1163,10 @@ export async function markSubmission(submissionId: string, data: {
   teacherScore: number
   feedback:     string
   grade?:       string
-}): Promise<{ ilpData: { studentId: string; ilpId: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> } | null }> {
+}): Promise<{
+  ilpData: { studentId: string; ilpId: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> } | null
+  gradeDrop: { studentId: string; studentName: string; previousGrade: number; newGrade: number; drop: number; suggestion: string } | null
+}> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
   const { schoolId } = session.user as any
@@ -1211,13 +1215,78 @@ export async function markSubmission(submissionId: string, data: {
 
   void updateLearningProfile(sub.studentId).catch(() => {})
 
+  // ── Grade-drop detection ───────────────────────────────────────────────────
+  let gradeDrop: {
+    studentId:     string
+    studentName:   string
+    previousGrade: number
+    newGrade:      number
+    drop:          number
+    suggestion:    string
+  } | null = null
+
+  try {
+    const homework = await prisma.homework.findUnique({
+      where:  { id: sub.homeworkId },
+      select: { classId: true, gradingBands: true, title: true },
+    })
+
+    if (homework?.classId) {
+      const prevSub = await prisma.submission.findFirst({
+        where: {
+          studentId:  sub.studentId,
+          schoolId,
+          id:         { not: submissionId },
+          homework:   { classId: homework.classId },
+          finalScore: { not: null },
+          markedAt:   { not: null },
+        },
+        select: {
+          finalScore: true,
+          homework:   { select: { gradingBands: true } },
+        },
+        orderBy: { markedAt: 'desc' },
+      })
+
+      if (prevSub) {
+        const prevBands = prevSub.homework.gradingBands as Record<string, unknown> | null
+        const prevMax   = prevBands ? Math.max(...Object.keys(prevBands).map(Number)) : 100
+        const prevPct   = Math.round((prevSub.finalScore! / prevMax) * 100)
+        const prevGrade = percentToGcseGrade(prevPct)
+
+        const currBands = homework.gradingBands as Record<string, unknown> | null
+        const currMax   = currBands ? Math.max(...Object.keys(currBands).map(Number)) : 100
+        const currPct   = Math.round((data.teacherScore / currMax) * 100)
+        const currGrade = percentToGcseGrade(currPct)
+
+        const drop = prevGrade - currGrade
+        if (drop >= 1) {
+          const student = await prisma.user.findUnique({
+            where:  { id: sub.studentId },
+            select: { firstName: true, lastName: true },
+          })
+          gradeDrop = {
+            studentId:     sub.studentId,
+            studentName:   student ? `${student.firstName} ${student.lastName}` : 'Student',
+            previousGrade: prevGrade,
+            newGrade:      currGrade,
+            drop,
+            suggestion:    `Grade dropped from ${prevGrade} to ${currGrade} on "${homework.title}". Consider adding targeted classroom strategies to their Learning Passport.`,
+          }
+        }
+      }
+    }
+  } catch {
+    // Grade drop detection is non-critical — don't fail the mark
+  }
+
   revalidatePath('/homework')
   revalidatePath(`/homework/${sub.homeworkId}`)
   revalidatePath(`/homework/${sub.homeworkId}/mark/${submissionId}`)
   revalidatePath('/dashboard')
   revalidatePath('/', 'layout')
 
-  return { ilpData }
+  return { ilpData, gradeDrop }
 }
 
 // ── Bulk auto-mark queue ──────────────────────────────────────────────────────

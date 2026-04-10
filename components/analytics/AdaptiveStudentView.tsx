@@ -183,6 +183,59 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
         </div>
       </div>
 
+      {/* ── Grade trend over time ── */}
+      {data.gradeTrend.length >= 2 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Icon name="trending_up" size="sm" className="text-blue-500" />
+            <h3 className="text-[13px] font-semibold text-gray-900">Grade Trend Over Time</h3>
+            <span className="text-[10px] text-gray-400 ml-1">— impact of adaptive homework</span>
+          </div>
+          <div className="flex items-end gap-2 h-16 overflow-x-auto pb-1">
+            {data.gradeTrend.map((pt, i) => {
+              const pct = (pt.grade / 9) * 100
+              const color = pt.grade >= 7 ? 'bg-green-500' : pt.grade >= 5 ? 'bg-amber-400' : pt.grade >= 4 ? 'bg-amber-500' : 'bg-red-500'
+              const prev = i > 0 ? data.gradeTrend[i - 1].grade : null
+              const arrow = prev == null ? null : pt.grade > prev ? '↑' : pt.grade < prev ? '↓' : null
+              return (
+                <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0" style={{ minWidth: 32 }}
+                  title={`${pt.title}\n${new Date(pt.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}: Grade ${pt.grade}`}
+                >
+                  <span className="text-[9px] text-gray-400">
+                    {arrow && <span className={arrow === '↑' ? 'text-green-500' : 'text-red-500'}>{arrow}</span>}
+                    {pt.grade}
+                  </span>
+                  <div className="w-5 rounded-sm" style={{ height: `${Math.max(4, pct * 0.44)}px` }}>
+                    <div className={`w-full h-full rounded-sm ${color}`} />
+                  </div>
+                  <span className="text-[8px] text-gray-300 rotate-0">
+                    {new Date(pt.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          {/* Trend summary */}
+          {(() => {
+            const first = data.gradeTrend[0].grade
+            const last  = data.gradeTrend[data.gradeTrend.length - 1].grade
+            const diff  = last - first
+            return diff !== 0 ? (
+              <p className="text-[11px] mt-2 text-gray-500">
+                {diff > 0
+                  ? <span className="text-green-600 font-medium">↑ Improved {diff} grade{diff > 1 ? 's' : ''}</span>
+                  : <span className="text-red-500 font-medium">↓ Declined {Math.abs(diff)} grade{Math.abs(diff) > 1 ? 's' : ''}</span>}
+                {' '}since first submission (Grade {first} → Grade {last})
+              </p>
+            ) : (
+              <p className="text-[11px] mt-2 text-gray-500">
+                <span className="text-gray-600 font-medium">→ Stable</span> — Grade {last} across {data.gradeTrend.length} submissions
+              </p>
+            )
+          })()}
+        </div>
+      )}
+
       {/* ── Recommended revision (red topics) ── */}
       {redTopics.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-xl overflow-hidden">

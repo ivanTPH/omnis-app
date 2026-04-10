@@ -898,6 +898,12 @@ export type StudentTopicBreakdown = {
     classAvgScore: number
     myStatus:      'green' | 'amber' | 'red' | 'missing'
   }[]
+  gradeTrend: {
+    date:       string   // ISO date string
+    title:      string   // homework title
+    grade:      number   // GCSE grade 1–9
+    pct:        number   // raw percentage score
+  }[]
 }
 
 export async function getStudentTopicBreakdown(
@@ -921,7 +927,7 @@ export async function getStudentTopicBreakdown(
     ? `Grade ${percentToGcseGrade(Math.round(avgScore))}`
     : null
 
-  const [sendStatus, learningProfile] = await Promise.all([
+  const [sendStatus, learningProfile, trendSubmissions] = await Promise.all([
     prisma.sendStatus.findFirst({
       where:  { studentId },
       select: { activeStatus: true },
@@ -930,8 +936,35 @@ export async function getStudentTopicBreakdown(
       where:  { studentId },
       select: { learningFormatNotes: true },
     }),
+    prisma.submission.findMany({
+      where: {
+        studentId,
+        homework: { classId },
+        finalScore: { not: null },
+        markedAt:   { not: null },
+      },
+      select: {
+        finalScore: true,
+        markedAt:   true,
+        homework:   { select: { title: true, gradingBands: true } },
+      },
+      orderBy: { markedAt: 'asc' },
+    }),
   ])
   const hasSend = sendStatus != null && sendStatus.activeStatus !== 'NONE'
+
+  // Build grade trend — convert finalScore to pct using gradingBands max key, then to GCSE grade
+  const gradeTrend = trendSubmissions.map(sub => {
+    const bands = sub.homework.gradingBands as Record<string, unknown> | null
+    const maxKey = bands ? Math.max(...Object.keys(bands).map(Number)) : 100
+    const pct = Math.round((sub.finalScore! / maxKey) * 100)
+    return {
+      date:  sub.markedAt!.toISOString(),
+      title: sub.homework.title,
+      grade: percentToGcseGrade(pct),
+      pct,
+    }
+  })
 
   return {
     studentId,
@@ -943,6 +976,7 @@ export async function getStudentTopicBreakdown(
     yearGroup:              heatmap.yearGroup,
     predictedGradeBaseline,
     learningFormatNotes:    (learningProfile as any)?.learningFormatNotes ?? null,
+    gradeTrend,
     topics: heatmap.topics.map(t => {
       const myScore = student.topicScores[t.topic] ?? null
       const myStatus: 'green' | 'amber' | 'red' | 'missing' = myScore != null

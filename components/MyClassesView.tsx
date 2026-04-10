@@ -1,12 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import ClassRosterTab from '@/components/ClassRosterTab'
 import StudentSearch from '@/components/StudentSearch'
+import Icon from '@/components/ui/Icon'
+import { bulkGenerateLearningPassports } from '@/app/actions/students'
 
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
 
 export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
-  const [selectedId, setSelectedId] = useState<string>(classes[0]?.id ?? '')
+  const [selectedId,  setSelectedId]  = useState<string>(classes[0]?.id ?? '')
+  const [generating,  startGenerate]  = useTransition()
+  const [genResult,   setGenResult]   = useState<{ generated: number; errors: number } | null>(null)
 
   if (classes.length === 0) {
     return (
@@ -22,8 +26,8 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   return (
     <div className="space-y-4">
       <StudentSearch role={role} />
-      {/* Class filter pills */}
-      <div className="flex flex-wrap gap-2">
+      {/* Class filter pills + generate button */}
+      <div className="flex flex-wrap items-center gap-2">
         {classes.map(c => (
           <button
             key={c.id}
@@ -36,12 +40,30 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
             }`}
           >
             {c.name}
-            <span className={`ml-1.5 text-[10px] ${selectedId === c.id ? 'text-blue-200' : 'text-gray-400'}`}>
-              Yr {c.yearGroup}
-            </span>
           </button>
         ))}
+        {/* Generate Learning Passports for selected class */}
+        {selectedId && (
+          <button
+            type="button"
+            disabled={generating}
+            onClick={() => startGenerate(async () => {
+              const r = await bulkGenerateLearningPassports(selectedId)
+              setGenResult(r)
+            })}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition disabled:opacity-50"
+            title="Auto-generate Learning Passports for all students in this class using AI"
+          >
+            <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
+            {generating ? 'Generating…' : 'Generate passports'}
+          </button>
+        )}
       </div>
+      {genResult && (
+        <p className="text-[11px] text-indigo-600">
+          Generated {genResult.generated} Learning Passports{genResult.errors > 0 ? `, ${genResult.errors} failed` : ''}.
+        </p>
+      )}
 
       {/* Roster for selected class */}
       {selectedId && (

@@ -665,7 +665,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                                 <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 flex items-center gap-2">
                                   <span className={`w-3 h-3 rounded-full shrink-0 ${RAG_DOT[ragStudent.ragStatus]}`} />
                                   <div>
-                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">RAG</p>
+                                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Progress</p>
                                     <p className="text-[13px] font-semibold text-gray-700 capitalize">{ragStudent.ragStatus.replace('_', ' ')}</p>
                                   </div>
                                 </div>

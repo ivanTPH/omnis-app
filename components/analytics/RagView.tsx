@@ -13,9 +13,9 @@ import { formatRawScore } from '@/lib/gradeUtils'
 // ── RAG helpers ───────────────────────────────────────────────────────────────
 
 const RAG_LABEL: Record<string, string> = {
-  green:   'On track',
-  amber:   'Slightly below',
-  red:     'Significantly below',
+  green:   'On Track',
+  amber:   'Developing',
+  red:     'Needs Support',
   no_data: 'No data',
 }
 
@@ -40,7 +40,8 @@ function Sparkline({ grades }: { grades: number[] }) {
     const y = H - Math.max(0, Math.min(H, ((g - min) / (max - min)) * H))
     return `${x.toFixed(1)},${y.toFixed(1)}`
   }).join(' ')
-  const trend = grades[grades.length - 1] - grades[0]
+  // Compare most-recent (index 0, DESC order) vs previous (index 1)
+  const trend = grades[0] - grades[1]
   const color = trend > 0 ? '#22c55e' : trend < 0 ? '#ef4444' : '#94a3b8'
   return (
     <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
@@ -523,9 +524,9 @@ export default function RagView({ classId, subject, termLabel }: Props) {
   }
 
   const chipDefs: { status: RagStatus; count: number; label: string; base: string; active: string; dot: string }[] = [
-    { status: 'green',   count: green,  label: 'on track',          base: 'bg-green-50 text-green-700 border-green-200',  active: 'ring-2 ring-green-400 bg-green-100',  dot: 'bg-green-500'  },
-    { status: 'amber',   count: amber,  label: 'slightly below',    base: 'bg-amber-50 text-amber-700 border-amber-200',  active: 'ring-2 ring-amber-400 bg-amber-100',  dot: 'bg-amber-400'  },
-    { status: 'red',     count: red,    label: 'significantly below',base: 'bg-red-50 text-red-700 border-red-200',        active: 'ring-2 ring-red-400 bg-red-100',      dot: 'bg-red-500'    },
+    { status: 'green',   count: green,  label: 'On Track',     base: 'bg-green-50 text-green-700 border-green-200',  active: 'ring-2 ring-green-400 bg-green-100',  dot: 'bg-green-500'  },
+    { status: 'amber',   count: amber,  label: 'Developing',   base: 'bg-amber-50 text-amber-700 border-amber-200',  active: 'ring-2 ring-amber-400 bg-amber-100',  dot: 'bg-amber-400'  },
+    { status: 'red',     count: red,    label: 'Needs Support', base: 'bg-red-50 text-red-700 border-red-200',        active: 'ring-2 ring-red-400 bg-red-100',      dot: 'bg-red-500'    },
     ...(noData > 0 ? [{ status: 'no_data' as RagStatus, count: noData, label: 'no data', base: 'bg-gray-50 text-gray-500 border-gray-200', active: 'ring-2 ring-gray-300 bg-gray-100', dot: 'bg-gray-300' }] : []),
   ]
 
@@ -534,7 +535,7 @@ export default function RagView({ classId, subject, termLabel }: Props) {
 
       {/* ── Summary chips (clickable filter) ── */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mr-1">RAG summary</span>
+        <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mr-1">Progress summary</span>
         {chipDefs.map(({ status, count, label, base, active, dot }) => (
           <button
             key={status}

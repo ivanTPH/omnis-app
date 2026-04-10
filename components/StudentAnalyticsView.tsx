@@ -528,7 +528,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                     studentView === 'rag' ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  <Icon name="monitor_heart" size="sm" />RAG
+                  <Icon name="monitor_heart" size="sm" />Progress
                 </button>
               </div>
             )}

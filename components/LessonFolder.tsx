@@ -20,6 +20,7 @@ const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
 const ClassAnalyticsPanel    = dynamic(() => import('@/components/ClassAnalyticsPanel'),      { ssr: false })
+const ClassBriefingCard      = dynamic(() => import('@/components/ClassBriefingCard'),         { ssr: false })
 const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/HomeworkDetailPanel'),       { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
@@ -1204,6 +1205,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               {activeTab === 'Overview' && (
                 <div className="p-7 space-y-6">
 
+                  {/* Pre-class briefing card — appears above objectives when class has strategies */}
+                  {lesson?.class?.id && (
+                    <ClassBriefingCard classId={lesson.class.id} />
+                  )}
+
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Learning Objectives</h3>
@@ -1484,8 +1490,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           <div key={hw.id} className="border border-gray-200 rounded-xl overflow-hidden">
                             {/* Homework header */}
                             <div className="flex items-center justify-between px-4 py-3 bg-gray-50">
-                              <div>
-                                <p className="text-[13px] font-semibold text-gray-900">{hw.title}</p>
+                              <div className="min-w-0 flex-1">
+                                {hw.status !== 'DRAFT' ? (
+                                  <Link href={`/homework/${hw.id}`} className="group">
+                                    <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{hw.title}</p>
+                                  </Link>
+                                ) : (
+                                  <p className="text-[13px] font-semibold text-gray-900">{hw.title}</p>
+                                )}
                                 <p className="text-[11px] text-gray-400 mt-0.5">
                                   Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                   {' · '}{hw.submissions.length} submission{hw.submissions.length !== 1 ? 's' : ''}

@@ -243,7 +243,7 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
 
       {/* RAG student table */}
       <div>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student RAG Status</p>
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Progress Status</p>
         <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
           {students.map(s => {
             const rag = RAG_LABEL[s.ragStatus]

@@ -1,13 +1,15 @@
 'use client'
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import { formatRawScore } from '@/lib/gradeUtils'
 import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc, SubjectPerf,
-  HomeworkHistoryRow, NoteRow, StudentContact,
+  HomeworkHistoryRow, NoteRow, StudentContact, WondeAttendanceSummary,
+  LearningPassportDoc,
   saveStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
-  generateRevisionSuggestions,
+  generateRevisionSuggestions, approveLearningPassport,
 } from '@/app/actions/students'
 import type { ApdrRow } from '@/app/actions/send-support'
 import {
@@ -58,12 +60,135 @@ function SectionCard({ title, children, action }: { title: string; children: Rea
 function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
   if (!rag) return null
   const colors = { green: 'bg-emerald-500', amber: 'bg-amber-400', red: 'bg-red-500' }
-  const labels = { green: 'On track', amber: 'Borderline', red: 'Needs support' }
+  const labels = { green: 'On Track', amber: 'Developing', red: 'Needs Support' }
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className={`w-2.5 h-2.5 rounded-full ${colors[rag]}`} />
       <span className="text-xs text-gray-600">{labels[rag]}</span>
     </span>
+  )
+}
+
+// ── Learning Passport Section ──────────────────────────────────────────────────
+
+function LearningPassportSection({
+  passport, isSenco, studentId,
+}: { passport: LearningPassportDoc; isSenco: boolean; studentId: string }) {
+  const [approving, startApprove] = useTransition()
+  const [approved, setApproved]   = useState(passport.approvedByTeacher)
+  const isDraft = passport.passportStatus === 'DRAFT' && !approved
+
+  function handleApprove() {
+    startApprove(async () => {
+      await approveLearningPassport(studentId)
+      setApproved(true)
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Grade summary */}
+      {(passport.workingAtGrade != null || passport.predictedGrade != null) && (
+        <div className="grid grid-cols-3 gap-3">
+          {passport.workingAtGrade != null && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-500 mb-1">Working at</p>
+              <p className="text-lg font-bold text-gray-900">Grade {passport.workingAtGrade}</p>
+            </div>
+          )}
+          {passport.targetGrade != null && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+              <p className="text-xs text-blue-500 mb-1">Target</p>
+              <p className="text-lg font-bold text-blue-700">Grade {passport.targetGrade}</p>
+            </div>
+          )}
+          {passport.predictedGrade != null && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-500 mb-1">Predicted</p>
+              <p className="text-lg font-bold text-gray-900">Grade {passport.predictedGrade}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {passport.strengthAreas.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Strengths</p>
+          <ul className="space-y-1">
+            {passport.strengthAreas.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {passport.developmentAreas.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Areas for development</p>
+          <ul className="space-y-1">
+            {passport.developmentAreas.map((d, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                {d}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {passport.classroomStrategies.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Classroom strategies</p>
+          <ul className="space-y-1">
+            {passport.classroomStrategies.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                <Icon name="check_circle" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {passport.learningFormatNotes && (
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Learning format notes</p>
+          <p className="text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            {passport.learningFormatNotes}
+          </p>
+        </div>
+      )}
+
+      {isDraft && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+          <p className="text-sm text-blue-700">This passport is a draft — approve to confirm the strategies.</p>
+          <button
+            onClick={handleApprove}
+            disabled={approving}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+          >
+            {approving
+              ? <Icon name="refresh" size="sm" className="animate-spin" />
+              : <Icon name="verified" size="sm" />}
+            {approving ? 'Approving…' : 'Approve passport'}
+          </button>
+        </div>
+      )}
+      {approved && passport.approvedAt && (
+        <p className="text-xs text-gray-400 flex items-center gap-1">
+          <Icon name="verified" size="sm" className="text-green-500" />
+          Approved {new Date(passport.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+      )}
+      {passport.lastUpdated && (
+        <p className="text-xs text-gray-400">
+          Last updated {new Date(passport.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -228,6 +353,41 @@ function KPlanSection({ kPlan, isSenco, studentId }: { kPlan: KPlanDoc; isSenco:
               </li>
             ))}
           </ul>
+        </div>
+      )}
+      {kPlan.additionalSupportStrategies.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Additional Support Strategies</p>
+          <ul className="space-y-1">
+            {kPlan.additionalSupportStrategies.map((s, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-gray-800">
+                <Icon name="support_agent" size="sm" className="text-purple-400 shrink-0 mt-0.5" />
+                {s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {kPlan.equipmentRequired.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Equipment Required</p>
+          <div className="flex flex-wrap gap-1.5">
+            {kPlan.equipmentRequired.map((e, i) => (
+              <span key={i} className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">{e}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      {kPlan.reviewDate && (
+        <div className="text-sm text-gray-600">
+          <span className="text-xs text-gray-500 mr-1">Next review:</span>
+          {new Date(kPlan.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </div>
+      )}
+      {isSenco && kPlan.staffNotes && (
+        <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          <p className="text-xs font-medium text-amber-700 mb-1">Staff notes (SENCO only)</p>
+          <p className="text-sm text-gray-800 whitespace-pre-wrap">{kPlan.staffNotes}</p>
         </div>
       )}
       <div className="flex gap-2">
@@ -407,8 +567,12 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
                     </div>
                     <div className="space-y-1">
                       {subjectHw(row.subject).slice(0, 8).map(hw => (
-                        <div key={hw.homeworkId} className="flex items-center justify-between text-xs py-0.5">
-                          <span className="text-gray-700 truncate max-w-[60%]">{hw.title}</span>
+                        <Link
+                          key={hw.homeworkId}
+                          href={`/homework/${hw.homeworkId}`}
+                          className="flex items-center justify-between text-xs py-0.5 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
+                        >
+                          <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>
                           <div className="flex items-center gap-3">
                             <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                             {hw.finalScore != null
@@ -418,7 +582,7 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
                                 : <span className="text-red-500">Missing</span>
                             }
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   </div>
@@ -977,16 +1141,48 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
           )}
 
           {/* Wonde MIS data */}
-          {(student.attendancePercentage != null || student.behaviourPositive != null || student.hasExclusion) && (
+          {(student.attendancePercentage != null || student.behaviourPositive != null || student.hasExclusion || data.wondeAttendance != null) && (
             <SectionCard title="MIS data · via Wonde">
               <div className="space-y-2">
                 {student.attendancePercentage != null && (() => {
                   const pct = student.attendancePercentage!
+                  const dot = pct >= 95 ? 'bg-green-500' : pct >= 90 ? 'bg-amber-400' : 'bg-red-500'
                   const cls = pct >= 95 ? 'text-green-700' : pct >= 90 ? 'text-amber-700' : 'text-red-700'
+                  const label = pct >= 95 ? 'On Track' : pct >= 90 ? 'Developing' : 'Needs Support'
                   return (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">Attendance this term</span>
-                      <span className={`font-semibold ${cls}`}>{pct.toFixed(1)}%</span>
+                      <span className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${dot}`} />
+                        <span className={`font-semibold ${cls}`}>{pct.toFixed(1)}%</span>
+                        <span className={`text-xs ${cls}`}>{label}</span>
+                      </span>
+                    </div>
+                  )
+                })()}
+                {data.wondeAttendance != null && (() => {
+                  const att = data.wondeAttendance!
+                  const absent = (att.possibleSessions ?? 0) - (att.presentSessions ?? 0)
+                  return (
+                    <div className="space-y-1 pl-4 border-l-2 border-gray-100">
+                      {att.possibleSessions != null && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Sessions absent</span>
+                          <span className="font-medium text-gray-800">{absent} of {att.possibleSessions}</span>
+                        </div>
+                      )}
+                      {att.authorisedAbsences != null && att.authorisedAbsences > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Authorised</span>
+                          <span className="font-medium text-gray-800">{att.authorisedAbsences}</span>
+                        </div>
+                      )}
+                      {att.unauthorisedAbsences != null && att.unauthorisedAbsences > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Unauthorised</span>
+                          <span className="font-medium text-amber-700">{att.unauthorisedAbsences}</span>
+                        </div>
+                      )}
                     </div>
                   )
                 })()}
@@ -1013,11 +1209,31 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
       {/* ── Tab: Plans ── */}
       {activeTab === 'Plans' && (
         <div className="space-y-4">
-          {!data.kPlan && !data.ilp && !data.ehcp && (
+          {!data.learningPassport && !data.kPlan && !data.ilp && !data.ehcp && (
             <p className="text-sm text-gray-400 text-center py-8">No SEND documents on file for this student.</p>
           )}
+          {data.learningPassport && (
+            <SectionCard
+              title="Learning Passport"
+              action={
+                <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                  data.learningPassport.passportStatus === 'APPROVED'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {data.learningPassport.passportStatus === 'APPROVED' ? 'Approved' : 'Draft'}
+                </span>
+              }
+            >
+              <LearningPassportSection
+                passport={data.learningPassport}
+                isSenco={isSenco}
+                studentId={student.id}
+              />
+            </SectionCard>
+          )}
           {data.kPlan && (
-            <SectionCard title="K Plan (Learning Passport)" action={<StatusBadge status={data.kPlan.status} />}>
+            <SectionCard title="K Plan" action={<StatusBadge status={data.kPlan.status} />}>
               <KPlanSection kPlan={data.kPlan} isSenco={isSenco} studentId={student.id} />
             </SectionCard>
           )}

@@ -2018,21 +2018,26 @@ model ApdrAuditEntry {
 // ─── K Plan (Learning Passport) ──────────────────────────────────────────────
 
 model LearnerPassport {
-  id                 String    @id @default(cuid())
-  schoolId           String
-  studentId          String
-  ilpId              String?
-  ehcpId             String?
-  apdrId             String?
-  sendInformation    String    @default("")
-  teacherActions     String[]
-  studentCommitments String[]
-  status             String    @default("DRAFT") // "DRAFT" | "APPROVED"
-  approvedBy         String?   // userId of approving SENCO
-  approvedAt         DateTime?
-  generatedAt        DateTime  @default(now())
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                          String    @id @default(cuid())
+  schoolId                    String
+  studentId                   String
+  ilpId                       String?
+  ehcpId                      String?
+  apdrId                      String?
+  sendInformation             String    @default("")
+  teacherActions              String[]
+  studentCommitments          String[]
+  // K Plan extension — builds on Learning Passport, adds:
+  additionalSupportStrategies String[]  // extra strategies beyond classroom basics
+  equipmentRequired           String[]  // e.g. "Overlay", "Timer", "Graph paper"
+  staffNotes                  String?   // private TA/support staff notes
+  reviewDate                  DateTime? // next planned review date
+  status                      String    @default("DRAFT") // "DRAFT" | "APPROVED"
+  approvedBy                  String?   // userId of approving SENCO
+  approvedAt                  DateTime?
+  generatedAt                 DateTime  @default(now())
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
 
   school  School @relation(fields: [schoolId], references: [id])
   student User   @relation("StudentPassports", fields: [studentId], references: [id])
@@ -2121,23 +2126,34 @@ model LearningSequence {
 }
 
 model StudentLearningProfile {
-  id                 String    @id @default(cuid())
-  studentId          String    @unique
-  schoolId           String
-  typePerformance    Json      @default("{}")
-  bloomsPerformance  Json      @default("{}")
-  subjectPerformance Json      @default("{}")
-  preferredTypes     String[]
-  strengthAreas      String[]
-  developmentAreas   String[]
-  avgCompletionRate  Float     @default(0)
-  avgTimeAccuracy    Float     @default(0)
-  sendConcernLevel   Float?    // rolling avg of last 10 sendRiskScores (0–100)
-  lastHomeworkAt     DateTime? // most recent submission timestamp
+  id                  String    @id @default(cuid())
+  studentId           String    @unique
+  schoolId            String
+  typePerformance     Json      @default("{}")
+  bloomsPerformance   Json      @default("{}")
+  subjectPerformance  Json      @default("{}")
+  preferredTypes      String[]
+  strengthAreas       String[]
+  developmentAreas    String[]
+  avgCompletionRate   Float     @default(0)
+  avgTimeAccuracy     Float     @default(0)
+  sendConcernLevel    Float?    // rolling avg of last 10 sendRiskScores (0–100)
+  lastHomeworkAt      DateTime? // most recent submission timestamp
   profileSummary      String?
   learningFormatNotes String?   // Teacher/SENCO notes: preferred formats, adaptations
-  profileUpdatedAt   DateTime?
-  updatedAt          DateTime  @updatedAt
+  profileUpdatedAt    DateTime?
+  updatedAt           DateTime  @updatedAt
+  // Learning Passport fields
+  workingAtGrade      Int?      // GCSE grade 1-9 derived from recent homework avg
+  targetGrade         Int?      // workingAtGrade + 1, capped at 9
+  predictedGrade      Int?      // from SATs/baseline or year-group default
+  classroomStrategies String[]  // practical daily strategies e.g. "Overlay on desk"
+  approvedByTeacher   Boolean   @default(false)
+  approvedBy          String?   // userId of approving teacher
+  approvedAt          DateTime?
+  lastUpdated         DateTime?
+  // Status: DRAFT until teacher approves, then APPROVED
+  passportStatus      String    @default("DRAFT") // "DRAFT" | "APPROVED"
 
   student User   @relation(fields: [studentId], references: [id])
   school  School @relation(fields: [schoolId], references: [id])

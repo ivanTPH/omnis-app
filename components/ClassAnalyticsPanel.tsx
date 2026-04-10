@@ -15,9 +15,9 @@ const RAG_DOT: Record<string, string> = {
   no_data: 'bg-gray-300',
 }
 const RAG_LABEL: Record<string, string> = {
-  green:   'On track',
-  amber:   'Borderline',
-  red:     'Needs support',
+  green:   'On Track',
+  amber:   'Developing',
+  red:     'Needs Support',
   no_data: 'No data',
 }
 const RAG_CHIP: Record<string, string> = {
@@ -132,7 +132,7 @@ export default function ClassAnalyticsPanel({
       {/* ── RAG breakdown ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-          <h3 className="text-[12px] font-semibold text-gray-700">RAG breakdown</h3>
+          <h3 className="text-[12px] font-semibold text-gray-700">Progress overview</h3>
           <Link
             href={analyticsHref}
             className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
@@ -210,8 +210,8 @@ export default function ClassAnalyticsPanel({
           {students.map(s => {
             const trend =
               s.recentGrades.length >= 2
-                ? s.recentGrades[0] > s.recentGrades[s.recentGrades.length - 1] ? '↑'
-                : s.recentGrades[0] < s.recentGrades[s.recentGrades.length - 1] ? '↓'
+                ? s.recentGrades[0] > s.recentGrades[1] ? '↑'
+                : s.recentGrades[0] < s.recentGrades[1] ? '↓'
                 : '→'
                 : null
             const trendColor =
@@ -220,7 +220,7 @@ export default function ClassAnalyticsPanel({
             return (
               <Link
                 key={s.id}
-                href={`/student/${s.id}/send`}
+                href={`/analytics/students/${s.id}`}
                 className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50 transition-colors"
               >
                 <StudentAvatar

@@ -89,12 +89,12 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
   // ILP evidence rate
   const totalIlpTargets = await prisma.ilpTarget.count({ where: { ilp: { schoolId, status: 'active' } } })
   const linkedTargets = await prisma.ilpHomeworkLink.count({ where: { homework: { schoolId } } })
-  const ilpEvidenceRate = totalIlpTargets > 0 ? Math.round((linkedTargets / totalIlpTargets) * 100) : 0
+  const ilpEvidenceRate = totalIlpTargets > 0 ? linkedTargets / totalIlpTargets : 0
 
   // EHCP evidence rate
   const totalOutcomes = await prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' } } })
   const outcomesWithEvidence = await prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' }, evidenceCount: { gt: 0 } } })
-  const ehcpEvidenceRate = totalOutcomes > 0 ? Math.round((outcomesWithEvidence / totalOutcomes) * 100) : 0
+  const ehcpEvidenceRate = totalOutcomes > 0 ? outcomesWithEvidence / totalOutcomes : 0
 
   return { typeBreakdown, bloomsDistribution, completionByType, ilpEvidenceRate, ehcpEvidenceRate }
 }

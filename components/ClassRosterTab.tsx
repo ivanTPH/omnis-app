@@ -350,21 +350,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           const tipParts  = kPlanTips.length > 0 ? kPlanTips : ehcpFallbackTips
           const quickTip  = tipParts.length > 0 ? tipParts.join(' · ') : null
 
-          // Performance indicators
-          // Computes coloured dot status for working-at vs a reference score
-          function perfIndicator(working: number | null, reference: number | null): 'green' | 'amber' | 'red' | 'no_data' {
-            if (working == null || reference == null) return 'no_data'
-            const diff = working - reference
-            if (diff >= -5)  return 'green'
-            if (diff >= -15) return 'amber'
-            return 'red'
-          }
-          const workingAt        = ragStudent?.workingAtScore ?? null
-          // Use best available reference: StudentBaseline → passport predicted, TeacherPrediction → passport predicted
-          const baselineRef      = ragStudent?.baselineScore ?? ragStudent?.effectivePredictedScore ?? null
-          const predictionRef    = ragStudent?.prediction?.effectiveScore ?? ragStudent?.effectivePredictedScore ?? null
-          const baselineStatus   = perfIndicator(workingAt, baselineRef)
-          const predictionStatus = perfIndicator(workingAt, predictionRef)
+          const ragStatus = ragStudent?.ragStatus ?? 'no_data'
 
           return (
             <div key={row.id}>
@@ -450,38 +436,19 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                  {/* Performance indicator dots */}
+                  {/* Single traffic light dot */}
                   <span
                     title={
-                      baselineStatus === 'no_data'
-                        ? 'Baseline: No prior attainment data set'
-                        : baselineStatus === 'green'
-                          ? 'Baseline: Meeting or close to prior attainment baseline'
-                          : baselineStatus === 'amber'
-                            ? 'Baseline: Slightly below prior attainment baseline (6–15%)'
-                            : 'Baseline: Significantly below prior attainment baseline (>15%)'
+                      ragStatus === 'no_data'
+                        ? 'Progress: No homework data yet'
+                        : ragStatus === 'green'
+                          ? 'Progress: At or above predicted grade'
+                          : ragStatus === 'amber'
+                            ? 'Progress: 1 grade below predicted'
+                            : 'Progress: 2+ grades below predicted'
                     }
-                    className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[baselineStatus]}`}
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[ragStatus]}`}
                   />
-                  <span
-                    title={
-                      predictionStatus === 'no_data'
-                        ? 'Prediction: No teacher prediction set'
-                        : predictionStatus === 'green'
-                          ? 'Prediction: Meeting or close to teacher adjusted prediction'
-                          : predictionStatus === 'amber'
-                            ? 'Prediction: Slightly below teacher adjusted prediction (6–15%)'
-                            : 'Prediction: Significantly below teacher adjusted prediction (>15%)'
-                    }
-                    className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[predictionStatus]}`}
-                  />
-                  {/* RAG dot */}
-                  {ragStudent && ragStudent.ragStatus !== 'no_data' && (
-                    <span
-                      title={`RAG: ${ragStudent.ragStatus}`}
-                      className={`w-2 h-2 rounded-full shrink-0 ${RAG_DOT[ragStudent.ragStatus]}`}
-                    />
-                  )}
                   {badge && (
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}

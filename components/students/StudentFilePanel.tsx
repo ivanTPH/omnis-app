@@ -502,7 +502,7 @@ function EhcpSection({ ehcp, isSenco }: { ehcp: EhcpDoc; isSenco: boolean }) {
 
 // ── Performance Tab ───────────────────────────────────────────────────────────
 
-function PerformanceTab({ data, studentName }: { data: StudentFileData; studentName: string }) {
+function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData; studentName: string; onClose?: () => void }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<string | null>(null)
   const [loadingSugg, startSuggTransition] = useTransition()
@@ -570,6 +570,7 @@ function PerformanceTab({ data, studentName }: { data: StudentFileData; studentN
                         <Link
                           key={hw.homeworkId}
                           href={`/homework/${hw.homeworkId}`}
+                          onClick={() => onClose?.()}
                           className="flex items-center justify-between text-xs py-0.5 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
                         >
                           <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>
@@ -1027,7 +1028,7 @@ function ApdrTab({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function StudentFilePanel({ data, role }: { data: StudentFileData; role: string }) {
+export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
   const isTA    = role === 'TA'
@@ -1262,7 +1263,7 @@ export default function StudentFilePanel({ data, role }: { data: StudentFileData
 
       {/* ── Tab: Homework ── */}
       {activeTab === 'Homework' && (
-        <PerformanceTab data={data} studentName={studentName} />
+        <PerformanceTab data={data} studentName={studentName} onClose={onClose} />
       )}
 
       {/* ── Tab: Notes ── */}

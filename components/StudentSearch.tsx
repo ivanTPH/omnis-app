@@ -148,7 +148,7 @@ export default function StudentSearch({ role }: { role: string }) {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <StudentFilePanel data={panelData} role={role} />
+              <StudentFilePanel data={panelData} role={role} onClose={() => setPanelOpen(false)} />
             </div>
           </div>
         </div>

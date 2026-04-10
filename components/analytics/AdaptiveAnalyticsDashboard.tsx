@@ -27,16 +27,23 @@ type View =
   | { mode: 'student'; classId: string; className: string; subject: string; yearGroup: number; studentId: string; studentName: string }
 
 export default function AdaptiveAnalyticsDashboard() {
-  const [view,       setView]       = useState<View>({ mode: 'overview' })
-  const [classes,    setClasses]    = useState<ClassSummary[]>([])
-  const [loadingC,   setLoadingC]   = useState(true)
-  const [analytics,  setAnalytics]  = useState<HomeworkAdaptiveAnalytics | null>(null)
-  const [showCharts, setShowCharts] = useState(false)
+  const [view,           setView]           = useState<View>({ mode: 'overview' })
+  const [classes,        setClasses]        = useState<ClassSummary[]>([])
+  const [loadingC,       setLoadingC]       = useState(true)
+  const [analytics,      setAnalytics]      = useState<HomeworkAdaptiveAnalytics | null>(null)
+  const [classAnalytics, setClassAnalytics] = useState<HomeworkAdaptiveAnalytics | null>(null)
+  const [showCharts,     setShowCharts]     = useState(false)
 
   useEffect(() => {
     getClassSummaries().then(setClasses).catch(() => {}).finally(() => setLoadingC(false))
     getHomeworkAdaptiveAnalytics().then(setAnalytics).catch(() => {})
   }, [])
+
+  // Fetch class-specific analytics whenever heatmap/student view is open
+  useEffect(() => {
+    if (view.mode === 'overview') { setClassAnalytics(null); return }
+    getHomeworkAdaptiveAnalytics({ classId: view.classId }).then(setClassAnalytics).catch(() => {})
+  }, [view.mode === 'overview' ? null : view.classId])
 
   const selectedClassId = view.mode !== 'overview' ? view.classId : null
 
@@ -295,7 +302,7 @@ export default function AdaptiveAnalyticsDashboard() {
               <div>
                 <h2 className="text-[15px] font-bold text-gray-900">{view.className}</h2>
                 <p className="text-[12px] text-gray-500 mt-0.5">
-                  {view.subject} · Year {view.yearGroup} — last term topic performance
+                  {view.subject} · Year {view.yearGroup} — topic performance by student
                 </p>
               </div>
               <AdaptiveHeatmapView
@@ -306,6 +313,34 @@ export default function AdaptiveAnalyticsDashboard() {
                   setView({ mode: 'student', classId: view.classId, className: view.className, subject: view.subject, yearGroup: view.yearGroup, studentId, studentName })
                 }
               />
+
+              {/* Class format breakdown */}
+              {classAnalytics && classAnalytics.typeBreakdown.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-xl p-4 mt-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon name="menu_book" size="sm" className="text-blue-600" />
+                    <h3 className="text-[13px] font-semibold text-gray-800">Format Breakdown — {view.className}</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {classAnalytics.typeBreakdown
+                      .sort((a, b) => b.avgScore - a.avgScore)
+                      .map(t => {
+                        const grade = percentToGcseGrade(t.avgScore)
+                        const barColor = grade >= 7 ? 'bg-green-500' : grade >= 5 ? 'bg-amber-400' : 'bg-red-400'
+                        return (
+                          <div key={t.type} className="flex items-center gap-3">
+                            <span className="text-[11px] text-gray-600 w-28 shrink-0 capitalize">{t.type.replace(/_/g, ' ').toLowerCase()}</span>
+                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div className={`h-full ${barColor} rounded-full`} style={{ width: `${t.avgScore}%` }} />
+                            </div>
+                            <span className="text-[11px] font-semibold text-gray-700 w-12 text-right">{gradeLabel(grade)}</span>
+                            <span className="text-[10px] text-gray-400 w-10 text-right">{t.count} hw</span>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

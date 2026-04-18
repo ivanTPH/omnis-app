@@ -27,7 +27,7 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   return (
     <div className="space-y-3">
       {/* Subject filter tabs */}
-      {subjects.length > 2 && (
+      {classes.length > 1 && subjects.length > 1 && (
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none">
           {subjects.map(s => (
             <button

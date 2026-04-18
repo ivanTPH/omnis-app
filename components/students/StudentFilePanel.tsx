@@ -1,6 +1,5 @@
 'use client'
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import { formatRawScore } from '@/lib/gradeUtils'
@@ -438,9 +437,13 @@ function IlpSection({ ilp, isSenco, studentId }: { ilp: IlpDoc; isSenco: boolean
           )}
         </div>
       )}
-      {isSenco && (
+      {isSenco ? (
         <a href="/senco/ilp" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
           <Icon name="open_in_new" size="sm" />Edit full ILP
+        </a>
+      ) : (
+        <a href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+          <Icon name="open_in_new" size="sm" />View full SEND profile
         </a>
       )}
     </div>
@@ -567,10 +570,9 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
                     </div>
                     <div className="space-y-1">
                       {subjectHw(row.subject).slice(0, 8).map(hw => (
-                        <Link
+                        <a
                           key={hw.homeworkId}
                           href={`/homework/${hw.homeworkId}`}
-                          onClick={() => onClose?.()}
                           className="flex items-center justify-between text-xs py-0.5 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
                         >
                           <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>
@@ -583,7 +585,7 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
                                 : <span className="text-red-500">Missing</span>
                             }
                           </div>
-                        </Link>
+                        </a>
                       ))}
                     </div>
                   </div>

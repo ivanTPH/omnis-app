@@ -436,19 +436,30 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                  {/* Single traffic light dot */}
-                  <span
-                    title={
-                      ragStatus === 'no_data'
-                        ? 'Progress: No homework data yet'
-                        : ragStatus === 'green'
-                          ? 'Progress: At or above predicted grade'
-                          : ragStatus === 'amber'
-                            ? 'Progress: 1 grade below predicted'
-                            : 'Progress: 2+ grades below predicted'
-                    }
-                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[ragStatus]}`}
-                  />
+                  {/* Single traffic light dot + label */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span
+                      title={
+                        ragStatus === 'no_data'
+                          ? 'Progress: No homework data yet'
+                          : ragStatus === 'green'
+                            ? 'Progress: At or above predicted grade'
+                            : ragStatus === 'amber'
+                              ? 'Progress: 1 grade below predicted'
+                              : 'Progress: 2+ grades below predicted'
+                      }
+                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[ragStatus]}`}
+                    />
+                    {ragStatus !== 'no_data' && (
+                      <span className={`text-[8px] font-semibold leading-none whitespace-nowrap ${
+                        ragStatus === 'green'  ? 'text-green-600'
+                        : ragStatus === 'amber' ? 'text-amber-500'
+                        : 'text-red-500'
+                      }`}>
+                        {ragStatus === 'green' ? 'On Track' : ragStatus === 'amber' ? 'Developing' : 'Attention'}
+                      </span>
+                    )}
+                  </div>
                   {badge && (
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}

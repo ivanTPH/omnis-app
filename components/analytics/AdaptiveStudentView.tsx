@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import { getStudentTopicBreakdown } from '@/app/actions/analytics'
 import { generateResource } from '@/app/actions/ai-generator'
-import { saveLearningFormatNotes } from '@/app/actions/adaptive-learning'
+import { saveLearningFormatNotes, generateAdaptiveNarrative } from '@/app/actions/adaptive-learning'
 import type { StudentTopicBreakdown } from '@/app/actions/analytics'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -16,13 +16,16 @@ type Props = {
 type GenState = { id: string; title: string } | 'generating' | 'error' | null
 
 export default function AdaptiveStudentView({ studentId, classId }: Props) {
-  const [data,       setData]       = useState<StudentTopicBreakdown | null>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [error,      setError]      = useState('')
-  const [genMap,     setGenMap]     = useState<Record<string, GenState>>({})
-  const [notes,      setNotes]      = useState('')
-  const [notesSaved, setNotesSaved] = useState(false)
-  const [notesLoading, setNotesLoading] = useState(false)
+  const [data,           setData]           = useState<StudentTopicBreakdown | null>(null)
+  const [loading,        setLoading]        = useState(true)
+  const [error,          setError]          = useState('')
+  const [genMap,         setGenMap]         = useState<Record<string, GenState>>({})
+  const [notes,          setNotes]          = useState('')
+  const [notesSaved,     setNotesSaved]     = useState(false)
+  const [notesLoading,   setNotesLoading]   = useState(false)
+  const [narrative,      setNarrative]      = useState<string | null>(null)
+  const [narrativeError, setNarrativeError] = useState(false)
+  const [generatingNarrative, startNarrative] = useTransition()
 
   useEffect(() => {
     getStudentTopicBreakdown(studentId, classId)
@@ -33,6 +36,18 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [studentId, classId])
+
+  function handleGenerateNarrative() {
+    setNarrativeError(false)
+    startNarrative(async () => {
+      try {
+        const text = await generateAdaptiveNarrative(studentId, classId)
+        setNarrative(text)
+      } catch {
+        setNarrativeError(true)
+      }
+    })
+  }
 
   async function handleGenerate(topic: string) {
     if (!data) return
@@ -145,6 +160,38 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           ) : (
             <div className="text-[11px] text-gray-400">No grade data</div>
           )}
+        </div>
+      </div>
+
+      {/* ── AI narrative card ── */}
+      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5 flex-1 min-w-0">
+            <Icon name="psychology" size="sm" className="text-indigo-500 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 mb-1">AI Adaptive Summary</p>
+              {generatingNarrative ? (
+                <div className="flex items-center gap-1.5 text-[12px] text-indigo-500">
+                  <Icon name="refresh" size="sm" className="animate-spin" />
+                  Generating summary…
+                </div>
+              ) : narrative ? (
+                <p className="text-[13px] text-indigo-900 leading-relaxed">{narrative}</p>
+              ) : narrativeError ? (
+                <p className="text-[12px] text-red-600 italic">Failed to generate — try again.</p>
+              ) : (
+                <p className="text-[12px] text-indigo-400 italic">Click &ldquo;Generate&rdquo; for an AI-powered teaching summary for this student.</p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={handleGenerateNarrative}
+            disabled={generatingNarrative}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
+          >
+            <Icon name={narrative ? 'refresh' : 'auto_awesome'} size="sm" />
+            {narrative ? 'Regenerate' : 'Generate'}
+          </button>
         </div>
       </div>
 

@@ -752,3 +752,98 @@ export async function saveLearningFormatNotes(studentId: string, notes: string):
     create: { studentId, schoolId, learningFormatNotes: notes },
   })
 }
+
+// ─── AI Narrative ─────────────────────────────────────────────────────────────
+
+export async function generateAdaptiveNarrative(
+  studentId: string,
+  classId:   string,
+): Promise<string> {
+  const user = await requireStaff()
+  const { schoolId } = user
+
+  // Gather student context
+  const [student, profile, sendStatus, ilp] = await Promise.all([
+    prisma.user.findFirst({
+      where:  { id: studentId, schoolId, role: 'STUDENT' },
+      select: { firstName: true, lastName: true, yearGroup: true },
+    }),
+    prisma.studentLearningProfile.findUnique({
+      where:  { studentId },
+      select: { typePerformance: true, learningFormatNotes: true, preferredTypes: true, strengthAreas: true, developmentAreas: true },
+    }),
+    prisma.sendStatus.findFirst({
+      where:  { studentId },
+      select: { activeStatus: true, needArea: true },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where:   { studentId, schoolId, status: 'active' },
+      include: {
+        targets: {
+          where:  { status: 'active' },
+          select: { target: true, strategy: true },
+          take:   3,
+        },
+      },
+    }),
+  ])
+
+  if (!student) throw new Error('Student not found')
+
+  // Build context strings
+  const sendContext = sendStatus?.activeStatus && sendStatus.activeStatus !== 'NONE'
+    ? `SEND status: ${sendStatus.activeStatus}${sendStatus.needArea ? ` — ${sendStatus.needArea}` : ''}`
+    : 'No SEND status'
+
+  const ilpContext = ilp
+    ? `Active ILP with ${ilp.targets.length} target(s):\n${ilp.targets.map(t => `- ${t.target}${t.strategy ? ` (strategy: ${t.strategy})` : ''}`).join('\n')}`
+    : 'No active ILP'
+
+  const profileContext = profile
+    ? [
+        profile.learningFormatNotes ? `Learning format notes: ${profile.learningFormatNotes}` : null,
+        profile.preferredTypes.length ? `Preferred homework types: ${profile.preferredTypes.join(', ')}` : null,
+        profile.strengthAreas.length ? `Strengths: ${profile.strengthAreas.join(', ')}` : null,
+        profile.developmentAreas.length ? `Development areas: ${profile.developmentAreas.join(', ')}` : null,
+      ].filter(Boolean).join('\n')
+    : 'No learning profile data yet'
+
+  // Fetch recent grade trend for this class
+  const recentSubs = await prisma.submission.findMany({
+    where:   { studentId, schoolId, homework: { classId }, status: 'RETURNED' },
+    orderBy: { submittedAt: 'desc' },
+    take:    6,
+    select:  { finalScore: true, homework: { select: { title: true, gradingBands: true } } },
+  })
+
+  const gradeContext = recentSubs.length
+    ? `Recent grades (newest first): ${recentSubs.map(s => s.finalScore != null ? `${s.finalScore}%` : 'unscored').join(', ')}`
+    : 'No recent submissions in this class'
+
+  const prompt = `You are an adaptive learning assistant for a UK secondary school teacher.
+
+Provide a concise 2–3 sentence narrative about ${student.firstName} ${student.lastName} (Year ${student.yearGroup ?? '?'}) that:
+1. Summarises their recent performance trend and any patterns
+2. Highlights key SEND or ILP considerations the teacher should keep in mind
+3. Suggests one specific teaching action for this student
+
+Student data:
+${sendContext}
+${ilpContext}
+${profileContext}
+${gradeContext}
+
+Write in plain English, teacher-to-teacher tone. Be specific and actionable, not generic. Do not use bullet points — write as connected sentences.`
+
+  try {
+    const client = new Anthropic()
+    const msg = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+    return (msg.content[0] as { text: string }).text.trim()
+  } catch {
+    return `${student.firstName} is currently ${recentSubs.length ? 'being tracked' : 'awaiting submissions'} in this class. ${sendContext !== 'No SEND status' ? `Note their ${sendContext}. ` : ''}${ilp ? `Active ILP with ${ilp.targets.length} target(s) — review strategies before setting homework.` : 'No active ILP — consider raising a concern if performance is below expected.'}`
+  }
+}

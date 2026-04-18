@@ -262,3 +262,113 @@ Submission: "${content.slice(0, 800)}"`,
     })
   }
 }
+
+// ── Grade history ─────────────────────────────────────────────────────────────
+
+export type GradeHistorySubmission = {
+  homeworkId:  string
+  title:       string
+  subject:     string
+  className:   string
+  dueAt:       string
+  markedAt:    string
+  finalScore:  number
+  maxScore:    number
+  pct:         number          // 0-100
+  gcseGrade:   number          // 1-9
+  feedback:    string | null
+}
+
+export type SubjectGradeSummary = {
+  subject:        string
+  avgGrade:       number       // GCSE 1-9
+  submissions:    GradeHistorySubmission[]
+  predictedGrade: number | null // GCSE 1-9 from TeacherPrediction or StudentBaseline
+}
+
+export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, id: userId, role } = session.user as any
+  if (role !== 'STUDENT') throw new Error('Forbidden')
+
+  const { percentToGcseGrade } = await import('@/lib/grading')
+
+  function maxFromBands(bands: unknown): number {
+    if (!bands || typeof bands !== 'object') return 9
+    const keys = Object.keys(bands as Record<string, string>)
+    const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
+    return nums.length ? Math.max(...nums) : 9
+  }
+
+  const [submissions, baselines, predictions] = await Promise.all([
+    prisma.submission.findMany({
+      where: {
+        studentId: userId,
+        finalScore: { not: null },
+        status: { in: ['MARKED', 'RETURNED'] },
+        homework: { schoolId },
+      },
+      select: {
+        id: true, finalScore: true, feedback: true, markedAt: true,
+        homework: {
+          select: {
+            id: true, title: true, dueAt: true, gradingBands: true,
+            class: { select: { name: true, subject: true } },
+          },
+        },
+      },
+      orderBy: { markedAt: 'desc' },
+    }),
+    prisma.studentBaseline.findMany({
+      where: { studentId: userId, schoolId },
+      select: { subject: true, baselineScore: true },
+    }),
+    prisma.teacherPrediction.findMany({
+      where: { studentId: userId, schoolId },
+      select: { subject: true, predictedScore: true, adjustment: true },
+      orderBy: { updatedAt: 'desc' },
+    }),
+  ])
+
+  const baselineMap = new Map(baselines.map(b => [b.subject, b.baselineScore]))
+  // Latest prediction per subject
+  const predMap = new Map<string, number>()
+  for (const p of predictions) {
+    if (!predMap.has(p.subject)) predMap.set(p.subject, p.predictedScore + p.adjustment)
+  }
+
+  const bySubject = new Map<string, GradeHistorySubmission[]>()
+  for (const sub of submissions) {
+    const hw     = sub.homework
+    const subj   = hw.class.subject
+    const max    = maxFromBands(hw.gradingBands)
+    const pct    = Math.min(100, Math.round(((sub.finalScore ?? 0) / max) * 100))
+    const grade  = percentToGcseGrade(pct)
+    const entry: GradeHistorySubmission = {
+      homeworkId: hw.id,
+      title:      hw.title,
+      subject:    subj,
+      className:  hw.class.name,
+      dueAt:      hw.dueAt.toISOString(),
+      markedAt:   sub.markedAt?.toISOString() ?? hw.dueAt.toISOString(),
+      finalScore: sub.finalScore ?? 0,
+      maxScore:   max,
+      pct,
+      gcseGrade:  grade,
+      feedback:   sub.feedback ?? null,
+    }
+    if (!bySubject.has(subj)) bySubject.set(subj, [])
+    bySubject.get(subj)!.push(entry)
+  }
+
+  const result: SubjectGradeSummary[] = []
+  for (const [subject, subs] of bySubject.entries()) {
+    const avgGrade   = Math.round(subs.reduce((a, s) => a + s.gcseGrade, 0) / subs.length)
+    const predScore  = predMap.get(subject) ?? baselineMap.get(subject) ?? null
+    const predicted  = predScore != null ? percentToGcseGrade(predScore) : null
+    result.push({ subject, avgGrade, submissions: subs, predictedGrade: predicted })
+  }
+
+  return result.sort((a, b) => a.subject.localeCompare(b.subject))
+}

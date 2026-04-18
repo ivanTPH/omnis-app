@@ -252,3 +252,47 @@ export async function deleteCalendarEntry(id: string): Promise<void> {
   await prisma.schoolCalendar.deleteMany({ where: { id, schoolId } })
   revalidatePath('/admin/calendar')
 }
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+export type AuditLogEntry = {
+  id:         string
+  action:     string
+  targetType: string
+  targetId:   string
+  metadata:   Record<string, unknown> | null
+  createdAt:  string
+  actorName:  string
+  actorRole:  string
+}
+
+export async function getSchoolAuditLog(page = 0, pageSize = 50): Promise<{ entries: AuditLogEntry[]; total: number }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const [entries, total] = await Promise.all([
+    prisma.auditLog.findMany({
+      where:   { schoolId },
+      orderBy: { createdAt: 'desc' },
+      skip:    page * pageSize,
+      take:    pageSize,
+      include: { actor: { select: { firstName: true, lastName: true, role: true } } },
+    }),
+    prisma.auditLog.count({ where: { schoolId } }),
+  ])
+
+  return {
+    total,
+    entries: entries.map(e => ({
+      id:         e.id,
+      action:     e.action,
+      targetType: e.targetType,
+      targetId:   e.targetId,
+      metadata:   e.metadata as Record<string, unknown> | null,
+      createdAt:  e.createdAt.toISOString(),
+      actorName:  `${e.actor.firstName} ${e.actor.lastName}`,
+      actorRole:  e.actor.role,
+    })),
+  }
+}

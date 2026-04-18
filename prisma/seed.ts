@@ -5,9 +5,14 @@ const prisma = new PrismaClient()
 
 function monday(offsetWeeks = 0): Date {
   const now = new Date()
-  const dow = now.getDay()
+  const dow = now.getDay() // 0=Sun … 6=Sat
   const d = new Date(now)
-  d.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) + offsetWeeks * 7)
+  // If run on Sat/Sun, snap forward to the upcoming Monday so lessons
+  // always land on the school week the teacher will see next.
+  if (dow === 6) d.setDate(now.getDate() + 2)
+  else if (dow === 0) d.setDate(now.getDate() + 1)
+  else d.setDate(now.getDate() - (dow - 1))
+  d.setDate(d.getDate() + offsetWeeks * 7)
   d.setHours(0, 0, 0, 0)
   return d
 }

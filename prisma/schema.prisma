@@ -639,6 +639,8 @@ model Submission {
 
   @@unique([homeworkId, studentId])
   @@index([schoolId, studentId])
+  @@index([studentId, markedAt])
+  @@index([schoolId, studentId, submittedAt])
 }
 
 model SubmissionAttempt {

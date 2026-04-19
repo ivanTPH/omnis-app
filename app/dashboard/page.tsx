@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const now    = new Date()
   const dow    = now.getDay()
   const monday = new Date(now)
-  monday.setDate(now.getDate() + (dow === 0 ? 1 : -(dow - 1)))
+  monday.setDate(now.getDate() + (dow === 0 ? 1 : dow === 6 ? 2 : -(dow - 1)))
   monday.setHours(0, 0, 0, 0)
   const friday = new Date(monday)
   friday.setDate(monday.getDate() + 4)

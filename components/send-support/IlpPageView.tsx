@@ -5,7 +5,7 @@ import Icon from '@/components/ui/Icon'
 import type { IlpWithTargets, PendingIlpEdit, GeneratedIlpGoal } from '@/app/actions/send-support'
 import {
   getPendingIlpEdits, approveIlpEdit, rejectIlpEdit,
-  generateIlpGoalsForStudent, createIlp,
+  generateIlpGoalsForStudent, createIlp, approveGeneratedIlp,
 } from '@/app/actions/send-support'
 import IlpCard from './IlpCard'
 import IlpForm from './IlpForm'
@@ -67,6 +67,7 @@ export default function IlpPageView({ ilps: initial }: Props) {
   const [rejectReason,   setRejectReason]   = useState<Record<string, string>>({})
   const [rejectOpen,     setRejectOpen]     = useState<Record<string, boolean>>({})
   const [aiModal,        setAiModal]        = useState<AiModalState>({ phase: 'idle' })
+  const [approveAction,  setApproveAction]  = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     getPendingIlpEdits().then(setPendingEdits).catch(() => {})
@@ -179,6 +180,16 @@ export default function IlpPageView({ ilps: initial }: Props) {
       setRejectOpen(r => { const n = { ...r }; delete n[id]; return n })
     } finally {
       setEditAction(a => { const n = { ...a }; delete n[id]; return n })
+    }
+  }
+
+  async function handleApproveIlp(ilpId: string) {
+    setApproveAction(a => ({ ...a, [ilpId]: true }))
+    try {
+      await approveGeneratedIlp(ilpId)
+      window.location.reload()
+    } finally {
+      setApproveAction(a => { const n = { ...a }; delete n[ilpId]; return n })
     }
   }
 
@@ -389,12 +400,6 @@ export default function IlpPageView({ ilps: initial }: Props) {
               : <><Icon name="auto_awesome" size="sm" /> Generate ILPs</>
             }
           </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-          >
-            <Icon name="add" size="sm" /> Create ILP
-          </button>
         </div>
       </div>
 
@@ -506,9 +511,27 @@ export default function IlpPageView({ ilps: initial }: Props) {
                   {(new Date(ilp.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24) <= 14 && (
                     <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">Review due</span>
                   )}
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${ilp.status === 'under_review' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-700'}`}>
-                    {ilp.status === 'under_review' ? 'Needs approval' : ilp.status}
-                  </span>
+                  {ilp.status === 'under_review' ? (
+                    <>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                        Draft — awaiting approval
+                      </span>
+                      <button
+                        onClick={() => handleApproveIlp(ilp.id)}
+                        disabled={approveAction[ilp.id]}
+                        className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60"
+                      >
+                        {approveAction[ilp.id]
+                          ? <><Icon name="refresh" size="sm" className="animate-spin" /> Approving…</>
+                          : <><Icon name="check_circle" size="sm" /> Approve &amp; Publish</>
+                        }
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                      Published
+                    </span>
+                  )}
                   <button onClick={() => toggleExpand(ilp.id)} className="p-1 text-gray-400 hover:text-gray-600">
                     <Icon name={expanded.has(ilp.id) ? 'expand_less' : 'expand_more'} size="md" />
                   </button>

@@ -55,47 +55,35 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   return (
     <div className="space-y-3">
 
-      {/* ── Tier 1: Subject tabs ── */}
-      {subjects.length > 1 && (
-        <div className="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none">
-          {subjects.map(s => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => handleSubjectChange(s)}
-              className={`px-3 py-2 text-[12px] font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
-                subjectFilter === s
-                  ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+      {/* ── Filters row: Subject + Year dropdowns ── */}
+      {(subjects.length > 2 || yearGroups.length > 2) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {subjects.length > 2 && (
+            <select
+              value={subjectFilter}
+              onChange={e => handleSubjectChange(e.target.value)}
+              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {s}
-            </button>
-          ))}
+              {subjects.map(s => (
+                <option key={s} value={s}>{s === 'All' ? 'All subjects' : s}</option>
+              ))}
+            </select>
+          )}
+          {yearGroups.length > 2 && (
+            <select
+              value={String(yearFilter)}
+              onChange={e => handleYearChange(e.target.value === 'All' ? 'All' : Number(e.target.value))}
+              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {yearGroups.map(y => (
+                <option key={String(y)} value={String(y)}>{y === 'All' ? 'All years' : `Year ${y}`}</option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 
-      {/* ── Tier 2: Year group pills ── */}
-      {yearGroups.length > 2 && (
-        <div className="flex flex-wrap gap-1.5">
-          {yearGroups.map(y => (
-            <button
-              key={String(y)}
-              type="button"
-              onClick={() => handleYearChange(y)}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                yearFilter === y
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-              }`}
-            >
-              {y === 'All' ? 'All years' : `Year ${y}`}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ── Tier 3: Class pills + generate button ── */}
+      {/* ── Class pills + generate button ── */}
       <div className="flex flex-wrap items-center gap-2">
         {visibleClasses.map(c => (
           <button

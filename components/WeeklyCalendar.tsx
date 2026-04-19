@@ -33,8 +33,9 @@ function palette(subject: string) {
 function getWeekStart(d: Date): Date {
   const r   = new Date(d)
   const dow = r.getDay()
-  // Sunday (0) → snap forward to next Monday; other days → snap back to Monday
-  r.setDate(r.getDate() + (dow === 0 ? 1 : -(dow - 1)))
+  if (dow === 0)      r.setDate(r.getDate() + 1)   // Sunday → next Monday
+  else if (dow === 6) r.setDate(r.getDate() + 2)   // Saturday → next Monday
+  else                r.setDate(r.getDate() - (dow - 1))
   r.setHours(0, 0, 0, 0)
   return r
 }

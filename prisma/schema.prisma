@@ -262,6 +262,7 @@ model School {
   // Performance tracking
   studentBaselines     StudentBaseline[]
   teacherPredictions   TeacherPrediction[]
+  assessments          Assessment[]
 
   // Quick notes
   studentQuickNotes    StudentQuickNote[]
@@ -377,6 +378,10 @@ model User {
   authoredNotes      StudentQuickNote[]  @relation("NoteAuthor")
   teacherPlanNotes   TeacherPlanNote[]   @relation("PlanNoteAuthor")
 
+  // Assessments
+  assessmentsAsStudent Assessment[] @relation("StudentAssessments")
+  assessmentsAsTeacher Assessment[] @relation("TeacherAssessments")
+
   @@index([schoolId, role])
 }
 
@@ -398,6 +403,7 @@ model SchoolClass {
   performanceAggregates ClassPerformanceAggregate[]
   learningSequences     LearningSequence[]
   revisionPrograms      RevisionProgram[]
+  assessments           Assessment[]
 
   @@index([schoolId])
 }
@@ -2474,5 +2480,30 @@ model TeacherPlanNote {
   createdAt DateTime @default(now())
 
   @@index([planType, planId])
+  @@index([teacherId, schoolId])
+}
+
+// ─── Assessments ──────────────────────────────────────────────────────────────
+
+model Assessment {
+  id             String      @id @default(cuid())
+  school         School      @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  student        User        @relation("StudentAssessments", fields: [studentId], references: [id])
+  studentId      String
+  class          SchoolClass? @relation(fields: [classId], references: [id])
+  classId        String?
+  teacher        User        @relation("TeacherAssessments", fields: [teacherId], references: [id])
+  teacherId      String
+  title          String      // e.g. "End of Unit Test — An Inspector Calls"
+  assessmentType String      // 'end_of_unit' | 'mid_term' | 'mock_exam' | 'formal_exam' | 'other'
+  score          Int         // GCSE grade 1-9
+  maxScore       Int         @default(9)
+  date           DateTime
+  notes          String?
+  createdAt      DateTime    @default(now())
+
+  @@index([schoolId, studentId])
+  @@index([schoolId, classId])
   @@index([teacherId, schoolId])
 }

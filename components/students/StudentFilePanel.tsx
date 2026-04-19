@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import { formatRawScore } from '@/lib/gradeUtils'
@@ -14,17 +14,22 @@ import type { ApdrRow } from '@/app/actions/send-support'
 import {
   updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent,
 } from '@/app/actions/send-support'
+import {
+  getStudentAssessments, addAssessment, deleteAssessment,
+  ASSESSMENT_TYPES, type AssessmentRow,
+} from '@/app/actions/assessments'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Notes' | 'Contact'
-const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Notes', 'Contact']
+type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact'
+const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact']
 const TAB_ICONS: Record<Tab, string> = {
-  Overview: 'person',
-  Plans:    'description',
-  APDR:     'loop',
-  Homework: 'assignment',
-  Notes:    'note_alt',
-  Contact:  'contacts',
+  Overview:    'person',
+  Plans:       'description',
+  APDR:        'loop',
+  Homework:    'assignment',
+  Assessments: 'fact_check',
+  Notes:       'note_alt',
+  Contact:     'contacts',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1028,6 +1033,196 @@ function ApdrTab({
   )
 }
 
+// ── Assessments Tab ───────────────────────────────────────────────────────────
+
+const GRADE_COLORS: Record<number, string> = {
+  9: 'bg-emerald-100 text-emerald-800',
+  8: 'bg-emerald-100 text-emerald-700',
+  7: 'bg-green-100 text-green-700',
+  6: 'bg-lime-100 text-lime-700',
+  5: 'bg-yellow-100 text-yellow-700',
+  4: 'bg-amber-100 text-amber-700',
+  3: 'bg-orange-100 text-orange-700',
+  2: 'bg-red-100 text-red-600',
+  1: 'bg-red-200 text-red-700',
+}
+
+function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: string[] }) {
+  const [rows,          setRows]          = useState<AssessmentRow[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [showForm,      setShowForm]      = useState(false)
+  const [pending,       startTransition]  = useTransition()
+
+  // Form state
+  const [title,          setTitle]          = useState('')
+  const [assessmentType, setAssessmentType] = useState('end_of_unit')
+  const [score,          setScore]          = useState<number>(5)
+  const [date,           setDate]           = useState(() => new Date().toISOString().split('T')[0])
+  const [notes,          setNotes]          = useState('')
+
+  useEffect(() => {
+    setLoading(true)
+    getStudentAssessments(studentId)
+      .then(setRows)
+      .finally(() => setLoading(false))
+  }, [studentId])
+
+  function handleAdd() {
+    if (!title.trim()) return
+    startTransition(async () => {
+      await addAssessment({ studentId, title: title.trim(), assessmentType, score, date, notes: notes.trim() || undefined })
+      const updated = await getStudentAssessments(studentId)
+      setRows(updated)
+      setTitle(''); setNotes(''); setScore(5); setShowForm(false)
+    })
+  }
+
+  function handleDelete(id: string) {
+    startTransition(async () => {
+      await deleteAssessment(id)
+      setRows(prev => prev.filter(r => r.id !== id))
+    })
+  }
+
+  const GRADE_LABEL: Record<number, string> = { 9:'A**', 8:'A*', 7:'A', 6:'B', 5:'C+', 4:'C', 3:'D', 2:'E', 1:'F' }
+
+  return (
+    <div className="space-y-4">
+      {/* Add button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition"
+        >
+          <Icon name={showForm ? 'remove' : 'add'} size="sm" />
+          {showForm ? 'Cancel' : 'Add assessment'}
+        </button>
+      </div>
+
+      {/* Add form */}
+      {showForm && (
+        <div className="bg-white border border-blue-200 rounded-xl p-4 space-y-3">
+          <p className="text-[12px] font-bold text-gray-700 uppercase tracking-widest">New assessment record</p>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Title *</label>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. End of Unit Test — An Inspector Calls"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Type</label>
+              <select
+                value={assessmentType}
+                onChange={e => setAssessmentType(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {ASSESSMENT_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Grade (GCSE 1–9)</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {[9,8,7,6,5,4,3,2,1].map(g => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setScore(g)}
+                  className={`w-10 h-10 rounded-lg text-sm font-bold border-2 transition-all ${
+                    score === g
+                      ? `${GRADE_COLORS[g]} border-current scale-110`
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Notes (optional)</label>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Any context or observations…"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={handleAdd}
+            disabled={pending || !title.trim()}
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+          >
+            {pending ? 'Saving…' : 'Save assessment'}
+          </button>
+        </div>
+      )}
+
+      {/* Records list */}
+      {loading ? (
+        <div className="text-center py-8 text-gray-400 text-sm">Loading…</div>
+      ) : rows.length === 0 ? (
+        <div className="bg-white border border-gray-200 rounded-xl px-5 py-10 text-center">
+          <Icon name="fact_check" size="lg" color="#d1d5db" />
+          <p className="text-sm text-gray-400 mt-2">No assessment records yet.</p>
+          <p className="text-xs text-gray-400 mt-1">Click &quot;Add assessment&quot; to record a test or exam score.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rows.map(r => (
+            <div key={r.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-start gap-3">
+              {/* Grade badge */}
+              <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${GRADE_COLORS[r.score] ?? 'bg-gray-100 text-gray-700'}`}>
+                <span className="text-lg leading-none">{r.score}</span>
+                <span className="text-[10px] leading-none opacity-80">{GRADE_LABEL[r.score] ?? ''}</span>
+              </div>
+              {/* Details */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-gray-900 leading-tight">{r.title}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                  <span className="text-[11px] text-gray-500">
+                    {new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  <span className="text-[11px] text-gray-400">
+                    {ASSESSMENT_TYPES.find(t => t.value === r.assessmentType)?.label ?? r.assessmentType}
+                  </span>
+                  {r.className && <span className="text-[11px] text-gray-400">{r.className}</span>}
+                </div>
+                {r.notes && <p className="text-[12px] text-gray-600 mt-1 italic">{r.notes}</p>}
+              </div>
+              {/* Delete */}
+              <button
+                onClick={() => handleDelete(r.id)}
+                disabled={pending}
+                className="shrink-0 p-1 hover:bg-red-50 rounded-lg transition text-gray-300 hover:text-red-500"
+                title="Delete record"
+              >
+                <Icon name="delete" size="sm" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
@@ -1266,6 +1461,11 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
       {/* ── Tab: Homework ── */}
       {activeTab === 'Homework' && (
         <PerformanceTab data={data} studentName={studentName} onClose={onClose} />
+      )}
+
+      {/* ── Tab: Assessments ── */}
+      {activeTab === 'Assessments' && (
+        <AssessmentTab studentId={student.id} />
       )}
 
       {/* ── Tab: Notes ── */}

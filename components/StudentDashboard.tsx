@@ -166,13 +166,14 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
             {filtered.map(hw => {
               const due = new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
               return (
-                <div
+                <a
                   key={hw.homeworkId}
-                  className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_80px_70px_70px] items-center gap-x-3 px-5 py-3 text-sm hover:bg-gray-50 transition-colors"
+                  href={`/homework/${hw.homeworkId}`}
+                  className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_80px_70px_70px] items-center gap-x-3 px-5 py-3 text-sm hover:bg-blue-50 transition-colors group"
                 >
                   {/* Title + subject badge */}
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-800 truncate">{hw.title}</p>
+                    <p className="font-medium text-gray-800 group-hover:text-blue-700 truncate transition-colors">{hw.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5 sm:hidden">{hw.class} · {due}</p>
                     <span className="sm:hidden inline-flex items-center mt-1">
                       {hw.submitted
@@ -200,7 +201,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
                       ? hw.score != null ? formatRawScore(hw.score) : <span className="text-gray-400 font-normal text-xs">Pending</span>
                       : <span className="text-gray-300 font-normal text-xs">—</span>}
                   </div>
-                </div>
+                </a>
               )
             })}
           </div>

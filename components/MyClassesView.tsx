@@ -7,10 +7,11 @@ import { bulkGenerateLearningPassports } from '@/app/actions/students'
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
 
 export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
-  const [selectedId,      setSelectedId]      = useState<string>(classes[0]?.id ?? '')
-  const [subjectFilter,   setSubjectFilter]   = useState<string>('All')
-  const [generating,      startGenerate]      = useTransition()
-  const [genResult,       setGenResult]       = useState<{ generated: number; errors: number } | null>(null)
+  const [selectedId,    setSelectedId]    = useState<string>(classes[0]?.id ?? '')
+  const [subjectFilter, setSubjectFilter] = useState<string>('All')
+  const [yearFilter,    setYearFilter]    = useState<number | 'All'>('All')
+  const [generating,    startGenerate]    = useTransition()
+  const [genResult,     setGenResult]     = useState<{ generated: number; errors: number } | null>(null)
 
   if (classes.length === 0) {
     return (
@@ -20,27 +21,48 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
     )
   }
 
-  // Unique subjects from teacher's classes
+  // ── Filter chains ────────────────────────────────────────────────────────────
   const subjects = ['All', ...Array.from(new Set(classes.map(c => c.subject))).sort()]
-  const visibleClasses = subjectFilter === 'All' ? classes : classes.filter(c => c.subject === subjectFilter)
+
+  const classesForSubject = subjectFilter === 'All' ? classes : classes.filter(c => c.subject === subjectFilter)
+
+  const yearGroups: Array<number | 'All'> = [
+    'All',
+    ...Array.from(new Set(classesForSubject.map(c => c.yearGroup))).sort((a, b) => a - b),
+  ]
+
+  const visibleClasses = classesForSubject.filter(c =>
+    yearFilter === 'All' || c.yearGroup === yearFilter,
+  )
+
+  function handleSubjectChange(s: string) {
+    setSubjectFilter(s)
+    setYearFilter('All')
+    const newVisible = s === 'All' ? classes : classes.filter(c => c.subject === s)
+    if (!newVisible.find(c => c.id === selectedId)) {
+      setSelectedId(newVisible[0]?.id ?? '')
+    }
+  }
+
+  function handleYearChange(y: number | 'All') {
+    setYearFilter(y)
+    const newVisible = classesForSubject.filter(c => y === 'All' || c.yearGroup === y)
+    if (!newVisible.find(c => c.id === selectedId)) {
+      setSelectedId(newVisible[0]?.id ?? '')
+    }
+  }
 
   return (
     <div className="space-y-3">
-      {/* Subject filter tabs */}
-      {classes.length > 1 && subjects.length > 1 && (
+
+      {/* ── Tier 1: Subject tabs ── */}
+      {subjects.length > 1 && (
         <div className="flex gap-1 border-b border-gray-200 overflow-x-auto scrollbar-none">
           {subjects.map(s => (
             <button
               key={s}
               type="button"
-              onClick={() => {
-                setSubjectFilter(s)
-                // Auto-select first class in new subject if current isn't visible
-                const newVisible = s === 'All' ? classes : classes.filter(c => c.subject === s)
-                if (!newVisible.find(c => c.id === selectedId)) {
-                  setSelectedId(newVisible[0]?.id ?? '')
-                }
-              }}
+              onClick={() => handleSubjectChange(s)}
               className={`px-3 py-2 text-[12px] font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
                 subjectFilter === s
                   ? 'border-blue-600 text-blue-700'
@@ -53,7 +75,27 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
         </div>
       )}
 
-      {/* Class filter pills + generate button */}
+      {/* ── Tier 2: Year group pills ── */}
+      {yearGroups.length > 2 && (
+        <div className="flex flex-wrap gap-1.5">
+          {yearGroups.map(y => (
+            <button
+              key={String(y)}
+              type="button"
+              onClick={() => handleYearChange(y)}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
+                yearFilter === y
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+              }`}
+            >
+              {y === 'All' ? 'All years' : `Year ${y}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Tier 3: Class pills + generate button ── */}
       <div className="flex flex-wrap items-center gap-2">
         {visibleClasses.map(c => (
           <button
@@ -86,13 +128,14 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
           </button>
         )}
       </div>
+
       {genResult && (
         <p className="text-[11px] text-indigo-600">
           Generated {genResult.generated} Learning Passports{genResult.errors > 0 ? `, ${genResult.errors} failed` : ''}.
         </p>
       )}
 
-      {/* Roster for selected class */}
+      {/* ── Roster for selected class ── */}
       {selectedId && (
         <ClassRosterTab key={selectedId} classId={selectedId} />
       )}

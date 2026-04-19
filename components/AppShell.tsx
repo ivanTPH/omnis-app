@@ -110,8 +110,8 @@ export default function AppShell({
               <Icon name="menu" size="md" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xs">O</span>
+              <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center shrink-0">
+                <img src="/omnis-logo.png" alt="" className="h-5 w-auto brightness-0 invert" />
               </div>
               <span className="font-semibold text-gray-900 text-sm">Omnis</span>
             </div>

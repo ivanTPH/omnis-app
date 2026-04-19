@@ -17,7 +17,9 @@ export default async function StudentFilePage({ params }: { params: { studentId:
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
-      <StudentFilePanel data={data} role={role} />
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <StudentFilePanel data={data} role={role} />
+      </div>
     </AppShell>
   )
 }

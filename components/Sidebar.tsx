@@ -132,12 +132,12 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
 
       {/* Logo */}
       <div className="px-5 py-4 border-b border-gray-100 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-blue-700 rounded-xl flex items-center justify-center shrink-0">
-            <img src="/omnis-logo.png" alt="Omnis" className="h-6 w-auto brightness-0 invert" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center shrink-0">
+            <img src="/omnis-logo.png" alt="Omnis" className="h-7 w-7 object-contain brightness-0 invert" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-gray-900 text-[14px] leading-tight">Omnis</div>
+            <div className="font-bold text-gray-900 text-[15px] leading-tight">Omnis</div>
             <div className="text-[11px] text-gray-400 truncate">{schoolName}</div>
           </div>
         </div>

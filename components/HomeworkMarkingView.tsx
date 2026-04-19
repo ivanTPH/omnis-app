@@ -162,7 +162,7 @@ function QuestionCard({
         {/* Student answer */}
         <div>
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Student&apos;s Answer</p>
-          <div className={`border rounded-lg px-3 py-2 text-[13px] leading-relaxed ${
+          <div className={`border rounded-lg px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
             studentAnswer ? 'bg-blue-50 border-blue-100 text-gray-800' : 'bg-gray-50 border-gray-200'
           }`}>
             {studentAnswer || <span className="text-gray-400 italic">No answer recorded</span>}
@@ -395,17 +395,23 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       marks:       q.marks,
     })),
   } : null)
-  // Student answers: prefer structuredResponse (adaptive homework), fall back to parsing content JSON
-  const structuredAnswers: string[] = (() => {
+  // Student answers: prefer structuredResponse (adaptive homework), fall back to parsing content JSON,
+  // then fall back to treating plain-text content as the answer for question 0.
+  const [structuredAnswers, contentUsedAsAnswer]: [string[], boolean] = (() => {
     const fromResponse = (selectedSub?.structuredResponse as { answers?: string[] } | null)?.answers
-    if (fromResponse?.length) return fromResponse
+    if (fromResponse?.length) return [fromResponse, false]
+    const rawContent = selectedSub?.content ?? ''
     try {
-      const parsed = selectedSub?.content ? JSON.parse(selectedSub.content) : null
+      const parsed = rawContent ? JSON.parse(rawContent) : null
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return Object.values(parsed) as string[]
+        return [Object.values(parsed) as string[], false]
       }
-    } catch { /* plain-text content */ }
-    return []
+      if (Array.isArray(parsed)) return [parsed.map(String), false]
+    } catch {
+      // Plain-text submission — use as answer for first question
+      if (rawContent.trim()) return [[rawContent], true]
+    }
+    return [[], false]
   })()
 
   const hasStructuredQuestions = questions.length > 0 || (structuredContent?.questions?.length ?? 0) > 0
@@ -1161,11 +1167,11 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 </div>
               )}
 
-              {/* If structured questions + also a free-text content block, show it */}
-              {hasStructuredQuestions && selectedSub.content && (
+              {/* If structured questions + also a free-text content block that wasn't already shown in a QuestionCard, show it */}
+              {hasStructuredQuestions && selectedSub.content && !contentUsedAsAnswer && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Additional notes</p>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s written response</p>
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
                     {selectedSub.content}
                   </div>
                 </div>

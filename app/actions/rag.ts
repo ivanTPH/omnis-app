@@ -100,17 +100,14 @@ export async function getClassRagData(
   const term       = termLabel ?? currentTermLabel()
   const { from, to } = termLabelToDates(term)
 
-  // ── 1+2. Resolve class + enrolled students in one query ─────────────────────
-  const cls = await prisma.schoolClass.findUnique({
-    where:  { id: classId },
-    select: {
-      subject:    true,
-      enrolments: { where: { class: { schoolId } }, select: { userId: true }, distinct: ['userId'] },
-    },
-  })
+  // ── 1+2. Resolve class + enrolled students ───────────────────────────────────
+  const [cls, enrolments] = await Promise.all([
+    prisma.schoolClass.findUnique({ where: { id: classId }, select: { subject: true } }),
+    prisma.enrolment.findMany({ where: { classId, class: { schoolId } }, select: { userId: true }, distinct: ['userId'] }),
+  ])
   if (!cls) return []
   const subject    = cls.subject
-  const studentIds = cls.enrolments.map(e => e.userId)
+  const studentIds = enrolments.map(e => e.userId)
   if (studentIds.length === 0) return []
 
   // ── 3. Bulk-fetch supporting data ───────────────────────────────────────────

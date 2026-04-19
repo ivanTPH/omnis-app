@@ -32,9 +32,8 @@ export async function getWeekLessons(weekStartISO: string): Promise<CalendarLess
     const { schoolId, id: userId } = session.user as any
 
     const weekStart = new Date(weekStartISO)
-    const friday    = new Date(weekStart)
-    friday.setDate(weekStart.getDate() + 4)
-    friday.setHours(23, 59, 59, 999)
+    // Add 5 days in ms then subtract 1ms → end of Friday regardless of client timezone offset
+    const friday    = new Date(weekStart.getTime() + 5 * 86_400_000 - 1)
 
     const lessons = await prisma.lesson.findMany({
       where: {

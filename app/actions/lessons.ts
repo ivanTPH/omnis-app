@@ -831,6 +831,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
 
 export type StudentClassDetail = {
   recentSubmissions: {
+    homeworkId:    string
     homeworkTitle: string
     status:        string
     finalScore:    number | null
@@ -855,13 +856,14 @@ export async function getStudentClassDetail(
         schoolId,
         homework: { classId },
       },
-      include: { homework: { select: { title: true, dueAt: true, gradingBands: true } } },
+      include: { homework: { select: { id: true, title: true, dueAt: true, gradingBands: true } } },
       orderBy: { submittedAt: 'desc' },
       take: 5,
     })
 
     return {
       recentSubmissions: submissions.map(s => ({
+        homeworkId:    s.homework.id,
         homeworkTitle: s.homework.title,
         status:        s.status,
         finalScore:    s.finalScore,

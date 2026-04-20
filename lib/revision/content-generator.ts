@@ -70,14 +70,23 @@ export async function generateRevisionTask(input: {
   bloomsLevel?:    string
   lessonTitle?:    string
   objectives?:     string[]
+  allLessons?:     { title: string; objectives: string[] }[]
 }): Promise<RevisionTaskContent> {
   if (!process.env.ANTHROPIC_API_KEY) return fallbackContent(input)
 
-  const topic      = input.lessonTitle ?? input.weakTopics.slice(0, 2).join(' & ') ?? 'Key Topics'
-  const objectives = input.objectives ?? []
-  const objList    = objectives.length > 0
+  const multiLesson = (input.allLessons?.length ?? 0) > 1
+  const topic       = input.lessonTitle ?? input.weakTopics.slice(0, 2).join(' & ') ?? 'Key Topics'
+  const objectives  = input.objectives ?? []
+  const objList     = objectives.length > 0
     ? objectives.map((o, i) => `${i + 1}. ${o}`).join('\n')
     : '1. Recall key knowledge\n2. Understand core concepts\n3. Apply and evaluate ideas'
+
+  // Multi-lesson: list all lessons taught so questions span the full period
+  const lessonsBlock = multiLesson
+    ? `\nLessons taught this period (questions must cover all of these):\n${input.allLessons!.map((l, i) =>
+        `${i + 1}. "${l.title}"${l.objectives?.length ? ` — objectives: ${l.objectives.join('; ')}` : ''}`
+      ).join('\n')}`
+    : ''
 
   const sendNote = input.sendAdaptations.length > 0
     ? `SEND adaptations required: ${input.sendAdaptations.join(', ')} — use simpler language, shorter sentences, provide sentence starters where helpful.`
@@ -87,17 +96,22 @@ export async function generateRevisionTask(input: {
     ? `Student's weaker areas within this topic: ${input.weakTopics.join(', ')}`
     : ''
 
+  const topicLine = multiLesson
+    ? `Topics covered: ${input.allLessons!.map(l => `"${l.title}"`).join(', ')}`
+    : `Lesson topic: "${topic}"`
+
   const userPrompt = `You are a UK secondary school teacher creating a structured revision task for ${input.studentName}.
 
-Lesson topic: "${topic}"
+${topicLine}
 Subject: ${input.subject} (Year ${input.yearGroup})
-Learning objectives:
-${objList}
+${multiLesson ? lessonsBlock : `Learning objectives:\n${objList}`}
 ${weakNote ? `\n${weakNote}` : ''}
 ${sendNote ? `\n${sendNote}` : ''}
 ${input.ilpTargets.length > 0 ? `\nILP targets to support: ${input.ilpTargets.join('; ')}` : ''}
 
-Create EXACTLY 5 exam-style questions about "${topic}" using this difficulty progression:
+${multiLesson
+  ? `Create EXACTLY 5 exam-style questions distributed across the lessons above (at least 1 question per lesson where possible):`
+  : `Create EXACTLY 5 exam-style questions about "${topic}" using this difficulty progression:`}
 - Q1 (1 mark):  Knowledge/Recall — test factual knowledge of the lesson content
 - Q2 (2 marks): Understanding — ask the student to explain or describe a key concept
 - Q3 (2 marks): Application — ask the student to use their knowledge in context
@@ -114,18 +128,18 @@ Rules:
 
 Return ONLY a valid JSON object with exactly this structure:
 {
-  "title": "specific title referencing the lesson topic",
-  "instructions": "Answer all 5 questions about [topic]. Questions increase in difficulty. Total: 10 marks.",
+  "title": "specific title referencing the lesson topic(s)",
+  "instructions": "Answer all 5 questions. Questions increase in difficulty. Total: 10 marks.",
   "structuredContent": {
     "type": "${input.taskType}",
-    "lessonTitle": "${topic}",
+    "lessonTitle": "${multiLesson ? input.allLessons!.map(l => l.title).join(', ') : topic}",
     "objectives": ${JSON.stringify(objectives.length > 0 ? objectives : ['Recall key knowledge', 'Understand core concepts', 'Evaluate and apply ideas'])},
     "questions": [
-      {"id":"1","question":"...","bloomsLevel":"remember","objectiveIndex":0,"marks":1,"markScheme":"Award 1 mark for...","guidance":"optional hint"},
-      {"id":"2","question":"...","bloomsLevel":"understand","objectiveIndex":1,"marks":2,"markScheme":"Award 1 mark for... Award a further mark for...","guidance":"optional hint"},
-      {"id":"3","question":"...","bloomsLevel":"apply","objectiveIndex":1,"marks":2,"markScheme":"Award 1 mark per valid point, up to 2 marks.","guidance":"optional hint"},
-      {"id":"4","question":"...","bloomsLevel":"analyse","objectiveIndex":0,"marks":3,"markScheme":"Award 1 mark for... 2 marks for... 3 marks for...","guidance":"optional hint"},
-      {"id":"5","question":"...","bloomsLevel":"evaluate","objectiveIndex":2,"marks":2,"markScheme":"Award 1 mark for a clear judgement. Award 1 further mark for a justified reason.","guidance":"optional hint"}
+      {"id":"1","question":"...","lessonTitle":"the lesson title this question is from","bloomsLevel":"remember","objectiveIndex":0,"marks":1,"markScheme":"Award 1 mark for...","guidance":"optional hint"},
+      {"id":"2","question":"...","lessonTitle":"the lesson title this question is from","bloomsLevel":"understand","objectiveIndex":1,"marks":2,"markScheme":"Award 1 mark for... Award a further mark for...","guidance":"optional hint"},
+      {"id":"3","question":"...","lessonTitle":"the lesson title this question is from","bloomsLevel":"apply","objectiveIndex":1,"marks":2,"markScheme":"Award 1 mark per valid point, up to 2 marks.","guidance":"optional hint"},
+      {"id":"4","question":"...","lessonTitle":"the lesson title this question is from","bloomsLevel":"analyse","objectiveIndex":0,"marks":3,"markScheme":"Award 1 mark for... 2 marks for... 3 marks for...","guidance":"optional hint"},
+      {"id":"5","question":"...","lessonTitle":"the lesson title this question is from","bloomsLevel":"evaluate","objectiveIndex":2,"marks":2,"markScheme":"Award 1 mark for a clear judgement. Award 1 further mark for a justified reason.","guidance":"optional hint"}
     ]
   },
   "modelAnswer": "Full combined mark scheme for teacher reference.",

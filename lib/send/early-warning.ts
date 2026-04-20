@@ -177,6 +177,18 @@ async function upsertFlag(flag: NewFlag, schoolId: string, now: Date): Promise<v
     },
   })
 
+  // Keep StudentLearningProfile.sendConcernLevel in sync with the flag severity
+  try {
+    const newConcernLevel = flag.severity === 'high' ? 85 : 65
+    await (prisma as any).studentLearningProfile.upsert({
+      where:  { studentId: flag.studentId },
+      create: { studentId: flag.studentId, schoolId, sendConcernLevel: newConcernLevel },
+      update: { sendConcernLevel: newConcernLevel },
+    })
+  } catch {
+    // Best-effort — don't abort flag creation if profile update fails
+  }
+
   // Notify all SENCOs in the school
   const sencos = await prisma.user.findMany({
     where: { schoolId, role: 'SENCO', isActive: true },

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import {
   getClassRoster,
@@ -107,6 +108,10 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
   // New: per-student expanded tab state
   const [expandedTab, setExpandedTab] = useState<Record<string, ExpandedTabKey>>({})
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sendFilter,  setSendFilter]  = useState<'ALL' | 'SEN_SUPPORT' | 'EHCP'>('ALL')
 
   // Initial load
   useEffect(() => {
@@ -308,16 +313,46 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
         </div>
       )}
 
-      {/* Student count chip */}
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
-          {rows.length} students
+      {/* Search + SEND filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[160px]">
+          <Icon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search students…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        {(['ALL', 'SEN_SUPPORT', 'EHCP'] as const).map(f => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setSendFilter(f)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+              sendFilter === f
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {f === 'ALL' ? 'All' : f === 'SEN_SUPPORT' ? 'SEN Support' : 'EHCP'}
+          </button>
+        ))}
+        <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium ml-auto">
+          {rows.filter(r =>
+            (sendFilter === 'ALL' || r.sendStatus === sendFilter) &&
+            (!searchQuery || `${r.firstName} ${r.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()))
+          ).length} / {rows.length} students
         </span>
       </div>
 
       {/* Student rows */}
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
-        {rows.map(row => {
+        {rows.filter(row =>
+          (sendFilter === 'ALL' || row.sendStatus === sendFilter) &&
+          (!searchQuery || `${row.firstName} ${row.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()))
+        ).map(row => {
           const badge        = SEND_BADGE[row.sendStatus]
           const isSend       = row.sendStatus !== 'NONE'
           const scoreDisplay = row.latestScore != null
@@ -909,7 +944,7 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                               const scoreStr = pct != null ? gradeLabel(percentToGcseGrade(pct)) : null
                               return (
                                 <div key={i} className="flex items-center gap-3">
-                                  <span className="text-[12px] text-gray-700 flex-1 truncate">{s.homeworkTitle}</span>
+                                  <Link href={`/homework/${s.homeworkId}`} className="text-[12px] text-blue-600 hover:text-blue-800 hover:underline flex-1 truncate">{s.homeworkTitle}</Link>
                                   <span className="text-[10px] text-gray-400">
                                     {new Date(s.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                   </span>

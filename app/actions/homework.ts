@@ -1508,7 +1508,7 @@ export async function saveIlpEvidenceEntries(
     skipDuplicates: true,
   })
 
-  // Auto-raise SENCO notification if student now has 3+ CONCERN entries this term
+  // Auto-raise SENCO notification + EarlyWarningFlag if student has 3+ CONCERN entries this term
   const hasConcern = entries.some(e => e.evidenceType === 'CONCERN')
   if (hasConcern) {
     try {
@@ -1517,6 +1517,8 @@ export async function saveIlpEvidenceEntries(
         where: { schoolId, startsAt: { lte: now }, endsAt: { gte: now } },
       })
       const termStart = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
+
+      // Count overall CONCERN entries for this student this term
       const concernCount = await (prisma as any).ilpEvidenceEntry.count({
         where: { schoolId, studentId: sub.studentId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
       })
@@ -1525,20 +1527,72 @@ export async function saveIlpEvidenceEntries(
         const alreadyNotified = await prisma.notification.findFirst({
           where: { schoolId, type: 'ILP_CONCERN_THRESHOLD', linkHref: notifLinkHref },
         })
-        if (!alreadyNotified) {
+        const [student, senco] = await Promise.all([
+          prisma.user.findUnique({ where: { id: sub.studentId }, select: { firstName: true, lastName: true } }),
+          prisma.user.findFirst({ where: { schoolId, role: 'SENCO' }, select: { id: true } }),
+        ])
+        if (student && senco && !alreadyNotified) {
+          await prisma.notification.create({
+            data: {
+              schoolId,
+              userId:   senco.id,
+              type:     'ILP_CONCERN_THRESHOLD',
+              title:    `ILP concern alert: ${student.firstName} ${student.lastName}`,
+              body:     `${student.firstName} ${student.lastName} now has ${concernCount} CONCERN entries on their ILP this term. Review their progress.`,
+              linkHref: notifLinkHref,
+            },
+          })
+        }
+
+        // Raise EarlyWarningFlag for persistent ILP concern pattern
+        const existingFlag = await prisma.earlyWarningFlag.findFirst({
+          where: { schoolId, studentId: sub.studentId, flagType: 'ilp_concern_pattern', isActioned: false, expiresAt: { gte: now } },
+        })
+        if (!existingFlag && student) {
+          const expiresAt = new Date(now)
+          expiresAt.setDate(expiresAt.getDate() + 30)
+          await prisma.earlyWarningFlag.create({
+            data: {
+              schoolId,
+              studentId: sub.studentId,
+              flagType:  'ilp_concern_pattern',
+              severity:  concernCount >= 5 ? 'high' : 'medium',
+              description: `${student.firstName} ${student.lastName} has ${concernCount} CONCERN evidence entries on their ILP this term.`,
+              dataPoints: { concernCount, termStart },
+              expiresAt,
+            },
+          })
+          revalidatePath('/senco/early-warning')
+        }
+      }
+
+      // Per-target: count CONCERN entries and notify SENCO if a specific target has 3+ concerns
+      const concernTargetIds = entries.filter(e => e.evidenceType === 'CONCERN').map(e => e.ilpTargetId)
+      for (const targetId of concernTargetIds) {
+        const targetConcernCount = await (prisma as any).ilpEvidenceEntry.count({
+          where: { schoolId, studentId: sub.studentId, ilpTargetId: targetId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
+        })
+        if (targetConcernCount >= 3) {
+          const senco = await prisma.user.findFirst({ where: { schoolId, role: 'SENCO' }, select: { id: true } })
           const student = await prisma.user.findUnique({ where: { id: sub.studentId }, select: { firstName: true, lastName: true } })
-          const senco   = await prisma.user.findFirst({ where: { schoolId, role: 'SENCO' }, select: { id: true } })
-          if (student && senco) {
-            await prisma.notification.create({
-              data: {
-                schoolId,
-                userId:   senco.id,
-                type:     'ILP_CONCERN_THRESHOLD',
-                title:    `ILP concern alert: ${student.firstName} ${student.lastName}`,
-                body:     `${student.firstName} ${student.lastName} now has ${concernCount} CONCERN entries on their ILP this term. Review their progress.`,
-                linkHref: notifLinkHref,
-              },
+          if (senco && student) {
+            const targetNotifHref = `/send/ilp/${sub.studentId}`
+            const alreadyFlagged = await prisma.notification.findFirst({
+              where: { schoolId, userId: senco.id, type: 'ILP_TARGET_CONCERN', linkHref: targetNotifHref,
+                createdAt: { gte: termStart } },
             })
+            if (!alreadyFlagged) {
+              await prisma.notification.create({
+                data: {
+                  schoolId,
+                  userId:   senco.id,
+                  type:     'ILP_TARGET_CONCERN',
+                  title:    `ILP target needs review: ${student.firstName} ${student.lastName}`,
+                  body:     `An ILP target for ${student.firstName} ${student.lastName} has ${targetConcernCount} CONCERN entries this term — consider updating target status.`,
+                  linkHref: targetNotifHref,
+                },
+              })
+            }
           }
         }
       }

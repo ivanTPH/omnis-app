@@ -133,16 +133,17 @@ export async function createRevisionProgram(input: {
       input.classId, user.schoolId, input.periodStart, input.periodEnd, prisma,
     )
 
-    // Fetch most recent lesson in period for curriculum-mapped question context
-    const recentLesson = await (prisma as any).lesson.findFirst({
+    // Fetch ALL lessons taught in the period for multi-topic question coverage
+    const periodLessons: { title: string; objectives: string[] }[] = await (prisma as any).lesson.findMany({
       where: {
         classId:  input.classId,
         schoolId: user.schoolId,
         startsAt: { gte: input.periodStart, lte: input.periodEnd },
       },
-      orderBy: { startsAt: 'desc' },
+      orderBy: { startsAt: 'asc' },
       select: { title: true, objectives: true },
     })
+    const recentLesson = periodLessons.length > 0 ? periodLessons[periodLessons.length - 1] : null
 
     // Batch AI generation — max 5 concurrent
     const taskInputs = enrolledStudents.map((student: any) => {
@@ -176,6 +177,7 @@ export async function createRevisionProgram(input: {
             durationMins:    input.durationWeeks * 30,
             lessonTitle:     recentLesson?.title,
             objectives:      recentLesson?.objectives ?? [],
+            allLessons:      periodLessons,
           })
           return { studentId: t.student.id, content }
         }),

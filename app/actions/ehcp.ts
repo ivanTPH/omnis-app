@@ -408,7 +408,7 @@ export async function generateIlpProgressReport(studentId: string): Promise<stri
 
   const AI_DISCLAIMER = '⚠️ AI-assisted draft — requires SENCO review before use.\n\n'
 
-  const [student, ilp, recentSubmissions] = await Promise.all([
+  const [student, ilp, recentSubmissions, learningProfile] = await Promise.all([
     prisma.user.findUnique({ where: { id: studentId }, select: { firstName: true, lastName: true, yearGroup: true } }),
     prisma.individualLearningPlan.findFirst({
       where: { schoolId, studentId, status: 'active' },
@@ -420,6 +420,7 @@ export async function generateIlpProgressReport(studentId: string): Promise<stri
       orderBy: { submittedAt: 'desc' },
       take: 20,
     }),
+    prisma.studentLearningProfile.findUnique({ where: { studentId } }),
   ])
 
   if (!student) return AI_DISCLAIMER + 'Student not found.'
@@ -484,10 +485,16 @@ Targets:
 ${targetsSummary}
 
 Homework performance (last 90 days): ${recentSubmissions.length} tasks, ${completionRate}% completion rate${avgScore ? `, average score ${avgScore}%` : ''}.
-
+${learningProfile ? `
+Adaptive learning profile:
+- Preferred homework formats: ${(learningProfile.preferredTypes as string[]).join(', ') || 'not yet determined'}
+- Strength areas: ${(learningProfile.strengthAreas as string[]).join(', ') || 'not yet identified'}
+- Development areas: ${(learningProfile.developmentAreas as string[]).join(', ') || 'not yet identified'}
+${learningProfile.profileSummary ? `- AI profile summary: ${learningProfile.profileSummary}` : ''}
+${(learningProfile as any).sendConcernLevel != null ? `- Current concern level: ${Math.round((learningProfile as any).sendConcernLevel)}/100` : ''}` : ''}
 Where evidence exists, reference the specific homework tasks in your report. Where no evidence exists for a target, note this as a gap and recommend action.
 
-Write a structured report covering: (1) Overview and progress summary, (2) Target-by-target review with evidence references, (3) Recommendations for next review period. Keep it professional and concise (400–500 words).`,
+Write a structured report covering: (1) Overview and progress summary, (2) Target-by-target review with evidence references, (3) Recommendations for next review period incorporating the student's learning preferences where relevant. Keep it professional and concise (400–500 words).`,
       }],
     })
     return AI_DISCLAIMER + (msg.content[0] as any).text.trim()
@@ -502,7 +509,7 @@ export async function generateEhcpAnnualReview(studentId: string): Promise<strin
 
   const AI_DISCLAIMER = '⚠️ AI-assisted draft — requires SENCO and LA review before use.\n\n'
 
-  const [student, ehcp] = await Promise.all([
+  const [student, ehcp, learningProfile] = await Promise.all([
     prisma.user.findUnique({ where: { id: studentId }, select: { firstName: true, lastName: true, yearGroup: true } }),
     prisma.ehcpPlan.findFirst({
       where: { schoolId, studentId, status: 'active' },
@@ -524,6 +531,7 @@ export async function generateEhcpAnnualReview(studentId: string): Promise<strin
         },
       },
     }),
+    prisma.studentLearningProfile.findUnique({ where: { studentId } }),
   ])
 
   if (!student) return AI_DISCLAIMER + 'Student not found.'
@@ -557,10 +565,15 @@ Review date: ${new Date(ehcp.reviewDate).toLocaleDateString('en-GB')}
 
 Outcomes and evidence:
 ${outcomesSummary}
-
+${learningProfile ? `
+Adaptive learning profile (from classroom data):
+- Preferred homework formats: ${(learningProfile.preferredTypes as string[]).join(', ') || 'not yet determined'}
+- Strength areas: ${(learningProfile.strengthAreas as string[]).join(', ') || 'not yet identified'}
+- Development areas: ${(learningProfile.developmentAreas as string[]).join(', ') || 'not yet identified'}
+${learningProfile.profileSummary ? `- Profile summary: ${learningProfile.profileSummary}` : ''}` : ''}
 Where evidence exists, reference the specific homework tasks and scores in your review. Where outcomes have no evidence, note this as a gap requiring action before the review meeting.
 
-Write a formal annual review covering: (1) Overview of the year, (2) Review of each outcome with evidence referenced, (3) Recommendations for the coming year. Use appropriate EHCP annual review language (500–700 words).`,
+Write a formal annual review covering: (1) Overview of the year, (2) Review of each outcome with evidence referenced, (3) Recommendations for the coming year including provision adjustments informed by the adaptive learning profile. Use appropriate EHCP annual review language (500–700 words).`,
       }],
     })
     return AI_DISCLAIMER + (msg.content[0] as any).text.trim()

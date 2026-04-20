@@ -22,6 +22,10 @@ const PALETTES = [
   { bg: 'bg-orange-100',  border: 'border-l-orange-500',  text: 'text-orange-900'  },
 ]
 
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function palette(subject: string) {
   let hash = 0
   for (let i = 0; i < subject.length; i++) {
@@ -302,7 +306,7 @@ export default function WeeklyCalendar({
               <div className="flex flex-1">
                 {days.map((day, di) => {
                   const todayCol = isToday(day)
-                  const dateStr  = day.toISOString().split('T')[0]
+                  const dateStr  = toLocalDateStr(day)
                   return (
                     <div key={di} className="flex-1 min-w-[110px] flex flex-col border-l border-gray-200">
 
@@ -511,7 +515,7 @@ export default function WeeklyCalendar({
 
           <div className="p-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
-              onClick={() => setSlideOver({ date: new Date().toISOString().split('T')[0], hour: startHour })}
+              onClick={() => setSlideOver({ date: toLocalDateStr(new Date()), hour: startHour })}
               className="flex items-center justify-center gap-1 w-full py-2 rounded-lg border border-dashed border-gray-300 text-[11px] text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-colors"
             >
               <Icon name="add" size="sm" />New lesson

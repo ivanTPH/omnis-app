@@ -114,11 +114,11 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
     setLoading(true)
     setError(null)
     Promise.all([
-      getClassRoster(classId),
-      getCurrentUserRole(),
-      getClassKPlanSummaries(classId),
-      getClassRagData(classId),
-      getClassEhcpSectionF(classId),
+      getClassRoster(classId).catch(e => { console.error('[ClassRosterTab] getClassRoster:', e); return [] as ClassRosterRow[] }),
+      getCurrentUserRole().catch(e => { console.error('[ClassRosterTab] getCurrentUserRole:', e); return null }),
+      getClassKPlanSummaries(classId).catch(e => { console.error('[ClassRosterTab] getClassKPlanSummaries:', e); return {} as Record<string, KPlanSummary> }),
+      getClassRagData(classId).catch(e => { console.error('[ClassRosterTab] getClassRagData:', e); return [] as RagStudent[] }),
+      getClassEhcpSectionF(classId).catch(e => { console.error('[ClassRosterTab] getClassEhcpSectionF:', e); return {} as Record<string, string[]> }),
     ])
       .then(([r, role, kplans, rag, ehcpTips]) => {
         if (cancelled) return
@@ -130,7 +130,6 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
         setRagMap(rm)
         setEhcpTipsMap(ehcpTips)
       })
-      .catch((err) => { if (!cancelled) { console.error('[ClassRosterTab] load error:', err); setError('Could not load class roster.') } })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [classId])

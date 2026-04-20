@@ -427,7 +427,8 @@ export default function WeeklyCalendar({
                                   <div
                                     key={lesson.id}
                                     draggable
-                                    onClick={() => onLessonClick(lesson.id)}
+                                    onClick={e => { e.stopPropagation(); onLessonClick(lesson.id) }}
+                                    onMouseDown={e => e.stopPropagation()}
                                     onDragStart={e => { e.dataTransfer.setData('id', lesson.id); setDragging(lesson.id) }}
                                     onDragEnd={() => setDragging(null)}
                                     style={{ top: topPx, height: heightPx, left: 2 + ti * 5, right: 2 }}

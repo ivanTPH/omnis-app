@@ -161,8 +161,10 @@ Example format: ["Students will be able to ...", "Students will be able to ...",
 }
 
 export async function getLessonDetails(lessonId: string) {
+  console.log('[DEBUG] getLessonDetails called, lessonId:', lessonId)
   try {
   const session = await auth()
+  console.log('[DEBUG] auth() result, session exists:', !!session, 'schoolId:', (session?.user as any)?.schoolId)
   if (!session) return null
   const { schoolId } = session.user as any
 
@@ -255,7 +257,8 @@ export async function getLessonDetails(lessonId: string) {
     subjectMedian,
   }
   } catch (err) {
-    console.error('[getLessonDetails] error:', err)
+    console.error('[getLessonDetails] CAUGHT ERROR:', err instanceof Error ? err.message : String(err))
+    console.error('[getLessonDetails] stack:', err instanceof Error ? err.stack : 'no stack')
     return null
   }
 }

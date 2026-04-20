@@ -16,8 +16,9 @@ import {
 } from '@/app/actions/send-support'
 import {
   getStudentAssessments, addAssessment, deleteAssessment,
-  ASSESSMENT_TYPES, type AssessmentRow,
+  type AssessmentRow,
 } from '@/app/actions/assessments'
+import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
 type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact'

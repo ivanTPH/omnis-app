@@ -88,7 +88,9 @@ export async function getStaffMembers(_schoolId?: string): Promise<StaffMember[]
 }
 
 // Keep old name for backwards compatibility with any existing callers
-export const getStaffList = getStaffMembers
+export async function getStaffList(...args: Parameters<typeof getStaffMembers>) {
+  return getStaffMembers(...args)
+}
 
 // ─── Students ─────────────────────────────────────────────────────────────────
 

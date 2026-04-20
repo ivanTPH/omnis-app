@@ -194,7 +194,16 @@ export default function WeeklyCalendar({
   function onLessonClick(id: string) {
     setFolderWizard(false)
     setFolderTab('Overview')
-    setFolderId(prev => prev === id ? null : id)
+    // Ensure panel is tall enough to show content (reset if slim)
+    if (panelHeight <= 18) setPanelHeight(42)
+    setFolderId(prev => {
+      const next = prev === id ? null : id
+      if (next) {
+        // Scroll panel into view after React paints
+        setTimeout(() => document.getElementById('lesson-panel')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
+      }
+      return next
+    })
   }
 
   const HOURS = Array.from({ length: extEndHour - extStartHour }, (_, i) => extStartHour + i)
@@ -527,7 +536,7 @@ export default function WeeklyCalendar({
 
       {/* ── Inline lesson panel — bottom grid row ───────────────────── */}
       {folderId && (
-        <div style={{
+        <div id="lesson-panel" style={{
           minHeight:       0,
           display:         'flex',
           flexDirection:   'column',

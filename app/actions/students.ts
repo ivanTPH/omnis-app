@@ -553,6 +553,80 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
   }
 }
 
+// ── Update classroom strategies (teacher edits LP) ────────────────────────────
+
+export async function updateClassroomStrategies(
+  studentId: string,
+  strategies: string[],
+): Promise<void> {
+  const user = await requireStaff()
+  const existing = await (prisma as any).studentLearningProfile.findUnique({ where: { studentId } })
+  if (existing) {
+    await (prisma as any).studentLearningProfile.update({
+      where: { studentId },
+      data:  { classroomStrategies: strategies, passportStatus: 'DRAFT', lastUpdated: new Date() },
+    })
+  } else {
+    await (prisma as any).studentLearningProfile.create({
+      data: {
+        studentId,
+        schoolId: user.schoolId,
+        classroomStrategies: strategies,
+        passportStatus: 'DRAFT',
+        approvedByTeacher: false,
+        lastUpdated: new Date(),
+      },
+    })
+  }
+  revalidatePath(`/students/${studentId}`)
+}
+
+// ── Student voice (student edits their own LP "My View") ──────────────────────
+
+export async function saveStudentVoice(voice: string): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const user = session.user as any
+  if (user.role !== 'STUDENT') throw new Error('Students only')
+  const { schoolId, id: studentId } = user
+  const existing = await (prisma as any).studentLearningProfile.findUnique({ where: { studentId } })
+  if (existing) {
+    await (prisma as any).studentLearningProfile.update({
+      where: { studentId },
+      data:  { studentVoice: voice.trim() || null },
+    })
+  } else {
+    await (prisma as any).studentLearningProfile.create({
+      data: { studentId, schoolId, studentVoice: voice.trim() || null, passportStatus: 'DRAFT', approvedByTeacher: false },
+    })
+  }
+}
+
+// ── Get own passport for student ──────────────────────────────────────────────
+
+export async function getStudentOwnPassport(): Promise<{
+  strengthAreas: string[]
+  developmentAreas: string[]
+  classroomStrategies: string[]
+  studentVoice: string | null
+} | null> {
+  const session = await auth()
+  if (!session) return null
+  const user = session.user as any
+  if (user.role !== 'STUDENT') return null
+  const profile = await (prisma as any).studentLearningProfile.findUnique({
+    where:  { studentId: user.id },
+    select: { strengthAreas: true, developmentAreas: true, classroomStrategies: true, studentVoice: true },
+  })
+  if (!profile) return null
+  return {
+    strengthAreas:       profile.strengthAreas       ?? [],
+    developmentAreas:    profile.developmentAreas     ?? [],
+    classroomStrategies: profile.classroomStrategies  ?? [],
+    studentVoice:        profile.studentVoice         ?? null,
+  }
+}
+
 // ── Notes ────────────────────────────────────────────────────────────────────
 
 export async function saveStudentNote(studentId: string, content: string): Promise<void> {

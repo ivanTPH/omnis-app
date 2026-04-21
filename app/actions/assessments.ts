@@ -81,3 +81,16 @@ export async function deleteAssessment(id: string): Promise<void> {
   const { schoolId } = session.user as any
   await prisma.assessment.deleteMany({ where: { id, schoolId } })
 }
+
+export async function editAssessment(
+  id: string,
+  data: { score: number; notes?: string },
+): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Not authenticated')
+  const { schoolId } = session.user as any
+  await prisma.assessment.updateMany({
+    where: { id, schoolId },
+    data:  { score: data.score, notes: data.notes ?? null },
+  })
+}

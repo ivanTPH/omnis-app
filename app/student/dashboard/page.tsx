@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
 import { getUnreadMessageCount } from '@/app/actions/messaging'
+import { getStudentOwnPassport } from '@/app/actions/students'
 import StudentMobileDashboard, { type MobileHw, type SubjectProgress } from '@/components/StudentMobileDashboard'
 
 export default async function StudentDashboardPage() {
@@ -99,6 +100,9 @@ export default async function StudentDashboardPage() {
   let unreadCount = 0
   try { unreadCount = await getUnreadMessageCount() } catch {}
 
+  let passport = null
+  try { passport = await getStudentOwnPassport() } catch {}
+
   return (
     <StudentMobileDashboard
       firstName={firstName}
@@ -108,6 +112,7 @@ export default async function StudentDashboardPage() {
       homework={mobileHw}
       subjectProgress={subjectProgress}
       unreadCount={unreadCount}
+      passport={passport}
     />
   )
 }

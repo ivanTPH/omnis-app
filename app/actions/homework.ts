@@ -1467,6 +1467,27 @@ Return ONLY JSON with no markdown: {"classifications":[{"targetId":"...","eviden
   }
 }
 
+// ── Update ILP Evidence Entry ─────────────────────────────────────────────────
+
+export async function updateIlpEvidence(
+  evidenceId: string,
+  data: { evidenceType: 'PROGRESS' | 'CONCERN' | 'NEUTRAL'; teacherNote?: string },
+): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+  const staffRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'SUPER_ADMIN']
+  if (!staffRoles.includes((session.user as any).role)) throw new Error('Forbidden')
+
+  await (prisma as any).ilpEvidenceEntry.updateMany({
+    where: { id: evidenceId, schoolId },
+    data:  {
+      evidenceType: data.evidenceType,
+      teacherNote:  data.teacherNote ?? null,
+    },
+  })
+}
+
 // ── Save ILP Evidence Entries ─────────────────────────────────────────────────
 
 export async function saveIlpEvidenceEntries(

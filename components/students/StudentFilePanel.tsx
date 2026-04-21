@@ -15,9 +15,10 @@ import {
   updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent,
 } from '@/app/actions/send-support'
 import {
-  getStudentAssessments, addAssessment, deleteAssessment,
+  getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
   type AssessmentRow,
 } from '@/app/actions/assessments'
+import { updateClassroomStrategies } from '@/app/actions/students'
 import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
@@ -77,16 +78,28 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 // ── Learning Passport Section ──────────────────────────────────────────────────
 
 function LearningPassportSection({
-  passport, isSenco, studentId,
-}: { passport: LearningPassportDoc; isSenco: boolean; studentId: string }) {
-  const [approving, startApprove] = useTransition()
-  const [approved, setApproved]   = useState(passport.approvedByTeacher)
+  passport, isSenco, studentId, role,
+}: { passport: LearningPassportDoc; isSenco: boolean; studentId: string; role: string }) {
+  const [approving,         startApprove]    = useTransition()
+  const [approved,          setApproved]     = useState(passport.approvedByTeacher)
+  const [editingStrategies, setEditingStrategies] = useState(false)
+  const [strategiesText,    setStrategiesText]    = useState(passport.classroomStrategies.join('\n'))
+  const [savingStrategies,  startSaveStrategies]  = useTransition()
   const isDraft = passport.passportStatus === 'DRAFT' && !approved
+  const canEditStrategies = ['TEACHER', 'HEAD_OF_DEPT', 'SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
 
   function handleApprove() {
     startApprove(async () => {
       await approveLearningPassport(studentId)
       setApproved(true)
+    })
+  }
+
+  function handleSaveStrategies() {
+    const strategies = strategiesText.split('\n').map(s => s.trim()).filter(Boolean)
+    startSaveStrategies(async () => {
+      await updateClassroomStrategies(studentId, strategies)
+      setEditingStrategies(false)
     })
   }
 
@@ -144,9 +157,43 @@ function LearningPassportSection({
         </div>
       )}
 
-      {passport.classroomStrategies.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Classroom strategies</p>
+      {/* Classroom strategies — editable for teachers */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Classroom strategies</p>
+          {canEditStrategies && !editingStrategies && (
+            <button
+              onClick={() => { setStrategiesText(passport.classroomStrategies.join('\n')); setEditingStrategies(true) }}
+              title="Edit classroom strategies"
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-gray-100 text-gray-300 hover:text-blue-500 transition-colors"
+            >
+              <Icon name="edit" size="sm" />
+            </button>
+          )}
+        </div>
+        {editingStrategies ? (
+          <div className="space-y-2">
+            <p className="text-[11px] text-gray-400">One strategy per line</p>
+            <textarea
+              rows={5}
+              value={strategiesText}
+              onChange={e => setStrategiesText(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+              placeholder="Add classroom strategies, one per line…"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSaveStrategies}
+                disabled={savingStrategies}
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-xs font-semibold transition-colors"
+              >
+                {savingStrategies ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
+                Save
+              </button>
+              <button onClick={() => setEditingStrategies(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+            </div>
+          </div>
+        ) : passport.classroomStrategies.length > 0 ? (
           <ul className="space-y-1">
             {passport.classroomStrategies.map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
@@ -155,8 +202,17 @@ function LearningPassportSection({
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        ) : canEditStrategies ? (
+          <button
+            onClick={() => setEditingStrategies(true)}
+            className="text-xs text-blue-500 hover:underline"
+          >
+            + Add classroom strategies
+          </button>
+        ) : (
+          <p className="text-sm text-gray-400 italic">No strategies recorded</p>
+        )}
+      </div>
 
       {passport.learningFormatNotes && (
         <div>
@@ -1056,12 +1112,17 @@ function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: 
   const [showForm,      setShowForm]      = useState(false)
   const [pending,       startTransition]  = useTransition()
 
-  // Form state
+  // Form state (add)
   const [title,          setTitle]          = useState('')
   const [assessmentType, setAssessmentType] = useState('end_of_unit')
   const [score,          setScore]          = useState<number>(5)
   const [date,           setDate]           = useState(() => new Date().toISOString().split('T')[0])
   const [notes,          setNotes]          = useState('')
+
+  // Edit state
+  const [editingId,   setEditingId]   = useState<string | null>(null)
+  const [editScore,   setEditScore]   = useState<number>(5)
+  const [editNotes,   setEditNotes]   = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -1084,6 +1145,21 @@ function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: 
     startTransition(async () => {
       await deleteAssessment(id)
       setRows(prev => prev.filter(r => r.id !== id))
+    })
+  }
+
+  function openEdit(r: AssessmentRow) {
+    setEditingId(r.id)
+    setEditScore(r.score)
+    setEditNotes(r.notes ?? '')
+  }
+
+  function handleEdit(id: string) {
+    startTransition(async () => {
+      await editAssessment(id, { score: editScore, notes: editNotes.trim() || undefined })
+      const updated = await getStudentAssessments(studentId)
+      setRows(updated)
+      setEditingId(null)
     })
   }
 
@@ -1189,35 +1265,81 @@ function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: 
       ) : (
         <div className="space-y-2">
           {rows.map(r => (
-            <div key={r.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-start gap-3">
-              {/* Grade badge */}
-              <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${GRADE_COLORS[r.score] ?? 'bg-gray-100 text-gray-700'}`}>
-                <span className="text-lg leading-none">{r.score}</span>
-                <span className="text-[10px] leading-none opacity-80">{GRADE_LABEL[r.score] ?? ''}</span>
-              </div>
-              {/* Details */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-gray-900 leading-tight">{r.title}</p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                  <span className="text-[11px] text-gray-500">
-                    {new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </span>
-                  <span className="text-[11px] text-gray-400">
-                    {ASSESSMENT_TYPES.find(t => t.value === r.assessmentType)?.label ?? r.assessmentType}
-                  </span>
-                  {r.className && <span className="text-[11px] text-gray-400">{r.className}</span>}
+            <div key={r.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+              {editingId === r.id ? (
+                <div className="space-y-2">
+                  <p className="text-[13px] font-semibold text-gray-900">{r.title}</p>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Grade (1–9)</label>
+                      <input
+                        type="number" min={1} max={9}
+                        value={editScore}
+                        onChange={e => setEditScore(Math.min(9, Math.max(1, parseInt(e.target.value) || 1)))}
+                        className="w-14 text-sm text-center border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Notes</label>
+                      <input
+                        type="text"
+                        value={editNotes}
+                        onChange={e => setEditNotes(e.target.value)}
+                        placeholder="Optional notes…"
+                        className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEdit(r.id)}
+                      disabled={pending}
+                      className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-xs font-semibold"
+                    >
+                      {pending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />} Save
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                  </div>
                 </div>
-                {r.notes && <p className="text-[12px] text-gray-600 mt-1 italic">{r.notes}</p>}
-              </div>
-              {/* Delete */}
-              <button
-                onClick={() => handleDelete(r.id)}
-                disabled={pending}
-                className="shrink-0 p-1 hover:bg-red-50 rounded-lg transition text-gray-300 hover:text-red-500"
-                title="Delete record"
-              >
-                <Icon name="delete" size="sm" />
-              </button>
+              ) : (
+                <div className="flex items-start gap-3">
+                  {/* Grade badge */}
+                  <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${GRADE_COLORS[r.score] ?? 'bg-gray-100 text-gray-700'}`}>
+                    <span className="text-lg leading-none">{r.score}</span>
+                    <span className="text-[10px] leading-none opacity-80">{GRADE_LABEL[r.score] ?? ''}</span>
+                  </div>
+                  {/* Details */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-gray-900 leading-tight">{r.title}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                      <span className="text-[11px] text-gray-500">
+                        {new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        {ASSESSMENT_TYPES.find(t => t.value === r.assessmentType)?.label ?? r.assessmentType}
+                      </span>
+                      {r.className && <span className="text-[11px] text-gray-400">{r.className}</span>}
+                    </div>
+                    {r.notes && <p className="text-[12px] text-gray-600 mt-1 italic">{r.notes}</p>}
+                  </div>
+                  {/* Edit + Delete */}
+                  <button
+                    onClick={() => openEdit(r)}
+                    className="shrink-0 p-1 hover:bg-blue-50 rounded-lg transition text-gray-300 hover:text-blue-500"
+                    title="Edit score or notes"
+                  >
+                    <Icon name="edit" size="sm" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    disabled={pending}
+                    className="shrink-0 p-1 hover:bg-red-50 rounded-lg transition text-gray-300 hover:text-red-500"
+                    title="Delete record"
+                  >
+                    <Icon name="delete" size="sm" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1430,6 +1552,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
                 passport={data.learningPassport}
                 isSenco={isSenco}
                 studentId={student.id}
+                role={role}
               />
             </SectionCard>
           )}

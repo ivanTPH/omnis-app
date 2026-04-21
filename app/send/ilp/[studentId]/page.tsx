@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon'
 import { PlanStatus, StrategyAppliesTo } from '@prisma/client'
 import { getIlpEvidenceForStudent } from '@/app/actions/homework'
 import { formatRawScore } from '@/lib/gradeUtils'
+import IlpEvidenceTimeline from '@/components/send-support/IlpEvidenceTimeline'
 
 export default async function StudentIlpPage({ params }: { params: Promise<{ studentId: string }> }) {
   const session = await auth()
@@ -249,46 +250,8 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                 </div>
               )}
 
-              {/* Homework submissions by class */}
-              {/* ILP Evidence Timeline */}
-              {ilpEvidence.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-                    <Icon name="task_alt" size="sm" className="text-blue-500" />
-                    <h2 className="text-[14px] font-semibold text-gray-900">ILP Evidence Timeline</h2>
-                    <span className="ml-auto text-[11px] text-gray-400">{ilpEvidence.length} entr{ilpEvidence.length !== 1 ? 'ies' : 'y'}</span>
-                  </div>
-                  <div className="divide-y divide-gray-50">
-                    {ilpEvidence.slice(0, 10).map((entry: any) => (
-                      <div key={entry.id} className="flex items-start gap-3 px-5 py-3">
-                        <div className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${
-                          entry.evidenceType === 'PROGRESS' ? 'bg-green-400' :
-                          entry.evidenceType === 'CONCERN'  ? 'bg-rose-400' :
-                          'bg-gray-300'
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-[12px] font-medium text-gray-800 truncate">{entry.homeworkTitle}</p>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              entry.evidenceType === 'PROGRESS' ? 'bg-green-100 text-green-700' :
-                              entry.evidenceType === 'CONCERN'  ? 'bg-rose-100 text-rose-700' :
-                              'bg-gray-100 text-gray-500'
-                            }`}>{entry.evidenceType}</span>
-                          </div>
-                          {entry.aiSummary && (
-                            <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{entry.aiSummary}</p>
-                          )}
-                          <p className="text-[10px] text-gray-400 mt-0.5">
-                            {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            {entry.subject && ` · ${entry.subject}`}
-                            {entry.score != null && ` · ${formatRawScore(entry.score)}`}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* ILP Evidence Timeline — editable client component */}
+              <IlpEvidenceTimeline entries={ilpEvidence as any} />
 
               {Object.entries(subsByClass).length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

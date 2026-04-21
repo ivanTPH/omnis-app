@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
+import { saveStudentVoice } from '@/app/actions/students'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -26,14 +27,22 @@ export type SubjectProgress = {
   count:      number
 }
 
+type Passport = {
+  strengthAreas:       string[]
+  developmentAreas:    string[]
+  classroomStrategies: string[]
+  studentVoice:        string | null
+}
+
 type Props = {
-  firstName:      string
-  lastName:       string
-  avatarUrl?:     string | null
-  schoolName:     string
-  homework:       MobileHw[]
+  firstName:       string
+  lastName:        string
+  avatarUrl?:      string | null
+  schoolName:      string
+  homework:        MobileHw[]
   subjectProgress: SubjectProgress[]
-  unreadCount:    number
+  unreadCount:     number
+  passport?:       Passport | null
 }
 
 // ── Bottom nav tab keys ────────────────────────────────────────────────────────
@@ -99,8 +108,22 @@ export default function StudentMobileDashboard({
   homework,
   subjectProgress,
   unreadCount,
+  passport,
 }: Props) {
   const [tab, setTab] = useState<Tab>('home')
+
+  // ── Student voice state ───────────────────────────────────────────────────────
+  const [voiceText,   setVoiceText]   = useState(passport?.studentVoice ?? '')
+  const [voiceSaved,  setVoiceSaved]  = useState(false)
+  const [savingVoice, startSaveVoice] = useTransition()
+
+  function handleSaveVoice() {
+    startSaveVoice(async () => {
+      await saveStudentVoice(voiceText)
+      setVoiceSaved(true)
+      setTimeout(() => setVoiceSaved(false), 2000)
+    })
+  }
 
   const overdue   = homework.filter(h => h.status === 'overdue')
   const dueSoon   = homework.filter(h => h.status === 'due_soon')
@@ -281,6 +304,87 @@ export default function StudentMobileDashboard({
           </div>
           <Icon name="chevron_right" size="md" className="text-blue-400" />
         </Link>
+
+        {/* Learning Passport — My View */}
+        {passport && (passport.strengthAreas.length > 0 || passport.developmentAreas.length > 0 || passport.classroomStrategies.length > 0 || passport.studentVoice !== null) && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-50">
+              <Icon name="auto_stories" size="sm" className="text-indigo-500" />
+              <p className="text-[13px] font-semibold text-gray-900">My Learning Passport</p>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {passport.strengthAreas.length > 0 && (
+                <div className="px-5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600 mb-1.5">My strengths</p>
+                  <ul className="space-y-1">
+                    {passport.strengthAreas.map((s, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-700">
+                        <Icon name="check_circle" size="sm" className="text-green-400 shrink-0 mt-0.5" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {passport.developmentAreas.length > 0 && (
+                <div className="px-5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 mb-1.5">Areas I&apos;m working on</p>
+                  <ul className="space-y-1">
+                    {passport.developmentAreas.map((d, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-700">
+                        <Icon name="trending_up" size="sm" className="text-amber-400 shrink-0 mt-0.5" />
+                        {d}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {passport.classroomStrategies.length > 0 && (
+                <div className="px-5 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 mb-1.5">What helps me in class</p>
+                  <ul className="space-y-1">
+                    {passport.classroomStrategies.map((s, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-700">
+                        <Icon name="lightbulb" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* Editable student voice */}
+              <div className="px-5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-600 mb-1.5">My own goals</p>
+                <textarea
+                  rows={3}
+                  value={voiceText}
+                  onChange={e => setVoiceText(e.target.value)}
+                  placeholder="Write your own goals or anything you want your teacher to know…"
+                  className="w-full text-[12px] border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-400 resize-none text-gray-700 placeholder-gray-300"
+                />
+                <div className="flex items-center gap-2 mt-2">
+                  <button
+                    onClick={handleSaveVoice}
+                    disabled={savingVoice}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-lg text-[12px] font-semibold transition-colors"
+                  >
+                    {savingVoice
+                      ? <Icon name="refresh" size="sm" className="animate-spin" />
+                      : <Icon name="save" size="sm" />
+                    }
+                    Save
+                  </button>
+                  {voiceSaved && (
+                    <span className="text-[11px] text-green-600 flex items-center gap-1">
+                      <Icon name="check_circle" size="sm" />
+                      Saved!
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

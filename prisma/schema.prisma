@@ -2156,6 +2156,7 @@ model StudentLearningProfile {
   targetGrade         Int?      // workingAtGrade + 1, capped at 9
   predictedGrade      Int?      // from SATs/baseline or year-group default
   classroomStrategies String[]  // practical daily strategies e.g. "Overlay on desk"
+  studentVoice        String?   // Student's own voice: goals, preferences, what helps them
   approvedByTeacher   Boolean   @default(false)
   approvedBy          String?   // userId of approving teacher
   approvedAt          DateTime?

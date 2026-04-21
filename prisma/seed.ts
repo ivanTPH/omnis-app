@@ -3397,6 +3397,136 @@ async function main() {
   console.log('  ✓ Fatima Al-Amin: 2 ILP evidence entries (NEUTRAL + PROGRESS), baseline updated to 48%, prediction updated to 55%')
   console.log('  ✓ Section F complete: Rehan Ali (Dyslexia), Caitlin Harris (ADHD), Fatima Al-Amin (SLCN)')
 
+  // ── Section G — Sophia Ahmed: Dyslexia SEND profile ──────────────────────────
+  // Sophia is in 9M/Ma2 and 9E/En1. Visible in both Maths and English class
+  // rosters. Marked Dyslexic but previously had no ILP, K Plan, or SendStatus.
+
+  const sophiaAhmed = await prisma.user.findUnique({
+    where: { email: 's.ahmed@students.omnisdemo.school' },
+  })
+
+  if (sophiaAhmed) {
+    // 1. SendStatus — SEN Support, Dyslexia
+    await prisma.sendStatus.upsert({
+      where:  { studentId: sophiaAhmed.id },
+      update: { activeStatus: 'SEN_SUPPORT', needArea: 'Specific Learning Difficulty (Dyslexia)' },
+      create: {
+        studentId:    sophiaAhmed.id,
+        activeStatus: 'SEN_SUPPORT',
+        activeSource: 'SENCO',
+        needArea:     'Specific Learning Difficulty (Dyslexia)',
+      },
+    })
+
+    // 2. ILP + K Plan
+    const sophiaIlp = await seedIlpAndKPlan({
+      ilpId:   'seed-ilp-sophia-ahmed',
+      kplanId: 'seed-kplan-sophia-ahmed',
+      studentId: sophiaAhmed.id,
+      sendCategory: 'SEN_SUPPORT',
+      strengths: [
+        'Strong verbal comprehension — contributes confidently to class discussions in both English and Maths',
+        'Good retention when information is presented orally or with visual support',
+        'Motivated and responds positively to encouragement and structured scaffolding',
+        'Capable of high-quality work when extended writing demand is reduced or scaffolded',
+      ].join(' '),
+      areasOfNeed: [
+        'Reading fluency — decoding multi-syllabic and subject-specific words under time pressure',
+        'Written output is slower than peers — ideas outpace ability to transcribe under exam conditions',
+        'Spelling of technical vocabulary in English (e.g. Shakespeare, characterisation) and Maths (e.g. denominator, perpendicular)',
+        'Working memory under timed conditions — difficulty holding multiple steps whilst writing',
+      ].join(' '),
+      strategies: [
+        'Provide writing frames and sentence starters for all extended tasks',
+        'Allow use of a coloured overlay or tinted paper for all reading activities',
+        'Pre-teach key subject vocabulary before the lesson using word cards',
+        'Allow 25% extra time on all timed assessments',
+        'Provide glossary sheets for subject-specific vocabulary in English and Maths',
+        'Break multi-step tasks into numbered sub-steps on a separate prompt card',
+        'Accept bullet-point planning as an alternative to full prose drafting in class',
+        'Seat Sophia where she can clearly see the board and has minimal distractions',
+      ],
+      successCriteria: 'Independently produce a structured two-paragraph analytical response using a writing frame by end of Summer term. Achieve 25% extra time provision for all Year 9 formal assessments.',
+      reviewDate: new Date('2026-07-04'),
+      sendInfo: 'Sophia Ahmed (Year 9) has Specific Learning Difficulties (Dyslexia) affecting phonological processing, reading fluency and written output speed. Her verbal comprehension and reasoning are strong — she is an active participant in class discussion. The primary barrier is the translation of ideas into written form under time pressure. She benefits from structured scaffolding, pre-teaching of vocabulary, and extended time. Parents are aware and supportive. No co-occurring diagnosis of ADHD or ASD.',
+      teacherActions: [
+        'Provide writing frames and sentence starters before every extended task',
+        'Allow coloured overlay and larger-print copies of all reading resources (min 14pt Arial)',
+        'Pre-teach key vocabulary using the class vocab card — share digitally before the lesson where possible',
+        'Allow 25% extra time on any timed written task or assessment',
+        'Break multi-step instructions into a numbered list on a prompt card',
+        'Never penalise for spelling of subject-specific vocabulary in formative work',
+      ],
+      studentCommitments: [
+        'Use the writing frame before starting any extended answer',
+        'Ask the teacher for a vocabulary card if an unfamiliar word appears',
+        'Use her coloured overlay in every lesson',
+        'Speak to the teacher if extra time is not being applied to a task',
+      ],
+      targets: [
+        {
+          id: 'seed-ilpt-sophia-1',
+          target: 'Use a writing frame independently to structure a two-paragraph analytical response in English',
+          strategy: 'Teacher provides a PEE writing frame before every extended task. Sophia practices using it in class and for homework. Teacher models the frame at the start of each writing lesson.',
+          successMeasure: 'Sophia uses the frame without prompting on 3 consecutive English writing tasks and produces structured responses of at least 80 words.',
+          targetDate: new Date('2026-07-04'),
+        },
+        {
+          id: 'seed-ilpt-sophia-2',
+          target: 'Access 25% extra time provision on all formal Year 9 assessments in English and Maths',
+          strategy: 'SENCO to submit access arrangements form to assessment co-ordinator. Subject teachers to apply extended time in all timed class assessments. Review compliance at mid-term.',
+          successMeasure: 'Extra time applied to all 4 formal assessments in Spring and Summer terms with no missed provision.',
+          targetDate: new Date('2026-06-20'),
+        },
+        {
+          id: 'seed-ilpt-sophia-3',
+          target: 'Expand subject-specific vocabulary in English — correctly spell and use 20 key AQA Literature terms',
+          strategy: 'Word cards provided each half-term. Sophia tests herself using digital flashcards at home. Teacher includes 3-minute vocabulary starter in every lesson with the target words.',
+          successMeasure: 'Sophia correctly uses and spells 15/20 target vocabulary words in a formal written response by end of term.',
+          targetDate: new Date('2026-07-04'),
+        },
+      ],
+    })
+
+    // 3. StudentLearningProfile — classroom strategies visible in Learning Passport
+    const existingProfile = await (prisma as any).studentLearningProfile.findUnique({
+      where: { studentId: sophiaAhmed.id },
+    })
+    if (!existingProfile) {
+      await (prisma as any).studentLearningProfile.create({
+        data: {
+          studentId:    sophiaAhmed.id,
+          schoolId:     school.id,
+          strengthAreas: [
+            'Verbal reasoning and oral contributions',
+            'Retention of content presented through discussion or audio',
+            'Persistence and motivation with structured tasks',
+          ],
+          developmentAreas: [
+            'Reading fluency under time pressure',
+            'Extended written output — particularly in exam conditions',
+            'Spelling of subject-specific vocabulary',
+          ],
+          classroomStrategies: [
+            'Provide coloured overlay or tinted paper for all reading tasks',
+            'Offer writing frames and sentence starters for extended tasks',
+            'Pre-teach key vocabulary using word cards before the lesson',
+            'Give instructions in numbered steps on a prompt card',
+            'Allow 25% extra time on timed written tasks',
+            'Seat near the front with minimal distractions',
+          ],
+          passportStatus:   'DRAFT',
+          approvedByTeacher: false,
+          lastUpdated:      new Date(),
+        },
+      })
+    }
+
+    console.log(`  ✓ Sophia Ahmed: SendStatus (SEN_SUPPORT/Dyslexia), ILP (3 targets), K Plan, StudentLearningProfile created`)
+  } else {
+    console.log('  ⚠ Sophia Ahmed not found — skipping SEND profile (run db:seed first)')
+  }
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

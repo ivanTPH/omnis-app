@@ -138,9 +138,9 @@ export async function createRevisionProgram(input: {
       where: {
         classId:  input.classId,
         schoolId: user.schoolId,
-        startsAt: { gte: input.periodStart, lte: input.periodEnd },
+        scheduledAt: { gte: input.periodStart, lte: input.periodEnd },
       },
-      orderBy: { startsAt: 'asc' },
+      orderBy: { scheduledAt: 'asc' },
       select: { title: true, objectives: true },
     })
     const recentLesson = periodLessons.length > 0 ? periodLessons[periodLessons.length - 1] : null

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import Tooltip from '@/components/ui/Tooltip'
 import {
   getClassRoster,
   getStudentClassDetail,
@@ -77,7 +78,7 @@ const EXPANDED_TABS: { key: ExpandedTabKey; label: string }[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ClassRosterTab({ classId }: { classId: string }) {
+export default function ClassRosterTab({ classId, externalSearch }: { classId: string; externalSearch?: string }) {
   const [rows,             setRows]             = useState<ClassRosterRow[]>([])
   const [loading,          setLoading]          = useState(true)
   const [error,            setError]            = useState<string | null>(null)
@@ -315,16 +316,18 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
 
       {/* Search + SEND filter */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[160px]">
-          <Icon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search students…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        {externalSearch === undefined && (
+          <div className="relative flex-1 min-w-[160px]">
+            <Icon name="search" size="sm" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search students…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
         {(['ALL', 'SEN_SUPPORT', 'EHCP'] as const).map(f => (
           <button
             key={f}
@@ -340,19 +343,21 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
           </button>
         ))}
         <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium ml-auto">
-          {rows.filter(r =>
-            (sendFilter === 'ALL' || r.sendStatus === sendFilter) &&
-            (!searchQuery || `${r.firstName} ${r.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()))
-          ).length} / {rows.length} students
+          {rows.filter(r => {
+            const q = externalSearch ?? searchQuery
+            return (sendFilter === 'ALL' || r.sendStatus === sendFilter) &&
+              (!q || `${r.firstName} ${r.lastName}`.toLowerCase().includes(q.toLowerCase()))
+          }).length} / {rows.length} students
         </span>
       </div>
 
       {/* Student rows */}
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
-        {rows.filter(row =>
-          (sendFilter === 'ALL' || row.sendStatus === sendFilter) &&
-          (!searchQuery || `${row.firstName} ${row.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()))
-        ).map(row => {
+        {rows.filter(row => {
+          const q = externalSearch ?? searchQuery
+          return (sendFilter === 'ALL' || row.sendStatus === sendFilter) &&
+            (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
+        }).map(row => {
           const badge        = SEND_BADGE[row.sendStatus]
           const isSend       = row.sendStatus !== 'NONE'
           const scoreDisplay = row.latestScore != null
@@ -472,18 +477,20 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                 <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                   {/* Single traffic light dot + label */}
                   <div className="flex flex-col items-center gap-0.5">
-                    <span
-                      title={
+                    <Tooltip
+                      content={
                         ragStatus === 'no_data'
-                          ? 'Progress: No homework data yet'
+                          ? 'No homework data yet'
                           : ragStatus === 'green'
-                            ? 'Progress: At or above predicted grade'
+                            ? 'On Track — at or above predicted grade'
                             : ragStatus === 'amber'
-                              ? 'Progress: 1 grade below predicted'
-                              : 'Progress: 2+ grades below predicted'
+                              ? 'Developing — 1 grade below predicted'
+                              : 'Needs Attention — 2+ grades below predicted'
                       }
-                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[ragStatus]}`}
-                    />
+                      side="left"
+                    >
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[ragStatus]}`} />
+                    </Tooltip>
                     {ragStatus !== 'no_data' && (
                       <span className={`text-[8px] font-semibold leading-none whitespace-nowrap ${
                         ragStatus === 'green'  ? 'text-green-600'
@@ -495,9 +502,11 @@ export default function ClassRosterTab({ classId }: { classId: string }) {
                     )}
                   </div>
                   {badge && (
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
-                      {badge.label}
-                    </span>
+                    <Tooltip content={badge.label === 'EHCP' ? 'Education, Health and Care Plan — statutory SEND support' : 'SEN Support — school-based SEND provision'} side="left">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    </Tooltip>
                   )}
                   {scoreDisplay && (
                     <span className="text-[11px] font-medium text-gray-500 w-12 text-right">

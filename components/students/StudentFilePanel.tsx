@@ -578,7 +578,9 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
                       {subjectHw(row.subject).slice(0, 8).map(hw => (
                         <a
                           key={hw.homeworkId}
-                          href={`/homework/${hw.homeworkId}`}
+                          href={hw.submissionId
+                            ? `/homework/${hw.homeworkId}/mark/${hw.submissionId}`
+                            : `/homework/${hw.homeworkId}`}
                           className="flex items-center justify-between text-xs py-0.5 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
                         >
                           <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>

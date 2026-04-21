@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import Tooltip from '@/components/ui/Tooltip'
 import SetHomeworkModal from './SetHomeworkModal'
 import ExportPdfButton  from '@/components/ExportPdfButton'
 import { useTeacherProfile } from '@/lib/teacherProfileContext'
@@ -346,13 +347,17 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
             <p className="text-[24px] font-bold text-gray-900">{filtered.length}</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Assignment{filtered.length !== 1 ? 's' : ''}</p>
+            <Tooltip content="Total assignments matching current filters">
+              <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">Assignment{filtered.length !== 1 ? 's' : ''}</p>
+            </Tooltip>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
             <p className={`text-[24px] font-bold ${totalToMark > 0 ? 'text-amber-600' : 'text-green-600'}`}>
               {totalToMark}
             </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">To Mark</p>
+            <Tooltip content="Submissions awaiting teacher marking">
+              <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">To Mark</p>
+            </Tooltip>
           </div>
           <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
             <p className={`text-[24px] font-bold ${
@@ -363,7 +368,9 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
             }`}>
               {submissionRate !== null ? `${submissionRate}%` : '—'}
             </p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Submission Rate</p>
+            <Tooltip content="Percentage of enrolled students who submitted. Red < 60%, amber < 80%, green ≥ 80%">
+              <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">Submission Rate</p>
+            </Tooltip>
           </div>
         </div>
       )}

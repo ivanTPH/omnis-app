@@ -7,11 +7,12 @@ import { bulkGenerateLearningPassports } from '@/app/actions/students'
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
 
 export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
-  const [selectedId,    setSelectedId]    = useState<string>(classes[0]?.id ?? '')
-  const [subjectFilter, setSubjectFilter] = useState<string>('All')
-  const [yearFilter,    setYearFilter]    = useState<number | 'All'>('All')
-  const [generating,    startGenerate]    = useTransition()
-  const [genResult,     setGenResult]     = useState<{ generated: number; errors: number } | null>(null)
+  const [subject,    setSubject]    = useState('')
+  const [year,       setYear]       = useState('')
+  const [selectedId, setSelectedId] = useState('')
+  const [search,     setSearch]     = useState('')
+  const [generating, startGenerate] = useTransition()
+  const [genResult,  setGenResult]  = useState<{ generated: number; errors: number } | null>(null)
 
   if (classes.length === 0) {
     return (
@@ -21,99 +22,139 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
     )
   }
 
-  // ── Filter chains ────────────────────────────────────────────────────────────
-  const subjects = ['All', ...Array.from(new Set(classes.map(c => c.subject))).sort()]
+  // ── Derived options ──────────────────────────────────────────────────────────
+  const subjects = ([...new Set(classes.map(c => c.subject))] as string[]).sort()
+  const years    = ([...new Set(classes.map(c => c.yearGroup))] as number[]).sort((a, b) => a - b)
 
-  const classesForSubject = subjectFilter === 'All' ? classes : classes.filter(c => c.subject === subjectFilter)
-
-  const yearGroups: Array<number | 'All'> = [
-    'All',
-    ...Array.from(new Set(classesForSubject.map(c => c.yearGroup))).sort((a, b) => a - b),
-  ]
-
-  const visibleClasses = classesForSubject.filter(c =>
-    yearFilter === 'All' || c.yearGroup === yearFilter,
+  // Classes narrowed by subject + year
+  const filteredClasses = classes.filter(c =>
+    (!subject || c.subject === subject) &&
+    (!year    || c.yearGroup === Number(year)),
   )
 
-  function handleSubjectChange(s: string) {
-    setSubjectFilter(s)
-    setYearFilter('All')
-    const newVisible = s === 'All' ? classes : classes.filter(c => c.subject === s)
-    if (!newVisible.find(c => c.id === selectedId)) {
-      setSelectedId(newVisible[0]?.id ?? '')
-    }
-  }
+  // Effective selection: explicit or first in filtered list
+  const effectiveId = selectedId && filteredClasses.find(c => c.id === selectedId)
+    ? selectedId
+    : filteredClasses[0]?.id ?? ''
 
-  function handleYearChange(y: number | 'All') {
-    setYearFilter(y)
-    const newVisible = classesForSubject.filter(c => y === 'All' || c.yearGroup === y)
-    if (!newVisible.find(c => c.id === selectedId)) {
-      setSelectedId(newVisible[0]?.id ?? '')
-    }
-  }
+  // ── Chips ─────────────────────────────────────────────────────────────────────
+  const chips = [
+    subject && { key: 'subject', label: subject,           clear: () => { setSubject(''); setSelectedId('') } },
+    year    && { key: 'year',    label: `Year ${year}`,     clear: () => { setYear('');    setSelectedId('') } },
+    search  && { key: 'search',  label: `"${search}"`,      clear: () => setSearch('') },
+  ].filter(Boolean) as { key: string; label: string; clear: () => void }[]
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
 
-      {/* ── Filters row: Subject + Year dropdowns ── */}
-      {(subjects.length > 2 || yearGroups.length > 2) && (
-        <div className="flex flex-wrap items-center gap-2">
-          {subjects.length > 2 && (
+      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+          {/* Subject */}
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+              Subject
+            </label>
             <select
-              value={subjectFilter}
-              onChange={e => handleSubjectChange(e.target.value)}
-              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={subject}
+              onChange={e => { setSubject(e.target.value); setSelectedId('') }}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {subjects.map(s => (
-                <option key={s} value={s}>{s === 'All' ? 'All subjects' : s}</option>
-              ))}
+              <option value="">All Subjects</option>
+              {subjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-          )}
-          {yearGroups.length > 2 && (
+          </div>
+
+          {/* Year Group */}
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+              Year Group
+            </label>
             <select
-              value={String(yearFilter)}
-              onChange={e => handleYearChange(e.target.value === 'All' ? 'All' : Number(e.target.value))}
-              className="text-[13px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={year}
+              onChange={e => { setYear(e.target.value); setSelectedId('') }}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {yearGroups.map(y => (
-                <option key={String(y)} value={String(y)}>{y === 'All' ? 'All years' : `Year ${y}`}</option>
-              ))}
+              <option value="">All Years</option>
+              {years.map(y => <option key={y} value={y}>Year {y}</option>)}
             </select>
+          </div>
+
+          {/* Class */}
+          <div>
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+              Class
+            </label>
+            <select
+              value={effectiveId}
+              onChange={e => setSelectedId(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {filteredClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+
+          {/* Generate passports */}
+          <div className="flex flex-col justify-end">
+            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1 opacity-0 select-none">
+              Actions
+            </label>
+            <button
+              type="button"
+              disabled={generating || !effectiveId}
+              onClick={() => startGenerate(async () => {
+                const r = await bulkGenerateLearningPassports(effectiveId)
+                setGenResult(r)
+              })}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition disabled:opacity-50"
+              title="Auto-generate Learning Passports for all students in this class using AI"
+            >
+              <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
+              {generating ? 'Generating…' : 'Generate passports'}
+            </button>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by student name…"
+            className="w-full pl-8 pr-8 py-2 text-[12px] border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <Icon name="close" size="sm" />
+            </button>
           )}
         </div>
-      )}
 
-      {/* ── Class pills + generate button ── */}
-      <div className="flex flex-wrap items-center gap-2">
-        {visibleClasses.map(c => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => setSelectedId(c.id)}
-            className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
-              selectedId === c.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {c.name}
-          </button>
-        ))}
-        {/* Generate Learning Passports for selected class */}
-        {selectedId && (
-          <button
-            type="button"
-            disabled={generating}
-            onClick={() => startGenerate(async () => {
-              const r = await bulkGenerateLearningPassports(selectedId)
-              setGenResult(r)
-            })}
-            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition disabled:opacity-50"
-            title="Auto-generate Learning Passports for all students in this class using AI"
-          >
-            <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
-            {generating ? 'Generating…' : 'Generate passports'}
-          </button>
+        {/* Active filter chips */}
+        {chips.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {chips.map(chip => (
+              <button
+                key={chip.key}
+                onClick={chip.clear}
+                className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] rounded-full border border-blue-100 hover:bg-blue-100 transition"
+              >
+                {chip.label}
+                <Icon name="close" size="sm" />
+              </button>
+            ))}
+            <button
+              onClick={() => { setSubject(''); setYear(''); setSelectedId(''); setSearch('') }}
+              className="text-[11px] text-gray-400 hover:text-gray-600 px-1"
+            >
+              Clear all
+            </button>
+          </div>
         )}
       </div>
 
@@ -124,8 +165,8 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
       )}
 
       {/* ── Roster for selected class ── */}
-      {selectedId && (
-        <ClassRosterTab key={selectedId} classId={selectedId} />
+      {effectiveId && (
+        <ClassRosterTab key={effectiveId} classId={effectiveId} externalSearch={search} />
       )}
     </div>
   )

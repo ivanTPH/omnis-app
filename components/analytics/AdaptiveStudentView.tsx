@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
+import Tooltip from '@/components/ui/Tooltip'
 import { getStudentTopicBreakdown } from '@/app/actions/analytics'
 import { generateResource } from '@/app/actions/ai-generator'
 import { saveLearningFormatNotes, generateAdaptiveNarrative } from '@/app/actions/adaptive-learning'
@@ -169,7 +170,9 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           <div className="flex items-start gap-2.5 flex-1 min-w-0">
             <Icon name="psychology" size="sm" className="text-indigo-500 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 mb-1">AI Adaptive Summary</p>
+              <Tooltip content="AI-generated teaching summary based on this student's homework performance, SEND status, and ILP targets">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 mb-1 cursor-default">AI Adaptive Summary</p>
+              </Tooltip>
               {generatingNarrative ? (
                 <div className="flex items-center gap-1.5 text-[12px] text-indigo-500">
                   <Icon name="refresh" size="sm" className="animate-spin" />
@@ -199,7 +202,9 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       <div className="bg-white border border-gray-200 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2.5">
           <Icon name="sticky_note_2" size="sm" className="text-indigo-500" />
-          <h3 className="text-[13px] font-semibold text-gray-900">Learning Format Notes</h3>
+          <Tooltip content="Notes about how this student learns best — used when generating adaptive revision tasks">
+            <h3 className="text-[13px] font-semibold text-gray-900 cursor-default">Learning Format Notes</h3>
+          </Tooltip>
           <span className="text-[10px] text-gray-400 ml-1">— feeds into revision generation</span>
         </div>
         <textarea

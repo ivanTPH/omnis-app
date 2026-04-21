@@ -2,6 +2,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
+import Tooltip from '@/components/ui/Tooltip'
 import { gradeLabel } from '@/lib/grading'
 import { getClassPerformanceAnalysis, createRevisionProgram } from '@/app/actions/revision-program'
 import { getTeacherClasses } from '@/app/actions/homework'
@@ -236,9 +237,15 @@ function Step2({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-3 py-2 font-semibold text-gray-500">Student</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-500">Avg</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-500">Weak Topics</th>
-                <th className="text-left px-3 py-2 font-semibold text-gray-500">Task Type</th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">
+                  <Tooltip content="Average GCSE grade across all homework in the selected period">Avg</Tooltip>
+                </th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">
+                  <Tooltip content="Topics where the student scored below the class average">Weak Topics</Tooltip>
+                </th>
+                <th className="text-left px-3 py-2 font-semibold text-gray-500">
+                  <Tooltip content="AI-recommended task format based on the student's learning profile">Task Type</Tooltip>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

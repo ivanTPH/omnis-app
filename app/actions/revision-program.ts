@@ -339,6 +339,32 @@ export async function getRevisionProgramDetail(programId: string): Promise<{
   }
 }
 
+// ── updateRevisionTaskQuestions ───────────────────────────────────────────────
+
+export async function updateRevisionTaskQuestions(
+  taskId: string,
+  questions: { id: string | number; question: string; marks: number; bloomsLevel?: string; lessonTitle?: string; teacherNote?: string }[],
+): Promise<void> {
+  const user = await requireTeacherOrAbove()
+
+  const task = await (prisma as any).revisionTask.findFirst({
+    where: { id: taskId, schoolId: user.schoolId },
+    include: { program: { select: { createdBy: true } } },
+  })
+  if (!task) throw new Error('Task not found')
+
+  const adminRoles = ['SLT', 'SCHOOL_ADMIN', 'SUPER_ADMIN', 'HEAD_OF_DEPT']
+  if (!adminRoles.includes(user.role) && task.program.createdBy !== user.id) {
+    throw new Error('Not authorised to edit this task')
+  }
+
+  const current = (task.structuredContent as any) ?? {}
+  await (prisma as any).revisionTask.update({
+    where: { id: taskId },
+    data: { structuredContent: { ...current, questions } as any },
+  })
+}
+
 // ── submitRevisionTask ────────────────────────────────────────────────────────
 
 export async function submitRevisionTask(

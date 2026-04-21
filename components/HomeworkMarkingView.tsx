@@ -887,6 +887,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
           <button
             onClick={() => handleFilterClick('returned')}
+            title="Returned — homework marked and sent back to students"
             style={{
               backgroundColor: pupilFilter === 'returned' ? '#16a34a' : '#f0fdf4',
               color:            pupilFilter === 'returned' ? '#ffffff' : '#15803d',
@@ -900,6 +901,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
 
           <button
             onClick={() => handleFilterClick('missing')}
+            title="Missing — students who have not submitted yet"
             style={{
               backgroundColor: pupilFilter === 'missing' ? '#dc2626' : '#fef2f2',
               color:            pupilFilter === 'missing' ? '#ffffff' : '#dc2626',
@@ -914,6 +916,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
           {sendCount > 0 && (
             <button
               onClick={() => handleFilterClick('send')}
+              title="SEND — students with an active SEN Support or EHCP plan"
               style={{
                 backgroundColor: pupilFilter === 'send' ? '#9333ea' : '#faf5ff',
                 color:            pupilFilter === 'send' ? '#ffffff' : '#7c3aed',

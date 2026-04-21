@@ -64,8 +64,8 @@ export default function Tooltip({ content, children, side = 'top', className = '
       {mounted && visible && coords && createPortal(
         <span
           role="tooltip"
-          style={{ zIndex: 9999, pointerEvents: 'none', ...bubbleStyle }}
-          className="whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-[11px] text-white shadow-lg"
+          style={{ zIndex: 9999, pointerEvents: 'none', maxWidth: '200px', ...bubbleStyle }}
+          className="rounded-md bg-gray-900 px-2.5 py-1.5 text-[11px] text-white shadow-lg"
         >
           {content}
         </span>,

@@ -393,17 +393,17 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
 
           return (
             <div key={row.id}>
-              {/* ── Collapsed row ── */}
+              {/* ── Collapsed row — CSS grid for column alignment ── */}
               <div
                 onClick={() => handleToggle(row)}
-                className="w-full flex items-start gap-3 px-4 py-2.5 bg-white text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                className="w-full grid grid-cols-[auto_1fr_90px_100px_70px_40px_30px] items-center gap-x-2 px-4 py-2.5 bg-white text-left cursor-pointer hover:bg-gray-50 transition-colors"
               >
-                {/* Avatar */}
+                {/* Col 1: Avatar */}
                 <button
                   type="button"
                   title="View student contact details"
                   onClick={e => { e.stopPropagation(); setContactStudentId(row.id) }}
-                  className="shrink-0 rounded-full ring-0 hover:ring-2 hover:ring-blue-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="rounded-full ring-0 hover:ring-2 hover:ring-blue-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <StudentAvatar
                     firstName={row.firstName}
@@ -415,7 +415,8 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
                   />
                 </button>
 
-                <div className="flex-1 min-w-0">
+                {/* Col 2: Name/info (1fr) */}
+                <div className="min-w-0">
                   {/* Name + year group */}
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <button
@@ -474,33 +475,35 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-                  {/* Single traffic light dot + label */}
-                  <div className="flex flex-col items-center gap-0.5">
-                    <Tooltip
-                      content={
-                        ragStatus === 'no_data'
-                          ? 'No homework data yet'
-                          : ragStatus === 'green'
-                            ? 'On Track — at or above predicted grade'
-                            : ragStatus === 'amber'
-                              ? 'Developing — 1 grade below predicted'
-                              : 'Needs Attention — 2+ grades below predicted'
-                      }
-                      side="left"
-                    >
-                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[ragStatus]}`} />
-                    </Tooltip>
-                    {ragStatus !== 'no_data' && (
-                      <span className={`text-[8px] font-semibold leading-none whitespace-nowrap ${
-                        ragStatus === 'green'  ? 'text-green-600'
-                        : ragStatus === 'amber' ? 'text-amber-500'
-                        : 'text-red-500'
-                      }`}>
-                        {ragStatus === 'green' ? 'On Track' : ragStatus === 'amber' ? 'Developing' : 'Attention'}
-                      </span>
-                    )}
-                  </div>
+                {/* Col 3: RAG traffic light (90px) */}
+                <div className="flex flex-col items-center gap-0.5">
+                  <Tooltip
+                    content={
+                      ragStatus === 'no_data'
+                        ? 'No homework data yet'
+                        : ragStatus === 'green'
+                          ? 'On Track — at or above predicted grade'
+                          : ragStatus === 'amber'
+                            ? 'Developing — 1 grade below predicted'
+                            : 'Needs Attention — 2+ grades below predicted'
+                    }
+                    side="left"
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full ${RAG_DOT[ragStatus]}`} />
+                  </Tooltip>
+                  {ragStatus !== 'no_data' && (
+                    <span className={`text-[8px] font-semibold leading-none whitespace-nowrap ${
+                      ragStatus === 'green'  ? 'text-green-600'
+                      : ragStatus === 'amber' ? 'text-amber-500'
+                      : 'text-red-500'
+                    }`}>
+                      {ragStatus === 'green' ? 'On Track' : ragStatus === 'amber' ? 'Developing' : 'Attention'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Col 4: SEND badge (100px) */}
+                <div className="flex justify-center">
                   {badge && (
                     <Tooltip content={badge.label === 'EHCP' ? 'Education, Health and Care Plan — statutory SEND support' : 'SEN Support — school-based SEND provision'} side="left">
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
@@ -508,24 +511,34 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
                       </span>
                     </Tooltip>
                   )}
+                </div>
+
+                {/* Col 5: Grade / score (70px) */}
+                <div className="text-right">
                   {scoreDisplay && (
-                    <span className="text-[11px] font-medium text-gray-500 w-12 text-right">
+                    <span className="text-[11px] font-medium text-gray-500">
                       {scoreDisplay}
                     </span>
                   )}
-                  {/* Flag concern button */}
+                </div>
+
+                {/* Col 6: Flag concern (40px) */}
+                <div className="flex justify-center">
                   <button
                     type="button"
                     title="Flag a SEND concern for this student"
                     onClick={e => { e.stopPropagation(); setFlagConcernStudent({ id: row.id, name: `${row.firstName} ${row.lastName}` }) }}
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-amber-50 text-gray-300 hover:text-amber-500 transition-colors shrink-0"
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-amber-50 text-gray-300 hover:text-amber-500 transition-colors"
                   >
                     <Icon name="flag" size="sm" />
                   </button>
-                  {/* Chevron for all students */}
+                </div>
+
+                {/* Col 7: Chevron (30px) */}
+                <div className="flex justify-center">
                   {isExpanded
-                    ? <Icon name="expand_more"  size="sm" className="text-gray-400 shrink-0" />
-                    : <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />
+                    ? <Icon name="expand_more"  size="sm" className="text-gray-400" />
+                    : <Icon name="chevron_right" size="sm" className="text-gray-300" />
                   }
                 </div>
               </div>

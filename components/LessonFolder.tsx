@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
+import UITooltip from '@/components/ui/Tooltip'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -560,14 +561,21 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     {lesson.class.name}
                   </span>
                 )}
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                  lesson.lessonType === 'NORMAL'       ? 'bg-gray-100 text-gray-600' :
-                  lesson.lessonType === 'COVER'        ? 'bg-amber-100 text-amber-700' :
-                  lesson.lessonType === 'INTERVENTION' ? 'bg-purple-100 text-purple-700' :
-                  'bg-teal-100 text-teal-700'
-                }`}>
-                  {lesson.lessonType.charAt(0) + lesson.lessonType.slice(1).toLowerCase()}
-                </span>
+                <UITooltip content={
+                  lesson.lessonType === 'NORMAL'       ? 'Normal lesson — standard timetabled class' :
+                  lesson.lessonType === 'COVER'        ? 'Cover lesson — taught by a cover teacher' :
+                  lesson.lessonType === 'INTERVENTION' ? 'Intervention — targeted small-group support' :
+                  'Club — extra-curricular activity'
+                }>
+                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
+                    lesson.lessonType === 'NORMAL'       ? 'bg-gray-100 text-gray-600' :
+                    lesson.lessonType === 'COVER'        ? 'bg-amber-100 text-amber-700' :
+                    lesson.lessonType === 'INTERVENTION' ? 'bg-purple-100 text-purple-700' :
+                    'bg-teal-100 text-teal-700'
+                  }`}>
+                    {lesson.lessonType.charAt(0) + lesson.lessonType.slice(1).toLowerCase()}
+                  </span>
+                </UITooltip>
                 {headerEditDate ? (
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
@@ -608,11 +616,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {lessonId && !confirmDelete && (
-              <ExportPdfButton
-                href={`/api/export/lesson-plan/${lessonId}`}
-                filename="lesson-plan.pdf"
-                label="Export"
-              />
+              <UITooltip content="Export lesson plan as PDF">
+                <ExportPdfButton
+                  href={`/api/export/lesson-plan/${lessonId}`}
+                  filename="lesson-plan.pdf"
+                  label="Export"
+                />
+              </UITooltip>
             )}
             {confirmDelete ? (
               <>

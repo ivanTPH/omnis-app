@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useTransition, useMemo, useRef, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
+import Tooltip from '@/components/ui/Tooltip'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
 import LessonFolder, { type FolderTab } from './LessonFolder'
@@ -452,18 +453,30 @@ export default function WeeklyCalendar({
 
                                     {/* Resource completeness badges */}
                                     <div className="flex gap-0.5 mt-1">
-                                      <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan     ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>P</span>
-                                      <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides   ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>S</span>
+                                      <Tooltip content={lesson.hasPlan ? 'Lesson plan complete' : 'No lesson plan yet'} side="bottom">
+                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>P</span>
+                                      </Tooltip>
+                                      <Tooltip content={lesson.hasSlides ? 'Slides attached' : 'No slides yet'} side="bottom">
+                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>S</span>
+                                      </Tooltip>
                                       {lesson.hasHomework ? (
-                                        <span className={`inline-flex items-center px-1 rounded leading-4 h-4 ${lesson.homeworkStatus === 'DRAFT' ? 'bg-amber-400 text-white' : 'bg-green-500 text-white'}`} title={lesson.homeworkStatus === 'DRAFT' ? 'Homework (draft)' : 'Homework (published)'}>
-                                          {lesson.homeworkStatus === 'DRAFT'
-                                            ? <Icon name="edit" size="sm" />
-                                            : <Icon name="lock" size="sm" />}
-                                        </span>
+                                        <Tooltip content={lesson.homeworkStatus === 'DRAFT' ? 'Homework (draft)' : 'Homework (published)'} side="bottom">
+                                          <span className={`inline-flex items-center px-1 rounded leading-4 h-4 ${lesson.homeworkStatus === 'DRAFT' ? 'bg-amber-400 text-white' : 'bg-green-500 text-white'}`}>
+                                            {lesson.homeworkStatus === 'DRAFT'
+                                              ? <Icon name="edit" size="sm" />
+                                              : <Icon name="lock" size="sm" />}
+                                          </span>
+                                        </Tooltip>
                                       ) : (
-                                        <span className="text-[8px] font-bold px-1 rounded leading-4 bg-white/60 text-gray-400">H</span>
+                                        <Tooltip content="No homework set" side="bottom">
+                                          <span className="text-[8px] font-bold px-1 rounded leading-4 bg-white/60 text-gray-400">H</span>
+                                        </Tooltip>
                                       )}
-                                      {lesson.hasOther && <span className="text-[8px] font-bold px-1 rounded leading-4 bg-blue-200 text-blue-800">+</span>}
+                                      {lesson.hasOther && (
+                                        <Tooltip content="Other resources attached" side="bottom">
+                                          <span className="text-[8px] font-bold px-1 rounded leading-4 bg-blue-200 text-blue-800">+</span>
+                                        </Tooltip>
+                                      )}
                                     </div>
                                   </div>
                                 )

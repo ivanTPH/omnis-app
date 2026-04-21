@@ -18,7 +18,7 @@ function fallbackContent(input: {
   lessonTitle?: string
   objectives?: string[]
 }): RevisionTaskContent {
-  const topic = input.lessonTitle ?? input.weakTopics.slice(0, 2).join(' & ') ?? 'Key Topics'
+  const topic = input.lessonTitle || input.weakTopics.slice(0, 2).join(' & ') || 'Key Topics'
   const objectives = input.objectives ?? []
 
   // Build 5 curriculum-mapped fallback questions when lessonTitle is available
@@ -72,10 +72,13 @@ export async function generateRevisionTask(input: {
   objectives?:     string[]
   allLessons?:     { title: string; objectives: string[] }[]
 }): Promise<RevisionTaskContent> {
+  console.log('[generateRevisionTask] lessons:', input.allLessons?.map(l => l.title), 'lessonTitle:', input.lessonTitle, 'weakTopics:', input.weakTopics)
+
   if (!process.env.ANTHROPIC_API_KEY) return fallbackContent(input)
 
   const multiLesson = (input.allLessons?.length ?? 0) > 1
-  const topic       = input.lessonTitle ?? input.weakTopics.slice(0, 2).join(' & ') ?? 'Key Topics'
+  // Use || not ?? so empty strings fall through to the default
+  const topic       = input.lessonTitle || input.weakTopics.slice(0, 2).join(' & ') || `${input.subject} Year ${input.yearGroup}`
   const objectives  = input.objectives ?? []
   const objList     = objectives.length > 0
     ? objectives.map((o, i) => `${i + 1}. ${o}`).join('\n')

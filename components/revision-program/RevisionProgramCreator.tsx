@@ -331,6 +331,7 @@ function Step4({
   const [dirtyIds, setDirtyIds]       = useState<Set<string>>(new Set())
   const [saveErr, setSaveErr]         = useState<string | null>(null)
   const [saving, startSaving]         = useTransition()
+  const [focusedQ, setFocusedQ]       = useState<string | null>(null)
 
   const nameMap = Object.fromEntries(
     analysis.studentAnalysis.map(s => [s.studentId, { name: s.studentName, sendStatus: s.sendStatus }])
@@ -460,16 +461,28 @@ function Step4({
               {/* expanded editable questions */}
               {isOpen && (
                 <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-3">
-                  {questions.map((q: any, qi: number) => (
-                    <div key={q.id ?? qi} className="bg-white rounded-lg border border-gray-200 p-3 space-y-2">
+                  {questions.map((q: any, qi: number) => {
+                    const qKey    = `${task.id}-${qi}`
+                    const isFocus = focusedQ === qKey
+                    return (
+                    <div key={q.id ?? qi} className={`bg-white rounded-lg border p-3 space-y-2 transition-colors ${isFocus ? 'border-blue-400' : 'border-gray-200'}`}>
                       <div className="flex items-start gap-2">
                         <span className="shrink-0 font-bold text-gray-400 text-xs w-5 pt-2">{qi + 1}.</span>
                         <textarea
-                          rows={2}
+                          rows={Math.max(3, Math.ceil((q.question?.length ?? 0) / 80) + 1)}
                           value={q.question}
                           onChange={e => updateQuestion(task.id, qi, { question: e.target.value })}
+                          onFocus={() => setFocusedQ(qKey)}
+                          onBlur={() => setFocusedQ(null)}
                           placeholder="Question text…"
-                          className="flex-1 text-xs text-gray-800 border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+                          className={`flex-1 text-xs text-gray-800 border rounded-md px-2 py-1.5 focus:outline-none resize-none transition-colors ${
+                            isFocus ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : 'border-gray-200'
+                          }`}
+                        />
+                        <Icon
+                          name="edit"
+                          size="sm"
+                          className={`shrink-0 mt-1.5 transition-colors ${isFocus ? 'text-blue-500' : 'text-gray-300'}`}
                         />
                         <button
                           type="button"
@@ -481,17 +494,17 @@ function Step4({
                         </button>
                       </div>
                       <div className="flex items-center gap-3 pl-7">
-                        <label className="text-[10px] text-gray-400 flex items-center gap-1">
-                          Marks:
+                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
                           <input
                             type="number"
                             min={1}
                             max={20}
                             value={q.marks ?? 1}
                             onChange={e => updateQuestion(task.id, qi, { marks: Math.max(1, parseInt(e.target.value) || 1) })}
-                            className="w-12 text-xs text-center border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                            className="w-10 text-xs text-center border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
                           />
-                        </label>
+                          <span>marks</span>
+                        </div>
                         <span className="text-[10px] text-gray-400 capitalize">{q.bloomsLevel}</span>
                         {q.lessonTitle && (
                           <span className="text-[10px] text-gray-400 italic truncate max-w-[140px]" title={q.lessonTitle}>{q.lessonTitle}</span>
@@ -508,7 +521,8 @@ function Step4({
                         />
                       </div>
                     </div>
-                  ))}
+                  )
+                  })}
 
                   {/* Add question */}
                   <button

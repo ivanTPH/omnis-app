@@ -396,14 +396,15 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
               {/* ── Collapsed row — CSS grid for column alignment ── */}
               <div
                 onClick={() => handleToggle(row)}
-                className="w-full grid grid-cols-[auto_1fr_90px_100px_70px_40px_30px] items-center gap-x-2 px-4 py-2.5 bg-white text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                className="w-full grid grid-cols-[1fr_90px_110px_80px_40px_30px] items-center gap-x-2 px-4 py-2.5 bg-white text-left cursor-pointer hover:bg-gray-50 transition-colors"
               >
-                {/* Col 1: Avatar */}
+                {/* Col 1: Avatar + Name/info (1fr) */}
+                <div className="flex items-center gap-2 min-w-0">
                 <button
                   type="button"
                   title="View student contact details"
                   onClick={e => { e.stopPropagation(); setContactStudentId(row.id) }}
-                  className="rounded-full ring-0 hover:ring-2 hover:ring-blue-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="shrink-0 rounded-full ring-0 hover:ring-2 hover:ring-blue-400 transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <StudentAvatar
                     firstName={row.firstName}
@@ -415,7 +416,6 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
                   />
                 </button>
 
-                {/* Col 2: Name/info (1fr) */}
                 <div className="min-w-0">
                   {/* Name + year group */}
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -474,8 +474,9 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
                     <p className="text-[10px] text-gray-400 truncate mt-0.5">{row.needArea}</p>
                   )}
                 </div>
+                </div>
 
-                {/* Col 3: RAG traffic light (90px) */}
+                {/* Col 2: RAG traffic light (90px) */}
                 <div className="flex flex-col items-center gap-0.5">
                   <Tooltip
                     content={

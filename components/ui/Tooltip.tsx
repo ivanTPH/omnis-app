@@ -30,14 +30,20 @@ export default function Tooltip({ content, children, side = 'top', className = '
   }
 
   function show() {
-    const c = calcCoords()
-    if (c) setCoords(c)
-    timerRef.current = setTimeout(() => setVisible(true), 300)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      const c = calcCoords()
+      if (c) {
+        setCoords(c)
+        setVisible(true)
+      }
+    }, 150)
   }
 
   function hide() {
     if (timerRef.current) clearTimeout(timerRef.current)
     setVisible(false)
+    setCoords(null)
   }
 
   // fixed-position style so the portal bubble is never clipped by overflow:hidden

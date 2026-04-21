@@ -143,6 +143,7 @@ export async function createRevisionProgram(input: {
       orderBy: { scheduledAt: 'asc' },
       select: { title: true, objectives: true },
     })
+    console.log('[createRevisionProgram] Lessons found:', periodLessons.map(l => l.title))
     const recentLesson = periodLessons.length > 0 ? periodLessons[periodLessons.length - 1] : null
 
     // Batch AI generation — max 5 concurrent

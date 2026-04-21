@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface TooltipProps {
   content: string
@@ -9,40 +10,66 @@ interface TooltipProps {
 }
 
 export default function Tooltip({ content, children, side = 'top', className = '' }: TooltipProps) {
-  const [visible, setVisible] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [visible, setVisible]   = useState(false)
+  const [coords, setCoords]     = useState<{ x: number; y: number } | null>(null)
+  const triggerRef = useRef<HTMLSpanElement>(null)
+  const timerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [mounted, setMounted]   = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  function calcCoords(): { x: number; y: number } | null {
+    if (!triggerRef.current) return null
+    const r = triggerRef.current.getBoundingClientRect()
+    switch (side) {
+      case 'top':    return { x: r.left + r.width / 2, y: r.top }
+      case 'bottom': return { x: r.left + r.width / 2, y: r.bottom }
+      case 'left':   return { x: r.left,               y: r.top + r.height / 2 }
+      case 'right':  return { x: r.right,              y: r.top + r.height / 2 }
+    }
+  }
 
   function show() {
+    const c = calcCoords()
+    if (c) setCoords(c)
     timerRef.current = setTimeout(() => setVisible(true), 300)
   }
+
   function hide() {
     if (timerRef.current) clearTimeout(timerRef.current)
     setVisible(false)
   }
 
-  const posClass = {
-    top:    'bottom-full left-1/2 -translate-x-1/2 mb-1.5',
-    bottom: 'top-full left-1/2 -translate-x-1/2 mt-1.5',
-    left:   'right-full top-1/2 -translate-y-1/2 mr-1.5',
-    right:  'left-full top-1/2 -translate-y-1/2 ml-1.5',
-  }[side]
+  // fixed-position style so the portal bubble is never clipped by overflow:hidden
+  const bubbleStyle: React.CSSProperties = coords ? (() => {
+    const GAP = 6
+    switch (side) {
+      case 'top':    return { position: 'fixed', left: coords.x, top: coords.y - GAP,    transform: 'translateX(-50%) translateY(-100%)' }
+      case 'bottom': return { position: 'fixed', left: coords.x, top: coords.y + GAP,    transform: 'translateX(-50%)' }
+      case 'left':   return { position: 'fixed', left: coords.x - GAP, top: coords.y,    transform: 'translateX(-100%) translateY(-50%)' }
+      case 'right':  return { position: 'fixed', left: coords.x + GAP, top: coords.y,    transform: 'translateY(-50%)' }
+    }
+  })() : {}
 
   return (
     <span
-      className={`relative inline-flex items-center ${className}`}
+      ref={triggerRef}
+      className={`inline-flex items-center ${className}`}
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}
       onBlur={hide}
     >
       {children}
-      {visible && (
+      {mounted && visible && coords && createPortal(
         <span
           role="tooltip"
-          className={`absolute z-50 ${posClass} whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-[11px] text-white shadow-lg pointer-events-none`}
+          style={{ zIndex: 9999, pointerEvents: 'none', ...bubbleStyle }}
+          className="whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-[11px] text-white shadow-lg"
         >
           {content}
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   )

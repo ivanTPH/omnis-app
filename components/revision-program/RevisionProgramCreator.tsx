@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
 import { gradeLabel } from '@/lib/grading'
-import { getClassPerformanceAnalysis, createRevisionProgram } from '@/app/actions/revision-program'
+import { getClassPerformanceAnalysis, createRevisionProgram, getRevisionProgramDetail } from '@/app/actions/revision-program'
 import { getTeacherClasses } from '@/app/actions/homework'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 
@@ -311,6 +311,147 @@ function Step3({ studentCount }: { studentCount: number }) {
   )
 }
 
+// ── Step 4 — Review ───────────────────────────────────────────────────────────
+
+function Step4({
+  programId,
+  analysis,
+  onApprove,
+  onRegenerate,
+}: {
+  programId:    string
+  analysis:     ClassPerformanceAnalysis
+  onApprove:    () => void
+  onRegenerate: () => void
+}) {
+  const [tasks, setTasks]       = useState<any[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const nameMap = Object.fromEntries(
+    analysis.studentAnalysis.map(s => [s.studentId, { name: s.studentName, sendStatus: s.sendStatus }])
+  )
+
+  useEffect(() => {
+    getRevisionProgramDetail(programId).then(detail => {
+      setTasks(detail?.tasks ?? [])
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [programId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 gap-2 text-gray-500">
+        <Icon name="refresh" size="sm" className="animate-spin text-blue-600" />
+        <span className="text-sm">Loading review…</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* summary banner */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-green-50 border border-green-200 rounded-xl">
+        <Icon name="check_circle" size="md" className="text-green-600 shrink-0" />
+        <div>
+          <p className="text-sm font-semibold text-green-800">{tasks.length} personalised revision tasks generated</p>
+          <p className="text-xs text-green-600 mt-0.5">Review each student&apos;s questions below, then approve to publish the program.</p>
+        </div>
+      </div>
+
+      {/* per-student task previews */}
+      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+        {tasks.map(task => {
+          const info      = nameMap[task.studentId]
+          const name      = info?.name ?? `Student ${task.studentId.slice(0, 6)}`
+          const content   = task.structuredContent as any
+          const questions: any[] = content?.questions ?? []
+          const sendAdapt: string[] = task.sendAdaptations ?? []
+          const isSend    = sendAdapt.length > 0
+          const isOpen    = expandedId === task.id
+
+          return (
+            <div key={task.id} className="border border-gray-200 rounded-xl overflow-hidden">
+              {/* collapsed header */}
+              <button
+                type="button"
+                onClick={() => setExpandedId(isOpen ? null : task.id)}
+                className="w-full flex items-center gap-3 px-4 py-2.5 bg-white hover:bg-gray-50 text-left transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium text-gray-900">{name}</p>
+                    {isSend && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
+                        SEND adapted
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {questions.length} question{questions.length !== 1 ? 's' : ''} ·{' '}
+                    {task.taskType?.replace(/_/g, ' ') ?? 'retrieval practice'} ·{' '}
+                    {(task.weakTopics ?? []).slice(0, 2).join(', ') || 'general revision'}
+                  </p>
+                </div>
+                <Icon name={isOpen ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0" />
+              </button>
+
+              {/* expanded questions */}
+              {isOpen && (
+                <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-3">
+                  {questions.map((q: any, qi: number) => (
+                    <div key={q.id ?? qi} className="flex items-start gap-2 text-xs">
+                      <span className="shrink-0 font-bold text-gray-400 w-5">{q.id ?? qi + 1}.</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-800">{q.question}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-400 flex-wrap">
+                          <span>{q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
+                          <span>·</span>
+                          <span className="capitalize">{q.bloomsLevel}</span>
+                          {q.lessonTitle && (
+                            <>
+                              <span>·</span>
+                              <span className="italic truncate max-w-[160px]" title={q.lessonTitle}>{q.lessonTitle}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {isSend && (
+                    <div className="mt-1 pt-2 border-t border-gray-200">
+                      <p className="text-[10px] font-semibold text-purple-700 uppercase tracking-wide mb-0.5">SEND adaptations applied</p>
+                      <p className="text-xs text-gray-600">{sendAdapt.join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* actions */}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          <Icon name="refresh" size="sm" /> Regenerate
+        </button>
+        <button
+          type="button"
+          onClick={onApprove}
+          className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+        >
+          <Icon name="check_circle" size="sm" /> Approve &amp; View Program
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── main component ────────────────────────────────────────────────────────────
 
 export default function RevisionProgramCreator({
@@ -322,6 +463,7 @@ export default function RevisionProgramCreator({
   const searchParams = useSearchParams()
   const [step, setStep] = useState<Step>(1)
   const [analysis, setAnalysis] = useState<ClassPerformanceAnalysis | null>(null)
+  const [generatedProgramId, setGeneratedProgramId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [state, setState] = useState<WizardState>({
@@ -391,7 +533,8 @@ export default function RevisionProgramCreator({
           deadline:     state.mode === 'formal_assignment' ? new Date(state.deadline) : undefined,
           durationWeeks: state.durationWeeks,
         })
-        router.push(`/revision-program/${result.programId}`)
+        setGeneratedProgramId(result.programId)
+        setStep(4) // Show review before navigating
       } catch (e: any) {
         setError(e?.message ?? 'Failed to generate revision program.')
         setStep(2)
@@ -442,6 +585,14 @@ export default function RevisionProgramCreator({
       )}
       {step === 3 && (
         <Step3 studentCount={analysis?.studentAnalysis.length ?? 0} />
+      )}
+      {step === 4 && analysis && generatedProgramId && (
+        <Step4
+          programId={generatedProgramId}
+          analysis={analysis}
+          onApprove={() => router.push(`/revision-program/${generatedProgramId}`)}
+          onRegenerate={() => setStep(2)}
+        />
       )}
     </div>
   )

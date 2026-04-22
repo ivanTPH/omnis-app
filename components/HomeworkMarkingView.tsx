@@ -972,8 +972,64 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
         {/* Main marking content */}
         <div className="flex-1 overflow-auto">
           {!selectedSub || !selectedStudent || !form ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <p className="text-[13px]">Select a submission to mark</p>
+            /* ── No student selected — show homework questions preview ── */
+            <div className="max-w-2xl mx-auto px-8 py-6 space-y-5">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                <Icon name="quiz" size="sm" className="text-gray-400" />
+                <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">
+                  Homework Questions Preview
+                </p>
+                {qCount > 0 && (
+                  <span className="text-[10px] text-gray-400">{qCount} question{qCount !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+              {hasStructuredQuestions ? (
+                <div className="space-y-4">
+                  {questions.length > 0
+                    ? questions.map((q, i) => (
+                        <QuestionCard
+                          key={q.id}
+                          index={i + 1}
+                          total={questions.length}
+                          prompt={q.prompt}
+                          type={q.type}
+                          optionsJson={q.optionsJson}
+                          correctAnswerJson={q.correctAnswerJson}
+                          rubricJson={q.rubricJson}
+                          explanationText={q.explanationText}
+                          maxScore={q.maxScore}
+                          studentAnswer={undefined}
+                          score=""
+                          onScoreChange={() => {}}
+                        />
+                      ))
+                    : structuredContent!.questions!.map((q, i) => (
+                        <QuestionCard
+                          key={i}
+                          index={i + 1}
+                          total={structuredContent!.questions!.length}
+                          prompt={q.question}
+                          type="SHORT_ANSWER"
+                          optionsJson={null}
+                          correctAnswerJson={q.modelAnswer ?? null}
+                          rubricJson={null}
+                          explanationText={null}
+                          maxScore={q.marks ?? 1}
+                          studentAnswer={undefined}
+                          score=""
+                          onScoreChange={() => {}}
+                        />
+                      ))
+                  }
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <Icon name="quiz" size="lg" className="mb-3 text-gray-300" />
+                  <p className="text-[13px]">
+                    {pupils.some(p => p.submission) ? 'Select a student on the left to view their submission.' : 'No questions available for this homework.'}
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="max-w-2xl mx-auto px-8 py-6 space-y-5">

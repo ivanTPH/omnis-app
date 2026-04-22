@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives } from '@/app/actions/lessons'
+import { getTeacherDefaults } from '@/app/actions/analytics'
 import { getClassSendSummary, type ClassSendSummary } from '@/app/actions/send-support'
 import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
@@ -223,6 +224,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [viewingHwId,    setViewingHwId]     = useState<string | null>(null)
   const [viewingHwTitle, setViewingHwTitle]  = useState('')
 
+  // Analytics tab — class selector
+  const [teacherClasses,     setTeacherClasses]     = useState<{ id: string; name: string; subject: string; yearGroup: number }[]>([])
+  const [analyticsClassId,   setAnalyticsClassId]   = useState<string | null>(null)
+  const [analyticsClassesLoaded, setAnalyticsClassesLoaded] = useState(false)
+
   // Editable overview state
   const [title,           setTitle]           = useState('')
   const [objectives,      setObjectives]      = useState<string[]>([])
@@ -288,6 +294,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     }
     return () => { cancelled = true }
   }, [lessonId])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load teacher classes for Analytics tab selector (once)
+  useEffect(() => {
+    if (analyticsClassesLoaded) return
+    getTeacherDefaults()
+      .then(d => setTeacherClasses(d.teacherClasses))
+      .catch(() => {})
+      .finally(() => setAnalyticsClassesLoaded(true))
+  }, [analyticsClassesLoaded])
 
   // Auto-generate homework when wizard reaches step 5
   useEffect(() => {
@@ -1706,22 +1721,59 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               )}
 
               {/* ── Analytics ── */}
-              {activeTab === 'Analytics' && (
-                lesson?.class?.id ? (
-                  <ClassAnalyticsPanel
-                    classId={lesson.class.id}
-                    subject={lesson.class.subject}
-                    yearGroup={lesson.class.yearGroup}
-                  />
-                ) : (
-                  <div className="p-7">
-                    <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                      <Icon name="analytics" size="lg" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+              {activeTab === 'Analytics' && (() => {
+                const effectiveClassId = analyticsClassId ?? lesson?.class?.id ?? null
+                const effectiveClass   = teacherClasses.find(c => c.id === effectiveClassId)
+                  ?? (lesson?.class ? { id: lesson.class.id, name: lesson.class.name, subject: lesson.class.subject ?? '', yearGroup: lesson.class.yearGroup ?? 0 } : null)
+
+                return (
+                  <div>
+                    {/* Class selector filter bar */}
+                    <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50/60">
+                      <Icon name="filter_list" size="sm" className="text-gray-400 shrink-0" />
+                      <select
+                        value={effectiveClassId ?? ''}
+                        onChange={e => setAnalyticsClassId(e.target.value || null)}
+                        className="border border-gray-200 rounded-lg px-3 py-1.5 text-[12px] bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-0 flex-1 max-w-xs"
+                      >
+                        {lesson?.class?.id && (
+                          <option value={lesson.class.id}>
+                            {lesson.class.name} (this lesson)
+                          </option>
+                        )}
+                        {teacherClasses
+                          .filter(c => !lesson?.class?.id || c.id !== lesson.class.id)
+                          .map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} · {c.subject} · Yr {c.yearGroup}
+                            </option>
+                          ))
+                        }
+                      </select>
+                      {effectiveClass && (
+                        <span className="text-[11px] text-gray-400 shrink-0">
+                          {effectiveClass.subject} · Year {effectiveClass.yearGroup}
+                        </span>
+                      )}
                     </div>
+
+                    {effectiveClassId ? (
+                      <ClassAnalyticsPanel
+                        classId={effectiveClassId}
+                        subject={effectiveClass?.subject}
+                        yearGroup={effectiveClass?.yearGroup}
+                      />
+                    ) : (
+                      <div className="p-7">
+                        <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+                          <Icon name="analytics" size="lg" className="mx-auto text-gray-300 mb-2" />
+                          <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
-              )}
+              })()}
 
             </>
           )}

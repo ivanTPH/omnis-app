@@ -272,7 +272,10 @@ export default function WeeklyCalendar({
           {/* Toolbar */}
           <div className="flex items-center gap-2 px-3 sm:px-5 h-12 border-b border-gray-200 shrink-0">
             <span className="hidden sm:block text-[14px] font-semibold text-gray-900">
-              Good morning, {firstName}
+              {(() => {
+                const h = new Date().getHours()
+                return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
+              })()}, {firstName}
             </span>
             <div className="flex items-center gap-1 sm:ml-auto">
               <button

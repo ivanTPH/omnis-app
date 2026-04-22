@@ -12,7 +12,7 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   const [selectedId, setSelectedId] = useState('')
   const [search,     setSearch]     = useState('')
   const [generating, startGenerate] = useTransition()
-  const [genResult,  setGenResult]  = useState<{ generated: number; errors: number } | null>(null)
+  const [genResult,  setGenResult]  = useState<{ generated: number; skipped: number; errors: number } | null>(null)
 
   if (classes.length === 0) {
     return (
@@ -108,10 +108,10 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
                 setGenResult(r)
               })}
               className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition disabled:opacity-50"
-              title="Auto-generate Learning Passports for all students in this class using AI"
+              title="Auto-generate Learning Passports for students who don't yet have one"
             >
               <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
-              {generating ? 'Generating…' : 'Generate passports'}
+              {generating ? 'Generating…' : 'Generate missing passports'}
             </button>
           </div>
         </div>
@@ -160,7 +160,9 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
 
       {genResult && (
         <p className="text-[11px] text-indigo-600">
-          Generated {genResult.generated} Learning Passports{genResult.errors > 0 ? `, ${genResult.errors} failed` : ''}.
+          Generated {genResult.generated} Learning Passports
+          {genResult.skipped > 0 ? `, ${genResult.skipped} skipped (already have one)` : ''}
+          {genResult.errors > 0 ? `, ${genResult.errors} failed` : ''}.
         </p>
       )}
 

@@ -5,6 +5,7 @@ import { percentToGcseGrade } from '@/lib/grading'
 import { getUnreadMessageCount } from '@/app/actions/messaging'
 import { getStudentOwnPassport } from '@/app/actions/students'
 import StudentMobileDashboard, { type MobileHw, type SubjectProgress } from '@/components/StudentMobileDashboard'
+import AppShell from '@/components/AppShell'
 
 export default async function StudentDashboardPage() {
   const session = await auth()
@@ -66,14 +67,20 @@ export default async function StudentDashboardPage() {
     }
 
     return {
-      id:        hw.id,
-      title:     hw.title,
-      dueAt:     hw.dueAt.toISOString(),
-      subject:   hw.class.subject,
-      className: hw.class.name,
+      id:           hw.id,
+      title:        hw.title,
+      dueAt:        hw.dueAt.toISOString(),
+      subject:      hw.class.subject,
+      className:    hw.class.name,
       status,
-      grade:     sub?.grade ?? null,
+      grade:        sub?.grade ?? null,
       score,
+      homeworkType: hw.homeworkVariantType ?? (
+        hw.type === 'MCQ_QUIZ'         ? 'quiz'
+        : hw.type === 'SHORT_ANSWER'   ? 'short_answer'
+        : hw.type === 'EXTENDED_WRITING' ? 'essay'
+        : null
+      ),
     }
   })
 
@@ -104,15 +111,17 @@ export default async function StudentDashboardPage() {
   try { passport = await getStudentOwnPassport() } catch {}
 
   return (
-    <StudentMobileDashboard
-      firstName={firstName}
-      lastName={lastName}
-      avatarUrl={avatarUrl ?? null}
-      schoolName={schoolName}
-      homework={mobileHw}
-      subjectProgress={subjectProgress}
-      unreadCount={unreadCount}
-      passport={passport}
-    />
+    <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
+      <StudentMobileDashboard
+        firstName={firstName}
+        lastName={lastName}
+        avatarUrl={avatarUrl ?? null}
+        schoolName={schoolName}
+        homework={mobileHw}
+        subjectProgress={subjectProgress}
+        unreadCount={unreadCount}
+        passport={passport}
+      />
+    </AppShell>
   )
 }

@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import StudentAvatar from '@/components/StudentAvatar'
 import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 import { saveStudentVoice } from '@/app/actions/students'
 
@@ -18,6 +17,7 @@ export type MobileHw = {
   status:   'overdue' | 'due_soon' | 'upcoming' | 'submitted' | 'graded'
   grade?:   string | null
   score?:   number | null   // 0–100 percent
+  homeworkType?: string | null   // 'quiz' | 'short_answer' | 'essay' | null
 }
 
 export type SubjectProgress = {
@@ -101,10 +101,10 @@ function ProgressBar({ pct, grade }: { pct: number; grade: number }) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudentMobileDashboard({
-  firstName,
-  lastName,
-  avatarUrl,
-  schoolName,
+  firstName: _firstName,
+  lastName: _lastName,
+  avatarUrl: _avatarUrl,
+  schoolName: _schoolName,
   homework,
   subjectProgress,
   unreadCount,
@@ -151,7 +151,7 @@ export default function StudentMobileDashboard({
     ].filter(g => g.items.length > 0)
 
     return (
-      <div className="space-y-5 pb-24">
+      <div className="space-y-5">
         {/* Stat row */}
         <div className="grid grid-cols-3 gap-3 pt-1">
           {stats.map(s => (
@@ -181,7 +181,25 @@ export default function StudentMobileDashboard({
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-medium text-gray-900 truncate">{hw.title}</p>
-                    <p className="text-[12px] text-gray-500 truncate">{hw.className}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[12px] text-gray-500 truncate">{hw.className}</p>
+                      {hw.homeworkType && (
+                        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                          hw.homeworkType === 'quiz' || hw.homeworkType === 'multiple_choice'
+                            ? 'bg-blue-100 text-blue-700'
+                            : hw.homeworkType === 'short_answer'
+                            ? 'bg-green-100 text-green-700'
+                            : hw.homeworkType === 'essay' || hw.homeworkType === 'extended_writing'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {hw.homeworkType === 'quiz' || hw.homeworkType === 'multiple_choice' ? 'Quiz'
+                            : hw.homeworkType === 'short_answer' ? 'Short answer'
+                            : hw.homeworkType === 'essay' || hw.homeworkType === 'extended_writing' ? 'Essay'
+                            : hw.homeworkType}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="shrink-0 text-right">
                     {hw.grade ? (
@@ -206,7 +224,7 @@ export default function StudentMobileDashboard({
 
   function NotificationsTab() {
     return (
-      <div className="pb-24">
+      <div>
         {overdue.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
@@ -272,7 +290,7 @@ export default function StudentMobileDashboard({
 
   function ProgressTab() {
     return (
-      <div className="space-y-4 pb-24">
+      <div className="space-y-4">
         <p className="text-[12px] text-gray-500">Your average score per subject this term.</p>
         {subjectProgress.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
@@ -393,7 +411,7 @@ export default function StudentMobileDashboard({
 
   function MessagesTab() {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16 pb-24">
+      <div className="flex flex-col items-center justify-center gap-4 py-16">
         <Icon name="chat_bubble_outline" size="lg" className="text-gray-300" />
         <p className="text-sm text-gray-500">Go to full messages view</p>
         <Link
@@ -409,34 +427,10 @@ export default function StudentMobileDashboard({
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Sticky top bar */}
-      <header className="sticky top-0 z-40 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
-          <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider">{schoolName}</p>
-            <p className="text-[15px] font-semibold text-gray-900 leading-tight">
-              {tab === 'home'          && `Hi, ${firstName} 👋`}
-              {tab === 'notifications' && 'Alerts'}
-              {tab === 'progress'      && 'My Progress'}
-              {tab === 'messages'      && 'Messages'}
-            </p>
-          </div>
-          <StudentAvatar firstName={firstName} lastName={lastName} avatarUrl={avatarUrl} size="sm" />
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 max-w-md mx-auto w-full px-4 pt-5">
-        {tab === 'home'          && <HomeTab />}
-        {tab === 'notifications' && <NotificationsTab />}
-        {tab === 'progress'      && <ProgressTab />}
-        {tab === 'messages'      && <MessagesTab />}
-      </main>
-
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-100 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
-        <div className="max-w-md mx-auto flex">
+    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+      {/* Tab bar at top */}
+      <div className="bg-white border-b border-gray-100 shrink-0">
+        <div className="flex max-w-2xl mx-auto">
           {TABS.map(t => {
             const active = tab === t.key
             const badge  = t.key === 'notifications' && (overdue.length + dueSoon.length) > 0
@@ -444,30 +438,30 @@ export default function StudentMobileDashboard({
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors relative ${
-                  active ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                className={`flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors relative border-b-2 ${
+                  active ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
                 }`}
               >
                 <span className="relative">
-                  <Icon name={t.icon} size="md" />
-                  {badge && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                  )}
-                  {t.key === 'messages' && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
-                  )}
+                  <Icon name={t.icon} size="sm" />
+                  {badge && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full" />}
+                  {t.key === 'messages' && unreadCount > 0 && <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-blue-500 rounded-full" />}
                 </span>
-                <span className={`text-[10px] font-medium ${active ? 'text-blue-600' : 'text-gray-400'}`}>
-                  {t.label}
-                </span>
-                {active && (
-                  <span className="absolute top-0 inset-x-0 h-0.5 bg-blue-500 rounded-b" />
-                )}
+                <span className="text-[10px] font-medium">{t.label}</span>
               </button>
             )
           })}
         </div>
-      </nav>
+      </div>
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-auto">
+        <div className="max-w-2xl mx-auto px-4 pt-4">
+          {tab === 'home'          && <HomeTab />}
+          {tab === 'notifications' && <NotificationsTab />}
+          {tab === 'progress'      && <ProgressTab />}
+          {tab === 'messages'      && <MessagesTab />}
+        </div>
+      </div>
     </div>
   )
 }

@@ -24,6 +24,7 @@ export async function getStudentHomework(homeworkId: string) {
         homeworkVariantType: true,
         structuredContent:   true,
         questionsJson:       true,
+        gradingBands:        true,
         class: { select: { name: true, subject: true, yearGroup: true } },
         submissions: {
           where: { studentId: userId },
@@ -60,45 +61,52 @@ export async function getStudentHomework(homeworkId: string) {
     modelAnswer = full?.modelAnswer ?? null
   }
 
-  // Convert questionsJson → structuredContent when homework was created via LessonFolder
-  // (LessonFolder stores AI questions in questionsJson, not structuredContent)
+  // Convert questionsJson → structuredContent.
+  // questionsJson is used by LessonFolder/generateHomeworkFromResources;
+  // structuredContent is used by HomeworkCreatorV2.
   let resolvedVariantType  = hw.homeworkVariantType
   let resolvedStructuredContent: unknown = hw.structuredContent
 
   if (!resolvedStructuredContent && hw.questionsJson) {
     const qj = hw.questionsJson as { questions?: any[] }
     if (Array.isArray(qj.questions) && qj.questions.length > 0) {
-      if (hw.type === 'SHORT_ANSWER') {
-        resolvedVariantType = 'short_answer'
-        resolvedStructuredContent = {
-          questions: qj.questions.map((q: any, i: number) => ({
-            id:               String(i + 1),
-            question:         q.q ?? q.question ?? '',
-            marks:            q.marks,
-            scaffolding_hint: q.scaffolding_hint,
-            ehcp_adaptation:  q.ehcp_adaptation,
-            vocab_support:    q.vocab_support,
-          })),
-        }
-      } else if (hw.type === 'MCQ_QUIZ') {
+      const firstQ = qj.questions[0]
+      // Detect type from question structure: has options → MCQ/quiz; no options → short_answer
+      const hasOptions = Array.isArray(firstQ?.options) && firstQ.options.length > 0
+      const isQuiz = hasOptions || hw.type === 'MCQ_QUIZ' || resolvedVariantType === 'quiz' || resolvedVariantType === 'multiple_choice'
+      if (isQuiz) {
         resolvedVariantType = 'quiz'
         resolvedStructuredContent = {
           questions: qj.questions.map((q: any, i: number) => ({
             id:      String(i + 1),
             question: q.q ?? q.question ?? '',
             options:  q.options,
-            marks:    q.marks,
+            correct:  q.correct,
+            marks:    q.marks ?? 1,
+          })),
+        }
+      } else {
+        resolvedVariantType = 'short_answer'
+        resolvedStructuredContent = {
+          questions: qj.questions.map((q: any, i: number) => ({
+            id:               String(i + 1),
+            question:         q.q ?? q.question ?? '',
+            marks:            q.marks ?? 1,
+            scaffolding_hint: q.scaffolding_hint,
+            ehcp_adaptation:  q.ehcp_adaptation,
+            vocab_support:    q.vocab_support,
           })),
         }
       }
     }
   }
 
-  const { questionsJson: _qj, type: _type, ...hwRest } = hw
+  const { questionsJson: _qj, type: _type, gradingBands, ...hwRest } = hw
   return {
     ...hwRest,
     homeworkVariantType: resolvedVariantType,
     structuredContent:   resolvedStructuredContent,
+    gradingBands,
     submission,
     modelAnswer,
     sendStatus,

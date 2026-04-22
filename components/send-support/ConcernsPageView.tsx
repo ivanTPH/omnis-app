@@ -7,9 +7,12 @@ import ConcernList from './ConcernList'
 const STATUSES = ['all', 'open', 'under_review', 'escalated', 'monitoring', 'closed', 'no_action']
 const CATEGORIES = ['all', 'literacy', 'numeracy', 'behaviour', 'attendance', 'social_emotional', 'communication', 'physical', 'sensory', 'other']
 
-type Props = { initialConcerns: ConcernRow[] }
+type Props = {
+  initialConcerns: ConcernRow[]
+  staffList?: { id: string; name: string; role: string }[]
+}
 
-export default function ConcernsPageView({ initialConcerns }: Props) {
+export default function ConcernsPageView({ initialConcerns, staffList = [] }: Props) {
   const [statusFilter,   setStatusFilter]   = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
 
@@ -42,7 +45,7 @@ export default function ConcernsPageView({ initialConcerns }: Props) {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4">
-        <ConcernList concerns={filtered} isSenco={true} />
+        <ConcernList concerns={filtered} isSenco={true} staffList={staffList} />
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { EarlyWarningFlagRow } from '@/app/actions/send-support'
 import { actionFlag, triggerEarlyWarningAnalysis } from '@/app/actions/send-support'
@@ -73,7 +74,13 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-gray-900">{f.studentName}</span>
+                    <Link
+                      href={`/student/${f.studentId}/send`}
+                      className="text-sm font-medium text-gray-900 hover:text-blue-700 hover:underline"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {f.studentName}
+                    </Link>
                     <SeverityBadge severity={f.severity} />
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                       {FLAG_TYPE_LABELS[f.flagType] ?? f.flagType.replace(/_/g, ' ')}
@@ -83,6 +90,20 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
                   <p className="text-xs text-gray-400 mt-1">
                     Detected {new Date(f.createdAt).toLocaleDateString('en-GB')} · expires {new Date(f.expiresAt).toLocaleDateString('en-GB')}
                   </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <Link
+                      href={`/student/${f.studentId}/send`}
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <Icon name="person_search" size="sm" /> View SEND record
+                    </Link>
+                    <Link
+                      href={`/analytics?student=${f.studentId}`}
+                      className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 hover:underline"
+                    >
+                      <Icon name="bar_chart" size="sm" /> Homework &amp; scores
+                    </Link>
+                  </div>
                 </div>
                 <button
                   onClick={() => handleAction(f.id)}

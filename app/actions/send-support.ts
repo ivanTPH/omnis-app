@@ -11,6 +11,14 @@ import Anthropic from '@anthropic-ai/sdk'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type ConcernActionItem = {
+  text: string
+  dueDate: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  createdAt: string
+}
+
 export type ConcernRow = {
   id: string
   studentId: string
@@ -24,6 +32,7 @@ export type ConcernRow = {
   evidenceNotes: string | null
   status: string
   aiAnalysis: string | null
+  actionItems: ConcernActionItem[]
   createdAt: Date
   reviewedAt: Date | null
   reviewNotes: string | null
@@ -33,6 +42,7 @@ export type IlpWithTargets = {
   id: string
   studentId: string
   studentName: string
+  yearGroup: number | null
   sendCategory: string
   currentStrengths: string
   areasOfNeed: string
@@ -57,6 +67,14 @@ export type IlpWithTargets = {
   resourcesNeeded: string[]
   createdAt: Date
   sendStatus: string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  needArea: string | null
+}
+
+export type StudentWithoutIlp = {
+  id: string
+  studentName: string
+  yearGroup: number | null
+  sendStatus: string
   needArea: string | null
 }
 
@@ -347,6 +365,8 @@ export async function getStudentConcerns(studentId: string): Promise<ConcernRow[
     evidenceNotes: c.evidenceNotes,
     status: c.status,
     aiAnalysis: c.aiAnalysis,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    actionItems: Array.isArray((c as any).actionItems) ? (c as any).actionItems as ConcernActionItem[] : [],
     createdAt: c.createdAt,
     reviewedAt: c.reviewedAt,
     reviewNotes: c.reviewNotes,
@@ -393,6 +413,8 @@ export async function getAllConcerns(filter?: {
     evidenceNotes: c.evidenceNotes,
     status: c.status,
     aiAnalysis: c.aiAnalysis,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    actionItems: Array.isArray((c as any).actionItems) ? (c as any).actionItems as ConcernActionItem[] : [],
     createdAt: c.createdAt,
     reviewedAt: c.reviewedAt,
     reviewNotes: c.reviewNotes,
@@ -476,6 +498,58 @@ export async function reviewConcern(
   }
 
   revalidatePath('/senco/concerns')
+}
+
+export async function addConcernAction(
+  concernId: string,
+  actionText: string,
+  dueDate: string | null,
+  responsibleUserId: string | null,
+): Promise<void> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const concern = await prisma.sendConcern.findFirst({ where: { id: concernId, schoolId } })
+  if (!concern) throw new Error('Concern not found')
+
+  // Resolve responsible user name if provided
+  let responsibleUserName: string | null = null
+  if (responsibleUserId) {
+    const responsible = await prisma.user.findFirst({
+      where: { id: responsibleUserId, schoolId },
+      select: { firstName: true, lastName: true },
+    })
+    responsibleUserName = responsible ? `${responsible.firstName} ${responsible.lastName}` : null
+  }
+
+  const newAction: ConcernActionItem = {
+    text: actionText,
+    dueDate: dueDate ?? null,
+    responsibleUserId: responsibleUserId ?? null,
+    responsibleUserName,
+    createdAt: new Date().toISOString(),
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = Array.isArray((concern as any).actionItems) ? (concern as any).actionItems as ConcernActionItem[] : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma.sendConcern.update as any)({
+    where: { id: concernId },
+    data: { actionItems: [...existing, newAction] },
+  })
+
+  revalidatePath('/senco/concerns')
+}
+
+export async function getSchoolStaff(): Promise<{ id: string; name: string; role: string }[]> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+  const staff = await prisma.user.findMany({
+    where: { schoolId, isActive: true, role: { not: 'STUDENT' } },
+    select: { id: true, firstName: true, lastName: true, role: true },
+    orderBy: [{ lastName: 'asc' }],
+  })
+  return staff.map(s => ({ id: s.id, name: `${s.firstName} ${s.lastName}`, role: s.role }))
 }
 
 export async function requestAiAnalysis(concernId: string): Promise<string> {
@@ -614,7 +688,7 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
   const [student, sendStatusRecord] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: studentId },
-      select: { firstName: true, lastName: true },
+      select: { firstName: true, lastName: true, yearGroup: true },
     }),
     prisma.sendStatus.findUnique({
       where:  { studentId },
@@ -626,6 +700,7 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
     id: ilp.id,
     studentId: ilp.studentId,
     studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
+    yearGroup: student?.yearGroup ?? null,
     sendCategory: ilp.sendCategory,
     currentStrengths: ilp.currentStrengths,
     areasOfNeed: ilp.areasOfNeed,
@@ -668,22 +743,24 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
   const [students, sendStatuses] = await Promise.all([
     prisma.user.findMany({
       where: { id: { in: studentIds } },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true, firstName: true, lastName: true, yearGroup: true },
     }),
     prisma.sendStatus.findMany({
       where:  { studentId: { in: studentIds } },
       select: { studentId: true, activeStatus: true, needArea: true },
     }),
   ])
-  const studentMap    = new Map(students.map(s => [s.id, `${s.firstName} ${s.lastName}`]))
+  const studentMap    = new Map(students.map(s => [s.id, s]))
   const sendStatusMap = new Map(sendStatuses.map(s => [s.studentId, s]))
 
   return ilps.map(ilp => {
     const ss = sendStatusMap.get(ilp.studentId)
+    const stu = studentMap.get(ilp.studentId)
     return {
       id: ilp.id,
       studentId: ilp.studentId,
-      studentName: studentMap.get(ilp.studentId) ?? 'Unknown',
+      studentName: stu ? `${stu.firstName} ${stu.lastName}` : 'Unknown',
+      yearGroup: stu?.yearGroup ?? null,
       sendCategory: ilp.sendCategory,
       currentStrengths: ilp.currentStrengths,
       areasOfNeed: ilp.areasOfNeed,
@@ -711,6 +788,43 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       needArea:   ss?.needArea ?? null,
     }
   })
+}
+
+export async function getStudentsWithSendButNoIlp(): Promise<StudentWithoutIlp[]> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  // All SEND students
+  const sendStatuses = await prisma.sendStatus.findMany({
+    where: { student: { schoolId }, activeStatus: { not: 'NONE' } },
+    select: { studentId: true, activeStatus: true, needArea: true },
+  })
+  const sendStudentIds = sendStatuses.map(s => s.studentId)
+
+  // Students who already have a non-archived ILP
+  const existingIlps = await prisma.individualLearningPlan.findMany({
+    where: { schoolId, studentId: { in: sendStudentIds }, status: { not: 'archived' } },
+    select: { studentId: true },
+  })
+  const ilpStudentSet = new Set(existingIlps.map(i => i.studentId))
+
+  const withoutIlpIds = sendStudentIds.filter(id => !ilpStudentSet.has(id))
+  if (withoutIlpIds.length === 0) return []
+
+  const students = await prisma.user.findMany({
+    where: { id: { in: withoutIlpIds }, schoolId },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
+    orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+  })
+
+  const sendMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  return students.map(s => ({
+    id: s.id,
+    studentName: `${s.firstName} ${s.lastName}`,
+    yearGroup: s.yearGroup,
+    sendStatus: sendMap.get(s.id)?.activeStatus ?? 'SEN_SUPPORT',
+    needArea: sendMap.get(s.id)?.needArea ?? null,
+  }))
 }
 
 export async function updateIlpTarget(
@@ -1184,6 +1298,8 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       evidenceNotes: c.evidenceNotes,
       status: c.status,
       aiAnalysis: c.aiAnalysis,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      actionItems: Array.isArray((c as any).actionItems) ? (c as any).actionItems as ConcernActionItem[] : [],
       createdAt: c.createdAt,
       reviewedAt: c.reviewedAt,
       reviewNotes: c.reviewNotes,
@@ -1213,6 +1329,8 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       evidenceNotes: c.evidenceNotes,
       status: c.status,
       aiAnalysis: c.aiAnalysis,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      actionItems: Array.isArray((c as any).actionItems) ? (c as any).actionItems as ConcernActionItem[] : [],
       createdAt: c.createdAt,
       reviewedAt: c.reviewedAt,
       reviewNotes: c.reviewNotes,

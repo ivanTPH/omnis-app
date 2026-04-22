@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getAllConcerns } from '@/app/actions/send-support'
+import { getAllConcerns, getSchoolStaff } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
 import ConcernsPageView from '@/components/send-support/ConcernsPageView'
 
@@ -10,7 +10,10 @@ export default async function ConcernsPage() {
   const { role, firstName, lastName, schoolName } = session.user as any
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
-  const concerns = await getAllConcerns()
+  const [concerns, staffList] = await Promise.all([
+    getAllConcerns(),
+    getSchoolStaff(),
+  ])
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
@@ -20,7 +23,7 @@ export default async function ConcernsPage() {
           <p className="text-sm text-gray-500 mt-0.5">All concerns raised across the school</p>
         </div>
         <div className="p-6">
-          <ConcernsPageView initialConcerns={concerns} />
+          <ConcernsPageView initialConcerns={concerns} staffList={staffList} />
         </div>
       </div>
     </AppShell>

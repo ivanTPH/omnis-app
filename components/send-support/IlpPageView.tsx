@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
-import type { IlpWithTargets, PendingIlpEdit, GeneratedIlpGoal } from '@/app/actions/send-support'
+import type { IlpWithTargets, PendingIlpEdit, GeneratedIlpGoal, StudentWithoutIlp } from '@/app/actions/send-support'
 import {
   getPendingIlpEdits, approveIlpEdit, rejectIlpEdit,
   generateIlpGoalsForStudent, createIlp, approveGeneratedIlp,
@@ -35,9 +35,9 @@ type AiModalState =
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type Props = { ilps: IlpWithTargets[] }
+type Props = { ilps: IlpWithTargets[]; studentsWithoutIlp?: StudentWithoutIlp[] }
 
-export default function IlpPageView({ ilps: initial }: Props) {
+export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: Props) {
   const [ilps,           setIlps]           = useState(initial)
   const [showForm,       setShowForm]       = useState(false)
   const [expanded,       setExpanded]       = useState<Set<string>>(new Set())
@@ -45,6 +45,11 @@ export default function IlpPageView({ ilps: initial }: Props) {
   const [studentName,    setStudentName]    = useState('')
   const [genState,       setGenState]       = useState<GenerateState>({ phase: 'idle' })
   const [ilpProgress,    setIlpProgress]    = useState(0)
+  const [searchQuery,    setSearchQuery]    = useState('')
+  const [yearFilter,     setYearFilter]     = useState('')
+  const [viewMode,       setViewMode]       = useState<'active' | 'no_ilp'>('active')
+  const [selectedIds,    setSelectedIds]    = useState<Set<string>>(new Set())
+  const [batchGenState,  setBatchGenState]  = useState<'idle' | 'running' | 'done'>('idle')
 
   // Simulated progress bar for bulk ILP generation (up to 60s)
   useEffect(() => {
@@ -197,6 +202,64 @@ export default function IlpPageView({ ilps: initial }: Props) {
     const daysUntil = (new Date(i.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     return daysUntil <= 14 && daysUntil >= 0
   })
+
+  // Derived year options
+  const yearOptions = useMemo(() => {
+    const years = new Set([
+      ...ilps.map(i => i.yearGroup).filter((y): y is number => y != null),
+      ...studentsWithoutIlp.map(s => s.yearGroup).filter((y): y is number => y != null),
+    ])
+    return [...years].sort((a, b) => a - b)
+  }, [ilps, studentsWithoutIlp])
+
+  // Filtered ILP list
+  const filteredIlps = useMemo(() => ilps.filter(i => {
+    if (yearFilter && i.yearGroup !== Number(yearFilter)) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      if (!i.studentName.toLowerCase().includes(q)) return false
+    }
+    return true
+  }), [ilps, yearFilter, searchQuery])
+
+  // Filtered students without ILP
+  const filteredWithoutIlp = useMemo(() => studentsWithoutIlp.filter(s => {
+    if (yearFilter && s.yearGroup !== Number(yearFilter)) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      if (!s.studentName.toLowerCase().includes(q)) return false
+    }
+    return true
+  }), [studentsWithoutIlp, yearFilter, searchQuery])
+
+  async function handleBatchGenerate() {
+    if (selectedIds.size === 0) return
+    setBatchGenState('running')
+    try {
+      for (const id of selectedIds) {
+        await generateIlpGoalsForStudent(id)
+      }
+    } catch { /* ignore individual failures */ }
+    setBatchGenState('done')
+    setSelectedIds(new Set())
+    setTimeout(() => { setBatchGenState('idle'); window.location.reload() }, 1500)
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filteredWithoutIlp.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredWithoutIlp.map(s => s.id)))
+    }
+  }
 
   // ── AI modal UI ─────────────────────────────────────────────────────────────
 
@@ -387,19 +450,57 @@ export default function IlpPageView({ ilps: initial }: Props) {
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">{ilps.length} ILP{ilps.length !== 1 ? 's' : ''}</p>
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+        {/* View mode tabs */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode('active')}
+            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${viewMode === 'active' ? 'bg-purple-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+          >
+            Active ILPs ({ilps.length})
+          </button>
+          {studentsWithoutIlp.length > 0 && (
+            <button
+              onClick={() => setViewMode('no_ilp')}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ilp' ? 'bg-amber-500 text-white' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+            >
+              <Icon name="warning" size="sm" />
+              SEND without ILP ({studentsWithoutIlp.length})
+            </button>
+          )}
+          <div className="flex-1" />
           <button
             onClick={handleGenerateIlps}
             disabled={genState.phase === 'loading'}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-60"
+            className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-[12px] font-medium hover:bg-purple-700 disabled:opacity-60"
+            title="Auto-generate ILP goals for all SEND students who don't yet have an ILP"
           >
             {genState.phase === 'loading'
               ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
-              : <><Icon name="auto_awesome" size="sm" /> Generate ILPs</>
+              : <><Icon name="auto_awesome" size="sm" /> Generate all missing ILPs</>
             }
           </button>
+        </div>
+
+        {/* Search + year filter */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search by student name…"
+              className="w-full pl-8 pr-3 py-2 text-[12px] border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            />
+          </div>
+          <select
+            value={yearFilter}
+            onChange={e => setYearFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2.5 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-300"
+          >
+            <option value="">All years</option>
+            {yearOptions.map(y => <option key={y} value={y}>Year {y}</option>)}
+          </select>
         </div>
       </div>
 
@@ -473,15 +574,77 @@ export default function IlpPageView({ ilps: initial }: Props) {
         </div>
       )}
 
-      {/* ILP list */}
-      {ilps.length === 0 ? (
+      {/* ILP list / no-ILP view */}
+      {viewMode === 'no_ilp' ? (
+        <div className="space-y-3">
+          {filteredWithoutIlp.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Icon name="check_circle" size="lg" className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">All SEND students have an ILP.</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size > 0 && selectedIds.size === filteredWithoutIlp.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="text-[12px] text-gray-600">
+                    {selectedIds.size > 0 ? `${selectedIds.size} selected` : `${filteredWithoutIlp.length} students`}
+                  </span>
+                </div>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={handleBatchGenerate}
+                    disabled={batchGenState === 'running'}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-[12px] font-medium hover:bg-purple-700 disabled:opacity-60"
+                  >
+                    {batchGenState === 'running'
+                      ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
+                      : batchGenState === 'done'
+                      ? <><Icon name="check_circle" size="sm" /> Done</>
+                      : <><Icon name="auto_awesome" size="sm" /> Generate ILP{selectedIds.size > 1 ? 's' : ''} for {selectedIds.size} student{selectedIds.size > 1 ? 's' : ''}</>
+                    }
+                  </button>
+                )}
+              </div>
+              <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
+                {filteredWithoutIlp.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(s.id)}
+                      onChange={() => toggleSelect(s.id)}
+                      className="rounded border-gray-300 shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-gray-900">{s.studentName}</p>
+                      <p className="text-[11px] text-gray-500">
+                        {s.yearGroup ? `Year ${s.yearGroup}` : ''}
+                        {s.yearGroup && s.needArea ? ' · ' : ''}
+                        {s.needArea ?? s.sendStatus.replace(/_/g, ' ')}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {s.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : filteredIlps.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
           <Icon name="favorite_border" size="lg" className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No active ILPs.</p>
+          <p className="text-sm">{searchQuery || yearFilter ? 'No ILPs match your search.' : 'No active ILPs.'}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {ilps.map(ilp => (
+          {filteredIlps.map(ilp => (
             <div key={ilp.id} className="border border-gray-200 rounded-2xl overflow-hidden">
               <div className="w-full flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <button
@@ -490,7 +653,7 @@ export default function IlpPageView({ ilps: initial }: Props) {
                 >
                   <p className="font-medium text-gray-900">{ilp.studentName}</p>
                   <p className="text-sm text-gray-500">
-                    {ilp.sendCategory} · {ilp.targets.length} target{ilp.targets.length !== 1 ? 's' : ''} ·
+                    {ilp.yearGroup ? `Year ${ilp.yearGroup} · ` : ''}{ilp.sendCategory} · {ilp.targets.length} target{ilp.targets.length !== 1 ? 's' : ''} ·
                     review {new Date(ilp.reviewDate).toLocaleDateString('en-GB')}
                   </p>
                 </button>
@@ -498,13 +661,16 @@ export default function IlpPageView({ ilps: initial }: Props) {
                   {/* Per-student AI generate button */}
                   <button
                     onClick={() => handleAiGenerate(ilp)}
-                    title="Re-generate ILP goals with AI"
+                    title="Re-generate ILP goals using AI — Claude analyses this student's SEND category, assessment history, and learning profile to suggest 3 SMART targets. You review and edit before saving."
                     className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg transition-colors"
                   >
                     <Icon name="auto_awesome" size="sm" /> AI Goals
                   </button>
                   {ilp.autoGenerated && (
-                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span
+                      title="This ILP's goals were generated by AI (Claude) and approved by a SENCO. AI-generated ILPs are based on the student's SEND category and performance data."
+                      className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-help"
+                    >
                       <Icon name="auto_awesome" size="sm" /> AI
                     </span>
                   )}

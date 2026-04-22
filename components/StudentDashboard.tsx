@@ -132,21 +132,16 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
       <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
 
         {/* Toolbar */}
-        <div className="px-5 py-3.5 border-b border-gray-100 flex flex-wrap items-center gap-2">
-          <h2 className="text-sm font-semibold text-gray-700 mr-2">Homework History</h2>
-          <SubjectChip
-            label="All subjects"
-            active={subjectFilter === 'all'}
-            onClick={() => setSubjectFilter('all')}
-          />
-          {subjects.map(s => (
-            <SubjectChip
-              key={s}
-              label={s}
-              active={subjectFilter === s}
-              onClick={() => setSubjectFilter(s)}
-            />
-          ))}
+        <div className="px-5 py-3.5 border-b border-gray-100 flex flex-wrap items-center gap-3">
+          <h2 className="text-sm font-semibold text-gray-700">Homework History</h2>
+          <select
+            value={subjectFilter}
+            onChange={e => setSubjectFilter(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All subjects</option>
+            {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
 
         {/* Column headers */}

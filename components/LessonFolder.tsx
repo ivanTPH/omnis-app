@@ -1584,11 +1584,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             {hw.submissions.length > 0 ? (
                               <div className="divide-y divide-gray-100">
                                 {hw.submissions.map(s => (
-                                  <div key={s.id} className="flex items-center gap-3 px-4 py-2.5">
+                                  <Link
+                                    key={s.id}
+                                    href={`/homework/${hw.id}/mark/${s.id}`}
+                                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors group"
+                                  >
                                     <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold shrink-0">
                                       {s.student.firstName[0]}{s.student.lastName[0]}
                                     </div>
-                                    <span className="flex-1 text-[12px] text-gray-800">
+                                    <span className="flex-1 text-[12px] text-gray-800 group-hover:text-blue-700 transition-colors">
                                       {s.student.firstName} {s.student.lastName}
                                     </span>
                                     {s.grade && (
@@ -1608,7 +1612,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     }`}>
                                       {s.status === 'RESUBMISSION_REQ' ? 'Resubmit' : s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
                                     </span>
-                                  </div>
+                                    <Icon name="arrow_forward_ios" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors shrink-0" />
+                                  </Link>
                                 ))}
                               </div>
                             ) : (

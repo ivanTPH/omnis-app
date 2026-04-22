@@ -1892,6 +1892,8 @@ model SendConcern {
   status        String    @default("open")
                           // "open" | "under_review" | "escalated" | "monitoring" | "closed" | "no_action"
   aiAnalysis    String?
+  actionItems   Json      @default("[]")
+                          // Array of { text, dueDate, responsibleUserId, responsibleUserName, createdAt }
   createdAt     DateTime  @default(now())
   reviewedBy    String?
   reviewedAt    DateTime?

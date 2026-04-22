@@ -60,6 +60,7 @@ export type EhcpPlanWithOutcomes = {
   schoolId: string
   studentId: string
   studentName: string
+  yearGroup: number | null
   localAuthority: string
   planDate: Date
   reviewDate: Date
@@ -80,6 +81,14 @@ export type EhcpPlanWithOutcomes = {
     status: string
     evidenceCount: number
   }[]
+}
+
+export type StudentWithoutEhcp = {
+  id: string
+  studentName: string
+  yearGroup: number | null
+  sendStatus: string
+  needArea: string | null
 }
 
 // ─── EHCP Plan CRUD ───────────────────────────────────────────────────────────
@@ -190,7 +199,7 @@ export async function getStudentEhcp(studentId: string): Promise<EhcpPlanWithOut
 
   const student = await prisma.user.findUnique({
     where: { id: studentId },
-    select: { firstName: true, lastName: true },
+    select: { firstName: true, lastName: true, yearGroup: true },
   })
 
   return {
@@ -198,6 +207,7 @@ export async function getStudentEhcp(studentId: string): Promise<EhcpPlanWithOut
     schoolId: plan.schoolId,
     studentId: plan.studentId,
     studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
+    yearGroup: student?.yearGroup ?? null,
     localAuthority: plan.localAuthority,
     planDate: plan.planDate,
     reviewDate: plan.reviewDate,
@@ -234,15 +244,18 @@ export async function getAllEhcpPlans(): Promise<EhcpPlanWithOutcomes[]> {
   const studentIds = [...new Set(plans.map(p => p.studentId))]
   const students = await prisma.user.findMany({
     where: { id: { in: studentIds } },
-    select: { id: true, firstName: true, lastName: true },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
   })
-  const studentMap = new Map(students.map(s => [s.id, `${s.firstName} ${s.lastName}`]))
+  const studentMap = new Map(students.map(s => [s.id, s]))
 
-  return plans.map(p => ({
+  return plans.map(p => {
+    const stu = studentMap.get(p.studentId)
+    return {
     id: p.id,
     schoolId: p.schoolId,
     studentId: p.studentId,
-    studentName: studentMap.get(p.studentId) ?? 'Unknown',
+    studentName: stu ? `${stu.firstName} ${stu.lastName}` : 'Unknown',
+    yearGroup: stu?.yearGroup ?? null,
     localAuthority: p.localAuthority,
     planDate: p.planDate,
     reviewDate: p.reviewDate,
@@ -263,6 +276,44 @@ export async function getAllEhcpPlans(): Promise<EhcpPlanWithOutcomes[]> {
       status: o.status,
       evidenceCount: o.evidenceCount,
     })),
+  }
+  })
+}
+
+export async function getStudentsWithSendButNoEhcp(): Promise<StudentWithoutEhcp[]> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  // All SEND students
+  const sendStatuses = await prisma.sendStatus.findMany({
+    where: { student: { schoolId }, activeStatus: { not: 'NONE' } },
+    select: { studentId: true, activeStatus: true, needArea: true },
+  })
+  const sendStudentIds = sendStatuses.map(s => s.studentId)
+
+  // Students who already have a non-ceased EHCP
+  const existingEhcps = await prisma.ehcpPlan.findMany({
+    where: { schoolId, studentId: { in: sendStudentIds }, status: { not: 'ceased' } },
+    select: { studentId: true },
+  })
+  const ehcpStudentSet = new Set(existingEhcps.map(e => e.studentId))
+
+  const withoutEhcpIds = sendStudentIds.filter(id => !ehcpStudentSet.has(id))
+  if (withoutEhcpIds.length === 0) return []
+
+  const students = await prisma.user.findMany({
+    where: { id: { in: withoutEhcpIds }, schoolId },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
+    orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+  })
+
+  const sendMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  return students.map(s => ({
+    id: s.id,
+    studentName: `${s.firstName} ${s.lastName}`,
+    yearGroup: s.yearGroup,
+    sendStatus: sendMap.get(s.id)?.activeStatus ?? 'SEN_SUPPORT',
+    needArea: sendMap.get(s.id)?.needArea ?? null,
   }))
 }
 

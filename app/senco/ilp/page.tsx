@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getAllIlps } from '@/app/actions/send-support'
+import { getAllIlps, getStudentsWithSendButNoIlp } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
 import IlpPageView from '@/components/send-support/IlpPageView'
 
@@ -10,7 +10,10 @@ export default async function IlpPage() {
   const { role, firstName, lastName, schoolName } = session.user as any
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
-  const ilps = await getAllIlps()
+  const [ilps, studentsWithoutIlp] = await Promise.all([
+    getAllIlps(),
+    getStudentsWithSendButNoIlp(),
+  ])
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
@@ -20,7 +23,7 @@ export default async function IlpPage() {
           <p className="text-sm text-gray-500 mt-0.5">Active ILPs and drafts pending SENCO review</p>
         </div>
         <div className="p-6">
-          <IlpPageView ilps={ilps} />
+          <IlpPageView ilps={ilps} studentsWithoutIlp={studentsWithoutIlp} />
         </div>
       </div>
     </AppShell>

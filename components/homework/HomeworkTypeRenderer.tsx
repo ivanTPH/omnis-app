@@ -82,40 +82,56 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
       const questions = content?.questions ?? []
       return (
         <div className="space-y-6">
-          {questions.map((q, i) => (
-            <div key={q.id ?? i} className="space-y-2">
-              <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
-              {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
-              {q.options ? (
-                <div className="space-y-1.5">
-                  {q.options.map((opt, j) => (
-                    <label key={j} className="flex items-start gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name={`q-${q.id ?? i}`}
-                        value={opt}
-                        checked={answers[q.id ?? i] === opt}
-                        onChange={() => updateAnswer(String(q.id ?? i), opt)}
-                        disabled={disabled}
-                        className="mt-0.5"
-                      />
-                      <span className="text-sm text-gray-700">{opt}</span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  value={answers[q.id ?? i] ?? ''}
-                  onChange={e => updateAnswer(String(q.id ?? i), e.target.value)}
-                  disabled={disabled}
-                  placeholder="Your answer…"
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 disabled:bg-gray-50"
-                />
-              )}
-              {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
-            </div>
-          ))}
+          {questions.map((q, i) => {
+            const qId = q.id ?? String(i)
+            const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
+            return (
+              <div key={qId} className="space-y-2">
+                <p className="text-sm font-medium text-gray-800">{i + 1}. {questionText}</p>
+                {isEhcp && q.ehcp_adaptation && q.ehcp_adaptation !== q.question && (
+                  <p className="text-[11px] text-purple-500 italic">Simplified for accessibility</p>
+                )}
+                {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
+                {isSen && q.scaffolding_hint && (
+                  <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
+                    <p className="text-xs text-blue-700">{q.scaffolding_hint}</p>
+                  </div>
+                )}
+                {isEhcp && q.vocab_support && q.vocab_support.length > 0 && (
+                  <VocabGlossary terms={q.vocab_support} />
+                )}
+                {q.options ? (
+                  <div className="space-y-1.5">
+                    {q.options.map((opt, j) => (
+                      <label key={j} className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`q-${qId}`}
+                          value={opt}
+                          checked={answers[qId] === opt}
+                          onChange={() => updateAnswer(qId, opt)}
+                          disabled={disabled}
+                          className="mt-0.5"
+                        />
+                        <span className="text-sm text-gray-700">{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={answers[qId] ?? ''}
+                    onChange={e => updateAnswer(qId, e.target.value)}
+                    disabled={disabled}
+                    placeholder="Your answer…"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 disabled:bg-gray-50"
+                  />
+                )}
+                {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
+              </div>
+            )
+          })}
         </div>
       )
     }
@@ -203,6 +219,9 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
     case 'creative_writing': {
       const wordCount = content?.wordCount
       const prompt = content?.prompt
+      const firstQ = content?.questions?.[0]
+      const essayScaffold = isSen && firstQ?.scaffolding_hint ? firstQ.scaffolding_hint : null
+      const essayVocab = isEhcp && firstQ?.vocab_support?.length ? firstQ.vocab_support : null
       return (
         <div className="space-y-3">
           {prompt && (
@@ -210,6 +229,13 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
               {prompt}
             </div>
           )}
+          {essayScaffold && (
+            <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
+              <p className="text-xs text-blue-700">{essayScaffold}</p>
+            </div>
+          )}
+          {essayVocab && <VocabGlossary terms={essayVocab} />}
           <textarea
             value={value}
             onChange={e => onChange(e.target.value)}

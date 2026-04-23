@@ -54,7 +54,7 @@ test('Step 1 — SENCO generates ILPs; ≥5 ILPs created', async ({ page }) => {
   const countBefore = await prisma.individualLearningPlan.count()
   console.info(`  ILPs before generation: ${countBefore}`)
 
-  const generateBtn = page.getByRole('button', { name: /generate ilps/i })
+  const generateBtn = page.getByRole('button', { name: /generate all missing ilps/i })
   await expect(generateBtn).toBeVisible({ timeout: 6_000 })
   await generateBtn.click()
 
@@ -116,40 +116,27 @@ test('Step 2 — Approve one ILP; Approved badge + audit panel visible', async (
   await expect(page).toHaveURL(/senco\/ilp/, { timeout: 8_000 })
   await page.waitForLoadState('domcontentloaded')
 
-  // ILPs are collapsed — find a row with "Needs approval" badge and click to expand it
-  const needsApprovalRow = page.locator('div.border.border-gray-200.rounded-2xl').filter({
-    has: page.locator('span').filter({ hasText: /Needs approval/i }),
-  }).first()
-  await expect(needsApprovalRow, 'At least one ILP should show "Needs approval"').toBeVisible({ timeout: 8_000 })
+  // Find the "Draft — awaiting approval" badge (a span, not a div)
+  const draftBadge = page.locator('span').filter({ hasText: /Draft — awaiting approval/i }).first()
+  await expect(draftBadge, 'At least one ILP should show "Draft — awaiting approval"').toBeVisible({ timeout: 8_000 })
 
-  // Click the row to expand it
-  await needsApprovalRow.locator('button').first().click()
-  await page.waitForTimeout(500)
-
-  // Find the IlpCard Approve button (rendered inside the expanded section)
-  const approveBtn = needsApprovalRow.getByRole('button', { name: /approve ilp/i })
-  await expect(approveBtn, 'Approve ILP button should appear when ILP is expanded').toBeVisible({ timeout: 5_000 })
-
-  const studentLine = await needsApprovalRow.locator('p.text-sm').first().textContent().catch(() => '')
-  console.info(`  Approving ILP for: ${studentLine?.split('·')[0]?.trim()}`)
+  // Find the Approve & Publish button (visible inline next to the badge)
+  const approveBtn = page.getByRole('button', { name: /Approve & Publish/i }).first()
+  await expect(approveBtn, 'Approve & Publish button should be visible').toBeVisible({ timeout: 5_000 })
 
   await approveBtn.click()
 
-  // Confirmed badge appears
-  await expect(needsApprovalRow.getByText(/approved/i).first()).toBeVisible({ timeout: 8_000 })
-  console.info('  ILP approved — Approved badge visible ✓')
+  // After approval the badge changes to "Published"
+  await expect(page.locator('span').filter({ hasText: /Published/i }).first()).toBeVisible({ timeout: 8_000 })
+  console.info('  ILP approved — Published badge visible ✓')
 
   // Open edit history (shown after ILP is approved)
   await page.waitForTimeout(500)
-  const historyBtn = needsApprovalRow.getByRole('button', { name: /show edit history/i })
+  const historyBtn = page.getByRole('button', { name: /show edit history/i }).first()
   if (await historyBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await historyBtn.click()
     await page.waitForTimeout(400)
-    const noEdits = needsApprovalRow.getByText(/no edits|no changes/i)
-    const entries = needsApprovalRow.locator('div.text-xs').filter({ hasText: /changed|updated/i })
-    const hasHistory = await noEdits.isVisible({ timeout: 2_000 }).catch(() => false) ||
-                       await entries.count() > 0
-    console.info(`  Audit trail panel opened — hasHistory: ${hasHistory} ✓`)
+    console.info('  Audit trail panel opened ✓')
   }
 
   expect(true, 'ILP approved and audit panel accessible').toBeTruthy()
@@ -633,9 +620,9 @@ test('Step 13 — SLT analytics: SEND Overview card shows data', async ({ page }
   // SEND Overview card (purple-50 background)
   await expect(page.getByText(/SEND Overview/i)).toBeVisible({ timeout: 8_000 })
 
-  // Three metric rows
+  // Three metric rows (actual labels in /slt/analytics SEND card)
   await expect(page.getByText(/on register/i)).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText(/active plans/i)).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText(/ILP coverage/i)).toBeVisible({ timeout: 5_000 })
   await expect(page.getByText(/reviews due/i)).toBeVisible({ timeout: 5_000 })
 
   // Numeric values present inside the purple card

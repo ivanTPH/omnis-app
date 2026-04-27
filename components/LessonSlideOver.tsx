@@ -62,7 +62,7 @@ const YEAR_GROUPS = [7, 8, 9, 10, 11, 12, 13]
 const STEPS = [
   { n: 1, label: 'Subject & Class' },
   { n: 2, label: 'Topic & Lesson'  },
-  { n: 3, label: 'Schedule'        },
+  { n: 3, label: 'Review & Save'   },
 ]
 
 function SelectField({
@@ -184,7 +184,8 @@ export default function LessonSlideOver({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!step3Valid) return
+    // Only submit on the final step — prevents Enter key on earlier inputs from firing
+    if (step !== 3 || !step3Valid) return
     const scheduledAt = new Date(`${date}T${startTime}`).toISOString()
     const endsAt      = new Date(`${date}T${endTime}`).toISOString()
 
@@ -229,6 +230,7 @@ export default function LessonSlideOver({
           <div>
             <h2 className="text-[15px] font-semibold text-gray-900">New lesson</h2>
             <p className="text-[11px] text-gray-400 mt-0.5">Step {step} of 3 — {STEPS[step - 1].label}</p>
+            {step === 3 && <p className="text-[10px] text-blue-600 mt-0.5 font-medium">Review your details, then click Save lesson</p>}
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <Icon name="close" size="sm" className="text-gray-500" />
@@ -467,12 +469,50 @@ export default function LessonSlideOver({
                 </div>
               </div>
 
-              {/* Lesson summary */}
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1">
-                <p className="text-[11px] font-medium text-gray-500">Lesson summary</p>
-                <p className="text-[13px] font-medium text-gray-900">{lessonTitle}</p>
-                <p className="text-[12px] text-gray-500">{subject} · {qualification} · {examBoard}</p>
-                {classId && <p className="text-[12px] text-gray-500">{allClasses.find(c => c.id === classId)?.name ?? ''}</p>}
+              {/* Review summary */}
+              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
+                <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">Review before saving</p>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <Icon name="title" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] text-blue-500">Lesson title</p>
+                      <p className="text-[13px] font-semibold text-gray-900">{lessonTitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Icon name="school" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] text-blue-500">Subject &amp; Year</p>
+                      <p className="text-[13px] text-gray-800">{subject} · Year {yearGroup}{qualification ? ` (${qualification})` : ''}{examBoard ? ` · ${examBoard}` : ''}</p>
+                    </div>
+                  </div>
+                  {classId && (
+                    <div className="flex items-start gap-2">
+                      <Icon name="groups" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[11px] text-blue-500">Class</p>
+                        <p className="text-[13px] text-gray-800">{allClasses.find(c => c.id === classId)?.name ?? '—'}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-2">
+                    <Icon name="schedule" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[11px] text-blue-500">Date &amp; Time</p>
+                      <p className="text-[13px] text-gray-800">{date ? new Date(date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' }) : '—'} · {startTime}–{endTime}</p>
+                    </div>
+                  </div>
+                  {topicLabel && (
+                    <div className="flex items-start gap-2">
+                      <Icon name="bookmark" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[11px] text-blue-500">Topic</p>
+                        <p className="text-[13px] text-gray-800">{topicLabel}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </>}
           </div>
@@ -517,7 +557,7 @@ export default function LessonSlideOver({
                 disabled={isPending || !step3Valid}
                 className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-lg text-[13px] font-medium transition-colors"
               >
-                {isPending ? 'Creating…' : 'Create lesson'}
+                {isPending ? 'Saving…' : <><Icon name="check_circle" size="sm" /> Save lesson</>}
               </button>
             )}
           </div>

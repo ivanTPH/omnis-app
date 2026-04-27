@@ -469,12 +469,18 @@ function Step4({
                       <div className="flex items-start gap-2">
                         <span className="shrink-0 font-bold text-gray-400 text-xs w-5 pt-2">{qi + 1}.</span>
                         <textarea
-                          rows={Math.max(3, Math.ceil((q.question?.length ?? 0) / 80) + 1)}
+                          rows={2}
                           value={q.question}
                           onChange={e => updateQuestion(task.id, qi, { question: e.target.value })}
                           onFocus={() => setFocusedQ(qKey)}
                           onBlur={() => setFocusedQ(null)}
+                          onInput={e => {
+                            const t = e.currentTarget
+                            t.style.height = 'auto'
+                            t.style.height = t.scrollHeight + 'px'
+                          }}
                           placeholder="Question text…"
+                          style={{ overflowY: 'hidden' }}
                           className={`flex-1 text-xs text-gray-800 border rounded-md px-2 py-1.5 focus:outline-none resize-none transition-colors ${
                             isFocus ? 'border-blue-400 bg-blue-50 ring-1 ring-blue-300' : 'border-gray-200'
                           }`}

@@ -446,7 +446,7 @@ export default function WeeklyCalendar({
                                     onDragStart={e => { e.dataTransfer.setData('id', lesson.id); setDragging(lesson.id) }}
                                     onDragEnd={() => setDragging(null)}
                                     style={{ top: topPx, height: heightPx, left: 2 + ti * 5, right: 2 }}
-                                    className={`absolute rounded-md border-l-[3px] px-2 py-1 cursor-pointer z-[6] transition-opacity select-none overflow-hidden
+                                    className={`absolute rounded-md border-l-[3px] px-2 py-1 cursor-pointer z-[6] transition-opacity select-none
                                       ${c.bg} ${c.border} ${c.text}
                                       ${dragging === lesson.id ? 'opacity-40' : 'opacity-100'}
                                     `}

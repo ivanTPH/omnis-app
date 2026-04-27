@@ -351,8 +351,18 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
         </span>
       </div>
 
+      {/* Column headers */}
+      <div className="grid grid-cols-[1fr_90px_110px_80px_40px_30px] items-center gap-x-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-t-xl border-b-0 text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+        <span>Student</span>
+        <span className="text-center">RAG</span>
+        <span>SEND</span>
+        <span>Latest</span>
+        <span></span>
+        <span></span>
+      </div>
+
       {/* Student rows */}
-      <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+      <div className="divide-y divide-gray-100 border border-gray-200 rounded-b-xl overflow-hidden">
         {rows.filter(row => {
           const q = externalSearch ?? searchQuery
           return (sendFilter === 'ALL' || row.sendStatus === sendFilter) &&

@@ -134,7 +134,7 @@ export async function createRevisionProgram(input: {
     )
 
     // Fetch ALL lessons taught in the period for multi-topic question coverage
-    const periodLessons: { title: string; objectives: string[] }[] = await (prisma as any).lesson.findMany({
+    let periodLessons: { title: string; objectives: string[] }[] = await (prisma as any).lesson.findMany({
       where: {
         classId:  input.classId,
         schoolId: user.schoolId,
@@ -143,6 +143,16 @@ export async function createRevisionProgram(input: {
       orderBy: { scheduledAt: 'asc' },
       select: { title: true, objectives: true },
     })
+    // Fallback: if no lessons fall in the date range, use the 5 most recent lessons for this class
+    if (periodLessons.length === 0) {
+      const recentFallback: { title: string; objectives: string[] }[] = await (prisma as any).lesson.findMany({
+        where: { classId: input.classId, schoolId: user.schoolId },
+        orderBy: { scheduledAt: 'desc' },
+        take: 5,
+        select: { title: true, objectives: true },
+      })
+      periodLessons = recentFallback.reverse()
+    }
     console.log('[createRevisionProgram] Lessons found:', periodLessons.map(l => l.title))
     const recentLesson = periodLessons.length > 0 ? periodLessons[periodLessons.length - 1] : null
 

@@ -277,7 +277,13 @@ export default function UnifiedResourceSearch({
 
       // Second pass: AND terms, drop year group (finds e.g. Yr7 Norman Conquest for a Yr8 lesson)
       if (oakResults.length < 3 && subjectSlug && q) {
-        const broader = await searchOakLessons({ subjectSlug, query: q, andTerms: true, limit: 20 })
+        let broader = await searchOakLessons({ subjectSlug, query: q, andTerms: true, limit: 20 })
+        // Third pass: OR mode — catches topics where keywords span different lessons/units
+        // e.g. "tudors elizabeth armada" won't AND-match "Elizabeth I and the Spanish Armada"
+        // because that lesson doesn't contain "tudor", but OR mode finds it via "elizabeth"+"armada"
+        if (broader.length < 3) {
+          broader = await searchOakLessons({ subjectSlug, query: q, andTerms: false, limit: 20 })
+        }
         if (broader.length > oakResults.length) {
           oakResults = broader
           setBroadened(true)

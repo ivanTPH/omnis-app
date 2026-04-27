@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Icon from '@/components/ui/Icon'
 import UITooltip from '@/components/ui/Tooltip'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
@@ -77,6 +78,14 @@ function scoreColor(score: number) {
   if (score >= 8) return 'bg-green-100 text-green-700'
   if (score >= 5) return 'bg-amber-100 text-amber-700'
   return 'bg-red-100 text-red-700'
+}
+
+function getEmbedUrl(url: string): string {
+  const gSlides = url.match(/docs\.google\.com\/presentation\/d\/([a-zA-Z0-9_-]+)/)
+  if (gSlides) return `https://docs.google.com/presentation/d/${gSlides[1]}/embed`
+  const gDrive  = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/)
+  if (gDrive)  return `https://drive.google.com/file/d/${gDrive[1]}/preview`
+  return url
 }
 
 interface Props {
@@ -224,6 +233,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [viewingHwId,    setViewingHwId]     = useState<string | null>(null)
   const [viewingHwTitle, setViewingHwTitle]  = useState('')
 
+  // Resource picker (select which resource to generate homework from)
+  const [resourcePickerOpen,  setResourcePickerOpen]  = useState(false)
+  const [pendingHwType,       setPendingHwType]        = useState<HomeworkType | null>(null)
+  const [pickerResourceId,    setPickerResourceId]     = useState<string | null>(null)
+
+  // Resource preview (iframe popup for URL resources)
+  const [previewUrl,   setPreviewUrl]   = useState<string | null>(null)
+  const [previewLabel, setPreviewLabel] = useState('')
+
   // Analytics tab — class selector
   const [teacherClasses,     setTeacherClasses]     = useState<{ id: string; name: string; subject: string; yearGroup: number }[]>([])
   const [analyticsClassId,   setAnalyticsClassId]   = useState<string | null>(null)
@@ -310,14 +328,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     // Don't re-generate if this type already has content
     if (typeStore[hwType]?.instructions) return
     setHwYesNo('yes')
-    runHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
+    triggerHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
   }, [wizardStep])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-regenerate when homework type changes mid-wizard
   useEffect(() => {
     if (wizardStep !== 5 || !lessonId || hwYesNo !== 'yes') return
     if (typeStore[hwType]?.instructions) return   // already have content for this type
-    runHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
+    triggerHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
   }, [hwType])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open homework wizard when Homework tab clicked, no homework exists, lesson has content
@@ -393,11 +411,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   // Core generation function — populates editing fields directly (no Accept/Reject step)
-  function runHwGeneration(lid: string, type: HomeworkType) {
+  function runHwGeneration(lid: string, type: HomeworkType, preferredResourceId?: string) {
     setGeneratingHw(true)
     setMcqQuestions([])
     setSaQuestions([])
-    generateHomeworkFromResources(lid, type).then(result => {
+    generateHomeworkFromResources(lid, type, preferredResourceId).then(result => {
       updateActive({
         instructions:    result.instructions,
         modelAnswer:     result.modelAnswer,
@@ -442,7 +460,21 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   // Manual regenerate button
   function handleRegenerateHw() {
     if (!lessonId) return
-    runHwGeneration(lessonId, hwType)
+    triggerHwGeneration(lessonId, hwType)
+  }
+
+  // Check for multiple presentation resources — show picker if 2+, otherwise generate directly
+  function triggerHwGeneration(lid: string, type: HomeworkType) {
+    const presentationResources = (lesson?.resources ?? []).filter(r =>
+      r.type === 'SLIDES' || r.type === 'PLAN' || !!(r as any).oakContentId
+    )
+    if (presentationResources.length >= 2) {
+      setPendingHwType(type)
+      setPickerResourceId(presentationResources[0].id)
+      setResourcePickerOpen(true)
+    } else {
+      runHwGeneration(lid, type, presentationResources[0]?.id)
+    }
   }
 
   // Save lesson overview and close the folder (returns user to calendar)
@@ -828,7 +860,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               {hwYesNo === null && !generatingHw && (
                 <div className="flex gap-3">
                   <button
-                    onClick={() => { setHwYesNo('yes'); if (lessonId) runHwGeneration(lessonId, hwType) }}
+                    onClick={() => { setHwYesNo('yes'); if (lessonId) triggerHwGeneration(lessonId, hwType) }}
                     className="flex-1 py-3 border-2 border-blue-600 text-blue-700 font-semibold rounded-xl text-[13px] hover:bg-blue-50 transition-colors"
                   >
                     Yes, set homework
@@ -1419,15 +1451,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           ) : (
                             <>
                               {r.url ? (
-                                <a
-                                  href={r.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="flex-1 text-[13px] text-blue-600 hover:underline truncate flex items-center gap-1"
+                                <button
+                                  onClick={() => { setPreviewUrl(r.url!); setPreviewLabel(r.label) }}
+                                  className="flex-1 text-[13px] text-blue-600 hover:underline truncate text-left flex items-center gap-1"
                                 >
                                   {r.label}
-                                  <Icon name="open_in_new" size="sm" className="shrink-0 opacity-60" />
-                                </a>
+                                </button>
                               ) : (
                                 <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
                               )}
@@ -1435,6 +1464,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 <span className="text-[10px] text-gray-400 shrink-0">
                                   {r.fileKey.startsWith('stub:') ? r.fileKey.slice(5) : r.fileKey}
                                 </span>
+                              )}
+                              {r.url && (
+                                <button
+                                  title="Preview"
+                                  onClick={() => { setPreviewUrl(r.url!); setPreviewLabel(r.label) }}
+                                  className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-blue-100 text-gray-300 hover:text-blue-600 transition-colors"
+                                >
+                                  <Icon name="visibility" size="sm" />
+                                </button>
                               )}
                               {r.review && (
                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${scoreColor(r.review.sendScore)}`}>
@@ -1852,7 +1890,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   dueAt:           new Date(hwDueDate).toISOString(),
                 })
                 router.refresh()
-                onClose()
+                setWizardStep(null)
+                setActiveTab('Homework')
               })}
               className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-40 transition-colors"
             >
@@ -1889,6 +1928,101 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         title={viewingHwTitle}
         onClose={() => setViewingHwId(null)}
       />
+    )}
+
+    {/* Resource picker — shown when 2+ presentation resources exist before generating homework */}
+    {resourcePickerOpen && lesson && typeof window !== 'undefined' && createPortal(
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-sm mx-4 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-900">Which resource to use?</p>
+            <button
+              onClick={() => setResourcePickerOpen(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Icon name="close" size="sm" />
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Multiple presentations found. Select the primary source for homework question generation.
+          </p>
+          <div className="space-y-2">
+            {(lesson.resources ?? [])
+              .filter(r => r.type === 'SLIDES' || r.type === 'PLAN' || !!(r as any).oakContentId)
+              .map(r => (
+                <label
+                  key={r.id}
+                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    pickerResourceId === r.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="resourcePicker"
+                    value={r.id}
+                    checked={pickerResourceId === r.id}
+                    onChange={() => setPickerResourceId(r.id)}
+                    className="accent-blue-600"
+                  />
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                    (r as any).oakContentId
+                      ? 'bg-amber-100 text-amber-700'
+                      : RESOURCE_TYPE_COLORS[r.type] ?? 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {(r as any).oakContentId ? 'Oak' : RESOURCE_TYPE_LABELS[r.type] ?? r.type}
+                  </span>
+                  <span className="flex-1 text-xs text-gray-800 truncate">{r.label}</span>
+                </label>
+              ))}
+          </div>
+          <button
+            onClick={() => {
+              setResourcePickerOpen(false)
+              if (lesson?.id && pendingHwType) {
+                runHwGeneration(lesson.id, pendingHwType, pickerResourceId ?? undefined)
+              }
+            }}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+          >
+            Generate from this resource
+          </button>
+        </div>
+      </div>,
+      document.body,
+    )}
+
+    {/* Resource preview modal — iframe for URL resources */}
+    {previewUrl && typeof window !== 'undefined' && createPortal(
+      <div className="fixed inset-0 z-[200] flex flex-col bg-black/80">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
+          <p className="text-sm font-semibold text-gray-900 truncate mr-4">{previewLabel}</p>
+          <div className="flex items-center gap-3 shrink-0">
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+            >
+              <Icon name="open_in_new" size="sm" /> Open in new tab
+            </a>
+            <button
+              onClick={() => setPreviewUrl(null)}
+              className="text-gray-500 hover:text-gray-800"
+            >
+              <Icon name="close" size="sm" />
+            </button>
+          </div>
+        </div>
+        <iframe
+          src={getEmbedUrl(previewUrl)}
+          className="flex-1 w-full bg-white"
+          allow="autoplay"
+          title={previewLabel}
+        />
+      </div>,
+      document.body,
     )}
     </>
   )

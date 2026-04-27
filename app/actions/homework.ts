@@ -557,6 +557,7 @@ function noApiKeyFallback(type: HomeworkType, lessonTitle: string, subject: stri
 export async function generateHomeworkFromResources(
   lessonId:  string,
   forceType?: HomeworkType,
+  preferredResourceId?: string,
 ): Promise<ProposalResult> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
@@ -600,14 +601,32 @@ export async function generateHomeworkFromResources(
     : []
   const oakBySlug = Object.fromEntries(oakDetails.map(o => [o.slug, o]))
 
-  // Include ALL resources as context (Oak LINK resources are the primary source material)
-  const resourceContext = lesson.resources.length > 0
-    ? lesson.resources.map(r => {
+  // Reorder resources: put teacher's preferred resource first if specified
+  const orderedResources = preferredResourceId
+    ? [
+        ...lesson.resources.filter(r => r.id === preferredResourceId),
+        ...lesson.resources.filter(r => r.id !== preferredResourceId),
+      ]
+    : lesson.resources
+  const primaryResource = orderedResources[0]
+  const hasPrimaryNonOak = !!(primaryResource && !primaryResource.oakContentId && preferredResourceId)
+
+  // Build resource context — primary resource is clearly marked for the AI
+  const resourceContext = orderedResources.length > 0
+    ? orderedResources.map((r, idx) => {
+        const isPrimary = idx === 0 && !!preferredResourceId
         if (r.oakContentId && oakBySlug[r.oakContentId]) {
           const oak = oakBySlug[r.oakContentId]
-          return `  - [Oak Lesson] "${oak.title}"${oak.pupilLessonOutcome ? `\n      Learning outcome: ${oak.pupilLessonOutcome}` : ''}`
+          const outcome = oak.pupilLessonOutcome ? `\n      Learning outcome: ${oak.pupilLessonOutcome}` : ''
+          return isPrimary
+            ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [Oak Lesson] "${oak.title}"${outcome}`
+            : `  - [Oak Lesson] "${oak.title}"${outcome}`
         }
-        return `  - [${r.type}] "${r.label}"${r.url ? ` (${r.url})` : ''}`
+        const urlPart = r.url ? ` (${r.url})` : ''
+        const filePart = r.fileKey && !r.url ? ` — teacher's own uploaded file` : ''
+        return isPrimary
+          ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}"${urlPart}${filePart}`
+          : `  - [${r.type}] "${r.label}"${urlPart}`
       }).join('\n')
     : '  - No lesson resources attached'
 
@@ -691,10 +710,12 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
 
   const typePrompt = buildTypePrompt(type, subject, qualification)
 
-  // When no objectives, base the task instruction on resources instead
-  const taskInstruction = lesson.objectives.length > 0
-    ? `Your homework questions MUST directly test the learning objectives listed above. Students should be able to answer from what they learned in this lesson.`
-    : `Your homework questions MUST be based on the lesson resources listed above. Use the Oak lesson learning outcomes as your targets — generate questions that test exactly what those outcomes describe. Questions must be specific to "${lesson.title}" — do not generate generic "describe key concepts" questions.`
+  // Task instruction — respect the teacher's chosen primary resource
+  const taskInstruction = hasPrimaryNonOak
+    ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own material). Use the lesson title and learning objectives to determine what was taught. Do NOT base questions on any Oak or supplementary resources listed below it.`
+    : lesson.objectives.length > 0
+      ? `Your homework questions MUST directly test the learning objectives listed above. Students should be able to answer from what they learned in this lesson.`
+      : `Your homework questions MUST be based on the lesson resources listed above. Use the Oak lesson learning outcomes as your targets — generate questions that test exactly what those outcomes describe. Questions must be specific to "${lesson.title}" — do not generate generic "describe key concepts" questions.`
 
   const prompt = `You are an expert UK secondary school ${subject} teacher creating homework for a ${qualification} class${examBoard ? ` (${examBoard})` : ''}.
 
@@ -718,8 +739,8 @@ ${typePrompt}`
   try {
     const client  = new Anthropic({ apiKey })
     const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 4000,
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 2000,
       system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
       messages:   [{ role: 'user', content: prompt }],
     })
@@ -727,8 +748,6 @@ ${typePrompt}`
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
 
     console.log('[generateHomeworkFromResources] RAW AI RESPONSE (first 500):', cleaned.slice(0, 500))
-
-    console.log('[generateHomeworkFromResources] RAW AI RESPONSE (first 600):', cleaned.slice(0, 600))
 
     let parsed: any
     try {
@@ -759,8 +778,8 @@ ${typePrompt}`
       console.warn('[generateHomeworkFromResources] questionsJson missing or too short for', type, '— retrying')
       // Retry once with a more directive prompt
       const retryMsg = await client.messages.create({
-        model:      'claude-sonnet-4-6',
-        max_tokens: 4000,
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
         messages:   [
           { role: 'user',      content: prompt },
           { role: 'assistant', content: cleaned },

@@ -11,7 +11,7 @@ async function requireStaff() {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
   const user = session.user as { id: string; schoolId: string; role: string; firstName: string; lastName: string }
-  const allowed = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN']
+  const allowed = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','TEACHING_ASSISTANT']
   if (!allowed.includes(user.role)) throw new Error('Forbidden')
   return user
 }
@@ -63,6 +63,8 @@ export type LearningPassportDoc = {
   developmentAreas: string[]
   classroomStrategies: string[]
   learningFormatNotes: string | null
+  profileSummary: string | null
+  preferredTypes: string[]
 }
 
 export type KPlanDoc = {
@@ -178,6 +180,17 @@ export type WondeAttendanceSummary = {
   unauthorisedAbsences: number | null
 }
 
+export type TaNoteRowInline = {
+  id:         string
+  content:    string
+  authorName: string
+  authorRole: string
+  isUrgent:   boolean
+  isRead:     boolean
+  classId:    string | null
+  createdAt:  string
+}
+
 export type StudentFileData = {
   student: {
     id: string
@@ -206,6 +219,7 @@ export type StudentFileData = {
   completionRate: number
   avgScore: number | null
   notes: NoteRow[]
+  taNotes: TaNoteRowInline[]
   parentContacts: StudentContact[]
   wondeAttendance: WondeAttendanceSummary | null
 }
@@ -243,6 +257,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     parentLinks,
     wondeContacts,
     apdrCyclesRaw,
+    taNoteRaws,
   ] = await Promise.all([
     prisma.sendStatus.findFirst({ where: { studentId } }),
 
@@ -314,6 +329,12 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     prisma.assessPlanDoReview.findMany({
       where:   { studentId, schoolId },
       orderBy: { cycleNumber: 'desc' },
+    }),
+
+    prisma.taNote.findMany({
+      where: { studentId, schoolId },
+      include: { author: { select: { firstName: true, lastName: true, role: true } } },
+      orderBy: { createdAt: 'desc' },
     }),
   ])
 
@@ -405,6 +426,17 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     createdAt:  n.createdAt.toISOString(),
   }))
 
+  const taNoteRowsMapped: TaNoteRowInline[] = taNoteRaws.map(n => ({
+    id:         n.id,
+    content:    n.content,
+    authorName: `${n.author.firstName} ${n.author.lastName}`,
+    authorRole: n.author.role,
+    isUrgent:   n.isUrgent,
+    isRead:     n.isRead,
+    classId:    n.classId,
+    createdAt:  n.createdAt.toISOString(),
+  }))
+
   // ── Contacts ──────────────────────────────────────────────────────────────
   const parentContacts: StudentContact[] = []
 
@@ -452,6 +484,8 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     developmentAreas:    learningProfileRaw.developmentAreas,
     classroomStrategies: learningProfileRaw.classroomStrategies,
     learningFormatNotes: learningProfileRaw.learningFormatNotes,
+    profileSummary:      learningProfileRaw.profileSummary ?? null,
+    preferredTypes:      learningProfileRaw.preferredTypes ?? [],
   } : null
 
   const kPlan: KPlanDoc | null = kPlanRaw ? {
@@ -543,6 +577,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     completionRate,
     avgScore,
     notes: noteRows,
+    taNotes: taNoteRowsMapped,
     parentContacts,
     wondeAttendance: wondeAtt ? {
       possibleSessions:     wondeAtt.possibleSessions,

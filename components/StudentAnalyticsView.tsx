@@ -478,9 +478,19 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 ))}
               </div>
             )}
-            {!isClassPending && classSummaries !== null && (
-              classSummaries.length === 0 ? (
-                <div className="text-center py-16 text-sm text-gray-400">No classes found.</div>
+            {!isClassPending && classSummaries !== null && (() => {
+              // Apply subject / year / teacher filters to the class summary list
+              const filteredClassSummaries = classSummaries.filter(c => {
+                if (subject && c.subject !== subject) return false
+                if (yearGroup && c.yearGroup !== Number(yearGroup)) return false
+                if (teacherFilter) {
+                  const fc = filterOptions.classes.find(fc2 => fc2.id === c.id)
+                  if (!fc || !fc.teacherIds.includes(teacherFilter)) return false
+                }
+                return true
+              })
+              return filteredClassSummaries.length === 0 ? (
+                <div className="text-center py-16 text-sm text-gray-400">No classes match the selected filters.</div>
               ) : (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   <div className="hidden sm:grid grid-cols-[1fr_90px_130px_90px_70px_32px] px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
@@ -491,12 +501,12 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                     <span className="text-right">SEND</span>
                     <span />
                   </div>
-                  {classSummaries.map(cls => (
+                  {filteredClassSummaries.map(cls => (
                     <ClassRow key={cls.id} cls={cls} onDrillDown={() => drillIntoClass(cls)} />
                   ))}
                 </div>
               )
-            )}
+            })()}
           </>
         )}
 
@@ -976,12 +986,17 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 }
 
 function StudentDeepDive({ file }: { file: StudentFileData }) {
-  const { student, subjectPerf, recentHomeworks, ilp, kPlan } = file
+  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport } = file
+  const [hwSubjectFilter, setHwSubjectFilter] = useState('')
   const sendBadgeColor: Record<string, string> = {
     EHCP:        'bg-purple-100 text-purple-700',
     SEN_SUPPORT: 'bg-blue-100 text-blue-700',
   }
   const activeTargets = ilp?.targets.filter(t => t.status === 'active') ?? []
+  const hwSubjects = [...new Set(recentHomeworks.map(h => h.subject).filter(Boolean))].sort()
+  const filteredHomeworks = hwSubjectFilter
+    ? recentHomeworks.filter(h => h.subject === hwSubjectFilter)
+    : recentHomeworks
 
   return (
     <div className="space-y-4">
@@ -1008,6 +1023,24 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
           Full file <Icon name="open_in_new" size="sm" />
         </a>
       </div>
+
+      {/* Adaptive learning profile summary */}
+      {(learningPassport?.profileSummary || (learningPassport?.preferredTypes && learningPassport.preferredTypes.length > 0)) && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Icon name="auto_fix_high" size="sm" className="text-emerald-600" />
+            <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">Adaptive Learning Profile</p>
+          </div>
+          {learningPassport?.profileSummary && (
+            <p className="text-sm text-emerald-900 leading-snug">{learningPassport.profileSummary}</p>
+          )}
+          {learningPassport?.preferredTypes && learningPassport.preferredTypes.length > 0 && (
+            <p className="text-xs text-emerald-700 mt-1">
+              Best homework format: <span className="font-medium">{learningPassport.preferredTypes.map((t: string) => t.replace(/_/g, ' ')).join(', ')}</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Performance vs Predicted */}
       {subjectPerf.length > 0 && (
@@ -1068,11 +1101,21 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
       {/* Latest homework */}
       {recentHomeworks.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <h4 className="font-semibold text-sm text-gray-800">Latest Homework</h4>
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+            <h4 className="font-semibold text-sm text-gray-800 flex-1">Latest Homework</h4>
+            {hwSubjects.length > 1 && (
+              <select
+                value={hwSubjectFilter}
+                onChange={e => setHwSubjectFilter(e.target.value)}
+                className="text-[11px] border border-gray-200 rounded-lg px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">All subjects</option>
+                {hwSubjects.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
           </div>
           <div className="divide-y divide-gray-50">
-            {recentHomeworks.slice(0, 8).map(hw => (
+            {filteredHomeworks.slice(0, 8).map(hw => (
               <div key={hw.homeworkId} className="flex items-center gap-3 px-5 py-2.5 text-sm">
                 <Icon name={hw.submitted ? 'check_circle' : 'cancel'} size="sm"
                   className={hw.submitted ? 'text-green-500 shrink-0' : 'text-gray-300 shrink-0'} />

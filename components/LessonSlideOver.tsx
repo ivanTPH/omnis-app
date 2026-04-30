@@ -2,6 +2,7 @@
 import { useState, useTransition, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import { createLesson } from '@/app/actions/lessons'
+import { toast } from '@/components/ui/Toast'
 import { LessonType, AudienceType } from '@prisma/client'
 import {
   ALL_SUBJECTS,
@@ -204,6 +205,7 @@ export default function LessonSlideOver({
         })
         onClose()
         onCreated?.(result.id)
+        toast('Lesson saved successfully')
       } catch (err) {
         console.error('Create lesson failed:', err)
         setSubmitError('Failed to create lesson. Please try again.')

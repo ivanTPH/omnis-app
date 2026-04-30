@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
+import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
+import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -312,6 +314,15 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   type GradeDrop = { studentId: string; studentName: string; previousGrade: number; newGrade: number; drop: number; suggestion: string }
   const [gradeDrop,         setGradeDrop]         = useState<GradeDrop | null>(null)
   const [passportAdded,     setPassportAdded]     = useState(false)
+  // Adaptive differentiation
+  type DiffResult = Awaited<ReturnType<typeof generateDifferentiatedVersions>>[number]
+  const [diffOpen,    setDiffOpen]    = useState(false)
+  const [diffLoading, setDiffLoading] = useState(false)
+  const [diffResults, setDiffResults] = useState<DiffResult[] | null>(null)
+  const [diffError,   setDiffError]   = useState<string | null>(null)
+  // Per-student adaptive suggestions (fetched lazily on selection)
+  const [adaptiveSugg, setAdaptiveSugg] = useState<Record<string, AdaptiveHomeworkSuggestions>>({})
+  const [adaptiveSuggLoading, setAdaptiveSuggLoading] = useState(false)
 
   const router = useRouter()
 
@@ -579,6 +590,21 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     return () => clearTimeout(t)
   }, [ilpCountdown])
 
+  // Fetch adaptive suggestions when a student with an ILP is selected (skip if already cached)
+  useEffect(() => {
+    if (!selectedId || !selectedIlp) return
+    if (adaptiveSugg[selectedId]) return
+    let cancelled = false
+    setAdaptiveSuggLoading(true)
+    getAdaptiveHomeworkSuggestions(selectedId, hw.id).then(result => {
+      if (!cancelled) setAdaptiveSugg(prev => ({ ...prev, [selectedId]: result }))
+    }).catch(() => { /* non-fatal */ }).finally(() => {
+      if (!cancelled) setAdaptiveSuggLoading(false)
+    })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, selectedIlp])
+
   async function handleOpenIlpModal() {
     if (!ilpPromptData || !selectedSub) return
     setIlpCountdown(null) // stop countdown
@@ -805,6 +831,29 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
     gradeHasValue              ? 'Auto-suggested from score' :
     'Enter score first'
 
+  // ── adaptive differentiation ─────────────────────────────────────────────
+  async function handleDifferentiate() {
+    const sendStudentIds = pupils
+      .filter(p => sendByStudent[p.id] && sendByStudent[p.id].activeStatus !== 'NONE')
+      .map(p => p.id)
+    setDiffOpen(true)
+    setDiffLoading(true)
+    setDiffError(null)
+    setDiffResults(null)
+    try {
+      if (sendStudentIds.length === 0) {
+        setDiffError('No SEND students in this class to differentiate for.')
+        return
+      }
+      const results = await generateDifferentiatedVersions(hw.id, sendStudentIds)
+      setDiffResults(results)
+    } catch (e: any) {
+      setDiffError(e?.message ?? 'Failed to generate differentiated versions.')
+    } finally {
+      setDiffLoading(false)
+    }
+  }
+
   // ── filter click helper ───────────────────────────────────────────────────
   function handleFilterClick(key: PupilFilter) {
     setPupilFilter(prev => prev === key ? 'all' : key)
@@ -823,6 +872,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
   // ILP targets to display in sidebar
   const ilpTargets = selectedIlp?.targets ?? []
   const visibleTargets = showAllTargets ? ilpTargets : ilpTargets.slice(0, 3)
+  const currentAdaptiveSugg = selectedId ? adaptiveSugg[selectedId] ?? null : null
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -926,6 +976,21 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             >
               <span className="text-2xl font-bold leading-none">{sendCount}</span>
               <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">SEND</span>
+            </button>
+          )}
+
+          {sendCount > 0 && (
+            <button
+              onClick={handleDifferentiate}
+              disabled={diffLoading}
+              title="Generate AI-differentiated versions for SEND students"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors text-[11px] font-semibold shrink-0"
+            >
+              {diffLoading
+                ? <Icon name="refresh" size="sm" className="animate-spin" />
+                : <Icon name="auto_fix_high" size="sm" />
+              }
+              Differentiate
             </button>
           )}
 
@@ -1660,6 +1725,40 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 <p className="text-[12px] text-gray-400 italic">No active ILP goals recorded.</p>
               )}
 
+              {/* Adaptive learning suggestions */}
+              {adaptiveSuggLoading && (
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                  <Icon name="refresh" size="sm" className="animate-spin" /> Loading learning profile…
+                </div>
+              )}
+              {currentAdaptiveSugg && (currentAdaptiveSugg.alternativeType || currentAdaptiveSugg.scaffolding.length > 0 || currentAdaptiveSugg.adaptations.length > 0) && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Adaptive Insights</p>
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-2.5 space-y-1.5">
+                    {currentAdaptiveSugg.alternativeType && (
+                      <div className="flex items-start gap-1.5">
+                        <Icon name="auto_fix_high" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-emerald-800 leading-snug">
+                          Best format for next homework: <span className="font-semibold">{currentAdaptiveSugg.alternativeType.replace(/_/g, ' ')}</span>
+                        </p>
+                      </div>
+                    )}
+                    {currentAdaptiveSugg.scaffolding.slice(0, 2).map((note, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <Icon name="tips_and_updates" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-emerald-800 leading-snug">{note}</p>
+                      </div>
+                    ))}
+                    {currentAdaptiveSugg.adaptations.slice(0, 2).map((note, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <Icon name="accessibility" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-emerald-800 leading-snug">{note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Full SEND record link */}
               <a
                 href={`/student/${selectedId}/send`}
@@ -1676,6 +1775,76 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
       </div>{/* end right: marking area */}
 
       </div>{/* end two-panel layout */}
+
+      {/* ── Adaptive Differentiation Slide-Over ── */}
+      {diffOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setDiffOpen(false)} />
+          <div className="relative bg-white w-full max-w-xl h-full flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+              <div className="flex items-center gap-2">
+                <Icon name="auto_fix_high" size="sm" className="text-indigo-600" />
+                <h2 className="text-[14px] font-semibold text-gray-900">Adaptive Differentiation</h2>
+                {!diffLoading && diffResults && (
+                  <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">{diffResults.length} student{diffResults.length !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+              <button onClick={() => setDiffOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <Icon name="close" size="md" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
+              {diffLoading && (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Icon name="refresh" size="lg" className="animate-spin text-indigo-500" />
+                  <p className="text-[13px] text-gray-500">Generating adaptations for SEND students…</p>
+                  <p className="text-[11px] text-gray-400">This may take up to 30 seconds</p>
+                </div>
+              )}
+              {diffError && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+                  <p className="text-[13px] text-rose-700">{diffError}</p>
+                </div>
+              )}
+              {!diffLoading && diffResults && diffResults.map(r => (
+                <div key={r.studentId} className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${
+                    r.adaptationType === 'send'    ? 'bg-purple-50 border-purple-100' :
+                    r.adaptationType === 'profile' ? 'bg-indigo-50 border-indigo-100' :
+                                                     'bg-gray-50 border-gray-100'
+                  }`}>
+                    <span className="text-[12px] font-semibold text-gray-800 flex-1">{r.studentName}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                      r.adaptationType === 'send'    ? 'bg-purple-100 text-purple-700' :
+                      r.adaptationType === 'profile' ? 'bg-indigo-100 text-indigo-700' :
+                                                       'bg-gray-200 text-gray-500'
+                    }`}>
+                      {r.adaptationType === 'send' ? 'SEND' : r.adaptationType === 'profile' ? 'Profile' : 'Standard'}
+                    </span>
+                  </div>
+                  <div className="px-4 py-3 space-y-2">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Teacher notes</p>
+                    <p className="text-[12px] text-gray-700 leading-relaxed">{r.adaptationNotes}</p>
+                    {r.adaptationType !== 'standard' && (
+                      <details className="mt-2">
+                        <summary className="text-[11px] text-indigo-600 cursor-pointer hover:text-indigo-800 font-medium">View adapted content</summary>
+                        <pre className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-[10px] text-gray-600 overflow-auto max-h-40 whitespace-pre-wrap">
+                          {JSON.stringify(r.adaptedContent, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-gray-200 px-5 py-3 bg-gray-50 shrink-0">
+              <p className="text-[11px] text-gray-400">
+                Adaptations are generated per-student based on their SEND status, learning profile, and active ILP targets. Use these teacher notes to inform your manual adaptations.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ILP Evidence Modal */}
       {ilpModalOpen && ilpPromptData && (

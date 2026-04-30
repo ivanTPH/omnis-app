@@ -41,8 +41,7 @@ export async function getWeekLessons(weekStartISO: string): Promise<CalendarLess
         scheduledAt: { gte: weekStart, lte: friday },
         OR: [
           { class: { teachers: { some: { userId } } } },
-          // classless lessons (e.g. cover, personal) created by this teacher
-          { classId: null, createdBy: userId },
+          { createdBy: userId },
         ],
       },
       include: {

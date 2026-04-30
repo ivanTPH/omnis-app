@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 import { saveStudentVoice } from '@/app/actions/students'
+import StudentAvatar from '@/components/StudentAvatar'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ type Passport = {
 }
 
 type Props = {
+  userId?:         string | null
   firstName:       string
   lastName:        string
   avatarUrl?:      string | null
@@ -101,9 +103,10 @@ function ProgressBar({ pct, grade }: { pct: number; grade: number }) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudentMobileDashboard({
-  firstName: _firstName,
-  lastName: _lastName,
-  avatarUrl: _avatarUrl,
+  userId,
+  firstName,
+  lastName,
+  avatarUrl,
   schoolName: _schoolName,
   homework,
   subjectProgress,
@@ -428,6 +431,19 @@ export default function StudentMobileDashboard({
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+      {/* Student identity strip */}
+      <div className="bg-white px-4 pt-3 pb-2 flex items-center gap-3 shrink-0 border-b border-gray-100">
+        <StudentAvatar
+          userId={userId}
+          firstName={firstName}
+          lastName={lastName}
+          avatarUrl={avatarUrl ?? null}
+          size="sm"
+        />
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-gray-900 truncate">{firstName} {lastName}</p>
+        </div>
+      </div>
       {/* Tab bar at top */}
       <div className="bg-white border-b border-gray-100 shrink-0">
         <div className="flex max-w-2xl mx-auto">

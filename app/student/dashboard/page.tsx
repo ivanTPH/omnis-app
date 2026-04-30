@@ -113,6 +113,7 @@ export default async function StudentDashboardPage() {
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <StudentMobileDashboard
+        userId={userId}
         firstName={firstName}
         lastName={lastName}
         avatarUrl={avatarUrl ?? null}

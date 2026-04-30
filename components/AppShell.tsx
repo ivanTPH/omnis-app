@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar'
 import { getMyAvatarUrl } from '@/app/actions/settings'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
+import { ToastContainer } from '@/components/ui/Toast'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
 const STAFF_ROLES = new Set(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'])
@@ -124,6 +125,7 @@ export default function AppShell({
 
         </div>
       </div>
+      <ToastContainer />
     </TeacherProfileContext.Provider>
   )
 }

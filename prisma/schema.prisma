@@ -17,10 +17,17 @@ enum Role {
   HEAD_OF_YEAR
   COVER_MANAGER
   TEACHER
+  TEACHING_ASSISTANT
   SENCO
   STUDENT
   PARENT
   PLATFORM_ADMIN
+}
+
+enum YearGroupPlanStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
 }
 
 enum LessonType {
@@ -267,6 +274,12 @@ model School {
   // Quick notes
   studentQuickNotes    StudentQuickNote[]
   teacherPlanNotes     TeacherPlanNote[]
+
+  // Year Group Plans (Scheme of Work)
+  yearGroupPlans       YearGroupPlan[]
+
+  // TA notes
+  taNotes              TaNote[]
 }
 
 model TermDate {
@@ -378,6 +391,14 @@ model User {
   authoredNotes      StudentQuickNote[]  @relation("NoteAuthor")
   teacherPlanNotes   TeacherPlanNote[]   @relation("PlanNoteAuthor")
 
+  // TA notes
+  taNotes            TaNote[]            @relation("TaNoteStudent")
+  authoredTaNotes    TaNote[]            @relation("TaNoteAuthor")
+
+  // Year group plans
+  createdYgPlans     YearGroupPlan[]     @relation("YgPlanCreator")
+  approvedYgPlans    YearGroupPlan[]     @relation("YgPlanApprover")
+
   // Assessments
   assessmentsAsStudent Assessment[] @relation("StudentAssessments")
   assessmentsAsTeacher Assessment[] @relation("TeacherAssessments")
@@ -404,6 +425,7 @@ model SchoolClass {
   learningSequences     LearningSequence[]
   revisionPrograms      RevisionProgram[]
   assessments           Assessment[]
+  taNotes               TaNote[]
 
   @@index([schoolId])
 }
@@ -2509,4 +2531,50 @@ model Assessment {
   @@index([schoolId, studentId])
   @@index([schoolId, classId])
   @@index([teacherId, schoolId])
+}
+
+// ─── TA Notes ─────────────────────────────────────────────────────────────────
+
+model TaNote {
+  id        String   @id @default(cuid())
+  student   User     @relation("TaNoteStudent", fields: [studentId], references: [id])
+  studentId String
+  school    School   @relation(fields: [schoolId], references: [id])
+  schoolId  String
+  class     SchoolClass? @relation(fields: [classId], references: [id])
+  classId   String?
+  author    User     @relation("TaNoteAuthor", fields: [authorId], references: [id])
+  authorId  String
+  content   String
+  visibleTo String   @default("ALL_STAFF")  // "TEACHER" | "SENCO" | "ALL_STAFF"
+  isUrgent  Boolean  @default(false)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId, schoolId])
+  @@index([classId, schoolId])
+}
+
+// ─── Year Group Plans (Scheme of Work) ───────────────────────────────────────
+
+model YearGroupPlan {
+  id             String              @id @default(cuid())
+  school         School              @relation(fields: [schoolId], references: [id])
+  schoolId       String
+  yearGroup      Int
+  subject        String
+  planContent    String              // Markdown / rich text
+  uploadedFileUrl String?            // Optional PDF URL
+  status         YearGroupPlanStatus @default(DRAFT)
+  createdBy      User                @relation("YgPlanCreator", fields: [createdById], references: [id])
+  createdById    String
+  approvedBy     User?               @relation("YgPlanApprover", fields: [approvedById], references: [id])
+  approvedById   String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([schoolId, yearGroup, subject])
+  @@index([schoolId, subject])
+  @@index([schoolId, yearGroup])
 }

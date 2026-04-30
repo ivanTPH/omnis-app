@@ -385,20 +385,22 @@ export type SAQuestion = {
 }
 
 type ProposalResult = {
-  type:            HomeworkType
-  instructions:    string
-  modelAnswer:     string
-  gradingBands:    Record<string, string>
-  targetWordCount: number
-  questionsJson?:  { questions: MCQQuestion[] | SAQuestion[] }
+  type:                  HomeworkType
+  instructions:          string
+  modelAnswer:           string
+  gradingBands:          Record<string, string>
+  targetWordCount:       number
+  questionsJson?:        { questions: MCQQuestion[] | SAQuestion[] }
+  basedOnSchemeOfWork?:  boolean
 }
 
 /** Per-type JSON prompt suffix used in both generation functions. */
 function buildTypePrompt(type: HomeworkType, subject: string, qualification: string): string {
   switch (type) {
     case 'MCQ_QUIZ':
-      return `Generate exactly 8 multiple-choice questions directly testing the learning objectives above.
-Each question must have exactly 4 options (A/B/C/D). Vary difficulty across the 8 questions.
+      return `Generate exactly 10 multiple-choice questions directly testing the learning objectives above.
+Spread questions across Bloom's taxonomy: 3 knowledge/recall, 3 understanding/application, 2 analysis, 2 evaluation.
+Each question must have exactly 4 options (A/B/C/D). Include at least one "except" or "which of the following is NOT" style question to test critical thinking.
 
 Return this exact JSON structure (questionsJson is required):
 {
@@ -416,8 +418,12 @@ Return this exact JSON structure (questionsJson is required):
 }`
 
     case 'SHORT_ANSWER':
-      return `Generate exactly 4 short-answer questions directly testing the learning objectives above.
-Each question should require a 3–5 sentence response and include a detailed mark scheme.
+      return `Generate exactly 6 short-answer questions directly testing the learning objectives above.
+Spread questions across Bloom's taxonomy with explicit cognitive demands:
+- Q1–Q2: Knowledge/recall (define, identify, describe key facts — 2–3 marks each)
+- Q3–Q4: Understanding/application (explain why, how, give examples — 3–4 marks each)
+- Q5–Q6: Analysis/evaluation (assess, compare, evaluate significance — 4–6 marks each)
+Each question should require a proportionate response (recall: 2–3 sentences; analysis: 5–8 sentences) and include a detailed mark scheme.
 
 For EVERY question provide all four accessibility fields:
 - scaffolding_hint: a sentence starter or step-by-step scaffold for SEN Support students (e.g. "Think about... / Start with: The main reason was...")
@@ -705,6 +711,16 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
     // SEND fetch is best-effort; don't block generation
   }
 
+  // Fetch year group plan context (best-effort — don't fail generation if this errors)
+  let ygPlanContext = ''
+  try {
+    const { getYearGroupPlanContext } = await import('./year-group-plans')
+    const ygPlan = await getYearGroupPlanContext(schoolId as string, subject, yearGroup)
+    if (ygPlan) {
+      ygPlanContext = `\nSCHEME OF WORK — use this to ensure homework aligns with the curriculum plan:\n${ygPlan.slice(0, 800)}\n`
+    }
+  } catch { /* best-effort */ }
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return noApiKeyFallback(type, lesson.title, subject)
 
@@ -729,7 +745,7 @@ ${objectivesContext}
 
 LESSON RESOURCES — source material for questions:
 ${resourceContext}
-${sendContextBlock}
+${sendContextBlock}${ygPlanContext}
 TASK
 ====
 ${taskInstruction}
@@ -773,7 +789,8 @@ ${typePrompt}`
 
     // Validate questionsJson for structured types
     const needsQuestions = type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER'
-    const hasQuestions   = parsed.questionsJson?.questions && Array.isArray(parsed.questionsJson.questions) && parsed.questionsJson.questions.length >= 3
+    const minQuestions   = type === 'SHORT_ANSWER' ? 5 : 4
+    const hasQuestions   = parsed.questionsJson?.questions && Array.isArray(parsed.questionsJson.questions) && parsed.questionsJson.questions.length >= minQuestions
     if (needsQuestions && !hasQuestions) {
       console.warn('[generateHomeworkFromResources] questionsJson missing or too short for', type, '— retrying')
       // Retry once with a more directive prompt
@@ -804,12 +821,13 @@ ${typePrompt}`
     }
 
     return {
-      type:            type,
-      instructions:    parsed.instructions    ?? '',
-      modelAnswer:     parsed.modelAnswer     ?? '',
-      gradingBands:    parsed.gradingBands    ?? {},
-      targetWordCount: parsed.targetWordCount ?? (type === 'EXTENDED_WRITING' ? 300 : 0),
+      type:                 type,
+      instructions:         parsed.instructions    ?? '',
+      modelAnswer:          parsed.modelAnswer     ?? '',
+      gradingBands:         parsed.gradingBands    ?? {},
+      targetWordCount:      parsed.targetWordCount ?? (type === 'EXTENDED_WRITING' ? 300 : 0),
       questionsJson,
+      basedOnSchemeOfWork:  !!ygPlanContext,
     }
   } catch (err) {
     console.error('[generateHomeworkFromResources] API call failed:', err)

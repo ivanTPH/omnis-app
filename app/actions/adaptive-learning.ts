@@ -592,6 +592,181 @@ export async function getIlpEvidenceDashboard(schoolId: string) {
   }
 }
 
+// ─── ILP Evidence Students (rich per-student breakdown for SENCO view) ────────
+
+export type IlpEvidenceTarget = {
+  id: string
+  target: string
+  status: string
+  targetDate: Date
+  evidenceCount: number
+  lastLinkedAt: Date | null
+  progressNote: string | null
+}
+
+export type IlpEvidenceStudent = {
+  studentId: string
+  studentName: string
+  yearGroup: number | null
+  sendStatus: string
+  needArea: string | null
+  ilpId: string
+  sendCategory: string
+  reviewDate: Date
+  daysUntilReview: number
+  targets: IlpEvidenceTarget[]
+  totalTargets: number
+  targetsWithEvidence: number
+  targetsOnTrack: number
+  hasEvidenceGap: boolean
+  reviewSoon: boolean
+  workingAtGrade: number | null
+  predictedGrade: number | null
+  profileSummary: string | null
+  reviewRecommendation: string
+}
+
+export type IlpEvidenceSummary = {
+  studentsWithIlp: number
+  targetsOnTrack: number
+  targetsBehind: number
+  targetsWithNoEvidence: number
+  students: IlpEvidenceStudent[]
+}
+
+export async function getIlpEvidenceStudents(): Promise<IlpEvidenceSummary> {
+  const user = await requireStaff()
+  const schoolId = user.schoolId
+  const now = new Date()
+
+  const [activePlans, linkedTargets, sendStatuses, learningProfiles] = await Promise.all([
+    prisma.individualLearningPlan.findMany({
+      where:   { schoolId, status: 'active' },
+      include: { targets: { orderBy: { targetDate: 'asc' } } },
+      orderBy: { reviewDate: 'asc' },
+    }),
+    prisma.ilpHomeworkLink.findMany({
+      where:  { homework: { schoolId } },
+      select: { ilpTargetId: true, linkedAt: true, homework: { select: { title: true, dueAt: true } } },
+    }),
+    prisma.sendStatus.findMany({
+      where:  { student: { schoolId } },
+      select: { studentId: true, activeStatus: true, needArea: true },
+    }),
+    prisma.studentLearningProfile.findMany({
+      where:  { schoolId },
+      select: { studentId: true, workingAtGrade: true, predictedGrade: true, profileSummary: true },
+    }),
+  ])
+
+  const studentIds = [...new Set(activePlans.map(p => p.studentId))]
+  const users = await prisma.user.findMany({
+    where:  { id: { in: studentIds } },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
+  })
+  const userMap    = new Map(users.map(u => [u.id, u]))
+  const sendMap    = new Map(sendStatuses.map(s => [s.studentId, s]))
+  const profileMap = new Map(learningProfiles.map(p => [p.studentId, p]))
+
+  // Build evidence map: targetId → { count, lastLinkedAt }
+  const evidenceMap = new Map<string, { count: number; lastLinkedAt: Date | null }>()
+  for (const link of linkedTargets) {
+    const existing = evidenceMap.get(link.ilpTargetId)
+    const linkDate = link.linkedAt ?? (link.homework.dueAt as Date | null)
+    if (!existing) {
+      evidenceMap.set(link.ilpTargetId, { count: 1, lastLinkedAt: linkDate })
+    } else {
+      existing.count++
+      if (linkDate && (!existing.lastLinkedAt || linkDate > existing.lastLinkedAt)) {
+        existing.lastLinkedAt = linkDate
+      }
+    }
+  }
+
+  // Aggregate stats
+  let totalTargetsOnTrack    = 0
+  let totalTargetsBehind     = 0
+  let totalTargetsNoEvidence = 0
+
+  const students: IlpEvidenceStudent[] = activePlans.map(plan => {
+    const u       = userMap.get(plan.studentId)
+    const ss      = sendMap.get(plan.studentId)
+    const profile = profileMap.get(plan.studentId)
+    const daysUntilReview = Math.ceil((plan.reviewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    const in14Days = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+
+    const targets: IlpEvidenceTarget[] = plan.targets.map(t => {
+      const ev = evidenceMap.get(t.id)
+      return {
+        id:            t.id,
+        target:        t.target,
+        status:        t.status,
+        targetDate:    t.targetDate,
+        evidenceCount: ev?.count ?? 0,
+        lastLinkedAt:  ev?.lastLinkedAt ?? null,
+        progressNote:  t.progressNotes,
+      }
+    })
+
+    const totalTargets      = targets.length
+    const targetsWithEvid   = targets.filter(t => t.evidenceCount > 0 || t.status === 'achieved').length
+    const targetsOnTrack    = targets.filter(t => t.evidenceCount > 0 || t.status === 'achieved').length
+    const hasEvidenceGap    = targets.some(t => t.evidenceCount === 0 && t.status === 'active')
+    const targetsBehind     = targets.filter(t => t.evidenceCount === 0 && t.targetDate < in14Days && t.status === 'active').length
+
+    totalTargetsOnTrack    += targetsOnTrack
+    totalTargetsBehind     += targetsBehind
+    totalTargetsNoEvidence += targets.filter(t => t.evidenceCount === 0 && t.status === 'active').length
+
+    // Generate a review recommendation
+    const gradeGap = (profile?.predictedGrade ?? 0) - (profile?.workingAtGrade ?? 0)
+    let reviewRecommendation = ''
+    if (daysUntilReview <= 7) {
+      reviewRecommendation = 'Review overdue — schedule immediately'
+    } else if (daysUntilReview <= 14) {
+      reviewRecommendation = 'Review due within 2 weeks — prepare evidence pack'
+    } else if (targetsBehind > 0) {
+      reviewRecommendation = `${targetsBehind} target${targetsBehind > 1 ? 's' : ''} behind — consider early review or additional support`
+    } else if (gradeGap >= 2 && profile?.workingAtGrade) {
+      reviewRecommendation = `Grade gap: working at ${profile.workingAtGrade}, predicted ${profile.predictedGrade} — focus strategies on closing gap`
+    } else if (hasEvidenceGap) {
+      reviewRecommendation = 'Evidence gaps present — ask subject teachers to link homework'
+    } else {
+      reviewRecommendation = 'On track — continue current support'
+    }
+
+    return {
+      studentId:           plan.studentId,
+      studentName:         u ? `${u.firstName} ${u.lastName}` : 'Unknown',
+      yearGroup:           u?.yearGroup ?? null,
+      sendStatus:          ss?.activeStatus ?? 'SEN_SUPPORT',
+      needArea:            ss?.needArea ?? null,
+      ilpId:               plan.id,
+      sendCategory:        plan.sendCategory,
+      reviewDate:          plan.reviewDate,
+      daysUntilReview,
+      targets,
+      totalTargets,
+      targetsWithEvidence: targetsWithEvid,
+      targetsOnTrack,
+      hasEvidenceGap,
+      reviewSoon:          daysUntilReview <= 30 && daysUntilReview >= 0,
+      workingAtGrade:      profile?.workingAtGrade ?? null,
+      predictedGrade:      profile?.predictedGrade ?? null,
+      profileSummary:      profile?.profileSummary ?? null,
+      reviewRecommendation,
+    }
+  })
+
+  return {
+    studentsWithIlp:      students.length,
+    targetsOnTrack:       totalTargetsOnTrack,
+    targetsBehind:        totalTargetsBehind,
+    targetsWithNoEvidence: totalTargetsNoEvidence,
+    students,
+  }
+}
+
 // ─── Differentiated Versions ──────────────────────────────────────────────────
 
 export async function generateDifferentiatedVersions(

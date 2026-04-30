@@ -60,7 +60,28 @@ export default async function ParentDashboardPage() {
       orderBy: { activatedAt: 'desc' },
     })
 
-    return { child, homework, pending, awaiting, graded, completion, plan }
+    const learningProfile = await prisma.studentLearningProfile.findUnique({
+      where: { studentId: child.id },
+      select: { strengthAreas: true, developmentAreas: true, profileSummary: true },
+    })
+
+    // Subject averages from returned homework (GCSE grade scale)
+    const subjectPerf: Record<string, { total: number; count: number }> = {}
+    for (const hw of graded) {
+      const sub = hw.submissions[0]
+      const g = sub?.grade ? parseInt(sub.grade, 10) : null
+      if (g != null && !isNaN(g)) {
+        const subject = hw.class.name.replace(/\s*(Y\d+|Year\s*\d+|\d+[A-Z]?)$/i, '').trim() || hw.class.name
+        if (!subjectPerf[subject]) subjectPerf[subject] = { total: 0, count: 0 }
+        subjectPerf[subject].total += g
+        subjectPerf[subject].count++
+      }
+    }
+    const subjectAverages = Object.entries(subjectPerf)
+      .map(([subject, { total, count }]) => ({ subject, avg: Math.round(total / count) }))
+      .sort((a, b) => b.avg - a.avg)
+
+    return { child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }
   }))
 
   const unreadMsgs = await prisma.parentConversation.count({
@@ -97,7 +118,7 @@ export default async function ParentDashboardPage() {
             </div>
           )}
 
-          {childData.map(({ child, homework, pending, awaiting, graded, completion, plan }: any) => (
+          {childData.map(({ child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }: any) => (
             <div key={child.id} className="mb-10">
 
               {/* Child header */}
@@ -198,6 +219,76 @@ export default async function ParentDashboardPage() {
                   <Link href="/parent/progress" className="mt-3 inline-flex items-center gap-1 text-[11px] text-purple-700 font-medium hover:underline">
                     View full plan <Icon name="chevron_right" size="sm" />
                   </Link>
+                </div>
+              )}
+
+              {/* Attendance */}
+              {child.attendancePercentage != null && (
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border mb-4 ${
+                  child.attendancePercentage >= 95 ? 'bg-green-50 border-green-200' :
+                  child.attendancePercentage >= 85 ? 'bg-amber-50 border-amber-200' :
+                                                     'bg-rose-50 border-rose-200'
+                }`}>
+                  <Icon name="event_available" size="sm" className={
+                    child.attendancePercentage >= 95 ? 'text-green-600' :
+                    child.attendancePercentage >= 85 ? 'text-amber-600' : 'text-rose-600'
+                  } />
+                  <div className="flex-1">
+                    <p className="text-[13px] font-semibold text-gray-900">Attendance</p>
+                    <p className="text-[11px] text-gray-500">
+                      {child.attendancePercentage >= 95 ? 'Excellent attendance' :
+                       child.attendancePercentage >= 85 ? 'Below target — please speak with school' :
+                       'Attendance concern — please contact school urgently'}
+                    </p>
+                  </div>
+                  <span className={`text-[16px] font-bold ${
+                    child.attendancePercentage >= 95 ? 'text-green-700' :
+                    child.attendancePercentage >= 85 ? 'text-amber-700' : 'text-rose-700'
+                  }`}>{Math.round(child.attendancePercentage)}%</span>
+                </div>
+              )}
+
+              {/* Subject performance */}
+              {subjectAverages.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
+                  <div className="px-5 py-3.5 border-b border-gray-100">
+                    <h3 className="text-[13px] font-semibold text-gray-900">Subject Performance</h3>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Based on returned homework</p>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {subjectAverages.slice(0, 5).map(({ subject, avg }: any) => (
+                      <div key={subject} className="flex items-center justify-between px-5 py-2.5">
+                        <p className="text-[13px] text-gray-700">{subject}</p>
+                        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-lg ${
+                          avg >= 7 ? 'bg-green-100 text-green-800' :
+                          avg >= 5 ? 'bg-amber-100 text-amber-800' :
+                                     'bg-rose-100 text-rose-800'
+                        }`}>Grade {avg}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Learning insights */}
+              {learningProfile && (learningProfile.strengthAreas.length > 0 || learningProfile.developmentAreas.length > 0) && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon name="auto_stories" size="sm" className="text-indigo-600" />
+                    <h3 className="text-[13px] font-semibold text-indigo-900">Learning Insights</h3>
+                  </div>
+                  {learningProfile.strengthAreas.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide mb-1">Strengths</p>
+                      <p className="text-[12px] text-indigo-800">{learningProfile.strengthAreas.slice(0, 2).join(' · ')}</p>
+                    </div>
+                  )}
+                  {learningProfile.developmentAreas.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-1">Focus areas</p>
+                      <p className="text-[12px] text-indigo-800">{learningProfile.developmentAreas.slice(0, 2).join(' · ')}</p>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -287,11 +287,28 @@ export type GradeHistorySubmission = {
   feedback:    string | null
 }
 
+export type TopicWeakness = {
+  topic:      string   // derived from homework title keywords
+  avgGrade:   number   // GCSE 1-9
+  count:      number
+}
+
+export type AdaptiveProfileSummary = {
+  profileSummary:     string | null
+  preferredTypes:     string[]
+  strengthAreas:      string[]
+  developmentAreas:   string[]
+  workingAtGrade:     number | null
+  predictedGrade:     number | null
+}
+
 export type SubjectGradeSummary = {
-  subject:        string
-  avgGrade:       number       // GCSE 1-9
-  submissions:    GradeHistorySubmission[]
-  predictedGrade: number | null // GCSE 1-9 from TeacherPrediction or StudentBaseline
+  subject:          string
+  avgGrade:         number       // GCSE 1-9
+  submissions:      GradeHistorySubmission[]
+  predictedGrade:   number | null // GCSE 1-9 from TeacherPrediction or StudentBaseline
+  weakTopics:       TopicWeakness[]   // topics with grade < subject avg
+  adaptiveProfile?: AdaptiveProfileSummary
 }
 
 export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
@@ -309,7 +326,7 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
     return nums.length ? Math.max(...nums) : 9
   }
 
-  const [submissions, baselines, predictions] = await Promise.all([
+  const [submissions, baselines, predictions, learningProfile] = await Promise.all([
     prisma.submission.findMany({
       where: {
         studentId: userId,
@@ -337,6 +354,14 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
       select: { subject: true, predictedScore: true, adjustment: true },
       orderBy: { updatedAt: 'desc' },
     }),
+    prisma.studentLearningProfile.findUnique({
+      where: { studentId: userId },
+      select: {
+        profileSummary: true, preferredTypes: true,
+        strengthAreas: true, developmentAreas: true,
+        workingAtGrade: true, predictedGrade: true,
+      },
+    }).catch(() => null),
   ])
 
   const baselineMap = new Map(baselines.map(b => [b.subject, b.baselineScore]))
@@ -370,12 +395,40 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
     bySubject.get(subj)!.push(entry)
   }
 
+  // Build adaptive profile summary (shared across all subjects)
+  const adaptiveProfile: AdaptiveProfileSummary | undefined = learningProfile ? {
+    profileSummary:   learningProfile.profileSummary ?? null,
+    preferredTypes:   (learningProfile.preferredTypes as string[]) ?? [],
+    strengthAreas:    (learningProfile.strengthAreas as string[]) ?? [],
+    developmentAreas: (learningProfile.developmentAreas as string[]) ?? [],
+    workingAtGrade:   learningProfile.workingAtGrade ?? null,
+    predictedGrade:   learningProfile.predictedGrade ?? null,
+  } : undefined
+
   const result: SubjectGradeSummary[] = []
   for (const [subject, subs] of bySubject.entries()) {
     const avgGrade   = Math.round(subs.reduce((a, s) => a + s.gcseGrade, 0) / subs.length)
     const predScore  = predMap.get(subject) ?? baselineMap.get(subject) ?? null
     const predicted  = predScore != null ? percentToGcseGrade(predScore) : null
-    result.push({ subject, avgGrade, submissions: subs, predictedGrade: predicted })
+
+    // Detect weak topics: group by title keywords, find those below avg
+    // Use the first 4 words of the homework title as a "topic" identifier
+    const topicMap = new Map<string, number[]>()
+    for (const sub of subs) {
+      const topic = sub.title.split(/\s+/).slice(0, 4).join(' ')
+      if (!topicMap.has(topic)) topicMap.set(topic, [])
+      topicMap.get(topic)!.push(sub.gcseGrade)
+    }
+    const weakTopics: TopicWeakness[] = []
+    for (const [topic, grades] of topicMap.entries()) {
+      const topicAvg = Math.round(grades.reduce((a, b) => a + b, 0) / grades.length)
+      if (topicAvg < avgGrade || topicAvg <= 4) {
+        weakTopics.push({ topic, avgGrade: topicAvg, count: grades.length })
+      }
+    }
+    weakTopics.sort((a, b) => a.avgGrade - b.avgGrade)
+
+    result.push({ subject, avgGrade, submissions: subs, predictedGrade: predicted, weakTopics, adaptiveProfile })
   }
 
   return result.sort((a, b) => a.subject.localeCompare(b.subject))

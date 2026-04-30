@@ -156,16 +156,48 @@ export async function createRevisionProgram(input: {
     console.log('[createRevisionProgram] Lessons found:', periodLessons.map(l => l.title))
     const recentLesson = periodLessons.length > 0 ? periodLessons[periodLessons.length - 1] : null
 
+    // Fetch adaptive learning profiles for all enrolled students
+    const studentIds = enrolledStudents.map((s: any) => s.id)
+    const learningProfiles = await (prisma as any).studentLearningProfile.findMany({
+      where: { studentId: { in: studentIds }, schoolId: user.schoolId },
+      select: {
+        studentId:          true,
+        preferredTypes:     true,
+        bloomsPerformance:  true,
+        learningFormatNotes: true,
+      },
+    })
+    const profileMap = new Map(learningProfiles.map((p: any) => [p.studentId, p]))
+
     // Batch AI generation — max 5 concurrent
     const taskInputs = enrolledStudents.map((student: any) => {
       const studentAnalysis = analysis.studentAnalysis.find(s => s.studentId === student.id)
+      const profile = profileMap.get(student.id) as { preferredTypes: string[]; bloomsPerformance: unknown; learningFormatNotes: string | null } | undefined
+
+      // Summarise Bloom's performance for the prompt (e.g. "strong at remember, needs practice at analyse")
+      let bloomsProfile: string | undefined
+      if (profile?.bloomsPerformance && typeof profile.bloomsPerformance === 'object') {
+        const bp = profile.bloomsPerformance as Record<string, { avgScore: number; count: number }>
+        const strong = Object.entries(bp).filter(([, d]) => d.count >= 2 && d.avgScore >= 65).map(([k]) => k)
+        const weak   = Object.entries(bp).filter(([, d]) => d.count >= 2 && d.avgScore < 50).map(([k]) => k)
+        if (strong.length > 0 || weak.length > 0) {
+          bloomsProfile = [
+            strong.length > 0 ? `strong at ${strong.join('/')}` : '',
+            weak.length   > 0 ? `needs practice at ${weak.join('/')}` : '',
+          ].filter(Boolean).join(', ')
+        }
+      }
+
       return {
         student,
-        weakTopics:      studentAnalysis?.weakTopics ?? analysis.topicsNeedingRevision,
-        strongTopics:    studentAnalysis?.strongTopics ?? analysis.topicsToSkip,
-        taskType:        input.overrideTaskType ?? studentAnalysis?.recommendedTaskType ?? 'retrieval_practice',
-        sendAdaptations: studentAnalysis?.sendAdaptations ?? [],
-        ilpTargets:      studentAnalysis?.ilpTargetsDue ?? [],
+        weakTopics:         studentAnalysis?.weakTopics ?? analysis.topicsNeedingRevision,
+        strongTopics:       studentAnalysis?.strongTopics ?? analysis.topicsToSkip,
+        taskType:           input.overrideTaskType ?? studentAnalysis?.recommendedTaskType ?? 'retrieval_practice',
+        sendAdaptations:    studentAnalysis?.sendAdaptations ?? [],
+        ilpTargets:         studentAnalysis?.ilpTargetsDue ?? [],
+        preferredTypes:     profile?.preferredTypes ?? [],
+        bloomsProfile,
+        learningFormatNotes: profile?.learningFormatNotes ?? undefined,
       }
     })
 
@@ -176,19 +208,22 @@ export async function createRevisionProgram(input: {
       const results = await Promise.all(
         batch.map(async (t: any) => {
           const content = await generateRevisionTask({
-            studentId:       t.student.id,
-            studentName:     `${t.student.firstName} ${t.student.lastName}`,
-            subject:         input.subject,
-            yearGroup:       schoolClass.yearGroup,
-            weakTopics:      t.weakTopics,
-            strongTopics:    t.strongTopics,
-            taskType:        t.taskType,
-            sendAdaptations: t.sendAdaptations,
-            ilpTargets:      t.ilpTargets,
-            durationMins:    input.durationWeeks * 30,
-            lessonTitle:     recentLesson?.title,
-            objectives:      recentLesson?.objectives ?? [],
-            allLessons:      periodLessons,
+            studentId:          t.student.id,
+            studentName:        `${t.student.firstName} ${t.student.lastName}`,
+            subject:            input.subject,
+            yearGroup:          schoolClass.yearGroup,
+            weakTopics:         t.weakTopics,
+            strongTopics:       t.strongTopics,
+            taskType:           t.taskType,
+            sendAdaptations:    t.sendAdaptations,
+            ilpTargets:         t.ilpTargets,
+            durationMins:       input.durationWeeks * 30,
+            lessonTitle:        recentLesson?.title,
+            objectives:         recentLesson?.objectives ?? [],
+            allLessons:         periodLessons,
+            preferredTypes:     t.preferredTypes,
+            bloomsProfile:      t.bloomsProfile,
+            learningFormatNotes: t.learningFormatNotes,
           })
           return { studentId: t.student.id, content }
         }),

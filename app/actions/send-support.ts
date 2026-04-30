@@ -43,6 +43,7 @@ export type IlpWithTargets = {
   studentId: string
   studentName: string
   yearGroup: number | null
+  className: string | null
   sendCategory: string
   currentStrengths: string
   areasOfNeed: string
@@ -76,6 +77,8 @@ export type StudentWithoutIlp = {
   yearGroup: number | null
   sendStatus: string
   needArea: string | null
+  className: string | null
+  classIds: string[]
 }
 
 export type IlpAuditEntryRow = {
@@ -174,6 +177,16 @@ export type EarlyWarningFlagRow = {
   expiresAt: Date
 }
 
+export type UpcomingReview = {
+  ilpId: string
+  studentId: string
+  studentName: string
+  reviewDate: Date
+  planType: 'ILP'
+  sendCategory: string
+  daysUntil: number
+}
+
 export type SencoDashboardData = {
   openConcerns: number
   highSeverityFlags: number
@@ -182,6 +195,7 @@ export type SencoDashboardData = {
   recentConcerns: ConcernRow[]
   activeFlags: EarlyWarningFlagRow[]
   openConcernsList: ConcernRow[]
+  upcomingReviews: UpcomingReview[]
 }
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
@@ -701,6 +715,7 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
     studentId: ilp.studentId,
     studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
     yearGroup: student?.yearGroup ?? null,
+    className: null,
     sendCategory: ilp.sendCategory,
     currentStrengths: ilp.currentStrengths,
     areasOfNeed: ilp.areasOfNeed,
@@ -740,7 +755,7 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
   })
 
   const studentIds = [...new Set(ilps.map(i => i.studentId))]
-  const [students, sendStatuses] = await Promise.all([
+  const [students, sendStatuses, enrolments] = await Promise.all([
     prisma.user.findMany({
       where: { id: { in: studentIds } },
       select: { id: true, firstName: true, lastName: true, yearGroup: true },
@@ -749,9 +764,19 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       where:  { studentId: { in: studentIds } },
       select: { studentId: true, activeStatus: true, needArea: true },
     }),
+    prisma.enrolment.findMany({
+      where: { userId: { in: studentIds } },
+      select: { userId: true, class: { select: { id: true, name: true } } },
+      take: studentIds.length * 3,
+    }),
   ])
   const studentMap    = new Map(students.map(s => [s.id, s]))
   const sendStatusMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  // Build first class name per student
+  const classNameMap  = new Map<string, string>()
+  for (const e of enrolments) {
+    if (!classNameMap.has(e.userId)) classNameMap.set(e.userId, e.class.name)
+  }
 
   return ilps.map(ilp => {
     const ss = sendStatusMap.get(ilp.studentId)
@@ -761,6 +786,7 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       studentId: ilp.studentId,
       studentName: stu ? `${stu.firstName} ${stu.lastName}` : 'Unknown',
       yearGroup: stu?.yearGroup ?? null,
+      className: classNameMap.get(ilp.studentId) ?? null,
       sendCategory: ilp.sendCategory,
       currentStrengths: ilp.currentStrengths,
       areasOfNeed: ilp.areasOfNeed,
@@ -811,19 +837,36 @@ export async function getStudentsWithSendButNoIlp(): Promise<StudentWithoutIlp[]
   const withoutIlpIds = sendStudentIds.filter(id => !ilpStudentSet.has(id))
   if (withoutIlpIds.length === 0) return []
 
-  const students = await prisma.user.findMany({
-    where: { id: { in: withoutIlpIds }, schoolId },
-    select: { id: true, firstName: true, lastName: true, yearGroup: true },
-    orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
-  })
+  const [students, enrolments] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: withoutIlpIds }, schoolId },
+      select: { id: true, firstName: true, lastName: true, yearGroup: true },
+      orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+    }),
+    prisma.enrolment.findMany({
+      where: { userId: { in: withoutIlpIds } },
+      select: { userId: true, classId: true, class: { select: { name: true } } },
+    }),
+  ])
 
   const sendMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  // Build per-student class lists
+  const classListMap = new Map<string, { ids: string[]; name: string | null }>()
+  for (const e of enrolments) {
+    if (!classListMap.has(e.userId)) classListMap.set(e.userId, { ids: [], name: null })
+    const entry = classListMap.get(e.userId)!
+    entry.ids.push(e.classId)
+    if (!entry.name) entry.name = e.class.name
+  }
+
   return students.map(s => ({
     id: s.id,
     studentName: `${s.firstName} ${s.lastName}`,
     yearGroup: s.yearGroup,
     sendStatus: sendMap.get(s.id)?.activeStatus ?? 'SEN_SUPPORT',
     needArea: sendMap.get(s.id)?.needArea ?? null,
+    className: classListMap.get(s.id)?.name ?? null,
+    classIds: classListMap.get(s.id)?.ids ?? [],
   }))
 }
 
@@ -1238,6 +1281,9 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
   const in14Days = new Date(now)
   in14Days.setDate(now.getDate() + 14)
 
+  const in30Days = new Date(now)
+  in30Days.setDate(now.getDate() + 30)
+
   const [
     openConcerns,
     highSeverityFlags,
@@ -1246,6 +1292,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     recentConcernsRaw,
     activeFlagsRaw,
     openConcernsRaw,
+    upcomingIlpsRaw,
   ] = await Promise.all([
     prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
@@ -1265,6 +1312,12 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       where: { schoolId, status: 'open' },
       orderBy: { createdAt: 'asc' },
     }),
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, status: 'active', reviewDate: { gte: now, lte: in30Days } },
+      select: { id: true, studentId: true, reviewDate: true, sendCategory: true },
+      orderBy: { reviewDate: 'asc' },
+      take: 20,
+    }),
   ])
 
   const userIds = [...new Set([
@@ -1273,6 +1326,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     ...activeFlagsRaw.map(f => f.studentId),
     ...openConcernsRaw.map(c => c.studentId),
     ...openConcernsRaw.map(c => c.raisedBy),
+    ...upcomingIlpsRaw.map(i => i.studentId),
   ])]
   const users = await prisma.user.findMany({
     where: { id: { in: userIds } },
@@ -1334,6 +1388,15 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       createdAt: c.createdAt,
       reviewedAt: c.reviewedAt,
       reviewNotes: c.reviewNotes,
+    })),
+    upcomingReviews: upcomingIlpsRaw.map(i => ({
+      ilpId:       i.id,
+      studentId:   i.studentId,
+      studentName: userMap.get(i.studentId)?.name ?? 'Unknown',
+      reviewDate:  i.reviewDate,
+      planType:    'ILP' as const,
+      sendCategory: i.sendCategory,
+      daysUntil:   Math.ceil((i.reviewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
     })),
   }
 }
@@ -2783,7 +2846,7 @@ export async function generateIlpGoalsForStudent(
   }
 
   // ── 1. Fetch student data ───────────────────────────────────────────────────
-  const [student, sendStatus, baselines] = await Promise.all([
+  const [student, sendStatus, baselines, learningProfile, recentSubmissions] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: studentId },
       select: { firstName: true, lastName: true },
@@ -2797,6 +2860,25 @@ export async function generateIlpGoalsForStudent(
       select: { subject: true, baselineScore: true },
       orderBy: { recordedAt: 'desc' },
     }),
+    prisma.studentLearningProfile.findFirst({
+      where: { studentId },
+      select: {
+        profileSummary:     true,
+        workingAtGrade:     true,
+        predictedGrade:     true,
+        preferredTypes:     true,
+        bloomsPerformance:  true,
+        learningFormatNotes: true,
+        strengthAreas:      true,
+        developmentAreas:   true,
+      },
+    }),
+    prisma.submission.findMany({
+      where:   { studentId, finalScore: { not: null }, status: { in: ['MARKED', 'RETURNED'] } },
+      orderBy: { submittedAt: 'desc' },
+      take:    8,
+      select:  { finalScore: true, homework: { select: { title: true, bloomsLevel: true } } },
+    }),
   ])
 
   if (!student) return { ok: false, error: 'Student not found' }
@@ -2808,6 +2890,40 @@ export async function generateIlpGoalsForStudent(
   const sendCategory = sendStatus.needArea ?? sendStatus.activeStatus
   const subject      = baselines[0]?.subject ?? 'General'
   const baselinePct  = baselines[0]?.baselineScore ?? null
+
+  // Build adaptive context for AI prompt
+  const adaptiveContext = [
+    learningProfile?.profileSummary
+      ? `Adaptive profile summary: ${learningProfile.profileSummary}`
+      : '',
+    learningProfile?.workingAtGrade != null
+      ? `Current working-at grade: ${learningProfile.workingAtGrade} (GCSE 1–9)`
+      : '',
+    learningProfile?.predictedGrade != null
+      ? `Predicted grade: ${learningProfile.predictedGrade} (GCSE 1–9)${
+          learningProfile.workingAtGrade != null && learningProfile.predictedGrade > learningProfile.workingAtGrade
+            ? ` — gap of ${learningProfile.predictedGrade - learningProfile.workingAtGrade} grade${learningProfile.predictedGrade - learningProfile.workingAtGrade > 1 ? 's' : ''} to close`
+            : ''
+        }`
+      : '',
+    learningProfile?.preferredTypes && learningProfile.preferredTypes.length > 0
+      ? `Best homework formats: ${learningProfile.preferredTypes.join(', ')}`
+      : '',
+    learningProfile?.strengthAreas && learningProfile.strengthAreas.length > 0
+      ? `Strengths: ${learningProfile.strengthAreas.join(', ')}`
+      : '',
+    learningProfile?.developmentAreas && learningProfile.developmentAreas.length > 0
+      ? `Development areas: ${learningProfile.developmentAreas.join(', ')}`
+      : '',
+    learningProfile?.learningFormatNotes
+      ? `Learning format notes: ${learningProfile.learningFormatNotes}`
+      : '',
+    recentSubmissions.length > 0
+      ? `Recent homework performance (last ${recentSubmissions.length}): avg score ${
+          Math.round(recentSubmissions.reduce((sum, s) => sum + (s.finalScore ?? 0), 0) / recentSubmissions.length)
+        }/9 GCSE — ${recentSubmissions.map(s => `"${s.homework.title}" (Bloom's: ${s.homework.bloomsLevel ?? 'n/a'})`).slice(0, 3).join(', ')}`
+      : '',
+  ].filter(Boolean).join('\n')
 
   // ── 2. Call Claude ──────────────────────────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -2845,16 +2961,21 @@ export async function generateIlpGoalsForStudent(
 Student: ${studentName}
 SEND need: ${sendCategory}
 Primary subject: ${subject}${baselinePct != null ? `\nBaseline score: ${baselinePct}% (GCSE 0–100 scale)` : ''}
+${adaptiveContext ? `\n${adaptiveContext}` : ''}
 
-Write exactly 3 SMART ILP targets tailored to this student's specific SEND need and subject.
-Each target must be specific, measurable, achievable, relevant, and time-bound.
+Write exactly 3 SMART ILP targets tailored to this student's specific SEND need, subject, and adaptive learning profile.
+Each target must:
+- Be specific, measurable, achievable, relevant, and time-bound
+- Reference the student's working-at grade and predicted grade where relevant (to set grade-progression milestones)
+- Use the student's preferred homework formats in teacher strategies where applicable
+- Address identified development areas alongside their strengths
 
 Return ONLY valid JSON — no markdown, no explanation:
 [
   {
     "targetDescription": "clear, specific target (1–2 sentences)",
-    "successCriteria": "how success will be measured (1 sentence)",
-    "teacherStrategy": "specific classroom strategy for the teacher (1–2 sentences)"
+    "successCriteria": "how success will be measured — include grade progression where relevant (1 sentence)",
+    "teacherStrategy": "specific classroom strategy aligned to student's learning format preferences (1–2 sentences)"
   }
 ]`
 

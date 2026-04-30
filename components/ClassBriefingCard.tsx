@@ -6,13 +6,23 @@ import {
   getClassBriefing, bulkGenerateLearningPassports,
   type ClassBriefingStudent,
 } from '@/app/actions/students'
+import {
+  getUrgentTaNotesByClass,
+} from '@/app/actions/ta-notes'
+
+type UrgentNoteGroup = {
+  studentId:   string
+  studentName: string
+  notes: { id: string; content: string; authorName: string; createdAt: string }[]
+}
 
 export default function ClassBriefingCard({ classId }: { classId: string }) {
-  const [students,    setStudents]    = useState<ClassBriefingStudent[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [expanded,    setExpanded]    = useState(false)
-  const [generating,  startGenerate]  = useTransition()
-  const [genResult,   setGenResult]   = useState<{ generated: number; errors: number } | null>(null)
+  const [students,     setStudents]    = useState<ClassBriefingStudent[]>([])
+  const [loading,      setLoading]     = useState(true)
+  const [expanded,     setExpanded]    = useState(false)
+  const [generating,   startGenerate]  = useTransition()
+  const [genResult,    setGenResult]   = useState<{ generated: number; errors: number } | null>(null)
+  const [urgentNotes,  setUrgentNotes] = useState<UrgentNoteGroup[]>([])
 
   useEffect(() => {
     setLoading(true)
@@ -20,6 +30,12 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
       .then(setStudents)
       .catch(() => setStudents([]))
       .finally(() => setLoading(false))
+  }, [classId])
+
+  useEffect(() => {
+    getUrgentTaNotesByClass(classId)
+      .then(groups => setUrgentNotes(groups))
+      .catch(() => setUrgentNotes([]))
   }, [classId])
 
   function handleGenerate() {
@@ -89,6 +105,31 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
         <div className="px-4 pb-2 text-[11px] text-blue-700">
           Generated {genResult.generated} passports
           {genResult.errors > 0 ? `, ${genResult.errors} failed` : ''}. Expand to see strategies.
+        </div>
+      )}
+
+      {/* Urgent TA notes banner */}
+      {urgentNotes.length > 0 && (
+        <div className="mx-4 mb-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Icon name="priority_high" size="sm" className="text-red-500" />
+            <span className="text-[11px] font-bold text-red-600 uppercase tracking-wide">
+              Urgent TA {urgentNotes.length === 1 ? 'note' : 'notes'}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {urgentNotes.map(group => (
+              <div key={group.studentId}>
+                <span className="text-[11px] font-semibold text-amber-800">{group.studentName}: </span>
+                <span className="text-[11px] text-amber-700">
+                  {group.notes[0].content.slice(0, 100)}{group.notes[0].content.length > 100 ? '…' : ''}
+                </span>
+                {group.notes.length > 1 && (
+                  <span className="text-[10px] text-amber-500 ml-1">+{group.notes.length - 1} more</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

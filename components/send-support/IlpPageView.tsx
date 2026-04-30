@@ -5,7 +5,7 @@ import Icon from '@/components/ui/Icon'
 import type { IlpWithTargets, PendingIlpEdit, GeneratedIlpGoal, StudentWithoutIlp } from '@/app/actions/send-support'
 import {
   getPendingIlpEdits, approveIlpEdit, rejectIlpEdit,
-  generateIlpGoalsForStudent, createIlp, approveGeneratedIlp,
+  generateIlpGoalsForStudent, createIlp, approveGeneratedIlp, scheduleIlpReview,
 } from '@/app/actions/send-support'
 import IlpCard from './IlpCard'
 import IlpForm from './IlpForm'
@@ -33,6 +33,12 @@ type AiModalState =
   | { phase: 'done'; studentName: string }
   | { phase: 'error'; message: string }
 
+// ── Post-approval review schedule modal ───────────────────────────────────────
+
+type ReviewScheduleModal =
+  | { open: false }
+  | { open: true; ilpId: string; studentName: string; reviewDate: Date; saving: boolean; saved: boolean }
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type Props = { ilps: IlpWithTargets[]; studentsWithoutIlp?: StudentWithoutIlp[] }
@@ -47,7 +53,9 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
   const [ilpProgress,    setIlpProgress]    = useState(0)
   const [searchQuery,    setSearchQuery]    = useState('')
   const [yearFilter,     setYearFilter]     = useState('')
+  const [classFilter,    setClassFilter]    = useState('')
   const [viewMode,       setViewMode]       = useState<'active' | 'no_ilp'>('active')
+  const [reviewModal,    setReviewModal]    = useState<ReviewScheduleModal>({ open: false })
   const [selectedIds,    setSelectedIds]    = useState<Set<string>>(new Set())
   const [batchGenState,  setBatchGenState]  = useState<'idle' | 'running' | 'done'>('idle')
 
@@ -192,9 +200,33 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
     setApproveAction(a => ({ ...a, [ilpId]: true }))
     try {
       await approveGeneratedIlp(ilpId)
-      window.location.reload()
+      // Find the ILP to get student name and current review date
+      const ilp = ilps.find(i => i.id === ilpId)
+      const reviewDate = ilp?.reviewDate ? new Date(ilp.reviewDate) : (() => {
+        const d = new Date(); d.setDate(d.getDate() + 91); return d
+      })()
+      setReviewModal({
+        open: true,
+        ilpId,
+        studentName: ilp?.studentName ?? 'Student',
+        reviewDate,
+        saving: false,
+        saved: false,
+      })
     } finally {
       setApproveAction(a => { const n = { ...a }; delete n[ilpId]; return n })
+    }
+  }
+
+  async function handleConfirmReviewDate(newDate: Date) {
+    if (!reviewModal.open) return
+    setReviewModal(m => m.open ? { ...m, saving: true } : m)
+    try {
+      await scheduleIlpReview(reviewModal.ilpId, newDate)
+      setReviewModal(m => m.open ? { ...m, saving: false, saved: true } : m)
+      setTimeout(() => { setReviewModal({ open: false }); window.location.reload() }, 1800)
+    } catch {
+      setReviewModal(m => m.open ? { ...m, saving: false } : m)
     }
   }
 
@@ -203,7 +235,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
     return daysUntil <= 14 && daysUntil >= 0
   })
 
-  // Derived year options
+  // Derived year + class options
   const yearOptions = useMemo(() => {
     const years = new Set([
       ...ilps.map(i => i.yearGroup).filter((y): y is number => y != null),
@@ -212,25 +244,35 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
     return [...years].sort((a, b) => a - b)
   }, [ilps, studentsWithoutIlp])
 
+  const classOptions = useMemo(() => {
+    const names = new Set([
+      ...ilps.map(i => i.className).filter((c): c is string => !!c),
+      ...studentsWithoutIlp.map(s => s.className).filter((c): c is string => !!c),
+    ])
+    return [...names].sort()
+  }, [ilps, studentsWithoutIlp])
+
   // Filtered ILP list
   const filteredIlps = useMemo(() => ilps.filter(i => {
     if (yearFilter && i.yearGroup !== Number(yearFilter)) return false
+    if (classFilter && i.className !== classFilter) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       if (!i.studentName.toLowerCase().includes(q)) return false
     }
     return true
-  }), [ilps, yearFilter, searchQuery])
+  }), [ilps, yearFilter, classFilter, searchQuery])
 
   // Filtered students without ILP
   const filteredWithoutIlp = useMemo(() => studentsWithoutIlp.filter(s => {
     if (yearFilter && s.yearGroup !== Number(yearFilter)) return false
+    if (classFilter && s.className !== classFilter) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       if (!s.studentName.toLowerCase().includes(q)) return false
     }
     return true
-  }), [studentsWithoutIlp, yearFilter, searchQuery])
+  }), [studentsWithoutIlp, yearFilter, classFilter, searchQuery])
 
   async function handleBatchGenerate() {
     if (selectedIds.size === 0) return
@@ -482,9 +524,9 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
           </button>
         </div>
 
-        {/* Search + year filter */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
+        {/* Search + year + class filter */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[180px]">
             <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             <input
               value={searchQuery}
@@ -501,6 +543,16 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
             <option value="">All years</option>
             {yearOptions.map(y => <option key={y} value={y}>Year {y}</option>)}
           </select>
+          {classOptions.length > 0 && (
+            <select
+              value={classFilter}
+              onChange={e => setClassFilter(e.target.value)}
+              className="border border-gray-200 rounded-lg px-2.5 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-300"
+            >
+              <option value="">All classes</option>
+              {classOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
         </div>
       </div>
 
@@ -624,7 +676,8 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                       <p className="text-[13px] font-medium text-gray-900">{s.studentName}</p>
                       <p className="text-[11px] text-gray-500">
                         {s.yearGroup ? `Year ${s.yearGroup}` : ''}
-                        {s.yearGroup && s.needArea ? ' · ' : ''}
+                        {s.className ? ` · ${s.className}` : ''}
+                        {(s.yearGroup || s.className) && s.needArea ? ' · ' : ''}
                         {s.needArea ?? s.sendStatus.replace(/_/g, ' ')}
                       </p>
                     </div>
@@ -653,7 +706,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                 >
                   <p className="font-medium text-gray-900">{ilp.studentName}</p>
                   <p className="text-sm text-gray-500">
-                    {ilp.yearGroup ? `Year ${ilp.yearGroup} · ` : ''}{ilp.sendCategory} · {ilp.targets.length} target{ilp.targets.length !== 1 ? 's' : ''} ·
+                    {ilp.yearGroup ? `Year ${ilp.yearGroup}` : ''}{ilp.className ? ` · ${ilp.className}` : ''}{(ilp.yearGroup || ilp.className) ? ' · ' : ''}{ilp.sendCategory} · {ilp.targets.length} target{ilp.targets.length !== 1 ? 's' : ''} ·
                     review {new Date(ilp.reviewDate).toLocaleDateString('en-GB')}
                   </p>
                 </button>
@@ -753,6 +806,91 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                   studentName={studentName}
                   onClose={() => { setShowForm(false); setStudentId(''); setStudentName('') }}
                 />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Schedule Modal — shown after ILP approval */}
+      {reviewModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Icon name="event_available" size="md" className="text-green-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-gray-900">ILP Approved &amp; Published</h2>
+                  <p className="text-[12px] text-gray-500 mt-0.5">{reviewModal.studentName}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {reviewModal.saved ? (
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <Icon name="check_circle" size="lg" className="text-green-500" />
+                  <p className="text-sm font-medium text-gray-800">Review date confirmed and added to your schedule.</p>
+                  <p className="text-[11px] text-gray-400">Refreshing…</p>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">
+                    <Icon name="check_circle" size="sm" className="inline mr-1.5" />
+                    The ILP has been approved and is now visible to teachers. A K Plan and APDR cycle have been automatically generated.
+                  </div>
+
+                  <div>
+                    <p className="text-[13px] font-medium text-gray-800 mb-2">
+                      Confirm review date for your schedule
+                    </p>
+                    <p className="text-[12px] text-gray-500 mb-3">
+                      This date will appear highlighted in the ILP and in your review schedule on the SENCO dashboard.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="date"
+                        defaultValue={reviewModal.reviewDate.toISOString().slice(0, 10)}
+                        id="review-date-input"
+                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1.5">
+                      Default: {reviewModal.reviewDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (13 weeks)
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-[11px] text-blue-700 flex items-start gap-2">
+                    <Icon name="calendar_today" size="sm" className="shrink-0 mt-0.5" />
+                    <span>Review dates are highlighted in the ILP document and listed in your Upcoming Reviews on the SENCO dashboard.</span>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-1">
+                    <button
+                      onClick={() => { setReviewModal({ open: false }); window.location.reload() }}
+                      className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Skip
+                    </button>
+                    <button
+                      onClick={() => {
+                        const input = document.getElementById('review-date-input') as HTMLInputElement | null
+                        const date = input?.value ? new Date(input.value) : reviewModal.reviewDate
+                        handleConfirmReviewDate(date)
+                      }}
+                      disabled={reviewModal.saving}
+                      className="flex items-center gap-2 px-5 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-60"
+                    >
+                      {reviewModal.saving
+                        ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
+                        : <><Icon name="event_available" size="sm" /> Add to review schedule</>
+                      }
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

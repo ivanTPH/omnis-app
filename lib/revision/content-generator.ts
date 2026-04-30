@@ -57,20 +57,23 @@ function fallbackContent(input: {
 }
 
 export async function generateRevisionTask(input: {
-  studentId:       string
-  studentName:     string
-  subject:         string
-  yearGroup:       number
-  weakTopics:      string[]
-  strongTopics:    string[]
-  taskType:        string
-  sendAdaptations: string[]
-  ilpTargets:      string[]
-  durationMins:    number
-  bloomsLevel?:    string
-  lessonTitle?:    string
-  objectives?:     string[]
-  allLessons?:     { title: string; objectives: string[] }[]
+  studentId:          string
+  studentName:        string
+  subject:            string
+  yearGroup:          number
+  weakTopics:         string[]
+  strongTopics:       string[]
+  taskType:           string
+  sendAdaptations:    string[]
+  ilpTargets:         string[]
+  durationMins:       number
+  bloomsLevel?:       string
+  lessonTitle?:       string
+  objectives?:        string[]
+  allLessons?:        { title: string; objectives: string[] }[]
+  preferredTypes?:    string[]
+  bloomsProfile?:     string   // e.g. "strong at remember/understand, needs practice at analyse/evaluate"
+  learningFormatNotes?: string
 }): Promise<RevisionTaskContent> {
   console.log('[generateRevisionTask] lessons:', input.allLessons?.map(l => l.title), 'lessonTitle:', input.lessonTitle, 'weakTopics:', input.weakTopics)
 
@@ -99,6 +102,18 @@ export async function generateRevisionTask(input: {
     ? `Student's weaker areas within this topic: ${input.weakTopics.join(', ')}`
     : ''
 
+  const profileNote = [
+    input.preferredTypes && input.preferredTypes.length > 0
+      ? `This student performs best with ${input.preferredTypes.join(' and ')} tasks — favour this question style where possible.`
+      : '',
+    input.bloomsProfile
+      ? `Bloom's profile: ${input.bloomsProfile}`
+      : '',
+    input.learningFormatNotes
+      ? `Teacher notes on learning format: ${input.learningFormatNotes}`
+      : '',
+  ].filter(Boolean).join(' ')
+
   const topicLine = multiLesson
     ? `Topics covered: ${input.allLessons!.map(l => `"${l.title}"`).join(', ')}`
     : `Lesson topic: "${topic}"`
@@ -110,6 +125,7 @@ Subject: ${input.subject} (Year ${input.yearGroup})
 ${multiLesson ? lessonsBlock : `Learning objectives:\n${objList}`}
 ${weakNote ? `\n${weakNote}` : ''}
 ${sendNote ? `\n${sendNote}` : ''}
+${profileNote ? `\nAdaptive learning profile: ${profileNote}` : ''}
 ${input.ilpTargets.length > 0 ? `\nILP targets to support: ${input.ilpTargets.join('; ')}` : ''}
 
 ${multiLesson

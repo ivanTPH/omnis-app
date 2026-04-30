@@ -6,10 +6,11 @@ import { formatRawScore } from '@/lib/gradeUtils'
 import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc, SubjectPerf,
   HomeworkHistoryRow, NoteRow, StudentContact, WondeAttendanceSummary,
-  LearningPassportDoc,
+  LearningPassportDoc, TaNoteRowInline,
   saveStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
   generateRevisionSuggestions, approveLearningPassport,
 } from '@/app/actions/students'
+import { addTaNote, deleteTaNote } from '@/app/actions/ta-notes'
 import type { ApdrRow } from '@/app/actions/send-support'
 import {
   updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent,
@@ -687,17 +688,27 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
 
 // ── Notes Tab ─────────────────────────────────────────────────────────────────
 
-function NotesTab({ notes, studentId }: { notes: NoteRow[]; studentId: string }) {
+function NotesTab({
+  notes, studentId, taNotes = [], userRole = '',
+}: {
+  notes: NoteRow[]
+  studentId: string
+  taNotes?: TaNoteRowInline[]
+  userRole?: string
+}) {
   const [text, setText] = useState('')
   const [localNotes, setLocalNotes] = useState(notes)
+  const [localTaNotes, setLocalTaNotes] = useState(taNotes)
   const [pending, startTransition] = useTransition()
+  const [taText, setTaText] = useState('')
+  const [taUrgent, setTaUrgent] = useState(false)
+  const [taPending, startTaTransition] = useTransition()
 
   function handleAdd() {
     if (!text.trim()) return
     startTransition(async () => {
       await saveStudentNote(studentId, text)
       setText('')
-      // Optimistically we just reload; next navigation will refresh
     })
   }
 
@@ -708,48 +719,140 @@ function NotesTab({ notes, studentId }: { notes: NoteRow[]; studentId: string })
     })
   }
 
+  function handleAddTaNote() {
+    if (!taText.trim()) return
+    startTaTransition(async () => {
+      await addTaNote(studentId, taText, taUrgent)
+      setTaText('')
+      setTaUrgent(false)
+    })
+  }
+
+  function handleDeleteTaNote(noteId: string) {
+    startTaTransition(async () => {
+      await deleteTaNote(noteId, studentId)
+      setLocalTaNotes(prev => prev.filter(n => n.id !== noteId))
+    })
+  }
+
+  const canDeleteTaNote = ['SENCO','SLT','SCHOOL_ADMIN'].includes(userRole)
+
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-          <h3 className="font-semibold text-sm text-gray-800">Add note</h3>
-        </div>
-        <div className="px-5 py-4 space-y-3">
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            rows={3}
-            placeholder="Write a note about this student…"
-            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleAdd}
-            disabled={pending || !text.trim()}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
-          >
-            {pending ? 'Saving…' : 'Save note'}
-          </button>
-        </div>
-      </div>
+      {/* Staff notes — hidden for TEACHING_ASSISTANT */}
+      {userRole !== 'TEACHING_ASSISTANT' && (
+        <>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-semibold text-sm text-gray-800">Add note</h3>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <textarea
+                value={text}
+                onChange={e => setText(e.target.value)}
+                rows={3}
+                placeholder="Write a note about this student…"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleAdd}
+                disabled={pending || !text.trim()}
+                className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+              >
+                {pending ? 'Saving…' : 'Save note'}
+              </button>
+            </div>
+          </div>
 
-      {localNotes.length === 0
-        ? <p className="text-sm text-gray-400 text-center py-8">No notes yet.</p>
-        : (
-          <div className="space-y-2">
-            {localNotes.map(n => (
-              <div key={n.id} className="bg-white rounded-xl border border-gray-200 px-5 py-4">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm text-gray-800 flex-1 whitespace-pre-wrap">{n.content}</p>
-                  <button onClick={() => handleDelete(n.id)} className="text-gray-300 hover:text-red-500 shrink-0">
+          {localNotes.length === 0
+            ? <p className="text-sm text-gray-400 text-center py-4">No staff notes yet.</p>
+            : (
+              <div className="space-y-2">
+                {localNotes.map(n => (
+                  <div key={n.id} className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm text-gray-800 flex-1 whitespace-pre-wrap">{n.content}</p>
+                      <button onClick={() => handleDelete(n.id)} className="text-gray-300 hover:text-red-500 shrink-0">
+                        <Icon name="delete_outline" size="sm" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        </>
+      )}
+
+      {/* TA Notes section */}
+      {localTaNotes.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="support_agent" size="sm" className="text-amber-600" />
+            <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide">TA Notes</h4>
+          </div>
+          {localTaNotes.map(n => (
+            <div key={n.id} className={`rounded-xl border px-5 py-4 ${n.isUrgent ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-200'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  {n.isUrgent && (
+                    <div className="flex items-center gap-1 mb-1">
+                      <Icon name="priority_high" size="sm" className="text-red-500" />
+                      <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide">Urgent</span>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.content}</p>
+                </div>
+                {(canDeleteTaNote) && (
+                  <button onClick={() => handleDeleteTaNote(n.id)} className="text-gray-300 hover:text-red-500 shrink-0">
                     <Icon name="delete_outline" size="sm" />
                   </button>
-                </div>
-                <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                )}
               </div>
-            ))}
+              <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add TA Note form — shown only for TEACHING_ASSISTANT */}
+      {userRole === 'TEACHING_ASSISTANT' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-amber-200 bg-amber-100/60">
+            <h3 className="font-semibold text-sm text-amber-800 flex items-center gap-2">
+              <Icon name="support_agent" size="sm" />Add TA Note
+            </h3>
           </div>
-        )
-      }
+          <div className="px-5 py-4 space-y-3">
+            <textarea
+              value={taText}
+              onChange={e => setTaText(e.target.value)}
+              rows={3}
+              placeholder="Add a note for the class teacher…"
+              className="w-full text-sm border border-amber-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={taUrgent} onChange={e => setTaUrgent(e.target.checked)} className="rounded" />
+                Mark as urgent
+              </label>
+              <button
+                onClick={handleAddTaNote}
+                disabled={taPending || !taText.trim()}
+                className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 ml-auto"
+              >
+                {taPending ? 'Saving…' : 'Save note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state when TA has no notes yet */}
+      {userRole === 'TEACHING_ASSISTANT' && localTaNotes.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-4">No TA notes for this student yet.</p>
+      )}
     </div>
   )
 }
@@ -1353,7 +1456,7 @@ function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: 
 export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
-  const isTA    = role === 'TA'
+  const isTA    = role === 'TEACHING_ASSISTANT'
   const { student } = data
   const studentName = `${student.firstName} ${student.lastName}`
 
@@ -1596,7 +1699,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
 
       {/* ── Tab: Notes ── */}
       {activeTab === 'Notes' && (
-        <NotesTab notes={data.notes} studentId={student.id} />
+        <NotesTab notes={data.notes} studentId={student.id} taNotes={data.taNotes ?? []} userRole={role} />
       )}
 
       {/* ── Tab: Contact ── */}

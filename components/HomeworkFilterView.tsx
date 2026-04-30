@@ -123,6 +123,21 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
     search  && { key: 'search',  label: `"${search}"`,                                clear: () => setSearch('') },
   ].filter(Boolean) as { key: string; label: string; clear: () => void }[]
 
+  // ── Status badge ─────────────────────────────────────────────────────────────
+
+  function HwStatusBadge({ status }: { status: string }) {
+    const map = {
+      PUBLISHED: 'bg-green-100 text-green-700',
+      DRAFT:     'bg-gray-100 text-gray-600',
+      CLOSED:    'bg-orange-100 text-orange-700',
+    } as Record<string,string>
+    return (
+      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${map[status] ?? 'bg-gray-100 text-gray-600'}`}>
+        {status}
+      </span>
+    )
+  }
+
   // ── Homework card ────────────────────────────────────────────────────────────
 
   function HomeworkCard({ hw }: { hw: HomeworkListItem }) {
@@ -148,11 +163,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[14px] font-semibold text-gray-900 truncate">{hw.title}</p>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-              hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-              hw.status === 'CLOSED'    ? 'bg-gray-200  text-gray-500'  :
-              'bg-amber-100 text-amber-700'
-            }`}>{hw.status}</span>
+            <HwStatusBadge status={hw.status} />
             {overdue && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 shrink-0">
                 Overdue

@@ -252,7 +252,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
             </label>
             <select
               value={subject}
-              onChange={e => { setSubject(e.target.value); setClassId('') }}
+              onChange={e => { defaultsApplied.current = true; setSubject(e.target.value); setClassId('') }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Subjects</option>
@@ -267,7 +267,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
             </label>
             <select
               value={year}
-              onChange={e => { setYear(e.target.value); setClassId('') }}
+              onChange={e => { defaultsApplied.current = true; setYear(e.target.value); setClassId('') }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Years</option>

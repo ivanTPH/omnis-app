@@ -19,6 +19,7 @@ import {
   getClassEhcpSectionF,
   getStudentIlp,
   raiseConcern,
+  generateILPForStudent,
   type LearnerPassportRow,
   type IlpWithTargets,
 } from '@/app/actions/send-support'
@@ -92,6 +93,7 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
 
   const [userRole,       setUserRole]       = useState<string>('TEACHER')
   const [kPlanMap,       setKPlanMap]       = useState<Record<string, KPlanSummary>>({})
+  const [generatingIlp,  setGeneratingIlp]  = useState<Record<string, boolean>>({})
   const [kPlanModal,     setKPlanModal]     = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
   const [kPlanLoading,   setKPlanLoading]   = useState<string | null>(null)
   const [kPlanFullCache, setKPlanFullCache] = useState<Record<string, LearnerPassportRow | 'loading'>>({})
@@ -112,7 +114,7 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
-  const [sendFilter,  setSendFilter]  = useState<'ALL' | 'SEN_SUPPORT' | 'EHCP'>('ALL')
+  const [sendFilter,  setSendFilter]  = useState<'ALL' | 'SEN_SUPPORT' | 'EHCP' | 'NO_PLAN'>('ALL')
 
   // Initial load
   useEffect(() => {
@@ -305,7 +307,7 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
               )}
             </div>
             <a
-              href="/send/dashboard"
+              href="/senco/dashboard"
               className="text-[11px] text-blue-500 hover:text-blue-700 mt-0.5 inline-block"
             >
               View SEND dashboard →
@@ -328,28 +330,37 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
             />
           </div>
         )}
-        {(['ALL', 'SEN_SUPPORT', 'EHCP'] as const).map(f => (
+        {(['ALL', 'SEN_SUPPORT', 'EHCP', 'NO_PLAN'] as const).map(f => (
           <button
             key={f}
             type="button"
             onClick={() => setSendFilter(f)}
             className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
               sendFilter === f
-                ? 'bg-blue-600 text-white'
+                ? f === 'NO_PLAN' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {f === 'ALL' ? 'All' : f === 'SEN_SUPPORT' ? 'SEN Support' : 'EHCP'}
+            {f === 'ALL' ? 'All' : f === 'SEN_SUPPORT' ? 'SEN Support' : f === 'EHCP' ? 'EHCP' : 'No Plan'}
           </button>
         ))}
         <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium ml-auto">
           {rows.filter(r => {
             const q = externalSearch ?? searchQuery
-            return (sendFilter === 'ALL' || r.sendStatus === sendFilter) &&
-              (!q || `${r.firstName} ${r.lastName}`.toLowerCase().includes(q.toLowerCase()))
+            const matchesSend = sendFilter === 'ALL' ? true
+              : sendFilter === 'NO_PLAN' ? (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP') && !r.hasIlp
+              : r.sendStatus === sendFilter
+            return matchesSend && (!q || `${r.firstName} ${r.lastName}`.toLowerCase().includes(q.toLowerCase()))
           }).length} / {rows.length} students
         </span>
       </div>
+
+      {sendFilter === 'NO_PLAN' && (
+        <div className="mb-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-[12px] text-amber-800">
+          <Icon name="info" size="sm" className="text-amber-500 shrink-0" />
+          Students with SEND status but no active ILP. Click <strong>Generate ILP</strong> to create one.
+        </div>
+      )}
 
       {/* Column headers */}
       <div className="grid grid-cols-[1fr_90px_110px_80px_40px_30px] items-center gap-x-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-t-xl border-b-0 text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
@@ -365,8 +376,10 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-b-xl overflow-hidden">
         {rows.filter(row => {
           const q = externalSearch ?? searchQuery
-          return (sendFilter === 'ALL' || row.sendStatus === sendFilter) &&
-            (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
+          const matchesSend = sendFilter === 'ALL' ? true
+            : sendFilter === 'NO_PLAN' ? (row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP') && !row.hasIlp
+            : row.sendStatus === sendFilter
+          return matchesSend && (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
         }).map(row => {
           const badge        = SEND_BADGE[row.sendStatus]
           const isSend       = row.sendStatus !== 'NONE'
@@ -477,6 +490,29 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
                       >
                         <span className="material-icons" style={{ fontSize: '11px', lineHeight: 1 }}>description</span>
                         K Plan
+                      </button>
+                    )}
+                    {sendFilter === 'NO_PLAN' && !row.hasIlp && (
+                      <button
+                        type="button"
+                        title="Generate ILP for this student"
+                        disabled={!!generatingIlp[row.id]}
+                        onClick={async e => {
+                          e.stopPropagation()
+                          setGeneratingIlp(g => ({ ...g, [row.id]: true }))
+                          try {
+                            await generateILPForStudent(row.id)
+                            const updated = await getClassRoster(classId)
+                            setRows(updated)
+                          } catch {}
+                          finally { setGeneratingIlp(g => ({ ...g, [row.id]: false })) }
+                        }}
+                        className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors shrink-0 disabled:opacity-50"
+                      >
+                        {generatingIlp[row.id]
+                          ? <><span className="material-icons animate-spin" style={{ fontSize: '11px', lineHeight: 1 }}>refresh</span>Generating…</>
+                          : <><span className="material-icons" style={{ fontSize: '11px', lineHeight: 1 }}>auto_fix_high</span>Generate ILP</>
+                        }
                       </button>
                     )}
                   </div>

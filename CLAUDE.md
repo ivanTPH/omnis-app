@@ -1,10 +1,14 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-04-08. Authoritative reference for Claude sessions.
+> Last updated: 2026-05-01. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: APP IS TRIAL-READY AS OF 2026-04-08.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-01.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
-> Next step: live school trial with real students and teachers.
+> Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
+> lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
+>
+> **Deployment:** https://omnis-app-ten.vercel.app
+> **Latest commit:** aea2e18 (design consistency sprint)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -328,6 +332,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `lib/oak-delta-sync.ts` | Oak delta sync logic |
 | `lib/revision/analysis-engine.ts` | `analyseClassPerformance()` |
 | `lib/revision/content-generator.ts` | `generateRevisionTask()` with SEND adaptations + ILP integration |
+| `lib/design-tokens.ts` | Design system constants — `colors`, `badges`, `buttons` objects. Source of truth for Tailwind class strings. Use when building new components. |
 
 ---
 
@@ -337,7 +342,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 
 | Enum | Values |
 |---|---|
-| `Role` | SUPER_ADMIN, SCHOOL_ADMIN, SLT, HEAD_OF_DEPT, HEAD_OF_YEAR, COVER_MANAGER, TEACHER, SENCO, STUDENT, PARENT, PLATFORM_ADMIN |
+| `Role` | SUPER_ADMIN, SCHOOL_ADMIN, SLT, HEAD_OF_DEPT, HEAD_OF_YEAR, COVER_MANAGER, TEACHER, SENCO, STUDENT, PARENT, PLATFORM_ADMIN, **TEACHING_ASSISTANT** |
 | `HomeworkType` | MCQ_QUIZ, SHORT_ANSWER, EXTENDED_WRITING, MIXED, UPLOAD |
 | `HomeworkStatus` | DRAFT, PUBLISHED, CLOSED |
 | `SubmissionStatus` | SUBMITTED, UNDER_REVIEW, RESUBMISSION_REQ, MARKED, RETURNED |

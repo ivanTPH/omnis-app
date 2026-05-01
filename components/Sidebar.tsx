@@ -3,6 +3,7 @@ import Link     from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut }     from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
+import OmnisLogo from '@/components/ui/OmnisLogo'
 import UnreadBadge from '@/components/messaging/UnreadBadge'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 import StudentSearch from '@/components/StudentSearch'
@@ -147,15 +148,10 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
 
       {/* Logo */}
       <div className="px-4 py-4 border-b border-gray-100 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center shrink-0">
-            <img src="/omnis-logo.png" alt="Omnis" className="h-6 w-6 object-contain brightness-0 invert" />
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold text-gray-800 text-[15px] leading-tight tracking-tight">omnis</div>
-            <div className="text-[10px] text-gray-400 truncate">{schoolName}</div>
-          </div>
-        </div>
+        <OmnisLogo variant="sidebar" />
+        {schoolName && (
+          <div className="text-[10px] text-gray-400 truncate mt-0.5 pl-[52px]">{schoolName}</div>
+        )}
       </div>
 
       {/* Student search — staff roles only */}

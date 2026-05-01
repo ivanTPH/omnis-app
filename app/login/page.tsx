@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import OmnisLogo from '@/components/ui/OmnisLogo'
 
 const demos = [
   { role: 'Teacher', email: 'j.patel@omnisdemo.school' },
@@ -32,12 +33,9 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-teal-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-700 rounded-2xl shadow-lg mb-4">
-            <img src="/omnis-logo.png" alt="omnis" className="w-10 h-10 object-contain brightness-0 invert" />
-          </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">omnis</h1>
-          <p className="text-blue-200 mt-1.5 text-sm">Learning &amp; SEND Intelligence Platform</p>
+        <div className="flex flex-col items-center mb-8">
+          <OmnisLogo variant="login" />
+          <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-4">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>

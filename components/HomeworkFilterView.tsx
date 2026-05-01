@@ -388,17 +388,17 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
 
       {/* ── Homework list ────────────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
-        <div className="border border-dashed border-gray-200 rounded-2xl p-16 text-center">
-          <Icon name="assignment" size="lg" className="mx-auto text-gray-300 mb-3" />
-          <p className="text-[14px] font-medium text-gray-500">
+        <div className="border border-dashed border-gray-200 rounded-2xl p-20 text-center">
+          <Icon name="assignment" size="lg" className="mx-auto text-gray-300 mb-4" />
+          <p className="text-sm font-medium text-gray-500 mb-1">
             {homework.length === 0 ? 'No homework set yet' : 'No homework matches your filters'}
           </p>
           {homework.length === 0 ? (
-            <p className="text-[12px] text-gray-400 mt-1">Create homework from a lesson in your calendar.</p>
+            <p className="text-xs text-gray-400">Create homework from a lesson in your calendar.</p>
           ) : (
             <button
               onClick={() => { setSubject(''); setYear(''); setClassId(''); setStatus(''); setSearch('') }}
-              className="mt-3 text-[12px] text-blue-600 underline"
+              className="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors"
             >
               Clear filters
             </button>

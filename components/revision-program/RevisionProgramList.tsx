@@ -56,7 +56,7 @@ export default function RevisionProgramList({
         <div className="flex items-center gap-2">
           <button
             onClick={onNewYear}
-            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+            className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
           >
             <Icon name="school" size="sm" /> Year Revision
           </button>

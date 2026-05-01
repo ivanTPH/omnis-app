@@ -89,9 +89,10 @@ export default function NotificationsView({
 
       {/* list */}
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Icon name="notifications" size="lg" className="mb-3 opacity-30" />
-          <p className="text-sm">No notifications yet</p>
+        <div className="flex flex-col items-center justify-center py-24 text-gray-300">
+          <Icon name="notifications_none" size="lg" className="mb-4" />
+          <p className="text-base font-medium text-gray-500 mb-1">All caught up</p>
+          <p className="text-sm text-gray-400">No notifications right now — check back later.</p>
         </div>
       ) : (
         <div className="space-y-2">

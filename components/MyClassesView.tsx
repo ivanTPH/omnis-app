@@ -107,7 +107,7 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
                 const r = await bulkGenerateLearningPassports(effectiveId)
                 setGenResult(r)
               })}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition disabled:opacity-50"
               title="Auto-generate Learning Passports for students who don't yet have one"
             >
               <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />

@@ -202,7 +202,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
           <button
             onClick={handleSync}
             disabled={!isConfigured || syncing}
-            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <IconComp name="refresh" size="sm" className={syncing ? 'animate-spin' : ''} />
             {syncing ? 'Syncing…' : 'Run Full Sync'}

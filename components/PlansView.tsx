@@ -151,7 +151,7 @@ function MessageSencoButton({
         type="button"
         onClick={handleClick}
         disabled={isPending}
-        className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-200 hover:bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
+        className="flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-900 border border-blue-200 hover:bg-blue-50 px-2.5 py-1 rounded-lg transition-colors disabled:opacity-40"
       >
         {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="chat" size="sm" />}
         Message SENCO

@@ -15,13 +15,16 @@ type NavItem =
 
 const navByRole: Record<string, NavItem[]> = {
   TEACHER: [
+    { divider: true, label: 'Teaching' },
     { label: 'Calendar',          href: '/dashboard',          icon: 'calendar_today' },
     { label: 'Homework',          href: '/homework',           icon: 'assignment'     },
     { label: 'My Classes',        href: '/classes',            icon: 'groups'         },
     { label: 'Year Group Plans',  href: '/plans/year-group',   icon: 'menu_book'      },
+    { divider: true, label: 'Learning' },
     { label: 'Revision',          href: '/revision-program',   icon: 'bookmark'       },
     { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: 'psychology'     },
     { label: 'AI Generator',      href: '/ai-generator',       icon: 'auto_fix_high'  },
+    { divider: true, label: 'Communication' },
     { label: 'Messages',          href: '/messages',           icon: 'chat'           },
     { label: 'Notifications',     href: '/notifications',      icon: 'notifications'  },
   ],
@@ -143,14 +146,14 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col h-dvh shrink-0">
 
       {/* Logo */}
-      <div className="px-5 py-4 border-b border-gray-100 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center shrink-0">
-            <img src="/omnis-logo.png" alt="Omnis" className="h-7 w-7 object-contain brightness-0 invert" />
+      <div className="px-4 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 bg-blue-700 rounded-xl flex items-center justify-center shrink-0">
+            <img src="/omnis-logo.png" alt="Omnis" className="h-6 w-6 object-contain brightness-0 invert" />
           </div>
           <div className="min-w-0">
-            <div className="font-bold text-gray-900 text-[15px] leading-tight">Omnis</div>
-            <div className="text-[11px] text-gray-400 truncate">{schoolName}</div>
+            <div className="font-semibold text-gray-800 text-[15px] leading-tight tracking-tight">omnis</div>
+            <div className="text-[10px] text-gray-400 truncate">{schoolName}</div>
           </div>
         </div>
       </div>
@@ -163,11 +166,11 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-auto py-3 px-3">
+      <nav className="flex-1 overflow-auto py-2 px-2">
         {nav.map((item, i) => {
           if ('divider' in item) {
             return (
-              <div key={`d-${i}`} className="pt-4 pb-1 px-2">
+              <div key={`d-${i}`} className="pt-3 pb-1 px-2">
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</span>
               </div>
             )
@@ -178,9 +181,9 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
                 active
-                  ? 'bg-blue-50 text-blue-700'
+                  ? 'bg-blue-700 text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
@@ -193,14 +196,14 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         })}
       </nav>
 
-      {/* Settings + Accessibility */}
-      <div className="px-3 pb-1 shrink-0">
+      {/* Settings */}
+      <div className="px-2 pb-1 shrink-0 border-t border-gray-100 pt-2">
         <Link
           href="/settings"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
-            pathname === '/settings' && !pathname.startsWith('/settings/accessibility')
-              ? 'bg-blue-50 text-blue-700'
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+            pathname.startsWith('/settings') && !pathname.startsWith('/settings/accessibility')
+              ? 'bg-blue-700 text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >
@@ -209,9 +212,9 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         <Link
           href="/settings/accessibility"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
             pathname === '/settings/accessibility'
-              ? 'bg-blue-50 text-blue-700'
+              ? 'bg-blue-700 text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
         >

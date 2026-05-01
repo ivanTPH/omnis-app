@@ -387,7 +387,7 @@ export default function StudentMobileDashboard({
                   <button
                     onClick={handleSaveVoice}
                     disabled={savingVoice}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-lg text-[12px] font-semibold transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-700 hover:bg-blue-800 disabled:opacity-40 text-white rounded-lg text-[12px] font-semibold transition-colors"
                   >
                     {savingVoice
                       ? <Icon name="refresh" size="sm" className="animate-spin" />

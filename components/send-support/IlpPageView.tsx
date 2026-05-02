@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import type { IlpWithTargets, PendingIlpEdit, GeneratedIlpGoal, StudentWithoutIlp } from '@/app/actions/send-support'
 import {
   getPendingIlpEdits, approveIlpEdit, rejectIlpEdit,
@@ -681,9 +682,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                         {s.needArea ?? s.sendStatus.replace(/_/g, ' ')}
                       </p>
                     </div>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                      {s.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                    </span>
+                    <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
                   </div>
                 ))}
               </div>

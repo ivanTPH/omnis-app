@@ -2,6 +2,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
+import SendBadge from '@/components/ui/SendBadge'
 import {
   getClassBriefing, bulkGenerateLearningPassports,
   type ClassBriefingStudent,
@@ -49,11 +50,6 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
   }
 
   if (loading) return null   // silent load — don't flash spinner above objectives
-
-  const sendBadge: Record<string, string> = {
-    EHCP:        'bg-purple-100 text-purple-700',
-    SEN_SUPPORT: 'bg-blue-100 text-blue-700',
-  }
 
   return (
     <div className="border border-blue-100 bg-blue-50 rounded-xl overflow-hidden mb-4">
@@ -157,9 +153,7 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
                       {s.firstName} {s.lastName}
                     </span>
                     {s.sendCategory && (
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${sendBadge[s.sendCategory] ?? 'bg-gray-100 text-gray-500'}`}>
-                        {s.sendCategory === 'EHCP' ? 'EHCP' : 'SEN'}
-                      </span>
+                      <SendBadge status={s.sendCategory as 'EHCP' | 'SEN_SUPPORT'} />
                     )}
                   </div>
                   <ul className="space-y-0.5">

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { markSubmission } from '@/app/actions/homework'
 import { percentToGcseGrade, normalizeScoreForForm, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import { StrategyAppliesTo } from '@prisma/client'
 import StudentAvatar from '@/components/StudentAvatar'
 
@@ -190,14 +191,7 @@ export default function SubmissionMarkingView({
                   {data.student.firstName} {data.student.lastName}
                 </p>
                 {data.sendStatus && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    data.sendStatus.activeStatus === 'EHCP'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-rose-100 text-rose-600'
-                  }`}>
-                    {data.sendStatus.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                    {data.sendStatus.needArea ? ` · ${data.sendStatus.needArea}` : ''}
-                  </span>
+                  <SendBadge status={data.sendStatus.activeStatus as 'EHCP' | 'SEN_SUPPORT'} />
                 )}
                 {hw.isAdapted && (
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">

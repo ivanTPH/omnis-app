@@ -2,6 +2,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
+import SendBadge from '@/components/ui/SendBadge'
 import { formatRawScore } from '@/lib/gradeUtils'
 import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc, SubjectPerf,
@@ -1460,11 +1461,6 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
   const { student } = data
   const studentName = `${student.firstName} ${student.lastName}`
 
-  const sendBadgeColor: Record<string, string> = {
-    EHCP:        'bg-purple-100 text-purple-700',
-    SEN_SUPPORT: 'bg-blue-100 text-blue-700',
-  }
-
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Compact header — just name + avatar */}
@@ -1483,9 +1479,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
             {student.yearGroup && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}
             {student.tutorGroup && <span className="text-xs text-gray-400">· {student.tutorGroup}</span>}
             {student.sendStatus && student.sendStatus !== 'NONE' && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
-                {student.sendStatus.replace('_', ' ')}
-              </span>
+              <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
             )}
           </div>
         </div>
@@ -1556,9 +1550,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
           {(student.sendStatus && student.sendStatus !== 'NONE') && (
             <SectionCard title="SEND status">
               <div className="flex flex-wrap items-center gap-3">
-                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {student.sendStatus.replace('_', ' ')}
-                </span>
+                <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} size="md" />
                 {student.needArea && (
                   <span className="text-sm text-gray-700">{student.needArea}</span>
                 )}

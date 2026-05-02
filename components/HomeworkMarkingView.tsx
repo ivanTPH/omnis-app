@@ -3,6 +3,7 @@ import { useState, useMemo, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
@@ -48,24 +49,12 @@ function statusLabel(s: string) {
   return s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' ')
 }
 
-// ── SEND badge ─────────────────────────────────────────────────────────────────
+// ── SEND badge (student list) ──────────────────────────────────────────────────
 
-function SendBadge({ send }: { send: { activeStatus: string; needArea: string | null } | undefined }) {
+function SendStatusBadge({ send }: { send: { activeStatus: string; needArea: string | null } | undefined }) {
   if (!send || send.activeStatus === 'NONE') return null
-  return send.activeStatus === 'EHCP' ? (
-    <span
-      title={`EHCP${send.needArea ? ` · ${send.needArea}` : ''}`}
-      className="text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 leading-none shrink-0"
-    >
-      EHCP
-    </span>
-  ) : (
-    <span
-      title={`SEN Support${send.needArea ? ` · ${send.needArea}` : ''}`}
-      className="text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 leading-none shrink-0"
-    >
-      SEN
-    </span>
+  return (
+    <SendBadge status={send.activeStatus as 'EHCP' | 'SEN_SUPPORT'} />
   )
 }
 
@@ -723,7 +712,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
               {pupil.firstName} {pupil.lastName}
             </p>
             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-              <SendBadge send={send} />
+              <SendStatusBadge send={send} />
               <span className="text-[10px] text-gray-400">
                 {missing ? 'Not submitted' : sub ? statusLabel(sub.status) : ''}
               </span>
@@ -1115,14 +1104,7 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                       {selectedStudent.firstName} {selectedStudent.lastName}
                     </p>
                     {sendInfo && sendInfo.activeStatus !== 'NONE' && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        sendInfo.activeStatus === 'EHCP'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {sendInfo.activeStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                        {sendInfo.needArea ? ` · ${sendInfo.needArea}` : ''}
-                      </span>
+                      <SendBadge status={sendInfo.activeStatus as 'EHCP' | 'SEN_SUPPORT'} />
                     )}
                     <StatusBadge status={selectedSub.status} />
                   </div>

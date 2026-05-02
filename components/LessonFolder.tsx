@@ -3,6 +3,7 @@ import { useState, useEffect, useTransition, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from '@/components/ui/Icon'
 import UITooltip from '@/components/ui/Tooltip'
+import SendBadge from '@/components/ui/SendBadge'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -129,13 +130,13 @@ function ClassSendSummaryCard({ classId }: { classId: string }) {
       <div className="flex items-center gap-4 px-4 py-3">
         {summary.senSupportCount > 0 && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">SEN</span>
+            <SendBadge status="SEN_SUPPORT" />
             <span className="text-[12px] text-gray-700 font-medium">{summary.senSupportCount} student{summary.senSupportCount !== 1 ? 's' : ''}</span>
           </div>
         )}
         {summary.ehcpCount > 0 && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">EHCP</span>
+            <SendBadge status="EHCP" />
             <span className="text-[12px] text-gray-700 font-medium">{summary.ehcpCount} student{summary.ehcpCount !== 1 ? 's' : ''}</span>
           </div>
         )}

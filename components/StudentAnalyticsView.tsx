@@ -10,6 +10,7 @@ import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 import { formatRawScore } from '@/lib/gradeUtils'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
+import SendBadge from '@/components/ui/SendBadge'
 import RagView from '@/components/analytics/RagView'
 import StudentContactPanel from '@/components/StudentContactPanel'
 import ClassRosterTab from '@/components/ClassRosterTab'
@@ -988,10 +989,6 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 function StudentDeepDive({ file }: { file: StudentFileData }) {
   const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport } = file
   const [hwSubjectFilter, setHwSubjectFilter] = useState('')
-  const sendBadgeColor: Record<string, string> = {
-    EHCP:        'bg-purple-100 text-purple-700',
-    SEN_SUPPORT: 'bg-blue-100 text-blue-700',
-  }
   const activeTargets = ilp?.targets.filter(t => t.status === 'active') ?? []
   const hwSubjects = [...new Set(recentHomeworks.map(h => h.subject).filter(Boolean))].sort()
   const filteredHomeworks = hwSubjectFilter
@@ -1011,9 +1008,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
           <div className="flex flex-wrap items-center gap-2 mt-0.5">
             {student.yearGroup != null && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}
             {student.sendStatus && student.sendStatus !== 'NONE' && (
-              <span className={`text-xs px-2 py-0.5 rounded font-medium ${sendBadgeColor[student.sendStatus] ?? 'bg-gray-100 text-gray-600'}`}>
-                {student.sendStatus.replace('_', ' ')}
-              </span>
+              <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
             )}
             {student.needArea != null && <span className="text-xs text-gray-400">{student.needArea}</span>}
           </div>

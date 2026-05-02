@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import {
   getClassKPlanActions,
   getClassIlpSummary,
@@ -39,20 +40,6 @@ function buildSummaryLine(actions: ClassKPlanAction[]): string {
   return counts.slice(0, 3).map(c => `${c.n} student${c.n > 1 ? 's' : ''} need ${c.label}`).join(' · ')
 }
 
-// ── SEND badge ────────────────────────────────────────────────────────────────
-
-function SendBadge({ status, needArea }: { status: string | null; needArea: string | null }) {
-  if (!status || status === 'NONE') return null
-  return status === 'EHCP' ? (
-    <span title={needArea ?? 'EHCP'} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 shrink-0">
-      EHCP
-    </span>
-  ) : (
-    <span title={needArea ?? 'SEN Support'} className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 shrink-0">
-      SEN
-    </span>
-  )
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -132,7 +119,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
               {/* Name row */}
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[13px] font-semibold text-gray-900">{a.studentName}</span>
-                <SendBadge status={a.sendStatus} needArea={resolvedNeed} />
+                <SendBadge status={a.sendStatus as 'EHCP' | 'SEN_SUPPORT' | 'NONE' | null} />
                 {resolvedNeed && (
                   <span className="text-[10px] text-gray-400 truncate">{resolvedNeed}</span>
                 )}

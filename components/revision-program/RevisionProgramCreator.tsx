@@ -3,6 +3,7 @@ import { useState, useTransition, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
+import SendBadge from '@/components/ui/SendBadge'
 import { gradeLabel } from '@/lib/grading'
 import { getClassPerformanceAnalysis, createRevisionProgram, getRevisionProgramDetail, updateRevisionTaskQuestions } from '@/app/actions/revision-program'
 import { getTeacherClasses } from '@/app/actions/homework'
@@ -254,7 +255,7 @@ function Step2({
                   <td className="px-3 py-2">
                     <span className="font-medium text-gray-800">{s.studentName}</span>
                     {s.sendStatus && s.sendStatus !== 'NONE' && (
-                      <span className="ml-1.5 text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700">{s.sendStatus}</span>
+                      <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
                     )}
                   </td>
                   <td className="px-3 py-2">

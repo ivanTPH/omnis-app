@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import type { EhcpPlanWithOutcomes, StudentWithoutEhcp } from '@/app/actions/ehcp'
 import EhcpCard from './EhcpCard'
 
@@ -179,9 +180,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
                     {s.needArea ?? s.sendStatus.replace(/_/g, ' ')}
                   </p>
                 </div>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                  {s.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                </span>
+                <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
                 <a
                   href={`/student/${s.id}/send`}
                   className="text-[11px] text-purple-600 hover:underline"

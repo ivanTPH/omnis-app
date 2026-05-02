@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import type { IlpEvidenceSummary, IlpEvidenceStudent, IlpEvidenceTarget } from '@/app/actions/adaptive-learning'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -55,7 +56,6 @@ function StudentRow({ student, expanded, onToggle }: {
   expanded: boolean
   onToggle: () => void
 }) {
-  const sendColor = student.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
   const recIcon =
     student.daysUntilReview <= 14 ? 'schedule'
     : student.hasEvidenceGap ? 'warning'
@@ -83,9 +83,7 @@ function StudentRow({ student, expanded, onToggle }: {
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[13px] font-semibold text-gray-900">{student.studentName}</p>
             {student.yearGroup && <span className="text-[11px] text-gray-400">Yr {student.yearGroup}</span>}
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${sendColor}`}>
-              {student.sendStatus === 'EHCP' ? 'EHCP' : 'SEN'}{student.needArea ? ` · ${student.needArea}` : ''}
-            </span>
+            <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
           </div>
           <div className="flex items-center gap-3 mt-0.5">
             <span className="text-[11px] text-gray-500">{student.sendCategory}</span>

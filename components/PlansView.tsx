@@ -4,6 +4,7 @@ import { useRouter }               from 'next/navigation'
 import Link                        from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar        from '@/components/StudentAvatar'
+import SendBadge from '@/components/ui/SendBadge'
 import { savePlanNote, messageSencoAboutPlan } from '@/app/actions/plans'
 import type { IlpRow, EhcpRow, KPlanRow, PlanNote } from '@/app/actions/plans'
 
@@ -295,9 +296,7 @@ export default function PlansView({
                             EHCP · {ehcp.localAuthority}
                           </p>
                         </div>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 bg-purple-100 text-purple-700">
-                          EHCP
-                        </span>
+                        <SendBadge status="EHCP" />
                         <ReviewDate date={ehcp.reviewDate} />
                         <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />
                       </Link>

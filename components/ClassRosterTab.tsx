@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
+import SendBadge from '@/components/ui/SendBadge'
 import {
   getClassRoster,
   getStudentClassDetail,
@@ -36,10 +37,6 @@ const DocSlideOver     = dynamic(() => import('@/components/send/DocSlideOver'),
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SEND_BADGE: Record<string, { label: string; cls: string }> = {
-  SEN_SUPPORT: { label: 'SEN Support', cls: 'bg-blue-100 text-blue-700' },
-  EHCP:        { label: 'EHCP',        cls: 'bg-purple-100 text-purple-700' },
-}
 
 const TARGET_STATUS_CLS: Record<string, string> = {
   active:       'bg-blue-100 text-blue-700',
@@ -381,7 +378,6 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
             : row.sendStatus === sendFilter
           return matchesSend && (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
         }).map(row => {
-          const badge        = SEND_BADGE[row.sendStatus]
           const isSend       = row.sendStatus !== 'NONE'
           const scoreDisplay = row.latestScore != null
             ? gradeLabel(percentToGcseGrade(
@@ -551,11 +547,9 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
 
                 {/* Col 4: SEND badge (100px) */}
                 <div className="flex justify-center">
-                  {badge && (
-                    <Tooltip content={badge.label === 'EHCP' ? 'Education, Health and Care Plan — statutory SEND support' : 'SEN Support — school-based SEND provision'} side="left">
-                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badge.cls}`}>
-                        {badge.label}
-                      </span>
+                  {isSend && (
+                    <Tooltip content={row.sendStatus === 'EHCP' ? 'Education, Health and Care Plan — statutory SEND support' : 'SEN Support — school-based SEND provision'} side="left">
+                      <SendBadge status={row.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
                     </Tooltip>
                   )}
                 </div>

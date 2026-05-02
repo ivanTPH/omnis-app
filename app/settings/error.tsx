@@ -1,4 +1,5 @@
 'use client'
+import Icon from '@/components/ui/Icon'
 export default function Error({
   error,
   reset,
@@ -8,7 +9,7 @@ export default function Error({
 }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center">
-      <div className="text-4xl mb-4">⚠️</div>
+      <Icon name="warning" size="lg" className="text-amber-500 mb-4" />
       <h2 className="text-xl font-semibold text-gray-800 mb-2">Something went wrong</h2>
       <p className="text-gray-500 text-sm mb-2">An unexpected error occurred loading this page.</p>
       {error.digest && (

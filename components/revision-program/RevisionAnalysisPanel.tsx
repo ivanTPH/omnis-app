@@ -5,9 +5,9 @@ import { getClassPerformanceAnalysis } from '@/app/actions/revision-program'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 
 function scoreColour(pct: number) {
-  if (pct >= 75) return { bg: 'bg-green-100', text: 'text-green-700', icon: '✅' }
-  if (pct >= 50) return { bg: 'bg-amber-100', text: 'text-amber-700', icon: '⚠️' }
-  return { bg: 'bg-rose-100', text: 'text-rose-700', icon: '❌' }
+  if (pct >= 75) return { bg: 'bg-green-100', text: 'text-green-700', icon: 'check_circle' }
+  if (pct >= 50) return { bg: 'bg-amber-100', text: 'text-amber-700', icon: 'warning' }
+  return { bg: 'bg-rose-100', text: 'text-rose-700', icon: 'cancel' }
 }
 
 export default function RevisionAnalysisPanel({
@@ -70,7 +70,7 @@ export default function RevisionAnalysisPanel({
           const c   = scoreColour(pct)
           return (
             <div key={tp.topic} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${c.bg}`}>
-              <span className="text-[10px]">{c.icon}</span>
+              <Icon name={c.icon} size="sm" className={c.text} />
               <span className="flex-1 text-xs text-gray-800 truncate">{tp.topic}</span>
               <div className="w-20 h-1 bg-white/60 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full ${pct >= 75 ? 'bg-green-500' : pct >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${pct}%` }} />

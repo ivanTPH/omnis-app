@@ -582,10 +582,14 @@ export async function generateHomeworkFromResources(
   const topic         = (lesson as any).topic ?? ''
   const type          = forceType ?? 'SHORT_ANSWER'
 
-  console.log('[generateHomeworkFromResources] START lessonId:', lessonId, '| lesson:', lesson.title, '| resources:', lesson.resources.length, '| type:', type)
+  console.log('[generateHomeworkFromResources] START lessonId:', lessonId, '| lesson:', lesson.title, '| resources:', lesson.resources.length, '| type:', type, '| preferredResourceId:', preferredResourceId ?? 'none')
   if (lesson.resources.length > 0) {
     const r0 = lesson.resources[0]
     console.log('[generateHomeworkFromResources] first resource — type:', r0.type, '| label:', r0.label, '| url:', r0.url, '| oakContentId:', (r0 as any).oakContentId ?? 'none')
+    if (preferredResourceId) {
+      const preferred = lesson.resources.find(r => r.id === preferredResourceId)
+      console.log('[generateHomeworkFromResources] preferred resource —', preferred ? `label: ${preferred.label} | oakContentId: ${(preferred as any).oakContentId ?? 'none'}` : 'NOT FOUND in lesson resources')
+    }
   } else {
     console.log('[generateHomeworkFromResources] WARNING: lesson has NO resources — will generate from title only')
   }
@@ -729,9 +733,11 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
   // Task instruction — respect the teacher's chosen primary resource
   const taskInstruction = hasPrimaryNonOak
     ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own material). Use the lesson title and learning objectives to determine what was taught. Do NOT base questions on any Oak or supplementary resources listed below it.`
-    : lesson.objectives.length > 0
-      ? `Your homework questions MUST directly test the learning objectives listed above. Students should be able to answer from what they learned in this lesson.`
-      : `Your homework questions MUST be based on the lesson resources listed above. Use the Oak lesson learning outcomes as your targets — generate questions that test exactly what those outcomes describe. Questions must be specific to "${lesson.title}" — do not generate generic "describe key concepts" questions.`
+    : preferredResourceId
+      ? `Your homework questions MUST be based primarily on the PRIMARY RESOURCE marked in the resource list above. Generate questions that test the specific content and learning outcome of that resource. Other resources and learning objectives are supplementary context — do not let them override the PRIMARY RESOURCE selection.`
+      : lesson.objectives.length > 0
+        ? `Your homework questions MUST directly test the learning objectives listed above. Students should be able to answer from what they learned in this lesson.`
+        : `Your homework questions MUST be based on the lesson resources listed above. Use the Oak lesson learning outcomes as your targets — generate questions that test exactly what those outcomes describe. Questions must be specific to "${lesson.title}" — do not generate generic "describe key concepts" questions.`
 
   const prompt = `You are an expert UK secondary school ${subject} teacher creating homework for a ${qualification} class${examBoard ? ` (${examBoard})` : ''}.
 

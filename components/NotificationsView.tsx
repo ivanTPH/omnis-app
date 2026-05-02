@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { markPlatformNotificationRead, markAllPlatformNotificationsRead } from '@/app/actions/messaging'
 import type { PlatformNotificationRow } from '@/app/actions/messaging'
 
@@ -64,28 +65,17 @@ export default function NotificationsView({
   return (
     <div className="flex-1 overflow-auto px-6 py-6 max-w-2xl mx-auto w-full">
 
-      {/* header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Icon name="notifications" size="md" className="text-gray-500" />
-          <h1 className="text-page-title">Notifications</h1>
-          {unreadCount > 0 && (
-            <span className="bg-blue-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
-              {unreadCount}
-            </span>
-          )}
-        </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAll}
-            disabled={isPending}
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors disabled:opacity-40"
-          >
+      <PageHeader
+        title="Notifications"
+        subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
+        action={unreadCount > 0 ? (
+          <button onClick={handleMarkAll} disabled={isPending}
+            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors disabled:opacity-40">
             {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
             Mark all read
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* list */}
       {items.length === 0 ? (

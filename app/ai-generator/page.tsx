@@ -6,6 +6,7 @@ import { getTeacherLessons } from '@/app/actions/homework'
 import AppShell from '@/components/AppShell'
 import AiGeneratorShell from '@/components/ai-generator/AiGeneratorShell'
 import Icon from '@/components/ui/Icon'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const ALLOWED_ROLES = [
   'TEACHER', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT',
@@ -54,20 +55,12 @@ export default async function AiGeneratorPage() {
     >
       <div className="flex flex-col h-full p-6 gap-4 min-h-0">
 
-        {/* Header — matches the icon-button breadcrumb pattern used across the app */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <Link
-            href={backHref}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
-            title="Back"
-          >
-            <Icon name="chevron_left" size="sm" />
-          </Link>
-          <div>
-            <h1 className="text-[20px] font-bold text-gray-900 leading-tight">AI Resource Generator</h1>
-            <p className="text-[12px] text-gray-400 mt-0.5">Generate curriculum-aligned classroom resources in seconds.</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Resource Generator"
+          subtitle="Create teaching resources for any topic"
+          backHref={backHref}
+          backLabel="Back"
+        />
 
         {/* Shell */}
         <div className="flex-1 min-h-0">

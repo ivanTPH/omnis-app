@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getSencoDashboardData } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
 import SencoDashboard from '@/components/send-support/SencoDashboard'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function SencoDashboardPage() {
   const session = await auth()
@@ -15,9 +16,8 @@ export default async function SencoDashboardPage() {
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex flex-col h-full overflow-auto">
-        <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-          <h1 className="text-page-title">SEND Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Proactive monitoring, concerns and ILP management</p>
+        <div className="px-6 pt-6 bg-white shrink-0">
+          <PageHeader title="SEND Overview" subtitle="Students with identified needs" />
         </div>
         <SencoDashboard data={data} />
       </div>

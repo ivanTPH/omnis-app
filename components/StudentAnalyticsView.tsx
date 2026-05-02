@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
 import { getStudentFile } from '@/app/actions/students'
@@ -311,11 +312,9 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
       {/* ── Header + filters ── */}
       <div className="px-6 pt-6 pb-5 border-b border-gray-200 bg-white shrink-0">
+        <PageHeader title="Analytics" subtitle="Class and student performance" />
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
-          <div>
-            <h1 className="text-page-title">Classes &amp; Analytics</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Select filters and click <strong>Run</strong> to load data</p>
-          </div>
+          <div />
           <div className="flex items-center gap-2.5 flex-wrap justify-end">
             {isRestrictedRole && (
               <div className="px-2.5 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-[12px] text-gray-600">

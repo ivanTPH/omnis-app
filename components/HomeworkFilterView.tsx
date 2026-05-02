@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
 import SetHomeworkModal from './SetHomeworkModal'
 import ExportPdfButton  from '@/components/ExportPdfButton'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { useTeacherProfile } from '@/lib/teacherProfileContext'
 
 export type HomeworkListItem = {
@@ -222,24 +223,18 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
   return (
     <div className="max-w-4xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-[22px] font-bold text-gray-900">Homework</h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">
-            {homework.length} assignment{homework.length !== 1 ? 's' : ''}
-            {isFiltered && filtered.length !== homework.length
-              ? ` · ${filtered.length} shown`
-              : ''}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors shrink-0"
-        >
-          <Icon name="add" size="sm" />Set Homework
-        </button>
-      </div>
+      <PageHeader
+        title="Homework"
+        subtitle={`${homework.length} assignment${homework.length !== 1 ? 's' : ''}${isFiltered && filtered.length !== homework.length ? ` · ${filtered.length} shown` : ''}`}
+        action={
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors shrink-0"
+          >
+            <Icon name="add" size="sm" />Set Homework
+          </button>
+        }
+      />
 
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
       <div className="card p-4 mb-5 space-y-3">

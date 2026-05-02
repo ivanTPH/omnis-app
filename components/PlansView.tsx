@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter }               from 'next/navigation'
 import Link                        from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { PageHeader } from '@/components/ui/PageHeader'
 import StudentAvatar        from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
 import { savePlanNote, messageSencoAboutPlan } from '@/app/actions/plans'
@@ -184,24 +185,15 @@ export default function PlansView({
   return (
     <div className="flex-1 overflow-auto px-6 py-6 max-w-3xl mx-auto w-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Icon name="folder" size="md" className="text-gray-500" />
-          <h1 className="text-page-title">SEND Plans</h1>
-          <span className="text-[11px] text-gray-400 font-medium">
-            {total} plan{total !== 1 ? 's' : ''}
-          </span>
-        </div>
-        {isSenco && (
-          <Link
-            href="/send/ilp"
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
-          >
+      <PageHeader
+        title="Support Plans"
+        subtitle={`${total} plan${total !== 1 ? 's' : ''}`}
+        action={isSenco ? (
+          <Link href="/send/ilp" className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
             ILP Records <Icon name="chevron_right" size="sm" />
           </Link>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">

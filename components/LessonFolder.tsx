@@ -60,7 +60,7 @@ function autoResize(el: HTMLTextAreaElement | null) {
   el.style.height = `${el.scrollHeight}px`
 }
 
-const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Revision', 'Analytics'] as const
+const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Insights'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
@@ -556,8 +556,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     'Resources': <Icon name="upload"     size="sm" />,
     'Homework':  <Icon name="assignment" size="sm" />,
     'Class':     <Icon name="people"     size="sm" />,
-    'Revision':  <Icon name="loop"       size="sm" />,
-    'Analytics': <Icon name="analytics"  size="sm" />,
+    'Insights':  <Icon name="analytics"  size="sm" />,
   }
 
   console.log('[DEBUG] LessonFolder render, lesson state:', lesson?.title, 'lessonId:', lessonId)
@@ -713,15 +712,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
         {/* Tab bar — hidden during wizard */}
         {wizardStep === null && (
-          <div className="flex border-b border-gray-200 px-2 sm:px-7 shrink-0 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 border-b border-gray-200 px-3 sm:px-6 py-2 shrink-0 overflow-x-auto scrollbar-none">
             {TABS.map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-1.5 px-4 py-3 text-[12px] font-medium border-b-2 transition-colors whitespace-nowrap -mb-px ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg transition-colors whitespace-nowrap ${
                   activeTab === tab
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-blue-700 text-white'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 {TAB_ICONS[tab]}
@@ -1672,13 +1671,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {/* ── Launch Revision shortcut ── */}
                   {lesson?.class?.id && (
                     <div className="pt-2 border-t border-gray-100">
-                      <button
-                        onClick={() => setActiveTab('Revision')}
+                      <a
+                        href={`/revision-program/new?classId=${lesson.class.id}${lesson.title ? `&topic=${encodeURIComponent(lesson.title)}` : ''}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[13px] font-semibold hover:border-blue-400 hover:bg-blue-50 transition-colors"
                       >
                         <Icon name="loop" size="sm" />
                         Launch Revision for this Topic →
-                      </button>
+                      </a>
                     </div>
                   )}
                 </div>
@@ -1722,50 +1723,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 )
               )}
 
-              {/* ── Revision ── */}
-              {activeTab === 'Revision' && (
-                <div className="p-7 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-[13px] font-semibold text-gray-900 flex items-center gap-2">
-                        <Icon name="loop" size="sm" className="text-blue-500" /> Class Revision Analysis
-                      </h3>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Based on homework performance over the past 4 weeks</p>
-                    </div>
-                    {lesson?.class?.id && (
-                      <a
-                        href={`/revision-program/new?classId=${lesson.class.id}${lesson.title ? `&topic=${encodeURIComponent(lesson.title)}` : ''}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[12px] font-semibold transition-colors"
-                      >
-                        <Icon name="add" size="sm" /> Create Program
-                      </a>
-                    )}
-                  </div>
-                  {lesson?.class?.id && lesson?.scheduledAt ? (
-                    <RevisionAnalysisPanel
-                      classId={lesson.class.id}
-                      periodStart={new Date(new Date(lesson.scheduledAt).getTime() - 28 * 24 * 60 * 60 * 1000)}
-                      periodEnd={new Date(lesson.scheduledAt)}
-                      onCreateProgram={() => {
-                        if (lesson?.class?.id) {
-                          const topicParam = lesson.title ? `&topic=${encodeURIComponent(lesson.title)}` : ''
-                          window.open(`/revision-program/new?classId=${lesson.class.id}${topicParam}`, '_blank')
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                      <Icon name="loop" size="lg" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── Analytics ── */}
-              {activeTab === 'Analytics' && (() => {
+              {/* ── Insights ── */}
+              {activeTab === 'Insights' && (() => {
                 const effectiveClassId = analyticsClassId ?? lesson?.class?.id ?? null
                 const effectiveClass   = teacherClasses.find(c => c.id === effectiveClassId)
                   ?? (lesson?.class ? { id: lesson.class.id, name: lesson.class.name, subject: lesson.class.subject ?? '', yearGroup: lesson.class.yearGroup ?? 0 } : null)

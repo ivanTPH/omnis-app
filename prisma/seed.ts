@@ -481,6 +481,45 @@ async function main() {
     },
   })
 
+  // AIC homework — scaffolded/adapted version (SEND support demo)
+  await prisma.homework.upsert({
+    where: { id: 'demo-hw-adapted-1' },
+    update: {},
+    create: {
+      id:            'demo-hw-adapted-1',
+      schoolId:      school.id,
+      classId:       classes['9E/En1'].id,
+      lessonId:      lessonIds['demo-lesson-9E-d0-h9'],
+      title:         'An Inspector Calls — Context Research (Scaffolded)',
+      instructions:  [
+        'Answer each question in one or two sentences.',
+        '',
+        'Step 1: When was An Inspector Calls written? When is it set? Why does this gap matter?',
+        'Sentence starter: "Priestley wrote the play in ___ but set it in ___, which means..."',
+        '',
+        'Step 2: What was happening in Britain in 1912? Name one historical event.',
+        'Sentence starter: "In 1912, ..."',
+        '',
+        'Step 3: What was happening in Britain in 1945? Name one change Priestley hoped to see.',
+        'Sentence starter: "In 1945, ..."',
+        '',
+        'Step 4: What does Priestley want his audience to think about?',
+        'Sentence starter: "Priestley wants his audience to think about..."',
+      ].join('\n'),
+      modelAnswer:   'A supported response should identify both dates (1912 and 1945), name at least one historical event (Titanic, WW1, WW2, or 1945 election), and link this to Priestley\'s message about collective responsibility. Sentence starters may be used throughout.',
+      gradingBands:  { '0-3': 'Limited contextual knowledge; key dates absent or inaccurate', '4-6': 'Developing: relevant context with some link to Priestley\'s message', '7-9': 'Secure: accurate, specific historical context clearly linked to Priestley\'s socialist message' },
+      dueAt:         daysFromNow(5),
+      status:        HomeworkStatus.PUBLISHED,
+      type:          HomeworkType.SHORT_ANSWER,
+      releasePolicy: ReleasePolicy.TEACHER_EXTENDED,
+      maxAttempts:   3,
+      isAdapted:     true,
+      adaptedFor:    'SEN_SUPPORT',
+      differentiationNotes: 'Scaffolded version of AIC Context Research. Breaks the task into 4 numbered steps with sentence starters. Reduces cognitive load while maintaining the same learning objective. Suitable for SEN Support and EHCP students who need structured writing support.',
+      createdBy:     teacherId,
+    },
+  })
+
   // Paper 2 homework (draft)
   await prisma.homework.upsert({
     where: { id: 'demo-hw-paper2-1' },
@@ -537,10 +576,10 @@ async function main() {
     },
   })
 
-  // Aiden submitted Macbeth homework
+  // Aiden submitted Macbeth homework — force SUBMITTED on re-seed to reset any demo marking
   await prisma.submission.upsert({
     where: { homeworkId_studentId: { homeworkId: macbethHW.id, studentId: created['a.hughes'].id } },
-    update: {},
+    update: { status: SubmissionStatus.SUBMITTED, grade: null, feedback: null, markedAt: null, teacherScore: null, finalScore: null },
     create: {
       schoolId:    school.id,
       homeworkId:  macbethHW.id,
@@ -604,7 +643,7 @@ async function main() {
   // classroom tips for students in 9E/En1.
   const aidenIlp = await prisma.individualLearningPlan.upsert({
     where:  { id: 'seed-ilp-aiden-hughes' },
-    update: {},
+    update: { status: 'active', approvedBySenco: true, approvedAt: daysAgo(14), approvedBy: created['r.morris'].id },
     create: {
       id:               'seed-ilp-aiden-hughes',
       schoolId:         school.id,
@@ -1866,6 +1905,7 @@ async function main() {
   // Look up existing homework
   const hwAic     = await prisma.homework.findUnique({ where: { id: 'demo-hw-aic-1'       } })
   const hwMacbeth = await prisma.homework.findUnique({ where: { id: 'demo-hw-macbeth-1'   } })
+  const hwAdapted = await prisma.homework.findUnique({ where: { id: 'demo-hw-adapted-1'   } })
 
   // New Year-11 homework (published)
   const hw11 = await prisma.homework.upsert({
@@ -1964,8 +2004,13 @@ async function main() {
       : undefined
     await prisma.submission.upsert({
       where:  { homeworkId_studentId: unique },
-      // Also update markedAt on existing records to fix any previously bad seed dates
-      update: s.status === SubmissionStatus.RETURNED ? { markedAt } : {},
+      // Force-reset SUBMITTED records on re-seed (clears any grades applied in demo sessions)
+      // Also update markedAt on RETURNED records to fix any previously bad seed dates
+      update: s.status === SubmissionStatus.RETURNED
+        ? { markedAt }
+        : s.status === SubmissionStatus.SUBMITTED
+          ? { status: SubmissionStatus.SUBMITTED, grade: null, feedback: null, markedAt: null, teacherScore: null, finalScore: null }
+          : {},
       create: {
         schoolId: school.id, homeworkId: hw.id, studentId: s.studentId,
         content: s.content,
@@ -2034,6 +2079,33 @@ async function main() {
     console.log('  ✓ AIC homework: 9 submissions added for 9E/En1 (incl. Fatima Al-Amin)')
   }
 
+  if (hwAdapted) {
+    // Adapted/scaffolded AIC homework — 9E/En1 (demo for S5/S6 smoke test)
+    // Uses cls9Students looked up earlier in the AIC block (re-query to be safe)
+    const cls9StudentsAdapted = await prisma.enrolment.findMany({
+      where: { classId: cls9.id }, include: { user: true },
+    })
+    const adaptedSubs: SubInput[] = [
+      // Standard student — Tyler Cooper (no SEND)
+      { hwId: hwAdapted.id,
+        studentId: (cls9StudentsAdapted.find(e=>e.user.email==='t.cooper@students.omnisdemo.school')!).userId,
+        content: 'Step 1: Priestley wrote the play in 1945 but set it in 1912, which means he is looking back at history to make a point about his own time.\nStep 2: In 1912, the Titanic sank, showing how arrogant the upper classes were about their power.\nStep 3: In 1945, the Second World War had just ended and people wanted a fairer, more equal society.\nStep 4: Priestley wants his audience to think about collective responsibility and how their actions affect other people.',
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 1 },
+      // SEN Support — Aiden Hughes (uses sentence starters as scaffolded)
+      { hwId: hwAdapted.id,
+        studentId: created['a.hughes'].id,
+        content: 'Step 1: Priestley wrote the play in 1945 but set it in 1912, which means people in 1945 could see that the attitudes of 1912 had caused the wars.\nStep 2: In 1912, the Titanic sank which showed that rich people thought they were better than poor people.\nStep 3: In 1945, the war had ended and Priestley hoped there would be a new government that looked after everyone.\nStep 4: Priestley wants his audience to think about how we all share responsibility for each other.',
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 1 },
+      // SEN Support/Dyslexia — Sophie Chen (uses starters, shorter sentences)
+      { hwId: hwAdapted.id,
+        studentId: sophieChen.id,
+        content: 'Step 1: Priestley wrote the play in 1945 but set it in 1912, which means he could show what went wrong in history.\nStep 2: In 1912, one big event was the First World War starting soon after.\nStep 3: In 1945, people wanted a fairer society after the war.\nStep 4: Priestley wants his audience to think about taking responsibility for others, not just themselves.',
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 0 },
+    ]
+    for (const sub of adaptedSubs) await upsertSub(sub)
+    console.log('  ✓ Adapted AIC homework: 3 SUBMITTED submissions (Tyler Cooper, Aiden Hughes, Sophie Chen)')
+  }
+
   if (hwMacbeth) {
     // Macbeth Essay Plan — 10E/En2
     const cls10Students = await prisma.enrolment.findMany({
@@ -2046,23 +2118,19 @@ async function main() {
         feedback: 'Oliver, this is an excellent, well-structured plan. Your quotation analysis is perceptive and the progression from ambition to tyranny shows sophisticated thinking. For a 9, explore how Shakespeare uses structural irony — Macbeth\'s downfall is implicit from the witches\' prophecy from the start.', tags: [] },
       { hwId: hwMacbeth.id, studentId: (cls10Students.find(e=>e.user.email==='c.williams@students.omnisdemo.school')!).userId,
         content: 'I will write about how ambition causes Macbeth to do bad things. First point: the witches make Macbeth want to be king. Quote: "All hail, Macbeth, that shalt be king hereafter". Second point: Lady Macbeth makes him kill Duncan. Third point: after he is king he becomes cruel.',
-        status: SubmissionStatus.RETURNED, score: 5, grade: '5',
-        feedback: 'Chloe, your plan covers the key events, which is a solid start. To improve the quality of your analysis, you need to do more than summarise what happens — explain HOW the language shows ambition. For example, "All hail" has regal, ceremonial connotations; Shakespeare suggests the witches are crowning Macbeth even before he acts. Try to develop one of your points with this level of language analysis.',
-        tags: ['summary_not_analysis', 'quotation_not_analysed'] },
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 1 },
       { hwId: hwMacbeth.id, studentId: (cls10Students.find(e=>e.user.email==='j.brown@students.omnisdemo.school')!).userId,
         content: 'Plan: ambition is the main theme. Lady Macbeth convinces Macbeth. He kills Duncan then Banquo.',
         status: SubmissionStatus.SUBMITTED, daysAgoSub: 1 },
       { hwId: hwMacbeth.id, studentId: (cls10Students.find(e=>e.user.email==='e.davies@students.omnisdemo.school')!).userId,
         content: 'Shakespeare presents Macbeth\'s ambition as a fatal flaw that he initially attempts to resist. The metaphor "vaulting ambition which o\'erleaps itself" suggests something that goes too far and inevitably collapses, foreshadowing his downfall. However, I will also argue that ambition alone is insufficient — it is combined with Lady Macbeth\'s manipulation and the witches\' prophecy to create the fatal chain of events.',
-        status: SubmissionStatus.RETURNED, score: 8, grade: '8',
-        feedback: 'Excellent analytical thinking, Emma. The phrase "fatal flaw" shows you understand the tragic structure, and your metaphor analysis is well developed. Ensure your plan has 3 clear, separate paragraphs — from your submission it is slightly unclear where each paragraph starts.', tags: [] },
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 2 },
       { hwId: hwMacbeth.id, studentId: (cls10Students.find(e=>e.user.email==='l.ahmed@students.omnisdemo.school')!).userId,
         content: 'Macbeth is ambitious because of the witches. Lady Macbeth helps him. In the end ambition destroys him.',
         status: SubmissionStatus.SUBMITTED, daysAgoSub: 2 },
       { hwId: hwMacbeth.id, studentId: (cls10Students.find(e=>e.user.email==='z.king@students.omnisdemo.school')!).userId,
         content: 'Introduction: Shakespeare shows ambition as a destructive force. Point 1: the witches ignite Macbeth\'s ambition — "All hail, Macbeth, that shalt be king hereafter" — the future tense creates inevitability. Point 2: Lady Macbeth manipulates Macbeth by attacking his masculinity — "unsex me here". Point 3: Once king, ambition becomes paranoia — Macbeth orders Banquo\'s murder because he fears losing power.',
-        status: SubmissionStatus.RETURNED, score: 7, grade: '7',
-        feedback: 'Really good plan, Zara. I particularly liked your observation about the future tense in the prophecy. For 8–9, develop Point 2 further — Lady Macbeth\'s language of gender and power is very rich for analysis.', tags: [] },
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 2 },
       { hwId: hwMacbeth.id, studentId: naomiClarke.id,
         content: 'My plan: 1. Macbeth wants power so much he kills the king. 2. Lady Macbeth is even more ambitious at first. 3. Ambition turns into fear and then madness.',
         status: SubmissionStatus.SUBMITTED, daysAgoSub: 1 },
@@ -2072,8 +2140,7 @@ async function main() {
         feedback: 'Exceptional planning, Daniel. The insight about Macbeth suppressing his conscience rather than lacking one entirely is genuinely perceptive and shows A-grade thinking. Your quotation from Act 3 is equally well chosen. This is a 9/9 plan.', tags: [] },
       { hwId: hwMacbeth.id, studentId: rosaFerretti.id,
         content: 'Macbeth wants to be king and Lady Macbeth makes him do it. The quote is "I have done the deed". Ambition is bad in the play.',
-        status: SubmissionStatus.RETURNED, score: 3, grade: '3',
-        feedback: 'Rosa, I can see you understand the basic story of Macbeth\'s ambition. Your quotation is from the right part of the play but try to find one that shows his ambition BEFORE the murder, not after. I have attached the writing frame and paragraph scaffold from the lesson — please use these to restructure your response. Your EHCP provision (extra time + writing frame) is always available.', tags: ['wrong_quotation', 'summary_not_analysis'] },
+        status: SubmissionStatus.SUBMITTED, daysAgoSub: 1 },
       // Aaron Walsh — SEMH, missing
     ]
     for (const sub of macSubs) await upsertSub(sub)

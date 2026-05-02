@@ -1600,7 +1600,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   </button>
                                 ) : (
                                   <Link
-                                    href={`/homework/${hw.id}`}
+                                    href={`/homework/${hw.id}/mark`}
                                     className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                                   >
                                     <Icon name="open_in_new" size="sm" />Mark

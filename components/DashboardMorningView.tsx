@@ -152,7 +152,7 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
               {data.homeworkToMark.map(hw => (
                 <Link
                   key={hw.id}
-                  href={`/homework/${hw.id}`}
+                  href={`/homework/${hw.id}/mark`}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 -mx-1 transition-colors"
                 >
                   <div className="flex-1 min-w-0">

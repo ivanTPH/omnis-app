@@ -208,7 +208,17 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
           <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors" />
         </div>
       </Link>
-      <div className="absolute top-3 right-10 opacity-0 group-hover/card:opacity-100 transition-opacity">
+      <div className="absolute top-3 right-10 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center gap-1">
+        {hw.needsMarkCount > 0 && (
+          <Link
+            href={`/homework/${hw.id}/mark`}
+            onClick={e => e.stopPropagation()}
+            className="flex items-center gap-1 text-[11px] font-medium text-white bg-blue-700 hover:bg-blue-800 px-2.5 py-1 rounded-lg transition-colors"
+          >
+            <Icon name="rate_review" size="sm" />
+            Mark
+          </Link>
+        )}
         <ExportPdfButton
           href={`/api/export/homework/${hw.id}`}
           filename={`homework-${hw.title.toLowerCase().replace(/\s+/g,'-').slice(0,30)}.pdf`}

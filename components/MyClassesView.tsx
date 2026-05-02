@@ -1,19 +1,24 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useCallback } from 'react'
 import ClassRosterTab from '@/components/ClassRosterTab'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { bulkGenerateLearningPassports } from '@/app/actions/students'
+import { bulkGenerateLearningPassports, generatePassportsForStudents } from '@/app/actions/students'
 
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
 
 export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
-  const [subject,    setSubject]    = useState('')
-  const [year,       setYear]       = useState('')
-  const [selectedId, setSelectedId] = useState('')
-  const [search,     setSearch]     = useState('')
-  const [generating, startGenerate] = useTransition()
-  const [genResult,  setGenResult]  = useState<{ generated: number; skipped: number; errors: number } | null>(null)
+  const [subject,     setSubject]     = useState('')
+  const [year,        setYear]        = useState('')
+  const [selectedId,  setSelectedId]  = useState('')
+  const [search,      setSearch]      = useState('')
+  const [generating,  startGenerate]  = useTransition()
+  const [genResult,   setGenResult]   = useState<{ created: number; skipped: number; errors: number } | null>(null)
+  const [rosterSelectedIds, setRosterSelectedIds] = useState<string[]>([])
+
+  const handleSelectionChange = useCallback((ids: string[]) => {
+    setRosterSelectedIds(ids)
+  }, [])
 
   if (classes.length === 0) {
     return (
@@ -104,19 +109,50 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
             <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1 opacity-0 select-none">
               Actions
             </label>
-            <button
-              type="button"
-              disabled={generating || !effectiveId}
-              onClick={() => startGenerate(async () => {
-                const r = await bulkGenerateLearningPassports(effectiveId)
-                setGenResult(r)
-              })}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition disabled:opacity-50"
-              title="Auto-generate Learning Passports for students who don't yet have one"
-            >
-              <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
-              {generating ? 'Generating…' : 'Generate missing passports'}
-            </button>
+            {rosterSelectedIds.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-gray-500">
+                  {rosterSelectedIds.length} selected
+                </span>
+                <button
+                  type="button"
+                  disabled={generating}
+                  onClick={() => startGenerate(async () => {
+                    setGenResult(null)
+                    const r = await generatePassportsForStudents(rosterSelectedIds)
+                    setGenResult(r)
+                    setRosterSelectedIds([])
+                  })}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition disabled:opacity-50"
+                >
+                  <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
+                  {generating ? 'Generating…' : `Generate (${rosterSelectedIds.length})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRosterSelectedIds([])}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Clear selection"
+                >
+                  <Icon name="close" size="sm" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={generating || !effectiveId}
+                onClick={() => startGenerate(async () => {
+                  setGenResult(null)
+                  const r = await bulkGenerateLearningPassports(effectiveId)
+                  setGenResult({ created: r.generated, skipped: r.skipped, errors: r.errors })
+                })}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-lg transition disabled:opacity-50"
+                title="Auto-generate Learning Passports for students who don't yet have one"
+              >
+                <Icon name={generating ? 'refresh' : 'auto_awesome'} size="sm" className={generating ? 'animate-spin' : ''} />
+                {generating ? 'Generating…' : 'Generate missing passports'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -163,16 +199,27 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
       </div>
 
       {genResult && (
-        <p className="text-[11px] text-indigo-600">
-          Generated {genResult.generated} Learning Passports
-          {genResult.skipped > 0 ? `, ${genResult.skipped} skipped (already have one)` : ''}
-          {genResult.errors > 0 ? `, ${genResult.errors} failed` : ''}.
-        </p>
+        <div className="flex items-center gap-2 text-[12px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+          <Icon name="check_circle" size="sm" />
+          Generated {genResult.created} Learning Passport{genResult.created !== 1 ? 's' : ''}.
+          {genResult.skipped > 0 && (
+            <span className="text-blue-500">{genResult.skipped} already had one.</span>
+          )}
+          {genResult.errors > 0 && (
+            <span className="text-red-500">{genResult.errors} failed.</span>
+          )}
+        </div>
       )}
 
       {/* ── Roster for selected class ── */}
       {effectiveId && (
-        <ClassRosterTab key={effectiveId} classId={effectiveId} externalSearch={search} />
+        <ClassRosterTab
+          key={effectiveId}
+          classId={effectiveId}
+          externalSearch={search}
+          showCheckboxes
+          onSelectionChange={handleSelectionChange}
+        />
       )}
     </div>
   )

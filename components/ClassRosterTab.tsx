@@ -78,7 +78,17 @@ const EXPANDED_TABS: { key: ExpandedTabKey; label: string }[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ClassRosterTab({ classId, externalSearch }: { classId: string; externalSearch?: string }) {
+export default function ClassRosterTab({
+  classId,
+  externalSearch,
+  showCheckboxes,
+  onSelectionChange,
+}: {
+  classId: string
+  externalSearch?: string
+  showCheckboxes?: boolean
+  onSelectionChange?: (ids: string[]) => void
+}) {
   const [rows,             setRows]             = useState<ClassRosterRow[]>([])
   const [loading,          setLoading]          = useState(true)
   const [error,            setError]            = useState<string | null>(null)
@@ -113,7 +123,8 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
-  const [sendFilter,  setSendFilter]  = useState<'ALL' | 'SEN_SUPPORT' | 'EHCP' | 'NO_PLAN'>('ALL')
+  const [sendFilter,  setSendFilter]  = useState<'ALL' | 'SEN_SUPPORT' | 'EHCP' | 'NO_PLAN' | 'NO_PASSPORT'>('ALL')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   // Initial load
   useEffect(() => {
@@ -140,6 +151,10 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [classId])
+
+  // Clear selection when filter changes; emit changes to parent
+  useEffect(() => { setSelectedIds([]) }, [sendFilter])
+  useEffect(() => { onSelectionChange?.(selectedIds) }, [selectedIds, onSelectionChange])
 
   // ── Expand / collapse ──────────────────────────────────────────────────────
 
@@ -320,18 +335,24 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
             />
           </div>
         )}
-        {(['ALL', 'SEN_SUPPORT', 'EHCP', 'NO_PLAN'] as const).map(f => (
+        {(['ALL', 'SEN_SUPPORT', 'EHCP', 'NO_PLAN', 'NO_PASSPORT'] as const).map(f => (
           <button
             key={f}
             type="button"
             onClick={() => setSendFilter(f)}
             className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
               sendFilter === f
-                ? f === 'NO_PLAN' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
+                ? f === 'NO_PLAN' ? 'bg-amber-500 text-white'
+                  : f === 'NO_PASSPORT' ? 'bg-violet-600 text-white'
+                  : 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {f === 'ALL' ? 'All' : f === 'SEN_SUPPORT' ? 'SEN Support' : f === 'EHCP' ? 'EHCP' : 'No Plan'}
+            {f === 'ALL' ? 'All'
+              : f === 'SEN_SUPPORT' ? 'SEN Support'
+              : f === 'EHCP' ? 'EHCP'
+              : f === 'NO_PLAN' ? 'No Plan'
+              : 'No Passport'}
           </button>
         ))}
         <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium ml-auto">
@@ -339,6 +360,7 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
             const q = externalSearch ?? searchQuery
             const matchesSend = sendFilter === 'ALL' ? true
               : sendFilter === 'NO_PLAN' ? (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP') && !r.hasIlp
+              : sendFilter === 'NO_PASSPORT' ? !r.hasLearningProfile
               : r.sendStatus === sendFilter
             return matchesSend && (!q || `${r.firstName} ${r.lastName}`.toLowerCase().includes(q.toLowerCase()))
           }).length} / {rows.length} students
@@ -351,9 +373,42 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
           Students with SEND status but no active ILP. Click <strong>Generate ILP</strong> to create one.
         </div>
       )}
+      {sendFilter === 'NO_PASSPORT' && (
+        <div className="mb-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-xl flex items-center gap-2 text-[12px] text-violet-800">
+          <Icon name="info" size="sm" className="text-violet-500 shrink-0" />
+          Students without a Learning Passport. Select students and click <strong>Generate Passports</strong>.
+        </div>
+      )}
 
       {/* Column headers */}
-      <div className="grid grid-cols-[1fr_90px_110px_80px_40px_30px] items-center gap-x-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-t-xl border-b-0 text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+      <div className={`grid ${showCheckboxes ? 'grid-cols-[24px_1fr_90px_110px_80px_40px_30px]' : 'grid-cols-[1fr_90px_110px_80px_40px_30px]'} items-center gap-x-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-t-xl border-b-0 text-[10px] text-gray-400 font-semibold uppercase tracking-wide`}>
+        {showCheckboxes && (() => {
+          const filteredIds = rows.filter(r => {
+            const q = externalSearch ?? searchQuery
+            const matchesSend = sendFilter === 'ALL' ? true
+              : sendFilter === 'NO_PLAN' ? (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP') && !r.hasIlp
+              : sendFilter === 'NO_PASSPORT' ? !r.hasLearningProfile
+              : r.sendStatus === sendFilter
+            return matchesSend && (!q || `${r.firstName} ${r.lastName}`.toLowerCase().includes(q.toLowerCase()))
+          }).map(r => r.id)
+          return (
+            <input
+              type="checkbox"
+              checked={filteredIds.length > 0 && filteredIds.every(id => selectedIds.includes(id))}
+              ref={el => {
+                if (el) el.indeterminate = selectedIds.length > 0 && !filteredIds.every(id => selectedIds.includes(id)) && selectedIds.some(id => filteredIds.includes(id))
+              }}
+              onChange={e => {
+                if (e.target.checked) {
+                  setSelectedIds(prev => [...new Set([...prev, ...filteredIds])])
+                } else {
+                  setSelectedIds(prev => prev.filter(id => !filteredIds.includes(id)))
+                }
+              }}
+              className="rounded border-gray-300 text-blue-700 focus:ring-blue-700"
+            />
+          )
+        })()}
         <span>Student</span>
         <span className="text-center">RAG</span>
         <span>SEND</span>
@@ -368,6 +423,7 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
           const q = externalSearch ?? searchQuery
           const matchesSend = sendFilter === 'ALL' ? true
             : sendFilter === 'NO_PLAN' ? (row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP') && !row.hasIlp
+            : sendFilter === 'NO_PASSPORT' ? !row.hasLearningProfile
             : row.sendStatus === sendFilter
           return matchesSend && (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
         }).map(row => {
@@ -408,8 +464,25 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
               {/* ── Collapsed row — CSS grid for column alignment ── */}
               <div
                 onClick={() => handleToggle(row)}
-                className="w-full grid grid-cols-[1fr_90px_110px_80px_40px_30px] items-center gap-x-2 px-4 py-2.5 bg-white text-left cursor-pointer hover:bg-gray-50 transition-colors"
+                className={`w-full grid ${showCheckboxes ? 'grid-cols-[24px_1fr_90px_110px_80px_40px_30px]' : 'grid-cols-[1fr_90px_110px_80px_40px_30px]'} items-center gap-x-2 px-4 py-2.5 bg-white text-left cursor-pointer hover:bg-gray-50 transition-colors`}
               >
+                {/* Checkbox col (only when showCheckboxes=true) */}
+                {showCheckboxes && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(row.id)}
+                    onChange={e => {
+                      e.stopPropagation()
+                      if (e.target.checked) {
+                        setSelectedIds(prev => [...prev, row.id])
+                      } else {
+                        setSelectedIds(prev => prev.filter(id => id !== row.id))
+                      }
+                    }}
+                    onClick={e => e.stopPropagation()}
+                    className="rounded border-gray-300 text-blue-700 focus:ring-blue-700"
+                  />
+                )}
                 {/* Col 1: Avatar + Name/info (1fr) */}
                 <div className="flex items-center gap-2 min-w-0">
                 <button

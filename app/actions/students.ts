@@ -1046,6 +1046,30 @@ export async function bulkGenerateLearningPassports(
   return { generated, skipped, errors }
 }
 
+export async function generatePassportsForStudents(
+  studentIds: string[],
+): Promise<{ created: number; skipped: number; errors: number }> {
+  await requireStaff()
+  if (studentIds.length === 0) return { created: 0, skipped: 0, errors: 0 }
+
+  // Check which students already have a profile
+  const existing = await prisma.studentLearningProfile.findMany({
+    where:  { studentId: { in: studentIds } },
+    select: { studentId: true },
+  })
+  const existingSet = new Set(existing.map(e => e.studentId))
+
+  let created = 0, skipped = 0, errors = 0
+  for (const studentId of studentIds) {
+    if (existingSet.has(studentId)) { skipped++; continue }
+    const result = await generateLearningPassport(studentId)
+    if (result.ok) created++; else errors++
+    // Small delay to avoid rate limiting
+    await new Promise(r => setTimeout(r, 500))
+  }
+  return { created, skipped, errors }
+}
+
 // ── AI revision suggestions ───────────────────────────────────────────────────
 
 export async function generateRevisionSuggestions(

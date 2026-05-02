@@ -754,6 +754,7 @@ export type ClassRosterRow = {
   needArea:            string | null
   hasIlp:              boolean
   hasEhcp:             boolean
+  hasLearningProfile:  boolean
   latestScore:         number | null
   maxScore:            number | null
   supportSnapshot:     string | null
@@ -788,6 +789,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
               select:  { finalScore: true, autoScore: true, teacherScore: true, homework: { select: { gradingBands: true } } },
             },
             settings: { select: { profilePictureUrl: true } },
+            learningProfile: { select: { id: true } },
           },
         },
       },
@@ -810,6 +812,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
         needArea:            e.user.sendStatus?.needArea ?? null,
         hasIlp:              e.user.studentIlps.length > 0,
         hasEhcp:             status === 'EHCP',
+        hasLearningProfile:  e.user.learningProfile != null,
         latestScore:         score,
         maxScore:            sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
         supportSnapshot:     e.user.supportSnapshot ?? null,

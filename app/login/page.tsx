@@ -37,7 +37,7 @@ export default function LoginPage() {
           <OmnisLogo variant="login" />
           <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-4">
+        <div className="bg-white rounded-2xl shadow-sm p-8 mb-4">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

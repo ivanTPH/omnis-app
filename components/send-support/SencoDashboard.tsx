@@ -66,7 +66,7 @@ export default function SencoDashboard({ data }: Props) {
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpis.map(k => (
-          <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
+          <div key={k.label} className="card-stat">
             <div className="flex items-center gap-2 mb-2">
               <Icon name={k.iconName} size="md" className={k.color} />
               <span className="text-xs text-gray-500 font-medium">{k.label}</span>

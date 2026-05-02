@@ -131,4 +131,29 @@ html.line-spacing-wider body { line-height: 2.2 !important; }
   .text-data {
     @apply text-sm font-semibold text-gray-900;
   }
+
+  /* Standard content card */
+  .card {
+    @apply bg-white border border-gray-200 rounded-xl p-5 shadow-sm;
+  }
+
+  /* Flat card — for nested content inside a card */
+  .card-flat {
+    @apply bg-gray-50 border border-gray-100 rounded-lg p-4;
+  }
+
+  /* Stat card — dashboard metric blocks */
+  .card-stat {
+    @apply bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col gap-1;
+  }
+
+  /* Alert card — warnings, SEND flags, notices */
+  .card-alert {
+    @apply border rounded-xl p-4;
+  }
+
+  /* Page section wrapper — groups cards on a page */
+  .page-section {
+    @apply flex flex-col gap-4;
+  }
 }

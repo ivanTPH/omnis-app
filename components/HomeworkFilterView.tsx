@@ -242,7 +242,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
       </div>
 
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-5 space-y-3">
+      <div className="card p-4 mb-5 space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
           {/* Subject */}
@@ -356,13 +356,13 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
       {/* ── KPI row ─────────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+          <div className="card-stat p-4 text-center">
             <p className="text-[24px] font-bold text-gray-900">{filtered.length}</p>
             <Tooltip content="Total assignments matching current filters">
               <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">Assignment{filtered.length !== 1 ? 's' : ''}</p>
             </Tooltip>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+          <div className="card-stat p-4 text-center">
             <p className={`text-[24px] font-bold ${totalToMark > 0 ? 'text-amber-600' : 'text-green-600'}`}>
               {totalToMark}
             </p>
@@ -370,7 +370,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
               <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">To Mark</p>
             </Tooltip>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+          <div className="card-stat p-4 text-center">
             <p className={`text-[24px] font-bold ${
               submissionRate === null ? 'text-gray-400' :
               submissionRate < 60    ? 'text-rose-500'  :

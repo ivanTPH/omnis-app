@@ -48,7 +48,7 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
     <div className="space-y-4">
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+      <div className="card p-4 space-y-3">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
 
           {/* Subject */}

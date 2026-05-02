@@ -64,7 +64,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
 
       {/* Header */}
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-gray-900">My Classes</h1>
+        <h1 className="text-page-title">My Classes</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {classes.length} class{classes.length !== 1 ? 'es' : ''} ·{' '}
           {classes.reduce((n, c) => n + c.students.length, 0)} students total

@@ -175,7 +175,7 @@ export default function StudentRevisionView({
       {/* header */}
       <div className="flex items-center gap-2 mb-2">
         <Icon name="bookmark" size="md" className="text-gray-500" />
-        <h1 className="text-lg font-semibold text-gray-900">My Revision</h1>
+        <h1 className="text-page-title">My Revision</h1>
       </div>
       <p className="text-xs text-gray-400 mb-5">
         {activeCount} active{dueThisWeek > 0 ? ` · ${dueThisWeek} due this week` : ''} · {completed.length} completed

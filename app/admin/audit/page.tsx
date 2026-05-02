@@ -57,7 +57,7 @@ export default async function AdminAuditPage({
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Audit Log</h1>
+            <h1 className="text-page-title">Audit Log</h1>
             <p className="text-[13px] text-gray-400 mt-0.5">{total.toLocaleString()} event{total !== 1 ? 's' : ''} recorded</p>
           </div>
           <div className="flex items-center gap-1 text-[11px] text-gray-400">

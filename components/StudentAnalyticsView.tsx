@@ -312,7 +312,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       <div className="px-6 pt-6 pb-5 border-b border-gray-200 bg-white shrink-0">
         <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Classes &amp; Analytics</h1>
+            <h1 className="text-page-title">Classes &amp; Analytics</h1>
             <p className="text-sm text-gray-500 mt-0.5">Select filters and click <strong>Run</strong> to load data</p>
           </div>
           <div className="flex items-center gap-2.5 flex-wrap justify-end">

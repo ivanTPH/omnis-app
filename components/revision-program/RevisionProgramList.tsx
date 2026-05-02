@@ -51,7 +51,7 @@ export default function RevisionProgramList({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Icon name="bookmark" size="md" className="text-gray-500" />
-          <h1 className="text-lg font-semibold text-gray-900">Revision Programs</h1>
+          <h1 className="text-page-title">Revision Programs</h1>
         </div>
         <div className="flex items-center gap-2">
           <button

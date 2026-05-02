@@ -55,7 +55,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-page-title">
               {data.firstName} {data.lastName}
             </h1>
             {data.hasSend && data.sendStatus && (

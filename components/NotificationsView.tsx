@@ -68,7 +68,7 @@ export default function NotificationsView({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Icon name="notifications" size="md" className="text-gray-500" />
-          <h1 className="text-lg font-semibold text-gray-900">Notifications</h1>
+          <h1 className="text-page-title">Notifications</h1>
           {unreadCount > 0 && (
             <span className="bg-blue-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
               {unreadCount}

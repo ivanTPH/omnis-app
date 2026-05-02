@@ -127,7 +127,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
           <Icon name="school" size="md" className="text-indigo-600" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Year Revision</h1>
+          <h1 className="text-page-title">Year Revision</h1>
           <p className="text-sm text-gray-500">Generate personalised year-wide revision for a whole year group</p>
         </div>
       </div>

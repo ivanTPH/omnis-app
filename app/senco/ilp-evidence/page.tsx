@@ -16,7 +16,7 @@ export default async function IlpEvidencePage() {
     <AppShell role={user.role} firstName={user.firstName} lastName={user.lastName} schoolName={user.schoolName}>
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">ILP Evidence</h1>
+          <h1 className="text-page-title">ILP Evidence</h1>
           <p className="text-sm text-gray-500 mt-1">Track homework evidence linked to Individual Learning Plan targets</p>
         </div>
         <IlpEvidenceView data={data} />

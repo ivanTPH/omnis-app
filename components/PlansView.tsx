@@ -187,7 +187,7 @@ export default function PlansView({
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Icon name="folder" size="md" className="text-gray-500" />
-          <h1 className="text-lg font-semibold text-gray-900">SEND Plans</h1>
+          <h1 className="text-page-title">SEND Plans</h1>
           <span className="text-[11px] text-gray-400 font-medium">
             {total} plan{total !== 1 ? 's' : ''}
           </span>

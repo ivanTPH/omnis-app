@@ -327,7 +327,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
         <div className={`border rounded-2xl px-6 py-6 text-center ${accent}`}>
           <div className="flex items-center justify-center gap-2 mb-2">
             <Icon name="emoji_events" size="md" />
-            <h2 className="text-base font-bold text-gray-900">Test Complete!</h2>
+            <h2 className="text-section-header">Test Complete!</h2>
           </div>
           <p className={`text-5xl font-bold mb-1 ${accent.split(' ')[0]}`}>{percentage}%</p>
           <p className="text-lg font-semibold text-gray-700">{estimatedGrade}</p>

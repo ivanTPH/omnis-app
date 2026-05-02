@@ -318,7 +318,7 @@ export default function StudentGradesView({ summaries }: { summaries: SubjectGra
         <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-6">
           <Icon name="school" size="lg" className="text-blue-700" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">My Grades</h1>
+        <h1 className="text-page-title mb-2">My Grades</h1>
         <p className="text-gray-500">No marked work yet. Your grades will appear here once your teacher has returned your homework.</p>
       </div>
     )
@@ -335,7 +335,7 @@ export default function StudentGradesView({ summaries }: { summaries: SubjectGra
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">My Grades</h1>
+      <h1 className="text-page-title mb-1">My Grades</h1>
       <p className="text-[13px] text-gray-400 mb-6">
         {totalPieces} piece{totalPieces !== 1 ? 's' : ''} marked across {summaries.length} subject{summaries.length !== 1 ? 's' : ''}
       </p>

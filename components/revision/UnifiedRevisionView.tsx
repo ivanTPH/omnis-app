@@ -248,7 +248,7 @@ export default function UnifiedRevisionView({
           <div>
             <div className="flex items-center gap-2">
               <Icon name="auto_stories" size="md" className="text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Revision Planner</h1>
+              <h1 className="text-page-title">Revision Planner</h1>
             </div>
             <p className="text-xs text-gray-400 mt-1">
               {initialExams.length} exam{initialExams.length !== 1 ? 's' : ''} tracked

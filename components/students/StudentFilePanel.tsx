@@ -1478,7 +1478,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
           userId={student.id}
         />
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-gray-900 leading-tight">{studentName}</h1>
+          <h1 className="text-page-title leading-tight">{studentName}</h1>
           <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
             {student.yearGroup && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}
             {student.tutorGroup && <span className="text-xs text-gray-400">· {student.tutorGroup}</span>}

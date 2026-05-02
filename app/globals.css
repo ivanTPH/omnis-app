@@ -100,3 +100,35 @@ html.line-spacing-wider body { line-height: 2.2 !important; }
   from { transform: translateY(20px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
+
+@layer components {
+  /* Page titles — used once per page, top of content area */
+  .text-page-title {
+    @apply text-2xl font-semibold text-gray-900 tracking-tight;
+  }
+
+  /* Section headers — card titles, tab panel headings */
+  .text-section-header {
+    @apply text-base font-semibold text-gray-900;
+  }
+
+  /* Body — default readable prose */
+  .text-body {
+    @apply text-sm text-gray-700 leading-relaxed;
+  }
+
+  /* Label — form labels, column headers, stat card labels */
+  .text-label {
+    @apply text-xs font-medium text-gray-500 uppercase tracking-wide;
+  }
+
+  /* Metadata — timestamps, secondary info, helper text */
+  .text-meta {
+    @apply text-xs text-gray-400;
+  }
+
+  /* Data value — grades, scores, counts shown as key numbers */
+  .text-data {
+    @apply text-sm font-semibold text-gray-900;
+  }
+}

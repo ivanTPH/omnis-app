@@ -17,7 +17,7 @@ export default function SencoError({
         <div className="inline-flex items-center justify-center w-12 h-12 bg-red-50 rounded-xl mb-4">
           <Icon name="error" size="md" className="text-red-500" />
         </div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Couldn&apos;t load SEND data</h2>
+        <h2 className="text-section-header mb-2">Couldn&apos;t load SEND data</h2>
         <p className="text-sm text-gray-500 mb-5">
           There was a problem fetching SEND information. This is usually a temporary issue.
         </p>

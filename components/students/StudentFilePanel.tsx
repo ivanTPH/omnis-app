@@ -3,6 +3,7 @@ import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
+import { TableSkeleton } from '@/components/ui/skeletons'
 import { formatRawScore } from '@/lib/gradeUtils'
 import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc, SubjectPerf,
@@ -1359,7 +1360,7 @@ function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: 
 
       {/* Records list */}
       {loading ? (
-        <div className="text-center py-8 text-gray-400 text-sm">Loading…</div>
+        <table className="w-full"><TableSkeleton cols={4} rows={4} /></table>
       ) : rows.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl px-5 py-10 text-center">
           <Icon name="fact_check" size="lg" color="#d1d5db" />

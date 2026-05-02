@@ -7,6 +7,7 @@ import { getStudentFile, saveStudentNote } from '@/app/actions/students'
 import type { StudentFileData } from '@/app/actions/students'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
+import { StudentListSkeleton, StatCardSkeleton } from '@/components/ui/skeletons'
 import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 import { formatRawScore } from '@/lib/gradeUtils'
 
@@ -248,8 +249,8 @@ function RagStudentPanel({
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center h-40">
-              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="px-5 py-4">
+              <StudentListSkeleton />
             </div>
           ) : (
             <div className="space-y-0 divide-y divide-gray-100">
@@ -509,8 +510,11 @@ export default function RagView({ classId, subject, termLabel }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="space-y-4 p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
+        </div>
+        <StudentListSkeleton />
       </div>
     )
   }

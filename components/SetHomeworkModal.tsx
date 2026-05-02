@@ -2,6 +2,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
+import { HomeworkCardSkeleton } from '@/components/ui/skeletons'
 import type { HomeworkType } from '@prisma/client'
 import {
   getTeacherLessons,
@@ -148,8 +149,8 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
         {/* Body */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="space-y-3 py-4">
+              {Array.from({ length: 3 }).map((_, i) => <HomeworkCardSkeleton key={i} />)}
             </div>
           ) : (
             <>

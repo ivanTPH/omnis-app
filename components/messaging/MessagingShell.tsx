@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
+import { StudentListSkeleton } from '@/components/ui/skeletons'
 import type { ThreadSummary, ThreadDetail } from '@/app/actions/messaging'
 import { getThread, getMyThreads } from '@/app/actions/messaging'
 import ThreadList from './ThreadList'
@@ -64,8 +65,8 @@ export default function MessagingShell({
       {/* Right panel — thread or empty */}
       <div className="flex-1 min-w-0 bg-white flex flex-col">
         {loadingThread ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="flex-1 p-4">
+            <StudentListSkeleton />
           </div>
         ) : activeThread ? (
           <ThreadView

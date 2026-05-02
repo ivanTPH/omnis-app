@@ -156,4 +156,19 @@ html.line-spacing-wider body { line-height: 2.2 !important; }
   .page-section {
     @apply flex flex-col gap-4;
   }
+
+  /* Base skeleton pulse */
+  .skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+  }
+
+  /* Common skeleton shapes */
+  .skeleton-text-sm  { @apply bg-gray-200 rounded animate-pulse h-3 w-full; }
+  .skeleton-text     { @apply bg-gray-200 rounded animate-pulse h-4 w-full; }
+  .skeleton-text-lg  { @apply bg-gray-200 rounded animate-pulse h-5 w-3/4; }
+  .skeleton-title    { @apply bg-gray-200 rounded animate-pulse h-6 w-1/2; }
+  .skeleton-avatar   { @apply bg-gray-200 rounded-full animate-pulse h-9 w-9 flex-shrink-0; }
+  .skeleton-badge    { @apply bg-gray-200 rounded-full animate-pulse h-5 w-16; }
+  .skeleton-btn      { @apply bg-gray-200 rounded-lg animate-pulse h-9 w-24; }
+  .skeleton-card     { @apply bg-gray-200 rounded-xl animate-pulse h-24 w-full; }
 }

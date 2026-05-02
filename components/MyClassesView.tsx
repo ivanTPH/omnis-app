@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react'
 import ClassRosterTab from '@/components/ClassRosterTab'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { bulkGenerateLearningPassports } from '@/app/actions/students'
 
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
@@ -16,9 +17,12 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
 
   if (classes.length === 0) {
     return (
-      <p className="text-[13px] text-gray-400 text-center py-16">
-        No classes assigned to your account yet.
-      </p>
+      <EmptyState
+        icon="groups"
+        title="No classes assigned"
+        description="Classes are synced from your MIS. Contact your administrator if this looks wrong."
+        size="md"
+      />
     )
   }
 

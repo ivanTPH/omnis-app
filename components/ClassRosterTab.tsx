@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { StudentListSkeleton } from '@/components/ui/skeletons'
 import Tooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
@@ -256,7 +257,12 @@ export default function ClassRosterTab({ classId, externalSearch }: { classId: s
 
   if (rows.length === 0) {
     return (
-      <p className="text-[12px] text-gray-400 text-center py-10">No students enrolled in this class.</p>
+      <EmptyState
+        icon="groups"
+        title="No students found"
+        description="Try clearing your search, or contact your administrator if this looks wrong"
+        size="sm"
+      />
     )
   }
 

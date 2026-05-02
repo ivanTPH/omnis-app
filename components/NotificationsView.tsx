@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { markPlatformNotificationRead, markAllPlatformNotificationsRead } from '@/app/actions/messaging'
 import type { PlatformNotificationRow } from '@/app/actions/messaging'
@@ -79,11 +80,12 @@ export default function NotificationsView({
 
       {/* list */}
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-300">
-          <Icon name="notifications_none" size="lg" className="mb-4" />
-          <p className="text-base font-medium text-gray-500 mb-1">All caught up</p>
-          <p className="text-sm text-gray-400">No notifications right now — check back later.</p>
-        </div>
+        <EmptyState
+          icon="notifications_none"
+          title="You're all caught up"
+          description="No new notifications right now"
+          size="md"
+        />
       ) : (
         <div className="space-y-2">
           {items.map(n => (

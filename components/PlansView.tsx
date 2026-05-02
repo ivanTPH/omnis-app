@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter }               from 'next/navigation'
 import Link                        from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import StudentAvatar        from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
@@ -196,15 +197,12 @@ export default function PlansView({
       />
 
       {total === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Icon name="folder" size="lg" className="mb-3 opacity-30" />
-          <p className="text-sm">No active SEND plans for your students</p>
-          {isSenco && (
-            <Link href="/send/ilp" className="mt-3 text-sm text-blue-600 hover:underline">
-              View ILP Records →
-            </Link>
-          )}
-        </div>
+        <EmptyState
+          icon="folder_special"
+          title="No support plans"
+          description="None of your current students have an active ILP or EHCP"
+          size="md"
+        />
       ) : (
         <div className="space-y-5">
 

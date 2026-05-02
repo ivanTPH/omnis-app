@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 type ProgramRow = {
@@ -87,11 +88,12 @@ export default function RevisionProgramList({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-          <Icon name="bookmark" size="lg" className="mb-3 opacity-30" />
-          <p className="text-sm">No revision programs yet</p>
-          <button onClick={onNew} className="mt-3 text-sm text-blue-600 hover:underline">Create your first program →</button>
-        </div>
+        <EmptyState
+          icon="menu_book"
+          title="No revision sets yet"
+          description="Create a revision set from any lesson topic to get started"
+          size="md"
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map(p => {

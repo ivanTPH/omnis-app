@@ -3,6 +3,7 @@ import { useState, useMemo, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
 import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
@@ -1015,7 +1016,12 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
             </>
           )}
           {listSubmitted.length === 0 && listMissing.length === 0 && (
-            <p className="text-[11px] text-gray-400 px-3 py-4 text-center">No pupils in this filter</p>
+            <EmptyState
+              icon="inbox"
+              title="No submissions yet"
+              description="Students haven't submitted this homework yet"
+              size="sm"
+            />
           )}
         </div>
       </div>

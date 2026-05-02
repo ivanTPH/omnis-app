@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type Student = {
@@ -53,9 +54,12 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
 
   if (classes.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center py-24 text-sm text-gray-400">
-        No classes assigned yet.
-      </div>
+      <EmptyState
+        icon="groups"
+        title="No classes assigned"
+        description="Classes are synced from your MIS. Contact your administrator if this looks wrong."
+        size="md"
+      />
     )
   }
 

@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { StudentDetailData } from '@/app/actions/analytics'
 import { formatRawScore } from '@/lib/gradeUtils'
 import StudentSupportProfile from '@/components/StudentSupportProfile'
@@ -155,7 +156,12 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
 
         {/* Rows */}
         {filtered.length === 0 ? (
-          <div className="py-12 text-center text-sm text-gray-400">No homework in this subject.</div>
+          <EmptyState
+            icon="assignment"
+            title="No homework due"
+            description="You're all caught up — check back later"
+            size="sm"
+          />
         ) : (
           <div className="divide-y divide-gray-50">
             {filtered.map(hw => {

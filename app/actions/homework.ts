@@ -5,6 +5,7 @@ import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
+import { checkILPEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
@@ -1258,6 +1259,27 @@ export async function markSubmission(submissionId: string, data: {
     : null
 
   void updateLearningProfile(sub.studentId).catch(() => {})
+
+  // Proactive ILP evidence detection (fire-and-forget)
+  if (ilpData) {
+    void prisma.homework.findUnique({
+      where:  { id: sub.homeworkId },
+      select: { title: true, createdBy: true, class: { select: { subject: true } } },
+    }).then(hw => {
+      if (!hw) return
+      void checkILPEvidenceMatch({
+        submissionId,
+        studentId,
+        ilpTargets:    ilpData.targets.map(t => ({ id: t.id, description: t.description })),
+        homeworkTitle: hw.title,
+        subject:       hw.class?.subject ?? '',
+        grade:         data.grade ?? '',
+        schoolId,
+        teacherId:     hw.createdBy,
+        homeworkId:    sub.homeworkId,
+      }).catch(() => {})
+    }).catch(() => {})
+  }
 
   // ── Grade-drop detection ───────────────────────────────────────────────────
   let gradeDrop: {

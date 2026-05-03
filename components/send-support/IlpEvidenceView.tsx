@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import SendBadge from '@/components/ui/SendBadge'
 import type { IlpEvidenceSummary, IlpEvidenceStudent, IlpEvidenceTarget } from '@/app/actions/adaptive-learning'
+import { requestILPEvidence } from '@/app/actions/ilp-evidence'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,22 @@ function StudentRow({ student, expanded, onToggle }: {
   expanded: boolean
   onToggle: () => void
 }) {
+  const [requesting,  setRequesting]  = useState(false)
+  const [requestSent, setRequestSent] = useState(false)
+
+  async function handleRequestEvidence() {
+    setRequesting(true)
+    try {
+      await requestILPEvidence(student.studentId)
+      setRequestSent(true)
+    } finally {
+      setRequesting(false)
+    }
+  }
+
+  const isEvidenceGapBanner = student.hasEvidenceGap && student.daysUntilReview > 14
+  const gapCount = student.totalTargets - student.targetsWithEvidence
+
   const recIcon =
     student.daysUntilReview <= 14 ? 'schedule'
     : student.hasEvidenceGap ? 'warning'
@@ -117,14 +134,41 @@ function StudentRow({ student, expanded, onToggle }: {
         <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-4 space-y-4">
 
           {/* Recommendation */}
-          <div className={`flex items-start gap-2 rounded-lg px-3 py-2.5 ${
+          <div className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${
             student.daysUntilReview <= 14 ? 'bg-red-50 border border-red-200' :
             student.hasEvidenceGap ? 'bg-amber-50 border border-amber-200' :
             student.targetsOnTrack === student.totalTargets ? 'bg-green-50 border border-green-200' :
             'bg-blue-50 border border-blue-200'
           }`}>
-            <Icon name={recIcon} size="sm" className={`${recColor} shrink-0 mt-0.5`} />
-            <p className="text-[12px] font-medium text-gray-800">{student.reviewRecommendation}</p>
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <Icon name={recIcon} size="sm" className={`${recColor} shrink-0 mt-0.5`} />
+              <div>
+                <p className="text-[12px] font-medium text-gray-800">{student.reviewRecommendation}</p>
+                {isEvidenceGapBanner && (
+                  <p className="text-[11px] text-amber-600 mt-0.5">
+                    {gapCount} target{gapCount !== 1 ? 's' : ''} with no linked homework evidence.
+                  </p>
+                )}
+              </div>
+            </div>
+            {isEvidenceGapBanner && (
+              <button
+                onClick={handleRequestEvidence}
+                disabled={requesting || requestSent}
+                className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
+                  requestSent
+                    ? 'bg-green-100 text-green-700 cursor-default'
+                    : 'bg-amber-600 text-white hover:bg-amber-700'
+                }`}
+              >
+                <Icon
+                  name={requestSent ? 'check' : requesting ? 'refresh' : 'send'}
+                  size="sm"
+                  className={requesting ? 'animate-spin' : ''}
+                />
+                {requestSent ? 'Sent' : 'Notify teachers'}
+              </button>
+            )}
           </div>
 
           {/* Adaptive profile summary */}

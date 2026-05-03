@@ -698,21 +698,23 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
         <div className="space-y-3">
           {filteredIlps.map(ilp => (
             <div key={ilp.id} className="border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="w-full flex items-center justify-between hover:bg-gray-50 transition-colors">
-                <button
-                  onClick={() => toggleExpand(ilp.id)}
-                  className="flex-1 text-left px-5 py-4"
-                >
+              {/* Header — always visible, full row is clickable */}
+              <div
+                className="w-full flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => toggleExpand(ilp.id)}
+              >
+                <div className="flex-1 min-w-0 px-5 py-4">
                   <p className="font-medium text-gray-900">{ilp.studentName}</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 truncate">
                     {ilp.yearGroup ? `Year ${ilp.yearGroup}` : ''}{ilp.className ? ` · ${ilp.className}` : ''}{(ilp.yearGroup || ilp.className) ? ' · ' : ''}{ilp.sendCategory} · {ilp.targets.length} target{ilp.targets.length !== 1 ? 's' : ''} ·
                     review {new Date(ilp.reviewDate).toLocaleDateString('en-GB')}
                   </p>
-                </button>
-                <div className="flex items-center gap-2 px-4">
+                </div>
+                {/* Action buttons — shrink-0 ensures they never overflow and hide the chevron */}
+                <div className="flex items-center gap-2 px-4 shrink-0">
                   {/* Per-student AI generate button */}
                   <button
-                    onClick={() => handleAiGenerate(ilp)}
+                    onClick={e => { e.stopPropagation(); handleAiGenerate(ilp) }}
                     title="Re-generate ILP goals using AI — Claude analyses this student's SEND category, assessment history, and learning profile to suggest 3 SMART targets. You review and edit before saving."
                     className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg transition-colors"
                   >
@@ -735,7 +737,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                         Draft — awaiting approval
                       </span>
                       <button
-                        onClick={() => handleApproveIlp(ilp.id)}
+                        onClick={e => { e.stopPropagation(); handleApproveIlp(ilp.id) }}
                         disabled={approveAction[ilp.id]}
                         className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60"
                       >
@@ -750,14 +752,27 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                       Published
                     </span>
                   )}
-                  <button onClick={() => toggleExpand(ilp.id)} className="p-1 text-gray-400 hover:text-gray-600">
-                    <Icon name={expanded.has(ilp.id) ? 'expand_less' : 'expand_more'} size="md" />
-                  </button>
+                  {/* Chevron — rotates 180° when expanded, always visible */}
+                  <Icon
+                    name="expand_more"
+                    size="md"
+                    className={`text-gray-400 transition-transform duration-200 ${expanded.has(ilp.id) ? 'rotate-180' : ''}`}
+                  />
                 </div>
               </div>
+
+              {/* Expanded content */}
               {expanded.has(ilp.id) && (
                 <div className="border-t border-gray-100 p-4">
                   <IlpCard ilp={ilp} />
+                  <div className="flex justify-center pt-4 border-t border-gray-100 mt-4">
+                    <button
+                      onClick={() => toggleExpand(ilp.id)}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <Icon name="expand_less" size="sm" /> Collapse
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

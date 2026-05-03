@@ -92,11 +92,11 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                 className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
               >
                 {/* Expand icon */}
-                <span className="text-gray-400 shrink-0">
-                  {isOpen
-                    ? <Icon name="expand_more" size="sm" />
-                    : <Icon name="chevron_right" size="sm" />}
-                </span>
+                <Icon
+                  name="expand_more"
+                  size="sm"
+                  className={`text-gray-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : '-rotate-90'}`}
+                />
 
                 {/* Year group badge */}
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${yearColor(cls.yearGroup)}`}>

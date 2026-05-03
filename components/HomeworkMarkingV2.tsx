@@ -1,12 +1,12 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import SendBadge from '@/components/ui/SendBadge'
 import StudentAvatar from '@/components/StudentAvatar'
-import { markSubmission } from '@/app/actions/homework'
+import { markSubmission, suggestHomeworkGrade } from '@/app/actions/homework'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -28,14 +28,21 @@ type Sub = {
   student:     Student
 }
 
+type GradeSuggestion = {
+  grade:      string
+  rationale:  string
+  confidence: 'high' | 'medium' | 'low'
+}
+
 type HW = {
-  id:          string
-  title:       string
-  modelAnswer: string | null
-  dueAt:       Date
-  class:       { name: string; subject: string } | null
-  lesson:      { id: string; title: string } | null
-  submissions: Sub[]
+  id:           string
+  title:        string
+  modelAnswer:  string | null
+  gradingBands: unknown
+  dueAt:        Date
+  class:        { name: string; subject: string } | null
+  lesson:       { id: string; title: string } | null
+  submissions:  Sub[]
   sendByStudent: Record<string, { activeStatus: string }>
 }
 
@@ -55,12 +62,14 @@ function MarkingPanel({
   autoAdvance,
   onAutoAdvanceChange,
   onGraded,
+  canGrade,
 }: {
   sub:                  Sub
   hw:                   HW
   autoAdvance:          boolean
   onAutoAdvanceChange:  (v: boolean) => void
   onGraded:             (subId: string, grade: string) => void
+  canGrade:             boolean
 }) {
   const [grade, setGrade]               = useState(sub.grade ?? '')
   const [note, setNote]                 = useState(sub.feedback ?? '')
@@ -68,6 +77,21 @@ function MarkingPanel({
   const [isPending, startTransition]    = useTransition()
   const [saved, setSaved]               = useState(false)
   const [error, setError]               = useState<string | null>(null)
+  const [suggestion, setSuggestion]     = useState<GradeSuggestion | null>(null)
+  const [suggesting, setSuggesting]     = useState(false)
+
+  // Fetch AI grade suggestion for ungraded submissions (teaching staff only)
+  useEffect(() => {
+    if (!canGrade || sub.grade || !hw.modelAnswer) return
+    let cancelled = false
+    setSuggesting(true)
+    suggestHomeworkGrade(sub.id)
+      .then(r => { if (!cancelled && r.grade) setSuggestion(r) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setSuggesting(false) })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleSave() {
     if (!grade) return
@@ -157,65 +181,124 @@ function MarkingPanel({
 
       {/* SECTION C — Grade input (sticky bottom) */}
       <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-        {error && (
-          <p className="text-xs text-rose-600 mb-3">{error}</p>
+
+        {canGrade ? (
+          <>
+            {error && <p className="text-xs text-rose-600 mb-3">{error}</p>}
+
+            {/* AI grade suggestion */}
+            {suggesting && (
+              <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                <Icon name="refresh" size="sm" className="animate-spin" />
+                Generating grade suggestion…
+              </div>
+            )}
+            {suggestion && !grade && (
+              <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-blue-700 mb-0.5 flex items-center gap-1">
+                      <Icon name="auto_awesome" size="sm" />
+                      AI suggests Grade {suggestion.grade}
+                      <span className="text-blue-400 font-normal">· {suggestion.confidence} confidence</span>
+                    </p>
+                    <p className="text-xs text-blue-600 leading-relaxed">{suggestion.rationale}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setGrade(suggestion.grade); setSuggestion(null) }}
+                    className="flex-shrink-0 text-xs font-medium text-white bg-blue-700 hover:bg-blue-800 px-2.5 py-1 rounded-lg transition"
+                  >
+                    Accept
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-end gap-4">
+              {/* GCSE grade selector — button group */}
+              <div className="flex flex-col gap-1.5 flex-shrink-0">
+                <label className="text-label">GCSE GRADE</label>
+                <div className="flex gap-1">
+                  {GRADES.map(g => (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setGrade(g)}
+                      className={`w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
+                        grade === g
+                          ? 'bg-blue-700 text-white border-blue-700'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-700'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Teacher feedback */}
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label className="text-label">TEACHER FEEDBACK</label>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="Optional feedback for the student…"
+                  rows={2}
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-700"
+                />
+              </div>
+
+              {/* Save button */}
+              <button
+                onClick={handleSave}
+                disabled={!grade || isPending}
+                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm px-5 rounded-lg h-10 flex-shrink-0 self-end disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isPending
+                  ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                  : saved
+                    ? <Icon name="check_circle" size="sm" />
+                    : <Icon name="save" size="sm" />
+                }
+                {saved ? 'Saved!' : 'Save Grade'}
+              </button>
+            </div>
+
+            {/* Auto-advance toggle */}
+            <label className="flex items-center gap-2 mt-3 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={autoAdvance}
+                onChange={e => onAutoAdvanceChange(e.target.checked)}
+                className="rounded border-gray-300 text-blue-700 focus:ring-blue-700"
+              />
+              <span className="text-meta">Auto-advance to next student after saving</span>
+            </label>
+          </>
+        ) : (
+          /* READ-ONLY view for non-teaching staff */
+          <div className="space-y-3">
+            {sub.grade && (
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-label mb-1">GRADE</p>
+                  <span className="text-2xl font-bold text-gray-900">{sub.grade}</span>
+                </div>
+              </div>
+            )}
+            {sub.feedback && (
+              <div>
+                <p className="text-label mb-1">TEACHER FEEDBACK</p>
+                <p className="text-sm text-gray-700 leading-relaxed">{sub.feedback}</p>
+              </div>
+            )}
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <Icon name="info" size="sm" className="text-amber-600 shrink-0" />
+              <p className="text-xs text-amber-700">Grades can only be set by the class teacher.</p>
+            </div>
+          </div>
         )}
-        <div className="flex items-end gap-4">
-
-          {/* GCSE grade selector */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-label">GCSE GRADE</label>
-            <select
-              value={grade}
-              onChange={e => setGrade(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-data bg-white w-28 focus:outline-none focus:ring-2 focus:ring-blue-700"
-            >
-              <option value="">—</option>
-              {GRADES.map(g => (
-                <option key={g} value={g}>Grade {g}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Teacher feedback */}
-          <div className="flex-1 flex flex-col gap-1.5">
-            <label className="text-label">TEACHER FEEDBACK</label>
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="Optional feedback for the student…"
-              rows={2}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-700"
-            />
-          </div>
-
-          {/* Save button */}
-          <button
-            onClick={handleSave}
-            disabled={!grade || isPending}
-            className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm px-5 rounded-lg h-10 flex-shrink-0 self-end disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isPending
-              ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-              : saved
-                ? <Icon name="check_circle" size="sm" />
-                : <Icon name="save" size="sm" />
-            }
-            {saved ? 'Saved!' : 'Save Grade'}
-          </button>
-
-        </div>
-
-        {/* Auto-advance toggle */}
-        <label className="flex items-center gap-2 mt-3 cursor-pointer w-fit">
-          <input
-            type="checkbox"
-            checked={autoAdvance}
-            onChange={e => onAutoAdvanceChange(e.target.checked)}
-            className="rounded border-gray-300 text-blue-700 focus:ring-blue-700"
-          />
-          <span className="text-meta">Auto-advance to next student after saving</span>
-        </label>
       </div>
     </div>
   )
@@ -223,7 +306,7 @@ function MarkingPanel({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function HomeworkMarkingV2({ hw }: { hw: HW }) {
+export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; canGrade?: boolean }) {
   // Initialise grades map from existing submission grades
   const [gradesMap, setGradesMap] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {}
@@ -359,6 +442,7 @@ export default function HomeworkMarkingV2({ hw }: { hw: HW }) {
                 autoAdvance={autoAdvance}
                 onAutoAdvanceChange={setAutoAdvance}
                 onGraded={handleGraded}
+                canGrade={canGrade}
               />
             )
             : (

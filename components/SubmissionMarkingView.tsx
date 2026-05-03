@@ -37,9 +37,11 @@ function suggestGrade(score: number, bands: unknown): string {
 export default function SubmissionMarkingView({
   data,
   homeworkId,
+  canGrade = true,
 }: {
   data: MarkingData
   homeworkId: string
+  canGrade?: boolean
 }) {
   const router = useRouter()
   const hw     = data.homework
@@ -379,121 +381,162 @@ export default function SubmissionMarkingView({
       <div className="w-80 shrink-0 overflow-auto border-l border-gray-200 bg-gray-50">
         <div className="px-6 py-6 space-y-5">
 
-          <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
-              {isAlreadyMarked ? 'Update Mark' : 'Mark Submission'}
-            </p>
+          {canGrade ? (
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+                {isAlreadyMarked ? 'Update Mark' : 'Mark Submission'}
+              </p>
 
-            {/* Score */}
-            <div className="mb-4">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
-                Score (out of {maxScore})
-                {isAutoMarkedPending && (
-                  <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI suggested</span>
+              {/* Score */}
+              <div className="mb-4">
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                  Score (out of {maxScore})
+                  {isAutoMarkedPending && (
+                    <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI suggested</span>
+                  )}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={0}
+                    max={maxScore}
+                    value={score}
+                    onChange={e => handleScoreChange(e.target.value)}
+                    className="w-20 border border-gray-300 rounded-xl px-3 py-2.5 text-[18px] font-bold text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    placeholder="—"
+                  />
+                  <span className="text-[13px] text-gray-400">/ {maxScore}</span>
+                </div>
+                {score !== '' && (
+                  <div className="mt-3">
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${barColour}`}
+                        style={{ width: `${Math.min(pct, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">{Math.round(pct)}%</p>
+                  </div>
                 )}
-              </label>
-              <div className="flex items-center gap-3">
+              </div>
+
+              {/* Grade */}
+              <div className="mb-4">
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">Grade (GCSE 1–9)</label>
                 <input
-                  type="number"
-                  min={0}
-                  max={maxScore}
-                  value={score}
-                  onChange={e => handleScoreChange(e.target.value)}
-                  className="w-20 border border-gray-300 rounded-xl px-3 py-2.5 text-[18px] font-bold text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  type="text"
+                  value={grade}
+                  onChange={e => setGrade(e.target.value)}
+                  className={`w-24 border rounded-xl px-3 py-2.5 text-[16px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
                   placeholder="—"
                 />
-                <span className="text-[13px] text-gray-400">/ {maxScore}</span>
+                <p className={`text-[10px] mt-1 ${
+                  gradeState === 'auto'      ? 'text-amber-600' :
+                  gradeState === 'confirmed' ? 'text-green-600' :
+                  'text-gray-400'
+                }`}>{gradeLabel}</p>
               </div>
-              {score !== '' && (
-                <div className="mt-3">
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${barColour}`}
-                      style={{ width: `${Math.min(pct, 100)}%` }}
-                    />
+
+              {/* Feedback */}
+              <div className="mb-5">
+                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                  Feedback to Student
+                  {isAutoMarkedPending && (
+                    <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI pre-filled</span>
+                  )}
+                </label>
+                <textarea
+                  rows={8}
+                  value={feedback}
+                  onChange={e => setFeedback(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-3 text-[13px] text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white"
+                  placeholder="Write constructive feedback for the student…"
+                />
+              </div>
+
+              {/* Error */}
+              {error && (
+                <p className="text-[12px] text-rose-600 font-medium mb-3">{error}</p>
+              )}
+
+              {/* Actions */}
+              <div className="space-y-2">
+                <button
+                  onClick={handleSave}
+                  disabled={isPending || score === ''}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-[13px] font-semibold transition-colors"
+                >
+                  {isPending
+                    ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
+                    : saved
+                      ? <><Icon name="check_circle" size="sm" /> {data.nav.next ? 'Saved — moving on…' : 'Returned to student'}</>
+                      : isAutoMarkedPending
+                      ? 'Confirm & Return to Student'
+                      : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
+                  }
+                </button>
+
+                {saved && !isPending && (
+                  <p className="text-[11px] text-green-600 text-center font-medium">
+                    <Icon name="check_circle" size="sm" className="inline mr-1" />
+                    {data.nav.next ? 'Moving to next student…' : 'All done!'}
+                  </p>
+                )}
+              </div>
+
+              {/* Previously returned info */}
+              {isReturned && (
+                <div className="border-t border-gray-200 mt-5 pt-4">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Previously Returned</p>
+                  <div className="space-y-1 text-[12px] text-gray-500">
+                    {data.finalScore != null && (
+                      <p>Score: <span className="font-semibold text-gray-700">{displayFinalScore}</span></p>
+                    )}
+                    {data.grade && <p>Grade: <span className="font-bold text-green-700">{gcseGradeLabel(Number(data.grade))}</span></p>}
+                    {data.markedAt && new Date(data.markedAt) >= new Date(data.submittedAt) && (
+                      <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    )}
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1">{Math.round(pct)}%</p>
                 </div>
               )}
             </div>
+          ) : (
+            /* READ-ONLY view for non-teaching staff (e.g. SENCO) */
+            <div className="space-y-4">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Mark Summary</p>
 
-            {/* Grade */}
-            <div className="mb-4">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">Grade (GCSE 1–9)</label>
-              <input
-                type="text"
-                value={grade}
-                onChange={e => setGrade(e.target.value)}
-                className={`w-24 border rounded-xl px-3 py-2.5 text-[16px] font-bold text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${gradeBoxClass}`}
-                placeholder="—"
-              />
-              <p className={`text-[10px] mt-1 ${
-                gradeState === 'auto'      ? 'text-amber-600' :
-                gradeState === 'confirmed' ? 'text-green-600' :
-                'text-gray-400'
-              }`}>{gradeLabel}</p>
-            </div>
+              {data.grade != null && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Grade</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-gray-900">{data.grade}</span>
+                    {data.finalScore != null && (
+                      <span className="text-[12px] text-gray-400">({displayFinalScore})</span>
+                    )}
+                  </div>
+                </div>
+              )}
 
-            {/* Feedback */}
-            <div className="mb-5">
-              <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
-                Feedback to Student
-                {isAutoMarkedPending && (
-                  <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI pre-filled</span>
-                )}
-              </label>
-              <textarea
-                rows={8}
-                value={feedback}
-                onChange={e => setFeedback(e.target.value)}
-                className="w-full border border-gray-300 rounded-xl px-3 py-3 text-[13px] text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white"
-                placeholder="Write constructive feedback for the student…"
-              />
-            </div>
+              {data.feedback && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Teacher Feedback</p>
+                  <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">{data.feedback}</p>
+                </div>
+              )}
 
-            {/* Error */}
-            {error && (
-              <p className="text-[12px] text-rose-600 font-medium mb-3">{error}</p>
-            )}
-
-            {/* Actions */}
-            <div className="space-y-2">
-              <button
-                onClick={handleSave}
-                disabled={isPending || score === ''}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-[13px] font-semibold transition-colors"
-              >
-                {isPending
-                  ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
-                  : saved
-                    ? <><Icon name="check_circle" size="sm" /> {data.nav.next ? 'Saved — moving on…' : 'Returned to student'}</>
-                    : isAutoMarkedPending
-                    ? 'Confirm & Return to Student'
-                    : isAlreadyMarked ? 'Update & Return' : 'Mark & Return'
-                }
-              </button>
-
-              {saved && !isPending && (
-                <p className="text-[11px] text-green-600 text-center font-medium">
-                  <Icon name="check_circle" size="sm" className="inline mr-1" />
-                  {data.nav.next ? 'Moving to next student…' : 'All done!'}
+              {data.markedAt && new Date(data.markedAt) >= new Date(data.submittedAt) && (
+                <p className="text-[11px] text-gray-400">
+                  Returned {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               )}
-            </div>
-          </div>
 
-          {/* Previously returned info */}
-          {isReturned && (
-            <div className="border-t border-gray-200 pt-4">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Previously Returned</p>
-              <div className="space-y-1 text-[12px] text-gray-500">
-                {data.finalScore != null && (
-                  <p>Score: <span className="font-semibold text-gray-700">{displayFinalScore}</span></p>
-                )}
-                {data.grade && <p>Grade: <span className="font-bold text-green-700">{gcseGradeLabel(Number(data.grade))}</span></p>}
-                {data.markedAt && new Date(data.markedAt) >= new Date(data.submittedAt) && (
-                  <p>Returned: {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                )}
+              {!data.grade && (
+                <p className="text-[12px] text-gray-400 italic">Not yet graded.</p>
+              )}
+
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <Icon name="info" size="sm" className="text-amber-600 shrink-0" />
+                <p className="text-xs text-amber-700">Grades can only be set by the class teacher.</p>
               </div>
             </div>
           )}

@@ -8,6 +8,7 @@ export default async function HomeworkMarkingPage({ params }: { params: Promise<
   const session = await auth()
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName } = session.user as any
+  const canGrade = ['TEACHER', 'HEAD_OF_DEPT'].includes(role)
 
   const { id } = await params
   const hw = await getHomeworkForMarking(id)
@@ -16,7 +17,7 @@ export default async function HomeworkMarkingPage({ params }: { params: Promise<
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <HomeworkMarkingView hw={hw} />
+        <HomeworkMarkingView hw={hw} canGrade={canGrade} />
       </div>
     </AppShell>
   )

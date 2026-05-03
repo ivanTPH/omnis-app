@@ -14,6 +14,7 @@ export default async function SubmissionMarkingPage({
   const session = await auth()
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName } = session.user as any
+  const canGrade = ['TEACHER', 'HEAD_OF_DEPT'].includes(role)
 
   const { id: homeworkId, submissionId } = await params
   const data = await getSubmissionForMarking(submissionId)
@@ -76,7 +77,7 @@ export default async function SubmissionMarkingPage({
 
         {/* Main content — client component handles the form */}
         <div className="flex-1 min-h-0 overflow-hidden">
-          <SubmissionMarkingView data={data as any} homeworkId={homeworkId} />
+          <SubmissionMarkingView data={data as any} homeworkId={homeworkId} canGrade={canGrade} />
         </div>
 
       </div>

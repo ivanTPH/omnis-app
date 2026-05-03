@@ -1212,7 +1212,8 @@ export async function markSubmission(submissionId: string, data: {
 }> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId, role } = session.user as any
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) throw new Error('Only teaching staff can grade homework')
 
   const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
   if (!sub) throw new Error('Submission not found')
@@ -1726,4 +1727,70 @@ export async function getIlpConcernsThisTerm(): Promise<Array<{
     const entry = concerns.find(c => c.studentId === s.id)
     return { ...s, concernCount: entry?._count.studentId ?? 0 }
   })
+}
+
+// ── AI grade suggestion ────────────────────────────────────────────────────────
+
+export async function suggestHomeworkGrade(
+  submissionId: string,
+): Promise<{ grade: string; rationale: string; confidence: 'high' | 'medium' | 'low' }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { role } = session.user as any
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) {
+    return { grade: '', rationale: 'Not authorized', confidence: 'low' as const }
+  }
+
+  const sub = await prisma.submission.findUnique({
+    where: { id: submissionId },
+    select: {
+      content:  true,
+      homework: { select: { title: true, modelAnswer: true, gradingBands: true } },
+    },
+  })
+
+  const fallback = { grade: '', rationale: 'No mark scheme available', confidence: 'low' as const }
+  if (!sub?.homework.modelAnswer) return fallback
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return fallback
+
+  const bandsText = sub.homework.gradingBands
+    ? JSON.stringify(sub.homework.gradingBands, null, 2)
+    : 'Standard GCSE descriptors: 9=exceptional, 7-8=strong, 5-6=secure, 3-4=developing, 1-2=basic, U=unclassified'
+
+  const prompt = `You are a UK secondary school teacher marking homework. Suggest a GCSE grade (9, 8, 7, 6, 5, 4, 3, 2, 1, or U) for this student submission.
+
+Homework: ${sub.homework.title}
+
+Mark scheme / model answer:
+${sub.homework.modelAnswer}
+
+Grading bands:
+${bandsText}
+
+Student submission:
+${sub.content || '(no response submitted)'}
+
+Respond with ONLY valid JSON: {"grade": "7", "rationale": "Brief explanation max 25 words", "confidence": "high"}`
+
+  try {
+    const client   = new Anthropic({ apiKey })
+    const response = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 150,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+    const text   = response.content[0].type === 'text' ? response.content[0].text.trim() : ''
+    const parsed = JSON.parse(text)
+    const valid  = ['9', '8', '7', '6', '5', '4', '3', '2', '1', 'U']
+    if (!valid.includes(parsed.grade)) throw new Error('bad grade')
+    return {
+      grade:      parsed.grade,
+      rationale:  String(parsed.rationale ?? '').slice(0, 200),
+      confidence: (['high', 'medium', 'low'] as const).includes(parsed.confidence) ? parsed.confidence : 'medium',
+    }
+  } catch {
+    return fallback
+  }
 }

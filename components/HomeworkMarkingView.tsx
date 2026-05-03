@@ -224,7 +224,7 @@ type IlpClassification = {
 
 // ── main component ─────────────────────────────────────────────────────────────
 
-export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
+export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWData; canGrade?: boolean }) {
   const enrolled       = hw.class?.enrolments ?? []
   const maxScore       = maxFromBands(hw.gradingBands)
   const sendByStudent  = hw.sendByStudent
@@ -1374,7 +1374,8 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                 </div>
               )}
 
-              {/* marking form */}
+              {/* marking form — teacher only */}
+              {canGrade ? (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                   <p className="text-[12px] font-semibold text-gray-700">
@@ -1492,6 +1493,34 @@ export default function HomeworkMarkingView({ hw }: { hw: HWData }) {
                   </div>
                 </div>
               </div>
+              ) : (
+              /* READ-ONLY for non-teaching staff */
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <p className="text-[12px] font-semibold text-gray-700">Mark Summary</p>
+                </div>
+                <div className="px-4 py-4 space-y-3">
+                  {form.grade ? (
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Grade</p>
+                      <span className="text-2xl font-bold text-gray-900">{form.grade}</span>
+                    </div>
+                  ) : (
+                    <p className="text-[12px] text-gray-400 italic">Not yet graded.</p>
+                  )}
+                  {form.feedback && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Teacher Feedback</p>
+                      <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">{form.feedback}</p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <Icon name="info" size="sm" className="text-amber-600 shrink-0" />
+                    <p className="text-[11px] text-amber-700">Grades can only be set by the class teacher.</p>
+                  </div>
+                </div>
+              </div>
+              )}
 
               {/* ── Teacher Notes ─── */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">

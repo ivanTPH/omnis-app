@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import AppShell from '@/components/AppShell'
 import { getTodaysCoverSummary, getCoverHistory, getStaffList } from '@/app/actions/cover'
 import CoverPageTabs from '@/components/cover/CoverPageTabs'
 
@@ -10,7 +11,8 @@ export default async function CoverPage() {
   if (!session) redirect('/login')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const user = session.user as any
-  if (!ALLOWED.includes(user.role)) redirect('/dashboard')
+  const { role, firstName, lastName, schoolName } = user
+  if (!ALLOWED.includes(role)) redirect('/dashboard')
 
   const today = new Date()
 
@@ -28,23 +30,25 @@ export default async function CoverPage() {
   }) => ({ id: s.id, firstName: s.firstName, lastName: s.lastName, title: s.title }))
 
   return (
-    <div className="flex flex-col h-full p-6 gap-4 min-h-0">
-      <div className="flex-shrink-0">
-        <h1 className="text-[20px] font-bold text-gray-900">Cover Management</h1>
-        <p className="text-[13px] text-gray-500 mt-0.5">
-          {today.toLocaleDateString('en-GB', {
-            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-          })}
-        </p>
-      </div>
+    <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
+      <div className="flex flex-col h-full p-6 gap-4 min-h-0">
+        <div className="flex-shrink-0">
+          <h1 className="text-[20px] font-bold text-gray-900">Cover Management</h1>
+          <p className="text-[13px] text-gray-500 mt-0.5">
+            {today.toLocaleDateString('en-GB', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+            })}
+          </p>
+        </div>
 
-      <CoverPageTabs
-        today={today}
-        schoolId={user.schoolId}
-        summary={summary}
-        history={history}
-        staffList={staffList}
-      />
-    </div>
+        <CoverPageTabs
+          today={today}
+          schoolId={user.schoolId}
+          summary={summary}
+          history={history}
+          staffList={staffList}
+        />
+      </div>
+    </AppShell>
   )
 }

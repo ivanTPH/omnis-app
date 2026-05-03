@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { LearnerPassportRow } from '@/app/actions/send-support'
 import { approveLearnerPassport, regenerateLearnerPassport } from '@/app/actions/send-support'
@@ -187,14 +188,11 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
               : ''}
             This document is confidential. Share only with staff who teach {firstName}.
           </span>
-          <a
+          <Link
             href={`/student/${studentId}/send`}
-            target="_blank"
-            rel="noopener noreferrer"
             className="shrink-0 text-blue-500 hover:text-blue-700 font-medium"
           >
-            Full SEND record →
-          </a>
+            Full SEND record →</Link>
         </div>
       </div>
     </div>

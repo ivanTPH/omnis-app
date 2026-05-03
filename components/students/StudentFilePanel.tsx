@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useTransition } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import StudentAvatar from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
@@ -503,13 +504,13 @@ function IlpSection({ ilp, isSenco, studentId }: { ilp: IlpDoc; isSenco: boolean
         </div>
       )}
       {isSenco ? (
-        <a href="/senco/ilp" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+        <Link href="/senco/ilp" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
           <Icon name="open_in_new" size="sm" />Edit full ILP
-        </a>
+        </Link>
       ) : (
-        <a href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+        <Link href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
           <Icon name="open_in_new" size="sm" />View full SEND profile
-        </a>
+        </Link>
       )}
     </div>
   )

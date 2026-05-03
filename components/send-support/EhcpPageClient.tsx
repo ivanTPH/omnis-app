@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import SendBadge from '@/components/ui/SendBadge'
 import type { EhcpPlanWithOutcomes, StudentWithoutEhcp } from '@/app/actions/ehcp'
@@ -257,9 +258,9 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
                     <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>{plan.outcomes.filter(o => o.evidenceCount > 0).length} of {plan.outcomes.length} outcomes have evidence</span>
-                        <a href={`/student/${plan.studentId}/send`} className="text-purple-600 hover:underline">
+                        <Link href={`/student/${plan.studentId}/send`} className="text-purple-600 hover:underline">
                           View student SEND record →
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   </>

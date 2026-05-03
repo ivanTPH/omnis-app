@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getStudentConcerns, getStudentIlp, getEarlyWarningFlags, getStudentLearnerPassport } from '@/app/actions/send-support'
 import { prisma } from '@/lib/prisma'
+import AppShell from '@/components/AppShell'
 import ConcernList from '@/components/send-support/ConcernList'
 import IlpCard from '@/components/send-support/IlpCard'
 import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
@@ -21,7 +22,7 @@ export default async function StudentSendPage({
 }) {
   const session = await auth()
   if (!session) redirect('/login')
-  const user = session.user as { role: string; schoolId: string }
+  const user = session.user as { role: string; schoolId: string; firstName: string; lastName: string; schoolName: string }
   if (!ALLOWED.includes(user.role)) redirect('/dashboard')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
 
@@ -53,6 +54,7 @@ export default async function StudentSendPage({
                                                  'bg-gray-100   text-gray-600'
 
   return (
+    <AppShell role={user.role} firstName={user.firstName} lastName={user.lastName} schoolName={user.schoolName}>
     <div className="flex flex-col h-full overflow-auto">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white flex items-center justify-between">
@@ -186,5 +188,6 @@ export default async function StudentSendPage({
         </section>
       </div>
     </div>
+    </AppShell>
   )
 }

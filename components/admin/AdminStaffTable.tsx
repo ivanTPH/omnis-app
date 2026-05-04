@@ -390,6 +390,12 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
   const [editTarget, setEditTarget]   = useState<StaffMember | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null)
   const [toggling, setToggling]       = useState<string | null>(null)
+  const [toast, setToast]             = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   function toggleSort(k: SortKey) {
     if (sortKey === k) setSortAsc(a => !a)
@@ -414,24 +420,29 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
   function handleAdded(s: StaffMember) {
     setStaffList(list => [s, ...list])
     setAddOpen(false)
+    showToast(`${s.firstName} ${s.lastName} added`)
   }
 
   function handleEdited(s: StaffMember) {
     setStaffList(list => list.map(x => x.id === s.id ? s : x))
     setEditTarget(null)
+    showToast('Staff member updated')
   }
 
   async function handleToggle(s: StaffMember) {
     setToggling(s.id)
     const res = await toggleStaffActive(s.id)
     setToggling(null)
-    if (res.error) { alert(res.error); return }
+    if (res.error) { showToast(res.error, 'error'); return }
     setStaffList(list => list.map(x => x.id === s.id ? { ...x, isActive: res.isActive! } : x))
+    showToast(res.isActive ? `${s.firstName} reactivated` : `${s.firstName} deactivated`)
   }
 
   function handleDeleted(id: string) {
+    const s = staffList.find(x => x.id === id)
     setStaffList(list => list.filter(x => x.id !== id))
     setDeleteTarget(null)
+    showToast(s ? `${s.firstName} ${s.lastName} removed` : 'Staff member removed')
   }
 
   function SortIcon({ k }: { k: SortKey }) {
@@ -450,6 +461,15 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
 
   return (
     <>
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg text-[13px] font-medium ${
+          toast.type === 'success' ? 'bg-green-700 text-white' : 'bg-red-700 text-white'
+        }`}>
+          <Icon name={toast.type === 'success' ? 'check_circle' : 'error'} size="sm" />
+          {toast.message}
+        </div>
+      )}
+
       <PageHeader
         title="Staff"
         subtitle={`${activeCount} active · ${staffList.length} total`}

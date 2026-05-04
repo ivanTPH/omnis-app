@@ -252,14 +252,16 @@ export async function getStaffList(...args: Parameters<typeof getStaffMembers>) 
 // ─── Students ─────────────────────────────────────────────────────────────────
 
 export type StudentRow = {
-  id:        string
-  firstName: string
-  lastName:  string
-  email:     string
-  yearGroup: number | null
-  className: string
-  hasSend:   boolean
-  avatarUrl: string | null
+  id:         string
+  firstName:  string
+  lastName:   string
+  email:      string
+  yearGroup:  number | null
+  tutorGroup: string | null
+  className:  string
+  hasSend:    boolean
+  avatarUrl:  string | null
+  isActive:   boolean
 }
 
 export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> {
@@ -268,7 +270,7 @@ export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> 
   const schoolId = user.schoolId as string
 
   const students = await prisma.user.findMany({
-    where:   { schoolId, role: 'STUDENT', isActive: true },
+    where:   { schoolId, role: 'STUDENT' }, // admin sees all, including inactive
     include: {
       enrolments: { include: { class: { select: { name: true } } }, take: 1 },
       sendStatus: true,
@@ -276,14 +278,16 @@ export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> 
     orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
   })
   return students.map(u => ({
-    id:        u.id,
-    firstName: u.firstName,
-    lastName:  u.lastName,
-    email:     u.email,
-    yearGroup: u.yearGroup,
-    className: u.enrolments[0]?.class.name ?? '—',
-    hasSend:   u.sendStatus !== null && u.sendStatus.activeStatus !== 'NONE',
-    avatarUrl: u.avatarUrl ?? null,
+    id:         u.id,
+    firstName:  u.firstName,
+    lastName:   u.lastName,
+    email:      u.email,
+    yearGroup:  u.yearGroup,
+    tutorGroup: u.tutorGroup,
+    className:  u.enrolments[0]?.class.name ?? '—',
+    hasSend:    u.sendStatus !== null && u.sendStatus.activeStatus !== 'NONE',
+    avatarUrl:  u.avatarUrl ?? null,
+    isActive:   u.isActive,
   }))
 }
 
@@ -321,6 +325,207 @@ export async function getClassList(_schoolId?: string): Promise<ClassRow[]> {
     studentCount: c._count.enrolments,
     teacherNames: c.teachers.map(t => `${t.user.firstName} ${t.user.lastName}`),
   }))
+}
+
+// ─── Student CRUD ─────────────────────────────────────────────────────────────
+
+export type CreateStudentInput = {
+  firstName:         string
+  lastName:          string
+  email:             string
+  yearGroup:         number
+  tutorGroup?:       string
+  temporaryPassword: string
+}
+
+export async function createStudent(
+  input: CreateStudentInput,
+): Promise<{ success?: true; studentId?: string; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase().trim() } })
+  if (existing) return { error: 'A user with this email already exists' }
+
+  const passwordHash = await bcrypt.hash(input.temporaryPassword, 12)
+  const student = await prisma.user.create({
+    data: {
+      schoolId,
+      email:      input.email.toLowerCase().trim(),
+      passwordHash,
+      role:       'STUDENT',
+      firstName:  input.firstName.trim(),
+      lastName:   input.lastName.trim(),
+      yearGroup:  input.yearGroup,
+      tutorGroup: input.tutorGroup?.trim() || null,
+      isActive:   true,
+    },
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'STUDENT_CREATED',
+    targetType: 'User', targetId: student.id,
+    metadata: { email: input.email, yearGroup: input.yearGroup },
+  })
+  revalidatePath('/admin/students')
+  return { success: true, studentId: student.id }
+}
+
+export type UpdateStudentInput = {
+  studentId:   string
+  firstName:   string
+  lastName:    string
+  email:       string
+  yearGroup:   number
+  tutorGroup?: string
+}
+
+export async function updateStudent(
+  input: UpdateStudentInput,
+): Promise<{ success?: true; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase().trim() } })
+  if (existing && existing.id !== input.studentId) return { error: 'This email is already in use' }
+
+  await prisma.user.update({
+    where: { id: input.studentId, schoolId },
+    data: {
+      firstName:  input.firstName.trim(),
+      lastName:   input.lastName.trim(),
+      email:      input.email.toLowerCase().trim(),
+      yearGroup:  input.yearGroup,
+      tutorGroup: input.tutorGroup?.trim() || null,
+    },
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'STUDENT_UPDATED',
+    targetType: 'User', targetId: input.studentId,
+    metadata: { email: input.email },
+  })
+  revalidatePath('/admin/students')
+  return { success: true }
+}
+
+export async function toggleStudentActive(
+  studentId: string,
+): Promise<{ success?: true; isActive?: boolean; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const student = await prisma.user.findUnique({ where: { id: studentId, schoolId } })
+  if (!student) return { error: 'Student not found' }
+
+  const newIsActive = !student.isActive
+  await prisma.user.update({ where: { id: studentId }, data: { isActive: newIsActive } })
+
+  await writeAudit({
+    schoolId, actorId: user.id,
+    action: newIsActive ? 'STUDENT_REACTIVATED' : 'STUDENT_DEACTIVATED',
+    targetType: 'User', targetId: studentId,
+    metadata: { email: student.email },
+  })
+  revalidatePath('/admin/students')
+  return { success: true, isActive: newIsActive }
+}
+
+export async function deleteStudent(
+  studentId: string,
+): Promise<{ success?: true; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const student = await prisma.user.findUnique({ where: { id: studentId, schoolId } })
+  if (!student) return { error: 'Student not found' }
+
+  // Soft delete — preserve submissions, ILP, SEND records
+  await prisma.user.update({
+    where: { id: studentId, schoolId },
+    data: { isActive: false, email: `deleted-${studentId}@deleted.invalid` },
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'STUDENT_DELETED',
+    targetType: 'User', targetId: studentId,
+    metadata: { originalEmail: student.email, name: `${student.firstName} ${student.lastName}` },
+  })
+  revalidatePath('/admin/students')
+  return { success: true }
+}
+
+// ─── Class CRUD ────────────────────────────────────────────────────────────────
+
+export type CreateClassInput = {
+  name:       string
+  subject:    string
+  yearGroup:  number
+  department: string
+}
+
+export async function createClass(
+  input: CreateClassInput,
+): Promise<{ success?: true; classId?: string; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const cls = await prisma.schoolClass.create({
+    data: {
+      schoolId,
+      name:       input.name.trim(),
+      subject:    input.subject,
+      yearGroup:  input.yearGroup,
+      department: input.department,
+    },
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'CLASS_CREATED',
+    targetType: 'SchoolClass', targetId: cls.id,
+    metadata: { name: input.name, subject: input.subject, yearGroup: input.yearGroup },
+  })
+  revalidatePath('/admin/classes')
+  return { success: true, classId: cls.id }
+}
+
+export type UpdateClassInput = {
+  classId:    string
+  name:       string
+  subject:    string
+  yearGroup:  number
+  department: string
+}
+
+export async function updateClass(
+  input: UpdateClassInput,
+): Promise<{ success?: true; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  await prisma.schoolClass.update({
+    where: { id: input.classId, schoolId },
+    data: {
+      name:       input.name.trim(),
+      subject:    input.subject,
+      yearGroup:  input.yearGroup,
+      department: input.department,
+    },
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'CLASS_UPDATED',
+    targetType: 'SchoolClass', targetId: input.classId,
+    metadata: { name: input.name, subject: input.subject },
+  })
+  revalidatePath('/admin/classes')
+  return { success: true }
 }
 
 // ─── Timetable ────────────────────────────────────────────────────────────────

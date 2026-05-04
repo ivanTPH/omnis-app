@@ -1,14 +1,16 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-05-01. Authoritative reference for Claude sessions.
+> Last updated: 2026-05-04. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-01.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-04.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
+> May 2026 Part 2: design system (OmnisLogo, EmptyState, PageHeader, SendBadge, skeleton loaders),
+> homework marking two-panel layout, SENCO read-only submission view, ILP evidence automation.
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** aea2e18 (design consistency sprint)
+> **Latest commit:** aae8cbe (SENCO read-only submission view)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -238,7 +240,8 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | File | Key exports |
 |---|---|
 | `lessons.ts` | getWeekLessons, createLesson, getLessonDetails, updateLessonOverview, addUrlResource, addUploadedResource, addLibraryResource, removeResource, deleteLesson, rescheduleLesson, updateLessonObjectives, getClassRoster, getStudentClassDetail, getSchoolResourceLibrary |
-| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent, extractLearningFromLabel, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, getIlpEvidenceForStudent, getIlpConcernsThisTerm |
+| `homework.ts` | getHomeworkList, getHomeworkForMarking, getSubmissionForMarking, createHomework, markSubmission, generateHomeworkFromResources, autoMarkSubmission, bulkAutoMarkAndQueue, generateHomeworkContent, extractLearningFromLabel, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, getIlpEvidenceForStudent, getIlpConcernsThisTerm, getSubmissionReadOnly |
+| `ilp-evidence.ts` | requestILPEvidence (SENCO notifies all subject teachers to link homework evidence), checkILPEvidenceMatch (fire-and-forget — uses claude-haiku to detect if a graded submission evidences an ILP target; creates ILP_EVIDENCE_SUGGESTED notification for the teacher) |
 | `analytics.ts` | getAnalyticsFilters, getStudentPerformance, getStudentDetail, getClassSummaries, getHomeworkAdaptiveAnalytics |
 | `settings.ts` | getMySettings, getMyAvatarUrl, saveProfile, saveProfessionalPrefs, savePrivacySettings, saveSharingSettings, changePassword |
 | `oak.ts` | getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson |
@@ -276,8 +279,12 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `ClassInsightsTab.tsx` | Class performance insights |
 | `admin/WondeSyncPanel.tsx` | MIS sync — uses fetch('/api/wonde/sync') not server action (avoids Vercel 10s timeout) |
 | `HomeworkFilterView.tsx` | Homework list + filter chips + router.refresh() after create |
-| `HomeworkMarkingView.tsx` | Split-panel marking — filter chips (All/Submitted/Returned/Missing/SEND), SEND badges (EHCP purple, SEN blue), AI score badge, gradeState colours. Right panel: Q&A cards (model answer + rubric collapsible), per-question score inputs, SEND sidebar with ILP goals + ILP evidence capture, teacher notes (date-stamped, audit-logged) |
+| `HomeworkMarkingView.tsx` | Two-panel marking — student list left (filter chips, SEND badges, grade pills), submission right (Q&A cards, model answer, rubric, per-question scores, SEND sidebar with ILP goals, teacher notes). `canGrade` prop: teachers get full marking; SENCO/SLT/SCHOOL_ADMIN get read-only view. |
 | `ui/Icon.tsx` | Shared Google Material Icons wrapper — props: `name` (icon string), `size` ('sm'=16px/'md'=20px/'lg'=24px), `color`, `className`. Use for all icons throughout the app. Do NOT use lucide-react. |
+| `ui/EmptyState.tsx` | Consistent empty state — props: `icon`, `title`, `description`, `size` ('sm'/'md'/'lg'). Used across all list/table views. |
+| `ui/PageHeader.tsx` | Consistent page header — props: `title`, `subtitle`, `backHref`, `backLabel`, `action` (ReactNode). Used on all main pages. |
+| `ui/SendBadge.tsx` | Standardised SEND badge — props: `status` ('SEN_SUPPORT'/'EHCP'), `size`. Replaces ad-hoc badge markup. |
+| `OmnisLogo.tsx` | Inline SVG logo component — replaces PNG `<img>` in Sidebar. Renders at configurable size, no network request. |
 | `SubmissionMarkingView.tsx` | Full-page per-submission marking |
 | `HomeworkSubmissionView.tsx` | Student submission UI |
 | `homework/HomeworkCreatorV2.tsx` | 6-step homework creation modal |
@@ -307,6 +314,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `homework/EhcpOutcomeTracker.tsx` | EHCP outcome progress |
 | `analytics/AdaptiveAnalyticsDashboard.tsx` | Bloom's + adaptive charts |
 | `ExportPdfButton.tsx` | PDF download button |
+| `students/StudentFilePanel.tsx` | Student file panel — Homework tab: SENCO/SLT/SCHOOL_ADMIN get clickable `<button>` rows opening a read-only slide-over (student answer, grade, feedback, model answer, ILP targets); teachers keep `<a href>` links to the marking view. Slide-over caches fetched data in `detailCache` per session. |
 
 ---
 
@@ -463,13 +471,23 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Animated spinners: `<Icon name="refresh" size="sm" className="animate-spin" />`
 
 ### ILP Evidence Capture
-- After `markSubmission`, the action now returns `{ ilpData: { studentId, ilpId, targets[] } | null }`.
+- After `markSubmission`, the action returns `{ ilpData: { studentId, ilpId, targets[] } | null }`.
 - `HomeworkMarkingView` shows a blue prompt banner for 10s when a marked student has an active ILP.
 - Clicking "Yes" opens a modal that calls `classifyIlpEvidence` (Claude API, max_tokens 300) to classify each ILP goal as PROGRESS/CONCERN/NEUTRAL.
 - Teacher confirms/adjusts, then `saveIlpEvidenceEntries` bulk-creates `IlpEvidenceEntry` records.
 - Evidence timeline appears on `/send/ilp/[studentId]` page.
 - SENCO early warning dashboard (`/senco/early-warning`) shows a rose alert banner when students have 3+ CONCERN entries in the current term (via `getIlpConcernsThisTerm` which uses `groupBy` with `having`).
 - `IlpEvidenceEntry` model has `@@unique([submissionId, ilpTargetId])` — safe to call `saveIlpEvidenceEntries` multiple times without duplicates.
+- **Proactive detection:** `markSubmission` also fire-and-forgets `checkILPEvidenceMatch` — claude-haiku checks if the submission evidences any ILP target and creates an `ILP_EVIDENCE_SUGGESTED` notification for the teacher. Only triggered for passing grades (4+). Deduplicates by `linkHref`.
+- **SENCO notify teachers:** `IlpEvidenceView` amber banner (when targets have no linked evidence) has a "Notify teachers" button calling `requestILPEvidence` — sends `ILP_EVIDENCE_REQUEST` notifications to all subject teachers for that student. Deduplicates within the same day.
+
+### SENCO / SLT Read-Only Views
+- **Homework grading is teacher-only.** SENCO, SLT, SCHOOL_ADMIN roles cannot modify marks.
+- `canGrade` boolean: computed server-side in the page, passed as prop to `HomeworkMarkingView`.
+- `HomeworkMarkingView` hides grade inputs and save buttons when `canGrade=false`.
+- Server actions (`markSubmission`, `saveHomeworkTeacherNote`) re-check role and reject non-teacher callers.
+- **StudentFilePanel** Homework tab: SENCO gets clickable `<button>` rows that open a read-only slide-over via `getSubmissionReadOnly` action. Teachers keep `<a href>` links to the full marking view.
+- `getSubmissionReadOnly` is scoped to staff roles only (`TEACHER`, `SENCO`, `SLT`, `SCHOOL_ADMIN`, `HEAD_OF_DEPT`, `HEAD_OF_YEAR`) and returns only safe display fields.
 
 ### Grade Display
 - **All scores must be shown as GCSE grades 1–9**, never as raw numbers or "pts".
@@ -618,6 +636,19 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - BUG-019: `app/hoy/error.tsx` error boundary created.
 - BUG-022: `app/settings/accessibility` — AppShell added + "← Settings" back link.
 - BUG-024: Inline SVG in parent/consent replaced with `<Icon name="chat" />`.
+
+**May 2026 Design + SENCO Sprint ✅ (2026-05-04)**
+- Design system: `OmnisLogo` (inline SVG, replaces PNG), `EmptyState`, `PageHeader`, `SendBadge` components. Typography scale, card/surface system, SEND badge standardisation, skeleton loaders across all list/card views.
+- `HomeworkMarkingView` rebuilt as two-panel layout: student list (left, with SEND badges + grade pills) + submission view (right, with Q&A cards, auto-score, teacher notes).
+- Teacher dashboard polish: stat cards, today's lessons strip, homework-to-mark list, open concerns widget.
+- LessonFolder tab restyle to pills; Revision tab removed (content moved to lesson plan section).
+- Learning passport selection: per-student checkboxes on ILP list, "No Passport" filter chip, context-aware Generate button.
+- **ILP evidence automation:** `app/actions/ilp-evidence.ts` — `requestILPEvidence` (SENCO notify teachers button), `checkILPEvidenceMatch` (fire-and-forget proactive AI detection via claude-haiku after marking).
+- **SENCO read-only submission view:** `StudentFilePanel` Homework tab now shows clickable rows for SENCO/SLT/SCHOOL_ADMIN that open a read-only slide-over. `getSubmissionReadOnly` server action added. Teachers keep existing `<a href>` links.
+- **Homework grading role enforcement:** `markSubmission` and related actions reject non-teacher callers; `canGrade` prop threads from server page to `HomeworkMarkingView`.
+- **ILP row chevron fix:** `IlpPageView` — `shrink-0` on action strip, single rotating `expand_more` icon, `stopPropagation` on action buttons, "Collapse" link at bottom of expanded content. Same fix applied to `ClassListView`.
+- **AppShell restored** on `/student/[studentId]/send`, `/admin/cover`, `/student/revision` (sidebar was missing).
+- **Bare `<a href>` → `<Link>`** in `KPlanModal`, `EhcpPageClient`, `StudentFilePanel`.
 
 **Phase 4 — Trial Readiness ✅ (2026-04-08)**
 - Phase 4.1 (Data safety): schoolId scoping confirmed on all queries; SEND data not accessible to student/parent roles; ILP audit trail via writeAudit().

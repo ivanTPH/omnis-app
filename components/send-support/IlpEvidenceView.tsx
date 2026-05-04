@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import SendBadge from '@/components/ui/SendBadge'
+import { SencoRow } from '@/components/ui/SencoRow'
 import type { IlpEvidenceSummary, IlpEvidenceStudent, IlpEvidenceTarget } from '@/app/actions/adaptive-learning'
 import { requestILPEvidence } from '@/app/actions/ilp-evidence'
 
@@ -84,149 +85,124 @@ function StudentRow({ student, expanded, onToggle }: {
     : student.targetsOnTrack === student.totalTargets ? 'text-green-600'
     : 'text-blue-600'
 
+  const initials = student.studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+  const sendBadgeClass =
+    student.sendStatus === 'EHCP' ? 'text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700' :
+    student.sendStatus === 'SEN_SUPPORT' ? 'text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700' :
+    'badge-open'
+
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden">
-      {/* Header row */}
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-      >
-        {/* Avatar / initials */}
-        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0 text-[11px] font-bold text-purple-700">
-          {student.studentName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[13px] font-semibold text-gray-900">{student.studentName}</p>
-            {student.yearGroup && <span className="text-[11px] text-gray-400">Yr {student.yearGroup}</span>}
-            <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
-          </div>
-          <div className="flex items-center gap-3 mt-0.5">
-            <span className="text-[11px] text-gray-500">{student.sendCategory}</span>
-            <span className="text-[11px] text-gray-400">
-              {student.targetsWithEvidence}/{student.totalTargets} targets evidenced
-            </span>
-            {student.workingAtGrade != null && (
-              <span className="text-[11px] text-gray-400">
-                Gr {gradeLabel(student.workingAtGrade)}{student.predictedGrade != null ? ` → predicted ${gradeLabel(student.predictedGrade)}` : ''}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Review date */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="text-right">
-            <p className="text-[11px] text-gray-500">Review</p>
-            <p className="text-[11px] font-medium text-gray-700">
-              {new Date(student.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-            </p>
-          </div>
-          {daysPill(student.daysUntilReview)}
-        </div>
-
-        <Icon name={expanded ? 'expand_less' : 'expand_more'} size="md" className="text-gray-400 shrink-0" />
-      </button>
-
-      {/* Expanded detail */}
-      {expanded && (
-        <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-4 space-y-4">
-
-          {/* Recommendation */}
-          <div className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${
-            student.daysUntilReview <= 14 ? 'bg-red-50 border border-red-200' :
-            student.hasEvidenceGap ? 'bg-amber-50 border border-amber-200' :
-            student.targetsOnTrack === student.totalTargets ? 'bg-green-50 border border-green-200' :
-            'bg-blue-50 border border-blue-200'
-          }`}>
-            <div className="flex items-start gap-2 flex-1 min-w-0">
-              <Icon name={recIcon} size="sm" className={`${recColor} shrink-0 mt-0.5`} />
-              <div>
-                <p className="text-[12px] font-medium text-gray-800">{student.reviewRecommendation}</p>
-                {isEvidenceGapBanner && (
-                  <p className="text-[11px] text-amber-600 mt-0.5">
-                    {gapCount} target{gapCount !== 1 ? 's' : ''} with no linked homework evidence.
-                  </p>
-                )}
-              </div>
+    <SencoRow
+      studentName={student.studentName}
+      studentInitials={initials}
+      avatarColour="bg-purple-400"
+      badges={[
+        { label: student.sendStatus.replace(/_/g, ' '), variant: 'custom', customClass: sendBadgeClass },
+      ]}
+      meta={[
+        { label: 'SEND STATUS',       value: student.sendCategory },
+        { label: 'TARGETS EVIDENCED', value: `${student.targetsWithEvidence}/${student.totalTargets}` },
+        { label: 'CURRENT GRADE',     value: student.workingAtGrade != null ? gradeLabel(student.workingAtGrade) : '—' },
+        { label: 'REVIEW',            value: new Date(student.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) },
+      ]}
+      rightContent={daysPill(student.daysUntilReview)}
+      isExpanded={expanded}
+      onToggle={onToggle}
+    >
+      <div className="space-y-4">
+        {/* Recommendation */}
+        <div className={`flex items-start gap-3 rounded-lg px-3 py-2.5 ${
+          student.daysUntilReview <= 14 ? 'bg-red-50 border border-red-200' :
+          student.hasEvidenceGap ? 'bg-amber-50 border border-amber-200' :
+          student.targetsOnTrack === student.totalTargets ? 'bg-green-50 border border-green-200' :
+          'bg-blue-50 border border-blue-200'
+        }`}>
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            <Icon name={recIcon} size="sm" className={`${recColor} shrink-0 mt-0.5`} />
+            <div>
+              <p className="text-[12px] font-medium text-gray-800">{student.reviewRecommendation}</p>
+              {isEvidenceGapBanner && (
+                <p className="text-[11px] text-amber-600 mt-0.5">
+                  {gapCount} target{gapCount !== 1 ? 's' : ''} with no linked homework evidence.
+                </p>
+              )}
             </div>
-            {isEvidenceGapBanner && (
-              <button
-                onClick={handleRequestEvidence}
-                disabled={requesting || requestSent}
-                className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
-                  requestSent
-                    ? 'bg-green-100 text-green-700 cursor-default'
-                    : 'bg-amber-600 text-white hover:bg-amber-700'
-                }`}
-              >
-                <Icon
-                  name={requestSent ? 'check' : requesting ? 'refresh' : 'send'}
-                  size="sm"
-                  className={requesting ? 'animate-spin' : ''}
-                />
-                {requestSent ? 'Sent' : 'Notify teachers'}
-              </button>
-            )}
           </div>
-
-          {/* Adaptive profile summary */}
-          {student.profileSummary && (
-            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
-              <Icon name="auto_fix_high" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-emerald-800 leading-snug">{student.profileSummary}</p>
-            </div>
+          {isEvidenceGapBanner && (
+            <button
+              onClick={handleRequestEvidence}
+              disabled={requesting || requestSent}
+              className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
+                requestSent
+                  ? 'bg-green-100 text-green-700 cursor-default'
+                  : 'bg-amber-600 text-white hover:bg-amber-700'
+              }`}
+            >
+              <Icon
+                name={requestSent ? 'check' : requesting ? 'refresh' : 'send'}
+                size="sm"
+                className={requesting ? 'animate-spin' : ''}
+              />
+              {requestSent ? 'Sent' : 'Notify teachers'}
+            </button>
           )}
+        </div>
 
-          {/* ILP targets */}
-          <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">ILP Targets</p>
-            <div className="space-y-2">
-              {student.targets.map(t => (
-                <div key={t.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-[12px] text-gray-800 leading-snug flex-1">{t.target}</p>
-                    <EvidenceDot target={t} />
-                  </div>
-                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                    <span className="text-[10px] text-gray-400">
-                      Target date: {new Date(t.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-                    {t.lastLinkedAt && (
-                      <span className="text-[10px] text-gray-400">
-                        Last evidence: {new Date(t.lastLinkedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                      </span>
-                    )}
-                    {t.progressNote && (
-                      <span className="text-[10px] text-gray-500 italic truncate max-w-[200px]">{t.progressNote}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Adaptive profile summary */}
+        {student.profileSummary && (
+          <div className="flex items-start gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+            <Icon name="auto_fix_high" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+            <p className="text-[12px] text-emerald-800 leading-snug">{student.profileSummary}</p>
           </div>
+        )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <a
-              href={`/student/${student.studentId}/send`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[12px] font-medium transition-colors"
-            >
-              <Icon name="open_in_new" size="sm" /> View SEND record
-            </a>
-            <a
-              href="/senco/ilp"
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-lg text-[12px] font-medium transition-colors"
-            >
-              <Icon name="edit_note" size="sm" /> Manage ILP
-            </a>
+        {/* ILP targets */}
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">ILP Targets</p>
+          <div className="space-y-2">
+            {student.targets.map(t => (
+              <div key={t.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[12px] text-gray-800 leading-snug flex-1">{t.target}</p>
+                  <EvidenceDot target={t} />
+                </div>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <span className="text-[10px] text-gray-400">
+                    Target date: {new Date(t.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  {t.lastLinkedAt && (
+                    <span className="text-[10px] text-gray-400">
+                      Last evidence: {new Date(t.lastLinkedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                  {t.progressNote && (
+                    <span className="text-[10px] text-gray-500 italic truncate max-w-[200px]">{t.progressNote}</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <a
+            href={`/student/${student.studentId}/send`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[12px] font-medium transition-colors"
+          >
+            <Icon name="open_in_new" size="sm" /> View SEND record
+          </a>
+          <a
+            href="/senco/ilp"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-lg text-[12px] font-medium transition-colors"
+          >
+            <Icon name="edit_note" size="sm" /> Manage ILP
+          </a>
+        </div>
+      </div>
+    </SencoRow>
   )
 }
 

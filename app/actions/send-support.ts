@@ -173,6 +173,10 @@ export type EarlyWarningFlagRow = {
   description: string
   dataPoints: unknown
   isActioned: boolean
+  actionType: string | null
+  actionNotes: string | null
+  actionedAt: Date | null
+  actionedByName: string | null
   createdAt: Date
   expiresAt: Date
 }
@@ -1217,6 +1221,7 @@ export async function getEarlyWarningFlags(): Promise<EarlyWarningFlagRow[]> {
     where: { schoolId, isActioned: false, expiresAt: { gte: now } },
     orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
     take: 50,
+    include: { actionedByUser: { select: { firstName: true, lastName: true } } },
   })
 
   const studentIds = [...new Set(flags.map(f => f.studentId))]
@@ -1235,6 +1240,10 @@ export async function getEarlyWarningFlags(): Promise<EarlyWarningFlagRow[]> {
     description: f.description,
     dataPoints: f.dataPoints,
     isActioned: f.isActioned,
+    actionType: f.actionType ?? null,
+    actionNotes: f.actionNotes ?? null,
+    actionedAt: f.actionedAt ?? null,
+    actionedByName: f.actionedByUser ? `${f.actionedByUser.firstName} ${f.actionedByUser.lastName}` : null,
     createdAt: f.createdAt,
     expiresAt: f.expiresAt,
   }))
@@ -1263,6 +1272,93 @@ export async function actionFlag(flagId: string, notes: string): Promise<void> {
   })
 
   revalidatePath('/senco/early-warning')
+}
+
+export async function resolveEarlyWarningFlag({
+  flagId,
+  actionType,
+  notes,
+  notifyTeachers,
+}: {
+  flagId: string
+  actionType: string
+  notes: string
+  notifyTeachers: boolean
+}): Promise<{ success: boolean; actionedByName?: string; teacherCount?: number; error?: string }> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const flag = await prisma.earlyWarningFlag.findFirst({
+    where: { id: flagId, schoolId, isActioned: false },
+  })
+  if (!flag) return { success: false, error: 'Flag not found or already actioned' }
+
+  await prisma.earlyWarningFlag.update({
+    where: { id: flagId },
+    data: {
+      isActioned: true,
+      actionType,
+      actionedBy: user.id,
+      actionedAt: new Date(),
+      actionNotes: notes.trim() || null,
+    },
+  })
+
+  // Notify teachers if requested
+  let teacherCount = 0
+  if (notifyTeachers) {
+    const enrolments = await prisma.enrolment.findMany({
+      where: { userId: flag.studentId, class: { schoolId } },
+      select: { classId: true },
+    })
+    const classIds = enrolments.map(e => e.classId)
+    if (classIds.length > 0) {
+      const classTeachers = await prisma.classTeacher.findMany({
+        where: { classId: { in: classIds } },
+        select: { userId: true },
+      })
+      const teacherIds = [...new Set(classTeachers.map(ct => ct.userId))]
+      teacherCount = teacherIds.length
+
+      const student = await prisma.user.findUnique({
+        where: { id: flag.studentId },
+        select: { firstName: true, lastName: true },
+      })
+      const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+      const notesSnippet = notes.trim() ? ` Notes: ${notes.trim().slice(0, 150)}` : ''
+
+      await prisma.notification.createMany({
+        data: teacherIds.map(teacherId => ({
+          schoolId,
+          userId: teacherId,
+          type: 'GENERAL',
+          title: 'Early warning flag actioned',
+          body: `The SENCO has reviewed the early warning flag for ${studentName}.${notesSnippet}`,
+          linkHref: `/student/${flag.studentId}/send`,
+          read: false,
+        })),
+        skipDuplicates: true,
+      })
+    }
+  }
+
+  await prisma.sendReviewLog.create({
+    data: {
+      schoolId,
+      studentId: flag.studentId,
+      action: 'concern_reviewed',
+      actorId: user.id,
+      metadata: { flagId, flagType: flag.flagType, actionType, notes: notes.slice(0, 200) },
+    },
+  })
+
+  revalidatePath('/senco/early-warning')
+
+  return {
+    success: true,
+    actionedByName: `${user.firstName} ${user.lastName}`,
+    teacherCount,
+  }
 }
 
 export async function triggerEarlyWarningAnalysis(): Promise<{ flagsCreated: number }> {
@@ -1367,6 +1463,10 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       description: f.description,
       dataPoints: f.dataPoints,
       isActioned: f.isActioned,
+      actionType: f.actionType ?? null,
+      actionNotes: f.actionNotes ?? null,
+      actionedAt: f.actionedAt ?? null,
+      actionedByName: null,
       createdAt: f.createdAt,
       expiresAt: f.expiresAt,
     })),

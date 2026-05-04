@@ -2124,6 +2124,7 @@ model EarlyWarningFlag {
   description String
   dataPoints  Json
   isActioned  Boolean   @default(false)
+  actionType  String?
   actionedBy  String?
   actionedAt  DateTime?
   actionNotes String?

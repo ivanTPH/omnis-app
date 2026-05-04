@@ -1,10 +1,11 @@
 'use server'
 
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Role } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -30,7 +31,7 @@ export type AdminDashboardData = {
 
 const STAFF_ROLES: Role[] = [
   'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR',
-  'SENCO', 'SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER',
+  'SENCO', 'SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER', 'TEACHING_ASSISTANT',
 ]
 
 export async function getAdminDashboardData(_schoolId?: string): Promise<AdminDashboardData> {
@@ -61,6 +62,7 @@ export type StaffMember = {
   email:      string
   role:       string
   department: string | null
+  yearGroups: number[]
   classCount: number
   isActive:   boolean
 }
@@ -72,7 +74,7 @@ export async function getStaffMembers(_schoolId?: string): Promise<StaffMember[]
 
   const users = await prisma.user.findMany({
     where:   { schoolId, role: { in: STAFF_ROLES } },
-    include: { teacherClasses: true },
+    include: { teacherClasses: { include: { class: { select: { yearGroup: true } } } } },
     orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
   })
   return users.map(u => ({
@@ -82,9 +84,164 @@ export async function getStaffMembers(_schoolId?: string): Promise<StaffMember[]
     email:      u.email,
     role:       u.role,
     department: u.department,
-    classCount: (u.teacherClasses ?? []).length,
+    yearGroups: [...new Set(u.teacherClasses.map(tc => tc.class.yearGroup))].sort((a, b) => a - b),
+    classCount: u.teacherClasses.length,
     isActive:   u.isActive,
   }))
+}
+
+// ─── Staff CRUD ────────────────────────────────────────────────────────────────
+
+export type CreateStaffInput = {
+  firstName:         string
+  lastName:          string
+  email:             string
+  role:              string
+  department?:       string
+  temporaryPassword: string
+}
+
+export async function createStaffMember(
+  input: CreateStaffInput,
+): Promise<{ success?: true; staffId?: string; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase().trim() } })
+  if (existing) return { error: 'A user with this email already exists' }
+
+  const passwordHash = await bcrypt.hash(input.temporaryPassword, 12)
+
+  const staff = await prisma.user.create({
+    data: {
+      schoolId,
+      email:        input.email.toLowerCase().trim(),
+      passwordHash,
+      role:         input.role as Role,
+      firstName:    input.firstName.trim(),
+      lastName:     input.lastName.trim(),
+      department:   input.department?.trim() || null,
+      isActive:     true,
+    },
+  })
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'STAFF_CREATED',
+    targetType: 'User',
+    targetId:   staff.id,
+    metadata:   { role: input.role, email: input.email },
+  })
+
+  revalidatePath('/admin/staff')
+  return { success: true, staffId: staff.id }
+}
+
+export type UpdateStaffInput = {
+  staffId:     string
+  firstName:   string
+  lastName:    string
+  email:       string
+  role:        string
+  department?: string
+}
+
+export async function updateStaffMember(
+  input: UpdateStaffInput,
+): Promise<{ success?: true; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase().trim() } })
+  if (existing && existing.id !== input.staffId) return { error: 'This email is already in use by another account' }
+
+  await prisma.user.update({
+    where: { id: input.staffId, schoolId },
+    data: {
+      firstName:  input.firstName.trim(),
+      lastName:   input.lastName.trim(),
+      email:      input.email.toLowerCase().trim(),
+      role:       input.role as Role,
+      department: input.department?.trim() || null,
+    },
+  })
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'STAFF_UPDATED',
+    targetType: 'User',
+    targetId:   input.staffId,
+    metadata:   { role: input.role, email: input.email },
+  })
+
+  revalidatePath('/admin/staff')
+  return { success: true }
+}
+
+export async function toggleStaffActive(
+  staffId: string,
+): Promise<{ success?: true; isActive?: boolean; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  if (staffId === user.id) return { error: 'You cannot deactivate your own account' }
+
+  const staff = await prisma.user.findUnique({ where: { id: staffId, schoolId } })
+  if (!staff) return { error: 'Staff member not found' }
+
+  const newIsActive = !staff.isActive
+  await prisma.user.update({ where: { id: staffId }, data: { isActive: newIsActive } })
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     newIsActive ? 'STAFF_REACTIVATED' : 'STAFF_DEACTIVATED',
+    targetType: 'User',
+    targetId:   staffId,
+    metadata:   { email: staff.email },
+  })
+
+  revalidatePath('/admin/staff')
+  return { success: true, isActive: newIsActive }
+}
+
+export async function deleteStaffMember(
+  staffId: string,
+): Promise<{ success?: true; error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  if (staffId === user.id) return { error: 'You cannot delete your own account' }
+
+  const staff = await prisma.user.findUnique({ where: { id: staffId, schoolId } })
+  if (!staff) return { error: 'Staff member not found' }
+
+  // Soft delete — preserve lessons/homework records, remove login access
+  await prisma.user.update({
+    where: { id: staffId, schoolId },
+    data: {
+      isActive: false,
+      email:    `deleted-${staffId}@deleted.invalid`,
+    },
+  })
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'STAFF_DELETED',
+    targetType: 'User',
+    targetId:   staffId,
+    metadata:   { originalEmail: staff.email, name: `${staff.firstName} ${staff.lastName}` },
+  })
+
+  revalidatePath('/admin/staff')
+  return { success: true }
 }
 
 // Keep old name for backwards compatibility with any existing callers

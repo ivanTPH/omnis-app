@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Icon from '@/components/ui/Icon'
 
 type Props = {
   type: string
@@ -8,8 +9,10 @@ type Props = {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
-  sendStatus?: string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  sendStatus?: string    // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
   showScaffold?: boolean // legacy — treated as SEN_SUPPORT if sendStatus not provided
+  onSubmitRequest?: () => void
+  submitting?: boolean
 }
 
 type VocabEntry = { term: string; definition: string }
@@ -52,7 +55,18 @@ function VocabGlossary({ terms }: { terms: VocabEntry[] }) {
   )
 }
 
-export default function HomeworkTypeRenderer({ type, structuredContent, value, onChange, disabled, sendStatus, showScaffold }: Props) {
+function getAnswerPlaceholder(question: Question): string {
+  const marks = question.marks ?? 0
+  if (marks <= 2) return 'Write a short answer...'
+  if (marks <= 4) return 'Identify and explain your points clearly. Use specific examples...'
+  if (marks <= 6) return 'Write a structured explanation. Include: a clear point, evidence to support it, and analysis of why this is significant...'
+  return 'Write a balanced argument. Include points on both sides, use specific evidence, and reach a clear conclusion that answers the question directly...'
+}
+
+export default function HomeworkTypeRenderer({
+  type, structuredContent, value, onChange, disabled,
+  sendStatus, showScaffold, onSubmitRequest, submitting,
+}: Props) {
   const content = structuredContent as { questions?: Question[]; prompt?: string; wordCount?: number; steps?: string[] } | null
 
   // Resolve effective SEND level
@@ -66,6 +80,11 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
   })
   const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({})
 
+  // Stepper state (used only in multi-question short_answer mode)
+  const [currentQ,    setCurrentQ]    = useState(0)
+  const [hintOpen,    setHintOpen]    = useState(false)
+  const [skipWarning, setSkipWarning] = useState(false)
+
   function updateAnswer(id: string, answer: string) {
     const updated = { ...answers, [id]: answer }
     setAnswers(updated)
@@ -74,6 +93,20 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
 
   function toggleOriginal(id: string) {
     setShowOriginal(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function goToNext(questions: Question[]) {
+    const qId = questions[currentQ]?.id ?? String(currentQ)
+    if (!answers[qId]?.trim()) { setSkipWarning(true); return }
+    setCurrentQ(q => q + 1)
+    setHintOpen(false)
+    setSkipWarning(false)
+  }
+
+  function goToPrev() {
+    setCurrentQ(q => q - 1)
+    setHintOpen(false)
+    setSkipWarning(false)
   }
 
   switch (type) {
@@ -152,17 +185,203 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
           />
         )
       }
+
+      // ── Multi-question stepper (student submission mode only) ──────────────
+      if (questions.length > 1 && !disabled) {
+        const q = questions[currentQ]
+        const qId = q.id ?? String(currentQ)
+        const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
+        const wordCount = (answers[qId] ?? '').trim().split(/\s+/).filter(Boolean).length
+        const isLast = currentQ === questions.length - 1
+
+        return (
+          <div>
+            {/* Progress indicator */}
+            <div className="flex items-center gap-1 mb-6 flex-wrap">
+              {questions.map((qItem, i) => {
+                const iId = qItem.id ?? String(i)
+                const isDone = !!answers[iId]?.trim() && i < currentQ
+                return (
+                  <div key={i} className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (i < currentQ) { setCurrentQ(i); setHintOpen(false); setSkipWarning(false) }
+                      }}
+                      className={`w-8 h-8 rounded-full text-sm font-semibold transition-all flex items-center justify-center ${
+                        i === currentQ
+                          ? 'bg-blue-700 text-white ring-2 ring-blue-700 ring-offset-2'
+                          : i < currentQ
+                            ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200'
+                            : 'bg-gray-100 text-gray-400 cursor-default'
+                      }`}
+                    >
+                      {isDone
+                        ? <Icon name="check" size="sm" />
+                        : i + 1
+                      }
+                    </button>
+                    {i < questions.length - 1 && (
+                      <div className={`h-0.5 w-6 mx-1 transition-colors ${i < currentQ ? 'bg-blue-300' : 'bg-gray-200'}`} />
+                    )}
+                  </div>
+                )
+              })}
+              <span className="text-[11px] text-gray-400 ml-2">
+                Question {currentQ + 1} of {questions.length}
+              </span>
+            </div>
+
+            {/* Question card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Question {currentQ + 1}
+                </p>
+                {q.marks != null && (
+                  <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-lg shrink-0">
+                    [{q.marks} mark{q.marks !== 1 ? 's' : ''}]
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[14px] font-medium text-gray-900 leading-relaxed mb-4">
+                {questionText}
+              </p>
+
+              {/* Collapsible hint */}
+              {q.hint && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setHintOpen(v => !v)}
+                    className="flex items-center gap-2 w-full text-left"
+                  >
+                    <Icon name="lightbulb" size="sm" className="text-amber-600 shrink-0" />
+                    <span className="text-xs font-medium text-amber-700">
+                      {hintOpen ? 'Hide hint' : 'Show hint'}
+                    </span>
+                  </button>
+                  {hintOpen && (
+                    <p className="text-sm text-amber-800 mt-2 leading-relaxed">{q.hint}</p>
+                  )}
+                </div>
+              )}
+
+              {/* SEND: scaffolding hint */}
+              {isSen && q.scaffolding_hint && (
+                <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                  <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
+                  <p className="text-xs text-blue-700">{q.scaffolding_hint}</p>
+                </div>
+              )}
+
+              {/* EHCP: vocab + toggle */}
+              {isEhcp && (
+                <>
+                  {q.vocab_support && q.vocab_support.length > 0 && (
+                    <div className="mb-4"><VocabGlossary terms={q.vocab_support} /></div>
+                  )}
+                  {q.ehcp_adaptation && (
+                    <button
+                      type="button"
+                      onClick={() => toggleOriginal(qId)}
+                      className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2 mb-3"
+                    >
+                      {showOriginal[qId] ? 'Show simplified question' : 'Show original question'}
+                    </button>
+                  )}
+                  {showOriginal[qId] && (
+                    <p className="text-sm text-gray-600 italic mb-4">{q.question}</p>
+                  )}
+                </>
+              )}
+
+              {/* Answer textarea */}
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">
+                  Your Answer
+                </label>
+                <textarea
+                  value={answers[qId] ?? ''}
+                  onChange={e => updateAnswer(qId, e.target.value)}
+                  placeholder={getAnswerPlaceholder(q)}
+                  rows={6}
+                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-[14px] text-gray-800 resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 leading-relaxed"
+                />
+                <p className="text-[11px] text-gray-400 mt-1 text-right">
+                  {wordCount} word{wordCount !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex items-center justify-between">
+              {currentQ > 0 ? (
+                <button
+                  type="button"
+                  onClick={goToPrev}
+                  className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm"
+                >
+                  <Icon name="arrow_back" size="sm" />
+                  Previous
+                </button>
+              ) : <div />}
+
+              {!isLast ? (
+                <button
+                  type="button"
+                  onClick={() => goToNext(questions)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition"
+                >
+                  Next question
+                  <Icon name="arrow_forward" size="sm" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSubmitRequest}
+                  disabled={!onSubmitRequest || submitting}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {submitting
+                    ? <><Icon name="refresh" size="sm" className="animate-spin" /> Submitting…</>
+                    : <><Icon name="send" size="sm" /> Submit homework</>
+                  }
+                </button>
+              )}
+            </div>
+
+            {/* Skip warning */}
+            {skipWarning && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <Icon name="warning" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-amber-800">You haven&apos;t answered this question yet.</p>
+                  <button
+                    type="button"
+                    onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }}
+                    className="text-xs text-amber-700 underline mt-1"
+                  >
+                    Skip anyway
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      // ── All-questions view (single question, or disabled/submitted state) ──
       return (
         <div className="space-y-5">
           {questions.map((q, i) => {
             const qId = q.id ?? String(i)
-            // For EHCP: show adapted question text; for others: standard question
             const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
             const isShowingOriginal = showOriginal[qId]
 
             return (
               <div key={qId} className="space-y-1.5">
-                {/* Question text */}
                 {isEhcp && q.ehcp_adaptation && isShowingOriginal ? (
                   <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
                 ) : (
@@ -172,7 +391,6 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
                 {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
                 {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
 
-                {/* EHCP: vocab glossary + show original toggle */}
                 {isEhcp && (
                   <>
                     {q.vocab_support && q.vocab_support.length > 0 && (
@@ -190,7 +408,6 @@ export default function HomeworkTypeRenderer({ type, structuredContent, value, o
                   </>
                 )}
 
-                {/* SEN Support: scaffolding hint in blue box */}
                 {isSen && q.scaffolding_hint && (
                   <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
                     <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>

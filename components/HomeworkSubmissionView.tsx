@@ -157,56 +157,69 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       )}
 
       {/* Answer section */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-            {isReturned ? 'Your Answer' : isAwaitingFeedback ? 'Your Submission' : 'Your Answer'}
-          </h2>
-          {!isAwaitingFeedback && !hw.homeworkVariantType && (
-            <span className="text-[11px] text-gray-400">
-              {wordCount} word{wordCount !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-        {hw.homeworkVariantType && hw.structuredContent ? (
-          <HomeworkTypeRenderer
-            type={hw.homeworkVariantType}
-            structuredContent={hw.structuredContent}
-            value={content}
-            onChange={setContent}
-            disabled={textareaDisabled}
-            sendStatus={hw.sendStatus ?? 'NONE'}
-          />
-        ) : (
-          <textarea
-            className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition"
-            placeholder="Write your answer here..."
-            value={content}
-            onChange={e => setContent(e.target.value)}
-            disabled={textareaDisabled}
-          />
-        )}
-      </section>
+      {(() => {
+        const sc = hw.structuredContent as { questions?: unknown[] } | undefined
+        const multiQShortAnswer =
+          hw.homeworkVariantType === 'short_answer' &&
+          (sc?.questions?.length ?? 0) > 1
 
-      {/* Submit / resubmit */}
-      {(!sub || canResubmit) && !submitted && (
-        <div className="flex items-center justify-between">
-          {canResubmit && (
-            <p className="text-[12px] text-gray-400 flex items-center gap-1">
-              <Icon name="error" size="sm" />
-              You can update your answer and resubmit.
-            </p>
-          )}
-          {!canResubmit && <span />}
-          <button
-            onClick={handleSubmit}
-            disabled={isPending || content.trim().length < 10}
-            className="px-5 py-2.5 bg-blue-600 text-white text-[14px] font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {isPending ? 'Submitting…' : canResubmit ? 'Resubmit' : 'Submit'}
-          </button>
-        </div>
-      )}
+        return (
+          <>
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                  {isReturned ? 'Your Answer' : isAwaitingFeedback ? 'Your Submission' : 'Your Answer'}
+                </h2>
+                {!isAwaitingFeedback && !hw.homeworkVariantType && (
+                  <span className="text-[11px] text-gray-400">
+                    {wordCount} word{wordCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              {hw.homeworkVariantType && hw.structuredContent ? (
+                <HomeworkTypeRenderer
+                  type={hw.homeworkVariantType}
+                  structuredContent={hw.structuredContent}
+                  value={content}
+                  onChange={setContent}
+                  disabled={textareaDisabled}
+                  sendStatus={hw.sendStatus ?? 'NONE'}
+                  onSubmitRequest={multiQShortAnswer && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
+                  submitting={isPending}
+                />
+              ) : (
+                <textarea
+                  className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition"
+                  placeholder="Write your answer here..."
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  disabled={textareaDisabled}
+                />
+              )}
+            </section>
+
+            {/* Submit / resubmit — hidden when stepper handles submit */}
+            {(!sub || canResubmit) && !submitted && !multiQShortAnswer && (
+              <div className="flex items-center justify-between">
+                {canResubmit && (
+                  <p className="text-[12px] text-gray-400 flex items-center gap-1">
+                    <Icon name="error" size="sm" />
+                    You can update your answer and resubmit.
+                  </p>
+                )}
+                {!canResubmit && <span />}
+                <button
+                  onClick={handleSubmit}
+                  disabled={isPending || content.trim().length < 10}
+                  className="px-5 py-2.5 bg-blue-600 text-white text-[14px] font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {isPending ? 'Submitting…' : canResubmit ? 'Resubmit' : 'Submit'}
+                </button>
+              </div>
+            )}
+          </>
+        )
+      })()}
 
     </div>
   )

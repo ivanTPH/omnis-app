@@ -214,6 +214,56 @@ const HISTORY_LESSONS = [
     ],
   },
   {
+    title: 'Life in Nazi Germany 1933–1939',
+    topic: 'Germany 1918–1939',
+    objectives: [
+      'Describe how the Nazi regime controlled young people through education and youth organisations',
+      'Explain the role of propaganda in consolidating Hitler\'s power 1933–1934',
+      'Evaluate how far the lives of women were restricted under the Nazi regime',
+    ],
+    hwTitle: 'Life in Nazi Germany',
+    hwType: HomeworkType.SHORT_ANSWER,
+    questions: [
+      {
+        id: 'h-ng-q1',
+        question: 'Describe two ways in which the Nazi regime controlled young people in Germany between 1933 and 1939.',
+        hint: 'Think about organisations like the Hitler Youth and how education was changed.',
+        marks: 4,
+        scaffolding_hint: 'Name one organisation that controlled young people (1 mark). Then explain what they were taught or made to do (1 mark). Repeat for a second way.',
+        ehcp_adaptation: 'Give ONE way the Nazis controlled young people. Use the sentence starter: "One way the Nazis controlled young people was..."',
+        vocab_support: [
+          { term: 'Hitler Youth', definition: 'A Nazi organisation for boys aged 10–18 that taught military skills, physical fitness and Nazi ideology. Membership became compulsory from 1936.' },
+          { term: 'Indoctrination', definition: 'Teaching people to accept a set of beliefs without questioning them, often used by the Nazis to spread their ideology.' },
+        ],
+      },
+      {
+        id: 'h-ng-q2',
+        question: 'Explain why propaganda was important to Hitler\'s consolidation of power in the years 1933–1934.',
+        hint: 'Consider Goebbels\' role and the range of media used to spread Nazi ideas — radio, cinema, rallies and newspapers.',
+        marks: 6,
+        scaffolding_hint: 'Structure your answer in two parts: (1) What did propaganda do? (control information, build Hitler\'s image) (2) Why was this important? (suppressed opposition, built loyalty). Use specific examples.',
+        ehcp_adaptation: 'Why did Hitler use propaganda (posters, radio, films)? Complete the sentence: "Propaganda was important because it helped Hitler..."',
+        vocab_support: [
+          { term: 'Propaganda', definition: 'Information spread to promote a political cause or point of view, often biased or misleading.' },
+          { term: 'Goebbels', definition: 'Joseph Goebbels was Hitler\'s Minister of Propaganda. He controlled all media in Germany including newspapers, radio and cinema.' },
+          { term: 'Führer principle (Führerprinzip)', definition: 'The idea that Hitler was the supreme leader whose word was law, which propaganda helped to establish and reinforce.' },
+        ],
+      },
+      {
+        id: 'h-ng-q3',
+        question: '\'The lives of women in Nazi Germany were completely restricted.\' How far do you agree with this statement? Explain your answer.',
+        hint: 'You should consider both sides — ways lives were restricted AND ways some women had opportunities. Use the phrase "however" to show balance.',
+        marks: 8,
+        scaffolding_hint: 'Paragraph 1 — AGREE: women removed from jobs, the 3Ks policy (Kinder, Küche, Kirche). Paragraph 2 — DISAGREE: some women found purpose in the BDM, war industry work from 1939. Conclusion: overall judgement.',
+        ehcp_adaptation: 'Did Nazi Germany COMPLETELY restrict women\'s lives? Give one way it DID and one way it DID NOT. Then say which you think was more important.',
+        vocab_support: [
+          { term: '3Ks (Kinder, Küche, Kirche)', definition: 'German phrase meaning "children, kitchen, church" — the Nazi ideal for women\'s lives, limiting them to home and family.' },
+          { term: 'BDM (League of German Girls)', definition: 'The female equivalent of the Hitler Youth — gave girls new activities and a sense of purpose outside the home.' },
+        ],
+      },
+    ],
+  },
+  {
     title: 'Cold War Origins — From Alliance to Confrontation 1945–1949',
     topic: 'Cold War',
     objectives: [
@@ -731,6 +781,7 @@ async function main() {
           question: q.question,
           ...(q.options ? { options: q.options } : {}),
           marks: q.marks,
+          hint: q.hint ?? null,
           scaffolding_hint: q.scaffolding_hint ?? null,
           ehcp_adaptation: q.ehcp_adaptation ?? null,
           vocab_support: q.vocab_support ?? [],

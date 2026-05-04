@@ -1816,3 +1816,48 @@ Respond with ONLY valid JSON: {"grade": "7", "rationale": "Brief explanation max
     return fallback
   }
 }
+
+// ── Read-only submission detail for SENCO view ────────────────────────────────
+
+export type SubmissionReadOnly = {
+  content:      string
+  submittedAt:  string
+  markedAt:     string | null
+  instructions: string
+  modelAnswer:  string | null
+}
+
+export async function getSubmissionReadOnly(
+  submissionId: string,
+): Promise<SubmissionReadOnly | null> {
+  const session = await auth()
+  if (!session) return null
+  const { schoolId, role } = session.user as any
+
+  const staffRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!staffRoles.includes(role)) return null
+
+  const sub = await prisma.submission.findFirst({
+    where:  { id: submissionId, schoolId },
+    select: {
+      content:     true,
+      submittedAt: true,
+      markedAt:    true,
+      homework: {
+        select: {
+          instructions: true,
+          modelAnswer:  true,
+        },
+      },
+    },
+  })
+  if (!sub) return null
+
+  return {
+    content:      sub.content,
+    submittedAt:  sub.submittedAt.toISOString(),
+    markedAt:     sub.markedAt?.toISOString() ?? null,
+    instructions: sub.homework.instructions,
+    modelAnswer:  sub.homework.modelAnswer ?? null,
+  }
+}

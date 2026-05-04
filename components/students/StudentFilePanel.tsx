@@ -24,6 +24,7 @@ import {
 } from '@/app/actions/assessments'
 import { updateClassroomStrategies } from '@/app/actions/students'
 import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
+import { getSubmissionReadOnly, type SubmissionReadOnly } from '@/app/actions/homework'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
 type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact'
@@ -571,10 +572,50 @@ function EhcpSection({ ehcp, isSenco }: { ehcp: EhcpDoc; isSenco: boolean }) {
 
 // ── Performance Tab ───────────────────────────────────────────────────────────
 
-function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData; studentName: string; onClose?: () => void }) {
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [suggestions, setSuggestions] = useState<string | null>(null)
-  const [loadingSugg, startSuggTransition] = useTransition()
+function PerformanceTab({ data, studentName, onClose, role = '' }: { data: StudentFileData; studentName: string; onClose?: () => void; role?: string }) {
+  const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
+  const [expanded,      setExpanded]      = useState<string | null>(null)
+  const [suggestions,   setSuggestions]   = useState<string | null>(null)
+  const [loadingSugg,   startSuggTransition] = useTransition()
+  const [selectedHw,    setSelectedHw]    = useState<HomeworkHistoryRow | null>(null)
+  const [loadingSubId,  setLoadingSubId]  = useState<string | null>(null)
+  const [subDetail,     setSubDetail]     = useState<SubmissionReadOnly | null>(null)
+  const [detailCache,   setDetailCache]   = useState<Record<string, SubmissionReadOnly>>({})
+  const [markSchemeOpen, setMarkSchemeOpen] = useState(false)
+
+  // Close slide-over on Escape
+  useEffect(() => {
+    if (!selectedHw) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setSelectedHw(null); setSubDetail(null) }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [selectedHw])
+
+  async function handleSelectSub(hw: HomeworkHistoryRow) {
+    if (!hw.submissionId) return
+    setSelectedHw(hw)
+    setSubDetail(null)
+    setMarkSchemeOpen(false)
+
+    if (detailCache[hw.submissionId]) {
+      setSubDetail(detailCache[hw.submissionId])
+      return
+    }
+    setLoadingSubId(hw.submissionId)
+    try {
+      const detail = await getSubmissionReadOnly(hw.submissionId)
+      if (detail) {
+        setDetailCache(prev => ({ ...prev, [hw.submissionId!]: detail }))
+        setSubDetail(detail)
+      }
+    } finally {
+      setLoadingSubId(null)
+    }
+  }
+
+  function closeSlideOver() { setSelectedHw(null); setSubDetail(null) }
 
   function loadSuggestions() {
     startSuggTransition(async () => {
@@ -587,6 +628,7 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
     data.recentHomeworks.filter(h => h.subject === subject)
 
   return (
+    <>
     <div className="space-y-4">
       {/* Summary row */}
       <div className="grid grid-cols-3 gap-3">
@@ -634,27 +676,51 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
                       {row.assigned} assigned · {row.submitted} submitted
                       {row.baselineScore != null && ` · baseline ${formatRawScore(row.baselineScore)}`}
                     </div>
-                    <div className="space-y-1">
-                      {subjectHw(row.subject).slice(0, 8).map(hw => (
-                        <a
-                          key={hw.homeworkId}
-                          href={hw.submissionId
-                            ? `/homework/${hw.homeworkId}/mark/${hw.submissionId}`
-                            : `/homework/${hw.homeworkId}`}
-                          className="flex items-center justify-between text-xs py-0.5 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                        >
-                          <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                            {hw.finalScore != null
-                              ? <span className="font-medium text-gray-800">{formatRawScore(hw.finalScore)}</span>
-                              : hw.submitted
-                                ? <span className="text-blue-600">Submitted</span>
-                                : <span className="text-red-500">Missing</span>
-                            }
-                          </div>
-                        </a>
-                      ))}
+                    <div className="space-y-0.5">
+                      {subjectHw(row.subject).slice(0, 8).map(hw => {
+                        // SENCO: open read-only slide-over; Teachers: navigate to marking view
+                        if (isSenco && hw.submissionId) {
+                          return (
+                            <button
+                              key={hw.homeworkId}
+                              onClick={() => handleSelectSub(hw)}
+                              className="w-full flex items-center justify-between text-xs py-1 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors group text-left"
+                            >
+                              <span className="text-blue-700 truncate max-w-[55%]">{hw.title}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                                {hw.finalScore != null
+                                  ? <span className="font-medium text-gray-800">{formatRawScore(hw.finalScore)}</span>
+                                  : hw.submitted
+                                    ? <span className="text-blue-600">Submitted</span>
+                                    : <span className="text-red-500">Missing</span>
+                                }
+                                <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-gray-500 shrink-0" />
+                              </div>
+                            </button>
+                          )
+                        }
+                        return (
+                          <a
+                            key={hw.homeworkId}
+                            href={hw.submissionId
+                              ? `/homework/${hw.homeworkId}/mark/${hw.submissionId}`
+                              : `/homework/${hw.homeworkId}`}
+                            className="flex items-center justify-between text-xs py-0.5 hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
+                          >
+                            <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                              {hw.finalScore != null
+                                ? <span className="font-medium text-gray-800">{formatRawScore(hw.finalScore)}</span>
+                                : hw.submitted
+                                  ? <span className="text-blue-600">Submitted</span>
+                                  : <span className="text-red-500">Missing</span>
+                              }
+                            </div>
+                          </a>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -686,6 +752,158 @@ function PerformanceTab({ data, studentName, onClose }: { data: StudentFileData;
         }
       </SectionCard>
     </div>
+
+    {/* ── Read-only submission slide-over (SENCO) ── */}
+    {selectedHw && (
+      <div className="fixed inset-0 z-50 overflow-hidden">
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-black/30" onClick={closeSlideOver} />
+
+        {/* Panel */}
+        <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl flex flex-col">
+
+          {/* Header */}
+          <div className="flex items-start justify-between px-6 py-5 border-b border-gray-200 shrink-0">
+            <div>
+              <p className="font-semibold text-gray-900 leading-snug">{selectedHw.title}</p>
+              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
+                <span>{selectedHw.className}</span>
+                <span>·</span>
+                <span>Due {new Date(selectedHw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                {subDetail?.submittedAt && (
+                  <>
+                    <span>·</span>
+                    <span>Submitted {new Date(subDetail.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                  </>
+                )}
+                {subDetail?.markedAt && (
+                  <>
+                    <span>·</span>
+                    <span>Returned {new Date(subDetail.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <button onClick={closeSlideOver} className="p-2 hover:bg-gray-100 rounded-lg shrink-0 ml-4">
+              <Icon name="close" size="md" className="text-gray-500" />
+            </button>
+          </div>
+
+          {/* Read-only notice */}
+          <div className="mx-6 mt-4 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 shrink-0">
+            <Icon name="visibility" size="sm" className="text-gray-400 shrink-0" />
+            <p className="text-xs text-gray-500">Read-only view — grades can only be changed by the class teacher.</p>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+            {/* Grade + score row */}
+            {(selectedHw.grade || selectedHw.finalScore != null) && (
+              <div className="flex gap-3">
+                {selectedHw.grade && (
+                  <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">GCSE Grade</p>
+                    <p className="text-3xl font-bold text-gray-900">{selectedHw.grade}</p>
+                  </div>
+                )}
+                {selectedHw.finalScore != null && (
+                  <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Score</p>
+                    <p className="text-3xl font-bold text-gray-900">{formatRawScore(selectedHw.finalScore)}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Loading skeleton */}
+            {loadingSubId === selectedHw.submissionId && (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+                <div className="h-24 bg-gray-100 rounded" />
+                <div className="h-4 bg-gray-100 rounded w-1/3 mt-4" />
+                <div className="h-16 bg-gray-100 rounded" />
+              </div>
+            )}
+
+            {subDetail && (
+              <>
+                {/* Instructions */}
+                {subDetail.instructions && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Instructions</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 leading-relaxed">
+                      {subDetail.instructions}
+                    </div>
+                  </div>
+                )}
+
+                {/* Student's answer */}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Student&apos;s Answer</p>
+                  <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap min-h-20">
+                    {subDetail.content || <span className="text-gray-400 italic">No written answer recorded.</span>}
+                  </div>
+                </div>
+
+                {/* Teacher feedback */}
+                {selectedHw.feedback && (
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Teacher Feedback</p>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 whitespace-pre-wrap">
+                      {selectedHw.feedback}
+                    </div>
+                  </div>
+                )}
+
+                {/* Model answer / mark scheme — collapsible */}
+                {subDetail.modelAnswer && (
+                  <div>
+                    <button
+                      onClick={() => setMarkSchemeOpen(o => !o)}
+                      className="w-full flex items-center justify-between text-left group"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 group-hover:text-gray-600">Model Answer</p>
+                      <Icon name={markSchemeOpen ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-300 group-hover:text-gray-500" />
+                    </button>
+                    {markSchemeOpen && (
+                      <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-900 whitespace-pre-wrap">
+                        {subDetail.modelAnswer}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ILP targets — shown if student has active ILP */}
+            {data.ilp && data.ilp.targets.filter(t => t.status === 'active').length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon name="flag" size="sm" className="text-blue-600" />
+                  <p className="text-sm font-semibold text-blue-900">ILP Targets</p>
+                </div>
+                <p className="text-xs text-blue-700 mb-3">
+                  Does this submission evidence any of {data.student.firstName}&apos;s ILP targets?
+                </p>
+                <div className="space-y-2">
+                  {data.ilp.targets.filter(t => t.status === 'active').map(t => (
+                    <div key={t.id} className="flex items-start gap-2">
+                      <Icon name="radio_button_unchecked" size="sm" className="text-blue-400 mt-0.5 shrink-0" />
+                      <p className="text-xs text-blue-800">{t.target}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-blue-500 mt-3">
+                  To link evidence, use the ILP Evidence page or notify the class teacher from there.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   )
 }
 
@@ -1683,7 +1901,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
 
       {/* ── Tab: Homework ── */}
       {activeTab === 'Homework' && (
-        <PerformanceTab data={data} studentName={studentName} onClose={onClose} />
+        <PerformanceTab data={data} studentName={studentName} onClose={onClose} role={role} />
       )}
 
       {/* ── Tab: Assessments ── */}

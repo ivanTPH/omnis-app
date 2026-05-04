@@ -10,14 +10,22 @@ const LogoSvg = ({ size }: { size: number }) => (
   </svg>
 )
 
-export default function OmnisLogo({ variant = 'sidebar' }: { variant?: 'sidebar' | 'login' }) {
+export default function OmnisLogo({
+  variant = 'sidebar',
+  background = 'light',
+}: {
+  variant?: 'sidebar' | 'login'
+  background?: 'light' | 'dark'
+}) {
   if (variant === 'login') {
     return (
       <div className="flex flex-col items-center gap-2.5">
         <div className="w-14 h-14 bg-blue-700 rounded-xl flex items-center justify-center">
           <LogoSvg size={34} />
         </div>
-        <span className="text-2xl font-semibold text-gray-900 tracking-tight">omnis</span>
+        <span className={`text-2xl font-semibold tracking-tight ${background === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          omnis
+        </span>
       </div>
     )
   }

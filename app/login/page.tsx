@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-teal-700 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <OmnisLogo variant="login" />
+          <OmnisLogo variant="login" background="dark" />
           <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-4">

@@ -19,9 +19,11 @@ export type HomeworkToMark = {
 
 export type OpenConcern = {
   id: string
+  studentId: string
   studentName: string
   description: string
   createdAt: string
+  todayLesson: { scheduledAt: string; className: string } | null
 }
 
 export type DashboardData = {
@@ -125,6 +127,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       },
       select: {
         id:          true,
+        studentId:   true,
         description: true,
         createdAt:   true,
         student:     { select: { firstName: true, lastName: true } },
@@ -133,6 +136,25 @@ export async function getDashboardData(): Promise<DashboardData> {
       take: 3,
     }),
   ])
+
+  // For each concern, find the student's next lesson today (if any)
+  const concernsWithLesson = await Promise.all(
+    concerns.map(async c => {
+      const lesson = await prisma.lesson.findFirst({
+        where: {
+          schoolId,
+          scheduledAt: { gte: todayStart, lte: todayEnd },
+          class: { enrolments: { some: { userId: c.studentId } } },
+        },
+        select: {
+          scheduledAt: true,
+          class: { select: { name: true } },
+        },
+        orderBy: { scheduledAt: 'asc' },
+      })
+      return { concern: c, lesson }
+    }),
+  )
 
   return {
     todaysLessons: todayLessons.map(l => ({
@@ -150,11 +172,15 @@ export async function getDashboardData(): Promise<DashboardData> {
     })),
     submissionsToday:  subsTodayCount,
     openConcernsCount: concernsCount,
-    openConcerns: concerns.map(c => ({
+    openConcerns: concernsWithLesson.map(({ concern: c, lesson }) => ({
       id:          c.id,
+      studentId:   c.studentId,
       studentName: `${c.student.firstName} ${c.student.lastName}`,
       description: c.description,
       createdAt:   c.createdAt.toISOString(),
+      todayLesson: lesson
+        ? { scheduledAt: lesson.scheduledAt.toISOString(), className: lesson.class?.name ?? '—' }
+        : null,
     })),
   }
 }

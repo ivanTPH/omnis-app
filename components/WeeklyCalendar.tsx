@@ -2,7 +2,7 @@
 import { useState, useEffect, useTransition, useMemo, useRef, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
 import LessonFolder, { type FolderTab } from './LessonFolder'
 import { rescheduleLesson, getWeekLessons } from '@/app/actions/lessons'
@@ -90,8 +90,9 @@ export default function WeeklyCalendar({
   lessons, unscheduled, firstName, classes, allClasses, teacherSubjects = [],
   startHour, endHour, extStartHour, extEndHour,
 }: Props) {
-  const today  = new Date()
-  const router = useRouter()
+  const today        = new Date()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
   const [, startReschedule] = useTransition()
 
   // Current-week start (stable reference)
@@ -126,7 +127,8 @@ export default function WeeklyCalendar({
   const [dropTarget,      setDropTarget]      = useState<string | null>(null)
   const [optimisticMoves, setOptimisticMoves] = useState<Map<string, { di: number; hr: number }>>(new Map())
   const [slideOver,    setSlideOver]    = useState<{ date: string; hour: number; endHour?: number } | null>(null)
-  const [folderId,     setFolderId]     = useState<string | null>(null)
+  // Auto-open lesson folder when navigated from dashboard (?lesson=<id>)
+  const [folderId,     setFolderId]     = useState<string | null>(() => searchParams.get('lesson'))
   const [folderTab,    setFolderTab]    = useState<FolderTab>('Overview')
   const [folderWizard, setFolderWizard] = useState(false)
 

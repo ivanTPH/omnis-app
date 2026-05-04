@@ -110,9 +110,9 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
           ) : (
             <div>
               {data.todaysLessons.map(lesson => (
-                <a
+                <Link
                   key={lesson.id}
-                  href={`/dashboard?open=${lesson.id}`}
+                  href={`/calendar?lesson=${lesson.id}`}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 -mx-1 transition-colors"
                 >
                   <div className="w-16 text-center flex-shrink-0">
@@ -125,7 +125,7 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
                     <p className="text-meta">{lesson.className} · {lesson.subject}</p>
                   </div>
                   <Icon name="chevron_right" size="sm" className="text-gray-400" />
-                </a>
+                </Link>
               ))}
             </div>
           )}
@@ -180,14 +180,28 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
             </Link>
           </div>
           {data.openConcerns.map(concern => (
-            <div key={concern.id} className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100 mb-2 last:mb-0">
-              <Icon name="flag" size="sm" className="text-red-500 mt-0.5" />
+            <Link
+              key={concern.id}
+              href={`/students/${concern.studentId}`}
+              className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100 mb-2 last:mb-0 hover:bg-red-100 transition-colors group"
+            >
+              <Icon name="flag" size="sm" className="text-red-500 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-data">{concern.studentName}</p>
                 <p className="text-meta truncate">{concern.description}</p>
+                {concern.todayLesson ? (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
+                    <Icon name="schedule" size="sm" />
+                    In class {formatTime(concern.todayLesson.scheduledAt)} · {concern.todayLesson.className}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-gray-400">
+                    Not in class today
+                  </span>
+                )}
               </div>
-              <p className="text-meta flex-shrink-0">{formatDate(concern.createdAt)}</p>
-            </div>
+              <Icon name="chevron_right" size="sm" className="text-red-300 group-hover:text-red-500 shrink-0 mt-0.5" />
+            </Link>
           ))}
         </div>
       )}

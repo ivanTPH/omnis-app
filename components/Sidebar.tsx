@@ -16,21 +16,23 @@ type NavItem =
 
 const navByRole: Record<string, NavItem[]> = {
   TEACHER: [
+    { label: 'Dashboard',         href: '/dashboard',          icon: 'dashboard'      },
     { divider: true, label: 'Teaching' },
-    { label: 'Calendar',          href: '/dashboard',          icon: 'calendar_today' },
+    { label: 'Calendar',          href: '/calendar',           icon: 'calendar_today' },
     { label: 'Homework',          href: '/homework',           icon: 'assignment'     },
     { label: 'My Classes',        href: '/classes',            icon: 'groups'         },
-    { label: 'Year Group Plans',  href: '/plans/year-group',   icon: 'menu_book'      },
+    { label: 'Year Group Plans',  href: '/plans/year-group',   icon: 'folder_special' },
     { divider: true, label: 'Learning' },
-    { label: 'Revision',          href: '/revision-program',   icon: 'bookmark'       },
+    { label: 'Revision',          href: '/revision-program',   icon: 'menu_book'      },
     { label: 'Adaptive Learning', href: '/analytics/adaptive', icon: 'psychology'     },
-    { label: 'AI Generator',      href: '/ai-generator',       icon: 'auto_fix_high'  },
+    { label: 'AI Generator',      href: '/ai-generator',       icon: 'auto_awesome'   },
     { divider: true, label: 'Communication' },
     { label: 'Messages',          href: '/messages',           icon: 'chat'           },
     { label: 'Notifications',     href: '/notifications',      icon: 'notifications'  },
   ],
   HEAD_OF_DEPT: [
-    { label: 'Calendar',             href: '/dashboard',             icon: 'calendar_today'  },
+    { label: 'Dashboard',            href: '/dashboard',             icon: 'dashboard'        },
+    { label: 'Calendar',             href: '/calendar',              icon: 'calendar_today'  },
     { label: 'Homework',             href: '/homework',              icon: 'assignment'       },
     { label: 'Revision',             href: '/revision-program',      icon: 'bookmark'         },
     { label: 'Year Group Plans',     href: '/plans/year-group',      icon: 'menu_book'        },
@@ -41,7 +43,8 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Notifications',        href: '/notifications',         icon: 'notifications'    },
   ],
   HEAD_OF_YEAR: [
-    { label: 'Calendar',             href: '/dashboard',          icon: 'calendar_today' },
+    { label: 'Dashboard',            href: '/dashboard',          icon: 'dashboard'      },
+    { label: 'Calendar',             href: '/calendar',           icon: 'calendar_today' },
     { label: 'Revision',             href: '/revision-program',   icon: 'bookmark'       },
     { label: 'Year Group Plans',     href: '/plans/year-group',   icon: 'menu_book'      },
     { label: 'Classes & Analytics',  href: '/analytics',          icon: 'groups'         },
@@ -124,7 +127,8 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Consent Settings', href: '/parent/consent',   icon: 'verified_user'  },
   ],
   TEACHING_ASSISTANT: [
-    { label: 'Calendar',      href: '/dashboard',      icon: 'calendar_today' },
+    { label: 'Dashboard',     href: '/dashboard',      icon: 'dashboard'      },
+    { label: 'Calendar',      href: '/calendar',       icon: 'calendar_today' },
     { label: 'My Classes',    href: '/classes',        icon: 'groups'         },
     { label: 'Messages',      href: '/messages',       icon: 'chat'           },
     { label: 'Notifications', href: '/notifications',  icon: 'notifications'  },

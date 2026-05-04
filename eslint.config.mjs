@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     "prisma/seed.ts",
     "scripts/**",
     "e2e/**",
+    // Reference/backup directory — not part of the app build
+    "omnis-files/**",
   ]),
   {
     rules: {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { gradeLabel, gradePillClass } from '@/lib/grading'
 import type { SubjectGradeSummary, GradeHistorySubmission, TopicWeakness } from '@/app/actions/student'
@@ -43,10 +44,20 @@ function GradePill({ grade }: { grade: number }) {
 
 // ── Trend arrow ───────────────────────────────────────────────────────────────
 
-function TrendArrow({ grades }: { grades: number[] }) {
+function TrendArrow({ avgGrade, predictedGrade, grades }: {
+  avgGrade: number
+  predictedGrade: number | null
+  grades: number[]
+}) {
+  if (predictedGrade != null) {
+    if (avgGrade > predictedGrade)  return <Icon name="arrow_upward"  size="sm" className="text-green-600" />
+    if (avgGrade < predictedGrade)  return <Icon name="arrow_downward" size="sm" className="text-amber-500" />
+    return <Icon name="arrow_forward" size="sm" className="text-blue-500" />
+  }
+  // No target — fall back to trajectory between last two submissions
   if (grades.length < 2) return null
-  const diff = grades[0] - grades[1]
-  if (diff > 0) return <Icon name="arrow_upward" size="sm" className="text-green-600" />
+  const diff = grades[0] - grades[1]   // grades are newest-first
+  if (diff > 0) return <Icon name="arrow_upward"  size="sm" className="text-green-600" />
   if (diff < 0) return <Icon name="arrow_downward" size="sm" className="text-red-500" />
   return <Icon name="arrow_forward" size="sm" className="text-gray-400" />
 }
@@ -71,12 +82,12 @@ function WeakTopicList({ topics, avgGrade }: { topics: TopicWeakness[]; avgGrade
           </span>
         ))}
       </div>
-      <a
+      <Link
         href="/student/revision"
         className="inline-flex items-center gap-1 mt-2 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
       >
         <Icon name="auto_stories" size="sm" />Add these to your revision planner
-      </a>
+      </Link>
     </div>
   )
 }
@@ -119,7 +130,7 @@ function HomeworkRow({ hw }: { hw: GradeHistorySubmission }) {
               <Icon name="auto_stories" size="sm" className="text-red-500 shrink-0" />
               <p className="text-[11px] text-red-700">
                 Grade {hw.gcseGrade} — consider adding this topic to your{' '}
-                <a href="/student/revision" className="underline font-medium">revision planner</a>.
+                <Link href="/student/revision" className="underline font-medium">revision planner</Link>.
               </p>
             </div>
           )}
@@ -135,10 +146,33 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
   const [open, setOpen] = useState(false)
   const grades = summary.submissions.map(s => s.gcseGrade)
 
-  const recentGrades = grades.slice(0, 5)
-  const trend = recentGrades.length >= 2 ? recentGrades[0] - recentGrades[recentGrades.length - 1] : 0
-  const trendLabel = trend > 1 ? 'Improving' : trend < -1 ? 'Declining' : 'Steady'
-  const trendColor = trend > 1 ? 'text-green-600' : trend < -1 ? 'text-red-500' : 'text-gray-500'
+  // Trend: target-based when predictedGrade is available, else recent trajectory
+  type TrendStatus = 'above_target' | 'on_target' | 'below_target' | 'improving' | 'steady' | 'declining'
+  const trendStatus: TrendStatus = summary.predictedGrade != null
+    ? summary.avgGrade > summary.predictedGrade ? 'above_target'
+    : summary.avgGrade < summary.predictedGrade ? 'below_target'
+    : 'on_target'
+    : (() => {
+        const recentGrades = grades.slice(0, 5)
+        const diff = recentGrades.length >= 2
+          ? recentGrades[0] - recentGrades[recentGrades.length - 1]  // newest-first
+          : 0
+        return diff > 1 ? 'improving' : diff < -1 ? 'declining' : 'steady'
+      })()
+
+  const trendLabel =
+    trendStatus === 'above_target' ? 'Above target' :
+    trendStatus === 'on_target'    ? 'On target'    :
+    trendStatus === 'below_target' ? 'Below target' :
+    trendStatus === 'improving'    ? 'Improving'    :
+    trendStatus === 'declining'    ? 'Declining'    : 'Steady'
+
+  const trendColor =
+    trendStatus === 'above_target' ? 'text-green-600' :
+    trendStatus === 'on_target'    ? 'text-blue-600'  :
+    trendStatus === 'below_target' ? 'text-amber-600' :
+    trendStatus === 'improving'    ? 'text-green-600' :
+    trendStatus === 'declining'    ? 'text-red-500'   : 'text-gray-500'
 
   const progressToPredict = summary.predictedGrade != null
     ? summary.avgGrade - summary.predictedGrade
@@ -155,7 +189,7 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[14px] font-semibold text-gray-900">{summary.subject}</p>
-            <TrendArrow grades={grades} />
+            <TrendArrow avgGrade={summary.avgGrade} predictedGrade={summary.predictedGrade ?? null} grades={grades} />
             <span className={`text-[10px] font-medium ${trendColor}`}>{trendLabel}</span>
           </div>
           <p className="text-[11px] text-gray-400 mt-0.5">
@@ -298,12 +332,12 @@ function AdaptiveProfilePanel({ profile }: { profile: NonNullable<SubjectGradeSu
       </div>
 
       <div className="mt-3 pt-3 border-t border-emerald-200 flex gap-3 flex-wrap">
-        <a href="/student/revision" className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-900 font-medium">
+        <Link href="/student/revision" className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-900 font-medium">
           <Icon name="auto_stories" size="sm" />Revision Planner
-        </a>
-        <a href="/student/homework" className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-900 font-medium">
+        </Link>
+        <Link href="/student/homework" className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:text-emerald-900 font-medium">
           <Icon name="assignment" size="sm" />My Homework
-        </a>
+        </Link>
       </div>
     </div>
   )
@@ -414,7 +448,7 @@ export default function StudentGradesView({ summaries }: { summaries: SubjectGra
             <p className="text-[11px] text-amber-700">
               You have {totalWeakTopics} topic{totalWeakTopics !== 1 ? 's' : ''} scoring below your subject average.
               Open each subject below to see which topics to focus on, then add them to your{' '}
-              <a href="/student/revision" className="underline font-medium">revision planner</a>.
+              <Link href="/student/revision" className="underline font-medium">revision planner</Link>.
             </p>
           </div>
         </div>

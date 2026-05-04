@@ -92,45 +92,70 @@ const SEND_ADAPTATION_PROMPTS: Record<string, string> = {
     'Use clear written instructions throughout. Avoid any activities that depend on spoken audio. Provide visual cues and written alternatives for all verbal content.',
 }
 
-function buildUserPrompt(input: GenerateInput): string {
+// Rough token estimate: 1 token ≈ 4 characters
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4)
+}
+
+/**
+ * Build the SEND context block for a resource prompt.
+ * Handles any number of adaptations; each is a separate bullet so the model
+ * can apply them independently without producing a run-on blob.
+ * Returns '' when no adaptations are selected.
+ */
+function buildSendContext(adaptations: string[], trimTargets = false): string {
+  const applicable = trimTargets ? adaptations.slice(0, 2) : adaptations
+  const entries = applicable
+    .map(a => ({ label: a.replace(/_/g, ' ').toUpperCase(), prompt: SEND_ADAPTATION_PROMPTS[a] }))
+    .filter(e => e.prompt)
+
+  if (entries.length === 0) return ''
+
+  const labels = entries.map(e => e.label).join(', ')
+  const bullets = entries.map(e => `• ${e.prompt}`).join('\n')
+
+  return [
+    '',
+    `SEND ADAPTATIONS REQUIRED (${labels}) — weave all of the following into a single accessible resource; do NOT create separate sections per need:`,
+    bullets,
+    'Apply these adaptations throughout: clear language, shorter steps, worked examples where relevant.',
+  ].join('\n')
+}
+
+function buildUserPrompt(input: GenerateInput, trimSend = false): string {
   const typePrompt = RESOURCE_TYPE_PROMPTS[input.resourceType] ?? 'Create a classroom resource.'
+  const sendContext = buildSendContext(input.sendAdaptations, trimSend)
   const lines = [
     `Subject: ${input.subject}`,
     `Year Group: ${input.yearGroup}`,
     `Topic: ${input.topic}`,
     '',
     typePrompt,
+    sendContext,
   ]
-
-  if (input.sendAdaptations.length === 1) {
-    const adapt  = input.sendAdaptations[0]
-    const prompt = SEND_ADAPTATION_PROMPTS[adapt]
-    if (prompt) {
-      lines.push('', `SEND Adaptation (${adapt.replace(/_/g, ' ').toUpperCase()}) — apply throughout:`)
-      lines.push(prompt)
-    }
-  } else if (input.sendAdaptations.length > 1) {
-    // Combine multiple needs into ONE block so Claude doesn't write separate sections
-    // per need (which inflates response length and risks timeout).
-    const labels   = input.sendAdaptations.map(a => a.replace(/_/g, ' ')).join(', ')
-    const combined = input.sendAdaptations
-      .flatMap(a => {
-        const p = SEND_ADAPTATION_PROMPTS[a]
-        return p ? [p] : []
-      })
-      .join(' ')
-    lines.push(
-      '',
-      `SEND Adaptations (${labels}) — weave all of the following into a single accessible resource; do NOT create a separate section per need:`,
-      combined,
-    )
-  }
 
   if (input.additionalNotes?.trim()) {
     lines.push('', `Additional teacher notes: ${input.additionalNotes.trim()}`)
   }
 
   return lines.join('\n')
+}
+
+/**
+ * Build the SEND instructions string for the PowerPoint JSON prompt.
+ * Returns '' when no adaptations are selected.
+ */
+function buildPptSendContext(adaptations: string[], trimTargets = false): string {
+  const applicable = trimTargets ? adaptations.slice(0, 2) : adaptations
+  const entries = applicable
+    .map(a => ({ label: a.replace(/_/g, ' '), prompt: SEND_ADAPTATION_PROMPTS[a] }))
+    .filter(e => e.prompt)
+
+  if (entries.length === 0) return ''
+
+  const labels  = entries.map(e => e.label).join(', ')
+  const bullets = entries.map(e => `• ${e.prompt}`).join('\n')
+  return `SEND adaptations to weave throughout (${labels}):\n${bullets}`
 }
 
 // ─── Curriculum cascade helpers ───────────────────────────────────────────────
@@ -250,52 +275,131 @@ export async function generateResource(
   if (apiKey) {
     const client = new Anthropic({ apiKey })
 
-    if (isPptOutline) {
-      // Structured JSON output for PowerPoint outlines
-      const userPrompt = [
-        `Subject: ${validated.subject}`,
-        `Year Group: ${validated.yearGroup}`,
-        `Topic: ${validated.topic}`,
-        '',
-        'Create a 10–12 slide PowerPoint outline for a lesson on this topic. Each slide must have:',
-        '- number (integer, starting at 1)',
-        '- title (string)',
-        '- bullets (array of 3–5 concise bullet points)',
-        '- imageNote (one sentence describing a suggested image or diagram)',
-        '- speakerNotes (2–3 sentences of teacher guidance)',
-        '',
-        validated.sendAdaptations.length > 0
-          ? `SEND adaptations to weave throughout: ${validated.sendAdaptations.join(', ')}.`
-          : '',
-        validated.additionalNotes?.trim()
-          ? `Additional teacher notes: ${validated.additionalNotes.trim()}`
-          : '',
-        '',
-        'Return ONLY the JSON object — no markdown fences, no explanation.',
-      ].filter(l => l !== undefined).join('\n')
+    try {
+      if (isPptOutline) {
+        // Structured JSON output for PowerPoint outlines
+        const sendBlock = buildPptSendContext(validated.sendAdaptations)
 
-      const message = await client.messages.create({
-        model:      'claude-sonnet-4-6',
-        max_tokens: 2500,
-        system:     SLIDE_SYSTEM_PROMPT,
-        messages:   [{ role: 'user', content: userPrompt }],
+        let userPrompt = [
+          `Subject: ${validated.subject}`,
+          `Year Group: ${validated.yearGroup}`,
+          `Topic: ${validated.topic}`,
+          '',
+          'Create a 10–12 slide PowerPoint outline for a lesson on this topic. Each slide must have:',
+          '- number (integer, starting at 1)',
+          '- title (string)',
+          '- bullets (array of 3–5 concise bullet points)',
+          '- imageNote (one sentence describing a suggested image or diagram)',
+          '- speakerNotes (2–3 sentences of teacher guidance)',
+          '',
+          sendBlock,
+          validated.additionalNotes?.trim()
+            ? `Additional teacher notes: ${validated.additionalNotes.trim()}`
+            : '',
+          '',
+          'Return ONLY the JSON object — no markdown fences, no explanation.',
+        ].filter(Boolean).join('\n')
+
+        // Token budget guard: if prompt is too long, trim SEND context
+        const MAX_PPT_PROMPT_TOKENS = 1200
+        if (estimateTokens(userPrompt) > MAX_PPT_PROMPT_TOKENS) {
+          const trimmedSend = buildPptSendContext(validated.sendAdaptations, true)
+          userPrompt = [
+            `Subject: ${validated.subject}`,
+            `Year Group: ${validated.yearGroup}`,
+            `Topic: ${validated.topic}`,
+            '',
+            'Create a 10–12 slide PowerPoint outline for a lesson on this topic. Each slide must have:',
+            '- number (integer, starting at 1)',
+            '- title (string)',
+            '- bullets (array of 3–5 concise bullet points)',
+            '- imageNote (one sentence describing a suggested image or diagram)',
+            '- speakerNotes (2–3 sentences of teacher guidance)',
+            '',
+            trimmedSend,
+            validated.additionalNotes?.trim()
+              ? `Additional teacher notes: ${validated.additionalNotes.trim()}`
+              : '',
+            '',
+            'Return ONLY the JSON object — no markdown fences, no explanation.',
+          ].filter(Boolean).join('\n')
+          console.log('[resource-gen] PPT prompt trimmed — was over token budget')
+        }
+
+        // Scale max_tokens with number of SEND adaptations (each adds ~200 tokens of output)
+        const pptMaxTokens = Math.min(4096, 2500 + validated.sendAdaptations.length * 200)
+
+        const message = await client.messages.create({
+          model:      'claude-sonnet-4-6',
+          max_tokens: pptMaxTokens,
+          system:     SLIDE_SYSTEM_PROMPT,
+          messages:   [{ role: 'user', content: userPrompt }],
+        })
+        const raw = (message.content[0] as { type: string; text: string }).text.trim()
+        // Strip any accidental markdown fences
+        const jsonStr = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+
+        let deck: { title: string; slides: unknown[] }
+        try {
+          deck = JSON.parse(jsonStr) as { title: string; slides: unknown[] }
+        } catch {
+          console.error('[resource-gen] PPT JSON parse failed — response may have been truncated', {
+            rawLength: raw.length,
+            sendAdaptations: validated.sendAdaptations,
+          })
+          throw new Error('The PowerPoint outline could not be generated cleanly. This sometimes happens with complex SEND combinations — please try again or reduce the number of adaptations selected.')
+        }
+
+        title = deck.title ?? `${validated.topic} — PowerPoint Outline`
+        content = jsonStr
+      } else {
+        let userPrompt = buildUserPrompt({ ...input, ...validated })
+
+        // Token budget guard: if prompt is too long, trim SEND context
+        const MAX_PROMPT_TOKENS = 900
+        if (estimateTokens(userPrompt) > MAX_PROMPT_TOKENS) {
+          userPrompt = buildUserPrompt({ ...input, ...validated }, true /* trimSend */)
+          console.log('[resource-gen] Prompt trimmed — was over token budget')
+        }
+
+        // Scale max_tokens with SEND complexity (each adaptation can expand content)
+        const maxTokens = Math.min(2000, 1400 + validated.sendAdaptations.length * 150)
+
+        const message = await client.messages.create({
+          model:      'claude-sonnet-4-6',
+          max_tokens: maxTokens,
+          system:     SYSTEM_PROMPT,
+          messages:   [{ role: 'user', content: userPrompt }],
+        })
+        content = (message.content[0] as { type: string; text: string }).text.trim()
+        const titleMatch = content.match(/^#\s+(.+)$/m)
+        title = titleMatch ? titleMatch[1].trim() : `${validated.topic} — ${validated.resourceType}`
+      }
+    } catch (error: unknown) {
+      const err = error as { message?: string; status?: number }
+
+      console.error('[resource-gen] Generation failed:', {
+        message:         err.message,
+        status:          err.status,
+        resourceType:    validated.resourceType,
+        sendAdaptations: validated.sendAdaptations,
       })
-      const raw = (message.content[0] as { type: string; text: string }).text.trim()
-      // Strip any accidental markdown fences
-      const jsonStr = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
-      const deck = JSON.parse(jsonStr) as { title: string; slides: unknown[] }
-      title = deck.title ?? `${validated.topic} — PowerPoint Outline`
-      content = jsonStr
-    } else {
-      const message = await client.messages.create({
-        model:      'claude-sonnet-4-6',
-        max_tokens: 1400,
-        system:     SYSTEM_PROMPT,
-        messages:   [{ role: 'user', content: buildUserPrompt({ ...input, ...validated }) }],
-      })
-      content = (message.content[0] as { type: string; text: string }).text.trim()
-      const titleMatch = content.match(/^#\s+(.+)$/m)
-      title = titleMatch ? titleMatch[1].trim() : `${validated.topic} — ${validated.resourceType}`
+
+      // Re-throw errors that already have a user-friendly message
+      if (err.message?.includes('PowerPoint outline could not be generated') ||
+          err.message?.includes('Daily generation limit')) {
+        throw error
+      }
+
+      // Token/API errors → friendly message
+      if (err.status === 400 || err.message?.includes('token') || err.message?.includes('max_tokens')) {
+        throw new Error(
+          'The resource is too complex to generate in one pass. ' +
+          'Try selecting fewer SEND adaptations, or generate without adaptations first then use the Differentiate button.',
+        )
+      }
+
+      throw new Error('Resource generation failed. Please try again.')
     }
   } else {
     // Fallback stub when API key is absent

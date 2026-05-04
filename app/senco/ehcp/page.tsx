@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAllEhcpPlans, getStudentsWithSendButNoEhcp } from '@/app/actions/ehcp'
 import AppShell from '@/components/AppShell'
 import EhcpPageClient from '@/components/send-support/EhcpPageClient'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function EhcpPlansPage() {
   const session = await auth()
@@ -19,11 +20,10 @@ export default async function EhcpPlansPage() {
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex flex-col h-full overflow-auto">
-        <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-          <h1 className="text-xl font-semibold text-gray-900">EHCP Plans</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Education, Health and Care Plans — outcome tracking and annual review</p>
+        <div className="px-6 pt-6 bg-white shrink-0">
+          <PageHeader title="EHCP Plans" subtitle="Education, Health and Care Plans — outcome tracking" />
         </div>
-        <div className="max-w-4xl mx-auto px-6 py-8 w-full">
+        <div className="px-6 pb-6 w-full">
           <EhcpPageClient plans={plans} studentsWithoutEhcp={studentsWithoutEhcp} isSenco={isSenco} />
         </div>
       </div>

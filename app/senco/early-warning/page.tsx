@@ -5,6 +5,7 @@ import { getIlpConcernsThisTerm } from '@/app/actions/homework'
 import AppShell from '@/components/AppShell'
 import EarlyWarningPanel from '@/components/send-support/EarlyWarningPanel'
 import Icon from '@/components/ui/Icon'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function EarlyWarningPage() {
   const session = await auth()
@@ -20,12 +21,11 @@ export default async function EarlyWarningPage() {
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex flex-col h-full overflow-auto">
-        <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-          <h1 className="text-xl font-semibold text-gray-900">Early Warning System</h1>
-          <p className="text-sm text-gray-500 mt-0.5">AI-detected patterns in student performance — review and action</p>
+        <div className="px-6 pt-6 bg-white shrink-0">
+          <PageHeader title="Early Warning System" subtitle="AI-detected patterns — review and action" />
         </div>
         {ilpConcerns.length > 0 && (
-          <div className="px-6 pb-2 pt-4">
+          <div className="px-6 pb-2">
             <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
               <div className="flex items-center gap-2 mb-2">
                 <Icon name="warning" size="sm" className="text-rose-600" />

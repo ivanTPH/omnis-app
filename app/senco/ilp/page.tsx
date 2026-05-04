@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getAllIlps, getStudentsWithSendButNoIlp } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
 import IlpPageView from '@/components/send-support/IlpPageView'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function IlpPage() {
   const session = await auth()
@@ -18,11 +19,10 @@ export default async function IlpPage() {
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex flex-col h-full overflow-auto">
-        <div className="px-6 py-4 border-b border-gray-200 bg-white shrink-0">
-          <h1 className="text-xl font-semibold text-gray-900">Individual Learning Plans</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Active ILPs and drafts pending SENCO review</p>
+        <div className="px-6 pt-6 bg-white shrink-0">
+          <PageHeader title="Individual Learning Plans" subtitle="Active ILPs and drafts pending SENCO review" />
         </div>
-        <div className="p-6">
+        <div className="px-6 pb-6">
           <IlpPageView ilps={ilps} studentsWithoutIlp={studentsWithoutIlp} />
         </div>
       </div>

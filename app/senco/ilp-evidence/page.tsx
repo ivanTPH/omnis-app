@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getIlpEvidenceStudents } from '@/app/actions/adaptive-learning'
 import AppShell from '@/components/AppShell'
 import IlpEvidenceView from '@/components/send-support/IlpEvidenceView'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function IlpEvidencePage() {
   const session = await auth()
@@ -14,12 +15,13 @@ export default async function IlpEvidencePage() {
 
   return (
     <AppShell role={user.role} firstName={user.firstName} lastName={user.lastName} schoolName={user.schoolName}>
-      <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-        <div>
-          <h1 className="text-page-title">ILP Evidence</h1>
-          <p className="text-sm text-gray-500 mt-1">Track homework evidence linked to Individual Learning Plan targets</p>
+      <div className="flex flex-col h-full overflow-auto">
+        <div className="px-6 pt-6 bg-white shrink-0">
+          <PageHeader title="ILP Evidence" subtitle="Track homework evidence linked to ILP targets" />
         </div>
-        <IlpEvidenceView data={data} />
+        <div className="px-6 pb-6">
+          <IlpEvidenceView data={data} />
+        </div>
       </div>
     </AppShell>
   )

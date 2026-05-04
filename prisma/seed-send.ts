@@ -71,7 +71,7 @@ async function main() {
         raisedBy: teacher.id,
         source: 'teacher',
         category: 'literacy',
-        description: 'Aiden is struggling significantly with reading comprehension. He frequently misreads questions and is unable to infer meaning from complex texts. His written work is below the expected standard for Year 9.',
+        description: `${s1.firstName} is struggling significantly with reading comprehension. They frequently misread questions and are unable to infer meaning from complex texts. Their written work is below the expected standard for Year 9.`,
         evidenceNotes: 'Last 3 homework submissions scored below 40%. Class reading assessment: 45% (expected 70%+).',
         status: 'under_review',
         createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
@@ -84,7 +84,7 @@ async function main() {
         raisedBy: hoy?.id ?? teacher.id,
         source: 'teacher',
         category: 'social_emotional',
-        description: 'Aiden appears increasingly withdrawn during class activities. He has stopped participating in group work and was observed becoming very distressed during a timed assessment last week.',
+        description: `${s1.firstName} appears increasingly withdrawn during class activities. They have stopped participating in group work and were observed becoming very distressed during a timed assessment last week.`,
         status: 'open',
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       },
@@ -96,7 +96,7 @@ async function main() {
         raisedBy: teacher.id,
         source: 'teacher',
         category: 'numeracy',
-        description: 'Maya is consistently unable to complete tasks involving numerical reasoning. She takes significantly longer than peers and frequently asks for reassurance on basic calculations.',
+        description: `${s2.firstName} is consistently unable to complete tasks involving numerical reasoning. They take significantly longer than peers and frequently ask for reassurance on basic calculations.`,
         status: 'open',
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
@@ -108,7 +108,7 @@ async function main() {
         raisedBy: teacher.id,
         source: 'teacher',
         category: 'attendance',
-        description: 'Maya has missed 8 of the last 20 lessons. When present, she appears fatigued and struggles to concentrate. Parent contact has not been responsive.',
+        description: `${s2.firstName} has missed 8 of the last 20 lessons. When present, they appear fatigued and struggle to concentrate. Parent contact has not been responsive.`,
         status: 'escalated',
         reviewedBy: senco.id,
         reviewedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
@@ -169,7 +169,7 @@ async function main() {
         'Provide written materials in dyslexia-friendly font (Arial/Comic Sans, 12pt minimum)',
         'Allow extra time (25%) for all written work and assessments',
         'Provide printed copies of board notes and slides in advance',
-        'Use coloured overlays or paper — Aiden has identified yellow as helpful',
+        `Use coloured overlays or paper — ${s1.firstName} has identified yellow as helpful`,
         'Break multi-step instructions into numbered single steps',
         'Pair written tasks with verbal explanation of expectations',
       ],
@@ -503,7 +503,7 @@ async function main() {
         create: [
           {
             section: 'B',
-            outcomeText: 'Aiden will read age-appropriate texts with ≥90% accuracy using phonics and contextual strategies.',
+            outcomeText: `${s1.firstName} will read age-appropriate texts with ≥90% accuracy using phonics and contextual strategies.`,
             successCriteria: 'Standardised reading test score at or above chronological age band at annual review.',
             targetDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
             provisionRequired: 'Reading Recovery programme, 3× per week with trained TA. Coloured overlays. Dyslexia-friendly resources.',
@@ -512,7 +512,7 @@ async function main() {
           },
           {
             section: 'B',
-            outcomeText: 'Aiden will write extended responses of 200+ words with appropriate structure and punctuation.',
+            outcomeText: `${s1.firstName} will write extended responses of 200+ words with appropriate structure and punctuation.`,
             successCriteria: 'Three consecutive homework tasks rated Good or higher by subject teacher using shared rubric.',
             targetDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
             provisionRequired: 'Writing frames provided. Laptop access for extended tasks.',
@@ -521,7 +521,7 @@ async function main() {
           },
           {
             section: 'C',
-            outcomeText: 'Aiden will self-report anxiety levels ≤2/5 before written assessments.',
+            outcomeText: `${s1.firstName} will self-report anxiety levels ≤2/5 before written assessments.`,
             successCriteria: 'Anxiety self-rating card used before assessments; average ≤2 for three consecutive assessments.',
             targetDate: new Date(Date.now() + 84 * 24 * 60 * 60 * 1000),
             provisionRequired: 'Pastoral check-in before major assessments. Separate quiet room access.',
@@ -530,7 +530,7 @@ async function main() {
           },
           {
             section: 'D',
-            outcomeText: 'Aiden will independently use 2 self-regulation strategies when experiencing anxiety.',
+            outcomeText: `${s1.firstName} will independently use 2 self-regulation strategies when experiencing anxiety.`,
             successCriteria: 'Student can name and demonstrate strategies; evidence from pastoral log of independent use on ≥5 occasions.',
             targetDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
             status: 'active',
@@ -555,7 +555,7 @@ async function main() {
         create: [
           {
             section: 'A',
-            outcomeText: 'Maya will attend school for ≥90% of sessions over any rolling 4-week period.',
+            outcomeText: `${s2.firstName} will attend school for ≥90% of sessions over any rolling 4-week period.`,
             successCriteria: '≥90% attendance measured at 6-week review using school attendance data.',
             targetDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
             provisionRequired: 'Daily attendance call if absent. EWO involvement. Phased return protocol.',
@@ -564,7 +564,7 @@ async function main() {
           },
           {
             section: 'C',
-            outcomeText: 'Maya will remain in the classroom for ≥80% of lesson time without needing the exit strategy.',
+            outcomeText: `${s2.firstName} will remain in the classroom for ≥80% of lesson time without needing the exit strategy.`,
             successCriteria: 'Exit card used ≤2 times per week average over 3 consecutive weeks.',
             targetDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
             provisionRequired: 'Agreed signal system. Designated safe space. Pastoral check-ins.',
@@ -573,7 +573,7 @@ async function main() {
           },
           {
             section: 'C',
-            outcomeText: 'Maya will independently use 3 personal regulation strategies when managing emotional distress.',
+            outcomeText: `${s2.firstName} will independently use 3 personal regulation strategies when managing emotional distress.`,
             successCriteria: 'Student can name and use strategies from personal coping card; pastoral log evidence.',
             targetDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
             provisionRequired: 'SENCO 4-session emotional regulation programme. Coping card produced.',
@@ -582,7 +582,7 @@ async function main() {
           },
           {
             section: 'H1',
-            outcomeText: 'Maya will complete SEMH-appropriate homework tasks to a quality rating of ≥60%.',
+            outcomeText: `${s2.firstName} will complete SEMH-appropriate homework tasks to a quality rating of ≥60%.`,
             successCriteria: '8 of 10 consecutive homework tasks submitted; teacher quality rating ≥60%.',
             targetDate: new Date(Date.now() + 70 * 24 * 60 * 60 * 1000),
             provisionRequired: 'Adapted homework (shorter tasks, flexible deadlines). Homework club access.',
@@ -627,7 +627,7 @@ async function main() {
       strengthAreas: ['verbal reasoning', 'creative tasks', 'peer collaboration'],
       developmentAreas: ['extended writing', 'reading comprehension', 'timed assessments'],
       avgCompletionRate: 0.55,
-      profileSummary: 'Aiden shows strength in oral and creative tasks but faces significant barriers with written work due to SpLD. Performs best on structured, short-response formats. Extended writing tasks require additional scaffolding and time. Evidence suggests anxiety around assessments further depresses performance on text-heavy tasks.',
+      profileSummary: `${s1.firstName} shows strength in oral and creative tasks but faces significant barriers with written work due to SpLD. Performs best on structured, short-response formats. Extended writing tasks require additional scaffolding and time. Evidence suggests anxiety around assessments further depresses performance on text-heavy tasks.`,
       profileUpdatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
     },
   })
@@ -657,7 +657,7 @@ async function main() {
         strengthAreas: ['creative expression', 'verbal communication', 'empathy'],
         developmentAreas: ['attendance consistency', 'timed tasks', 'emotional regulation in assessments'],
         avgCompletionRate: 0.72,
-        profileSummary: 'Maya performs well when present and engaged, with particular strength in creative and expressive tasks. SEMH difficulties significantly impact attendance and in-school performance. Creative homework formats show the highest completion and quality. Needs flexible deadlines and low-pressure formats.',
+        profileSummary: `${s2.firstName} performs well when present and engaged, with particular strength in creative and expressive tasks. SEMH difficulties significantly impact attendance and in-school performance. Creative homework formats show the highest completion and quality. Needs flexible deadlines and low-pressure formats.`,
         profileUpdatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
     })

@@ -31,6 +31,7 @@ type Sub = {
 type GradeSuggestion = {
   grade:      string
   rationale:  string
+  feedback:   string
   confidence: 'high' | 'medium' | 'low'
 }
 
@@ -63,6 +64,7 @@ function MarkingPanel({
   onAutoAdvanceChange,
   onGraded,
   canGrade,
+  cachedSuggestion,
 }: {
   sub:                  Sub
   hw:                   HW
@@ -70,23 +72,39 @@ function MarkingPanel({
   onAutoAdvanceChange:  (v: boolean) => void
   onGraded:             (subId: string, grade: string) => void
   canGrade:             boolean
+  cachedSuggestion?:    GradeSuggestion | null
 }) {
-  const [grade, setGrade]               = useState(sub.grade ?? '')
-  const [note, setNote]                 = useState(sub.feedback ?? '')
+  const [grade, setGrade]               = useState(sub.grade ?? cachedSuggestion?.grade ?? '')
+  const [note, setNote]                 = useState(sub.feedback ?? cachedSuggestion?.feedback ?? '')
   const [markSchemeOpen, setMarkSchemeOpen] = useState(false)
   const [isPending, startTransition]    = useTransition()
   const [saved, setSaved]               = useState(false)
   const [error, setError]               = useState<string | null>(null)
-  const [suggestion, setSuggestion]     = useState<GradeSuggestion | null>(null)
+  const [suggestion, setSuggestion]     = useState<GradeSuggestion | null>(cachedSuggestion ?? null)
   const [suggesting, setSuggesting]     = useState(false)
 
-  // Fetch AI grade suggestion for ungraded submissions (teaching staff only)
+  // Apply cached suggestion when it arrives after mount
   useEffect(() => {
-    if (!canGrade || sub.grade || !hw.modelAnswer) return
+    if (!cachedSuggestion?.grade || suggestion) return
+    setSuggestion(cachedSuggestion)
+    setGrade(g => g || cachedSuggestion.grade)
+    if (!sub.feedback) setNote(cachedSuggestion.feedback)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cachedSuggestion])
+
+  // Fetch AI grade suggestion directly if no cached suggestion available
+  useEffect(() => {
+    if (!canGrade || sub.grade || !hw.modelAnswer || cachedSuggestion?.grade) return
     let cancelled = false
     setSuggesting(true)
     suggestHomeworkGrade(sub.id)
-      .then(r => { if (!cancelled && r.grade) setSuggestion(r) })
+      .then(r => {
+        if (!cancelled && r.grade) {
+          setSuggestion(r)
+          setGrade(g => g || r.grade)
+          if (!sub.feedback) setNote(r.feedback)
+        }
+      })
       .catch(() => {})
       .finally(() => { if (!cancelled) setSuggesting(false) })
     return () => { cancelled = true }
@@ -104,10 +122,32 @@ function MarkingPanel({
           grade,
         })
         setSaved(true)
+        setSuggestion(null)
         // Brief "Saved" flash before advancing
         setTimeout(() => {
           onGraded(sub.id, grade)
         }, 700)
+      } catch {
+        setError('Failed to save grade. Please try again.')
+      }
+    })
+  }
+
+  function handleAcceptAndReturn() {
+    if (!grade) return
+    setError(null)
+    startTransition(async () => {
+      try {
+        await markSubmission(sub.id, {
+          teacherScore: grade === 'U' ? 0 : parseInt(grade),
+          feedback:     note,
+          grade,
+        })
+        setSaved(true)
+        setSuggestion(null)
+        setTimeout(() => {
+          onGraded(sub.id, grade)
+        }, 400)
       } catch {
         setError('Failed to save grade. Please try again.')
       }
@@ -190,28 +230,45 @@ function MarkingPanel({
             {suggesting && (
               <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
                 <Icon name="refresh" size="sm" className="animate-spin" />
-                Generating grade suggestion…
+                Generating AI suggestion…
               </div>
             )}
-            {suggestion && !grade && (
+            {suggestion && !saved && (
               <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-blue-700 mb-0.5 flex items-center gap-1">
-                      <Icon name="auto_awesome" size="sm" />
-                      AI suggests Grade {suggestion.grade}
-                      <span className="text-blue-400 font-normal">· {suggestion.confidence} confidence</span>
-                    </p>
-                    <p className="text-xs text-blue-600 leading-relaxed">{suggestion.rationale}</p>
-                  </div>
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <p className="text-xs font-semibold text-blue-700 flex items-center gap-1">
+                    <Icon name="auto_awesome" size="sm" />
+                    AI suggests Grade {suggestion.grade}
+                    <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      suggestion.confidence === 'high'   ? 'bg-green-100 text-green-700' :
+                      suggestion.confidence === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                           'bg-gray-100 text-gray-500'
+                    }`}>{suggestion.confidence}</span>
+                  </p>
                   <button
                     type="button"
-                    onClick={() => { setGrade(suggestion.grade); setSuggestion(null) }}
-                    className="flex-shrink-0 text-xs font-medium text-white bg-blue-700 hover:bg-blue-800 px-2.5 py-1 rounded-lg transition"
+                    onClick={() => setSuggestion(null)}
+                    className="text-blue-400 hover:text-blue-600 flex-shrink-0"
+                    title="Dismiss"
                   >
-                    Accept
+                    <Icon name="close" size="sm" />
                   </button>
                 </div>
+                <p className="text-xs text-blue-600 leading-relaxed mb-1">{suggestion.rationale}</p>
+                {suggestion.feedback && (
+                  <p className="text-xs text-blue-700 italic leading-relaxed border-t border-blue-200 pt-1.5 mt-1.5">
+                    &ldquo;{suggestion.feedback}&rdquo;
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleAcceptAndReturn}
+                  disabled={!grade || isPending}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
+                >
+                  <Icon name="check_circle" size="sm" />
+                  Accept &amp; Return
+                </button>
               </div>
             )}
 
@@ -323,6 +380,23 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
   })
 
   const [autoAdvance, setAutoAdvance] = useState(true)
+
+  // Pre-fetch AI suggestions for first 5 ungraded submissions with staggered 800ms delay
+  const [suggestionsCache, setSuggestionsCache] = useState<Record<string, GradeSuggestion>>({})
+  useEffect(() => {
+    if (!canGrade || !hw.modelAnswer) return
+    const ungraded = hw.submissions.filter(s => !s.grade).slice(0, 5)
+    const timers = ungraded.map((sub, i) =>
+      setTimeout(async () => {
+        try {
+          const r = await suggestHomeworkGrade(sub.id)
+          if (r.grade) setSuggestionsCache(prev => ({ ...prev, [sub.id]: r }))
+        } catch {}
+      }, i * 800),
+    )
+    return () => timers.forEach(t => clearTimeout(t))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleGraded(subId: string, grade: string) {
     setGradesMap(prev => ({ ...prev, [subId]: grade }))
@@ -443,6 +517,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
                 onAutoAdvanceChange={setAutoAdvance}
                 onGraded={handleGraded}
                 canGrade={canGrade}
+                cachedSuggestion={suggestionsCache[selectedSub.id] ?? null}
               />
             )
             : (

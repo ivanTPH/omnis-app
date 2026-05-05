@@ -144,10 +144,10 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                 },
               ]}
               meta={[
+                { label: 'CLASS',      value: c.className ?? '—' },
                 { label: 'CATEGORY',   value: c.category.replace(/_/g, ' ') },
                 { label: 'STATUS',     value: c.status.replace(/_/g, ' ') },
                 { label: 'RAISED BY',  value: c.raiserName },
-                { label: 'DATE',       value: new Date(c.createdAt).toLocaleDateString('en-GB') },
               ]}
               rightContent={
                 <>

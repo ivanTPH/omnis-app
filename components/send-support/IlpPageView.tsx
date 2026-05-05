@@ -720,7 +720,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                   { label: 'CLASS',       value: ilp.className   ?? '—' },
                   { label: 'SEND STATUS', value: ilp.sendCategory },
                   { label: 'TARGETS',     value: `${ilp.targets.length}` },
-                  { label: 'REVIEW',      value: new Date(ilp.reviewDate).toLocaleDateString('en-GB') },
+                  { label: 'REVIEW DATE', value: new Date(ilp.reviewDate).toLocaleDateString('en-GB') },
                 ]}
                 badges={badges}
                 rightContent={

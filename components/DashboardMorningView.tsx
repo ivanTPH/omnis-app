@@ -34,16 +34,11 @@ function StatCard({
   )
 }
 
-export default function DashboardMorningView({ firstName }: { firstName: string }) {
+export default function DashboardMorningView({ firstName, role }: { firstName: string; role: string }) {
   const [data, setData] = useState<DashboardData | null>(null)
 
   useEffect(() => {
-    // Compute local-day boundaries in the browser so the server query matches
-    // the same day the user sees, regardless of server timezone (e.g. Vercel UTC vs UK BST).
-    const now   = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-    const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
-    getDashboardData(start.toISOString(), end.toISOString()).then(setData).catch(console.error)
+    getDashboardData().then(setData).catch(console.error)
   }, [])
 
   const hour     = new Date().getHours()
@@ -180,9 +175,11 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
         <div className="card mt-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-section-header">Open Concerns</p>
-            <Link href="/senco/concerns" className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-              View all →
-            </Link>
+            {['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role) && (
+              <Link href="/senco/concerns" className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                View all →
+              </Link>
+            )}
           </div>
           {data.openConcerns.map(concern => (
             <Link

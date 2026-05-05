@@ -34,12 +34,7 @@ export type DashboardData = {
   openConcerns:      OpenConcern[]
 }
 
-// todayStartISO / todayEndISO: client-computed local-day boundaries as UTC ISO strings.
-// Passing these from the client avoids server-UTC vs browser-local-time divergence (e.g. BST).
-export async function getDashboardData(
-  todayStartISO?: string,
-  todayEndISO?:   string,
-): Promise<DashboardData> {
+export async function getDashboardData(): Promise<DashboardData> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,9 +42,11 @@ export async function getDashboardData(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const schoolId = (session.user as any).schoolId as string
 
+  // Use UTC-day boundaries — matches the calendar page which also uses server-side UTC.
+  // Vercel runs in UTC, and lesson scheduledAt is stored in UTC, so this is correct.
   const now        = new Date()
-  const todayStart = todayStartISO ? new Date(todayStartISO) : (() => { const d = new Date(now); d.setUTCHours(0, 0, 0, 0); return d })()
-  const todayEnd   = todayEndISO   ? new Date(todayEndISO)   : (() => { const d = new Date(now); d.setUTCHours(23, 59, 59, 999); return d })()
+  const todayStart = new Date(now); todayStart.setUTCHours(0, 0, 0, 0)
+  const todayEnd   = new Date(now); todayEnd.setUTCHours(23, 59, 59, 999)
 
   const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns] = await Promise.all([
 

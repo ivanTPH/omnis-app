@@ -10,7 +10,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
-      <DashboardMorningView firstName={firstName} />
+      <DashboardMorningView firstName={firstName} role={role} />
     </AppShell>
   )
 }

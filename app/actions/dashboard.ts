@@ -34,7 +34,12 @@ export type DashboardData = {
   openConcerns:      OpenConcern[]
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+// todayStartISO / todayEndISO: client-computed local-day boundaries as UTC ISO strings.
+// Passing these from the client avoids server-UTC vs browser-local-time divergence (e.g. BST).
+export async function getDashboardData(
+  todayStartISO?: string,
+  todayEndISO?:   string,
+): Promise<DashboardData> {
   const session = await auth()
   if (!session) throw new Error('Unauthenticated')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,8 +48,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const schoolId = (session.user as any).schoolId as string
 
   const now        = new Date()
-  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-  const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+  const todayStart = todayStartISO ? new Date(todayStartISO) : (() => { const d = new Date(now); d.setUTCHours(0, 0, 0, 0); return d })()
+  const todayEnd   = todayEndISO   ? new Date(todayEndISO)   : (() => { const d = new Date(now); d.setUTCHours(23, 59, 59, 999); return d })()
 
   const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns] = await Promise.all([
 

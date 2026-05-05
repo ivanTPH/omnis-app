@@ -38,7 +38,12 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
   const [data, setData] = useState<DashboardData | null>(null)
 
   useEffect(() => {
-    getDashboardData().then(setData).catch(console.error)
+    // Compute local-day boundaries in the browser so the server query matches
+    // the same day the user sees, regardless of server timezone (e.g. Vercel UTC vs UK BST).
+    const now   = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+    getDashboardData(start.toISOString(), end.toISOString()).then(setData).catch(console.error)
   }, [])
 
   const hour     = new Date().getHours()

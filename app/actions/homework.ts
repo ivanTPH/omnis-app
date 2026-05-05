@@ -45,6 +45,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
       questions:   { orderBy: { orderIndex: 'asc' as const } },
       lesson:      { select: { id: true, title: true } },
       submissions: {
+        where:   { schoolId },
         include: { student: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, settings: { select: { profilePictureUrl: true } } } } },
         orderBy: { submittedAt: 'asc' },
       },
@@ -1822,6 +1823,8 @@ Respond with ONLY valid JSON: {"grade": "7", "rationale": "Brief justification m
 
 export type SubmissionReadOnly = {
   content:      string
+  grade:        string | null
+  feedback:     string | null
   submittedAt:  string
   markedAt:     string | null
   instructions: string
@@ -1842,6 +1845,8 @@ export async function getSubmissionReadOnly(
     where:  { id: submissionId, schoolId },
     select: {
       content:     true,
+      grade:       true,
+      feedback:    true,
       submittedAt: true,
       markedAt:    true,
       homework: {
@@ -1856,6 +1861,8 @@ export async function getSubmissionReadOnly(
 
   return {
     content:      sub.content,
+    grade:        sub.grade ?? null,
+    feedback:     sub.feedback ?? null,
     submittedAt:  sub.submittedAt.toISOString(),
     markedAt:     sub.markedAt?.toISOString() ?? null,
     instructions: sub.homework.instructions,

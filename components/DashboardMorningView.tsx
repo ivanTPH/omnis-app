@@ -190,14 +190,11 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
                 <p className="text-data">{concern.studentName}</p>
                 <p className="text-meta truncate">{concern.description}</p>
                 {concern.todayLesson ? (
-                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
-                    <Icon name="schedule" size="sm" />
-                    In class {formatTime(concern.todayLesson.scheduledAt)} · {concern.todayLesson.className}
-                  </span>
+                  <p className="text-meta mt-1">
+                    Next in class: {concern.todayLesson.className} at {formatTime(concern.todayLesson.scheduledAt)}
+                  </p>
                 ) : (
-                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] text-gray-400">
-                    Not in class today
-                  </span>
+                  <p className="text-meta mt-1">Not in class today</p>
                 )}
               </div>
               <Icon name="chevron_right" size="sm" className="text-red-300 group-hover:text-red-500 shrink-0 mt-0.5" />

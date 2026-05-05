@@ -137,19 +137,25 @@ export async function getDashboardData(): Promise<DashboardData> {
     }),
   ])
 
-  // For each concern, find the student's next lesson today (if any)
+  // For each concern, find the student's next lesson today (prefer upcoming, fall back to earliest past)
   const concernsWithLesson = await Promise.all(
     concerns.map(async c => {
-      const lesson = await prisma.lesson.findFirst({
-        where: {
-          schoolId,
-          scheduledAt: { gte: todayStart, lte: todayEnd },
-          class: { enrolments: { some: { userId: c.studentId } } },
-        },
-        select: {
-          scheduledAt: true,
-          class: { select: { name: true } },
-        },
+      const lessonSelect = { scheduledAt: true, class: { select: { name: true } } } as const
+      const baseWhere = {
+        schoolId,
+        scheduledAt: { gte: todayStart, lte: todayEnd },
+        class: { enrolments: { some: { userId: c.studentId } } },
+      }
+      // Prefer next upcoming lesson
+      const upcoming = await prisma.lesson.findFirst({
+        where: { ...baseWhere, scheduledAt: { gte: now, lte: todayEnd } },
+        select: lessonSelect,
+        orderBy: { scheduledAt: 'asc' },
+      })
+      // Fall back to the earliest lesson today if all are in the past
+      const lesson = upcoming ?? await prisma.lesson.findFirst({
+        where: baseWhere,
+        select: lessonSelect,
         orderBy: { scheduledAt: 'asc' },
       })
       return { concern: c, lesson }

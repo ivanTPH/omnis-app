@@ -112,7 +112,7 @@ export default function DashboardMorningView({ firstName }: { firstName: string 
               {data.todaysLessons.map(lesson => (
                 <Link
                   key={lesson.id}
-                  href={`/calendar?lesson=${lesson.id}`}
+                  href={`/lessons/${lesson.id}`}
                   className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 -mx-1 transition-colors"
                 >
                   <div className="w-16 text-center flex-shrink-0">

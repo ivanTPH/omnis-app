@@ -3,8 +3,13 @@
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
-import type { ClassRow } from '@/app/actions/admin'
-import { createClass, updateClass } from '@/app/actions/admin'
+import type { ClassRow, ClassDetailForAdmin } from '@/app/actions/admin'
+import {
+  createClass, updateClass,
+  getClassDetail, assignTeacherToClass, removeTeacherFromClass,
+  addStudentToClass, removeStudentFromClass,
+  getStaffMembers, getStudentList,
+} from '@/app/actions/admin'
 
 const CLASS_SUBJECTS = [
   'English', 'Maths', 'Science', 'History', 'Geography',
@@ -184,7 +189,7 @@ function ClassSlideOver({
             {mode === 'edit' && (
               <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                 <p className="text-[12px] text-blue-700">
-                  <strong>Teacher assignment</strong> is managed from each teacher's profile. Students are enrolled via the class roster on the Classes page.
+                  <strong>Teacher assignment</strong> is managed from each teacher&apos;s profile. Students are enrolled via the class roster on the Classes page.
                 </p>
               </div>
             )}
@@ -209,6 +214,158 @@ function ClassSlideOver({
   )
 }
 
+// ─── Class manage panel ────────────────────────────────────────────────────────
+
+function ClassManagePanel({ classId, onStudentCountChange }: { classId: string; onStudentCountChange: (delta: number) => void }) {
+  const [detail,      setDetail]      = useState<ClassDetailForAdmin | null>(null)
+  const [loading,     setLoading]     = useState(false)
+  const [loaded,      setLoaded]      = useState(false)
+  const [staffSearch, setStaffSearch] = useState('')
+  const [stuSearch,   setStuSearch]   = useState('')
+  const [staffPool,   setStaffPool]   = useState<{ id: string; firstName: string; lastName: string; role: string }[]>([])
+  const [stuPool,     setStuPool]     = useState<{ id: string; firstName: string; lastName: string; yearGroup: number | null }[]>([])
+  const [busy,        setBusy]        = useState<string | null>(null)
+  const [error,       setError]       = useState<string | null>(null)
+
+  async function load() {
+    if (loaded) return
+    setLoading(true)
+    const [d, staff, students] = await Promise.all([
+      getClassDetail(classId),
+      getStaffMembers(),
+      getStudentList(),
+    ])
+    setDetail(d)
+    setStaffPool(staff.map(s => ({ id: s.id, firstName: s.firstName, lastName: s.lastName, role: s.role })))
+    setStuPool(students.map(s => ({ id: s.id, firstName: s.firstName, lastName: s.lastName, yearGroup: s.yearGroup })))
+    setLoaded(true)
+    setLoading(false)
+  }
+
+  async function handleAssignTeacher(userId: string) {
+    setBusy(userId); setError(null)
+    const r = await assignTeacherToClass(classId, userId)
+    if (r.error) { setError(r.error); setBusy(null); return }
+    const t = staffPool.find(s => s.id === userId)!
+    setDetail(d => d ? { ...d, teachers: [...d.teachers, t] } : d)
+    setBusy(null)
+  }
+
+  async function handleRemoveTeacher(userId: string) {
+    setBusy(userId); setError(null)
+    const r = await removeTeacherFromClass(classId, userId)
+    if (r.error) { setError(r.error); setBusy(null); return }
+    setDetail(d => d ? { ...d, teachers: d.teachers.filter(t => t.id !== userId) } : d)
+    setBusy(null)
+  }
+
+  async function handleAddStudent(studentId: string) {
+    setBusy(studentId); setError(null)
+    const r = await addStudentToClass(classId, studentId)
+    if (r.error) { setError(r.error); setBusy(null); return }
+    const s = stuPool.find(x => x.id === studentId)!
+    setDetail(d => d ? { ...d, students: [...d.students, s] } : d)
+    onStudentCountChange(1)
+    setBusy(null)
+  }
+
+  async function handleRemoveStudent(studentId: string) {
+    setBusy(studentId); setError(null)
+    const r = await removeStudentFromClass(classId, studentId)
+    if (r.error) { setError(r.error); setBusy(null); return }
+    setDetail(d => d ? { ...d, students: d.students.filter(s => s.id !== studentId) } : d)
+    onStudentCountChange(-1)
+    setBusy(null)
+  }
+
+  // Auto-load on mount
+  if (!loaded && !loading) { void load() }
+
+  if (loading) return (
+    <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-2 text-[12px] text-gray-400">
+      <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+    </div>
+  )
+  if (!detail) return null
+
+  const enrolledIds     = new Set(detail.students.map(s => s.id))
+  const teacherIds      = new Set(detail.teachers.map(t => t.id))
+  const availableStaff  = staffPool.filter(s => !teacherIds.has(s.id) &&
+    (!staffSearch || `${s.firstName} ${s.lastName}`.toLowerCase().includes(staffSearch.toLowerCase())))
+  const availableStudents = stuPool.filter(s => !enrolledIds.has(s.id) &&
+    (!stuSearch || `${s.firstName} ${s.lastName}`.toLowerCase().includes(stuSearch.toLowerCase())))
+
+  return (
+    <tr>
+      <td colSpan={7} className="border-t border-gray-100 bg-gray-50/50 px-5 py-4">
+        {error && <p className="text-[12px] text-red-600 mb-3">{error}</p>}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Teachers */}
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Teachers ({detail.teachers.length})</p>
+            <div className="space-y-1 mb-3">
+              {detail.teachers.map(t => (
+                <div key={t.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+                  <span className="text-[13px] text-gray-800">{t.firstName} {t.lastName}</span>
+                  <button onClick={() => handleRemoveTeacher(t.id)} disabled={busy === t.id}
+                    className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40 transition">
+                    {busy === t.id ? '…' : 'Remove'}
+                  </button>
+                </div>
+              ))}
+              {detail.teachers.length === 0 && <p className="text-[12px] text-gray-400 italic">No teachers assigned</p>}
+            </div>
+            <input value={staffSearch} onChange={e => setStaffSearch(e.target.value)}
+              placeholder="Search staff to add…"
+              className="w-full px-2.5 py-1.5 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 mb-1.5" />
+            <div className="max-h-36 overflow-y-auto space-y-1">
+              {availableStaff.slice(0, 8).map(s => (
+                <button key={s.id} onClick={() => handleAssignTeacher(s.id)} disabled={busy === s.id}
+                  className="w-full text-left flex items-center justify-between px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 text-[12px] transition">
+                  <span>{s.firstName} {s.lastName} <span className="text-gray-400">· {s.role.replace(/_/g,' ')}</span></span>
+                  <Icon name="add" size="sm" className="text-blue-500" />
+                </button>
+              ))}
+              {availableStaff.length === 0 && staffSearch && <p className="text-[11px] text-gray-400 italic px-1">No matches</p>}
+            </div>
+          </div>
+
+          {/* Students */}
+          <div>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Students ({detail.students.length})</p>
+            <div className="space-y-1 mb-3 max-h-36 overflow-y-auto">
+              {detail.students.map(s => (
+                <div key={s.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+                  <span className="text-[13px] text-gray-800">{s.firstName} {s.lastName}{s.yearGroup ? ` · Y${s.yearGroup}` : ''}</span>
+                  <button onClick={() => handleRemoveStudent(s.id)} disabled={busy === s.id}
+                    className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40 transition">
+                    {busy === s.id ? '…' : 'Remove'}
+                  </button>
+                </div>
+              ))}
+              {detail.students.length === 0 && <p className="text-[12px] text-gray-400 italic">No students enrolled</p>}
+            </div>
+            <input value={stuSearch} onChange={e => setStuSearch(e.target.value)}
+              placeholder="Search students to add…"
+              className="w-full px-2.5 py-1.5 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 mb-1.5" />
+            <div className="max-h-36 overflow-y-auto space-y-1">
+              {availableStudents.slice(0, 8).map(s => (
+                <button key={s.id} onClick={() => handleAddStudent(s.id)} disabled={busy === s.id}
+                  className="w-full text-left flex items-center justify-between px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 text-[12px] transition">
+                  <span>{s.firstName} {s.lastName}{s.yearGroup ? ` · Y${s.yearGroup}` : ''}</span>
+                  <Icon name="add" size="sm" className="text-blue-500" />
+                </button>
+              ))}
+              {availableStudents.length === 0 && stuSearch && <p className="text-[11px] text-gray-400 italic px-1">No matches</p>}
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminClassTable({ classes: initialClasses }: { classes: ClassRow[] }) {
@@ -218,6 +375,7 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
   const [addOpen, setAddOpen]         = useState(false)
   const [editTarget, setEditTarget]   = useState<ClassRow | null>(null)
   const [toast, setToast]             = useState<Toast | null>(null)
+  const [expandedId, setExpandedId]   = useState<string | null>(null)
 
   function showToast(message: string, type: Toast['type'] = 'success') {
     setToast({ message, type })
@@ -299,30 +457,47 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(c => (
-                <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
-                  <td className="px-5 py-3.5 font-semibold text-gray-900">{c.name}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${subjectColour(c.subject)}`}>
-                      {c.subject}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-gray-500">Year {c.yearGroup}</td>
-                  <td className="px-5 py-3.5 text-gray-600">
-                    {c.teacherNames.length > 0 ? c.teacherNames.join(', ') : <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="px-5 py-3.5 font-medium text-gray-900">{c.studentCount}</td>
-                  <td className="px-5 py-3.5 text-gray-400">{c.department}</td>
-                  <td className="px-4 py-3.5">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setEditTarget(c)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition" title="Edit class">
-                        <Icon name="edit" size="sm" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtered.flatMap(c => {
+                const isExpanded = expandedId === c.id
+                return [
+                  <tr key={c.id} className="hover:bg-gray-50 transition-colors group">
+                    <td className="px-5 py-3.5 font-semibold text-gray-900">{c.name}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${subjectColour(c.subject)}`}>
+                        {c.subject}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-500">Year {c.yearGroup}</td>
+                    <td className="px-5 py-3.5 text-gray-600">
+                      {c.teacherNames.length > 0 ? c.teacherNames.join(', ') : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-5 py-3.5 font-medium text-gray-900">{c.studentCount}</td>
+                    <td className="px-5 py-3.5 text-gray-400">{c.department}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setEditTarget(c)}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition" title="Edit class">
+                          <Icon name="edit" size="sm" />
+                        </button>
+                        <button
+                          onClick={() => setExpandedId(isExpanded ? null : c.id)}
+                          className={`p-1.5 rounded-lg transition text-gray-400 ${isExpanded ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100 hover:text-gray-600'}`}
+                          title="Manage teachers & students"
+                        >
+                          <Icon name={isExpanded ? 'expand_less' : 'manage_accounts'} size="sm" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>,
+                  isExpanded && (
+                    <ClassManagePanel
+                      key={`manage-${c.id}`}
+                      classId={c.id}
+                      onStudentCountChange={delta => setClassList(list => list.map(x => x.id === c.id ? { ...x, studentCount: x.studentCount + delta } : x))}
+                    />
+                  ),
+                ].filter(Boolean)
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-gray-400 text-[13px]">No classes found</td>

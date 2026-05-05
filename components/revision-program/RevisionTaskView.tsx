@@ -71,38 +71,77 @@ function FreeTextTask({ value, onChange }: { value: string; onChange: (v: string
 
 function QuizTask({ content, value, onChange }: { content: any; value: Record<string, string>; onChange: (v: Record<string, string>) => void }) {
   const questions = content?.questions ?? []
+  const [guidanceOpen, setGuidanceOpen] = useState<Record<string, boolean>>({})
+
   return (
     <div className="space-y-4">
-      {questions.map((q: any, i: number) => (
-        <div key={q.id ?? i} className="border border-gray-200 rounded-xl px-4 py-4">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
-            {q.marks != null && (
-              <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
-                {q.marks} mark{q.marks !== 1 ? 's' : ''}
-              </span>
+      {questions.map((q: any, i: number) => {
+        const key = q.id ?? i
+        const isOpen = guidanceOpen[key]
+        return (
+          <div key={key} className="border border-gray-200 rounded-xl px-4 py-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
+              {q.marks != null && (
+                <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                  {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {q.options ? (
+              <div className="space-y-2">
+                {q.options.map((opt: any) => (
+                  <label key={opt.id} className="flex items-start gap-2 cursor-pointer">
+                    <input type="radio" name={`q${key}`} value={opt.id} checked={value[key] === opt.id} onChange={() => onChange({ ...value, [key]: opt.id })} className="mt-0.5" />
+                    <span className="text-sm text-gray-700">{opt.text}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Writing frame — shown before student starts typing */}
+                {q.writingFrame && !value[key] && (
+                  <div className="mb-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide mb-0.5">Writing frame</p>
+                    <p className="text-xs text-indigo-700 italic">{q.writingFrame}</p>
+                  </div>
+                )}
+                <textarea
+                  rows={3}
+                  value={value[key] ?? ''}
+                  onChange={e => onChange({ ...value, [key]: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder={q.guidance ?? 'Write your answer…'}
+                />
+                {/* Guidance prompts — expandable while writing */}
+                {q.guidancePrompts && q.guidancePrompts.length > 0 && (
+                  <div className="mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setGuidanceOpen(prev => ({ ...prev, [key]: !isOpen }))}
+                      className="flex items-center gap-1.5 text-[11px] text-blue-600 hover:text-blue-800"
+                    >
+                      <Icon name="lightbulb" size="sm" />
+                      {isOpen ? 'Hide guidance' : 'Show guidance prompts'}
+                    </button>
+                    {isOpen && (
+                      <ul className="mt-1.5 space-y-1">
+                        {q.guidancePrompts.map((p: string, pi: number) => (
+                          <li key={pi} className="flex items-start gap-1.5 text-xs text-blue-700">
+                            <span className="shrink-0 text-blue-400 mt-0.5">→</span>
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
-          {q.options ? (
-            <div className="space-y-2">
-              {q.options.map((opt: any) => (
-                <label key={opt.id} className="flex items-start gap-2 cursor-pointer">
-                  <input type="radio" name={`q${q.id ?? i}`} value={opt.id} checked={value[q.id ?? i] === opt.id} onChange={() => onChange({ ...value, [q.id ?? i]: opt.id })} className="mt-0.5" />
-                  <span className="text-sm text-gray-700">{opt.text}</span>
-                </label>
-              ))}
-            </div>
-          ) : (
-            <textarea
-              rows={3}
-              value={value[q.id ?? i] ?? ''}
-              onChange={e => onChange({ ...value, [q.id ?? i]: e.target.value })}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder={q.guidance ?? 'Write your answer…'}
-            />
-          )}
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -182,6 +221,16 @@ function MarkSchemeReview({ task, response, onContinue }: {
                 <div>
                   <p className="text-[10px] font-semibold text-green-700 uppercase mb-1">Mark scheme</p>
                   <p className="text-sm text-green-800 bg-green-50 rounded-lg px-3 py-2">{q.markScheme}</p>
+                  {q.modelAnswerBullets && q.modelAnswerBullets.length > 0 && (
+                    <ul className="mt-1.5 space-y-0.5 pl-1">
+                      {q.modelAnswerBullets.map((b: string, bi: number) => (
+                        <li key={bi} className="flex items-start gap-1.5 text-[11px] text-green-700">
+                          <span className="shrink-0 text-green-400 mt-0.5">•</span>
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 {/* Self-mark selector */}
                 <div className="flex items-center gap-3">

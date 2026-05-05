@@ -528,6 +528,133 @@ export async function updateClass(
   return { success: true }
 }
 
+// ─── Class membership management ──────────────────────────────────────────────
+
+export type ClassDetailForAdmin = {
+  id:          string
+  name:        string
+  subject:     string
+  yearGroup:   number
+  department:  string
+  teachers:    { id: string; firstName: string; lastName: string; role: string }[]
+  students:    { id: string; firstName: string; lastName: string; yearGroup: number | null }[]
+}
+
+export async function getClassDetail(classId: string): Promise<ClassDetailForAdmin | null> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  const cls = await prisma.schoolClass.findFirst({
+    where:   { id: classId, schoolId },
+    include: {
+      teachers:   { include: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+      enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true, yearGroup: true } } } },
+    },
+  })
+  if (!cls) return null
+  return {
+    id:         cls.id,
+    name:       cls.name,
+    subject:    cls.subject,
+    yearGroup:  cls.yearGroup,
+    department: cls.department,
+    teachers:   cls.teachers.map(t => ({ id: t.user.id, firstName: t.user.firstName, lastName: t.user.lastName, role: t.user.role })),
+    students:   cls.enrolments.map(e => ({ id: e.user.id, firstName: e.user.firstName, lastName: e.user.lastName, yearGroup: e.user.yearGroup })),
+  }
+}
+
+export async function assignTeacherToClass(classId: string, userId: string): Promise<{ error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const [cls, teacher] = await Promise.all([
+    prisma.schoolClass.findFirst({ where: { id: classId, schoolId } }),
+    prisma.user.findFirst({ where: { id: userId, schoolId } }),
+  ])
+  if (!cls)     return { error: 'Class not found' }
+  if (!teacher) return { error: 'Staff member not found' }
+
+  await prisma.classTeacher.upsert({
+    where:  { classId_userId: { classId, userId } },
+    create: { classId, userId },
+    update: {},
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'CLASS_TEACHER_ASSIGNED',
+    targetType: 'SchoolClass', targetId: classId,
+    metadata: { teacherId: userId, teacherName: `${teacher.firstName} ${teacher.lastName}` },
+  })
+  revalidatePath('/admin/classes')
+  return {}
+}
+
+export async function removeTeacherFromClass(classId: string, userId: string): Promise<{ error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const cls = await prisma.schoolClass.findFirst({ where: { id: classId, schoolId } })
+  if (!cls) return { error: 'Class not found' }
+
+  await prisma.classTeacher.deleteMany({ where: { classId, userId } })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'CLASS_TEACHER_REMOVED',
+    targetType: 'SchoolClass', targetId: classId,
+    metadata: { teacherId: userId },
+  })
+  revalidatePath('/admin/classes')
+  return {}
+}
+
+export async function addStudentToClass(classId: string, studentId: string): Promise<{ error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const [cls, student] = await Promise.all([
+    prisma.schoolClass.findFirst({ where: { id: classId, schoolId } }),
+    prisma.user.findFirst({ where: { id: studentId, schoolId, role: 'STUDENT' } }),
+  ])
+  if (!cls)     return { error: 'Class not found' }
+  if (!student) return { error: 'Student not found' }
+
+  await prisma.enrolment.upsert({
+    where:  { classId_userId: { classId, userId: studentId } },
+    create: { classId, userId: studentId },
+    update: {},
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'STUDENT_ENROLLED',
+    targetType: 'SchoolClass', targetId: classId,
+    metadata: { studentId, studentName: `${student.firstName} ${student.lastName}` },
+  })
+  revalidatePath('/admin/classes')
+  return {}
+}
+
+export async function removeStudentFromClass(classId: string, studentId: string): Promise<{ error?: string }> {
+  const user = await requireAdminOrSlt()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
+  const schoolId = user.schoolId as string
+
+  const cls = await prisma.schoolClass.findFirst({ where: { id: classId, schoolId } })
+  if (!cls) return { error: 'Class not found' }
+
+  await prisma.enrolment.deleteMany({ where: { classId, userId: studentId } })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'STUDENT_UNENROLLED',
+    targetType: 'SchoolClass', targetId: classId,
+    metadata: { studentId },
+  })
+  revalidatePath('/admin/classes')
+  return {}
+}
+
 // ─── Timetable ────────────────────────────────────────────────────────────────
 
 export type TimetableRow = {

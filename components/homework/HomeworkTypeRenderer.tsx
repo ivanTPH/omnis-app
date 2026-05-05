@@ -113,6 +113,160 @@ export default function HomeworkTypeRenderer({
     case 'multiple_choice':
     case 'quiz': {
       const questions = content?.questions ?? []
+
+      // ── Multi-question stepper (submission mode) ──────────────────────────
+      if (questions.length > 1 && !disabled) {
+        const q     = questions[currentQ]
+        const qId   = q.id ?? String(currentQ)
+        const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
+        const isLast = currentQ === questions.length - 1
+
+        return (
+          <div>
+            {/* Progress indicator */}
+            <div className="flex items-center gap-1 mb-6 flex-wrap">
+              {questions.map((qItem, i) => {
+                const iId   = qItem.id ?? String(i)
+                const isDone = !!answers[iId]?.trim() && i < currentQ
+                return (
+                  <div key={i} className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (i < currentQ) { setCurrentQ(i); setHintOpen(false); setSkipWarning(false) }
+                      }}
+                      className={`w-8 h-8 rounded-full text-sm font-semibold transition-all flex items-center justify-center ${
+                        i === currentQ
+                          ? 'bg-blue-700 text-white ring-2 ring-blue-700 ring-offset-2'
+                          : i < currentQ
+                            ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200'
+                            : 'bg-gray-100 text-gray-400 cursor-default'
+                      }`}
+                    >
+                      {isDone ? <Icon name="check" size="sm" /> : i + 1}
+                    </button>
+                    {i < questions.length - 1 && (
+                      <div className={`h-0.5 w-6 mx-1 transition-colors ${i < currentQ ? 'bg-blue-300' : 'bg-gray-200'}`} />
+                    )}
+                  </div>
+                )
+              })}
+              <span className="text-[11px] text-gray-400 ml-2">
+                Question {currentQ + 1} of {questions.length}
+              </span>
+            </div>
+
+            {/* Question card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Question {currentQ + 1}
+                </p>
+                {q.marks != null && (
+                  <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-lg shrink-0">
+                    [{q.marks} mark{q.marks !== 1 ? 's' : ''}]
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[14px] font-medium text-gray-900 leading-relaxed mb-4">
+                {questionText}
+              </p>
+
+              {q.hint && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                  <button type="button" onClick={() => setHintOpen(v => !v)} className="flex items-center gap-2 w-full text-left">
+                    <Icon name="lightbulb" size="sm" className="text-amber-600 shrink-0" />
+                    <span className="text-xs font-medium text-amber-700">{hintOpen ? 'Hide hint' : 'Show hint'}</span>
+                  </button>
+                  {hintOpen && <p className="text-sm text-amber-800 mt-2 leading-relaxed">{q.hint}</p>}
+                </div>
+              )}
+
+              {isSen && q.scaffolding_hint && (
+                <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                  <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
+                  <p className="text-xs text-blue-700">{q.scaffolding_hint}</p>
+                </div>
+              )}
+
+              {/* MCQ options */}
+              {q.options ? (
+                <div className="space-y-2">
+                  {q.options.map((opt, j) => (
+                    <label key={j} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      answers[qId] === opt ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                    }`}>
+                      <input
+                        type="radio"
+                        name={`q-${qId}`}
+                        value={opt}
+                        checked={answers[qId] === opt}
+                        onChange={() => updateAnswer(qId, opt)}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <span className="text-sm text-gray-700">{opt}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <input
+                  type="text"
+                  value={answers[qId] ?? ''}
+                  onChange={e => updateAnswer(qId, e.target.value)}
+                  placeholder="Your answer…"
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                />
+              )}
+            </div>
+
+            {/* Navigation */}
+            <div className="flex items-center justify-between">
+              {currentQ > 0 ? (
+                <button type="button" onClick={goToPrev} className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm">
+                  <Icon name="arrow_back" size="sm" /> Previous
+                </button>
+              ) : <div />}
+
+              {!isLast ? (
+                <button
+                  type="button"
+                  onClick={() => goToNext(questions)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition"
+                >
+                  Next question <Icon name="arrow_forward" size="sm" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onSubmitRequest}
+                  disabled={!onSubmitRequest || submitting}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {submitting
+                    ? <><Icon name="refresh" size="sm" className="animate-spin" /> Submitting…</>
+                    : <><Icon name="send" size="sm" /> Submit homework</>
+                  }
+                </button>
+              )}
+            </div>
+
+            {skipWarning && (
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                <Icon name="warning" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm text-amber-800">You haven&apos;t selected an answer yet.</p>
+                  <button type="button" onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }} className="text-xs text-amber-700 underline mt-1">
+                    Skip anyway
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      // ── All-questions view (single question or submitted/disabled state) ───
       return (
         <div className="space-y-6">
           {questions.map((q, i) => {

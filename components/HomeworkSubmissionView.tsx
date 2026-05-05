@@ -159,8 +159,10 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {/* Answer section */}
       {(() => {
         const sc = hw.structuredContent as { questions?: unknown[] } | undefined
-        const multiQShortAnswer =
-          hw.homeworkVariantType === 'short_answer' &&
+        const multiQStepper =
+          (hw.homeworkVariantType === 'short_answer' ||
+           hw.homeworkVariantType === 'quiz' ||
+           hw.homeworkVariantType === 'multiple_choice') &&
           (sc?.questions?.length ?? 0) > 1
 
         return (
@@ -184,7 +186,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                   onChange={setContent}
                   disabled={textareaDisabled}
                   sendStatus={hw.sendStatus ?? 'NONE'}
-                  onSubmitRequest={multiQShortAnswer && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
+                  onSubmitRequest={multiQStepper && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
                   submitting={isPending}
                 />
               ) : (
@@ -199,7 +201,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             </section>
 
             {/* Submit / resubmit — hidden when stepper handles submit */}
-            {(!sub || canResubmit) && !submitted && !multiQShortAnswer && (
+            {(!sub || canResubmit) && !submitted && !multiQStepper && (
               <div className="flex items-center justify-between">
                 {canResubmit && (
                   <p className="text-[12px] text-gray-400 flex items-center gap-1">

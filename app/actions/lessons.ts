@@ -772,13 +772,15 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
     const { schoolId } = session.user as any
 
     const enrolments = await prisma.enrolment.findMany({
-      where:   { classId, class: { schoolId } },
+      // schoolId scoped via class; isActive filters out deactivated/deleted students
+      where:   { classId, class: { schoolId }, user: { isActive: true } },
       include: {
         user: {
           include: {
             sendStatus: { select: { activeStatus: true, needArea: true } },
+            // IndividualLearningPlan.status is a plain String with lowercase values ('active'/'under_review')
             studentIlps: {
-              where:  { schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+              where:  { schoolId, status: { in: ['active', 'under_review'] } },
               take:   1,
               select: { id: true },
             },

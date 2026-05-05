@@ -275,8 +275,8 @@ export default function ClassRosterTab({
     return (
       <EmptyState
         icon="groups"
-        title="No students found"
-        description="Try clearing your search, or contact your administrator if this looks wrong"
+        title="No students enrolled"
+        description="No active students are enrolled in this class. Contact your administrator if this looks wrong."
         size="sm"
       />
     )

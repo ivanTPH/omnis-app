@@ -1717,7 +1717,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   <div className="p-7">
                     <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
                       <Icon name="people" size="lg" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+                      <p className="text-[12px] text-gray-400">
+                        {lesson?.classId
+                          ? 'Class data could not be loaded for this lesson.'
+                          : 'No class assigned to this lesson.'}
+                      </p>
                     </div>
                   </div>
                 )

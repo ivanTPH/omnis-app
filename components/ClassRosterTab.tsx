@@ -103,6 +103,7 @@ export default function ClassRosterTab({
   const [userRole,       setUserRole]       = useState<string>('TEACHER')
   const [kPlanMap,       setKPlanMap]       = useState<Record<string, KPlanSummary>>({})
   const [generatingIlp,  setGeneratingIlp]  = useState<Record<string, boolean>>({})
+  const [ilpError,       setIlpError]       = useState<string | null>(null)
   const [kPlanModal,     setKPlanModal]     = useState<{ studentId: string; studentName: string; passport: LearnerPassportRow } | null>(null)
   const [kPlanLoading,   setKPlanLoading]   = useState<string | null>(null)
   const [kPlanFullCache, setKPlanFullCache] = useState<Record<string, LearnerPassportRow | 'loading'>>({})
@@ -373,6 +374,15 @@ export default function ClassRosterTab({
           Students with SEND status but no active ILP. Click <strong>Generate ILP</strong> to create one.
         </div>
       )}
+      {ilpError && (
+        <div className="mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-[12px] text-red-700">
+          <Icon name="error" size="sm" className="text-red-500 shrink-0" />
+          {ilpError}
+          <button onClick={() => setIlpError(null)} className="ml-auto text-red-400 hover:text-red-600">
+            <Icon name="close" size="sm" />
+          </button>
+        </div>
+      )}
       {sendFilter === 'NO_PASSPORT' && (
         <div className="mb-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-xl flex items-center gap-2 text-[12px] text-violet-800">
           <Icon name="info" size="sm" className="text-violet-500 shrink-0" />
@@ -561,13 +571,21 @@ export default function ClassRosterTab({
                         disabled={!!generatingIlp[row.id]}
                         onClick={async e => {
                           e.stopPropagation()
+                          setIlpError(null)
                           setGeneratingIlp(g => ({ ...g, [row.id]: true }))
                           try {
-                            await generateILPForStudent(row.id)
-                            const updated = await getClassRoster(classId)
-                            setRows(updated)
-                          } catch {}
-                          finally { setGeneratingIlp(g => ({ ...g, [row.id]: false })) }
+                            const result = await generateILPForStudent(row.id)
+                            if (!result.success) {
+                              setIlpError(result.error ?? 'ILP generation failed — please try again. If this persists, contact your administrator.')
+                            } else {
+                              const updated = await getClassRoster(classId)
+                              setRows(updated)
+                            }
+                          } catch {
+                            setIlpError('ILP generation failed — please try again. If this persists, contact your administrator.')
+                          } finally {
+                            setGeneratingIlp(g => ({ ...g, [row.id]: false }))
+                          }
                         }}
                         className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors shrink-0 disabled:opacity-50"
                       >

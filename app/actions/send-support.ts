@@ -1631,12 +1631,18 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
 
   try {
     const client = new Anthropic({ apiKey })
-    const msg = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 1200,
-      system:     'You are a UK SENCO creating Individual Learning Plans. Return ONLY valid JSON, no markdown.',
-      messages: [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory) }],
-    })
+    let msg
+    try {
+      msg = await client.messages.create({
+        model:      'claude-sonnet-4-6',
+        max_tokens: 1200,
+        system:     'You are a UK SENCO creating Individual Learning Plans. Return ONLY valid JSON, no markdown.',
+        messages: [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory) }],
+      })
+    } catch (apiErr) {
+      console.error('[generateILPForStudent] Anthropic API error:', apiErr)
+      return { success: false, error: 'ILP generation failed — please try again. If this persists, contact your administrator.' }
+    }
 
     const raw   = (msg.content[0] as { type: string; text: string }).text.trim()
     const match = raw.match(/\{[\s\S]*\}/)
@@ -1677,8 +1683,8 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
     revalidatePath('/senco/ilp')
     return { success: true }
   } catch (err) {
-    console.error('[generateILPForStudent]', err)
-    return { success: false, error: 'Generation failed — please try again. If the problem persists, check your connection.' }
+    console.error('[generateILPForStudent] Outer error:', err)
+    return { success: false, error: 'ILP generation failed — please try again. If this persists, contact your administrator.' }
   }
 }
 
@@ -2945,6 +2951,7 @@ export async function generateIlpGoalsForStudent(
     return { ok: false, error: 'Insufficient permissions' }
   }
 
+  try {
   // ── 1. Fetch student data ───────────────────────────────────────────────────
   const [student, sendStatus, baselines, learningProfile, recentSubmissions] = await Promise.all([
     prisma.user.findUnique({
@@ -3080,7 +3087,7 @@ Return ONLY valid JSON — no markdown, no explanation:
 ]`
 
     const msg = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      'claude-sonnet-4-6',
       max_tokens: 600,
       messages:   [{ role: 'user', content: prompt }],
     })
@@ -3096,8 +3103,13 @@ Return ONLY valid JSON — no markdown, no explanation:
 
     return { ok: true, goals: goals.slice(0, 3), studentName, sendCategory, subject }
   } catch (err) {
-    console.error('[generateIlpGoalsForStudent]', err)
-    return { ok: false, error: 'Generation failed — please try again. If the problem persists, check your connection.' }
+    console.error('[generateIlpGoalsForStudent] inner:', err)
+    return { ok: false, error: 'ILP generation failed — please try again. If this persists, contact your administrator.' }
+  }
+
+  } catch (err) {
+    console.error('[generateIlpGoalsForStudent] outer (data fetch):', err)
+    return { ok: false, error: 'ILP generation failed — please try again. If this persists, contact your administrator.' }
   }
 }
 

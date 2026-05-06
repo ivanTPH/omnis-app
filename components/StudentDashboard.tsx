@@ -169,7 +169,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
               return (
                 <a
                   key={hw.homeworkId}
-                  href={`/homework/${hw.homeworkId}`}
+                  href={`/student/homework/${hw.homeworkId}`}
                   className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_80px_70px_70px] items-center gap-x-3 px-5 py-3 text-sm hover:bg-blue-50 transition-colors group"
                 >
                   {/* Title + subject badge */}

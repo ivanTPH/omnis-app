@@ -440,14 +440,47 @@ async function main() {
   // Macbeth homework linked to the Macbeth lesson
   const macbethHW = await prisma.homework.upsert({
     where: { id: 'demo-hw-macbeth-1' },
-    update: {},
+    update: {
+      questionsJson: {
+        questions: [
+          {
+            id: '1',
+            q: 'What does Macbeth mean when he says "Stars, hide your fires; / Let not light see my black and deep desires"? What does this reveal about his ambition?',
+            question: 'What does Macbeth mean when he says "Stars, hide your fires; / Let not light see my black and deep desires"? What does this reveal about his ambition?',
+            marks: 3,
+            hint: 'Think about what he is hiding — and why he wants darkness.',
+          },
+          {
+            id: '2',
+            q: 'How does Lady Macbeth influence Macbeth\'s ambition in Act 1, Scene 7? Use a specific quotation.',
+            question: 'How does Lady Macbeth influence Macbeth\'s ambition in Act 1, Scene 7? Use a specific quotation.',
+            marks: 3,
+            hint: 'She questions his masculinity. Find the quote about "milk of human kindness".',
+          },
+          {
+            id: '3',
+            q: 'Why would a Jacobean audience have found Macbeth\'s ambition to be king particularly shocking?',
+            question: 'Why would a Jacobean audience have found Macbeth\'s ambition to be king particularly shocking?',
+            marks: 2,
+            hint: 'Think about the Divine Right of Kings and what regicide meant in 1606.',
+          },
+          {
+            id: '4',
+            q: 'Write a topic sentence for a PEE paragraph on how Shakespeare presents ambition as destructive in Act 1.',
+            question: 'Write a topic sentence for a PEE paragraph on how Shakespeare presents ambition as destructive in Act 1.',
+            marks: 3,
+            hint: 'A strong topic sentence links the technique, quotation idea, and effect on the reader in one sentence.',
+          },
+        ],
+      },
+    },
     create: {
       id:            'demo-hw-macbeth-1',
       schoolId:      school.id,
       classId:       classes['10E/En2'].id,
       lessonId:      lessonIds['demo-lesson-10E-d0-h11'],
       title:         'Macbeth — Ambition Essay Plan',
-      instructions:  'Write a full PEE paragraph responding to: "How does Shakespeare present ambition as a destructive force in Act 1?" Use at least two pieces of evidence from the text. Aim for 200–250 words.',
+      instructions:  'Answer each question using full sentences. Where possible, embed a quotation to support your point.',
       modelAnswer:   'A model response would open with a clear topic sentence linking ambition to destruction, then embed a key quotation (e.g. "Stars, hide your fires") with analysis of Shakespeare\'s language choices, and contextualise with Jacobean attitudes to regicide.',
       gradingBands:  { '0-3': 'Limited evidence; no analysis', '4-6': 'Some analysis; limited language terminology', '7-9': 'Sustained analysis; confident use of subject terminology; context integrated' },
       dueAt:         daysFromNow(5),
@@ -456,6 +489,38 @@ async function main() {
       releasePolicy: ReleasePolicy.TEACHER_EXTENDED,
       maxAttempts:   2,
       createdBy:     teacherId,
+      questionsJson: {
+        questions: [
+          {
+            id: '1',
+            q: 'What does Macbeth mean when he says "Stars, hide your fires; / Let not light see my black and deep desires"? What does this reveal about his ambition?',
+            question: 'What does Macbeth mean when he says "Stars, hide your fires; / Let not light see my black and deep desires"? What does this reveal about his ambition?',
+            marks: 3,
+            hint: 'Think about what he is hiding — and why he wants darkness.',
+          },
+          {
+            id: '2',
+            q: 'How does Lady Macbeth influence Macbeth\'s ambition in Act 1, Scene 7? Use a specific quotation.',
+            question: 'How does Lady Macbeth influence Macbeth\'s ambition in Act 1, Scene 7? Use a specific quotation.',
+            marks: 3,
+            hint: 'She questions his masculinity. Find the quote about "milk of human kindness".',
+          },
+          {
+            id: '3',
+            q: 'Why would a Jacobean audience have found Macbeth\'s ambition to be king particularly shocking?',
+            question: 'Why would a Jacobean audience have found Macbeth\'s ambition to be king particularly shocking?',
+            marks: 2,
+            hint: 'Think about the Divine Right of Kings and what regicide meant in 1606.',
+          },
+          {
+            id: '4',
+            q: 'Write a topic sentence for a PEE paragraph on how Shakespeare presents ambition as destructive in Act 1.',
+            question: 'Write a topic sentence for a PEE paragraph on how Shakespeare presents ambition as destructive in Act 1.',
+            marks: 3,
+            hint: 'A strong topic sentence links the technique, quotation idea, and effect on the reader in one sentence.',
+          },
+        ],
+      },
     },
   })
 
@@ -484,28 +549,51 @@ async function main() {
   // AIC homework — scaffolded/adapted version (SEND support demo)
   await prisma.homework.upsert({
     where: { id: 'demo-hw-adapted-1' },
-    update: {},
+    update: {
+      questionsJson: {
+        questions: [
+          {
+            id: '1',
+            q: 'When was "An Inspector Calls" written and when is it set? Why is this gap important?',
+            question: 'When was "An Inspector Calls" written and when is it set? Why is this gap important?',
+            marks: 2,
+            hint: 'Priestley wrote the play at the end of one war — think about what had just happened in Britain.',
+            scaffolding_hint: 'Start: "Priestley wrote the play in ___ but set it in ___, which means the audience can look back and see..."',
+          },
+          {
+            id: '2',
+            q: 'What was happening in Britain in 1912? Name one specific historical event.',
+            question: 'What was happening in Britain in 1912? Name one specific historical event.',
+            marks: 2,
+            hint: 'Think about class divides and a famous ship that sank that year.',
+            scaffolding_hint: 'Start: "In 1912, the _______ sank. This shows the class divide because..."',
+          },
+          {
+            id: '3',
+            q: 'What changed in Britain in 1945, and why would this have affected how audiences received the play?',
+            question: 'What changed in Britain in 1945, and why would this have affected how audiences received the play?',
+            marks: 2,
+            hint: 'A landmark general election happened that year — who won and what did they promise?',
+            scaffolding_hint: 'Start: "In 1945, Britain elected a _______ government, which meant people were ready to think about..."',
+          },
+          {
+            id: '4',
+            q: 'What is Priestley\'s key message in "An Inspector Calls"? Use the phrase "collective responsibility" in your answer.',
+            question: 'What is Priestley\'s key message in "An Inspector Calls"? Use the phrase "collective responsibility" in your answer.',
+            marks: 3,
+            hint: 'The Inspector\'s final speech is your best clue.',
+            scaffolding_hint: 'Start: "Priestley uses the Inspector to argue that society has a collective responsibility to..."',
+          },
+        ],
+      },
+    },
     create: {
       id:            'demo-hw-adapted-1',
       schoolId:      school.id,
       classId:       classes['9E/En1'].id,
       lessonId:      lessonIds['demo-lesson-9E-d0-h9'],
       title:         'An Inspector Calls — Context Research (Scaffolded)',
-      instructions:  [
-        'Answer each question in one or two sentences.',
-        '',
-        'Step 1: When was An Inspector Calls written? When is it set? Why does this gap matter?',
-        'Sentence starter: "Priestley wrote the play in ___ but set it in ___, which means..."',
-        '',
-        'Step 2: What was happening in Britain in 1912? Name one historical event.',
-        'Sentence starter: "In 1912, ..."',
-        '',
-        'Step 3: What was happening in Britain in 1945? Name one change Priestley hoped to see.',
-        'Sentence starter: "In 1945, ..."',
-        '',
-        'Step 4: What does Priestley want his audience to think about?',
-        'Sentence starter: "Priestley wants his audience to think about..."',
-      ].join('\n'),
+      instructions:  'Answer each question in 1–2 sentences. Sentence starters are provided to help you begin each answer.',
       modelAnswer:   'A supported response should identify both dates (1912 and 1945), name at least one historical event (Titanic, WW1, WW2, or 1945 election), and link this to Priestley\'s message about collective responsibility. Sentence starters may be used throughout.',
       gradingBands:  { '0-3': 'Limited contextual knowledge; key dates absent or inaccurate', '4-6': 'Developing: relevant context with some link to Priestley\'s message', '7-9': 'Secure: accurate, specific historical context clearly linked to Priestley\'s socialist message' },
       dueAt:         daysFromNow(5),
@@ -517,6 +605,42 @@ async function main() {
       adaptedFor:    'SEN_SUPPORT',
       differentiationNotes: 'Scaffolded version of AIC Context Research. Breaks the task into 4 numbered steps with sentence starters. Reduces cognitive load while maintaining the same learning objective. Suitable for SEN Support and EHCP students who need structured writing support.',
       createdBy:     teacherId,
+      questionsJson: {
+        questions: [
+          {
+            id: '1',
+            q: 'When was "An Inspector Calls" written and when is it set? Why is this gap important?',
+            question: 'When was "An Inspector Calls" written and when is it set? Why is this gap important?',
+            marks: 2,
+            hint: 'Priestley wrote the play at the end of one war — think about what had just happened in Britain.',
+            scaffolding_hint: 'Start: "Priestley wrote the play in ___ but set it in ___, which means the audience can look back and see..."',
+          },
+          {
+            id: '2',
+            q: 'What was happening in Britain in 1912? Name one specific historical event.',
+            question: 'What was happening in Britain in 1912? Name one specific historical event.',
+            marks: 2,
+            hint: 'Think about class divides and a famous ship that sank that year.',
+            scaffolding_hint: 'Start: "In 1912, the _______ sank. This shows the class divide because..."',
+          },
+          {
+            id: '3',
+            q: 'What changed in Britain in 1945, and why would this have affected how audiences received the play?',
+            question: 'What changed in Britain in 1945, and why would this have affected how audiences received the play?',
+            marks: 2,
+            hint: 'A landmark general election happened that year — who won and what did they promise?',
+            scaffolding_hint: 'Start: "In 1945, Britain elected a _______ government, which meant people were ready to think about..."',
+          },
+          {
+            id: '4',
+            q: 'What is Priestley\'s key message in "An Inspector Calls"? Use the phrase "collective responsibility" in your answer.',
+            question: 'What is Priestley\'s key message in "An Inspector Calls"? Use the phrase "collective responsibility" in your answer.',
+            marks: 3,
+            hint: 'The Inspector\'s final speech is your best clue.',
+            scaffolding_hint: 'Start: "Priestley uses the Inspector to argue that society has a collective responsibility to..."',
+          },
+        ],
+      },
     },
   })
 

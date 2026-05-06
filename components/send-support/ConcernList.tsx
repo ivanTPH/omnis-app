@@ -7,6 +7,7 @@ import { SencoRow } from '@/components/ui/SencoRow'
 import type { ConcernRow, ConcernActionItem } from '@/app/actions/send-support'
 import { addConcernAction } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
+import StudentContactPanel from '@/components/StudentContactPanel'
 
 const STATUS_COLOURS: Record<string, string> = {
   open:         'bg-amber-100 text-amber-800',
@@ -61,14 +62,15 @@ type Props = {
 }
 
 export default function ConcernList({ concerns, isSenco = false, staffList = [], onRefresh }: Props) {
-  const [expanded,      setExpanded]      = useState<Set<string>>(new Set())
-  const [reviewing,     setReviewing]     = useState<ConcernRow | null>(null)
-  const [addingAction,  setAddingAction]  = useState<string | null>(null)
-  const [actionDraft,   setActionDraft]   = useState<Omit<AddActionState, 'concernId' | 'saving'>>({
+  const [expanded,           setExpanded]           = useState<Set<string>>(new Set())
+  const [reviewing,          setReviewing]           = useState<ConcernRow | null>(null)
+  const [addingAction,       setAddingAction]        = useState<string | null>(null)
+  const [actionDraft,        setActionDraft]         = useState<Omit<AddActionState, 'concernId' | 'saving'>>({
     text: '', dueDate: '', responsibleUserId: '',
   })
-  const [actionSaving,  setActionSaving]  = useState(false)
-  const [localConcerns, setLocalConcerns] = useState(concerns)
+  const [actionSaving,       setActionSaving]        = useState(false)
+  const [localConcerns,      setLocalConcerns]       = useState(concerns)
+  const [contactStudentId,   setContactStudentId]    = useState<string | null>(null)
 
   function toggle(id: string) {
     setExpanded(prev => {
@@ -151,6 +153,14 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
               ]}
               rightContent={
                 <>
+                  <button
+                    onClick={() => setContactStudentId(c.studentId)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
+                    title="View student contact & profile"
+                  >
+                    <Icon name="person" size="sm" />
+                    Profile
+                  </button>
                   {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
                     <button
                       onClick={() => setReviewing(c)}
@@ -308,6 +318,11 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
           onClose={() => { setReviewing(null); onRefresh?.() }}
         />
       )}
+
+      <StudentContactPanel
+        studentId={contactStudentId}
+        onClose={() => setContactStudentId(null)}
+      />
     </>
   )
 }

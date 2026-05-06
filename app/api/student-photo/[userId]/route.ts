@@ -21,6 +21,24 @@ import { auth }   from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
+function svgInitials(firstName: string | null, lastName: string | null): NextResponse {
+  const initials = [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?'
+  // Pick a stable colour from initials char code
+  const colours = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777']
+  const bg = colours[(initials.charCodeAt(0) ?? 0) % colours.length]
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="64" fill="${bg}"/>
+  <text x="64" y="64" dy="0.35em" text-anchor="middle" font-family="system-ui,sans-serif" font-size="52" font-weight="600" fill="white">${initials}</text>
+</svg>`
+  return new NextResponse(svg, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'private, max-age=3600',
+    },
+  })
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ userId: string }> },
@@ -32,14 +50,14 @@ export async function GET(
 
   const { userId } = await params
 
-  // ── 1. Read User.avatarUrl directly ──────────────────────────────────────
+  // ── 1. Read User.avatarUrl + names directly ───────────────────────────────
   const user = await prisma.user.findUnique({
     where:  { id: userId },
-    select: { avatarUrl: true },
+    select: { avatarUrl: true, firstName: true, lastName: true },
   })
 
   if (!user?.avatarUrl) {
-    return NextResponse.json({ error: 'No photo available' }, { status: 404 })
+    return svgInitials(user?.firstName ?? null, user?.lastName ?? null)
   }
 
   const photoUrl = user.avatarUrl
@@ -74,14 +92,11 @@ export async function GET(
       signal:  AbortSignal.timeout(10_000),
     })
   } catch {
-    return NextResponse.json({ error: 'Photo fetch timeout' }, { status: 504 })
+    return svgInitials(user.firstName, user.lastName)
   }
 
   if (!photoRes.ok) {
-    return NextResponse.json(
-      { error: `Upstream returned ${photoRes.status}` },
-      { status: photoRes.status },
-    )
+    return svgInitials(user.firstName, user.lastName)
   }
 
   // ── 3. Stream image bytes back to client ──────────────────────────────────

@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
+import { getClassRagData } from '@/app/actions/rag'
+import type { RagStatus } from '@/app/actions/rag'
 import { getStudentFile } from '@/app/actions/students'
 import type { StudentFileData } from '@/app/actions/students'
 import { currentTermLabel } from '@/lib/termUtils'
@@ -136,6 +138,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
   const [studentFileData,    setStudentFileData]    = useState<StudentFileData | null>(null)
   const [studentFilePending, startStudentFileTrans] = useTransition()
 
+  // RAG data — keyed by studentId, loaded when detail view is active for a class
+  const [ragMap, setRagMap] = useState<Record<string, RagStatus>>({})
+  const [_ragPending, startRagTrans] = useTransition()
+
   const isLoading = isPending || isClassPending
 
   // ── helpers ───────────────────────────────────────────────────────────────
@@ -199,6 +205,19 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       setStudentFileData(file)
     })
   }, [studentId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load RAG data for the Performance tab when a class is selected
+  useEffect(() => {
+    if (!classId || studentView !== 'detail') { return }
+    const cls = filterOptions.classes.find(c => c.id === classId)
+    if (!cls) return
+    startRagTrans(async () => {
+      const ragStudents = await getClassRagData(classId, currentTermLabel())
+      const map: Record<string, RagStatus> = {}
+      for (const r of ragStudents) map[r.id] = r.ragStatus
+      setRagMap(map)
+    })
+  }, [classId, studentView]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Dropdown handlers — pure state updates, NO auto-queries ──────────────
   function changeTeacher(val: string) {
@@ -591,6 +610,19 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                     <span className="text-gray-500">Highest: <strong className="text-green-700">{classHighest}</strong></span>
                     <span className="text-gray-500">Lowest: <strong className="text-rose-600">{classLowest}</strong></span>
                     <span className="text-gray-500">SEND: <strong className="text-amber-700">{data.sendCount}</strong></span>
+                    {Object.keys(ragMap).length > 0 && (() => {
+                      const vals = Object.values(ragMap)
+                      const g = vals.filter(v => v === 'green').length
+                      const a = vals.filter(v => v === 'amber').length
+                      const r = vals.filter(v => v === 'red').length
+                      return (
+                        <>
+                          {g > 0 && <span className="text-emerald-700"><strong>{g}</strong> on track</span>}
+                          {a > 0 && <span className="text-amber-600"><strong>{a}</strong> borderline</span>}
+                          {r > 0 && <span className="text-rose-600"><strong>{r}</strong> need support</span>}
+                        </>
+                      )
+                    })()}
                   </div>
                 )}
 
@@ -613,7 +645,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                   </div>
                 ) : (
                   <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="hidden sm:grid grid-cols-[1fr_130px_110px_110px_80px] px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    <div className="hidden sm:grid grid-cols-[1fr_130px_110px_110px_60px_80px] px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                       <SortBtn col="name"       active={sortBy} asc={sortAsc} toggle={toggleSort}>Name</SortBtn>
                       <SortBtn col="completion" active={sortBy} asc={sortAsc} toggle={toggleSort}>Completion</SortBtn>
                       <SortBtn col="score"      active={sortBy} asc={sortAsc} toggle={toggleSort}>
@@ -622,6 +654,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                       <div title="Positive = above class average · Negative = below class average" className="cursor-help">
                         vs Class Avg ↕
                       </div>
+                      <div title="RAG: progress vs predicted grade">RAG</div>
                       <div>SEND</div>
                     </div>
                     {sorted.map(student => (
@@ -635,6 +668,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                         onNavigate={() => router.push(`/analytics/students/${student.id}`)}
                         onOpenContact={() => setContactStudentId(student.id)}
                         scoreToGrade={scoreToGrade}
+                        ragStatus={ragMap[student.id] ?? null}
                       />
                     ))}
                   </div>
@@ -774,11 +808,27 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
   )
 }
 
-function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoading, onNavigate, onOpenContact, scoreToGrade }: {
+function RagPill({ rag }: { rag: RagStatus | null }) {
+  if (!rag || rag === 'no_data') return <span className="text-gray-300 text-xs">—</span>
+  const styles: Record<string, string> = {
+    green: 'bg-emerald-100 text-emerald-700',
+    amber: 'bg-amber-100 text-amber-700',
+    red:   'bg-rose-100 text-rose-700',
+  }
+  const labels: Record<string, string> = { green: '● On track', amber: '● Borderline', red: '● Support' }
+  return (
+    <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${styles[rag]}`}>
+      {labels[rag]}
+    </span>
+  )
+}
+
+function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoading, onNavigate, onOpenContact, scoreToGrade, ragStatus }: {
   student: StudentData; expanded: boolean; onExpand: () => void
   onOpenSubmission: (id: string) => Promise<void>; subLoading: boolean; onNavigate: () => void
   onOpenContact: () => void
   scoreToGrade: (score: number) => number
+  ragStatus: RagStatus | null
 }) {
   const sendLabel: Record<string, string> = { SEN_SUPPORT: 'SEN', EHCP: 'EHCP' }
 
@@ -791,7 +841,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
 
   return (
     <>
-      <div className="flex sm:grid sm:grid-cols-[1fr_130px_110px_110px_80px] items-center gap-3 sm:gap-0 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 select-none">
+      <div className="flex sm:grid sm:grid-cols-[1fr_130px_110px_110px_60px_80px] items-center gap-3 sm:gap-0 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 select-none">
         {/* Name + expand */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <button onClick={onExpand} className="shrink-0 text-gray-400">
@@ -857,6 +907,11 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
               </span>
             )
           ) : <span className="text-gray-400">—</span>}
+        </div>
+
+        {/* RAG */}
+        <div className="hidden sm:block px-1">
+          <RagPill rag={ragStatus} />
         </div>
 
         {/* Navigate */}
@@ -986,9 +1041,11 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 }
 
 function StudentDeepDive({ file }: { file: StudentFileData }) {
-  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport } = file
+  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport, notes } = file
   const [hwSubjectFilter, setHwSubjectFilter] = useState('')
   const activeTargets = ilp?.targets.filter(t => t.status === 'active') ?? []
+  const latestNote = notes?.[0] ?? null
+  const hasSendProfile = student.sendStatus && student.sendStatus !== 'NONE'
   const hwSubjects = [...new Set(recentHomeworks.map(h => h.subject).filter(Boolean))].sort()
   const filteredHomeworks = hwSubjectFilter
     ? recentHomeworks.filter(h => h.subject === hwSubjectFilter)
@@ -1017,6 +1074,59 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
           Full file <Icon name="open_in_new" size="sm" />
         </a>
       </div>
+
+      {/* Support Profile card */}
+      {(hasSendProfile || ilp || latestNote) && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-amber-50 flex items-center gap-2">
+            <Icon name="favorite" size="sm" className="text-amber-600" />
+            <h4 className="font-semibold text-sm text-amber-800">Support Profile</h4>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            {/* SEND badge + need area */}
+            {hasSendProfile && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
+                {student.needArea && <span className="text-sm text-gray-600">{student.needArea}</span>}
+              </div>
+            )}
+            {/* ILP areas of need */}
+            {ilp?.areasOfNeed && (
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Areas of Need</p>
+                <p className="text-sm text-gray-700 line-clamp-2">{ilp.areasOfNeed}</p>
+              </div>
+            )}
+            {/* Active SMART goals — max 3 */}
+            {activeTargets.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Active Targets</p>
+                <div className="space-y-1">
+                  {activeTargets.slice(0, 3).map(t => (
+                    <div key={t.id} className="flex items-start gap-2">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                      <p className="text-sm text-gray-800 line-clamp-1">{t.target}</p>
+                    </div>
+                  ))}
+                  {activeTargets.length > 3 && (
+                    <p className="text-xs text-gray-400 pl-3.5">+{activeTargets.length - 3} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Most recent teacher note */}
+            {latestNote && (
+              <div>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Latest Note</p>
+                <div className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2">
+                  <p className="text-sm text-gray-800 line-clamp-2">{latestNote.content}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{latestNote.authorName} · {new Date(latestNote.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Adaptive learning profile summary */}
       {(learningPassport?.profileSummary || (learningPassport?.preferredTypes && learningPassport.preferredTypes.length > 0)) && (

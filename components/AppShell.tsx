@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar'
 import { getMyAvatarUrl } from '@/app/actions/settings'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
+import { MobileMenuContext } from '@/lib/mobileMenuContext'
 import { ToastContainer } from '@/components/ui/Toast'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
@@ -72,6 +73,7 @@ export default function AppShell({
   }, [role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
+    <MobileMenuContext.Provider value={{ openMenu: () => setOpen(true) }}>
     <TeacherProfileContext.Provider value={teacherProfile}>
       <div className="flex h-dvh overflow-hidden bg-white">
 
@@ -125,5 +127,6 @@ export default function AppShell({
       </div>
       <ToastContainer />
     </TeacherProfileContext.Provider>
+    </MobileMenuContext.Provider>
   )
 }

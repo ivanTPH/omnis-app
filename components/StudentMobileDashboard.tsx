@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon'
 import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 import { saveStudentVoice } from '@/app/actions/students'
 import StudentAvatar from '@/components/StudentAvatar'
+import { useMobileMenu } from '@/lib/mobileMenuContext'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -114,6 +115,7 @@ export default function StudentMobileDashboard({
   passport,
 }: Props) {
   const [tab, setTab] = useState<Tab>('home')
+  const { openMenu } = useMobileMenu()
 
   // ── Student voice state ───────────────────────────────────────────────────────
   const [voiceText,   setVoiceText]   = useState(passport?.studentVoice ?? '')
@@ -440,9 +442,16 @@ export default function StudentMobileDashboard({
           avatarUrl={avatarUrl ?? null}
           size="sm"
         />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-gray-900 truncate">{firstName} {lastName}</p>
         </div>
+        <button
+          onClick={openMenu}
+          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 shrink-0"
+          aria-label="Open menu"
+        >
+          <Icon name="menu" size="md" />
+        </button>
       </div>
       {/* Tab bar at top */}
       <div className="bg-white border-b border-gray-100 shrink-0">

@@ -120,94 +120,114 @@ export default function HomeworkTypeRenderer({
         const qId   = q.id ?? String(currentQ)
         const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
         const isLast = currentQ === questions.length - 1
+        const pct    = Math.round((currentQ / questions.length) * 100)
+        const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
         return (
           <div>
-            {/* Progress indicator */}
-            <div className="flex items-center gap-1 mb-6 flex-wrap">
-              {questions.map((qItem, i) => {
-                const iId   = qItem.id ?? String(i)
-                const isDone = !!answers[iId]?.trim() && i < currentQ
-                return (
-                  <div key={i} className="flex items-center">
+            {/* ── Progress bar ──────────────────────────────────────────── */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between text-[11px] font-semibold mb-2">
+                <span className="text-indigo-600">Question {currentQ + 1} of {questions.length}</span>
+                <span className="text-gray-400">{pct}% complete</span>
+              </div>
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {/* Dot indicators — clickable for completed questions */}
+              <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                {questions.map((qItem, i) => {
+                  const iId   = qItem.id ?? String(i)
+                  const isDone = !!answers[iId]?.trim()
+                  return (
                     <button
+                      key={i}
                       type="button"
                       onClick={() => {
-                        if (i < currentQ) { setCurrentQ(i); setHintOpen(false); setSkipWarning(false) }
+                        if (i < currentQ || isDone) { setCurrentQ(i); setHintOpen(false); setSkipWarning(false) }
                       }}
-                      className={`w-8 h-8 rounded-full text-sm font-semibold transition-all flex items-center justify-center ${
+                      title={`Question ${i + 1}`}
+                      className={`w-7 h-7 rounded-full text-[11px] font-bold flex items-center justify-center transition-all ${
                         i === currentQ
-                          ? 'bg-blue-700 text-white ring-2 ring-blue-700 ring-offset-2'
-                          : i < currentQ
-                            ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200'
+                          ? 'bg-indigo-600 text-white scale-110 shadow-md shadow-indigo-200'
+                          : isDone
+                            ? 'bg-emerald-500 text-white cursor-pointer'
                             : 'bg-gray-100 text-gray-400 cursor-default'
                       }`}
                     >
-                      {isDone ? <Icon name="check" size="sm" /> : i + 1}
+                      {isDone && i !== currentQ ? <Icon name="check" size="sm" /> : i + 1}
                     </button>
-                    {i < questions.length - 1 && (
-                      <div className={`h-0.5 w-6 mx-1 transition-colors ${i < currentQ ? 'bg-blue-300' : 'bg-gray-200'}`} />
-                    )}
-                  </div>
-                )
-              })}
-              <span className="text-[11px] text-gray-400 ml-2">
-                Question {currentQ + 1} of {questions.length}
-              </span>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Question card */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  Question {currentQ + 1}
-                </p>
+            {/* ── Question card ─────────────────────────────────────────── */}
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 sm:p-6 mb-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                  Q{currentQ + 1}
+                </span>
                 {q.marks != null && (
-                  <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-lg shrink-0">
-                    [{q.marks} mark{q.marks !== 1 ? 's' : ''}]
+                  <span className="text-[11px] font-medium text-gray-400">
+                    {q.marks} mark{q.marks !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
 
-              <p className="text-[14px] font-medium text-gray-900 leading-relaxed mb-4">
+              <p className="text-[15px] sm:text-[16px] font-semibold text-gray-900 leading-relaxed mb-5">
                 {questionText}
               </p>
 
+              {/* Collapsible hint */}
               {q.hint && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                  <button type="button" onClick={() => setHintOpen(v => !v)} className="flex items-center gap-2 w-full text-left">
-                    <Icon name="lightbulb" size="sm" className="text-amber-600 shrink-0" />
-                    <span className="text-xs font-medium text-amber-700">{hintOpen ? 'Hide hint' : 'Show hint'}</span>
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+                  <button type="button" onClick={() => setHintOpen(v => !v)} className="flex items-center gap-2 w-full px-4 py-2.5 text-left">
+                    <Icon name="lightbulb" size="sm" className="text-amber-500 shrink-0" />
+                    <span className="text-xs font-semibold text-amber-700">{hintOpen ? 'Hide hint' : 'Need a hint?'}</span>
+                    <Icon name={hintOpen ? 'expand_less' : 'expand_more'} size="sm" className="text-amber-400 ml-auto" />
                   </button>
-                  {hintOpen && <p className="text-sm text-amber-800 mt-2 leading-relaxed">{q.hint}</p>}
+                  {hintOpen && <p className="text-sm text-amber-800 px-4 pb-3 leading-relaxed">{q.hint}</p>}
                 </div>
               )}
 
               {isSen && q.scaffolding_hint && (
-                <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                  <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
-                  <p className="text-xs text-blue-700">{q.scaffolding_hint}</p>
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+                  <Icon name="support" size="sm" className="text-blue-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-blue-700 leading-relaxed">{q.scaffolding_hint}</p>
                 </div>
               )}
 
-              {/* MCQ options */}
+              {/* MCQ options — large tappable cards */}
               {q.options ? (
-                <div className="space-y-2">
-                  {q.options.map((opt, j) => (
-                    <label key={j} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      answers[qId] === opt ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
-                    }`}>
-                      <input
-                        type="radio"
-                        name={`q-${qId}`}
-                        value={opt}
-                        checked={answers[qId] === opt}
-                        onChange={() => updateAnswer(qId, opt)}
-                        className="mt-0.5 shrink-0"
-                      />
-                      <span className="text-sm text-gray-700">{opt}</span>
-                    </label>
-                  ))}
+                <div className="space-y-2.5">
+                  {q.options.map((opt, j) => {
+                    const selected = answers[qId] === opt
+                    return (
+                      <button
+                        key={j}
+                        type="button"
+                        onClick={() => updateAnswer(qId, opt)}
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all active:scale-[0.98] ${
+                          selected
+                            ? 'border-indigo-500 bg-indigo-50'
+                            : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50/30'
+                        }`}
+                      >
+                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${
+                          selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-400'
+                        }`}>
+                          {selected ? <Icon name="check" size="sm" /> : OPTION_LETTERS[j] ?? j + 1}
+                        </div>
+                        <span className={`text-sm font-medium ${selected ? 'text-indigo-900' : 'text-gray-700'}`}>
+                          {opt}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
               ) : (
                 <input
@@ -215,16 +235,16 @@ export default function HomeworkTypeRenderer({
                   value={answers[qId] ?? ''}
                   onChange={e => updateAnswer(qId, e.target.value)}
                   placeholder="Your answer…"
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
+                  className="w-full text-sm border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-400"
                 />
               )}
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between">
+            {/* ── Navigation ────────────────────────────────────────────── */}
+            <div className="flex items-center gap-3">
               {currentQ > 0 ? (
-                <button type="button" onClick={goToPrev} className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm">
-                  <Icon name="arrow_back" size="sm" /> Previous
+                <button type="button" onClick={goToPrev} className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition shrink-0">
+                  <Icon name="arrow_back" size="sm" /> Back
                 </button>
               ) : <div />}
 
@@ -232,7 +252,7 @@ export default function HomeworkTypeRenderer({
                 <button
                   type="button"
                   onClick={() => goToNext(questions)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition"
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition"
                 >
                   Next question <Icon name="arrow_forward" size="sm" />
                 </button>
@@ -241,7 +261,7 @@ export default function HomeworkTypeRenderer({
                   type="button"
                   onClick={onSubmitRequest}
                   disabled={!onSubmitRequest || submitting}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold rounded-xl hover:from-indigo-700 hover:to-violet-700 shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   {submitting
                     ? <><Icon name="refresh" size="sm" className="animate-spin" /> Submitting…</>
@@ -252,12 +272,12 @@ export default function HomeworkTypeRenderer({
             </div>
 
             {skipWarning && (
-              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <Icon name="warning" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2">
+                <Icon name="warning" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm text-amber-800">You haven&apos;t selected an answer yet.</p>
-                  <button type="button" onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }} className="text-xs text-amber-700 underline mt-1">
-                    Skip anyway
+                  <p className="text-sm font-medium text-amber-800">Select an answer first</p>
+                  <button type="button" onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }} className="text-xs text-amber-600 underline mt-0.5">
+                    Skip this question
                   </button>
                 </div>
               </div>
@@ -347,86 +367,84 @@ export default function HomeworkTypeRenderer({
         const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
         const wordCount = (answers[qId] ?? '').trim().split(/\s+/).filter(Boolean).length
         const isLast = currentQ === questions.length - 1
+        const pct = Math.round((currentQ / questions.length) * 100)
 
         return (
           <div>
-            {/* Progress indicator */}
-            <div className="flex items-center gap-1 mb-6 flex-wrap">
-              {questions.map((qItem, i) => {
-                const iId = qItem.id ?? String(i)
-                const isDone = !!answers[iId]?.trim() && i < currentQ
-                return (
-                  <div key={i} className="flex items-center">
+            {/* ── Progress bar ──────────────────────────────────────────── */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between text-[11px] font-semibold mb-2">
+                <span className="text-indigo-600">Question {currentQ + 1} of {questions.length}</span>
+                <span className="text-gray-400">{pct}% complete</span>
+              </div>
+              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              {/* Dot indicators */}
+              <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+                {questions.map((qItem, i) => {
+                  const iId = qItem.id ?? String(i)
+                  const isDone = !!answers[iId]?.trim()
+                  return (
                     <button
+                      key={i}
                       type="button"
                       onClick={() => {
-                        if (i < currentQ) { setCurrentQ(i); setHintOpen(false); setSkipWarning(false) }
+                        if (i < currentQ || isDone) { setCurrentQ(i); setHintOpen(false); setSkipWarning(false) }
                       }}
-                      className={`w-8 h-8 rounded-full text-sm font-semibold transition-all flex items-center justify-center ${
+                      title={`Question ${i + 1}`}
+                      className={`w-7 h-7 rounded-full text-[11px] font-bold flex items-center justify-center transition-all ${
                         i === currentQ
-                          ? 'bg-blue-700 text-white ring-2 ring-blue-700 ring-offset-2'
-                          : i < currentQ
-                            ? 'bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200'
+                          ? 'bg-indigo-600 text-white scale-110 shadow-md shadow-indigo-200'
+                          : isDone
+                            ? 'bg-emerald-500 text-white cursor-pointer'
                             : 'bg-gray-100 text-gray-400 cursor-default'
                       }`}
                     >
-                      {isDone
-                        ? <Icon name="check" size="sm" />
-                        : i + 1
-                      }
+                      {isDone && i !== currentQ ? <Icon name="check" size="sm" /> : i + 1}
                     </button>
-                    {i < questions.length - 1 && (
-                      <div className={`h-0.5 w-6 mx-1 transition-colors ${i < currentQ ? 'bg-blue-300' : 'bg-gray-200'}`} />
-                    )}
-                  </div>
-                )
-              })}
-              <span className="text-[11px] text-gray-400 ml-2">
-                Question {currentQ + 1} of {questions.length}
-              </span>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Question card */}
-            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  Question {currentQ + 1}
-                </p>
+            {/* ── Question card ─────────────────────────────────────────── */}
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 sm:p-6 mb-4">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                  Q{currentQ + 1}
+                </span>
                 {q.marks != null && (
-                  <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-lg shrink-0">
-                    [{q.marks} mark{q.marks !== 1 ? 's' : ''}]
+                  <span className="text-[11px] font-medium text-gray-400">
+                    {q.marks} mark{q.marks !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
 
-              <p className="text-[14px] font-medium text-gray-900 leading-relaxed mb-4">
+              <p className="text-[15px] sm:text-[16px] font-semibold text-gray-900 leading-relaxed mb-5">
                 {questionText}
               </p>
 
               {/* Collapsible hint */}
               {q.hint && (
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setHintOpen(v => !v)}
-                    className="flex items-center gap-2 w-full text-left"
-                  >
-                    <Icon name="lightbulb" size="sm" className="text-amber-600 shrink-0" />
-                    <span className="text-xs font-medium text-amber-700">
-                      {hintOpen ? 'Hide hint' : 'Show hint'}
-                    </span>
+                <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden">
+                  <button type="button" onClick={() => setHintOpen(v => !v)} className="flex items-center gap-2 w-full px-4 py-2.5 text-left">
+                    <Icon name="lightbulb" size="sm" className="text-amber-500 shrink-0" />
+                    <span className="text-xs font-semibold text-amber-700">{hintOpen ? 'Hide hint' : 'Need a hint?'}</span>
+                    <Icon name={hintOpen ? 'expand_less' : 'expand_more'} size="sm" className="text-amber-400 ml-auto" />
                   </button>
-                  {hintOpen && (
-                    <p className="text-sm text-amber-800 mt-2 leading-relaxed">{q.hint}</p>
-                  )}
+                  {hintOpen && <p className="text-sm text-amber-800 px-4 pb-3 leading-relaxed">{q.hint}</p>}
                 </div>
               )}
 
               {/* SEND: scaffolding hint */}
               {isSen && q.scaffolding_hint && (
-                <div className="flex items-start gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-                  <span className="text-[10px] font-bold text-blue-600 shrink-0 mt-0.5">HINT</span>
-                  <p className="text-xs text-blue-700">{q.scaffolding_hint}</p>
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+                  <Icon name="support" size="sm" className="text-blue-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-blue-700 leading-relaxed">{q.scaffolding_hint}</p>
                 </div>
               )}
 
@@ -453,15 +471,15 @@ export default function HomeworkTypeRenderer({
 
               {/* Answer textarea */}
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">
+                <label className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2 block">
                   Your Answer
                 </label>
                 <textarea
                   value={answers[qId] ?? ''}
                   onChange={e => updateAnswer(qId, e.target.value)}
                   placeholder={getAnswerPlaceholder(q)}
-                  rows={6}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-3 text-[14px] text-gray-800 resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 leading-relaxed"
+                  rows={5}
+                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-800 resize-y focus:outline-none focus:border-indigo-400 leading-relaxed transition"
                 />
                 <p className="text-[11px] text-gray-400 mt-1 text-right">
                   {wordCount} word{wordCount !== 1 ? 's' : ''}
@@ -469,16 +487,11 @@ export default function HomeworkTypeRenderer({
               </div>
             </div>
 
-            {/* Navigation */}
-            <div className="flex items-center justify-between">
+            {/* ── Navigation ────────────────────────────────────────────── */}
+            <div className="flex items-center gap-3">
               {currentQ > 0 ? (
-                <button
-                  type="button"
-                  onClick={goToPrev}
-                  className="flex items-center gap-1 text-gray-500 hover:text-gray-700 text-sm"
-                >
-                  <Icon name="arrow_back" size="sm" />
-                  Previous
+                <button type="button" onClick={goToPrev} className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition shrink-0">
+                  <Icon name="arrow_back" size="sm" /> Back
                 </button>
               ) : <div />}
 
@@ -486,17 +499,16 @@ export default function HomeworkTypeRenderer({
                 <button
                   type="button"
                   onClick={() => goToNext(questions)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 transition"
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-sm shadow-indigo-200 transition"
                 >
-                  Next question
-                  <Icon name="arrow_forward" size="sm" />
+                  Next question <Icon name="arrow_forward" size="sm" />
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={onSubmitRequest}
                   disabled={!onSubmitRequest || submitting}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-700 text-white text-sm font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold rounded-xl hover:from-indigo-700 hover:to-violet-700 shadow-sm shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   {submitting
                     ? <><Icon name="refresh" size="sm" className="animate-spin" /> Submitting…</>
@@ -508,16 +520,16 @@ export default function HomeworkTypeRenderer({
 
             {/* Skip warning */}
             {skipWarning && (
-              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <Icon name="warning" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2">
+                <Icon name="warning" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm text-amber-800">You haven&apos;t answered this question yet.</p>
+                  <p className="text-sm font-medium text-amber-800">Answer this question first</p>
                   <button
                     type="button"
                     onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }}
-                    className="text-xs text-amber-700 underline mt-1"
+                    className="text-xs text-amber-600 underline mt-0.5"
                   >
-                    Skip anyway
+                    Skip this question
                   </button>
                 </div>
               </div>

@@ -64,7 +64,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
   const textareaDisabled = (isAwaitingFeedback && !submitted) || isPending
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-6">
 
       {/* Status banner */}
       {isReturned && (
@@ -159,10 +159,13 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {/* Answer section */}
       {(() => {
         const sc = hw.structuredContent as { questions?: unknown[] } | undefined
+        const STEPPER_TYPES = new Set([
+          'short_answer', 'quiz', 'multiple_choice', 'retrieval_practice',
+          'structured_task', 'problem_solving',
+        ])
         const multiQStepper =
-          (hw.homeworkVariantType === 'short_answer' ||
-           hw.homeworkVariantType === 'quiz' ||
-           hw.homeworkVariantType === 'multiple_choice') &&
+          !!hw.homeworkVariantType &&
+          STEPPER_TYPES.has(hw.homeworkVariantType) &&
           (sc?.questions?.length ?? 0) > 1
 
         return (

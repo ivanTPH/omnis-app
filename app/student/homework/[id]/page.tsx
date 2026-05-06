@@ -25,7 +25,7 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
         {/* Page header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200 shrink-0">
+        <div className="flex items-start justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-start gap-3">
             <Link
               href="/student/dashboard"

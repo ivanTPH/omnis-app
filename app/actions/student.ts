@@ -102,6 +102,29 @@ export async function getStudentHomework(homeworkId: string) {
     }
   }
 
+  // Normalise variant type: DB may store uppercase enum values (MCQ_QUIZ, SHORT_ANSWER)
+  // which don't match the renderer's switch cases (quiz, short_answer, etc.)
+  const VARIANT_MAP: Record<string, string> = {
+    MCQ_QUIZ:          'quiz',
+    SHORT_ANSWER:      'short_answer',
+    EXTENDED_WRITING:  'extended_writing',
+    MIXED:             'short_answer',
+    UPLOAD:            'upload',
+  }
+  if (resolvedVariantType && VARIANT_MAP[resolvedVariantType]) {
+    resolvedVariantType = VARIANT_MAP[resolvedVariantType]
+  }
+  // If still null but structuredContent has questions, infer type from first question shape
+  if (!resolvedVariantType && resolvedStructuredContent) {
+    const sc = resolvedStructuredContent as { questions?: unknown[] }
+    if (Array.isArray(sc.questions) && sc.questions.length > 0) {
+      const firstQ = sc.questions[0] as { options?: unknown[] } | undefined
+      resolvedVariantType = (Array.isArray(firstQ?.options) && firstQ.options.length > 0)
+        ? 'quiz'
+        : 'short_answer'
+    }
+  }
+
   const { questionsJson: _qj, type: _type, gradingBands, ...hwRest } = hw
   return {
     ...hwRest,

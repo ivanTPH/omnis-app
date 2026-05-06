@@ -233,10 +233,10 @@ export default function UnifiedRevisionView({
     return days >= 0 && days <= 7
   }).length
 
-  const tabs: { key: Tab; label: string; count: number; icon: string }[] = [
-    { key: 'planner',   label: 'My Planner',  count: initialExams.length, icon: 'calendar_today' },
-    { key: 'tasks',     label: 'My Tasks',    count: activeTasks.length,   icon: 'assignment' },
-    { key: 'completed', label: 'Completed',   count: completedTasks.length, icon: 'check_circle' },
+  const tabs: { key: Tab; label: string; shortLabel: string; count: number; icon: string }[] = [
+    { key: 'planner',   label: 'My Planner',  shortLabel: 'Planner',  count: initialExams.length,    icon: 'calendar_today' },
+    { key: 'tasks',     label: 'My Tasks',    shortLabel: 'Tasks',    count: activeTasks.length,     icon: 'assignment' },
+    { key: 'completed', label: 'Completed',   shortLabel: 'Done',     count: completedTasks.length,  icon: 'check_circle' },
   ]
 
   return (
@@ -284,7 +284,8 @@ export default function UnifiedRevisionView({
               }`}
             >
               <Icon name={t.icon} size="sm" />
-              {t.label}
+              <span className="sm:hidden">{t.shortLabel}</span>
+              <span className="hidden sm:inline">{t.label}</span>
               {t.count > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-0.5 ${
                   tab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'

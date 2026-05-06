@@ -102,17 +102,19 @@ export default function AppShell({
         {/* Main content */}
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-          {/* Mobile top bar with hamburger — hidden on md+ */}
-          <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-200 bg-white shrink-0 md:hidden">
-            <button
-              onClick={() => setOpen(true)}
-              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
-              aria-label="Open menu"
-            >
-              <Icon name="menu" size="md" />
-            </button>
-            <OmnisLogo variant="sidebar" />
-          </div>
+          {/* Mobile top bar with hamburger — hidden on md+ and for student/parent (they have in-page nav) */}
+          {role !== 'STUDENT' && (
+            <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-200 bg-white shrink-0 md:hidden">
+              <button
+                onClick={() => setOpen(true)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                aria-label="Open menu"
+              >
+                <Icon name="menu" size="md" />
+              </button>
+              <OmnisLogo variant="sidebar" />
+            </div>
+          )}
 
           {/* Page content */}
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">

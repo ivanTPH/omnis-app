@@ -56,11 +56,15 @@ export default function ParentMessagesView({
     })
   }
 
+  // On mobile: show list when nothing selected, show thread when selected
+  const showList   = !selectedId || !conv
+  const showThread = !!conv
+
   return (
     <div className="flex h-full">
 
       {/* ── Left: conversation list ── */}
-      <div className="w-72 border-r border-gray-200 flex flex-col shrink-0">
+      <div className={`${showList ? 'flex' : 'hidden'} md:flex w-full md:w-72 border-r border-gray-200 flex-col shrink-0`}>
         <div className="px-5 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-[14px] font-semibold text-gray-900">Messages</h2>
           <p className="text-[11px] text-gray-400 mt-0.5">Conversations with teachers</p>
@@ -125,27 +129,37 @@ export default function ParentMessagesView({
 
       {/* ── Right: thread ── */}
       {conv ? (
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className={`${showThread ? 'flex' : 'hidden'} md:flex flex-1 flex-col min-w-0 w-full`}>
 
           {/* Thread header */}
-          <div className="px-6 py-4 border-b border-gray-200 shrink-0">
-            <p className="text-[14px] font-semibold text-gray-900">
-              {conv.teacher.firstName} {conv.teacher.lastName}
-            </p>
-            {child(conv.studentId) && (
-              <p className="text-[12px] text-gray-400">
-                Regarding {child(conv.studentId)!.firstName} {child(conv.studentId)!.lastName}
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 shrink-0 flex items-center gap-3">
+            {/* Back button — mobile only */}
+            <button
+              onClick={() => setSelectedId(null)}
+              className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-gray-100 text-gray-500 shrink-0"
+              aria-label="Back to conversations"
+            >
+              <Icon name="arrow_back" size="md" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-[14px] font-semibold text-gray-900 truncate">
+                {conv.teacher.firstName} {conv.teacher.lastName}
               </p>
-            )}
-            {conv.status === 'CLOSED' && (
-              <span className="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
-                Closed
-              </span>
-            )}
+              {child(conv.studentId) && (
+                <p className="text-[12px] text-gray-400">
+                  Regarding {child(conv.studentId)!.firstName} {child(conv.studentId)!.lastName}
+                </p>
+              )}
+              {conv.status === 'CLOSED' && (
+                <span className="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                  Closed
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-auto px-6 py-5 space-y-3">
+          <div className="flex-1 overflow-auto px-4 sm:px-6 py-5 space-y-3">
             {conv.parentMessages.length === 0 ? (
               <p className="text-center text-[13px] text-gray-400 py-12">
                 No messages yet. Write your first message below.
@@ -180,7 +194,7 @@ export default function ParentMessagesView({
           </div>
 
           {/* Compose */}
-          <div className="px-6 py-4 border-t border-gray-200 shrink-0">
+          <div className="px-4 sm:px-6 py-4 border-t border-gray-200 shrink-0">
             {conv.status === 'CLOSED' ? (
               <p className="text-[12px] text-gray-400 text-center py-2">
                 This conversation has been closed. Please contact the school office for further support.
@@ -190,7 +204,7 @@ export default function ParentMessagesView({
                 <div className="flex items-end gap-3">
                   <textarea
                     className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-[13px] text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 min-h-[80px] max-h-[160px] transition"
-                    placeholder="Write a message… (⌘↵ to send)"
+                    placeholder="Write a message…"
                     value={draft}
                     onChange={e => setDraft(e.target.value)}
                     onKeyDown={e => {

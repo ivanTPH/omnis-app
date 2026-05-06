@@ -1,16 +1,19 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-05-04. Authoritative reference for Claude sessions.
+> Last updated: 2026-05-06. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-04.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-06.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
 > May 2026 Part 2: design system (OmnisLogo, EmptyState, PageHeader, SendBadge, skeleton loaders),
 > homework marking two-panel layout, SENCO read-only submission view, ILP evidence automation.
+> May 2026 Part 3 (issues 13-18): RAG badges in Performance tab, Support Profile card in student
+> deep-dive, student slide-over from ConcernList, year revision mode, adaptive test mode wired,
+> student photo proxy SVG initials fallback.
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** aae8cbe (SENCO read-only submission view)
+> **Latest commit:** 95e8b26 (issues 13-18)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -649,6 +652,14 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - **ILP row chevron fix:** `IlpPageView` — `shrink-0` on action strip, single rotating `expand_more` icon, `stopPropagation` on action buttons, "Collapse" link at bottom of expanded content. Same fix applied to `ClassListView`.
 - **AppShell restored** on `/student/[studentId]/send`, `/admin/cover`, `/student/revision` (sidebar was missing).
 - **Bare `<a href>` → `<Link>`** in `KPlanModal`, `EhcpPageClient`, `StudentFilePanel`.
+
+**May 2026 Part 3 — Issues 13-18 ✅ (2026-05-06)**
+- **Issue 13 (RAG in Performance tab):** `StudentAnalyticsView` Performance tab now loads RAG data via `getClassRagData` when a class is selected. Each student row shows a colour-coded RAG pill (green=on track, amber=borderline, red=needs support). Class stats bar shows counts. Grid layout updated to `grid-cols-[1fr_130px_110px_110px_60px_80px]`.
+- **Issue 14 (Support Profile card):** `StudentDeepDive` in `StudentAnalyticsView` now shows an amber "Support Profile" card grouping SEND badge + needArea, ILP areasOfNeed (2-line clamp), active SMART goals (max 3 + overflow count), and most recent teacher note (from `file.notes`).
+- **Issue 15 (Student slide-over from ConcernList):** `ConcernList` now imports `StudentContactPanel` and adds a "Profile" button to each concern card's `rightContent`. Clicking opens the student contact slide-over with contact details, SEND status, and messaging options.
+- **Issue 16 (Year revision mode):** Already fully implemented. `getYearTopics`, `createYearRevisionProgram` server actions in `revision-program.ts`. `YearRevisionCreator.tsx` 3-step wizard (configure → topic checklist → generating). `YearRevisionView` renders Section A (generic guide) + Section B (personalised focus areas). Route: `/revision-program/year`.
+- **Issue 17 (Adaptive test mode):** Already fully implemented. `RevisionTaskView` phase state machine includes `'test'` phase that renders `RevisionTestMode`. "Start Test" button wired for both standard and year revision tasks. `test-engine.ts` handles difficulty cycling, question generation, evaluation, results.
+- **Issue 18 (Photo proxy SVG fallback):** `app/api/student-photo/[userId]/route.ts` now queries `firstName` and `lastName` alongside `avatarUrl`. Returns deterministic-colour SVG initials avatar instead of 404/error when avatarUrl is null or upstream fetch fails.
 
 **Phase 4 — Trial Readiness ✅ (2026-04-08)**
 - Phase 4.1 (Data safety): schoolId scoping confirmed on all queries; SEND data not accessible to student/parent roles; ILP audit trail via writeAudit().

@@ -42,11 +42,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const schoolId = (session.user as any).schoolId as string
 
-  // Use UTC-day boundaries — matches the calendar page which also uses server-side UTC.
-  // Vercel runs in UTC, and lesson scheduledAt is stored in UTC, so this is correct.
+  // Use local-time day boundaries so the count matches what the calendar shows.
   const now        = new Date()
-  const todayStart = new Date(now); todayStart.setUTCHours(0, 0, 0, 0)
-  const todayEnd   = new Date(now); todayEnd.setUTCHours(23, 59, 59, 999)
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+  const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+  console.log('[getDashboardData] now:', now.toISOString(), 'todayStart:', todayStart.toISOString(), 'todayEnd:', todayEnd.toISOString())
 
   const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns] = await Promise.all([
 
@@ -138,6 +138,8 @@ export async function getDashboardData(): Promise<DashboardData> {
       take: 3,
     }),
   ])
+
+  console.log('[getDashboardData] todayLessons count:', todayLessons.length, todayLessons.map(l => l.scheduledAt.toISOString()))
 
   // For each concern, find the student's next lesson today (prefer upcoming, fall back to earliest past)
   const concernsWithLesson = await Promise.all(

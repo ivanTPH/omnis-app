@@ -4,6 +4,7 @@ import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
 import { useRouter } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
+import LessonFolder from './LessonFolder'
 import { rescheduleLesson, getWeekLessons } from '@/app/actions/lessons'
 
 // ── Time grid config ──────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ export default function WeeklyCalendar({
   const [weekStart,       setWeekStart]       = useState(() => getWeekStart(today))
   // Client-fetched lessons for non-current weeks; null = use server prop
   const [fetchedLessons,  setFetchedLessons]  = useState<CalendarLesson[] | null>(null)
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
 
   // Sync server prop → state when on current week (after router.refresh())
   useEffect(() => {
@@ -151,9 +153,9 @@ export default function WeeklyCalendar({
     return () => window.removeEventListener('mouseup', onUp)
   }, [])
 
-  // Single-click navigates to lesson detail page
+  // Single-click opens lesson detail as a right-side drawer
   function onLessonClick(id: string) {
-    router.push('/lessons/' + id)
+    setSelectedLessonId(id)
   }
 
   const HOURS = Array.from({ length: extEndHour - extStartHour }, (_, i) => extStartHour + i)
@@ -504,6 +506,23 @@ export default function WeeklyCalendar({
         teacherSubjects={teacherSubjects}
         onCreated={id => { setSlideOver(null); router.push('/lessons/' + id) }}
       />
+
+      {/* ── Lesson detail drawer ─────────────────────────────────────── */}
+      {selectedLessonId && (
+        <div className="fixed inset-y-0 right-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/30"
+            onClick={() => setSelectedLessonId(null)}
+          />
+          <div className="relative ml-auto w-full max-w-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
+            <LessonFolder
+              lessonId={selectedLessonId}
+              onClose={() => setSelectedLessonId(null)}
+              inline
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -764,7 +764,7 @@ ${typePrompt}`
     const client  = new Anthropic({ apiKey })
     const message = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
-      max_tokens: 2000,
+      max_tokens: 4000,
       system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
       messages:   [{ role: 'user', content: prompt }],
     })
@@ -986,7 +986,7 @@ export async function extractLearningFromLesson(lessonId: string): Promise<Learn
   try {
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 800,
       system: 'You are a UK curriculum expert. Extract learning requirements from lesson content and suggest appropriate homework types aligned to Bloom\'s Taxonomy. Return ONLY valid JSON, no markdown.',
       messages: [{
@@ -1098,7 +1098,7 @@ export async function generateHomeworkContent(input: {
   try {
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1500,
       system: 'You are a UK secondary school teacher creating homework content. Return ONLY valid JSON, no markdown fences.',
       messages: [{
@@ -1170,7 +1170,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
           `Q${i + 1}: ${q.question}\nModel answer: ${q.answer ?? q.modelAnswer}\nStudent answer: ${response.answers?.[i] ?? '(no answer)'}`
         ).join('\n\n')
         const msg = await client.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 600,
           system: 'You are a UK teacher marking homework. Score each answer fairly against the model answer. Return ONLY JSON.',
           messages: [{

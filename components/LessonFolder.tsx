@@ -435,8 +435,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         })))
       } else if (type === 'SHORT_ANSWER' && qs.length > 0) {
         setSaQuestions((qs as any[]).map(q => ({
-          q:                q.q                ?? '',
-          modelAnswer:      q.modelAnswer      ?? '',
+          q:                q.q                ?? q.question  ?? '',
+          modelAnswer:      q.modelAnswer      ?? q.answer    ?? '',
           markScheme:       q.markScheme       ?? undefined,
           marks:            q.marks            ?? undefined,
           scaffolding_hint: q.scaffolding_hint ?? undefined,

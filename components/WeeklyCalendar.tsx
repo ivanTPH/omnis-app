@@ -174,12 +174,13 @@ export default function WeeklyCalendar({
     : -1
 
   // Slot map: "dayIdx-hour" → lessons (used for drop targeting + "add lesson" hint)
+  // Use local date string comparison so BST/UTC offset never shifts a lesson to the wrong column.
   const slotMap = new Map<string, CalendarLesson[]>()
   for (const l of displayLessons) {
     const dt  = new Date(l.scheduledAt)
-    const di  = Math.round((dt.getTime() - weekStart.getTime()) / 86_400_000)
+    const di  = days.findIndex(d => toLocalDateStr(d) === toLocalDateStr(dt))
     const hr  = dt.getHours()
-    if (di >= 0 && di < 5 && hr >= extStartHour && hr < extEndHour) {
+    if (di >= 0 && hr >= extStartHour && hr < extEndHour) {
       const k = `${di}-${hr}`
       slotMap.set(k, [...(slotMap.get(k) ?? []), l])
     }
@@ -189,7 +190,7 @@ export default function WeeklyCalendar({
     const moved = displayLessons.find(l => l.id === id)
     if (!moved) continue
     const origDt  = new Date(moved.scheduledAt)
-    const origDi  = Math.round((origDt.getTime() - weekStart.getTime()) / 86_400_000)
+    const origDi  = days.findIndex(d => toLocalDateStr(d) === toLocalDateStr(origDt))
     const origKey = `${origDi}-${origDt.getHours()}`
     slotMap.set(origKey, (slotMap.get(origKey) ?? []).filter(l => l.id !== id))
     const newKey  = `${newDi}-${newHr}`

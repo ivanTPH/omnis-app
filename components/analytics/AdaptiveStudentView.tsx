@@ -34,7 +34,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
         setData(d)
         setNotes(d.learningFormatNotes ?? '')
       })
-      .catch(e => setError(e.message))
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load student data'))
       .finally(() => setLoading(false))
   }, [studentId, classId])
 
@@ -87,8 +87,12 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       <span className="text-sm">Loading student data…</span>
     </div>
   )
-  if (error)  return <p className="text-sm text-red-600">{error}</p>
-  if (!data)  return null
+  if (error || !data) return (
+    <div className="flex flex-col items-center gap-2 py-14 text-gray-400">
+      <Icon name="error_outline" size="lg" className="text-red-300" />
+      <p className="text-sm">{error || 'Could not load student data. Please go back and try again.'}</p>
+    </div>
+  )
 
   const redTopics   = data.topics.filter(t => t.myStatus === 'red')
   const greenTopics = data.topics.filter(t => t.myStatus === 'green')

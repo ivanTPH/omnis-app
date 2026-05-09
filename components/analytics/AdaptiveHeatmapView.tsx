@@ -47,7 +47,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
   useEffect(() => {
     getClassTopicHeatmap(classId)
       .then(d => { setData(d); setActiveTopic(null) })
-      .catch(e => setError(e.message))
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load topic data'))
       .finally(() => setLoading(false))
   }, [classId])
 
@@ -84,8 +84,12 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
       <span className="text-sm">Loading topic data…</span>
     </div>
   )
-  if (error)  return <p className="text-sm text-red-600">{error}</p>
-  if (!data)  return null
+  if (error || !data) return (
+    <div className="text-center py-14 text-gray-400">
+      <Icon name="error_outline" size="lg" className="mb-2 text-red-300" />
+      <p className="text-sm">{error || 'Could not load topic data. Please try again.'}</p>
+    </div>
+  )
 
   if (data.topics.length === 0) return (
     <div className="text-center py-14 text-gray-400">

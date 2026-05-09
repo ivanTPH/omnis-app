@@ -83,18 +83,28 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
 
   const completionByType = Object.entries(typeMap).map(([type, d]) => ({
     type,
-    completionRate: d.total > 0 ? Math.round((d.submitted / d.total) * 100) : 0,
+    completionRate: d.total > 0 ? d.submitted / d.total : 0,  // 0–1 ratio like ilpEvidenceRate
   }))
 
-  // ILP evidence rate
-  const totalIlpTargets = await prisma.ilpTarget.count({ where: { ilp: { schoolId, status: 'active' } } })
-  const linkedTargets = await prisma.ilpHomeworkLink.count({ where: { homework: { schoolId } } })
-  const ilpEvidenceRate = totalIlpTargets > 0 ? linkedTargets / totalIlpTargets : 0
+  // ILP evidence rate (wrapped so a schema mismatch doesn't crash the overview)
+  let ilpEvidenceRate = 0
+  let ehcpEvidenceRate = 0
+  try {
+    const [totalIlpTargets, linkedTargets] = await Promise.all([
+      prisma.ilpTarget.count({ where: { ilp: { schoolId, status: 'active' } } }),
+      prisma.ilpHomeworkLink.count({ where: { homework: { schoolId } } }),
+    ])
+    ilpEvidenceRate = totalIlpTargets > 0 ? linkedTargets / totalIlpTargets : 0
+  } catch { /* optional metric — don't crash overview */ }
 
   // EHCP evidence rate
-  const totalOutcomes = await prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' } } })
-  const outcomesWithEvidence = await prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' }, evidenceCount: { gt: 0 } } })
-  const ehcpEvidenceRate = totalOutcomes > 0 ? outcomesWithEvidence / totalOutcomes : 0
+  try {
+    const [totalOutcomes, outcomesWithEvidence] = await Promise.all([
+      prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' } } }),
+      prisma.ehcpOutcome.count({ where: { ehcp: { schoolId, status: 'active' }, evidenceCount: { gt: 0 } } }),
+    ])
+    ehcpEvidenceRate = totalOutcomes > 0 ? outcomesWithEvidence / totalOutcomes : 0
+  } catch { /* optional metric — don't crash overview */ }
 
   return { typeBreakdown, bloomsDistribution, completionByType, ilpEvidenceRate, ehcpEvidenceRate }
 }

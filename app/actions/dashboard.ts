@@ -1,6 +1,7 @@
 'use server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
 
 export type TodayLesson = {
   id: string
@@ -17,13 +18,24 @@ export type HomeworkToMark = {
   ungradedCount: number
 }
 
+export type ConcernHomeworkEvidence = {
+  id: string          // homework id
+  submissionId: string
+  title: string
+  dueAt: string
+}
+
 export type OpenConcern = {
   id: string
   studentId: string
   studentName: string
   description: string
+  category: string
+  status: string
+  evidenceNotes: string | null
   createdAt: string
   todayLesson: { scheduledAt: string; className: string } | null
+  recentHomework: ConcernHomeworkEvidence[]
 }
 
 export type DashboardData = {
@@ -128,11 +140,14 @@ export async function getDashboardData(): Promise<DashboardData> {
         status:   { in: ['open', 'under_review'] },
       },
       select: {
-        id:          true,
-        studentId:   true,
-        description: true,
-        createdAt:   true,
-        student:     { select: { firstName: true, lastName: true } },
+        id:            true,
+        studentId:     true,
+        description:   true,
+        category:      true,
+        status:        true,
+        evidenceNotes: true,
+        createdAt:     true,
+        student:       { select: { firstName: true, lastName: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 3,
@@ -141,8 +156,8 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   console.log('[getDashboardData] todayLessons count:', todayLessons.length, todayLessons.map(l => l.scheduledAt.toISOString()))
 
-  // For each concern, find the student's next lesson today (prefer upcoming, fall back to earliest past)
-  const concernsWithLesson = await Promise.all(
+  // For each concern, find today's lesson + recent homework evidence in parallel
+  const concernsWithData = await Promise.all(
     concerns.map(async c => {
       const lessonSelect = { scheduledAt: true, class: { select: { name: true } } } as const
       const baseWhere = {
@@ -150,19 +165,43 @@ export async function getDashboardData(): Promise<DashboardData> {
         scheduledAt: { gte: todayStart, lte: todayEnd },
         class: { enrolments: { some: { userId: c.studentId } } },
       }
-      // Prefer next upcoming lesson
-      const upcoming = await prisma.lesson.findFirst({
-        where: { ...baseWhere, scheduledAt: { gte: now, lte: todayEnd } },
-        select: lessonSelect,
-        orderBy: { scheduledAt: 'asc' },
-      })
-      // Fall back to the earliest lesson today if all are in the past
+
+      const [upcoming, recentSubs] = await Promise.all([
+        // Next upcoming lesson for the student today
+        prisma.lesson.findFirst({
+          where: { ...baseWhere, scheduledAt: { gte: now, lte: todayEnd } },
+          select: lessonSelect,
+          orderBy: { scheduledAt: 'asc' },
+        }),
+        // Recent homework submissions from this student on teacher's homework
+        prisma.submission.findMany({
+          where: {
+            schoolId,
+            studentId: c.studentId,
+            homework: {
+              OR: [
+                { createdBy: userId },
+                { class: { teachers: { some: { userId } } } },
+              ],
+            },
+          },
+          select: {
+            id: true,
+            homework: { select: { id: true, title: true, dueAt: true } },
+          },
+          orderBy: { submittedAt: 'desc' },
+          take: 3,
+        }),
+      ])
+
+      // Fall back to earliest lesson today if all in the past
       const lesson = upcoming ?? await prisma.lesson.findFirst({
         where: baseWhere,
         select: lessonSelect,
         orderBy: { scheduledAt: 'asc' },
       })
-      return { concern: c, lesson }
+
+      return { concern: c, lesson, recentSubs }
     }),
   )
 
@@ -182,15 +221,115 @@ export async function getDashboardData(): Promise<DashboardData> {
     })),
     submissionsToday:  subsTodayCount,
     openConcernsCount: concernsCount,
-    openConcerns: concernsWithLesson.map(({ concern: c, lesson }) => ({
-      id:          c.id,
-      studentId:   c.studentId,
-      studentName: `${c.student.firstName} ${c.student.lastName}`,
-      description: c.description,
-      createdAt:   c.createdAt.toISOString(),
-      todayLesson: lesson
+    openConcerns: concernsWithData.map(({ concern: c, lesson, recentSubs }) => ({
+      id:            c.id,
+      studentId:     c.studentId,
+      studentName:   `${c.student.firstName} ${c.student.lastName}`,
+      description:   c.description,
+      category:      c.category,
+      status:        c.status,
+      evidenceNotes: c.evidenceNotes,
+      createdAt:     c.createdAt.toISOString(),
+      todayLesson:   lesson
         ? { scheduledAt: lesson.scheduledAt.toISOString(), className: lesson.class?.name ?? '—' }
         : null,
+      recentHomework: recentSubs.map(s => ({
+        id:           s.homework.id,
+        submissionId: s.id,
+        title:        s.homework.title,
+        dueAt:        s.homework.dueAt.toISOString(),
+      })),
     })),
   }
+}
+
+// ─── Concern actions (for raising teacher from dashboard) ─────────────────────
+
+export async function addConcernNote(concernId: string, note: string): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId   = (session.user as any).id as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const schoolId = (session.user as any).schoolId as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const firstName = (session.user as any).firstName as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lastName  = (session.user as any).lastName  as string
+
+  const concern = await prisma.sendConcern.findFirst({
+    where: { id: concernId, schoolId, raisedBy: userId },
+    select: { id: true, evidenceNotes: true },
+  })
+  if (!concern) throw new Error('Concern not found or not yours')
+
+  const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  const prefix  = `[${firstName} ${lastName} – ${dateStr}]:`
+  const appended = concern.evidenceNotes
+    ? `${concern.evidenceNotes}\n\n${prefix} ${note.trim()}`
+    : `${prefix} ${note.trim()}`
+
+  await prisma.sendConcern.update({
+    where: { id: concernId },
+    data:  { evidenceNotes: appended },
+  })
+
+  revalidatePath('/dashboard')
+}
+
+export async function escalateConcernToStaff(
+  concernId: string,
+  targetRoles: string[],
+  message: string,
+): Promise<{ notified: number }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId    = (session.user as any).id as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const schoolId  = (session.user as any).schoolId as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const firstName = (session.user as any).firstName as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lastName  = (session.user as any).lastName  as string
+
+  const concern = await prisma.sendConcern.findFirst({
+    where: { id: concernId, schoolId },
+    select: { id: true, studentId: true, category: true },
+  })
+  if (!concern) throw new Error('Concern not found')
+
+  const student = await prisma.user.findUnique({
+    where: { id: concern.studentId },
+    select: { firstName: true, lastName: true },
+  })
+  const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+
+  const recipients = await prisma.user.findMany({
+    where: { schoolId, isActive: true, role: { in: targetRoles as never[] } },
+    select: { id: true },
+  })
+
+  if (recipients.length === 0) return { notified: 0 }
+
+  await prisma.sendNotification.createMany({
+    data: recipients.map(r => ({
+      schoolId,
+      recipientId: r.id,
+      concernId,
+      type:  'concern_escalated',
+      title: `Concern escalated: ${studentName}`,
+      body:  `${firstName} ${lastName} has escalated a ${concern.category} concern about ${studentName}. Message: ${message.slice(0, 200)}`,
+    })),
+    skipDuplicates: true,
+  })
+
+  // Mark concern as escalated
+  await prisma.sendConcern.update({
+    where: { id: concernId },
+    data:  { status: 'escalated' },
+  })
+
+  revalidatePath('/dashboard')
+  return { notified: recipients.length }
 }

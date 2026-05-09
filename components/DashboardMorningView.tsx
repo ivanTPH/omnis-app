@@ -1,7 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { getDashboardData, type DashboardData } from '@/app/actions/dashboard'
+import { getDashboardData, addConcernNote, escalateConcernToStaff, type DashboardData, type OpenConcern } from '@/app/actions/dashboard'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatCardSkeleton, StudentListSkeleton, HomeworkCardSkeleton } from '@/components/ui/skeletons'
@@ -34,12 +34,244 @@ function StatCard({
   )
 }
 
+const CATEGORY_LABELS: Record<string, string> = {
+  literacy:         'Literacy',
+  numeracy:         'Numeracy',
+  behaviour:        'Behaviour',
+  attendance:       'Attendance',
+  social_emotional: 'Social/Emotional',
+  communication:    'Communication',
+  physical:         'Physical',
+  sensory:          'Sensory',
+  other:            'Other',
+}
+
+const CATEGORY_COLOURS: Record<string, string> = {
+  literacy:         'bg-blue-100 text-blue-700',
+  numeracy:         'bg-purple-100 text-purple-700',
+  behaviour:        'bg-orange-100 text-orange-700',
+  attendance:       'bg-yellow-100 text-yellow-700',
+  social_emotional: 'bg-pink-100 text-pink-700',
+  communication:    'bg-teal-100 text-teal-700',
+  physical:         'bg-green-100 text-green-700',
+  sensory:          'bg-indigo-100 text-indigo-700',
+  other:            'bg-gray-100 text-gray-700',
+}
+
+const ESCALATION_TARGETS = [
+  { label: 'Notify SENCO',         roles: ['SENCO'],                    icon: 'support_agent' },
+  { label: 'Notify Head of Year',  roles: ['HEAD_OF_YEAR'],             icon: 'school' },
+  { label: 'Notify Safeguarding',  roles: ['SLT', 'HEAD_OF_YEAR'],      icon: 'shield' },
+]
+
+function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: () => void }) {
+  const [expanded,       setExpanded]       = useState(false)
+  const [note,           setNote]           = useState('')
+  const [escalateMsg,    setEscalateMsg]    = useState('')
+  const [showEscalate,   setShowEscalate]   = useState(false)
+  const [successMsg,     setSuccessMsg]     = useState('')
+  const [isPending,      startTransition]   = useTransition()
+
+  function flash(msg: string) {
+    setSuccessMsg(msg)
+    setTimeout(() => setSuccessMsg(''), 3500)
+  }
+
+  function handleAddNote() {
+    if (!note.trim()) return
+    startTransition(async () => {
+      try {
+        await addConcernNote(concern.id, note.trim())
+        setNote('')
+        flash('Note added.')
+        onUpdate()
+      } catch {
+        flash('Failed to save note.')
+      }
+    })
+  }
+
+  function handleEscalate(roles: string[]) {
+    if (!escalateMsg.trim()) return
+    startTransition(async () => {
+      try {
+        const result = await escalateConcernToStaff(concern.id, roles, escalateMsg.trim())
+        setEscalateMsg('')
+        setShowEscalate(false)
+        flash(`Escalated — ${result.notified} staff member${result.notified !== 1 ? 's' : ''} notified.`)
+        onUpdate()
+      } catch {
+        flash('Failed to send escalation.')
+      }
+    })
+  }
+
+  const catLabel  = CATEGORY_LABELS[concern.category]  ?? concern.category
+  const catColour = CATEGORY_COLOURS[concern.category] ?? 'bg-gray-100 text-gray-700'
+
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 mb-2 last:mb-0 overflow-hidden">
+      {/* Header row — always visible */}
+      <button
+        type="button"
+        className="w-full flex items-start gap-3 p-3 hover:bg-red-100 transition-colors text-left"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <Icon name="flag" size="sm" className="text-red-500 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-data font-medium">{concern.studentName}</p>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${catColour}`}>{catLabel}</span>
+          </div>
+          <p className={`text-meta mt-0.5 ${expanded ? '' : 'truncate'}`}>{concern.description}</p>
+          {!expanded && concern.todayLesson && (
+            <p className="text-meta mt-0.5 text-blue-600">
+              Next in class: {concern.todayLesson.className} at {formatTime(concern.todayLesson.scheduledAt)}
+            </p>
+          )}
+        </div>
+        <Icon
+          name="expand_more"
+          size="sm"
+          className={`text-red-400 shrink-0 mt-0.5 transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {/* Expanded body */}
+      {expanded && (
+        <div className="border-t border-red-200 bg-white px-4 pb-4 pt-3 space-y-4">
+
+          {/* Raised info */}
+          <p className="text-xs text-gray-400">Raised {formatDate(concern.createdAt)} · Status: <span className="capitalize">{concern.status.replace('_', ' ')}</span></p>
+
+          {/* Today's lesson */}
+          {concern.todayLesson ? (
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <Icon name="schedule" size="sm" className="shrink-0" />
+              <span>Next in class: <strong>{concern.todayLesson.className}</strong> at {formatTime(concern.todayLesson.scheduledAt)}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-gray-400">
+              <Icon name="schedule" size="sm" className="shrink-0" />
+              <span>Not in your class today</span>
+            </div>
+          )}
+
+          {/* Existing evidence notes */}
+          {concern.evidenceNotes && (
+            <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
+              <p className="text-xs font-semibold text-amber-700 mb-1">Evidence notes</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{concern.evidenceNotes}</p>
+            </div>
+          )}
+
+          {/* Homework evidence links */}
+          {concern.recentHomework.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-1">Recent homework submissions</p>
+              <div className="space-y-1">
+                {concern.recentHomework.map(hw => (
+                  <Link
+                    key={hw.submissionId}
+                    href={`/homework/${hw.id}/mark`}
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    <Icon name="assignment_turned_in" size="sm" className="shrink-0 text-gray-400" />
+                    {hw.title}
+                    <span className="text-gray-400">· due {formatDate(hw.dueAt)}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add note */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 mb-1">Add a note</p>
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Add an observation or update to this concern…"
+              rows={2}
+              className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            <button
+              type="button"
+              disabled={!note.trim() || isPending}
+              onClick={handleAddNote}
+              className="mt-1 text-xs font-medium bg-gray-800 text-white px-3 py-1.5 rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
+            >
+              {isPending ? 'Saving…' : 'Save note'}
+            </button>
+          </div>
+
+          {/* Escalate section */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowEscalate(v => !v)}
+              className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-800"
+            >
+              <Icon name="send" size="sm" />
+              {showEscalate ? 'Cancel escalation' : 'Escalate / notify staff'}
+            </button>
+
+            {showEscalate && (
+              <div className="mt-2 space-y-2">
+                <textarea
+                  value={escalateMsg}
+                  onChange={e => setEscalateMsg(e.target.value)}
+                  placeholder="Add a message for the recipient…"
+                  rows={2}
+                  className="w-full text-sm border border-red-200 rounded-md px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-red-300"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {ESCALATION_TARGETS.map(t => (
+                    <button
+                      key={t.label}
+                      type="button"
+                      disabled={!escalateMsg.trim() || isPending}
+                      onClick={() => handleEscalate(t.roles)}
+                      className="flex items-center gap-1.5 text-xs font-medium bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                    >
+                      <Icon name={t.icon} size="sm" />
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Success / error flash */}
+          {successMsg && (
+            <p className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">
+              {successMsg}
+            </p>
+          )}
+
+          {/* Link to student profile */}
+          <Link
+            href={`/students/${concern.studentId}`}
+            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            <Icon name="person" size="sm" />
+            View full student profile
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DashboardMorningView({ firstName, role }: { firstName: string; role: string }) {
   const [data, setData] = useState<DashboardData | null>(null)
 
-  useEffect(() => {
+  function load() {
     getDashboardData().then(setData).catch(console.error)
-  }, [])
+  }
+
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -182,25 +414,7 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
             )}
           </div>
           {data.openConcerns.map(concern => (
-            <Link
-              key={concern.id}
-              href={`/students/${concern.studentId}`}
-              className="flex items-start gap-3 p-3 rounded-lg bg-red-50 border border-red-100 mb-2 last:mb-0 hover:bg-red-100 transition-colors group"
-            >
-              <Icon name="flag" size="sm" className="text-red-500 mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-data">{concern.studentName}</p>
-                <p className="text-meta truncate">{concern.description}</p>
-                {concern.todayLesson ? (
-                  <p className="text-meta mt-1">
-                    Next in class: {concern.todayLesson.className} at {formatTime(concern.todayLesson.scheduledAt)}
-                  </p>
-                ) : (
-                  <p className="text-meta mt-1">Not in class today</p>
-                )}
-              </div>
-              <Icon name="chevron_right" size="sm" className="text-red-300 group-hover:text-red-500 shrink-0 mt-0.5" />
-            </Link>
+            <ConcernCard key={concern.id} concern={concern} onUpdate={load} />
           ))}
         </div>
       )}

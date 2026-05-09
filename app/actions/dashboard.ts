@@ -150,7 +150,6 @@ export async function getDashboardData(): Promise<DashboardData> {
         student:       { select: { firstName: true, lastName: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 3,
     }),
   ])
 

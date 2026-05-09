@@ -16,12 +16,13 @@ function formatDate(iso: string) {
 }
 
 function StatCard({
-  label, value, icon, trend, iconDanger,
+  label, value, icon, trend, iconDanger, href, anchor,
 }: {
   label: string; value: number; icon: string; trend: string; iconDanger?: boolean
+  href?: string; anchor?: string
 }) {
-  return (
-    <div className="card-stat">
+  const inner = (
+    <>
       <div className="flex items-center justify-between">
         <p className="text-label">{label}</p>
         <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
@@ -30,8 +31,26 @@ function StatCard({
       </div>
       <p className="text-3xl font-semibold text-gray-900 mt-2">{value}</p>
       <p className="text-meta mt-1">{trend}</p>
-    </div>
+    </>
   )
+
+  const base = 'card-stat block transition-shadow'
+
+  if (href) {
+    return <Link href={href} className={`${base} hover:shadow-md`}>{inner}</Link>
+  }
+  if (anchor) {
+    return (
+      <button
+        type="button"
+        onClick={() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        className={`${base} w-full text-left hover:shadow-md cursor-pointer`}
+      >
+        {inner}
+      </button>
+    )
+  }
+  return <div className={base}>{inner}</div>
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -305,18 +324,21 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
               label="TODAY'S LESSONS"
               value={data.todaysLessons.length}
               trend={nextLesson}
+              anchor="today-lessons"
             />
             <StatCard
               icon="assignment"
               label="TO MARK"
               value={data.homeworkToMark.length}
               trend={`${totalUngraded} submission${totalUngraded !== 1 ? 's' : ''} waiting`}
+              anchor="homework-mark"
             />
             <StatCard
               icon="inbox"
               label="SUBMITTED TODAY"
               value={data.submissionsToday}
               trend={data.submissionsToday === 0 ? 'None yet today' : `Across ${data.homeworkToMark.length} assignment${data.homeworkToMark.length !== 1 ? 's' : ''}`}
+              href="/homework"
             />
             <StatCard
               icon="flag"
@@ -324,6 +346,7 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
               value={data.openConcernsCount}
               trend={data.openConcernsCount > 0 ? 'Requires attention' : 'All clear'}
               iconDanger={data.openConcernsCount > 0}
+              anchor="open-concerns"
             />
           </>
         )}
@@ -333,7 +356,7 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* LEFT — Today's lessons */}
-        <div className="card">
+        <div id="today-lessons" className="card">
           <p className="text-section-header mb-4">Today&apos;s Lessons</p>
           {!data ? (
             <StudentListSkeleton />
@@ -364,7 +387,7 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
         </div>
 
         {/* RIGHT — Homework to mark */}
-        <div className="card">
+        <div id="homework-mark" className="card">
           <p className="text-section-header mb-4">Homework to Mark</p>
           {!data ? (
             <div className="space-y-3">
@@ -404,7 +427,7 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
 
       {/* ROW 3 — open concerns (only when flagCount > 0) */}
       {data && data.openConcernsCount > 0 && (
-        <div className="card mt-6">
+        <div id="open-concerns" className="card mt-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-section-header">Open Concerns</p>
             {['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role) && (

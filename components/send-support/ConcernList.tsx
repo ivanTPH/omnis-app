@@ -30,6 +30,45 @@ const CATEGORY_COLOURS: Record<string, string> = {
   other:            'bg-gray-100 text-gray-700',
 }
 
+// ── 3-section grouping ──────────────────────────────────────────────────────
+export const CONCERN_SECTIONS = [
+  {
+    key:         'homework',
+    label:       'Homework',
+    icon:        'assignment',
+    categories:  ['attendance', 'behaviour'],
+    headerClass: 'bg-amber-50 border-amber-200',
+    badgeClass:  'bg-amber-200 text-amber-800',
+    iconClass:   'text-amber-500',
+    description: 'Non-submission, late work, and behavioural issues linked to homework engagement',
+  },
+  {
+    key:         'send_needs',
+    label:       'SEND Needs',
+    icon:        'support_agent',
+    categories:  ['social_emotional', 'communication', 'physical', 'sensory'],
+    headerClass: 'bg-violet-50 border-violet-200',
+    badgeClass:  'bg-violet-200 text-violet-800',
+    iconClass:   'text-violet-500',
+    description: 'Concerns relating to the student\'s identified SEND requirements',
+  },
+  {
+    key:         'learning_journey',
+    label:       'Not Meeting Learning Journey Targets',
+    icon:        'trending_down',
+    categories:  ['literacy', 'numeracy', 'other'],
+    headerClass: 'bg-red-50 border-red-200',
+    badgeClass:  'bg-red-200 text-red-800',
+    iconClass:   'text-red-500',
+    description: 'Concerns where the student is not meeting curriculum or ILP targets',
+  },
+] as const
+
+export function sectionForCategory(category: string) {
+  return CONCERN_SECTIONS.find(s => (s.categories as readonly string[]).includes(category))
+    ?? CONCERN_SECTIONS[2]
+}
+
 export function ConcernStatusBadge({ status }: { status: string }) {
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${STATUS_COLOURS[status] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -55,13 +94,14 @@ type AddActionState = {
 }
 
 type Props = {
-  concerns: ConcernRow[]
-  isSenco?: boolean
-  staffList?: { id: string; name: string; role: string }[]
-  onRefresh?: () => void
+  concerns:       ConcernRow[]
+  isSenco?:       boolean
+  staffList?:     { id: string; name: string; role: string }[]
+  onRefresh?:     () => void
+  groupBySection?: boolean
 }
 
-export default function ConcernList({ concerns, isSenco = false, staffList = [], onRefresh }: Props) {
+export default function ConcernList({ concerns, isSenco = false, staffList = [], onRefresh, groupBySection = false }: Props) {
   const [expanded,           setExpanded]           = useState<Set<string>>(new Set())
   const [reviewing,          setReviewing]           = useState<ConcernRow | null>(null)
   const [addingAction,       setAddingAction]        = useState<string | null>(null)
@@ -119,6 +159,117 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
     )
   }
 
+  // ── Sectioned renderer ──────────────────────────────────────────────────────
+  if (groupBySection) {
+    return (
+      <>
+        <div className="space-y-4">
+          {CONCERN_SECTIONS.map(section => {
+            const sectionConcerns = localConcerns.filter(c =>
+              (section.categories as readonly string[]).includes(c.category)
+            )
+            return (
+              <div key={section.key} className={`rounded-xl border overflow-hidden ${section.headerClass}`}>
+                <div className={`px-4 py-3 border-b flex items-center gap-2 ${section.headerClass}`}>
+                  <Icon name={section.icon} size="sm" className={section.iconClass} />
+                  <div className="flex-1">
+                    <h3 className="text-[13px] font-bold text-gray-900">{section.label}</h3>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{section.description}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${section.badgeClass}`}>
+                    {sectionConcerns.length}
+                  </span>
+                </div>
+                {sectionConcerns.length === 0 ? (
+                  <div className="px-4 py-3 bg-white">
+                    <p className="text-[12px] text-gray-400 italic">No concerns in this category.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white divide-y divide-gray-50">
+                    {sectionConcerns.map(c => {
+                      const isOpen = expanded.has(c.id)
+                      const initials = c.studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                      return (
+                        <SencoRow
+                          key={c.id}
+                          studentName={c.studentName}
+                          studentInitials={initials}
+                          avatarColour="bg-indigo-400"
+                          studentHref={`/students/${c.studentId}`}
+                          badges={[
+                            {
+                              label:       c.category.replace(/_/g, ' '),
+                              variant:     'custom',
+                              customClass: `text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORY_COLOURS[c.category] ?? 'bg-gray-100 text-gray-700'}`,
+                            },
+                            {
+                              label:       c.status.replace(/_/g, ' '),
+                              variant:     'custom',
+                              customClass: `text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLOURS[c.status] ?? 'bg-gray-100 text-gray-600'}`,
+                            },
+                          ]}
+                          meta={[
+                            { label: 'CLASS',     value: c.className ?? '—' },
+                            { label: 'RAISED BY', value: c.raiserName },
+                          ]}
+                          rightContent={
+                            <>
+                              <button
+                                onClick={() => setContactStudentId(c.studentId)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50"
+                              >
+                                <Icon name="person" size="sm" /> Profile
+                              </button>
+                              {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
+                                <button
+                                  onClick={() => setReviewing(c)}
+                                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700"
+                                >
+                                  Review
+                                </button>
+                              )}
+                            </>
+                          }
+                          isExpanded={isOpen}
+                          onToggle={() => toggle(c.id)}
+                        >
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 mb-1">Description</p>
+                              <p className="text-sm text-gray-800">{c.description}</p>
+                            </div>
+                            {c.evidenceNotes && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 mb-1">Evidence / observations</p>
+                                <p className="text-sm text-gray-800">{c.evidenceNotes}</p>
+                              </div>
+                            )}
+                            {c.reviewNotes && (
+                              <div>
+                                <p className="text-xs font-medium text-gray-500 mb-1">SENCO review notes</p>
+                                <p className="text-sm text-gray-800">{c.reviewNotes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </SencoRow>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {reviewing && (
+          <ConcernReviewModal concern={reviewing} onClose={() => { setReviewing(null); onRefresh?.() }} />
+        )}
+        <StudentContactPanel studentId={contactStudentId} onClose={() => setContactStudentId(null)} />
+      </>
+    )
+  }
+
+  // ── Flat renderer (default) ─────────────────────────────────────────────────
   return (
     <>
       <div className="space-y-0">

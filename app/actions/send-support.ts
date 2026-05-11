@@ -2986,7 +2986,7 @@ export async function generateIlpGoalsForStudent(
   const [student, sendStatus, baselines, learningProfile, recentSubmissions] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: studentId },
-      select: { firstName: true, lastName: true },
+      select: { firstName: true, lastName: true, yearGroup: true },
     }),
     prisma.sendStatus.findUnique({
       where:  { studentId },
@@ -3027,6 +3027,18 @@ export async function generateIlpGoalsForStudent(
   const sendCategory = sendStatus.needArea ?? sendStatus.activeStatus
   const subject      = baselines[0]?.subject ?? 'General'
   const baselinePct  = baselines[0]?.baselineScore ?? null
+  const yearGroup    = student.yearGroup ?? null
+
+  // ── Fetch Year Group Plan for curriculum alignment ─────────────────────────
+  const yearPlanRecord = yearGroup && subject !== 'General'
+    ? await prisma.yearGroupPlan.findUnique({
+        where: { schoolId_yearGroup_subject: { schoolId: user.schoolId, yearGroup, subject } },
+        select: { planContent: true, status: true },
+      })
+    : null
+  const yearPlanContent = yearPlanRecord && yearPlanRecord.status !== 'DRAFT'
+    ? yearPlanRecord.planContent.slice(0, 1000)
+    : null
 
   // Build adaptive context for AI prompt
   const adaptiveContext = [
@@ -3097,8 +3109,8 @@ export async function generateIlpGoalsForStudent(
 
 Student: ${studentName}
 SEND need: ${sendCategory}
-Primary subject: ${subject}${baselinePct != null ? `\nBaseline score: ${baselinePct}% (GCSE 0–100 scale)` : ''}
-${adaptiveContext ? `\n${adaptiveContext}` : ''}
+Primary subject: ${subject}${yearGroup ? ` Year ${yearGroup}` : ''}${baselinePct != null ? `\nBaseline score: ${baselinePct}% (GCSE 0–100 scale)` : ''}
+${adaptiveContext ? `\n${adaptiveContext}` : ''}${yearPlanContent ? `\n\nYear Group Scheme of Work (curriculum objectives for ${subject} Year ${yearGroup}):\n${yearPlanContent}\n\nIMPORTANT: Each ILP target must be directly grounded in the scheme of work objectives above. The student must remain on the same curriculum path as peers — ILP targets support access to these objectives, they do not replace them.` : ''}
 
 Write exactly 3 SMART ILP targets tailored to this student's specific SEND need, subject, and adaptive learning profile.
 Each target must:
@@ -3106,6 +3118,7 @@ Each target must:
 - Reference the student's working-at grade and predicted grade where relevant (to set grade-progression milestones)
 - Use the student's preferred homework formats in teacher strategies where applicable
 - Address identified development areas alongside their strengths
+- Align with the year group scheme of work objectives (student stays on the same curriculum path)
 
 Return ONLY valid JSON — no markdown, no explanation:
 [

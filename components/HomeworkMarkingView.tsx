@@ -224,7 +224,7 @@ type IlpClassification = {
 
 // ── main component ─────────────────────────────────────────────────────────────
 
-export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWData; canGrade?: boolean }) {
+export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = null }: { hw: HWData; canGrade?: boolean; yearPlan?: string | null }) {
   const enrolled       = hw.class?.enrolments ?? []
   const maxScore       = maxFromBands(hw.gradingBands)
   const sendByStudent  = hw.sendByStudent
@@ -1332,43 +1332,74 @@ export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWDat
 
               {/* AI Suggested Mark section */}
               {isAutoMarkedPending && (
-                <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
-                  <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-                    <Icon name="smart_toy" size="sm" className="text-amber-600 shrink-0" />
-                    <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
-                    <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
-                      {selectedAutoMarked ? 'Auto-marked' : 'AI score available'}
+                <div className="rounded-xl overflow-hidden border-2 border-amber-400 shadow-sm">
+                  {/* Header banner */}
+                  <div className="px-4 py-2.5 bg-amber-400 flex items-center gap-2">
+                    <Icon name="smart_toy" size="sm" className="text-white shrink-0" />
+                    <span className="text-[12px] font-bold text-white uppercase tracking-wide">AI Suggested Grade</span>
+                    <span className="ml-auto text-[10px] font-bold bg-white text-amber-700 px-2 py-0.5 rounded-full">
+                      NOT YET SENT
                     </span>
                   </div>
-                  <div className="px-4 py-3 space-y-2">
+
+                  {/* Warning notice */}
+                  <div className="px-4 pt-3 pb-2 bg-amber-50 border-b border-amber-200">
+                    <p className="text-[12px] text-amber-800 leading-snug">
+                      <strong>This grade and feedback have not been sent to the student.</strong>{' '}
+                      Review the suggestion below, edit the form if needed, then click <em>Return to Student</em> when ready.
+                    </p>
+                  </div>
+
+                  {/* AI grade + feedback */}
+                  <div className="px-4 py-3 bg-amber-50 space-y-3">
                     {selectedAutoScore != null && (() => {
                       const isLegacyPct = selectedAutoScore > maxScore && maxScore <= 20
-                      const rawScore = isLegacyPct ? Math.round((selectedAutoScore / 100) * maxScore) : selectedAutoScore
                       const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
+                      const grade = percentToGcseGrade(pct)
+                      const letter = GCSE_LETTERS[grade] ?? ''
                       return (
-                        <p className="text-sm text-amber-900">
-                          AI score: <strong>{gcseGradeLabel(percentToGcseGrade(pct))}</strong>
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <div className={`flex items-center justify-center w-12 h-12 rounded-xl text-xl font-black border-2 ${
+                            grade >= 7 ? 'bg-green-100 border-green-400 text-green-800' :
+                            grade >= 4 ? 'bg-amber-100 border-amber-400 text-amber-800' :
+                                         'bg-red-100 border-red-400 text-red-800'
+                          }`}>
+                            {grade}
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Suggested Grade</p>
+                            <p className="text-sm font-bold text-gray-900">Grade {grade} {letter ? `(${letter})` : ''}</p>
+                          </div>
+                        </div>
                       )
                     })()}
+
                     {selectedAutoFeedback && (
-                      <p className="text-xs text-amber-800 leading-relaxed line-clamp-3">
-                        {selectedAutoFeedback}
-                      </p>
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Suggested Feedback</p>
+                        <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-line bg-white border border-amber-200 rounded-lg px-3 py-2.5">
+                          {selectedAutoFeedback}
+                        </p>
+                      </div>
                     )}
-                    <div className="flex gap-2 pt-1">
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-3 pt-1">
                       <button
                         onClick={handleApprove}
                         disabled={isPending}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
                       >
                         {isPending
                           ? <Icon name="refresh" size="sm" className="animate-spin" />
                           : <Icon name="check_circle" size="sm" />
                         }
-                        Approve &amp; Return
+                        Approve &amp; Return to Student
                       </button>
-                      <p className="flex items-center text-[11px] text-amber-700 px-2">or edit below ↓</p>
+                      <span className="text-[11px] text-amber-700 font-medium flex items-center gap-1">
+                        <Icon name="edit" size="sm" />
+                        or edit the form below first
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1377,10 +1408,16 @@ export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWDat
               {/* marking form — teacher only */}
               {canGrade ? (
               <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
                   <p className="text-[12px] font-semibold text-gray-700">
-                    {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit before returning' : 'Mark Submission'}
+                    {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit AI Suggestion (Optional)' : 'Mark Submission'}
                   </p>
+                  {isAutoMarkedPending && (
+                    <span className="ml-auto text-[10px] text-amber-600 font-medium flex items-center gap-1">
+                      <Icon name="info" size="sm" />
+                      Pre-filled from AI — adjust if needed
+                    </span>
+                  )}
                 </div>
                 <div className="px-4 py-4 space-y-4">
 
@@ -1484,7 +1521,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWDat
                     >
                       {isPending && <Icon name="refresh" size="sm" className="animate-spin" />}
                       {isAutoMarkedPending
-                        ? 'Confirm & Return'
+                        ? 'Save Edits & Return to Student'
                         : isReturned ? '✓ Returned — Edit & Resend'
                         : isAlreadyMarked ? 'Update & Return'
                         : 'Mark & Return'
@@ -1679,7 +1716,15 @@ export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWDat
               {/* ILP SMART goals */}
               {ilpTargets.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">ILP Goals</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">ILP Goals</p>
+                    {yearPlan && (
+                      <span className="text-[9px] font-semibold text-blue-500 flex items-center gap-0.5">
+                        <Icon name="menu_book" size="sm" />
+                        Year Plan aligned
+                      </span>
+                    )}
+                  </div>
                   <div className="space-y-2.5">
                     {visibleTargets.map(target => (
                       <div key={target.id} className={`border rounded-lg p-3 ${
@@ -1877,6 +1922,27 @@ export default function HomeworkMarkingView({ hw, canGrade = true }: { hw: HWDat
                 <Icon name="close" size="md" />
               </button>
             </div>
+
+            {/* Year Plan alignment banner */}
+            {yearPlan && (
+              <details className="border-b border-blue-100 bg-blue-50 group shrink-0">
+                <summary className="px-4 py-2.5 flex items-center gap-2 cursor-pointer list-none">
+                  <Icon name="menu_book" size="sm" className="text-blue-500 shrink-0" />
+                  <span className="text-[11px] font-semibold text-blue-700 flex-1">
+                    ILP targets are aligned to the Year Group Scheme of Work
+                  </span>
+                  <Icon name="expand_more" size="sm" className="text-blue-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="px-4 pb-3 pt-1">
+                  <p className="text-[11px] text-blue-600 leading-relaxed line-clamp-4 whitespace-pre-line">
+                    {yearPlan}
+                  </p>
+                  <p className="text-[10px] text-blue-400 mt-1 italic">
+                    Evidence recorded here links to both the student's ILP targets and the shared curriculum objectives above.
+                  </p>
+                </div>
+              </details>
+            )}
 
             {ilpClassifying ? (
               <div className="flex items-center justify-center py-12 gap-2 text-gray-400">

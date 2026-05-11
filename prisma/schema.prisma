@@ -416,6 +416,8 @@ model SchoolClass {
   subject    String
   yearGroup  Int
   department String
+  examBoard  String?
+  examModules String[]
 
   teachers              ClassTeacher[]
   enrolments            Enrolment[]
@@ -1484,7 +1486,9 @@ model UserSettings {
   bio               String?
 
   // Professional
-  defaultSubject String?
+  defaultSubject     String?
+  preferredExamBoard String?
+  teachingModules    String[]
 
   // Privacy & Notifications
   allowEmailNotifications    Boolean @default(true)

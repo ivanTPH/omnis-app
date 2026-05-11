@@ -741,7 +741,7 @@ export async function getClassSummaries(
 export type TeacherDefaults = {
   teacherName:    string
   teacherUserId:  string
-  teacherClasses: { id: string; name: string; subject: string; yearGroup: number }[]
+  teacherClasses: { id: string; name: string; subject: string; yearGroup: number; examBoard: string | null; examModules: string[] }[]
 }
 
 export async function getTeacherDefaults(): Promise<TeacherDefaults> {
@@ -751,14 +751,17 @@ export async function getTeacherDefaults(): Promise<TeacherDefaults> {
 
   const classes = await prisma.schoolClass.findMany({
     where:   { schoolId, teachers: { some: { userId } } },
-    select:  { id: true, name: true, subject: true, yearGroup: true },
+    select:  { id: true, name: true, subject: true, yearGroup: true, examBoard: true, examModules: true } as any,
     orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
   })
 
   return {
     teacherName:    `${firstName} ${lastName}`,
     teacherUserId:  userId,
-    teacherClasses: classes,
+    teacherClasses: (classes as any[]).map(c => ({
+      id: c.id, name: c.name, subject: c.subject, yearGroup: c.yearGroup,
+      examBoard: c.examBoard ?? null, examModules: c.examModules ?? [],
+    })),
   }
 }
 

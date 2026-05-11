@@ -22,6 +22,11 @@ const CLASS_DEPARTMENTS = [
   'Modern Foreign Languages', 'Computing', 'Other',
 ]
 
+const UK_EXAM_BOARDS = [
+  'AQA', 'Edexcel', 'OCR', 'WJEC', 'Eduqas', 'CCEA',
+  'Cambridge International', 'iGCSE (Pearson)', 'iGCSE (Cambridge)',
+]
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SUBJECT_COLOURS: Record<string, string> = {
@@ -60,18 +65,23 @@ function genDeptFromSubject(subject: string): string {
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 type FormState = {
-  name:       string
-  subject:    string
-  yearGroup:  string
-  department: string
+  name:        string
+  subject:     string
+  yearGroup:   string
+  department:  string
+  examBoard:   string
+  modulesInput: string
 }
 
 function blankForm(): FormState {
-  return { name: '', subject: 'English', yearGroup: '9', department: 'English' }
+  return { name: '', subject: 'English', yearGroup: '9', department: 'English', examBoard: '', modulesInput: '' }
 }
 
 function formFromClass(c: ClassRow): FormState {
-  return { name: c.name, subject: c.subject, yearGroup: String(c.yearGroup), department: c.department }
+  return {
+    name: c.name, subject: c.subject, yearGroup: String(c.yearGroup), department: c.department,
+    examBoard: c.examBoard ?? '', modulesInput: (c.examModules ?? []).join(', '),
+  }
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -115,19 +125,21 @@ function ClassSlideOver({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null); setSaving(true)
-    const yearGroup = Number(form.yearGroup)
+    const yearGroup    = Number(form.yearGroup)
+    const examBoard    = form.examBoard || undefined
+    const examModules  = form.modulesInput.split(',').map(s => s.trim()).filter(Boolean)
 
     if (mode === 'add') {
-      const res = await createClass({ name: form.name, subject: form.subject, yearGroup, department: form.department })
+      const res = await createClass({ name: form.name, subject: form.subject, yearGroup, department: form.department, examBoard, examModules })
       if (res.error) { setError(res.error); setSaving(false); return }
       onSaved({
         id: res.classId!, name: form.name, subject: form.subject,
-        yearGroup, department: form.department, studentCount: 0, teacherNames: [],
+        yearGroup, department: form.department, examBoard: examBoard ?? null, examModules, studentCount: 0, teacherNames: [],
       })
     } else {
-      const res = await updateClass({ classId: cls!.id, name: form.name, subject: form.subject, yearGroup, department: form.department })
+      const res = await updateClass({ classId: cls!.id, name: form.name, subject: form.subject, yearGroup, department: form.department, examBoard, examModules })
       if (res.error) { setError(res.error); setSaving(false); return }
-      onSaved({ ...cls!, name: form.name, subject: form.subject, yearGroup, department: form.department })
+      onSaved({ ...cls!, name: form.name, subject: form.subject, yearGroup, department: form.department, examBoard: examBoard ?? null, examModules })
     }
   }
 
@@ -182,6 +194,27 @@ function ClassSlideOver({
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                     {CLASS_DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Exam Board</p>
+              <div className="space-y-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[12px] font-medium text-gray-700">Examination board</span>
+                  <select value={form.examBoard} onChange={e => set('examBoard', e.target.value)}
+                    className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
+                    <option value="">— Not set —</option>
+                    {UK_EXAM_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[12px] font-medium text-gray-700">Required modules</span>
+                  <input value={form.modulesInput} onChange={e => set('modulesInput', e.target.value)}
+                    placeholder="e.g. Paper 1: Language, Paper 2: Literature"
+                    className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                  <span className="text-[11px] text-gray-400">Comma-separated. Used for AI mark scheme context.</span>
                 </label>
               </div>
             </div>
@@ -297,7 +330,7 @@ function ClassManagePanel({ classId, onStudentCountChange }: { classId: string; 
 
   return (
     <tr>
-      <td colSpan={7} className="border-t border-gray-100 bg-gray-50/50 px-5 py-4">
+      <td colSpan={8} className="border-t border-gray-100 bg-gray-50/50 px-5 py-4">
         {error && <p className="text-[12px] text-red-600 mb-3">{error}</p>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -452,6 +485,7 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
                 <th className="px-5 py-3 text-left font-semibold text-gray-500">Year</th>
                 <th className="px-5 py-3 text-left font-semibold text-gray-500">Teacher(s)</th>
                 <th className="px-5 py-3 text-left font-semibold text-gray-500">Students</th>
+                <th className="px-5 py-3 text-left font-semibold text-gray-500">Exam Board</th>
                 <th className="px-5 py-3 text-left font-semibold text-gray-500">Department</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -472,6 +506,12 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
                       {c.teacherNames.length > 0 ? c.teacherNames.join(', ') : <span className="text-gray-300">—</span>}
                     </td>
                     <td className="px-5 py-3.5 font-medium text-gray-900">{c.studentCount}</td>
+                    <td className="px-5 py-3.5">
+                      {c.examBoard
+                        ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{c.examBoard}</span>
+                        : <span className="text-gray-300 text-[12px]">—</span>
+                      }
+                    </td>
                     <td className="px-5 py-3.5 text-gray-400">{c.department}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -500,7 +540,7 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-gray-400 text-[13px]">No classes found</td>
+                  <td colSpan={8} className="px-5 py-12 text-center text-gray-400 text-[13px]">No classes found</td>
                 </tr>
               )}
             </tbody>

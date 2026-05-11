@@ -23,6 +23,8 @@ export type SettingsData = {
   profilePictureUrl:          string | null
   bio:                        string | null
   defaultSubject:             string | null
+  preferredExamBoard:         string | null
+  teachingModules:            string[]
   allowEmailNotifications:    boolean
   allowSmsNotifications:      boolean
   allowAnalyticsInsights:     boolean
@@ -158,23 +160,27 @@ export async function requestEmailChange(
   return { status: 'pending_verification' }
 }
 
-/** Save professional preferences (default subject). */
+/** Save professional preferences (default subject, exam board, modules). */
 export async function saveProfessionalPrefs(input: {
-  defaultSubject: string
+  defaultSubject:     string
+  preferredExamBoard: string
+  teachingModules:    string[]
 }): Promise<{ ok: true }> {
   const { userId, schoolId } = await getSession()
 
   const current = await prisma.userSettings.findUnique({
     where:  { userId },
-    select: { defaultSubject: true },
+    select: { defaultSubject: true, preferredExamBoard: true, teachingModules: true },
   })
 
-  const newSubject = input.defaultSubject || null
+  const newSubject   = input.defaultSubject     || null
+  const newExamBoard = input.preferredExamBoard || null
+  const newModules   = input.teachingModules    ?? []
 
   await prisma.userSettings.upsert({
     where:  { userId },
-    create: { userId, defaultSubject: newSubject },
-    update: { defaultSubject: newSubject },
+    create: { userId, defaultSubject: newSubject, preferredExamBoard: newExamBoard, teachingModules: newModules },
+    update: { defaultSubject: newSubject, preferredExamBoard: newExamBoard, teachingModules: newModules },
   })
 
   if ((current?.defaultSubject ?? null) !== newSubject) {

@@ -175,7 +175,7 @@ export default function YearGroupPlansView({
   const orderedSubjects      = [...subjectsWithPlans, ...subjectsWithoutPlans]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col flex-1 overflow-auto bg-gray-50">
       <ToastContainer />
 
       {/* Header */}
@@ -199,7 +199,7 @@ export default function YearGroupPlansView({
 
       {/* Help banner */}
       {!helpDismissed && (
-        <div className="max-w-7xl mx-auto px-6 pt-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
           <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-start gap-3">
             <Icon name="info" size="sm" className="text-blue-500 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
@@ -223,15 +223,15 @@ export default function YearGroupPlansView({
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-6 py-6 flex gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row gap-4 sm:gap-6">
 
         {/* Subject sidebar */}
-        <div className="w-52 shrink-0">
+        <div className="w-full sm:w-52 sm:shrink-0">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-3 py-2 border-b border-gray-100">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subjects</span>
             </div>
-            <nav className="py-1 max-h-[70vh] overflow-y-auto">
+            <nav className="py-1 sm:max-h-[70vh] sm:overflow-y-auto overflow-x-auto flex sm:flex-col flex-row">
               {orderedSubjects.map(subject => {
                 const hasPlan = !!(planIndex[subject] && Object.keys(planIndex[subject]).length > 0)
                 const active  = activeSubject === subject
@@ -254,7 +254,7 @@ export default function YearGroupPlansView({
 
         {/* Main table */}
         <div className="flex-1 min-w-0">
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                 <Icon name="menu_book" size="md" className="text-blue-600" />

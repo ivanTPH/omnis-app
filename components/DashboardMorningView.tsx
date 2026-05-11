@@ -2,6 +2,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { getDashboardData, addConcernNote, escalateConcernToStaff, type DashboardData, type OpenConcern } from '@/app/actions/dashboard'
+import { CONCERN_SECTIONS, sectionForCategory } from '@/components/send-support/ConcernList'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatCardSkeleton, StudentListSkeleton, HomeworkCardSkeleton } from '@/components/ui/skeletons'
@@ -427,8 +428,8 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
 
       {/* ROW 3 — open concerns (only when flagCount > 0) */}
       {data && data.openConcernsCount > 0 && (
-        <div id="open-concerns" className="card mt-6">
-          <div className="flex items-center justify-between mb-4">
+        <div id="open-concerns" className="space-y-4 mt-6">
+          <div className="flex items-center justify-between">
             <p className="text-section-header">Open Concerns</p>
             {['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role) && (
               <Link href="/senco/concerns" className="text-xs text-blue-600 hover:text-blue-800 font-medium">
@@ -436,9 +437,34 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
               </Link>
             )}
           </div>
-          {data.openConcerns.map(concern => (
-            <ConcernCard key={concern.id} concern={concern} onUpdate={load} />
-          ))}
+
+          {CONCERN_SECTIONS.map(section => {
+            const sectionConcerns = data.openConcerns.filter(c =>
+              (section.categories as readonly string[]).includes(c.category)
+            )
+            return (
+              <div key={section.key} className={`rounded-xl border overflow-hidden ${section.headerClass}`}>
+                <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${section.headerClass}`}>
+                  <Icon name={section.icon} size="sm" className={section.iconClass} />
+                  <span className="text-[13px] font-bold text-gray-900 flex-1">{section.label}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${section.badgeClass}`}>
+                    {sectionConcerns.length}
+                  </span>
+                </div>
+                {sectionConcerns.length === 0 ? (
+                  <div className="px-4 py-3 bg-white">
+                    <p className="text-[12px] text-gray-400 italic">No concerns in this category.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white divide-y divide-gray-100">
+                    {sectionConcerns.map(concern => (
+                      <ConcernCard key={concern.id} concern={concern} onUpdate={load} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

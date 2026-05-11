@@ -4,8 +4,12 @@ import ClassRosterTab from '@/components/ClassRosterTab'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { bulkGenerateLearningPassports, generatePassportsForStudents } from '@/app/actions/students'
+import { updateClassExamBoard } from '@/app/actions/admin'
 
-type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
+const UK_EXAM_BOARDS = ['AQA', 'Edexcel', 'OCR', 'WJEC', 'Eduqas', 'CCEA', 'Cambridge International', 'iGCSE (Pearson)', 'iGCSE (Cambridge)']
+const HOD_ROLES = ['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN']
+
+type ClassOption = { id: string; name: string; subject: string; yearGroup: number; examBoard: string | null; examModules: string[] }
 
 export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
   const [subject,     setSubject]     = useState('')
@@ -15,6 +19,9 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   const [generating,  startGenerate]  = useTransition()
   const [genResult,   setGenResult]   = useState<{ created: number; skipped: number; errors: number } | null>(null)
   const [rosterSelectedIds, setRosterSelectedIds] = useState<string[]>([])
+  const [classList,   setClassList]   = useState<ClassOption[]>(classes)
+  const [examEditing, setExamEditing] = useState(false)
+  const [examSaving,  setExamSaving]  = useState(false)
 
   const handleSelectionChange = useCallback((ids: string[]) => {
     setRosterSelectedIds(ids)
@@ -32,11 +39,11 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   }
 
   // ── Derived options ──────────────────────────────────────────────────────────
-  const subjects = ([...new Set(classes.map(c => c.subject))] as string[]).sort()
-  const years    = ([...new Set(classes.map(c => c.yearGroup))] as number[]).sort((a, b) => a - b)
+  const subjects = ([...new Set(classList.map(c => c.subject))] as string[]).sort()
+  const years    = ([...new Set(classList.map(c => c.yearGroup))] as number[]).sort((a, b) => a - b)
 
   // Classes narrowed by subject + year
-  const filteredClasses = classes.filter(c =>
+  const filteredClasses = classList.filter(c =>
     (!subject || c.subject === subject) &&
     (!year    || c.yearGroup === Number(year)),
   )
@@ -45,6 +52,21 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
   const effectiveId = selectedId && filteredClasses.find(c => c.id === selectedId)
     ? selectedId
     : filteredClasses[0]?.id ?? ''
+
+  const effectiveClass = classList.find(c => c.id === effectiveId) ?? null
+  const canEditExamBoard = HOD_ROLES.includes(role)
+
+  async function handleSaveExamBoard(examBoard: string) {
+    if (!effectiveId) return
+    setExamSaving(true)
+    const modules = effectiveClass?.examModules ?? []
+    const r = await updateClassExamBoard({ classId: effectiveId, examBoard, examModules: modules })
+    if (!r.error) {
+      setClassList(list => list.map(c => c.id === effectiveId ? { ...c, examBoard: examBoard || null } : c))
+    }
+    setExamSaving(false)
+    setExamEditing(false)
+  }
 
   // ── Chips ─────────────────────────────────────────────────────────────────────
   const chips = [
@@ -207,6 +229,46 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
           )}
           {genResult.errors > 0 && (
             <span className="text-red-500">{genResult.errors} failed.</span>
+          )}
+        </div>
+      )}
+
+      {/* ── Exam board strip for selected class ── */}
+      {effectiveClass && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl">
+          <Icon name="school" size="sm" className="text-indigo-500 shrink-0" />
+          <span className="text-[12px] font-medium text-indigo-800">
+            {effectiveClass.examBoard
+              ? <>Exam board: <strong>{effectiveClass.examBoard}</strong>{effectiveClass.examModules?.length > 0 && <span className="text-indigo-600 font-normal"> · {effectiveClass.examModules.join(', ')}</span>}</>
+              : <span className="text-indigo-500 italic">No exam board set for this class</span>
+            }
+          </span>
+          {canEditExamBoard && !examEditing && (
+            <button
+              onClick={() => setExamEditing(true)}
+              className="ml-auto flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-800 bg-white border border-indigo-200 rounded-lg px-2.5 py-1 transition"
+            >
+              <Icon name="edit" size="sm" />
+              {effectiveClass.examBoard ? 'Change' : 'Set exam board'}
+            </button>
+          )}
+          {canEditExamBoard && examEditing && (
+            <div className="ml-auto flex items-center gap-2">
+              <select
+                defaultValue={effectiveClass.examBoard ?? ''}
+                id="exam-board-select"
+                className="text-[12px] border border-indigo-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                onChange={e => e.target.value !== '__cancel' && handleSaveExamBoard(e.target.value)}
+                disabled={examSaving}
+              >
+                <option value="">— Remove —</option>
+                {UK_EXAM_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              {examSaving && <Icon name="refresh" size="sm" className="animate-spin text-indigo-500" />}
+              <button onClick={() => setExamEditing(false)} className="text-gray-400 hover:text-gray-600">
+                <Icon name="close" size="sm" />
+              </button>
+            </div>
           )}
         </div>
       )}

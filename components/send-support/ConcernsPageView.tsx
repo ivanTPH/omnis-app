@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import type { ConcernRow } from '@/app/actions/send-support'
-import ConcernList from './ConcernList'
+import ConcernList, { CONCERN_SECTIONS } from './ConcernList'
 
 const STATUSES = ['all', 'open', 'under_review', 'escalated', 'monitoring', 'closed', 'no_action']
-const CATEGORIES = ['all', 'literacy', 'numeracy', 'behaviour', 'attendance', 'social_emotional', 'communication', 'physical', 'sensory', 'other']
 
 type Props = {
   initialConcerns: ConcernRow[]
@@ -13,18 +12,21 @@ type Props = {
 }
 
 export default function ConcernsPageView({ initialConcerns, staffList = [] }: Props) {
-  const [statusFilter,   setStatusFilter]   = useState('all')
-  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [statusFilter,  setStatusFilter]  = useState('all')
+  const [sectionFilter, setSectionFilter] = useState('all')
 
   const filtered = initialConcerns.filter(c => {
     if (statusFilter !== 'all' && c.status !== statusFilter) return false
-    if (categoryFilter !== 'all' && c.category !== categoryFilter) return false
+    if (sectionFilter !== 'all') {
+      const section = CONCERN_SECTIONS.find(s => s.key === sectionFilter)
+      if (section && !(section.categories as readonly string[]).includes(c.category)) return false
+    }
     return true
   })
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-end">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Status</label>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
@@ -33,20 +35,22 @@ export default function ConcernsPageView({ initialConcerns, staffList = [] }: Pr
           </select>
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Category</label>
-          <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
+          <label className="text-xs text-gray-500 mb-1 block">Section</label>
+          <select value={sectionFilter} onChange={e => setSectionFilter(e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
-            {CATEGORIES.map(c => <option key={c} value={c}>{c === 'all' ? 'All categories' : c.replace(/_/g, ' ')}</option>)}
+            <option value="all">All sections</option>
+            {CONCERN_SECTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
         </div>
-        <div className="self-end">
-          <span className="text-sm text-gray-500">{filtered.length} concern{filtered.length !== 1 ? 's' : ''}</span>
-        </div>
+        <span className="text-sm text-gray-500 pb-0.5">{filtered.length} concern{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-2xl p-4">
-        <ConcernList concerns={filtered} isSenco={true} staffList={staffList} />
-      </div>
+      <ConcernList
+        concerns={filtered}
+        isSenco={true}
+        staffList={staffList}
+        groupBySection={sectionFilter === 'all'}
+      />
     </div>
   )
 }

@@ -299,6 +299,8 @@ export type ClassRow = {
   subject:      string
   yearGroup:    number
   department:   string
+  examBoard:    string | null
+  examModules:  string[]
   studentCount: number
   teacherNames: string[]
 }
@@ -322,6 +324,8 @@ export async function getClassList(_schoolId?: string): Promise<ClassRow[]> {
     subject:      c.subject,
     yearGroup:    c.yearGroup,
     department:   c.department,
+    examBoard:    (c as any).examBoard   ?? null,
+    examModules:  (c as any).examModules ?? [],
     studentCount: c._count.enrolments,
     teacherNames: c.teachers.map(t => `${t.user.firstName} ${t.user.lastName}`),
   }))
@@ -462,10 +466,12 @@ export async function deleteStudent(
 // ─── Class CRUD ────────────────────────────────────────────────────────────────
 
 export type CreateClassInput = {
-  name:       string
-  subject:    string
-  yearGroup:  number
-  department: string
+  name:        string
+  subject:     string
+  yearGroup:   number
+  department:  string
+  examBoard?:  string
+  examModules?: string[]
 }
 
 export async function createClass(
@@ -478,11 +484,13 @@ export async function createClass(
   const cls = await prisma.schoolClass.create({
     data: {
       schoolId,
-      name:       input.name.trim(),
-      subject:    input.subject,
-      yearGroup:  input.yearGroup,
-      department: input.department,
-    },
+      name:        input.name.trim(),
+      subject:     input.subject,
+      yearGroup:   input.yearGroup,
+      department:  input.department,
+      examBoard:   input.examBoard  || null,
+      examModules: input.examModules ?? [],
+    } as any,
   })
 
   await writeAudit({
@@ -495,11 +503,13 @@ export async function createClass(
 }
 
 export type UpdateClassInput = {
-  classId:    string
-  name:       string
-  subject:    string
-  yearGroup:  number
-  department: string
+  classId:     string
+  name:        string
+  subject:     string
+  yearGroup:   number
+  department:  string
+  examBoard?:  string
+  examModules?: string[]
 }
 
 export async function updateClass(
@@ -512,11 +522,13 @@ export async function updateClass(
   await prisma.schoolClass.update({
     where: { id: input.classId, schoolId },
     data: {
-      name:       input.name.trim(),
-      subject:    input.subject,
-      yearGroup:  input.yearGroup,
-      department: input.department,
-    },
+      name:        input.name.trim(),
+      subject:     input.subject,
+      yearGroup:   input.yearGroup,
+      department:  input.department,
+      examBoard:   input.examBoard  ?? null,
+      examModules: input.examModules ?? [],
+    } as any,
   })
 
   await writeAudit({
@@ -524,6 +536,33 @@ export async function updateClass(
     targetType: 'SchoolClass', targetId: input.classId,
     metadata: { name: input.name, subject: input.subject },
   })
+  revalidatePath('/admin/classes')
+  return { success: true }
+}
+
+/** Update exam board and modules for a class — accessible by HOD, SLT, SCHOOL_ADMIN. */
+export async function updateClassExamBoard(input: {
+  classId:    string
+  examBoard:  string
+  examModules: string[]
+}): Promise<{ success?: true; error?: string }> {
+  const session = await auth()
+  if (!session?.user) return { error: 'Unauthenticated' }
+  const user = session.user as any
+  if (!['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'].includes(user.role)) return { error: 'Forbidden' }
+  const schoolId = user.schoolId as string
+
+  await prisma.schoolClass.update({
+    where: { id: input.classId, schoolId },
+    data:  { examBoard: input.examBoard || null, examModules: input.examModules } as any,
+  })
+
+  await writeAudit({
+    schoolId, actorId: user.id, action: 'CLASS_UPDATED',
+    targetType: 'SchoolClass', targetId: input.classId,
+    metadata: { field: 'examBoard', examBoard: input.examBoard, examModules: input.examModules },
+  })
+  revalidatePath('/classes')
   revalidatePath('/admin/classes')
   return { success: true }
 }

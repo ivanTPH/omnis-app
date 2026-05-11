@@ -31,6 +31,8 @@ const SUBJECTS = [
   'Music', 'Physical Education', 'Psychology', 'Religious Studies', 'Science',
 ]
 
+const UK_EXAM_BOARDS = ['AQA', 'Edexcel', 'OCR', 'WJEC', 'Eduqas', 'CCEA', 'Cambridge International', 'iGCSE (Pearson)', 'iGCSE (Cambridge)']
+
 const ROLE_LABELS: Record<string, string> = {
   TEACHER:        'Teacher',
   HEAD_OF_DEPT:   'Head of Department',
@@ -62,6 +64,8 @@ type SettingsData = {
   profilePictureUrl:          string | null
   bio:                        string | null
   defaultSubject:             string | null
+  preferredExamBoard:         string | null
+  teachingModules:            string[]
   allowEmailNotifications:    boolean
   allowSmsNotifications:      boolean
   allowAnalyticsInsights:     boolean
@@ -150,7 +154,9 @@ export default function SettingsShell({
   const fileInputRef                    = useRef<HTMLInputElement>(null)
 
   // ── Professional tab state ─────────────────────────────────────────────────
-  const [defaultSubject, setDefaultSubject] = useState(initialSettings.defaultSubject ?? '')
+  const [defaultSubject,     setDefaultSubject]     = useState(initialSettings.defaultSubject     ?? '')
+  const [preferredExamBoard, setPreferredExamBoard] = useState(initialSettings.preferredExamBoard ?? '')
+  const [modulesInput,       setModulesInput]       = useState((initialSettings.teachingModules   ?? []).join(', '))
 
   // ── Privacy tab state ──────────────────────────────────────────────────────
   const [allowEmail,     setAllowEmail]     = useState(initialSettings.allowEmailNotifications)
@@ -246,7 +252,8 @@ export default function SettingsShell({
 
   async function handleSaveProfessional() {
     await wrap(async () => {
-      await saveProfessionalPrefs({ defaultSubject })
+      const teachingModules = modulesInput.split(',').map(s => s.trim()).filter(Boolean)
+      await saveProfessionalPrefs({ defaultSubject, preferredExamBoard, teachingModules })
       flash('Professional preferences saved.', true)
     })
   }
@@ -491,7 +498,7 @@ export default function SettingsShell({
       ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === 'Preferences' && (
         <div className="space-y-8">
-          <Section title="Teaching Preferences" description="These preferences help personalise your experience on the platform.">
+          <Section title="Teaching Preferences" description="These preferences help personalise your experience on the platform and feed into AI homework and lesson grading.">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Default subject</label>
               <select
@@ -503,6 +510,31 @@ export default function SettingsShell({
                 {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <p className="mt-1 text-xs text-gray-400">Used to pre-fill lesson and resource filters.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Examination board</label>
+              <select
+                value={preferredExamBoard}
+                onChange={e => setPreferredExamBoard(e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400 transition-colors"
+              >
+                <option value="">— None selected —</option>
+                {UK_EXAM_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <p className="mt-1 text-xs text-gray-400">Used to apply correct mark scheme guidelines when AI suggests homework grades.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Teaching modules / units</label>
+              <input
+                type="text"
+                value={modulesInput}
+                onChange={e => setModulesInput(e.target.value)}
+                placeholder="e.g. Paper 1: Power & Conflict, Paper 2: An Inspector Calls"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400 transition-colors"
+              />
+              <p className="mt-1 text-xs text-gray-400">Comma-separated list of modules or units you teach. Feeds into AI grading context.</p>
             </div>
           </Section>
 

@@ -1135,7 +1135,16 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
 
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
-    include: { homework: { select: { homeworkVariantType: true, structuredContent: true, title: true } } },
+    include: {
+      homework: {
+        select: {
+          homeworkVariantType: true,
+          structuredContent:   true,
+          title:               true,
+          class:               { select: { subject: true, yearGroup: true, examBoard: true, examModules: true } },
+        },
+      },
+    },
   })
   if (!sub) throw new Error('Submission not found')
 
@@ -1150,6 +1159,16 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
   }
 
   const response = sub.structuredResponse as any
+
+  // Exam board context for AI marking
+  const hwClass     = (sub.homework as any).class
+  const examBoard   = hwClass?.examBoard   as string | null
+  const examModules = hwClass?.examModules as string[]
+  const subject     = hwClass?.subject     as string | null
+  const yearGroup   = hwClass?.yearGroup   as number | null
+  const examContext = examBoard
+    ? `Exam board: ${examBoard}. ${examModules?.length ? `Modules: ${examModules.join(', ')}.` : ''} Subject: ${subject ?? 'unknown'}. Year ${yearGroup ?? ''}.`
+    : `Subject: ${subject ?? 'unknown'}. Year ${yearGroup ?? ''}.`
 
   let score = 0
   let maxScore = 0
@@ -1172,10 +1191,10 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
         const msg = await client.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 600,
-          system: 'You are a UK teacher marking homework. Score each answer fairly against the model answer. Return ONLY JSON.',
+          system: `You are a UK teacher marking homework according to the official examination board mark scheme guidelines. ${examContext} Score each answer strictly and fairly against the model answer, applying the mark allocation as the exam board would. Return ONLY JSON.`,
           messages: [{
             role: 'user',
-            content: `Mark these answers. Max total marks: ${maxScore}.\n\n${qaPairs}\n\nReturn: {"scores": [number per question], "totalScore": number, "feedback": "brief 2-sentence feedback"}`,
+            content: `Mark these answers using ${examBoard ? `${examBoard} mark scheme conventions` : 'standard UK mark scheme conventions'}. Max total marks: ${maxScore}.\n\n${qaPairs}\n\nReturn: {"scores": [number per question], "totalScore": number, "feedback": "brief 2-sentence feedback referencing exam board expectations"}`,
           }],
         })
         const parsed = JSON.parse((msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, ''))

@@ -213,9 +213,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   // Structured question editors
   const [mcqQuestions,    setMcqQuestions]    = useState<MCQQuestion[]>([])
   const [saQuestions,     setSaQuestions]     = useState<SAQuestion[]>([])
-  const [generatingHw,    setGeneratingHw]    = useState(false)
-  const [genSource,       setGenSource]       = useState<string | null>(null)
-  const [hwGenProgress,   setHwGenProgress]   = useState(0)
+  const [generatingHw,      setGeneratingHw]      = useState(false)
+  const [genSource,         setGenSource]         = useState<string | null>(null)
+  const [hwGenProgress,     setHwGenProgress]     = useState(0)
+  const [hwGenerationError, setHwGenerationError] = useState<string | null>(null)
 
   // Simulated progress during homework generation (target < 30s)
   useEffect(() => {
@@ -343,7 +344,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   useEffect(() => {
     if (activeTab !== 'Homework' || wizardStep !== null || !lessonId || !lesson) return
     if ((lesson.homework?.length ?? 0) > 0) return
-    const hasContent = (lesson.objectives?.length ?? 0) > 0 || (lesson.resources?.length ?? 0) > 0
+    const hasContent = (lesson.resources?.length ?? 0) > 0
     if (!hasContent) return
     const lessonDate = lesson.scheduledAt ? new Date(lesson.scheduledAt) : new Date()
     setHwSetDate(lessonDate.toISOString().split('T')[0])
@@ -414,6 +415,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   // Core generation function — populates editing fields directly (no Accept/Reject step)
   function runHwGeneration(lid: string, type: HomeworkType, preferredResourceId?: string) {
     setGeneratingHw(true)
+    setHwGenerationError(null)
     setMcqQuestions([])
     setSaQuestions([])
     generateHomeworkFromResources(lid, type, preferredResourceId).then(result => {
@@ -451,8 +453,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
       if (objCount > 0) parts.push(`${objCount} learning objective${objCount !== 1 ? 's' : ''}`)
       if (resCount > 0) parts.push(`${resCount} resource${resCount !== 1 ? 's' : ''}`)
       setGenSource(parts.length > 0 ? parts.join(' + ') : 'lesson title')
-    }).catch(() => {
+    }).catch((err: unknown) => {
       setGenSource(null)
+      const msg = err instanceof Error ? err.message : 'Failed to generate homework'
+      setHwGenerationError(msg)
     }).finally(() => {
       setGeneratingHw(false)
     })
@@ -942,6 +946,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           className="h-full bg-purple-500 rounded-full transition-all duration-600 ease-out"
                           style={{ width: `${hwGenProgress}%` }}
                         />
+                      </div>
+                    </div>
+                  )}
+
+                  {hwGenerationError && !generatingHw && (
+                    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[12px] font-medium text-amber-800">{hwGenerationError}</p>
+                        <p className="text-[11px] text-amber-600 mt-0.5">Switch to the Resources tab to add lesson materials, then return here.</p>
                       </div>
                     </div>
                   )}
@@ -1529,22 +1543,29 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   <div className="flex items-center justify-between">
                     <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">Homework</h3>
                     {(lesson?.homework?.length ?? 0) === 0 && (
-                      <button
-                        onClick={() => {
-                          setHwYesNo('yes')
-                          setHwType('SHORT_ANSWER')
-                          setTypeStore({})
-                          setMcqQuestions([])
-                          setSaQuestions([])
-                          setGenSource(null)
-                          setAiDecision(null)
-                          initHwDates()
-                          setWizardStep(5)
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[12px] font-medium hover:bg-blue-100 transition-colors"
-                      >
-                        <Icon name="add" size="sm" />Set homework
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {(lesson?.resources?.length ?? 0) === 0 && (
+                          <span className="text-[11px] text-amber-600">Add resources first</span>
+                        )}
+                        <button
+                          onClick={() => {
+                            setHwYesNo('yes')
+                            setHwType('SHORT_ANSWER')
+                            setTypeStore({})
+                            setMcqQuestions([])
+                            setSaQuestions([])
+                            setGenSource(null)
+                            setAiDecision(null)
+                            initHwDates()
+                            setWizardStep(5)
+                          }}
+                          disabled={(lesson?.resources?.length ?? 0) === 0}
+                          title={(lesson?.resources?.length ?? 0) === 0 ? 'Add at least one resource before setting homework' : undefined}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[12px] font-medium hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Icon name="add" size="sm" />Set homework
+                        </button>
+                      </div>
                     )}
                   </div>
                   {lesson?.homework && lesson.homework.length > 0 ? (
@@ -1795,13 +1816,19 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             >
               Skip
             </button>
-            <button
-              onClick={() => { setWizardStep(5); initHwDates() }}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Save &amp; Continue
-              <Icon name="chevron_right" size="sm" />
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              {(lesson?.resources?.length ?? 0) === 0 && (
+                <p className="text-[11px] text-amber-600">Add at least one resource to generate homework</p>
+              )}
+              <button
+                onClick={() => { setWizardStep(5); initHwDates() }}
+                disabled={(lesson?.resources?.length ?? 0) === 0}
+                className="flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Save &amp; Continue
+                <Icon name="chevron_right" size="sm" />
+              </button>
+            </div>
           </div>
         )}
 

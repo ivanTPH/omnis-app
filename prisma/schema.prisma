@@ -1924,6 +1924,12 @@ model SendConcern {
   reviewedBy    String?
   reviewedAt    DateTime?
   reviewNotes   String?
+  nextReviewDate DateTime?  // Follow-up review date set when concern is addressed
+  followUpRequired Boolean @default(false)
+  assignedToId   String?   // Staff member assigned to action this concern
+  assignedToName String?   // Stored at write time
+  assignedAction String?   // Action suggestion for the assigned teacher
+  assignedAt     DateTime? // When assignment was made
 
   school          School             @relation(fields: [schoolId], references: [id])
   student         User               @relation("StudentConcerns", fields: [studentId], references: [id])

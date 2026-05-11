@@ -942,6 +942,7 @@ export async function extractLearningFromLesson(lessonId: string): Promise<Learn
     },
   })
   if (!lesson) throw new Error('Lesson not found')
+  if (lesson.resources.length === 0) throw new Error('No resources attached to this lesson. Add at least one resource before generating homework.')
 
   const subject = lesson.class?.subject ?? 'Unknown'
   const yearGroup = lesson.class?.yearGroup ?? 10

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useTransition, useEffect } from 'react'
+import { useState, useMemo, useTransition, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
@@ -313,6 +313,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // Per-student adaptive suggestions (fetched lazily on selection)
   const [adaptiveSugg, setAdaptiveSugg] = useState<Record<string, AdaptiveHomeworkSuggestions>>({})
   const [adaptiveSuggLoading, setAdaptiveSuggLoading] = useState(false)
+  // Resizable marking panel
+  const [markPanelHeight, setMarkPanelHeight] = useState(300)
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
 
   const router = useRouter()
 
@@ -864,6 +867,22 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   const visibleTargets = showAllTargets ? ilpTargets : ilpTargets.slice(0, 3)
   const currentAdaptiveSugg = selectedId ? adaptiveSugg[selectedId] ?? null : null
 
+  const startPanelDrag = useCallback((e: React.MouseEvent) => {
+    dragRef.current = { startY: e.clientY, startH: markPanelHeight }
+    function onMove(ev: MouseEvent) {
+      if (!dragRef.current) return
+      const delta = dragRef.current.startY - ev.clientY
+      setMarkPanelHeight(Math.max(180, Math.min(700, dragRef.current.startH + delta)))
+    }
+    function onUp() {
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [markPanelHeight])
+
   return (
     <div className="flex flex-col h-full min-h-0">
 
@@ -1405,9 +1424,22 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 </div>
               )}
 
+              {/* ── Sticky marking panel ────────────────────────────────────── */}
+              <div
+                className="sticky bottom-0 bg-white rounded-xl border border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] overflow-hidden"
+                style={{ height: markPanelHeight }}
+              >
+                {/* Drag handle — pull up to expand */}
+                <div
+                  className="h-3 cursor-ns-resize flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors select-none group border-b border-gray-100"
+                  onMouseDown={startPanelDrag}
+                >
+                  <div className="w-10 h-1 bg-gray-300 rounded-full group-hover:bg-gray-400 transition-colors" />
+                </div>
+                <div className="overflow-y-auto" style={{ height: 'calc(100% - 12px)' }}>
               {/* marking form — teacher only */}
               {canGrade ? (
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="border-0 overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
                   <p className="text-[12px] font-semibold text-gray-700">
                     {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit AI Suggestion (Optional)' : 'Mark Submission'}
@@ -1449,18 +1481,28 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       )}
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
-                        GCSE Grade
-                      </label>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                          GCSE Grade
+                        </label>
+                        {gradeState === 'auto' && (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 uppercase tracking-wide">
+                            AI suggested — click to confirm
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-1 flex-wrap">
                         {(['9','8','7','6','5','4','3','2','1'] as const).map(g => {
                           const gNum = Number(g)
                           const isSelected = form.grade === g
+                          const isAiSuggested = isSelected && gradeState === 'auto'
                           const colorCls = isSelected
-                            ? (gNum >= 8 ? 'bg-green-700 text-white border-green-700' :
-                               gNum >= 6 ? 'bg-green-500 text-white border-green-500' :
-                               gNum >= 4 ? 'bg-amber-400 text-white border-amber-400' :
-                                           'bg-red-500 text-white border-red-500')
+                            ? (isAiSuggested
+                                ? 'bg-gray-200 text-gray-400 border-gray-300'
+                                : gNum >= 8 ? 'bg-green-700 text-white border-green-700' :
+                                  gNum >= 6 ? 'bg-green-500 text-white border-green-500' :
+                                  gNum >= 4 ? 'bg-amber-400 text-white border-amber-400' :
+                                              'bg-red-500 text-white border-red-500')
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                           return (
                             <button
@@ -1558,6 +1600,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 </div>
               </div>
               )}
+                </div>
+              </div>
 
               {/* ── Teacher Notes ─── */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">

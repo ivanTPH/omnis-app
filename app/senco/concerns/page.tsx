@@ -1,6 +1,6 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { getAllConcerns, getSchoolStaff } from '@/app/actions/send-support'
+import { getAllConcerns, getSchoolStaff, getFollowUpDueConcerns } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
 import ConcernsPageView from '@/components/send-support/ConcernsPageView'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -9,11 +9,12 @@ export default async function ConcernsPage() {
   const session = await auth()
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName } = session.user as any
-  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT'].includes(role)) redirect('/dashboard')
 
-  const [concerns, staffList] = await Promise.all([
+  const [concerns, staffList, followUpDue] = await Promise.all([
     getAllConcerns(),
     getSchoolStaff(),
+    getFollowUpDueConcerns(),
   ])
 
   return (
@@ -23,7 +24,7 @@ export default async function ConcernsPage() {
           <PageHeader title="SEND Concerns" subtitle="All concerns raised across the school" />
         </div>
         <div className="px-6 pb-6">
-          <ConcernsPageView initialConcerns={concerns} staffList={staffList} />
+          <ConcernsPageView initialConcerns={concerns} staffList={staffList} followUpDue={followUpDue} />
         </div>
       </div>
     </AppShell>

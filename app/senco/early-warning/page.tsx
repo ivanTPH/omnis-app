@@ -11,7 +11,7 @@ export default async function EarlyWarningPage() {
   const session = await auth()
   if (!session) redirect('/login')
   const { role, firstName, lastName, schoolName } = session.user as any
-  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT'].includes(role)) redirect('/dashboard')
 
   const [flags, ilpConcerns] = await Promise.all([
     getEarlyWarningFlags(),

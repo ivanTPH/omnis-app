@@ -9,6 +9,29 @@ import { addConcernAction } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
 import StudentContactPanel from '@/components/StudentContactPanel'
 
+function followUpBadge(c: ConcernRow) {
+  if (!c.followUpRequired || !c.nextReviewDate) return null
+  const reviewDate = new Date(c.nextReviewDate)
+  const isOverdue  = reviewDate < new Date()
+  const dateStr    = reviewDate.toLocaleDateString('en-GB')
+  return {
+    label:       isOverdue ? `Overdue: ${dateStr}` : `Review: ${dateStr}`,
+    variant:     'custom' as const,
+    customClass: isOverdue
+      ? 'text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700'
+      : 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700',
+  }
+}
+
+function assignedBadge(c: ConcernRow) {
+  if (!c.assignedToName) return null
+  return {
+    label:       `→ ${c.assignedToName}`,
+    variant:     'custom' as const,
+    customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700',
+  }
+}
+
 const STATUS_COLOURS: Record<string, string> = {
   open:         'bg-amber-100 text-amber-800',
   under_review: 'bg-blue-100 text-blue-800',
@@ -207,6 +230,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                               variant:     'custom',
                               customClass: `text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLOURS[c.status] ?? 'bg-gray-100 text-gray-600'}`,
                             },
+                            ...[followUpBadge(c), assignedBadge(c)].filter(Boolean) as { label: string; variant: 'custom'; customClass: string }[],
                           ]}
                           meta={[
                             { label: 'CLASS',     value: c.className ?? '—' },
@@ -262,7 +286,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
         </div>
 
         {reviewing && (
-          <ConcernReviewModal concern={reviewing} onClose={() => { setReviewing(null); onRefresh?.() }} />
+          <ConcernReviewModal concern={reviewing} onClose={() => { setReviewing(null); onRefresh?.() }} staffList={staffList} />
         )}
         <StudentContactPanel studentId={contactStudentId} onClose={() => setContactStudentId(null)} />
       </>
@@ -295,6 +319,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                   variant:     'custom',
                   customClass: `text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLOURS[c.status] ?? 'bg-gray-100 text-gray-600'}`,
                 },
+                ...[followUpBadge(c), assignedBadge(c)].filter(Boolean) as { label: string; variant: 'custom'; customClass: string }[],
               ]}
               meta={[
                 { label: 'CLASS',      value: c.className ?? '—' },
@@ -467,6 +492,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
         <ConcernReviewModal
           concern={reviewing}
           onClose={() => { setReviewing(null); onRefresh?.() }}
+          staffList={staffList}
         />
       )}
 

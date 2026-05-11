@@ -37,6 +37,12 @@ export type ConcernRow = {
   createdAt: Date
   reviewedAt: Date | null
   reviewNotes: string | null
+  nextReviewDate: Date | null
+  followUpRequired: boolean
+  assignedToId: string | null
+  assignedToName: string | null
+  assignedAction: string | null
+  assignedAt: Date | null
 }
 
 export type IlpWithTargets = {
@@ -215,7 +221,7 @@ async function requireAuth() {
 
 async function requireSenco() {
   const user = await requireAuth()
-  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(user.role)) redirect('/dashboard')
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR', 'HEAD_OF_DEPT'].includes(user.role)) redirect('/dashboard')
   return user
 }
 
@@ -390,6 +396,12 @@ export async function getStudentConcerns(studentId: string): Promise<ConcernRow[
     createdAt: c.createdAt,
     reviewedAt: c.reviewedAt,
     reviewNotes: c.reviewNotes,
+    nextReviewDate: (c as any).nextReviewDate ?? null,
+    followUpRequired: (c as any).followUpRequired ?? false,
+    assignedToId: (c as any).assignedToId ?? null,
+    assignedToName: (c as any).assignedToName ?? null,
+    assignedAction: (c as any).assignedAction ?? null,
+    assignedAt: (c as any).assignedAt ?? null,
   }))
 }
 
@@ -464,6 +476,64 @@ export async function getAllConcerns(filter?: {
     createdAt: c.createdAt,
     reviewedAt: c.reviewedAt,
     reviewNotes: c.reviewNotes,
+    nextReviewDate: (c as any).nextReviewDate ?? null,
+    followUpRequired: (c as any).followUpRequired ?? false,
+    assignedToId: (c as any).assignedToId ?? null,
+    assignedToName: (c as any).assignedToName ?? null,
+    assignedAction: (c as any).assignedAction ?? null,
+    assignedAt: (c as any).assignedAt ?? null,
+  }))
+}
+
+/** Returns open/monitoring concerns whose nextReviewDate has passed or is within 3 days. */
+export async function getFollowUpDueConcerns(): Promise<ConcernRow[]> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+  const soon = new Date()
+  soon.setDate(soon.getDate() + 3)
+
+  const concerns = await prisma.sendConcern.findMany({
+    where: {
+      schoolId,
+      followUpRequired: true,
+      status: { notIn: ['closed', 'no_action'] },
+      nextReviewDate: { lte: soon },
+    } as any,
+    orderBy: { nextReviewDate: 'asc' } as any,
+    take: 50,
+  })
+
+  const userIds = [...new Set([...concerns.map(c => c.studentId), ...concerns.map(c => c.raisedBy)])]
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+  })
+  const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
+
+  return concerns.map(c => ({
+    id: c.id,
+    studentId: c.studentId,
+    studentName: userMap.get(c.studentId)?.name ?? 'Unknown',
+    studentAvatarUrl: userMap.get(c.studentId)?.avatarUrl ?? null,
+    raisedBy: c.raisedBy,
+    raiserName: userMap.get(c.raisedBy)?.name ?? 'Unknown',
+    className: null,
+    source: c.source,
+    category: c.category,
+    description: c.description,
+    evidenceNotes: c.evidenceNotes,
+    status: c.status,
+    aiAnalysis: c.aiAnalysis,
+    actionItems: Array.isArray((c as any).actionItems) ? (c as any).actionItems as ConcernActionItem[] : [],
+    createdAt: c.createdAt,
+    reviewedAt: c.reviewedAt,
+    reviewNotes: c.reviewNotes,
+    nextReviewDate: (c as any).nextReviewDate ?? null,
+    followUpRequired: (c as any).followUpRequired ?? false,
+    assignedToId: (c as any).assignedToId ?? null,
+    assignedToName: (c as any).assignedToName ?? null,
+    assignedAction: (c as any).assignedAction ?? null,
+    assignedAt: (c as any).assignedAt ?? null,
   }))
 }
 
@@ -471,6 +541,11 @@ export async function reviewConcern(
   concernId: string,
   status: string,
   reviewNotes: string,
+  options?: {
+    nextReviewDate?: string | null
+    assignedToId?: string | null
+    assignedAction?: string | null
+  },
 ): Promise<void> {
   const user = await requireSencoOnly()
   const schoolId = user.schoolId
@@ -478,14 +553,36 @@ export async function reviewConcern(
   const concern = await prisma.sendConcern.findFirst({ where: { id: concernId, schoolId } })
   if (!concern) throw new Error('Concern not found')
 
+  // Resolve assigned teacher name if provided
+  let assignedToName: string | null = null
+  if (options?.assignedToId) {
+    const assignee = await prisma.user.findFirst({
+      where: { id: options.assignedToId, schoolId },
+      select: { firstName: true, lastName: true },
+    })
+    assignedToName = assignee ? `${assignee.firstName} ${assignee.lastName}` : null
+  }
+
+  const isClosing = ['closed', 'no_action'].includes(status)
+  const nextReviewDate = isClosing ? null
+    : options?.nextReviewDate ? new Date(options.nextReviewDate) : null
+
   await prisma.sendConcern.update({
     where: { id: concernId },
     data: {
       status,
-      reviewedBy: user.id,
-      reviewedAt: new Date(),
+      reviewedBy:      user.id,
+      reviewedAt:      new Date(),
       reviewNotes,
-    },
+      nextReviewDate:  nextReviewDate as any,
+      followUpRequired: !isClosing && !!nextReviewDate,
+      ...(options?.assignedToId ? {
+        assignedToId:   options.assignedToId,
+        assignedToName: assignedToName,
+        assignedAction: options.assignedAction ?? null,
+        assignedAt:     new Date(),
+      } : {}),
+    } as any,
   })
 
   await prisma.sendReviewLog.create({
@@ -541,6 +638,25 @@ export async function reviewConcern(
         })),
       })
     }
+  }
+
+  // Notify the assigned teacher if different from the raiser
+  if (options?.assignedToId && options.assignedToId !== user.id) {
+    const student = await prisma.user.findUnique({
+      where: { id: concern.studentId },
+      select: { firstName: true, lastName: true },
+    })
+    const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+    await prisma.sendNotification.create({
+      data: {
+        schoolId,
+        recipientId: options.assignedToId,
+        concernId,
+        type:  'concern_assigned',
+        title: `SENCO has assigned you a concern: ${studentName}`,
+        body:  `Action required: ${options.assignedAction ?? 'See concern for details'}. Raised by: ${concern.raisedBy === user.id ? 'SENCO' : 'colleague'}.`,
+      },
+    })
   }
 
   revalidatePath('/senco/concerns')
@@ -1482,6 +1598,18 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       createdAt: c.createdAt,
       reviewedAt: c.reviewedAt,
       reviewNotes: c.reviewNotes,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      nextReviewDate: (c as any).nextReviewDate ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      followUpRequired: (c as any).followUpRequired ?? false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedToId: (c as any).assignedToId ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedToName: (c as any).assignedToName ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedAction: (c as any).assignedAction ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedAt: (c as any).assignedAt ?? null,
     })),
     activeFlags: activeFlagsRaw.map(f => ({
       id: f.id,
@@ -1518,6 +1646,18 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       createdAt: c.createdAt,
       reviewedAt: c.reviewedAt,
       reviewNotes: c.reviewNotes,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      nextReviewDate: (c as any).nextReviewDate ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      followUpRequired: (c as any).followUpRequired ?? false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedToId: (c as any).assignedToId ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedToName: (c as any).assignedToName ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedAction: (c as any).assignedAction ?? null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      assignedAt: (c as any).assignedAt ?? null,
     })),
     upcomingReviews: upcomingIlpsRaw.map(i => ({
       ilpId:       i.id,

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import type { LessonForHomework, ClassForHomework, LearningExtraction, GeneratedHomeworkContent } from '@/app/actions/homework'
 import { extractLearningFromLesson, generateHomeworkContent, createHomework } from '@/app/actions/homework'
-import { suggestSpacedRepetition, suggestNextHomework } from '@/app/actions/adaptive-learning'
+import { suggestSpacedRepetition, suggestNextHomework, getClassFormatInsights } from '@/app/actions/adaptive-learning'
+import type { ClassFormatInsight } from '@/app/actions/adaptive-learning'
 import { HomeworkType } from '@prisma/client'
 import IlpTargetHomeworkPanel from './IlpTargetHomeworkPanel'
 
@@ -43,8 +44,10 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
   const [editedInstructions, setEditedInstructions] = useState('')
   const [editedTitle, setEditedTitle] = useState('')
   const [linkedIlpTargetIds, setLinkedIlpTargetIds] = useState<string[]>([])
-  const [spacingSuggestion, setSpacingSuggestion] = useState<string | null>(null)
+  const [spacingSuggestion,   setSpacingSuggestion]   = useState<string | null>(null)
   const [suggestedIlpTargets, setSuggestedIlpTargets] = useState<string[]>([])
+  const [formatInsight,       setFormatInsight]        = useState<ClassFormatInsight | null>(null)
+  const [loadingInsight,      setLoadingInsight]       = useState(false)
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
@@ -272,7 +275,21 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                 <button onClick={() => setStep(1)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
                   <Icon name="chevron_left" size="sm" /> Back
                 </button>
-                <button onClick={() => setStep(3)} className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+                <button
+                  onClick={async () => {
+                    setStep(3)
+                    setFormatInsight(null)
+                    if (classId) {
+                      setLoadingInsight(true)
+                      try {
+                        const insight = await getClassFormatInsights(classId, selectedType)
+                        setFormatInsight(insight)
+                      } catch { /* ignore */ }
+                      finally { setLoadingInsight(false) }
+                    }
+                  }}
+                  className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                >
                   Next <Icon name="chevron_right" size="sm" />
                 </button>
               </div>
@@ -288,7 +305,18 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                 {VARIANT_TYPES.map(t => (
                   <button
                     key={t.id}
-                    onClick={() => setSelectedType(t.id)}
+                    onClick={async () => {
+                      setSelectedType(t.id)
+                      if (classId) {
+                        setLoadingInsight(true)
+                        setFormatInsight(null)
+                        try {
+                          const insight = await getClassFormatInsights(classId, t.id)
+                          setFormatInsight(insight)
+                        } catch { /* ignore */ }
+                        finally { setLoadingInsight(false) }
+                      }
+                    }}
                     className={`p-3 rounded-xl border-2 text-left text-sm transition-colors ${selectedType === t.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}
                   >
                     <p className="font-medium">{t.label}</p>
@@ -299,6 +327,36 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   </button>
                 ))}
               </div>
+
+              {/* SEND format insight */}
+              {loadingInsight && (
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Icon name="refresh" size="sm" className="animate-spin" /> Checking SEND format preferences…
+                </div>
+              )}
+              {formatInsight && !loadingInsight && (
+                <div className="bg-violet-50 border border-violet-200 rounded-xl p-3 space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <Icon name="psychology" size="sm" className="text-violet-600 shrink-0" />
+                    <p className="text-[13px] font-semibold text-violet-900">
+                      SEND format insight — {formatInsight.studentCount} student{formatInsight.studentCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <p className="text-[12px] text-violet-800 leading-relaxed">{formatInsight.rationale}</p>
+                  {formatInsight.recommendedType && formatInsight.recommendedType !== selectedType && (
+                    <button
+                      onClick={async () => {
+                        const t = formatInsight.recommendedType!
+                        setSelectedType(t)
+                        setFormatInsight(null)
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-medium text-violet-700 hover:text-violet-900 underline"
+                    >
+                      Switch to {formatInsight.recommendedTypeLabel} →
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="flex gap-3">
                 <button onClick={() => setStep(2)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
                   <Icon name="chevron_left" size="sm" /> Back

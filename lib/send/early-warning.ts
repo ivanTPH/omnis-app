@@ -57,7 +57,15 @@ async function analyseStudent(
     },
     orderBy: { submittedAt: 'desc' },
     take: 20,
-    include: { homework: { select: { dueAt: true } } },
+    include: {
+      homework: {
+        select: {
+          dueAt:               true,
+          homeworkVariantType: true,
+          class:               { select: { subject: true } },
+        },
+      },
+    },
   })
 
   const recent4w = recentSubmissions.filter(s => s.submittedAt >= fourWeeksAgo)
@@ -118,6 +126,78 @@ async function analyseStudent(
       description: `Student has ${openConcerns} open SEND concerns awaiting review.`,
       dataPoints: { openConcerns },
     })
+  }
+
+  // ─── C2) Score inconsistency — high variance suggests attention difficulties ──
+  const scoredAll = recentSubmissions.filter(s => s.finalScore !== null).slice(0, 8)
+  if (scoredAll.length >= 5) {
+    const scores = scoredAll.map(s => s.finalScore as number)
+    const mean   = scores.reduce((a, b) => a + b, 0) / scores.length
+    const stddev = Math.sqrt(scores.reduce((a, s) => a + (s - mean) ** 2, 0) / scores.length)
+    // >25 stddev ≈ >2.25 GCSE grade units of variance
+    if (stddev > 25) {
+      flags.push({
+        studentId,
+        flagType:    'inconsistency_pattern',
+        severity:    stddev > 38 ? 'high' : 'medium',
+        description: `Inconsistent performance across last ${scores.length} scored submissions — scores range from ${Math.round(Math.min(...scores))} to ${Math.round(Math.max(...scores))} (stddev ${Math.round(stddev)}). Variable engagement may indicate attention or anxiety-related difficulties.`,
+        dataPoints:  { stddev: Math.round(stddev), minScore: Math.min(...scores), maxScore: Math.max(...scores), count: scores.length },
+      })
+    }
+  }
+
+  // ─── C3) Subject-isolated drop — decline in one subject only ──────────────
+  const subjectMap: Record<string, { recent: number[]; prior: number[] }> = {}
+  for (const s of recentSubmissions) {
+    if (s.finalScore == null) continue
+    const subj = (s.homework as any).class?.subject ?? 'Unknown'
+    if (!subjectMap[subj]) subjectMap[subj] = { recent: [], prior: [] }
+    const bucket = s.submittedAt >= fourWeeksAgo ? 'recent' : 'prior'
+    subjectMap[subj][bucket].push(s.finalScore)
+  }
+  const subjectEntries = Object.entries(subjectMap).filter(([, d]) => d.recent.length >= 2 && d.prior.length >= 2)
+  if (subjectEntries.length >= 2) {
+    const avgs = subjectEntries.map(([subj, d]) => ({
+      subj,
+      recentAvg: d.recent.reduce((a, b) => a + b, 0) / d.recent.length,
+      priorAvg:  d.prior.reduce((a, b) => a + b, 0) / d.prior.length,
+    }))
+    const dropping = avgs.filter(a => a.priorAvg > 0 && (a.priorAvg - a.recentAvg) / a.priorAvg > 0.25)
+    const stable   = avgs.filter(a => a.priorAvg > 0 && (a.priorAvg - a.recentAvg) / a.priorAvg <= 0.1)
+    if (dropping.length === 1 && stable.length >= 1) {
+      const d = dropping[0]
+      flags.push({
+        studentId,
+        flagType:    'subject_isolated_drop',
+        severity:    'medium',
+        description: `Score in ${d.subj} has dropped from ${Math.round(d.priorAvg)} to ${Math.round(d.recentAvg)} over 4 weeks while performance in other subjects remains stable. May indicate a subject-specific difficulty rather than a general concern.`,
+        dataPoints:  { subject: d.subj, priorAvg: Math.round(d.priorAvg), recentAvg: Math.round(d.recentAvg), stableSubjects: stable.map(s => s.subj) },
+      })
+    }
+  }
+
+  // ─── C4) Format struggle — consistently low on one homework type ───────────
+  const formatMap: Record<string, number[]> = {}
+  for (const s of recentSubmissions) {
+    if (s.finalScore == null) continue
+    const fmt = (s.homework as any).homeworkVariantType ?? 'free_text'
+    if (!formatMap[fmt]) formatMap[fmt] = []
+    formatMap[fmt].push(s.finalScore)
+  }
+  const overallScored = recentSubmissions.filter(s => s.finalScore != null).map(s => s.finalScore as number)
+  const overallAvg    = overallScored.length ? overallScored.reduce((a, b) => a + b, 0) / overallScored.length : 0
+  for (const [fmt, scores] of Object.entries(formatMap)) {
+    if (scores.length < 4) continue
+    const fmtAvg = scores.reduce((a, b) => a + b, 0) / scores.length
+    if (fmtAvg < 40 && overallAvg > 55) {
+      flags.push({
+        studentId,
+        flagType:    'format_struggle',
+        severity:    'medium',
+        description: `Student averages ${Math.round(fmtAvg)}% on ${fmt.replace(/_/g, ' ')} tasks (${scores.length} attempts) but ${Math.round(overallAvg)}% overall. Consider offering this homework type in an alternative format better suited to their learning needs.`,
+        dataPoints:  { format: fmt, formatAvg: Math.round(fmtAvg), overallAvg: Math.round(overallAvg), attempts: scores.length },
+      })
+    }
   }
 
   // ─── D) Consecutive missed homeworks ─────────────────────────────────────

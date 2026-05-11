@@ -1735,6 +1735,72 @@ export async function getIlpEvidenceForStudent(studentId: string): Promise<Array
   })
 }
 
+// ── Get submissions available for ILP evidence linking ────────────────────────
+
+export type SubmissionForEvidencing = {
+  id:                  string
+  homeworkId:          string
+  title:               string
+  subject:             string | null
+  className:           string | null
+  homeworkVariantType: string | null
+  submittedAt:         Date
+  grade:               string | null
+  finalScore:          number | null
+  linkedTargetIds:     string[]
+}
+
+export async function getStudentSubmissionsForEvidencing(studentId: string): Promise<SubmissionForEvidencing[]> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId, role } = session.user as any
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'].includes(role)) {
+    throw new Error('Unauthorized')
+  }
+
+  const [submissions, evidenceEntries] = await Promise.all([
+    prisma.submission.findMany({
+      where:   { studentId, schoolId, status: 'RETURNED' },
+      include: {
+        homework: {
+          select: {
+            id: true, title: true, dueAt: true,
+            homeworkVariantType: true,
+            class: { select: { name: true, subject: true } },
+          },
+        },
+      },
+      orderBy: { submittedAt: 'desc' },
+      take:    50,
+    }),
+    (prisma as any).ilpEvidenceEntry.findMany({
+      where:  { studentId },
+      select: { submissionId: true, ilpTargetId: true },
+    }) as Promise<Array<{ submissionId: string | null; ilpTargetId: string }>>,
+  ])
+
+  const linkedMap = new Map<string, string[]>()
+  for (const e of evidenceEntries) {
+    if (!e.submissionId) continue
+    const arr = linkedMap.get(e.submissionId) ?? []
+    arr.push(e.ilpTargetId)
+    linkedMap.set(e.submissionId, arr)
+  }
+
+  return submissions.map(s => ({
+    id:                  s.id,
+    homeworkId:          s.homeworkId,
+    title:               s.homework.title,
+    subject:             (s.homework as any).class?.subject ?? null,
+    className:           (s.homework as any).class?.name ?? null,
+    homeworkVariantType: (s.homework as any).homeworkVariantType ?? null,
+    submittedAt:         s.submittedAt,
+    grade:               s.grade,
+    finalScore:          s.finalScore,
+    linkedTargetIds:     linkedMap.get(s.id) ?? [],
+  }))
+}
+
 // ── ILP Concerns This Term ────────────────────────────────────────────────────
 
 export async function getIlpConcernsThisTerm(): Promise<Array<{

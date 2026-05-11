@@ -5,9 +5,11 @@ import AppShell from '@/components/AppShell'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PlanStatus, StrategyAppliesTo } from '@prisma/client'
-import { getIlpEvidenceForStudent } from '@/app/actions/homework'
+import { getIlpEvidenceForStudent, getStudentSubmissionsForEvidencing } from '@/app/actions/homework'
+import { getStudentActiveIlpTargets } from '@/app/actions/send-support'
 import { formatRawScore } from '@/lib/gradeUtils'
 import IlpEvidenceTimeline from '@/components/send-support/IlpEvidenceTimeline'
+import IlpEvidenceLinkPanel from '@/components/send-support/IlpEvidenceLinkPanel'
 
 export default async function StudentIlpPage({ params }: { params: Promise<{ studentId: string }> }) {
   const session = await auth()
@@ -23,7 +25,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
   })
   if (!student) notFound()
 
-  const [sendStatus, plan, enrolments, ilpEvidence] = await Promise.all([
+  const [sendStatus, plan, enrolments, ilpEvidence, submissionsForEvidencing, activeIlpTargets] = await Promise.all([
     prisma.sendStatus.findUnique({ where: { studentId } }),
     prisma.plan.findFirst({
       where: {
@@ -48,6 +50,8 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
       },
     }),
     getIlpEvidenceForStudent(studentId),
+    getStudentSubmissionsForEvidencing(studentId).catch(() => []),
+    getStudentActiveIlpTargets(studentId).catch(() => []),
   ])
 
   const classIds = enrolments.map(e => e.classId)
@@ -252,6 +256,15 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
 
               {/* ILP Evidence Timeline — editable client component */}
               <IlpEvidenceTimeline entries={ilpEvidence as any} />
+
+              {/* Evidence linking panel — only shown when student has active ILP targets */}
+              {activeIlpTargets.length > 0 && (
+                <IlpEvidenceLinkPanel
+                  studentId={studentId}
+                  submissions={submissionsForEvidencing}
+                  ilpTargets={activeIlpTargets}
+                />
+              )}
 
               {Object.entries(subsByClass).length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

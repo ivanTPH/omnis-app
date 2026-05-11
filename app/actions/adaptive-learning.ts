@@ -464,6 +464,116 @@ export async function suggestNextHomework(
   }
 }
 
+// ─── Class Format Insights ────────────────────────────────────────────────────
+
+export type ClassFormatInsight = {
+  studentCount:         number   // SEND/ILP students with a clear format preference
+  recommendedType:      string | null
+  recommendedTypeLabel: string | null
+  avgScoreOnRecommended: number | null
+  sendStudentsAffected: string[] // first names only, for display
+  rationale:            string
+}
+
+const FORMAT_LABELS: Record<string, string> = {
+  retrieval_practice: 'Retrieval Practice',
+  quiz:               'Quiz',
+  multiple_choice:    'Multiple Choice',
+  short_answer:       'Short Answer',
+  essay:              'Essay',
+  mind_map:           'Mind Map',
+  reading_response:   'Reading Response',
+  research_task:      'Research Task',
+  creative:           'Creative Task',
+  practical:          'Practical Task',
+  free_text:          'Free Text',
+}
+
+export async function getClassFormatInsights(
+  classId:      string,
+  currentType:  string,
+): Promise<ClassFormatInsight | null> {
+  const user = await requireStaff()
+  const schoolId = user.schoolId
+
+  // Get enrolled students
+  const enrolments = await prisma.enrolment.findMany({
+    where:  { classId, class: { schoolId } },
+    select: { userId: true },
+  })
+  const studentIds = enrolments.map(e => e.userId)
+  if (studentIds.length === 0) return null
+
+  // Filter to SEND students only
+  const sendStatuses = await prisma.sendStatus.findMany({
+    where:  { studentId: { in: studentIds }, NOT: { activeStatus: 'NONE' } },
+    select: { studentId: true },
+  })
+  const sendIds = sendStatuses.map(s => s.studentId)
+  if (sendIds.length === 0) return null
+
+  // Load their learning profiles
+  const profiles = await prisma.studentLearningProfile.findMany({
+    where:  { studentId: { in: sendIds } },
+    select: { studentId: true, preferredTypes: true, typePerformance: true },
+  })
+
+  // Fetch first names for affected students
+  const users = await prisma.user.findMany({
+    where:  { id: { in: sendIds } },
+    select: { id: true, firstName: true },
+  })
+  const nameMap = new Map(users.map(u => [u.id, u.firstName]))
+
+  // Find students where preferred type differs from currentType with >15% score gap
+  const typeScores: Record<string, number[]> = {}
+  const affectedStudents: string[] = []
+
+  for (const profile of profiles) {
+    const perf = (profile.typePerformance as Record<string, { avgScore: number; count: number }> | null) ?? {}
+    const currentScore = perf[currentType]?.avgScore
+    const preferred    = profile.preferredTypes[0]
+
+    if (!preferred || preferred === currentType) continue
+    const preferredScore = perf[preferred]?.avgScore
+    if (preferredScore == null || currentScore == null) continue
+
+    const gap = preferredScore - currentScore
+    if (gap > 15 && (perf[preferred]?.count ?? 0) >= 2) {
+      if (!typeScores[preferred]) typeScores[preferred] = []
+      typeScores[preferred].push(preferredScore)
+      const name = nameMap.get(profile.studentId)
+      if (name) affectedStudents.push(name)
+    }
+  }
+
+  if (affectedStudents.length === 0) return null
+
+  // Find the most commonly recommended type
+  const topType = Object.entries(typeScores)
+    .sort((a, b) => b[1].length - a[1].length)[0]
+
+  if (!topType) return null
+
+  const [recommendedType, scores] = topType
+  const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+  const label    = FORMAT_LABELS[recommendedType] ?? recommendedType
+
+  const currentLabel = FORMAT_LABELS[currentType] ?? currentType
+  const names = affectedStudents.length <= 2
+    ? affectedStudents.join(' and ')
+    : `${affectedStudents[0]} and ${affectedStudents.length - 1} others`
+
+  return {
+    studentCount:          affectedStudents.length,
+    recommendedType,
+    recommendedTypeLabel:  label,
+    avgScoreOnRecommended: avgScore,
+    sendStudentsAffected:  affectedStudents,
+    rationale: `${names} (SEND) score ~${avgScore}% on average with ${label} tasks — significantly higher than ${currentLabel}. Consider this format if the learning objective can be equally assessed either way.`,
+  }
+}
+
 // ─── Adaptive Suggestions ─────────────────────────────────────────────────────
 
 export async function getAdaptiveHomeworkSuggestions(

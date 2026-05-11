@@ -703,6 +703,22 @@ export async function addConcernAction(
   revalidatePath('/senco/concerns')
 }
 
+export async function getStudentActiveIlpTargets(studentId: string): Promise<{ id: string; target: string; status: string }[]> {
+  const user = await requireAuth()
+  const { schoolId } = user
+
+  const ilp = await (prisma as any).individualLearningPlan.findFirst({
+    where:  { studentId, schoolId, status: 'active' },
+    select: {
+      targets: {
+        where:  { status: 'active' },
+        select: { id: true, target: true, status: true },
+      },
+    },
+  })
+  return ilp?.targets ?? []
+}
+
 export async function getSchoolStaff(): Promise<{ id: string; name: string; role: string }[]> {
   const user = await requireSenco()
   const schoolId = user.schoolId

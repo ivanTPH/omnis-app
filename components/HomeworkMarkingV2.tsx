@@ -265,8 +265,8 @@ function MarkingPanel({
               </div>
             )}
 
-            <div className="flex items-end gap-4">
-              {/* GCSE grade selector — button group */}
+            <div className="flex gap-5 items-start">
+              {/* Left: GCSE grade picker */}
               <div className="flex flex-col gap-1.5 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <label className="text-label">GCSE GRADE</label>
@@ -276,11 +276,8 @@ function MarkingPanel({
                       AI loading…
                     </span>
                   )}
-                  {!suggesting && suggestion && grade === suggestion.grade && (
-                    <span className="text-[10px] text-blue-500 font-medium">AI suggested — click to confirm</span>
-                  )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-wrap">
                   {GRADES.map(g => (
                     <button
                       key={g}
@@ -298,46 +295,49 @@ function MarkingPanel({
                     </button>
                   ))}
                 </div>
+                {!suggesting && suggestion && grade === suggestion.grade && !saved && (
+                  <span className="text-[10px] text-blue-500 font-medium">AI suggested — click to confirm</span>
+                )}
               </div>
 
-              {/* Teacher feedback */}
-              <div className="flex-1 flex flex-col gap-1.5">
-                <label className="text-label">TEACHER FEEDBACK</label>
-                <textarea
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  placeholder="Optional feedback for the student…"
-                  rows={2}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-700"
-                />
+              {/* Right: Teacher feedback + save + auto-advance */}
+              <div className="flex-1 flex flex-col gap-2 min-w-0">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-label">TEACHER FEEDBACK</label>
+                  <textarea
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    placeholder="Optional feedback for the student…"
+                    rows={3}
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-700 w-full"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoAdvance}
+                      onChange={e => onAutoAdvanceChange(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-700 focus:ring-blue-700"
+                    />
+                    <span className="text-meta">Auto-advance to next student after saving</span>
+                  </label>
+                  <button
+                    onClick={handleSave}
+                    disabled={!grade || isPending}
+                    className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm px-5 rounded-lg h-9 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isPending
+                      ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      : saved
+                        ? <Icon name="check_circle" size="sm" />
+                        : <Icon name="save" size="sm" />
+                    }
+                    {saved ? 'Saved!' : 'Save Grade'}
+                  </button>
+                </div>
               </div>
-
-              {/* Save button */}
-              <button
-                onClick={handleSave}
-                disabled={!grade || isPending}
-                className="flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white font-semibold text-sm px-5 rounded-lg h-10 flex-shrink-0 self-end disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isPending
-                  ? <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                  : saved
-                    ? <Icon name="check_circle" size="sm" />
-                    : <Icon name="save" size="sm" />
-                }
-                {saved ? 'Saved!' : 'Save Grade'}
-              </button>
             </div>
-
-            {/* Auto-advance toggle */}
-            <label className="flex items-center gap-2 mt-3 cursor-pointer w-fit">
-              <input
-                type="checkbox"
-                checked={autoAdvance}
-                onChange={e => onAutoAdvanceChange(e.target.checked)}
-                className="rounded border-gray-300 text-blue-700 focus:ring-blue-700"
-              />
-              <span className="text-meta">Auto-advance to next student after saving</span>
-            </label>
           </>
         ) : (
           /* READ-ONLY view for non-teaching staff */

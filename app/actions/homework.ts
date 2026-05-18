@@ -1890,8 +1890,10 @@ Respond with ONLY valid JSON: {"grade": "7", "rationale": "Brief justification m
       max_tokens: 300,
       messages:   [{ role: 'user', content: prompt }],
     })
-    const text   = response.content[0].type === 'text' ? response.content[0].text.trim() : ''
-    const parsed = JSON.parse(text)
+    const text     = response.content[0].type === 'text' ? response.content[0].text.trim() : ''
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('no JSON in response')
+    const parsed   = JSON.parse(jsonMatch[0])
     const valid  = ['9', '8', '7', '6', '5', '4', '3', '2', '1', 'U']
     if (!valid.includes(parsed.grade)) throw new Error('bad grade')
     return {

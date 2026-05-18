@@ -82,6 +82,7 @@ function MarkingPanel({
   const [error, setError]               = useState<string | null>(null)
   const [suggestion, setSuggestion]     = useState<GradeSuggestion | null>(cachedSuggestion ?? null)
   const [suggesting, setSuggesting]     = useState(false)
+  const [suggestionFailed, setSuggestionFailed] = useState(false)
 
   // Apply cached suggestion when it arrives after mount
   useEffect(() => {
@@ -99,13 +100,16 @@ function MarkingPanel({
     setSuggesting(true)
     suggestHomeworkGrade(sub.id)
       .then(r => {
-        if (!cancelled && r.grade) {
+        if (cancelled) return
+        if (r.grade) {
           setSuggestion(r)
           setGrade(g => g || r.grade)
           if (!sub.feedback) setNote(r.feedback)
+        } else {
+          setSuggestionFailed(true)
         }
       })
-      .catch(() => {})
+      .catch(() => { if (!cancelled) setSuggestionFailed(true) })
       .finally(() => { if (!cancelled) setSuggesting(false) })
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -297,6 +301,9 @@ function MarkingPanel({
                 </div>
                 {!suggesting && suggestion && grade === suggestion.grade && !saved && (
                   <span className="text-[10px] text-blue-500 font-medium">AI suggested — click to confirm</span>
+                )}
+                {!suggesting && suggestionFailed && !suggestion && (
+                  <span className="text-[10px] text-amber-600">Could not auto-suggest grade — please grade manually</span>
                 )}
               </div>
 

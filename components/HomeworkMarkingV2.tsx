@@ -157,7 +157,7 @@ function MarkingPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable submission + mark scheme */}
-      <div className="flex-1 overflow-y-auto pb-48">
+      <div className="flex-1 overflow-y-auto pb-4">
 
         {/* SECTION A — Student submission */}
         <div className="card m-4">
@@ -219,20 +219,13 @@ function MarkingPanel({
 
       </div>
 
-      {/* SECTION C — Grade input (sticky bottom) */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+      {/* SECTION C — Grade input (always visible at bottom) */}
+      <div className="shrink-0 bg-white border-t border-gray-200 p-4">
 
         {canGrade ? (
           <>
             {error && <p className="text-xs text-rose-600 mb-3">{error}</p>}
 
-            {/* AI grade suggestion */}
-            {suggesting && (
-              <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-                <Icon name="refresh" size="sm" className="animate-spin" />
-                Generating AI suggestion…
-              </div>
-            )}
             {suggestion && !saved && (
               <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2.5">
                 <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -275,7 +268,18 @@ function MarkingPanel({
             <div className="flex items-end gap-4">
               {/* GCSE grade selector — button group */}
               <div className="flex flex-col gap-1.5 flex-shrink-0">
-                <label className="text-label">GCSE GRADE</label>
+                <div className="flex items-center gap-2">
+                  <label className="text-label">GCSE GRADE</label>
+                  {suggesting && (
+                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                      <Icon name="refresh" size="sm" className="animate-spin" />
+                      AI loading…
+                    </span>
+                  )}
+                  {!suggesting && suggestion && grade === suggestion.grade && (
+                    <span className="text-[10px] text-blue-500 font-medium">AI suggested — click to confirm</span>
+                  )}
+                </div>
                 <div className="flex gap-1">
                   {GRADES.map(g => (
                     <button
@@ -284,7 +288,9 @@ function MarkingPanel({
                       onClick={() => setGrade(g)}
                       className={`w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
                         grade === g
-                          ? 'bg-blue-700 text-white border-blue-700'
+                          ? (suggestion && grade === suggestion.grade && !saved
+                              ? 'bg-gray-200 text-gray-500 border-gray-300'
+                              : 'bg-blue-700 text-white border-blue-700')
                           : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-700'
                       }`}
                     >

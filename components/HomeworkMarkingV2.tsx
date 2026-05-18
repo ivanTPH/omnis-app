@@ -257,15 +257,25 @@ function MarkingPanel({
                     &ldquo;{suggestion.feedback}&rdquo;
                   </p>
                 )}
-                <button
-                  type="button"
-                  onClick={handleAcceptAndReturn}
-                  disabled={!grade || isPending}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
-                >
-                  <Icon name="check_circle" size="sm" />
-                  Accept &amp; Return
-                </button>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSuggestion(null)}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-blue-700 bg-white border border-blue-300 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition"
+                  >
+                    <Icon name="edit" size="sm" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAcceptAndReturn}
+                    disabled={!grade || isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-blue-700 hover:bg-blue-800 disabled:opacity-50 px-3 py-1.5 rounded-lg transition"
+                  >
+                    <Icon name="check_circle" size="sm" />
+                    Accept &amp; Return
+                  </button>
+                </div>
               </div>
             )}
 

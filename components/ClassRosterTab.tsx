@@ -28,6 +28,7 @@ import {
 } from '@/app/actions/send-support'
 import { getStudentEhcp, type EhcpPlanWithOutcomes } from '@/app/actions/ehcp'
 import { getClassRagData, type RagStudent } from '@/app/actions/rag'
+import { getTaNotes, type TaNoteRow } from '@/app/actions/ta-notes'
 import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 import StudentContactPanel from '@/components/StudentContactPanel'
@@ -115,6 +116,7 @@ export default function ClassRosterTab({
 
   const [docSlideOver, setDocSlideOver] = useState<{ studentId: string; studentName: string; docType: DocSlideOverDocType } | null>(null)
 
+  const [taNoteCache,       setTaNoteCache]       = useState<Record<string, TaNoteRow[] | 'loading'>>({})
   const [newNotes,          setNewNotes]          = useState<Record<string, string>>({})
   const [savingNote,        setSavingNote]        = useState<string | null>(null)
   const [flagConcernStudent, setFlagConcernStudent] = useState<{ id: string; name: string } | null>(null)
@@ -193,6 +195,12 @@ export default function ClassRosterTab({
       getStudentRosterDetail(id, classId)
         .then(d => setRosterDetailCache(c => ({ ...c, [id]: d })))
         .catch(() => setRosterDetailCache(c => ({ ...c, [id]: { recentHomework: [], examScores: [], rosterNotes: [] } })))
+    }
+    if (!taNoteCache[id]) {
+      setTaNoteCache(c => ({ ...c, [id]: 'loading' }))
+      getTaNotes(id)
+        .then(notes => setTaNoteCache(c => ({ ...c, [id]: notes })))
+        .catch(() => setTaNoteCache(c => ({ ...c, [id]: [] })))
     }
   }
 
@@ -1150,6 +1158,7 @@ export default function ClassRosterTab({
                     {/* ── Tab: Notes ── */}
                     {activeTab === 'notes' && (
                       <>
+                        {/* Roster notes */}
                         {rosterDetail && rosterDetail !== 'loading' && rosterDetail.rosterNotes.length > 0 ? (
                           <div className="space-y-2 mb-3">
                             {rosterDetail.rosterNotes.map(n => (
@@ -1189,6 +1198,44 @@ export default function ClassRosterTab({
                             Add note
                           </button>
                         </div>
+
+                        {/* TA Notes sub-section */}
+                        {(() => {
+                          const taNotes = taNoteCache[row.id]
+                          if (!taNotes || taNotes === 'loading') {
+                            return (
+                              <div className="flex items-center gap-2 text-[12px] text-gray-400 mt-4">
+                                <Icon name="refresh" size="sm" className="animate-spin" /> Loading TA notes…
+                              </div>
+                            )
+                          }
+                          if (taNotes.length === 0) return null
+                          return (
+                            <div className="mt-4 space-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <Icon name="support_agent" size="sm" className="text-amber-600" />
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                  TA Notes ({taNotes.length})
+                                </span>
+                              </div>
+                              {taNotes.map(n => (
+                                <div key={n.id} className={`rounded-xl border px-3 py-2 ${n.isUrgent ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-200'}`}>
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 mb-0.5">
+                                        {n.isUrgent && (
+                                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 uppercase">Urgent</span>
+                                        )}
+                                        <span className="text-[10px] text-gray-400">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                                      </div>
+                                      <p className="text-[12px] text-gray-700 leading-relaxed">{n.content}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        })()}
                       </>
                     )}
 

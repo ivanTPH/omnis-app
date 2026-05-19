@@ -63,29 +63,30 @@ export async function addTaNote(
     },
   })
 
-  // Notify class teacher(s) when a TA adds a note
+  // Notify class teacher(s) when a TA adds a note (at most once per hour per student)
   if (user.role === 'TEACHING_ASSISTANT' && classId) {
-    const teachers = await prisma.classTeacher.findMany({
-      where:  { classId },
-      select: { userId: true },
-    })
-    const student = await prisma.user.findFirst({
-      where:  { id: studentId },
-      select: { firstName: true, lastName: true },
-    })
+    const [teachers, student] = await Promise.all([
+      prisma.classTeacher.findMany({ where: { classId }, select: { userId: true } }),
+      prisma.user.findFirst({ where: { id: studentId }, select: { firstName: true, lastName: true } }),
+    ])
     const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
-    const title = isUrgent ? 'Urgent TA note' : 'TA note added'
+    const title = isUrgent ? `Urgent TA note: ${studentName}` : `TA note: ${studentName}`
     const body  = `${user.firstName} ${user.lastName} added a${isUrgent ? ' urgent' : ''} note about ${studentName}.`
+    const oneHourAgo = new Date(Date.now() - 3_600_000)
     for (const t of teachers) {
-      const exists = await prisma.notification.findFirst({
-        where: { schoolId: user.schoolId, userId: t.userId, type: 'SUBMISSION_FLAGGED', linkHref: `/students/${studentId}` },
+      const recent = await prisma.notification.findFirst({
+        where: {
+          schoolId: user.schoolId, userId: t.userId,
+          type: 'GENERAL', linkHref: `/students/${studentId}`,
+          createdAt: { gte: oneHourAgo },
+        },
       })
-      if (!exists) {
+      if (!recent) {
         await prisma.notification.create({
           data: {
             schoolId: user.schoolId,
             userId:   t.userId,
-            type:     'SUBMISSION_FLAGGED',
+            type:     'GENERAL',
             title,
             body,
             linkHref: `/students/${studentId}`,

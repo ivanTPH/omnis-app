@@ -11,7 +11,7 @@ function getRoleHome(role: string): string {
     case 'SLT':            return '/slt/analytics'
     case 'SCHOOL_ADMIN':       return '/admin/dashboard'
     case 'PLATFORM_ADMIN':     return '/platform-admin/dashboard'
-    case 'TEACHING_ASSISTANT': return '/dashboard'
+    case 'TEACHING_ASSISTANT': return '/ta/notes'
     default:                   return '/dashboard'
   }
 }

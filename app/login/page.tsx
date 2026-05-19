@@ -13,6 +13,7 @@ const demos = [
   { role: 'Parent', email: 'l.hughes@parents.omnisdemo.school' },
   { role: 'Admin', email: 'admin@omnisdemo.school' },
   { role: 'Head of Dept', email: 'd.brooks@omnisdemo.school' },
+  { role: 'Teaching Assistant', email: 'j.taylor@omnisdemo.school' },
 ]
 
 export default function LoginPage() {

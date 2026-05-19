@@ -8,45 +8,53 @@ import SendBadge from '@/components/ui/SendBadge'
 import { getClassRoster, type ClassRosterRow } from '@/app/actions/lessons'
 import { getTaNotes, addTaNote, markTaNoteRead, getTaClasses, type TaNoteRow, type TaClass } from '@/app/actions/ta-notes'
 
-
-
 export default function TaNotesHub() {
   const [classes,         setClasses]         = useState<TaClass[]>([])
+  const [selectedYear,    setSelectedYear]    = useState<number | null>(null)
   const [selectedClass,   setSelectedClass]   = useState<TaClass | null>(null)
   const [students,        setStudents]         = useState<ClassRosterRow[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
 
-  // Per-student TA notes cache
   const [notesCache,  setNotesCache]  = useState<Record<string, TaNoteRow[] | 'loading'>>({})
-  // Per-student expanded state
   const [expandedId,  setExpandedId]  = useState<string | null>(null)
-  // Per-student new note input
   const [noteText,    setNoteText]    = useState<Record<string, string>>({})
   const [noteUrgent,  setNoteUrgent]  = useState<Record<string, boolean>>({})
   const [, startTransition] = useTransition()
   const [saving, setSaving] = useState<string | null>(null)
 
-  // Load classes on mount
   useEffect(() => {
     getTaClasses()
-      .then(cls => {
-        setClasses(cls)
-        if (cls.length > 0) setSelectedClass(cls[0])
-      })
+      .then(setClasses)
       .catch(console.error)
   }, [])
 
-  // Load students when class changes
-  useEffect(() => {
-    if (!selectedClass) return
+  // Derived: unique year groups sorted
+  const yearGroups = [...new Set(classes.map(c => c.yearGroup))].sort((a, b) => a - b)
+
+  // Derived: classes for selected year
+  const classesForYear = selectedYear
+    ? classes.filter(c => c.yearGroup === selectedYear)
+    : []
+
+  function handleYearSelect(year: number) {
+    if (selectedYear === year) return
+    setSelectedYear(year)
+    setSelectedClass(null)
+    setStudents([])
+    setExpandedId(null)
+  }
+
+  function handleClassSelect(cls: TaClass) {
+    if (selectedClass?.id === cls.id) return
+    setSelectedClass(cls)
     setStudents([])
     setExpandedId(null)
     setStudentsLoading(true)
-    getClassRoster(selectedClass.id)
+    getClassRoster(cls.id)
       .then(setStudents)
       .catch(console.error)
       .finally(() => setStudentsLoading(false))
-  }, [selectedClass])
+  }
 
   function loadTaNotes(studentId: string) {
     if (notesCache[studentId]) return
@@ -74,7 +82,6 @@ export default function TaNotesHub() {
       await addTaNote(studentId, content, urgent, selectedClass?.id)
       setNoteText(t => ({ ...t, [studentId]: '' }))
       setNoteUrgent(u => ({ ...u, [studentId]: false }))
-      // Refresh notes for this student
       setNotesCache(c => ({ ...c, [studentId]: 'loading' }))
       const updated = await getTaNotes(studentId)
       setNotesCache(c => ({ ...c, [studentId]: updated }))
@@ -97,43 +104,82 @@ export default function TaNotesHub() {
   return (
     <div className="flex flex-col h-full min-h-0">
 
-      {/* Class picker */}
-      {classes.length > 1 && (
-        <div className="shrink-0 px-6 pt-4 pb-3 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-2 flex-wrap">
-            {classes.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedClass(c)}
-                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-                  selectedClass?.id === c.id
-                    ? 'bg-blue-700 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {c.name}
-                <span className="ml-1.5 text-[10px] opacity-70">Yr {c.yearGroup}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── Filters ─────────────────────────────────────────────────────── */}
+      <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-4 space-y-3">
 
-      {/* Student list */}
+        {/* Year group row */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Year Group</p>
+          {classes.length === 0 ? (
+            <div className="flex items-center gap-2 text-[12px] text-gray-400">
+              <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              {yearGroups.map(year => (
+                <button
+                  key={year}
+                  onClick={() => handleYearSelect(year)}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+                    selectedYear === year
+                      ? 'bg-blue-700 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Year {year}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Class row — only shown once a year is selected */}
+        {selectedYear && (
+          <div>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Class</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {classesForYear.map(cls => (
+                <button
+                  key={cls.id}
+                  onClick={() => handleClassSelect(cls)}
+                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+                    selectedClass?.id === cls.id
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {cls.name}
+                  <span className="ml-1.5 opacity-60 text-[10px]">{cls.subject}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Student list ─────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto px-4 py-4 space-y-2">
 
-        {studentsLoading && (
+        {/* Prompt states */}
+        {!selectedYear && (
+          <EmptyState icon="school" title="Select a year group" description="Choose a year group above to see classes." size="md" />
+        )}
+        {selectedYear && !selectedClass && (
+          <EmptyState icon="groups" title="Select a class" description="Choose a class above to see its students." size="md" />
+        )}
+
+        {selectedClass && studentsLoading && (
           <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
             <Icon name="refresh" size="md" className="animate-spin" />
             <span className="text-sm">Loading students…</span>
           </div>
         )}
 
-        {!studentsLoading && students.length === 0 && (
-          <EmptyState icon="groups" title="No students" description="No students enrolled in this class." size="md" />
+        {selectedClass && !studentsLoading && students.length === 0 && (
+          <EmptyState icon="person_off" title="No students" description="No students enrolled in this class." size="md" />
         )}
 
-        {!studentsLoading && students.map(student => {
+        {selectedClass && !studentsLoading && students.map(student => {
           const isExpanded = expandedId === student.id
           const cachedNotes = notesCache[student.id]
           const notes = cachedNotes && cachedNotes !== 'loading' ? cachedNotes : []
@@ -141,7 +187,6 @@ export default function TaNotesHub() {
 
           return (
             <div key={student.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              {/* Student row */}
               <button
                 type="button"
                 onClick={() => handleToggle(student.id)}
@@ -156,7 +201,7 @@ export default function TaNotesHub() {
                   userId={student.id}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[13px] font-medium text-gray-900">
                       {student.firstName} {student.lastName}
                     </span>
@@ -180,11 +225,8 @@ export default function TaNotesHub() {
                 />
               </button>
 
-              {/* Expanded notes panel */}
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
-
-                  {/* Existing notes */}
                   {cachedNotes === 'loading' ? (
                     <div className="flex items-center gap-2 text-[12px] text-gray-400">
                       <Icon name="refresh" size="sm" className="animate-spin" /> Loading notes…
@@ -226,7 +268,6 @@ export default function TaNotesHub() {
                     </div>
                   )}
 
-                  {/* Add new note */}
                   <div className="space-y-2 pt-1">
                     <textarea
                       value={noteText[student.id] ?? ''}
@@ -260,13 +301,11 @@ export default function TaNotesHub() {
                       </button>
                     </div>
                   </div>
-
                 </div>
               )}
             </div>
           )
         })}
-
       </div>
     </div>
   )

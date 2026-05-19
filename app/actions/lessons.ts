@@ -160,10 +160,8 @@ Example format: ["Students will be able to ...", "Students will be able to ...",
 }
 
 export async function getLessonDetails(lessonId: string) {
-  console.log('[DEBUG] getLessonDetails called, lessonId:', lessonId)
   try {
   const session = await auth()
-  console.log('[DEBUG] auth() result, session exists:', !!session, 'schoolId:', (session?.user as any)?.schoolId)
   if (!session) return null
   const { schoolId } = session.user as any
 

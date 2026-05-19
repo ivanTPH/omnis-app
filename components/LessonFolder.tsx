@@ -268,9 +268,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     async function load() {
       setLoading(true)
       try {
-        console.log('[DEBUG] LessonFolder lessonId prop:', id)
         const l = await getLessonDetails(id)
-        console.log('[DEBUG] getLessonDetails returned:', l?.title, 'classId:', l?.classId)
         if (cancelled) return
         setLesson(l)
         setTitle(l?.title ?? '')
@@ -563,7 +561,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     'Insights':  <Icon name="analytics"  size="sm" />,
   }
 
-  console.log('[DEBUG] LessonFolder render, lesson state:', lesson?.title, 'lessonId:', lessonId)
   return (
     <>
     <div

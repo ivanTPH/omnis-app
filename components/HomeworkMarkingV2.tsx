@@ -403,6 +403,14 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
   })
 
   const [autoAdvance, setAutoAdvance] = useState(true)
+  const [listFilter, setListFilter]   = useState<'all' | 'ungraded'>(() =>
+    hw.submissions.some(s => !s.grade) ? 'ungraded' : 'all',
+  )
+
+  const ungradedCount      = hw.submissions.filter(s => !gradesMap[s.id]).length
+  const visibleSubmissions = listFilter === 'ungraded' && ungradedCount > 0
+    ? hw.submissions.filter(s => !gradesMap[s.id])
+    : hw.submissions
 
   // Pre-fetch AI suggestions for first 5 ungraded submissions with staggered 800ms delay
   const [suggestionsCache, setSuggestionsCache] = useState<Record<string, GradeSuggestion>>({})
@@ -476,6 +484,26 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
                 style={{ width: `${totalCount > 0 ? (gradedCount / totalCount) * 100 : 0}%` }}
               />
             </div>
+            <div className="flex gap-1.5 mt-2.5">
+              <button
+                onClick={() => setListFilter('all')}
+                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                  listFilter === 'all'
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                }`}
+              >All {totalCount}</button>
+              {ungradedCount > 0 && (
+                <button
+                  onClick={() => setListFilter('ungraded')}
+                  className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                    listFilter === 'ungraded'
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'
+                  }`}
+                >Ungraded {ungradedCount}</button>
+              )}
+            </div>
           </div>
 
           {/* Student rows */}
@@ -483,8 +511,12 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
             <div className="p-6">
               <EmptyState icon="inbox" title="No submissions yet" size="sm" />
             </div>
+          ) : visibleSubmissions.length === 0 ? (
+            <div className="p-6">
+              <EmptyState icon="check_circle" title="All marked" size="sm" />
+            </div>
           ) : (
-            hw.submissions.map(sub => {
+            visibleSubmissions.map(sub => {
               const sendStatus = hw.sendByStudent[sub.student.id]?.activeStatus
               const grade      = gradesMap[sub.id]
               const isSelected = selectedSubId === sub.id

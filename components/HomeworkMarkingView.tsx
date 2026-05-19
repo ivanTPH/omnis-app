@@ -207,7 +207,7 @@ function QuestionCard({
 
 // ── filter type ────────────────────────────────────────────────────────────────
 
-type PupilFilter = 'all' | 'submitted' | 'returned' | 'missing' | 'send'
+type PupilFilter = 'all' | 'ungraded' | 'submitted' | 'returned' | 'missing' | 'send'
 
 type IlpData = {
   studentId: string
@@ -256,6 +256,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   ).length
 
   const missingCount = pupils.filter(p => !p.submission).length
+
+  const ungradedCount = pupils.filter(p =>
+    p.submission && !p.submission.grade && p.submission.status !== 'RETURNED'
+  ).length
 
   const sendCount = pupils.filter(p =>
     sendByStudent[p.id]?.activeStatus && sendByStudent[p.id].activeStatus !== 'NONE'
@@ -349,6 +353,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // ── filtered pupil list ───────────────────────────────────────────────────
   const filteredPupils = useMemo(() => {
     switch (pupilFilter) {
+      case 'ungraded':
+        return pupils.filter(p =>
+          p.submission && !p.submission.grade && p.submission.status !== 'RETURNED'
+        )
       case 'submitted':
         return pupils.filter(p => p.submission && p.submission.status !== 'RETURNED')
       case 'returned':
@@ -850,7 +858,12 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // ── filter click helper ───────────────────────────────────────────────────
   function handleFilterClick(key: PupilFilter) {
     setPupilFilter(prev => prev === key ? 'all' : key)
-    if (key === 'submitted') {
+    if (key === 'ungraded') {
+      const first = pupils.find(p =>
+        p.submission && !p.submission.grade && p.submission.status !== 'RETURNED'
+      )
+      setSelectedId(first?.id ?? null)
+    } else if (key === 'submitted') {
       const first = pupils.find(p => p.submission && p.submission.status !== 'RETURNED')
       setSelectedId(first?.id ?? null)
     } else if (key === 'returned') {
@@ -943,6 +956,22 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <span className="text-2xl font-bold leading-none">{submittedCount}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Due</span>
           </button>
+
+          {ungradedCount > 0 && (
+            <button
+              onClick={() => handleFilterClick('ungraded')}
+              title="Ungraded — submitted but not yet marked"
+              style={{
+                backgroundColor: pupilFilter === 'ungraded' ? '#d97706' : '#fffbeb',
+                color:            pupilFilter === 'ungraded' ? '#ffffff' : '#b45309',
+                border: '1px solid #fde68a',
+              }}
+              className="flex flex-col items-center w-16 py-2 rounded-xl"
+            >
+              <span className="text-2xl font-bold leading-none">{ungradedCount}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Ungraded</span>
+            </button>
+          )}
 
           <button
             onClick={() => handleFilterClick('returned')}

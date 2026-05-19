@@ -5,15 +5,14 @@ import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import StudentAvatar from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
-import { getTeacherDefaults } from '@/app/actions/analytics'
 import { getClassRoster, type ClassRosterRow } from '@/app/actions/lessons'
-import { getTaNotes, addTaNote, markTaNoteRead, type TaNoteRow } from '@/app/actions/ta-notes'
+import { getTaNotes, addTaNote, markTaNoteRead, getTaClasses, type TaNoteRow, type TaClass } from '@/app/actions/ta-notes'
 
-type TeacherClass = { id: string; name: string; subject: string; yearGroup: number }
+
 
 export default function TaNotesHub() {
-  const [classes,         setClasses]         = useState<TeacherClass[]>([])
-  const [selectedClass,   setSelectedClass]   = useState<TeacherClass | null>(null)
+  const [classes,         setClasses]         = useState<TaClass[]>([])
+  const [selectedClass,   setSelectedClass]   = useState<TaClass | null>(null)
   const [students,        setStudents]         = useState<ClassRosterRow[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
 
@@ -29,10 +28,10 @@ export default function TaNotesHub() {
 
   // Load classes on mount
   useEffect(() => {
-    getTeacherDefaults()
-      .then(d => {
-        setClasses(d.teacherClasses)
-        if (d.teacherClasses.length > 0) setSelectedClass(d.teacherClasses[0])
+    getTaClasses()
+      .then(cls => {
+        setClasses(cls)
+        if (cls.length > 0) setSelectedClass(cls[0])
       })
       .catch(console.error)
   }, [])

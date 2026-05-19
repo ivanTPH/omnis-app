@@ -166,3 +166,19 @@ export async function getUrgentTaNotesByClass(classId: string): Promise<{
   }
   return [...byStudent.values()]
 }
+
+export type TaClass = { id: string; name: string; subject: string; yearGroup: number }
+
+export async function getTaClasses(): Promise<TaClass[]> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  const { schoolId } = session.user as any
+
+  const classes = await prisma.schoolClass.findMany({
+    where:   { schoolId },
+    select:  { id: true, name: true, subject: true, yearGroup: true },
+    orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
+  })
+
+  return classes
+}

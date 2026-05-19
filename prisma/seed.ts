@@ -63,13 +63,14 @@ async function main() {
     { username: 'l.hughes',  email: 'l.hughes@parents.omnisdemo.school',   firstName: 'Laura',  lastName: 'Hughes',  role: Role.PARENT       },
     { username: 'admin',     email: 'admin@omnisdemo.school',              firstName: 'Admin',  lastName: 'User',    role: Role.SCHOOL_ADMIN },
     { username: 'd.brooks',  email: 'd.brooks@omnisdemo.school',           firstName: 'David',  lastName: 'Brooks',  role: Role.HEAD_OF_DEPT },
+    { username: 'j.taylor',  email: 'j.taylor@omnisdemo.school',           firstName: 'Jordan', lastName: 'Taylor',  role: Role.TEACHING_ASSISTANT },
   ]
 
   const created: Record<string, { id: string }> = {}
   for (const u of usersData) {
     const user = await prisma.user.upsert({
       where:  { email: u.email },
-      update: { firstName: u.firstName, lastName: u.lastName },
+      update: { firstName: u.firstName, lastName: u.lastName, passwordHash },
       create: { schoolId: school.id, email: u.email, passwordHash, role: u.role, firstName: u.firstName, lastName: u.lastName },
     })
     created[u.username] = user

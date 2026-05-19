@@ -12,7 +12,7 @@ export default function TaNotesHub() {
   const [classes,         setClasses]         = useState<TaClass[]>([])
   const [selectedYear,    setSelectedYear]    = useState<number | null>(null)
   const [selectedClass,   setSelectedClass]   = useState<TaClass | null>(null)
-  const [students,        setStudents]         = useState<ClassRosterRow[]>([])
+  const [students,        setStudents]        = useState<ClassRosterRow[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
 
   const [notesCache,  setNotesCache]  = useState<Record<string, TaNoteRow[] | 'loading'>>({})
@@ -23,29 +23,22 @@ export default function TaNotesHub() {
   const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
-    getTaClasses()
-      .then(setClasses)
-      .catch(console.error)
+    getTaClasses().then(setClasses).catch(console.error)
   }, [])
 
-  // Derived: unique year groups sorted
   const yearGroups = [...new Set(classes.map(c => c.yearGroup))].sort((a, b) => a - b)
+  const classesForYear = selectedYear ? classes.filter(c => c.yearGroup === selectedYear) : []
 
-  // Derived: classes for selected year
-  const classesForYear = selectedYear
-    ? classes.filter(c => c.yearGroup === selectedYear)
-    : []
-
-  function handleYearSelect(year: number) {
-    if (selectedYear === year) return
+  function handleYearChange(year: number | null) {
     setSelectedYear(year)
     setSelectedClass(null)
     setStudents([])
     setExpandedId(null)
   }
 
-  function handleClassSelect(cls: TaClass) {
-    if (selectedClass?.id === cls.id) return
+  function handleClassChange(classId: string) {
+    const cls = classesForYear.find(c => c.id === classId)
+    if (!cls) return
     setSelectedClass(cls)
     setStudents([])
     setExpandedId(null)
@@ -65,21 +58,17 @@ export default function TaNotesHub() {
   }
 
   function handleToggle(studentId: string) {
-    if (expandedId === studentId) {
-      setExpandedId(null)
-    } else {
-      setExpandedId(studentId)
-      loadTaNotes(studentId)
-    }
+    if (expandedId === studentId) { setExpandedId(null); return }
+    setExpandedId(studentId)
+    loadTaNotes(studentId)
   }
 
   async function handleAddNote(studentId: string) {
     const content = noteText[studentId]?.trim()
     if (!content || saving === studentId) return
-    const urgent = noteUrgent[studentId] ?? false
     setSaving(studentId)
     try {
-      await addTaNote(studentId, content, urgent, selectedClass?.id)
+      await addTaNote(studentId, content, noteUrgent[studentId] ?? false, selectedClass?.id)
       setNoteText(t => ({ ...t, [studentId]: '' }))
       setNoteUrgent(u => ({ ...u, [studentId]: false }))
       setNotesCache(c => ({ ...c, [studentId]: 'loading' }))
@@ -104,68 +93,54 @@ export default function TaNotesHub() {
   return (
     <div className="flex flex-col h-full min-h-0">
 
-      {/* ── Filters ─────────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-4 space-y-3">
+      {/* ── Filters ── */}
+      <div className="shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-end gap-4">
 
-        {/* Year group row */}
-        <div>
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Year Group</p>
-          {classes.length === 0 ? (
-            <div className="flex items-center gap-2 text-[12px] text-gray-400">
-              <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              {yearGroups.map(year => (
-                <button
-                  key={year}
-                  onClick={() => handleYearSelect(year)}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-                    selectedYear === year
-                      ? 'bg-blue-700 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  Year {year}
-                </button>
+          <div className="w-44">
+            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+              Year Group
+            </label>
+            <select
+              value={selectedYear ?? ''}
+              onChange={e => handleYearChange(e.target.value ? Number(e.target.value) : null)}
+              className="w-full text-[13px] border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-700"
+            >
+              <option value="">Select year…</option>
+              {yearGroups.map(yr => (
+                <option key={yr} value={yr}>Year {yr}</option>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* Class row — only shown once a year is selected */}
-        {selectedYear && (
-          <div>
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Class</p>
-            <div className="flex items-center gap-2 flex-wrap">
-              {classesForYear.map(cls => (
-                <button
-                  key={cls.id}
-                  onClick={() => handleClassSelect(cls)}
-                  className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-                    selectedClass?.id === cls.id
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {cls.name}
-                  <span className="ml-1.5 opacity-60 text-[10px]">{cls.subject}</span>
-                </button>
-              ))}
-            </div>
+            </select>
           </div>
-        )}
+
+          <div className="w-56">
+            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+              Class
+            </label>
+            <select
+              value={selectedClass?.id ?? ''}
+              onChange={e => handleClassChange(e.target.value)}
+              disabled={!selectedYear || classesForYear.length === 0}
+              className="w-full text-[13px] border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <option value="">Select class…</option>
+              {classesForYear.map(cls => (
+                <option key={cls.id} value={cls.id}>{cls.name} — {cls.subject}</option>
+              ))}
+            </select>
+          </div>
+
+        </div>
       </div>
 
-      {/* ── Student list ─────────────────────────────────────────────────── */}
+      {/* ── Student list ── */}
       <div className="flex-1 overflow-auto px-4 py-4 space-y-2">
 
-        {/* Prompt states */}
         {!selectedYear && (
-          <EmptyState icon="school" title="Select a year group" description="Choose a year group above to see classes." size="md" />
+          <EmptyState icon="school" title="Select a year group" description="Choose a year group to see classes." size="md" />
         )}
         {selectedYear && !selectedClass && (
-          <EmptyState icon="groups" title="Select a class" description="Choose a class above to see its students." size="md" />
+          <EmptyState icon="groups" title="Select a class" description="Choose a class to see its students." size="md" />
         )}
 
         {selectedClass && studentsLoading && (
@@ -236,7 +211,10 @@ export default function TaNotesHub() {
                   ) : (
                     <div className="space-y-2">
                       {notes.map(n => (
-                        <div key={n.id} className={`rounded-xl border px-3 py-2.5 ${n.isUrgent ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
+                        <div
+                          key={n.id}
+                          className={`rounded-xl border px-3 py-2.5 ${n.isUrgent ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}
+                        >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">

@@ -562,9 +562,9 @@ function EhcpSection({ ehcp, isSenco }: { ehcp: EhcpDoc; isSenco: boolean }) {
         </div>
       )}
       {isSenco && (
-        <a href="/senco/ehcp" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
+        <Link href="/senco/ehcp" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium">
           <Icon name="open_in_new" size="sm" />Edit full EHCP
-        </a>
+        </Link>
       )}
     </div>
   )

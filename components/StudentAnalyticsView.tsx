@@ -1,6 +1,7 @@
 'use client'
 import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { getStudentPerformance, getSubmissionDetail, getClassSummaries } from '@/app/actions/analytics'
 import type { AnalyticsFilters, StudentPerformanceResult, StudentData, HomeworkRow, FilterOptions, ClassSummary, TeacherDefaults } from '@/app/actions/analytics'
@@ -1069,10 +1070,10 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             {student.needArea != null && <span className="text-xs text-gray-400">{student.needArea}</span>}
           </div>
         </div>
-        <a href={`/students/${student.id}`}
+        <Link href={`/students/${student.id}`}
           className="ml-auto shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
           Full file <Icon name="open_in_new" size="sm" />
-        </a>
+        </Link>
       </div>
 
       {/* Support Profile card */}

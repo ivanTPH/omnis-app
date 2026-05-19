@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { SencoDashboardData } from '@/app/actions/send-support'
 import { triggerEarlyWarningAnalysis } from '@/app/actions/send-support'
@@ -199,27 +200,27 @@ export default function SencoDashboard({ data }: Props) {
             ))}
           </div>
           <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50">
-            <a href="/senco/ilp" className="text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+            <Link href="/senco/ilp" className="text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
               View all ILP records <Icon name="arrow_forward" size="sm" />
-            </a>
+            </Link>
           </div>
         </div>
       )}
 
       {/* Links */}
       <div className="flex gap-3 flex-wrap">
-        <a href="/senco/concerns" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+        <Link href="/senco/concerns" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="warning" size="sm" /> All Concerns
-        </a>
-        <a href="/senco/ilp" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+        </Link>
+        <Link href="/senco/ilp" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="favorite_border" size="sm" /> ILP Records
-        </a>
-        <a href="/senco/early-warning" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+        </Link>
+        <Link href="/senco/early-warning" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="radar" size="sm" /> Early Warning
-        </a>
-        <a href="/send-scorer" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+        </Link>
+        <Link href="/send-scorer" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="people" size="sm" /> Resource Scorer
-        </a>
+        </Link>
       </div>
     </div>
   )

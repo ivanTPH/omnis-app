@@ -1,7 +1,7 @@
 'use server'
 import { auth } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 
 export type TodayLesson = {
   id: string
@@ -55,19 +55,12 @@ export type DashboardData = {
   sencoAlerts:       SencoAlert[]
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId   = (session.user as any).id as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const schoolId = (session.user as any).schoolId as string
-
-  // Use local-time day boundaries so the count matches what the calendar shows.
+// Inner function — no auth() call, safe to cache
+async function fetchDashboardData(userId: string, schoolId: string, dateKey: string): Promise<DashboardData> {
+  // Reconstruct day boundaries from the stable dateKey (todayStart ISO string)
+  const todayStart = new Date(dateKey)
+  const todayEnd   = new Date(todayStart); todayEnd.setHours(23, 59, 59, 999)
   const now        = new Date()
-  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-  const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999)
-  console.log('[getDashboardData] now:', now.toISOString(), 'todayStart:', todayStart.toISOString(), 'todayEnd:', todayEnd.toISOString())
 
   const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns, alertNotifs] = await Promise.all([
 
@@ -141,7 +134,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       },
     }),
 
-    // Open concerns top 3 (raised by this teacher)
+    // Open concerns (raised by this teacher)
     prisma.sendConcern.findMany({
       where: {
         schoolId,
@@ -170,8 +163,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     }),
   ])
 
-  console.log('[getDashboardData] todayLessons count:', todayLessons.length, todayLessons.map(l => l.scheduledAt.toISOString()))
-
   // For each concern, find today's lesson + recent homework evidence in parallel
   const concernsWithData = await Promise.all(
     concerns.map(async c => {
@@ -183,13 +174,11 @@ export async function getDashboardData(): Promise<DashboardData> {
       }
 
       const [upcoming, recentSubs] = await Promise.all([
-        // Next upcoming lesson for the student today
         prisma.lesson.findFirst({
           where: { ...baseWhere, scheduledAt: { gte: now, lte: todayEnd } },
           select: lessonSelect,
           orderBy: { scheduledAt: 'asc' },
         }),
-        // Recent homework submissions from this student on teacher's homework
         prisma.submission.findMany({
           where: {
             schoolId,
@@ -210,7 +199,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         }),
       ])
 
-      // Fall back to earliest lesson today if all in the past
+      // Fall back to earliest lesson today if all are in the past
       const lesson = upcoming ?? await prisma.lesson.findFirst({
         where: baseWhere,
         select: lessonSelect,
@@ -230,9 +219,9 @@ export async function getDashboardData(): Promise<DashboardData> {
       subject:     l.class?.subject ?? '—',
     })),
     homeworkToMark: hwToMark.map(hw => ({
-      id:           hw.id,
-      title:        hw.title,
-      dueAt:        hw.dueAt.toISOString(),
+      id:            hw.id,
+      title:         hw.title,
+      dueAt:         hw.dueAt.toISOString(),
       ungradedCount: hw._count.submissions,
     })),
     submissionsToday:  subsTodayCount,
@@ -264,6 +253,27 @@ export async function getDashboardData(): Promise<DashboardData> {
       })),
     })),
   }
+}
+
+// Cache keyed by (userId, schoolId, dateKey) — busts at midnight and on revalidatePath('/dashboard')
+const getCachedDashboardData = unstable_cache(
+  fetchDashboardData,
+  ['dashboard-data'],
+  { revalidate: 60 },
+)
+
+export async function getDashboardData(): Promise<DashboardData> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const userId   = (session.user as any).id   as string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const schoolId = (session.user as any).schoolId as string
+
+  // Use local-time day start as the date key — cache busts automatically at midnight
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+
+  return getCachedDashboardData(userId, schoolId, todayStart.toISOString())
 }
 
 // ─── Concern actions (for raising teacher from dashboard) ─────────────────────

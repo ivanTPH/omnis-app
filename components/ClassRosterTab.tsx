@@ -1158,7 +1158,11 @@ export default function ClassRosterTab({
                     {/* ── Tab: Notes ── */}
                     {activeTab === 'notes' && (
                       <>
-                        {/* Roster notes */}
+                        {/* Class Notes section */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Icon name="sticky_note_2" size="sm" className="text-yellow-600" />
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-yellow-700">Class Notes</span>
+                        </div>
                         {rosterDetail && rosterDetail !== 'loading' && rosterDetail.rosterNotes.length > 0 ? (
                           <div className="space-y-2 mb-3">
                             {rosterDetail.rosterNotes.map(n => (
@@ -1175,13 +1179,13 @@ export default function ClassRosterTab({
                             <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
                           </div>
                         ) : (
-                          <p className="text-[12px] text-gray-400 italic mb-3">No notes yet.</p>
+                          <p className="text-[12px] text-gray-400 italic mb-3">No class notes yet.</p>
                         )}
                         <div className="space-y-2">
                           <textarea
                             value={newNotes[row.id] ?? ''}
                             onChange={e => setNewNotes(n => ({ ...n, [row.id]: e.target.value }))}
-                            placeholder="Add a note about this student…"
+                            placeholder="Add a class note about this student…"
                             rows={3}
                             className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-200"
                           />
@@ -1195,7 +1199,7 @@ export default function ClassRosterTab({
                               ? <Icon name="refresh" size="sm" className="animate-spin" />
                               : <Icon name="sticky_note_2" size="sm" />
                             }
-                            Add note
+                            Add class note
                           </button>
                         </div>
 
@@ -1204,14 +1208,14 @@ export default function ClassRosterTab({
                           const taNotes = taNoteCache[row.id]
                           if (!taNotes || taNotes === 'loading') {
                             return (
-                              <div className="flex items-center gap-2 text-[12px] text-gray-400 mt-4">
+                              <div className="flex items-center gap-2 text-[12px] text-gray-400 mt-4 pt-4 border-t border-gray-100">
                                 <Icon name="refresh" size="sm" className="animate-spin" /> Loading TA notes…
                               </div>
                             )
                           }
                           if (taNotes.length === 0) return null
                           return (
-                            <div className="mt-4 space-y-2">
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                               <div className="flex items-center gap-1.5">
                                 <Icon name="support_agent" size="sm" className="text-amber-600" />
                                 <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">

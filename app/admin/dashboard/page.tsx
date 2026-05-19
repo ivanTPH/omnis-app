@@ -15,7 +15,8 @@ const QUICK_LINKS = [
   { label: 'Analytics',  href: '/slt/analytics',   iconName: 'bar_chart',     desc: 'School performance data'     },
   { label: 'Audit Log',  href: '/admin/audit',     iconName: 'shield',        desc: 'Immutable event log'         },
   { label: 'MIS Sync',   href: '/admin/wonde',     iconName: 'refresh',       desc: 'Sync data from Wonde MIS'    },
-  { label: 'Messages',   href: '/messages',        iconName: 'chat',          desc: 'Staff messaging inbox'       },
+  { label: 'Messages',        href: '/messages',        iconName: 'chat',              desc: 'Staff messaging inbox'       },
+  { label: 'Parent Messages', href: '/admin/messages',  iconName: 'supervisor_account', desc: 'Monitor parent conversations' },
 ]
 
 export default async function AdminDashboardPage() {

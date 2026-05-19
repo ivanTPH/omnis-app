@@ -433,6 +433,108 @@ export async function markAllPlatformNotificationsRead(): Promise<void> {
   })
 }
 
+// ── Admin / SLT parent message monitoring ─────────────────────────────────────
+
+export type ParentThreadSummary = {
+  id:           string
+  subject:      string
+  context:      string | null
+  updatedAt:    Date
+  lastMessage:  string | null
+  lastSender:   string | null
+  messageCount: number
+  participants: { id: string; name: string; role: string; avatarUrl: string | null }[]
+}
+
+export async function getAllParentThreads(): Promise<ParentThreadSummary[]> {
+  const user = await requireAuth()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Not authorized')
+
+  const threads = await prisma.msgThread.findMany({
+    where: {
+      schoolId:     user.schoolId,
+      participants: { some: { user: { role: 'PARENT' } } },
+    },
+    include: {
+      participants: {
+        include: { user: { select: { id: true, firstName: true, lastName: true, role: true, avatarUrl: true } } },
+      },
+      messages: {
+        orderBy: { sentAt: 'desc' as const },
+        take:    1,
+        include: { sender: { select: { firstName: true, lastName: true } } },
+      },
+      _count: { select: { messages: true } },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take: 200,
+  })
+
+  return threads.map(t => {
+    const last = t.messages[0]
+    return {
+      id:           t.id,
+      subject:      t.subject,
+      context:      t.context,
+      updatedAt:    t.updatedAt,
+      lastMessage:  last ? last.body.slice(0, 100) : null,
+      lastSender:   last ? `${last.sender.firstName} ${last.sender.lastName}` : null,
+      messageCount: t._count.messages,
+      participants: t.participants.map(p => ({
+        id:       p.user.id,
+        name:     `${p.user.firstName} ${p.user.lastName}`,
+        role:     p.user.role,
+        avatarUrl: p.user.avatarUrl,
+      })),
+    }
+  })
+}
+
+export async function getThreadReadOnly(threadId: string): Promise<ThreadDetail | null> {
+  const user = await requireAuth()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Not authorized')
+
+  const thread = await prisma.msgThread.findFirst({
+    where:   { id: threadId, schoolId: user.schoolId },
+    include: {
+      participants: {
+        include: { user: { select: { id: true, firstName: true, lastName: true, role: true, avatarUrl: true } } },
+      },
+      messages: {
+        include: { sender: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } } },
+        orderBy: { sentAt: 'asc' },
+      },
+    },
+  })
+  if (!thread) return null
+
+  return {
+    id:          thread.id,
+    subject:     thread.subject,
+    context:     thread.context,
+    contextId:   thread.contextId,
+    isPrivate:   thread.isPrivate,
+    createdAt:   thread.createdAt,
+    participants: thread.participants.map(p => ({
+      id:        p.user.id,
+      firstName: p.user.firstName,
+      lastName:  p.user.lastName,
+      role:      p.user.role,
+      avatarUrl: p.user.avatarUrl,
+    })),
+    messages: thread.messages.map(m => ({
+      id:           m.id,
+      senderId:     m.senderId,
+      senderName:   `${m.sender.firstName} ${m.sender.lastName}`,
+      senderAvatar: m.sender.avatarUrl,
+      body:         m.body,
+      isSystem:     m.isSystem,
+      sentAt:       m.sentAt,
+      editedAt:     m.editedAt,
+    })),
+  }
+}
+
 // ── Unread notification count (used by sidebar badge) ────────────────────────
 
 export async function getUnreadNotificationCount(): Promise<number> {

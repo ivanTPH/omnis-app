@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { getDashboardData, addConcernNote, escalateConcernToStaff, type DashboardData, type OpenConcern } from '@/app/actions/dashboard'
+import { getDashboardData, addConcernNote, escalateConcernToStaff, dismissSencoAlert, type DashboardData, type OpenConcern } from '@/app/actions/dashboard'
 import { CONCERN_SECTIONS, sectionForCategory } from '@/components/send-support/ConcernList'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -285,13 +285,20 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
 }
 
 export default function DashboardMorningView({ firstName, role }: { firstName: string; role: string }) {
-  const [data, setData] = useState<DashboardData | null>(null)
+  const [data,             setData]             = useState<DashboardData | null>(null)
+  const [dismissedAlerts,  setDismissedAlerts]  = useState<Set<string>>(new Set())
+  const [,                 startDismiss]        = useTransition()
 
   function load() {
     getDashboardData().then(setData).catch(console.error)
   }
 
   useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleDismissAlert(id: string) {
+    setDismissedAlerts(prev => new Set(prev).add(id))
+    startDismiss(async () => { await dismissSencoAlert(id) })
+  }
 
   const hour     = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -302,12 +309,50 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
     ? `Next: ${formatTime(data.todaysLessons[0].scheduledAt)} — ${data.todaysLessons[0].className}`
     : 'No more today'
 
+  const visibleAlerts = (data?.sencoAlerts ?? []).filter(a => !dismissedAlerts.has(a.id))
+
   return (
     <div className="flex-1 overflow-y-auto p-6">
       <PageHeader
         title={`${greeting}, ${firstName}`}
         subtitle="Here's your day at a glance"
       />
+
+      {/* SENCO alerts banner */}
+      {visibleAlerts.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {visibleAlerts.map(alert => (
+            <div
+              key={alert.id}
+              className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3"
+            >
+              <Icon name="notification_important" size="md" className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-amber-900">{alert.title}</p>
+                <p className="text-[12px] text-amber-800 mt-0.5 leading-relaxed">{alert.body}</p>
+                <p className="text-[10px] text-amber-600 mt-1">
+                  {new Date(alert.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {alert.linkHref && (
+                    <>
+                      {' · '}
+                      <Link href={alert.linkHref} className="underline hover:text-amber-900">
+                        View student profile
+                      </Link>
+                    </>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDismissAlert(alert.id)}
+                className="text-amber-400 hover:text-amber-700 shrink-0"
+                title="Dismiss alert"
+              >
+                <Icon name="close" size="sm" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ROW 1 — stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

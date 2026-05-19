@@ -1,6 +1,6 @@
 'use server'
 import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export type TodayLesson = {
@@ -38,12 +38,21 @@ export type OpenConcern = {
   recentHomework: ConcernHomeworkEvidence[]
 }
 
+export type SencoAlert = {
+  id:        string
+  title:     string
+  body:      string
+  linkHref:  string | null
+  createdAt: string
+}
+
 export type DashboardData = {
   todaysLessons:     TodayLesson[]
   homeworkToMark:    HomeworkToMark[]
   submissionsToday:  number
   openConcernsCount: number
   openConcerns:      OpenConcern[]
+  sencoAlerts:       SencoAlert[]
 }
 
 export async function getDashboardData(): Promise<DashboardData> {
@@ -60,7 +69,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999)
   console.log('[getDashboardData] now:', now.toISOString(), 'todayStart:', todayStart.toISOString(), 'todayEnd:', todayEnd.toISOString())
 
-  const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns] = await Promise.all([
+  const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns, alertNotifs] = await Promise.all([
 
     // Today's lessons, sorted by start time
     prisma.lesson.findMany({
@@ -151,6 +160,14 @@ export async function getDashboardData(): Promise<DashboardData> {
       },
       orderBy: { createdAt: 'desc' },
     }),
+
+    // Unread SENCO alerts sent to this teacher
+    prisma.notification.findMany({
+      where: { schoolId, userId, type: 'SENCO_ALERT', read: false },
+      select: { id: true, title: true, body: true, linkHref: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
   ])
 
   console.log('[getDashboardData] todayLessons count:', todayLessons.length, todayLessons.map(l => l.scheduledAt.toISOString()))
@@ -220,6 +237,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     })),
     submissionsToday:  subsTodayCount,
     openConcernsCount: concernsCount,
+    sencoAlerts: alertNotifs.map(n => ({
+      id:        n.id,
+      title:     n.title,
+      body:      n.body,
+      linkHref:  n.linkHref,
+      createdAt: n.createdAt.toISOString(),
+    })),
     openConcerns: concernsWithData.map(({ concern: c, lesson, recentSubs }) => ({
       id:            c.id,
       studentId:     c.studentId,
@@ -331,4 +355,61 @@ export async function escalateConcernToStaff(
 
   revalidatePath('/dashboard')
   return { notified: recipients.length }
+}
+
+// ─── SENCO alert actions ──────────────────────────────────────────────────────
+
+export async function sendSencoAlert(
+  studentId:   string,
+  studentName: string,
+  message:     string,
+  teacherIds:  string[],
+): Promise<{ notified: number }> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { id: actorId, schoolId, role, firstName, lastName } = session.user as any
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) throw new Error('Not authorized')
+  if (!teacherIds.length) return { notified: 0 }
+
+  // Verify recipients belong to this school
+  const teachers = await prisma.user.findMany({
+    where: { id: { in: teacherIds }, schoolId, isActive: true },
+    select: { id: true },
+  })
+  if (!teachers.length) return { notified: 0 }
+
+  await prisma.notification.createMany({
+    data: teachers.map(t => ({
+      schoolId,
+      userId:   t.id,
+      type:     'SENCO_ALERT',
+      title:    `SENCO Alert: ${studentName}`,
+      body:     `${firstName} ${lastName}: ${message.slice(0, 500)}`,
+      linkHref: `/students/${studentId}`,
+    })),
+  })
+
+  await writeAudit({
+    schoolId,
+    actorId,
+    action:     'MESSAGE_SENT',
+    targetType: 'Student',
+    targetId:   studentId,
+    metadata:   { type: 'SENCO_ALERT', teacherCount: teachers.length, preview: message.slice(0, 100) },
+  })
+
+  return { notified: teachers.length }
+}
+
+export async function dismissSencoAlert(notificationId: string): Promise<void> {
+  const session = await auth()
+  if (!session) throw new Error('Unauthenticated')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { id: userId, schoolId } = session.user as any
+
+  await prisma.notification.updateMany({
+    where: { id: notificationId, schoolId, userId },
+    data:  { read: true },
+  })
 }

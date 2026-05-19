@@ -7,6 +7,7 @@ import { SencoRow } from '@/components/ui/SencoRow'
 import type { ConcernRow, ConcernActionItem } from '@/app/actions/send-support'
 import { addConcernAction } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
+import SencoAlertModal from './SencoAlertModal'
 import StudentContactPanel from '@/components/StudentContactPanel'
 
 function followUpBadge(c: ConcernRow) {
@@ -134,6 +135,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
   const [actionSaving,       setActionSaving]        = useState(false)
   const [localConcerns,      setLocalConcerns]       = useState(concerns)
   const [contactStudentId,   setContactStudentId]    = useState<string | null>(null)
+  const [alertTarget,        setAlertTarget]         = useState<{ id: string; name: string } | null>(null)
 
   function toggle(id: string) {
     setExpanded(prev => {
@@ -244,6 +246,15 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                               >
                                 <Icon name="person" size="sm" /> Profile
                               </button>
+                              {isSenco && (
+                                <button
+                                  onClick={() => setAlertTarget({ id: c.studentId, name: c.studentName })}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100"
+                                  title="Send a SENCO alert to subject teachers"
+                                >
+                                  <Icon name="notification_important" size="sm" /> Alert
+                                </button>
+                              )}
                               {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
                                 <button
                                   onClick={() => setReviewing(c)}
@@ -289,6 +300,14 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
           <ConcernReviewModal concern={reviewing} onClose={() => { setReviewing(null); onRefresh?.() }} staffList={staffList} />
         )}
         <StudentContactPanel studentId={contactStudentId} onClose={() => setContactStudentId(null)} />
+        {alertTarget && (
+          <SencoAlertModal
+            studentId={alertTarget.id}
+            studentName={alertTarget.name}
+            staffList={staffList}
+            onClose={() => setAlertTarget(null)}
+          />
+        )}
       </>
     )
   }
@@ -337,6 +356,15 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                     <Icon name="person" size="sm" />
                     Profile
                   </button>
+                  {isSenco && (
+                    <button
+                      onClick={() => setAlertTarget({ id: c.studentId, name: c.studentName })}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100"
+                      title="Send a SENCO alert to subject teachers"
+                    >
+                      <Icon name="notification_important" size="sm" /> Alert
+                    </button>
+                  )}
                   {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
                     <button
                       onClick={() => setReviewing(c)}
@@ -500,6 +528,15 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
         studentId={contactStudentId}
         onClose={() => setContactStudentId(null)}
       />
+
+      {alertTarget && (
+        <SencoAlertModal
+          studentId={alertTarget.id}
+          studentName={alertTarget.name}
+          staffList={staffList}
+          onClose={() => setAlertTarget(null)}
+        />
+      )}
     </>
   )
 }

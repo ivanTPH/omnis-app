@@ -73,26 +73,30 @@ export async function addTaNote(
     const title = isUrgent ? `Urgent TA note: ${studentName}` : `TA note: ${studentName}`
     const body  = `${user.firstName} ${user.lastName} added a${isUrgent ? ' urgent' : ''} note about ${studentName}.`
     const oneHourAgo = new Date(Date.now() - 3_600_000)
-    for (const t of teachers) {
-      const recent = await prisma.notification.findFirst({
-        where: {
-          schoolId: user.schoolId, userId: t.userId,
-          type: 'GENERAL', linkHref: `/students/${studentId}`,
-          createdAt: { gte: oneHourAgo },
-        },
+    const teacherIds = teachers.map(t => t.userId)
+    const recentlySent = await prisma.notification.findMany({
+      where: {
+        schoolId: user.schoolId,
+        userId:   { in: teacherIds },
+        type:     'GENERAL',
+        linkHref: `/students/${studentId}`,
+        createdAt: { gte: oneHourAgo },
+      },
+      select: { userId: true },
+    })
+    const alreadyNotified = new Set(recentlySent.map(n => n.userId))
+    const toNotify = teacherIds.filter(id => !alreadyNotified.has(id))
+    if (toNotify.length > 0) {
+      await prisma.notification.createMany({
+        data: toNotify.map(userId => ({
+          schoolId: user.schoolId,
+          userId,
+          type:     'GENERAL',
+          title,
+          body,
+          linkHref: `/students/${studentId}`,
+        })),
       })
-      if (!recent) {
-        await prisma.notification.create({
-          data: {
-            schoolId: user.schoolId,
-            userId:   t.userId,
-            type:     'GENERAL',
-            title,
-            body,
-            linkHref: `/students/${studentId}`,
-          },
-        })
-      }
     }
   }
 

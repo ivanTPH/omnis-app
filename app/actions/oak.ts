@@ -1,7 +1,7 @@
 'use server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 import { ResourceType } from '@prisma/client'
 
 // ── Subjects ──────────────────────────────────────────────────────────────────
@@ -42,6 +42,20 @@ export async function searchOakLessons(params: {
   limit?:       number
 }): Promise<OakLessonSearchResult[]> {
   const { subjectSlug, yearGroup, keystage, examBoard, query, andTerms = false, limit = 50 } = params
+  // Oak content changes only on weekly sync — cache for 5 minutes
+  const cacheKey = `oak:${subjectSlug ?? ''}:${yearGroup ?? ''}:${keystage ?? ''}:${examBoard ?? ''}:${query ?? ''}:${andTerms}:${limit}`
+  return unstable_cache(
+    () => executeOakSearch({ subjectSlug, yearGroup, keystage, examBoard, query, andTerms, limit }),
+    [cacheKey],
+    { revalidate: 300, tags: ['oak-lessons'] },
+  )()
+}
+
+async function executeOakSearch(params: {
+  subjectSlug?: string; yearGroup?: number; keystage?: string
+  examBoard?: string; query?: string; andTerms: boolean; limit: number
+}): Promise<OakLessonSearchResult[]> {
+  const { subjectSlug, yearGroup, keystage, examBoard, query, andTerms, limit } = params
 
   // Build keyword filter — per-term OR across fields, then AND or OR across terms
   let keywordFilter: object | undefined

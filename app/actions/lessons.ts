@@ -1,7 +1,7 @@
 'use server'
 import { auth } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 import { LessonType, AudienceType, PlanStatus, ResourceType } from '@prisma/client'
 import { type ReviewResult } from '@/lib/sendReview'
 import { sendReviewCached } from '@/lib/sendReviewCached'
@@ -763,66 +763,73 @@ export type ClassRosterRow = {
   hasExclusion:         boolean | null
 }
 
+async function fetchClassRosterFromDb(classId: string, schoolId: string): Promise<ClassRosterRow[]> {
+  const enrolments = await prisma.enrolment.findMany({
+    // schoolId scoped via class; isActive filters out deactivated/deleted students
+    where:   { classId, class: { schoolId }, user: { isActive: true } },
+    include: {
+      user: {
+        include: {
+          sendStatus: { select: { activeStatus: true, needArea: true } },
+          // IndividualLearningPlan.status is a plain String with lowercase values ('active'/'under_review')
+          studentIlps: {
+            where:  { schoolId, status: { in: ['active', 'under_review'] } },
+            take:   1,
+            select: { id: true },
+          },
+          submissions: {
+            where:   { schoolId },
+            orderBy: { submittedAt: 'desc' },
+            take:    1,
+            select:  { finalScore: true, autoScore: true, teacherScore: true, homework: { select: { gradingBands: true } } },
+          },
+          settings: { select: { profilePictureUrl: true } },
+          learningProfile: { select: { id: true } },
+        },
+      },
+    },
+    orderBy: [{ user: { lastName: 'asc' } }],
+  })
+
+  return enrolments.map(e => {
+    const sub   = e.user.submissions[0]
+    const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
+    const status = e.user.sendStatus?.activeStatus ?? 'NONE'
+    return {
+      id:              e.user.id,
+      firstName:       e.user.firstName,
+      lastName:        e.user.lastName,
+      yearGroup:           e.user.yearGroup ?? null,
+      // Prefer UserSettings.profilePictureUrl (teacher-uploaded or Wonde proxy URL set during sync)
+      // Fall back to User.avatarUrl (also set by Wonde sync and used by other roster queries)
+      avatarUrl:           e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
+      sendStatus:          status,
+      needArea:            e.user.sendStatus?.needArea ?? null,
+      hasIlp:              e.user.studentIlps.length > 0,
+      hasEhcp:             status === 'EHCP',
+      hasLearningProfile:  e.user.learningProfile != null,
+      latestScore:         score,
+      maxScore:            sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
+      supportSnapshot:     e.user.supportSnapshot ?? null,
+      // Wonde MIS data (null when not a Wonde-synced school)
+      attendancePercentage: e.user.attendancePercentage ?? null,
+      behaviourPositive:    e.user.behaviourPositive    ?? null,
+      behaviourNegative:    e.user.behaviourNegative    ?? null,
+      hasExclusion:         e.user.hasExclusion         ?? null,
+    }
+  })
+}
+
 export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
   try {
     const session = await auth()
     if (!session) return []
     const { schoolId } = session.user as any
-
-    const enrolments = await prisma.enrolment.findMany({
-      // schoolId scoped via class; isActive filters out deactivated/deleted students
-      where:   { classId, class: { schoolId }, user: { isActive: true } },
-      include: {
-        user: {
-          include: {
-            sendStatus: { select: { activeStatus: true, needArea: true } },
-            // IndividualLearningPlan.status is a plain String with lowercase values ('active'/'under_review')
-            studentIlps: {
-              where:  { schoolId, status: { in: ['active', 'under_review'] } },
-              take:   1,
-              select: { id: true },
-            },
-            submissions: {
-              where:   { schoolId },
-              orderBy: { submittedAt: 'desc' },
-              take:    1,
-              select:  { finalScore: true, autoScore: true, teacherScore: true, homework: { select: { gradingBands: true } } },
-            },
-            settings: { select: { profilePictureUrl: true } },
-            learningProfile: { select: { id: true } },
-          },
-        },
-      },
-      orderBy: [{ user: { lastName: 'asc' } }],
-    })
-
-    return enrolments.map(e => {
-      const sub   = e.user.submissions[0]
-      const score = sub?.finalScore ?? sub?.teacherScore ?? sub?.autoScore ?? null
-      const status = e.user.sendStatus?.activeStatus ?? 'NONE'
-      return {
-        id:              e.user.id,
-        firstName:       e.user.firstName,
-        lastName:        e.user.lastName,
-        yearGroup:           e.user.yearGroup ?? null,
-        // Prefer UserSettings.profilePictureUrl (teacher-uploaded or Wonde proxy URL set during sync)
-        // Fall back to User.avatarUrl (also set by Wonde sync and used by other roster queries)
-        avatarUrl:           e.user.settings?.profilePictureUrl ?? e.user.avatarUrl ?? null,
-        sendStatus:          status,
-        needArea:            e.user.sendStatus?.needArea ?? null,
-        hasIlp:              e.user.studentIlps.length > 0,
-        hasEhcp:             status === 'EHCP',
-        hasLearningProfile:  e.user.learningProfile != null,
-        latestScore:         score,
-        maxScore:            sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,
-        supportSnapshot:     e.user.supportSnapshot ?? null,
-        // Wonde MIS data (null when not a Wonde-synced school)
-        attendancePercentage: e.user.attendancePercentage ?? null,
-        behaviourPositive:    e.user.behaviourPositive    ?? null,
-        behaviourNegative:    e.user.behaviourNegative    ?? null,
-        hasExclusion:         e.user.hasExclusion         ?? null,
-      }
-    })
+    return await unstable_cache(
+      () => fetchClassRosterFromDb(classId, schoolId),
+      [`roster-${classId}-${schoolId}`],
+      { revalidate: 60, tags: [`roster-${classId}`] },
+    )()
   } catch (err) {
     console.error('[getClassRoster] error:', err)
     return []

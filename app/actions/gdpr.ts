@@ -271,7 +271,7 @@ export async function getMyChildrenConsents(
 
   const links = await prisma.parentStudentLink.findMany({
     where: { parentId: user.id },
-    include: { child: true },
+    include: { child: { select: { id: true, firstName: true, lastName: true, yearGroup: true } } },
   })
 
   const activePurposes = await prisma.consentPurpose.findMany({

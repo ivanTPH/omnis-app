@@ -2,6 +2,7 @@ import NextAuth, { type Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { checkLoginRatelimit } from '@/lib/kv'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
@@ -13,10 +14,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { type: 'email' },
         password: { type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = credentials?.email as string | undefined
         const password = credentials?.password as string | undefined
         if (!email || !password) return null
+
+        // Rate limit by IP: 5 attempts per 15 min (no-ops when Upstash not configured)
+        const ip = (request as Request | undefined)?.headers?.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+        const { success } = await checkLoginRatelimit(ip)
+        if (!success) return null
 
         const user = await prisma.user.findUnique({
           where: { email },
@@ -62,5 +68,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   pages: { signIn: '/login' },
-  session: { strategy: 'jwt' },
+  session: { strategy: 'jwt', maxAge: 4 * 60 * 60 },
 })

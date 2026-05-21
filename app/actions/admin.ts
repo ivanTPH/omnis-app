@@ -74,7 +74,11 @@ export async function getStaffMembers(_schoolId?: string): Promise<StaffMember[]
 
   const users = await prisma.user.findMany({
     where:   { schoolId, role: { in: STAFF_ROLES } },
-    include: { teacherClasses: { include: { class: { select: { yearGroup: true } } } } },
+    select:  {
+      id: true, firstName: true, lastName: true, email: true,
+      role: true, department: true, isActive: true,
+      teacherClasses: { include: { class: { select: { yearGroup: true } } } },
+    },
     orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
   })
   return users.map(u => ({
@@ -271,9 +275,11 @@ export async function getStudentList(_schoolId?: string): Promise<StudentRow[]> 
 
   const students = await prisma.user.findMany({
     where:   { schoolId, role: 'STUDENT' }, // admin sees all, including inactive
-    include: {
-      enrolments: { include: { class: { select: { name: true } } }, take: 1 },
-      sendStatus: true,
+    select:  {
+      id: true, firstName: true, lastName: true, email: true,
+      yearGroup: true, tutorGroup: true, avatarUrl: true, isActive: true,
+      enrolments: { select: { class: { select: { name: true } } }, take: 1 },
+      sendStatus: { select: { activeStatus: true } },
     },
     orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
   })

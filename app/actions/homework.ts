@@ -727,6 +727,22 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
     }
   } catch { /* best-effort */ }
 
+  // P1-8: Rate limit — max 10 AI homework generations per teacher per calendar day.
+  // Checked against AuditLog so it's durable across server restarts.
+  const generatingUserId = session.user.id
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0)
+  const todayGenerationCount = await prisma.auditLog.count({
+    where: {
+      schoolId,
+      actorId: generatingUserId,
+      action:  'AI_HOMEWORK_GENERATED',
+      createdAt: { gte: todayMidnight },
+    },
+  })
+  if (todayGenerationCount >= 10) {
+    throw new Error('Daily AI generation limit reached (10 per day). Try again tomorrow.')
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return noApiKeyFallback(type, lesson.title, subject)
 
@@ -827,6 +843,17 @@ ${typePrompt}`
       const fallback = noApiKeyFallback(type, lesson.title, subject)
       questionsJson = fallback.questionsJson
     }
+
+    // P1-8: Write audit entry on successful generation so the daily counter is accurate.
+    // Fire-and-forget — don't block the return on the audit write.
+    writeAudit({
+      schoolId,
+      actorId:    generatingUserId,
+      action:     'AI_HOMEWORK_GENERATED',
+      targetType: 'Lesson',
+      targetId:   lessonId,
+      metadata:   { homeworkType: type, lessonTitle: lesson.title },
+    }).catch(() => { /* non-blocking */ })
 
     return {
       type:                 type,

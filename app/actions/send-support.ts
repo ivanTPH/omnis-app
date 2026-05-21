@@ -1796,6 +1796,20 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return { success: false, error: 'ANTHROPIC_API_KEY not configured' }
 
+  // P1-8: Rate limit — max 20 AI ILP generations per SENCO per calendar day.
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0)
+  const todayIlpCount = await prisma.auditLog.count({
+    where: {
+      schoolId,
+      actorId:   user.id,
+      action:    'AI_ILP_GENERATED',
+      createdAt: { gte: todayMidnight },
+    },
+  })
+  if (todayIlpCount >= 20) {
+    return { success: false, error: 'Daily AI ILP generation limit reached (20 per day). Try again tomorrow.' }
+  }
+
   // Skip if an active or under_review ILP already exists
   const existing = await prisma.individualLearningPlan.findFirst({
     where: { schoolId, studentId, status: { in: ['active', 'under_review'] } },
@@ -1867,6 +1881,17 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
     })
 
     revalidatePath('/senco/ilp')
+
+    // P1-8: Audit the generation so the daily rate limit counter is accurate.
+    writeAudit({
+      schoolId,
+      actorId:    user.id,
+      action:     'AI_ILP_GENERATED',
+      targetType: 'Student',
+      targetId:   studentId,
+      metadata:   { sendCategory, yearGroup },
+    }).catch(() => { /* non-blocking */ })
+
     return { success: true }
   } catch (err) {
     console.error('[generateILPForStudent] Outer error:', err)

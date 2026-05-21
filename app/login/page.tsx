@@ -4,6 +4,8 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 
+const SHOW_DEMO = process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === 'true'
+
 const demos = [
   { role: 'Teacher', email: 'j.patel@omnisdemo.school' },
   { role: 'SENCo', email: 'r.morris@omnisdemo.school' },
@@ -55,18 +57,20 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
-        <div className="bg-white/10 backdrop-blur rounded-2xl p-5">
-          <p className="text-blue-100 text-sm font-medium mb-3">🎓 Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>
-          <div className="grid grid-cols-2 gap-2">
-            {demos.map(d => (
-              <button key={d.email} onClick={() => { setEmail(d.email); setPassword('Demo1234!') }} className="text-left bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition">
-                <div className="text-white text-xs font-medium">{d.role}</div>
-                <div className="text-blue-200 text-xs truncate">{d.email.split('@')[0]}</div>
-              </button>
-            ))}
+        {SHOW_DEMO && (
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-5">
+            <p className="text-blue-100 text-sm font-medium mb-3">🎓 Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>
+            <div className="grid grid-cols-2 gap-2">
+              {demos.map(d => (
+                <button key={d.email} onClick={() => { setEmail(d.email); setPassword('Demo1234!') }} className="text-left bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition">
+                  <div className="text-white text-xs font-medium">{d.role}</div>
+                  <div className="text-blue-200 text-xs truncate">{d.email.split('@')[0]}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-blue-300 text-xs mt-3">Click any account to fill in, then click Sign in</p>
           </div>
-          <p className="text-blue-300 text-xs mt-3">Click any account to fill in, then click Sign in</p>
-        </div>
+        )}
       </div>
     </div>
   )

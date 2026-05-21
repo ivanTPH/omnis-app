@@ -6,6 +6,22 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 import StudentSearch from '@/components/StudentSearch'
+import { unstable_cache } from 'next/cache'
+
+// P1-7: Cache SEN Support / EHCP totals for 60 s — these are for KPI display only
+// and don't need to be real-time. Revalidated on any send-register mutation via the
+// 'send-register' tag in the relevant send-support actions.
+const getCachedSendCounts = unstable_cache(
+  async (schoolId: string) => {
+    const [senSupport, ehcp] = await Promise.all([
+      prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'SEN_SUPPORT' } }),
+      prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'EHCP' } }),
+    ])
+    return { senSupport, ehcp, total: senSupport + ehcp }
+  },
+  ['send-counts'],
+  { revalidate: 60, tags: ['send-register'] },
+)
 
 export default async function SendDashboardPage() {
   const session = await auth()
@@ -18,18 +34,28 @@ export default async function SendDashboardPage() {
   const in14  = new Date(now.getTime() + 14 * 86_400_000)
   const in30  = new Date(now.getTime() + 30 * 86_400_000)
 
-  // All students on the register
-  const sendStatuses = await prisma.sendStatus.findMany({
-    where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
-    include: {
-      student: { select: { id: true, firstName: true, lastName: true, yearGroup: true } },
-    },
-    orderBy: [{ activeStatus: 'asc' }, { student: { lastName: 'asc' } }],
-  })
+  // P1-5: Run independent queries in parallel — sendStatuses and pendingReviews
+  // don't depend on each other; plans depends on studentIds from sendStatuses.
+  // P1-6: take: 100 safety cap on the register — prevents unbounded result sets
+  // as school rolls grow. Separate count queries (cached) give accurate KPI numbers.
+  const [sendStatuses, pendingReviews, sendCounts] = await Promise.all([
+    prisma.sendStatus.findMany({
+      where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
+      include: {
+        student: { select: { id: true, firstName: true, lastName: true, yearGroup: true } },
+      },
+      orderBy: [{ activeStatus: 'asc' }, { student: { lastName: 'asc' } }],
+      take: 100, // P1-6: cap — full count comes from cached counter below
+    }),
+    prisma.sendStatusReview.count({
+      where: { student: { schoolId }, status: 'PENDING' },
+    }),
+    getCachedSendCounts(schoolId), // P1-7: cached 60 s
+  ])
 
   const studentIds = sendStatuses.map(s => s.studentId)
 
-  // Active / draft plans
+  // Plans only needed for the students in this page of results
   const plans = await prisma.plan.findMany({
     where: {
       schoolId,
@@ -40,13 +66,10 @@ export default async function SendDashboardPage() {
   })
   const planByStudent = Object.fromEntries(plans.map(p => [p.studentId, p]))
 
-  // Pending status reviews
-  const pendingReviews = await prisma.sendStatusReview.count({
-    where: { student: { schoolId }, status: 'PENDING' },
-  })
-
-  const senSupport  = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT').length
-  const ehcp        = sendStatuses.filter(s => s.activeStatus === 'EHCP').length
+  // Use cached totals for KPI cards so they reflect the full school count (not
+  // just this page). Fall back to page count if cache warms up.
+  const senSupport  = sendCounts.senSupport
+  const ehcp        = sendCounts.ehcp
   const reviewsDue  = plans.filter(p => new Date(p.reviewDate) <= in30).length
 
   // Bucketed alerts

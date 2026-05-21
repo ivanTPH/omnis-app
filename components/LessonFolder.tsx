@@ -10,8 +10,9 @@ import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives } from '@/app/actions/lessons'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 import { getClassSendSummary, type ClassSendSummary } from '@/app/actions/send-support'
-import { createHomework, generateHomeworkFromResources } from '@/app/actions/homework'
-import type { MCQQuestion, SAQuestion } from '@/app/actions/homework'
+import { createHomework } from '@/app/actions/homework'
+import type { MCQQuestion, SAQuestion, ProposalResult } from '@/lib/homework-helpers'
+import { streamAiRequest } from '@/lib/ai-stream'
 import { HomeworkType } from '@prisma/client'
 import { gradeLabel } from '@/lib/grading'
 import { formatRawScore } from '@/lib/gradeUtils'
@@ -216,21 +217,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [generatingHw,      setGeneratingHw]      = useState(false)
   const [genSource,         setGenSource]         = useState<string | null>(null)
   const [hwGenProgress,     setHwGenProgress]     = useState(0)
+  const [hwGenMessage,      setHwGenMessage]      = useState<string>('')
   const [hwGenerationError, setHwGenerationError] = useState<string | null>(null)
-
-  // Simulated progress during homework generation (target < 30s)
-  useEffect(() => {
-    if (!generatingHw) { setHwGenProgress(0); return }
-    setHwGenProgress(0)
-    const interval = setInterval(() => {
-      setHwGenProgress(p => {
-        if (p >= 88) return p
-        const step = p < 40 ? 12 : p < 70 ? 6 : 2
-        return Math.min(p + step, 88)
-      })
-    }, 600)
-    return () => clearInterval(interval)
-  }, [generatingHw])
   const [headerEditDate,  setHeaderEditDate]  = useState(false)
   const [viewingHwId,    setViewingHwId]     = useState<string | null>(null)
   const [viewingHwTitle, setViewingHwTitle]  = useState('')
@@ -414,9 +402,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   function runHwGeneration(lid: string, type: HomeworkType, preferredResourceId?: string) {
     setGeneratingHw(true)
     setHwGenerationError(null)
+    setHwGenProgress(0)
+    setHwGenMessage('Preparing…')
     setMcqQuestions([])
     setSaQuestions([])
-    generateHomeworkFromResources(lid, type, preferredResourceId).then(result => {
+    streamAiRequest<ProposalResult>(
+      '/api/ai/generate-homework',
+      { lessonId: lid, forceType: type, preferredResourceId },
+      (message, pct) => { setHwGenMessage(message); setHwGenProgress(pct) },
+    ).then(result => {
       updateActive({
         instructions:    result.instructions,
         modelAnswer:     result.modelAnswer,
@@ -933,7 +927,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             {genSource ? `Regenerating for ${hwType === 'MCQ_QUIZ' ? 'MCQ' : hwType === 'SHORT_ANSWER' ? 'Short Answer' : hwType === 'EXTENDED_WRITING' ? 'Essay' : 'Mixed'} format…` : 'Generating homework from lesson content…'}
                           </p>
                           <p className="text-[11px] text-purple-600 mt-0.5">
-                            {hwGenProgress < 35 ? 'Analysing lesson content…' : hwGenProgress < 65 ? 'Drafting questions…' : hwGenProgress < 85 ? 'Adding model answers…' : 'Almost ready…'}
+                            {hwGenMessage || 'Analysing lesson content…'}
                           </p>
                         </div>
                         <span className="text-[11px] text-purple-500 shrink-0">{Math.round(hwGenProgress)}%</span>

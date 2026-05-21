@@ -14,10 +14,10 @@ import {
   getClassKPlanSummaries,
   getClassEhcpSectionF,
   getStudentIlp,
-  generateILPForStudent,
   type LearnerPassportRow,
   type IlpWithTargets,
 } from '@/app/actions/send-support'
+import { streamAiRequest } from '@/lib/ai-stream'
 import { getStudentEhcp, type EhcpPlanWithOutcomes } from '@/app/actions/ehcp'
 import { getClassRagData, type RagStudent } from '@/app/actions/rag'
 import { getTaNotes, type TaNoteRow } from '@/app/actions/ta-notes'
@@ -201,15 +201,15 @@ export function useClassRosterData(
     setIlpError(null)
     setGeneratingIlp(g => ({ ...g, [studentId]: true }))
     try {
-      const result = await generateILPForStudent(studentId)
-      if (!result.success) {
-        setIlpError(result.error ?? 'ILP generation failed — please try again.')
-      } else {
-        const updated = await getClassRoster(classId)
-        setRows(updated)
-      }
-    } catch {
-      setIlpError('ILP generation failed — please try again.')
+      await streamAiRequest<{ success: boolean }>(
+        '/api/ai/generate-ilp',
+        { studentId },
+        () => {}, // progress handled by generatingIlp spinner in the UI
+      )
+      const updated = await getClassRoster(classId)
+      setRows(updated)
+    } catch (err) {
+      setIlpError(err instanceof Error ? err.message : 'ILP generation failed — please try again.')
     } finally {
       setGeneratingIlp(g => ({ ...g, [studentId]: false }))
     }

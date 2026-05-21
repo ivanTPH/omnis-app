@@ -1,4 +1,6 @@
-import type { NextAuthConfig } from 'next-auth'
+import type { NextAuthConfig, Session } from 'next-auth'
+import type { JWT } from 'next-auth/jwt'
+import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 // ─── Role → home page mapping ─────────────────────────────────────────────────
@@ -46,11 +48,13 @@ export const authConfig = {
   trustHost: true,
   providers: [],   // credentials provider not needed — middleware only verifies JWT
   callbacks: {
-    authorized({ auth, request }: any) {
+    authorized({ auth, request }: { auth: Session | null; request: Request }) {
       const user = auth?.user
       if (!user) return false  // unauthenticated → redirect to /login
 
-      const pathname = (request as any).nextUrl?.pathname as string ?? '/'
+      // Next.js middleware always provides NextRequest; nextUrl is safe to access.
+      const req      = request as unknown as NextRequest
+      const pathname = req.nextUrl?.pathname ?? '/'
       const role     = user.role as string
 
       // Check role-based route restrictions
@@ -59,7 +63,7 @@ export const authConfig = {
           if (!roles.includes(role)) {
             // Redirect wrong-role users to their own home page (not /login)
             const home = getRoleHome(role)
-            const url  = (request as any).nextUrl.clone()
+            const url  = req.nextUrl.clone()
             url.pathname = home
             return NextResponse.redirect(url)
           }
@@ -69,18 +73,26 @@ export const authConfig = {
 
       return true
     },
-    async jwt({ token, user }: any) {
-      if (user) Object.assign(token, {
-        id: user.id, schoolId: user.schoolId, schoolName: user.schoolName,
-        role: user.role, firstName: user.firstName, lastName: user.lastName,
-      })
+    async jwt({ token, user }) {
+      if (user) {
+        // user is present only on sign-in; custom fields come from authorize()
+        const u = user as Session['user']
+        token.id = u.id
+        token.schoolId = u.schoolId
+        token.schoolName = u.schoolName
+        token.role = u.role
+        token.firstName = u.firstName
+        token.lastName = u.lastName
+      }
       return token
     },
-    async session({ session, token }: any) {
-      Object.assign(session.user, {
-        id: token.id, schoolId: token.schoolId, schoolName: token.schoolName,
-        role: token.role, firstName: token.firstName, lastName: token.lastName,
-      })
+    async session({ session, token }: { session: Session; token: JWT }) {
+      session.user.id = token.id
+      session.user.schoolId = token.schoolId
+      session.user.schoolName = token.schoolName
+      session.user.role = token.role
+      session.user.firstName = token.firstName
+      session.user.lastName = token.lastName
       return session
     },
   },

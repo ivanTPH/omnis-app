@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import type { OmnisPrismaClient } from '@/lib/prisma'
 
 export interface ClassPerformanceAnalysis {
   classId: string
@@ -54,7 +54,7 @@ export async function analyseClassPerformance(
   schoolId: string,
   periodStart: Date,
   periodEnd: Date,
-  prisma: PrismaClient,
+  prisma: OmnisPrismaClient,
 ): Promise<ClassPerformanceAnalysis> {
   try {
     // 1. Fetch lessons in period

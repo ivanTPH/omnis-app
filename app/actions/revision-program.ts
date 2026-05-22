@@ -646,7 +646,7 @@ export async function getTeacherSubjectsYearGroups(): Promise<
 export async function getYearTopics(
   subject: string,
   yearGroup: number,
-): Promise<{ topics: string[]; studentCount: number; classIds: string[] }> {
+): Promise<{ topics: string[]; weakTopics: string[]; strongTopics: string[]; studentCount: number; classIds: string[] }> {
   try {
     const user = await requireTeacherOrAbove()
 
@@ -662,7 +662,7 @@ export async function getYearTopics(
       select:  { id: true },
     })
     const classIds = classes.map(c => c.id)
-    if (classIds.length === 0) return { topics: [], studentCount: 0, classIds: [] }
+    if (classIds.length === 0) return { topics: [], weakTopics: [], strongTopics: [], studentCount: 0, classIds: [] }
 
     // Past lessons in those classes since academic year start
     const lessons = await prisma.lesson.findMany({
@@ -685,10 +685,46 @@ export async function getYearTopics(
       distinct: ['userId'],
     })
 
-    return { topics, studentCount: enrolments.length, classIds }
+    // Classify topics by avg submission score across all classes this year.
+    // Weak < 60%, strong > 75% — mirrors analysis-engine.ts thresholds.
+    const homeworks = await prisma.homework.findMany({
+      where: { schoolId: user.schoolId, classId: { in: classIds }, lesson: { scheduledAt: { gte: yearStart } } },
+      select: {
+        lesson:      { select: { title: true } },
+        submissions: { select: { finalScore: true }, where: { finalScore: { not: null } } },
+        gradingBands: true,
+      },
+    })
+
+    const topicScores: Record<string, number[]> = {}
+    for (const hw of homeworks) {
+      const topic = hw.lesson?.title?.trim()
+      if (!topic || hw.submissions.length === 0) continue
+      // Determine max score from gradingBands to normalise to percentage
+      const bands = hw.gradingBands as Record<string, unknown> | null
+      const maxScore = bands ? Math.max(...Object.keys(bands).map(Number).filter(n => !isNaN(n))) : null
+      for (const sub of hw.submissions) {
+        if (sub.finalScore == null) continue
+        const pct = maxScore && maxScore > 0 ? (sub.finalScore / maxScore) * 100 : sub.finalScore
+        if (!topicScores[topic]) topicScores[topic] = []
+        topicScores[topic].push(pct)
+      }
+    }
+
+    const weakTopics: string[]   = []
+    const strongTopics: string[] = []
+    for (const topic of topics) {
+      const scores = topicScores[topic]
+      if (!scores || scores.length === 0) continue
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+      if (avg < 60) weakTopics.push(topic)
+      else if (avg > 75) strongTopics.push(topic)
+    }
+
+    return { topics, weakTopics, strongTopics, studentCount: enrolments.length, classIds }
   } catch (err) {
     console.error('[getYearTopics] error:', err)
-    return { topics: [], studentCount: 0, classIds: [] }
+    return { topics: [], weakTopics: [], strongTopics: [], studentCount: 0, classIds: [] }
   }
 }
 

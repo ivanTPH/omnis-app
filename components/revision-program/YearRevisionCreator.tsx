@@ -27,10 +27,12 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
   const [isLoading, startLoad]    = useTransition()
 
   // Step 2 state
-  const [allTopics,   setAllTopics]   = useState<string[]>([])
-  const [selected,    setSelected]    = useState<Set<string>>(new Set())
+  const [allTopics,    setAllTopics]    = useState<string[]>([])
+  const [weakTopics,   setWeakTopics]   = useState<Set<string>>(new Set())
+  const [strongTopics, setStrongTopics] = useState<Set<string>>(new Set())
+  const [selected,     setSelected]     = useState<Set<string>>(new Set())
   const [studentCount, setStudentCount] = useState(0)
-  const [classIds,    setClassIds]    = useState<string[]>([])
+  const [classIds,     setClassIds]     = useState<string[]>([])
   const [title,       setTitle]       = useState('')
 
   // Step 3 state
@@ -57,7 +59,10 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
       try {
         const result = await getYearTopics(subject, yearGroup)
         setAllTopics(result.topics)
-        setSelected(new Set(result.topics))
+        setWeakTopics(new Set(result.weakTopics))
+        setStrongTopics(new Set(result.strongTopics))
+        // Pre-tick weak topics only; if no performance data, tick everything
+        setSelected(result.weakTopics.length > 0 ? new Set(result.weakTopics) : new Set(result.topics))
         setStudentCount(result.studentCount)
         setClassIds(result.classIds)
         setTitle(`Year ${yearGroup} ${subject} — Year Revision`)
@@ -240,7 +245,20 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
             <span className="font-medium text-indigo-800">{subject} · Year {yearGroup}</span>
             <span className="text-indigo-600">{allTopics.length} topics found</span>
             <span className="text-indigo-600">{studentCount} student{studentCount !== 1 ? 's' : ''}</span>
+            {weakTopics.size > 0 && (
+              <span className="text-amber-700 font-medium">{weakTopics.size} weak pre-selected</span>
+            )}
           </div>
+
+          {/* Pre-selection explanation */}
+          {weakTopics.size > 0 && (
+            <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800">
+              <Icon name="auto_awesome" size="sm" className="shrink-0 mt-0.5 text-amber-600" />
+              <span>
+                <strong>Weak topics pre-selected</strong> (avg score below 60%). Deselect any you don&apos;t want to include, or use <em>Select all</em> to include every topic.
+              </span>
+            </div>
+          )}
 
           {/* Title */}
           <div>
@@ -288,16 +306,21 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
                     ? <Icon name="check_box" size="sm" className="text-blue-600 shrink-0" />
                     : <Icon name="check_box_outline_blank" size="sm" className="text-gray-300 shrink-0" />
                   }
-                  <span className="text-sm text-gray-800">{topic}</span>
+                  <span className="text-sm text-gray-800 flex-1">{topic}</span>
+                  {weakTopics.has(topic) && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">Needs revision</span>
+                  )}
+                  {strongTopics.has(topic) && (
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">Strong</span>
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700">
-            <strong>Personalisation:</strong> Each student&apos;s guide will include all selected topics plus a
-            highlighted <em>Focus Areas</em> section for topics where their scores were below the class average
-            or predicted grade.
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-xs text-blue-800">
+            <strong>Personalisation:</strong> Each student&apos;s guide covers all selected topics, with a highlighted
+            <em> Focus Areas</em> section for topics where their individual score was below the class average.
           </div>
 
           <div className="flex gap-3">

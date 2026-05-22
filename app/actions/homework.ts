@@ -1,6 +1,6 @@
 'use server'
 import { auth }            from '@/lib/auth'
-import { prisma, writeAudit } from '@/lib/prisma'
+import { prisma, writeAudit, writeILPAudit } from '@/lib/prisma'
 import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
@@ -1455,9 +1455,11 @@ export async function saveIlpEvidenceEntries(
     skipDuplicates: true,
   })
 
-  // Auto-raise SENCO notification + EarlyWarningFlag if student has 3+ CONCERN entries this term
-  const hasConcern = entries.some(e => e.evidenceType === 'CONCERN')
-  if (hasConcern) {
+  // Auto-raise SENCO notification + EarlyWarningFlag if student has 3+ CONCERN entries this term,
+  // and auto-transition IlpTarget.status to 'achieved' when 3+ PROGRESS entries accumulate.
+  const hasConcern  = entries.some(e => e.evidenceType === 'CONCERN')
+  const hasProgress = entries.some(e => e.evidenceType === 'PROGRESS')
+  if (hasConcern || hasProgress) {
     try {
       const now = new Date()
       const currentTerm = await prisma.termDate.findFirst({
@@ -1537,6 +1539,65 @@ export async function saveIlpEvidenceEntries(
                   title:    `ILP target needs review: ${student.firstName} ${student.lastName}`,
                   body:     `An ILP target for ${student.firstName} ${student.lastName} has ${targetConcernCount} CONCERN entries this term — consider updating target status.`,
                   linkHref: targetNotifHref,
+                },
+              })
+            }
+          }
+        }
+      }
+      // Per-target: auto-transition to 'achieved' when 3+ PROGRESS entries accumulate
+      if (hasProgress) {
+        const progressTargetIds = entries.filter(e => e.evidenceType === 'PROGRESS').map(e => e.ilpTargetId)
+        for (const targetId of progressTargetIds) {
+          const target = await (prisma as any).ilpTarget.findUnique({
+            where: { id: targetId },
+            select: { id: true, status: true, ilpId: true, target: true },
+          })
+          if (!target || target.status !== 'active') continue
+
+          const progressCount = await (prisma as any).ilpEvidenceEntry.count({
+            where: { schoolId, studentId: sub.studentId, ilpTargetId: targetId, evidenceType: 'PROGRESS', createdAt: { gte: termStart } },
+          })
+          if (progressCount < 3) continue
+
+          // Auto-transition to achieved
+          await (prisma as any).ilpTarget.update({
+            where: { id: targetId },
+            data:  { status: 'achieved', reviewedAt: new Date() },
+          })
+
+          // Audit trail
+          await writeILPAudit({
+            ilpId:         target.ilpId,
+            userId,
+            userName:      'System (auto)',
+            userRole:      'SYSTEM',
+            fieldChanged:  'Target status',
+            previousValue: 'active',
+            newValue:      'achieved',
+            changeType:    'EDITED',
+          })
+
+          // Notify SENCO so they can review and confirm
+          const [student, senco] = await Promise.all([
+            prisma.user.findUnique({ where: { id: sub.studentId }, select: { firstName: true, lastName: true } }),
+            prisma.user.findFirst({ where: { schoolId, role: 'SENCO' }, select: { id: true } }),
+          ])
+          if (student && senco) {
+            const notifHref = `/send/ilp/${sub.studentId}`
+            const alreadyNotified = await prisma.notification.findFirst({
+              where: { schoolId, userId: senco.id, type: 'ILP_TARGET_ACHIEVED',
+                linkHref: notifHref, createdAt: { gte: termStart } },
+            })
+            if (!alreadyNotified) {
+              await prisma.notification.create({
+                data: {
+                  schoolId,
+                  userId:   senco.id,
+                  type:     'ILP_TARGET_ACHIEVED',
+                  title:    `ILP target achieved: ${student.firstName} ${student.lastName}`,
+                  body:     `An ILP target for ${student.firstName} ${student.lastName} has been automatically marked as achieved after ${progressCount} PROGRESS entries. Please review and confirm.`,
+                  linkHref: notifHref,
                 },
               })
             }

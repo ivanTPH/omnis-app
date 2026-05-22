@@ -11,7 +11,9 @@ const HOD_ROLES = ['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN']
 
 type ClassOption = { id: string; name: string; subject: string; yearGroup: number; examBoard: string | null; examModules: string[] }
 
-export default function MyClassesView({ classes, role }: { classes: ClassOption[]; role: string }) {
+export type ClassKpis = { students: number; sendCount: number; needsMarking: number }
+
+export default function MyClassesView({ classes, role, kpiData }: { classes: ClassOption[]; role: string; kpiData?: Record<string, ClassKpis> }) {
   const [subject,     setSubject]     = useState('')
   const [year,        setYear]        = useState('')
   const [selectedId,  setSelectedId]  = useState('')
@@ -272,6 +274,42 @@ export default function MyClassesView({ classes, role }: { classes: ClassOption[
           )}
         </div>
       )}
+
+      {/* ── KPI strip for selected class ── */}
+      {effectiveId && kpiData?.[effectiveId] && (() => {
+        const kpi = kpiData[effectiveId]
+        return (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <Icon name="groups" size="sm" className="text-blue-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Students</p>
+                <p className="text-lg font-bold text-gray-900 leading-none">{kpi.students}</p>
+              </div>
+            </div>
+            <div className="card p-3 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                <Icon name="support" size="sm" className="text-amber-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">SEND</p>
+                <p className="text-lg font-bold text-gray-900 leading-none">{kpi.sendCount}</p>
+              </div>
+            </div>
+            <div className={`card p-3 flex items-center gap-3 ${kpi.needsMarking > 0 ? 'border-rose-200 bg-rose-50' : ''}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${kpi.needsMarking > 0 ? 'bg-rose-100' : 'bg-gray-50'}`}>
+                <Icon name="grading" size="sm" className={kpi.needsMarking > 0 ? 'text-rose-600' : 'text-gray-400'} />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Needs Marking</p>
+                <p className={`text-lg font-bold leading-none ${kpi.needsMarking > 0 ? 'text-rose-700' : 'text-gray-900'}`}>{kpi.needsMarking}</p>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Roster for selected class ── */}
       {effectiveId && (

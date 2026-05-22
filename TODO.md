@@ -1,6 +1,6 @@
 # Omnis App — Audit TODO
 
-> Last updated: 2026-05-22. All items verified against codebase — status reflects actual code, not assumptions.
+> Last updated: 2026-05-22 (session 2). All items verified against codebase — status reflects actual code, not assumptions.
 > Do not fix anything without reading the relevant section of CLAUDE.md first.
 
 ---
@@ -38,9 +38,9 @@ No action needed.
 | "Needs Marking" badge on class pills | ❌ | Low priority |
 
 ### TODO-CLS-1 ✅ COMPLETE — search field exists in MyClassesView
-### TODO-CLS-2 ❌ OUTSTANDING — KPI strip (total students, SEND count, pending to mark)
+### TODO-CLS-2 ✅ COMPLETE — KPI strip added (commit f9cff95)
 ### TODO-CLS-3 ❌ OUTSTANDING — "Needs Marking" badge on class pills
-### TODO-CLS-4 ❌ OUTSTANDING — filter chips + Clear all
+### TODO-CLS-4 ✅ COMPLETE — filter chips + Clear all already in MyClassesView.tsx
 
 ---
 
@@ -56,7 +56,7 @@ No action needed.
 | Auto-select weak topics in year revision | ❌ | `TODO-REV-2` — teachers must manually tick all topics |
 
 ### TODO-REV-1 ✅ COMPLETE — `findMany` fetches all lessons in period
-### TODO-REV-2 ❌ OUTSTANDING — pre-tick weak topics (< 60%) in year-revision topic selector
+### TODO-REV-2 ✅ COMPLETE — weak topics pre-ticked, badges shown, amber banner (prev session)
 
 ---
 
@@ -71,11 +71,11 @@ No action needed.
 | SENCO early warning at 3+ CONCERN entries | ✅ | `senco/early-warning` — rose banner, EarlyWarningFlag |
 | IlpTarget auto-transitions to `achieved` on 3+ PROGRESS | ✅ | `saveIlpEvidenceEntries` — commit 5bfdc41 |
 | Adaptive insights in ILP/EHCP progress reports | ✅ | `ehcp.ts` — `StudentLearningProfile` fetched and included in AI prompt |
-| `IlpEvidenceEntry` CONCERN count in `sendConcernLevel` | ⚠️ | Only submission `sendRiskScore` used — ILP evidence not factored |
+| `IlpEvidenceEntry` CONCERN count in `sendConcernLevel` | ✅ | Blended 50/50 in `lib/adaptive-profile.ts` (prev session) |
 
 ### TODO-SEND-1 ✅ COMPLETE — learningProfile included in both generateIlpProgressReport and generateEhcpAnnualReview
 ### TODO-SEND-2 ✅ COMPLETE — auto-transition to achieved + audit entry + SENCO notification (commit 5bfdc41)
-### TODO-SEND-3 ❌ OUTSTANDING — `sendConcernLevel` should factor in IlpEvidenceEntry CONCERN count this term
+### TODO-SEND-3 ✅ COMPLETE — blended 50/50 in `lib/adaptive-profile.ts` (prev session)
 
 ---
 
@@ -120,9 +120,5 @@ No action needed.
 
 | ID | Area | Priority | Effort |
 |---|---|---|---|
-| TODO-SEND-3 | Factor IlpEvidenceEntry CONCERNs into `sendConcernLevel` | Medium | Small |
-| TODO-CLS-2 | KPI strip on My Classes (students, SEND, to-mark) | Medium | Medium |
-| TODO-REV-2 | Pre-tick weak topics in year-revision topic selector | Medium | Small |
 | TODO-PLAN-3 | K Plan ↔ ILP strategy bidirectional sync | Medium | Medium |
 | TODO-CLS-3 | "Needs Marking" badge on class pills | Low | Small |
-| TODO-CLS-4 | Filter chips + Clear all on My Classes | Low | Small |

@@ -82,7 +82,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
       <div className="card p-4 space-y-3">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
 
           {/* Subject */}
           <div>
@@ -114,18 +114,38 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
             </select>
           </div>
 
-          {/* Class */}
-          <div>
+          {/* Class pills */}
+          <div className="sm:col-span-2">
             <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
               Class
             </label>
-            <select
-              value={effectiveId}
-              onChange={e => setSelectedId(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {filteredClasses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+              {filteredClasses.map(c => {
+                const marking = kpiData?.[c.id]?.needsMarking ?? 0
+                const isSelected = c.id === effectiveId
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setSelectedId(c.id)}
+                    className={`relative flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-colors ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100'
+                    }`}
+                  >
+                    {c.name}
+                    {marking > 0 && (
+                      <span className={`inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold leading-none ${
+                        isSelected ? 'bg-white text-rose-600' : 'bg-rose-500 text-white'
+                      }`}>
+                        {marking}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* Generate passports */}

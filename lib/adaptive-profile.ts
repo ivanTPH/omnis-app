@@ -131,9 +131,34 @@ export async function computeAndSaveAdaptiveProfile(
     .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
     .slice(0, 10)
     .map(s => s.sendRiskScore as number)
-  const sendConcernLevel: number | null = riskScores.length > 0
+  const submissionBasedConcern: number | null = riskScores.length > 0
     ? Math.round(riskScores.reduce((a, b) => a + b, 0) / riskScores.length)
     : null
+
+  // Factor in IlpEvidenceEntry CONCERN count this term.
+  // Each CONCERN entry raises the concern level by 10 points (capped at 100).
+  // Blended 50/50 with submission-based score; pure evidence-based if no risk scores exist.
+  const now         = new Date()
+  const currentTerm = await prisma.termDate.findFirst({
+    where: { schoolId, startsAt: { lte: now }, endsAt: { gte: now } },
+  })
+  const termStart      = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
+  const ilpConcernCount = await (prisma as any).ilpEvidenceEntry.count({
+    where: { schoolId, studentId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
+  })
+  const evidenceBasedConcern = Math.min(ilpConcernCount * 10, 100)
+
+  let sendConcernLevel: number | null
+  if (ilpConcernCount === 0 && submissionBasedConcern === null) {
+    sendConcernLevel = null
+  } else if (submissionBasedConcern === null) {
+    sendConcernLevel = evidenceBasedConcern
+  } else if (ilpConcernCount === 0) {
+    sendConcernLevel = submissionBasedConcern
+  } else {
+    // Blend: submission risk score (50%) + ILP evidence concern (50%)
+    sendConcernLevel = Math.round((submissionBasedConcern + evidenceBasedConcern) / 2)
+  }
 
   const lastHomeworkAt: Date | null = submissions.length > 0
     ? submissions.reduce((latest, s) =>

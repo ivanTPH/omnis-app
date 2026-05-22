@@ -828,7 +828,7 @@ export async function getClassRoster(classId: string): Promise<ClassRosterRow[]>
     return await unstable_cache(
       () => fetchClassRosterFromDb(classId, schoolId),
       [`roster-${classId}-${schoolId}`],
-      { revalidate: 60, tags: [`roster-${classId}`] },
+      { revalidate: 60, tags: [`roster-${classId}`, 'class-rosters'] },
     )()
   } catch (err) {
     console.error('[getClassRoster] error:', err)

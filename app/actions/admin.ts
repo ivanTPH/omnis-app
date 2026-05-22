@@ -2,7 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
@@ -678,6 +678,7 @@ export async function addStudentToClass(classId: string, studentId: string): Pro
     metadata: { studentId, studentName: `${student.firstName} ${student.lastName}` },
   })
   revalidatePath('/admin/classes')
+  revalidateTag(`roster-${classId}`, 'default')
   return {}
 }
 
@@ -697,6 +698,7 @@ export async function removeStudentFromClass(classId: string, studentId: string)
     metadata: { studentId },
   })
   revalidatePath('/admin/classes')
+  revalidateTag(`roster-${classId}`, 'default')
   return {}
 }
 

@@ -7,10 +7,11 @@ import type { HomeworkType } from '@prisma/client'
 import {
   getTeacherLessons,
   getTeacherClasses,
-  generateHomeworkFromResources,
   createHomework,
 } from '@/app/actions/homework'
 import type { LessonForHomework, ClassForHomework } from '@/app/actions/homework'
+import type { ProposalResult } from '@/lib/homework-helpers'
+import { streamAiRequest } from '@/lib/ai-stream'
 
 const HW_TYPES: { value: HomeworkType; label: string; desc: string }[] = [
   { value: 'MCQ_QUIZ',         label: 'MCQ Quiz',         desc: '8 multiple-choice questions auto-generated from lesson objectives' },
@@ -41,6 +42,8 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
 
   // AI generation
   const [isGenerating, startGen] = useTransition()
+  const [genProgress,  setGenProgress] = useState(0)
+  const [genMessage,   setGenMessage]  = useState('')
   const [genError,     setGenError]    = useState('')
   const [generated,    setGenerated]   = useState(false)
 
@@ -89,9 +92,15 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
   function handleGenerate() {
     if (!lessonId) return
     setGenError('')
+    setGenProgress(0)
+    setGenMessage('')
     startGen(async () => {
       try {
-        const result = await generateHomeworkFromResources(lessonId, hwType)
+        const result = await streamAiRequest<ProposalResult>(
+          '/api/ai/generate-homework',
+          { lessonId, forceType: hwType },
+          (message, pct) => { setGenMessage(message); setGenProgress(pct) },
+        )
         setInstructions(result.instructions)
         setModelAnswer(result.modelAnswer)
         setGenerated(true)
@@ -288,6 +297,18 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                     {isGenerating ? 'Generating…' : generated ? 'Re-generate with AI' : 'Generate with AI'}
                   </button>
                 </div>
+
+                {isGenerating && (
+                  <div className="mb-3 space-y-1.5">
+                    <div className="flex justify-between text-xs text-blue-600">
+                      <span>{genMessage || 'Generating…'}</span>
+                      <span>{genProgress}%</span>
+                    </div>
+                    <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full transition-all duration-300 ease-out" style={{ width: `${genProgress}%` }} />
+                    </div>
+                  </div>
+                )}
 
                 {genError && (
                   <div className="flex items-center gap-2 text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2 mb-3">

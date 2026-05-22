@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { runDeltaSync }              from '@/lib/oak-delta-sync'
+import { revalidateTag }             from 'next/cache'
 
 // 5-minute timeout — requires Vercel Pro. Adjust or remove for free plan.
 export const maxDuration = 300
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { counts, durationMs } = await runDeltaSync()
+    revalidateTag('oak-lessons', 'default')  // Bust cached searchOakLessons results after sync
     return NextResponse.json({ success: true, counts, durationMs })
   } catch (err) {
     const durationMs = Date.now() - startTime

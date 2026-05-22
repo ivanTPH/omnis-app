@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { runWondeSync } from '@/lib/wonde-sync'
 import { prisma } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 // Allow up to 300 seconds on Vercel Pro / Enterprise
 export const maxDuration = 300
@@ -57,6 +57,7 @@ export async function POST() {
     })
 
     revalidatePath('/admin/wonde')
+    revalidateTag('class-rosters', 'default')  // Wonde sync can change enrolments — bust all roster caches
     return NextResponse.json({ success: true, result, logId: log.id })
   } catch (err) {
     await prisma.wondeSyncLog.update({

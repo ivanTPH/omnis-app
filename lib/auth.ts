@@ -20,7 +20,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!email || !password) return null
 
         // Rate limit by IP: 5 attempts per 15 min (no-ops when Upstash not configured)
-        const ip = (request as Request | undefined)?.headers?.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+        const req = request as Request | undefined
+        const ip  = req?.headers?.get('x-forwarded-for')?.split(',')[0]?.trim()
+               ??  req?.headers?.get('x-real-ip')
+               ??  'unknown'
         const { success } = await checkLoginRatelimit(ip)
         if (!success) return null
 

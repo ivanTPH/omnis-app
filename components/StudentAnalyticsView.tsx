@@ -957,7 +957,11 @@ function HomeworkTimelineRow({ hw, onOpen, loading, scoreToGrade }: {
   const dateStr = new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   const grade   = hw.grade ?? (hw.score != null ? String(scoreToGrade(hw.score)) : null)
   return (
-    <div onClick={!loading ? onOpen : undefined}
+    <div
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen && !loading ? 0 : undefined}
+      onClick={!loading ? onOpen : undefined}
+      onKeyDown={onOpen && !loading ? e => (e.key === 'Enter' || e.key === ' ') && onOpen() : undefined}
       className={`flex items-center gap-3 py-2.5 px-1 rounded text-xs ${onOpen ? 'cursor-pointer hover:bg-white transition-colors' : 'opacity-60'}`}>
       {hw.submitted ? <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" /> : <Icon name="cancel" size="sm" className="text-gray-300 shrink-0" />}
       <span className="flex-1 text-gray-700 truncate">{hw.subject} — {hw.title}</span>

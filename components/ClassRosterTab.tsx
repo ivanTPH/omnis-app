@@ -153,9 +153,9 @@ export default function ClassRosterTab({
                 </span>
               )}
             </div>
-            <a href="/senco/dashboard" className="text-[11px] text-blue-500 hover:text-blue-700 mt-0.5 inline-block">
+            <Link href="/senco/dashboard" className="text-[11px] text-blue-500 hover:text-blue-700 mt-0.5 inline-block">
               View SEND dashboard →
-            </a>
+            </Link>
           </div>
         </div>
       )}

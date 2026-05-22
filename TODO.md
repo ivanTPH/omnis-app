@@ -1,7 +1,12 @@
 # Omnis App — Audit TODO
 
-> Generated: 2026-04-20. Based on systematic code audit across 5 areas.
+> Last updated: 2026-05-22. All items verified against codebase — status reflects actual code, not assumptions.
 > Do not fix anything without reading the relevant section of CLAUDE.md first.
+
+---
+
+## Status Key
+✅ Done — verified in code  |  ❌ Outstanding  |  ⚠️ Partial
 
 ---
 
@@ -9,236 +14,115 @@
 
 Goal: all 4 entry points navigate to `/homework/[id]`.
 
-| Entry Point | Status | File | Notes |
-|---|---|---|---|
-| A. Calendar → Lesson → Homework tab → click title | ✅ Works | `components/LessonFolder.tsx:1498` | `Link href="/homework/${hw.id}"` |
-| B. Calendar → Lesson → Class tab → student → Homework tab → click | ❌ Broken | `components/ClassRosterTab.tsx:912` | Plain `<span>`, no link |
-| C. My Classes → student row → Homework tab → click | ❌ Broken | `components/ClassRosterTab.tsx:912` | Same component, same bug |
-| D. Sidebar Homework → click card | ✅ Works | `components/HomeworkFilterView.tsx:132` | Full card is a `Link` |
+| Entry Point | Status | Notes |
+|---|---|---|
+| A. Calendar → Lesson → Homework tab → click title | ✅ | `LessonFolder.tsx` — `Link href="/homework/${hw.id}"` |
+| B. Calendar → Lesson → Class tab → student → Homework tab | ✅ | `ClassRosterTab.tsx` — `Link` + `homeworkId` both confirmed |
+| C. My Classes → student row → Homework tab → click | ✅ | Same component, same fix |
+| D. Sidebar Homework → click card | ✅ | `HomeworkFilterView.tsx` — full card is a `Link` |
 
-### TODO-HW-1 — Add `homeworkId` to `StudentClassDetail.recentSubmissions` · **Critical**
-
-`getStudentClassDetail()` in `app/actions/lessons.ts` does not select
-`homework { id }` in its Prisma query, so the returned `recentSubmissions`
-array has no `id` field. Without it, `ClassRosterTab` cannot build the link.
-
-**Fix:**
-1. Add `id: string` to the `recentSubmissions` type in `StudentClassDetail`.
-2. Update the Prisma select in `getStudentClassDetail()` to include
-   `homework: { select: { id: true, title: true } }`.
-3. In `ClassRosterTab.tsx:912`, replace the `<span>` with
-   `<Link href={"/homework/" + s.homeworkId}>`.
-
-Fixes entry points B and C simultaneously.
+### TODO-HW-1 ✅ COMPLETE
+`homeworkId` is selected, returned in `StudentClassDetail`, and rendered as `<Link>` in ClassRosterTab.
+No action needed.
 
 ---
 
 ## 2. MY CLASSES FILTER CONSISTENCY
 
-Comparison of filter controls on `/homework` vs `/classes`.
-
-### Present on Homework, **missing** from My Classes
-
-| Feature | Homework location | Priority |
+| Feature | Status | Notes |
 |---|---|---|
-| Status dropdown (Published / Draft / Needs Marking / Past) | `HomeworkFilterView.tsx:281` | Medium |
-| Search field (by title / class name) | `HomeworkFilterView.tsx:303` | Medium |
-| Active filter chips with individual clear + "Clear all" | `HomeworkFilterView.tsx:321` | Low |
-| KPI cards (assignments, to-mark count, submission rate) | `HomeworkFilterView.tsx:344` | Low |
+| Search field (by student name) | ✅ | `MyClassesView.tsx` — `search` state + filtered roster |
+| Status dropdown | ❌ | Not on `/classes` — homework filter only |
+| Filter chips + Clear all | ❌ | Low priority |
+| KPI cards (students, SEND, to-mark) | ❌ | Medium priority — data available but not shown |
+| "Needs Marking" badge on class pills | ❌ | Low priority |
 
-### Present on My Classes, absent from Homework
-
-| Feature | Classes location | Notes |
-|---|---|---|
-| Pill-based class selection | `MyClassesView.tsx:87` | More discoverable than dropdown |
-| Conditional filter visibility (hide if only 1 value) | `MyClassesView.tsx:59–62` | Better UX for small timetables |
-
-### TODO-CLS-1 — Add search field to My Classes · **Medium**
-
-`MyClassesView.tsx` has no way to search by class name or subject string.
-Teachers with many classes must scroll to find the right one.
-Add a text input that filters the class pill list by class name / subject.
-
-### TODO-CLS-2 — Surface homework KPIs on My Classes page · **Medium**
-
-The `/classes` page shows no summary metrics. Add a lightweight KPI strip
-(total students, SEND count, pending homework to mark) using data already
-available from the class roster query.
-
-### TODO-CLS-3 — Add "Needs Marking" status filter to My Classes · **Low**
-
-Teachers navigating from `/classes` cannot tell which classes have
-ungraded submissions. Add a status chip or badge on class pills when
-`submission.status = 'SUBMITTED'` count > 0.
+### TODO-CLS-1 ✅ COMPLETE — search field exists in MyClassesView
+### TODO-CLS-2 ❌ OUTSTANDING — KPI strip (total students, SEND count, pending to mark)
+### TODO-CLS-3 ❌ OUTSTANDING — "Needs Marking" badge on class pills
+### TODO-CLS-4 ❌ OUTSTANDING — filter chips + Clear all
 
 ---
 
 ## 3. REVISION DEPTH
 
-| Check | Status | Evidence |
+| Check | Status | Notes |
 |---|---|---|
-| a) Pull lesson topics for the class | ❌ Partial | Only most recent lesson fetched — `revision-program.ts:137–145` |
-| b) Questions mapped to specific objectives | ✅ Pass | `content-generator.ts:78–98` — objectives → Bloom's mapping |
-| c) Cover ALL lessons in topic | ❌ Fail | `findFirst` + `orderBy: desc` returns 1 lesson; others ignored |
-| d) Mark scheme per question | ✅ Pass | `content-generator.ts:124–128`; shown in `RevisionTaskView.tsx:184` |
-| e) Student gaps from homework history | ✅ Pass | `analysis-engine.ts:81–198` — per-topic weak/strong analysis |
+| Pull ALL lesson topics for period | ✅ | `revision-program.ts:137` — `findMany` + date range + fallback |
+| Questions mapped to objectives | ✅ | `content-generator.ts` — objectives → Bloom's mapping |
+| Cover ALL lessons | ✅ | `findMany` with `periodStart`/`periodEnd`, not `findFirst` |
+| Mark scheme per question | ✅ | `content-generator.ts` + rendered in `RevisionTaskView` |
+| Student gaps from homework history | ✅ | `analysis-engine.ts` — per-topic weak/strong analysis |
+| Auto-select weak topics in year revision | ❌ | `TODO-REV-2` — teachers must manually tick all topics |
 
-### TODO-REV-1 — Fetch ALL lessons in period for revision generation · **High**
-
-`createRevisionProgram()` (`revision-program.ts:137–145`) calls
-`prisma.lesson.findFirst(orderBy: desc)` — this returns only the most
-recently taught lesson. `analyseClassPerformance()` correctly fetches all
-lessons (`analysis-engine.ts:61–65`) but the resulting topic list is stored
-and **not passed to question generation**.
-
-**Fix:**
-1. Change `findFirst` → `findMany` in `createRevisionProgram()` to fetch all
-   lessons in the period.
-2. Pass the full `lessons[]` array (titles + objectives) into `generateRevisionTask()`.
-3. In `content-generator.ts`, accept `lessons[]` alongside the existing
-   `lessonTitle` / `objectives` params; build the AI prompt to cover all
-   lessons, not just one.
-4. Map each generated question to the lesson it covers
-   (add `lessonIndex` field alongside existing `objectiveIndex`).
-
-### TODO-REV-2 — Auto-select weak topics from analysis without manual step · **Medium**
-
-Year revision (`createYearRevisionProgram()`) requires teachers to manually
-select topics. The analysis already identifies `topicsNeedingRevision`
-(weak < 60 %) and `topicsToSkip` (strong > 75 %). Pre-tick weak topics
-in the year-revision UI so teachers only need to deselect, not build from
-scratch.
+### TODO-REV-1 ✅ COMPLETE — `findMany` fetches all lessons in period
+### TODO-REV-2 ❌ OUTSTANDING — pre-tick weak topics (< 60%) in year-revision topic selector
 
 ---
 
 ## 4. SEND SCREENING AND ADAPTIVE CONTENT
 
-| Check | Status | Evidence |
+| Check | Status | Notes |
 |---|---|---|
-| a) SEND profile in AI homework prompt | ✅ Pass | `homework.ts:614–687` — full `sendContextBlock` passed to Claude |
-| b) EHCP students see adapted questions | ✅ Pass | `HomeworkTypeRenderer.tsx:143–154` — `ehcp_adaptation` rendered |
-| c) SEN Support students see scaffolding hints | ✅ Pass | `HomeworkTypeRenderer.tsx:178–183` — `scaffolding_hint` blue box |
-| d) Teacher prompted to record ILP evidence after marking | ✅ Pass | `HomeworkMarkingView.tsx:471–475` — 10 s countdown banner |
-| e) SENCO early warning at 3+ CONCERN entries | ✅ Pass | `senco/early-warning/page.tsx:27–52` — rose banner, links to ILP |
-| f) Adaptive insights written back to ILP / EHCP / K Plan | ❌ Fail | `adaptive-learning.ts`, `ehcp.ts` — reports generated but nothing written back |
+| SEND profile in AI homework prompt | ✅ | `homework.ts` — full `sendContextBlock` passed to Claude |
+| EHCP students see adapted questions | ✅ | `HomeworkTypeRenderer` — `ehcp_adaptation` rendered |
+| SEN Support students see scaffolding hints | ✅ | `HomeworkTypeRenderer` — `scaffolding_hint` blue box |
+| Teacher prompted to record ILP evidence after marking | ✅ | `HomeworkMarkingView` — 10s countdown banner |
+| SENCO early warning at 3+ CONCERN entries | ✅ | `senco/early-warning` — rose banner, EarlyWarningFlag |
+| IlpTarget auto-transitions to `achieved` on 3+ PROGRESS | ✅ | `saveIlpEvidenceEntries` — commit 5bfdc41 |
+| Adaptive insights in ILP/EHCP progress reports | ✅ | `ehcp.ts` — `StudentLearningProfile` fetched and included in AI prompt |
+| `IlpEvidenceEntry` CONCERN count in `sendConcernLevel` | ⚠️ | Only submission `sendRiskScore` used — ILP evidence not factored |
 
-### TODO-SEND-1 — Write adaptive insights back to ILP/EHCP progress reports · **High**
-
-`generateIlpProgressReport()` and `generateEhcpAnnualReview()`
-(`ehcp.ts:405–570`) do not read `StudentLearningProfile`. The AI-generated
-draft therefore omits the student's learning preferences, Bloom's
-performance, classroom strategies, and concern level — the most actionable
-data SENCO has.
-
-**Fix:** Before calling Claude, fetch `StudentLearningProfile` for the
-student and include `profileSummary`, `preferredTypes`, `strengthAreas`,
-`developmentAreas`, `sendConcernLevel`, and `classroomStrategies` in the
-system prompt context.
-
-### TODO-SEND-2 — Auto-transition `IlpTarget.status` from evidence entries · **High**
-
-`saveIlpEvidenceEntries()` (`homework.ts:1472–1551`) creates
-`IlpEvidenceEntry` records but never touches `IlpTarget.status`. Targets
-remain `"active"` indefinitely even after multiple PROGRESS or CONCERN
-entries. SENCO must update manually.
-
-**Fix:** After bulk-creating evidence entries, count PROGRESS / CONCERN
-entries per target this term. If a target accumulates ≥ 3 PROGRESS entries,
-flag it for SENCO review as a candidate for `"achieved"`. If ≥ 3 CONCERN,
-flag for `"deferred"` review. Do not auto-set status — surface as a
-suggested action in the SENCO ILP detail page.
-
-### TODO-SEND-3 — Include `IlpEvidenceEntry` data in `updateLearningProfile()` · **Medium**
-
-`updateLearningProfile()` (`adaptive-learning.ts:103–312`) computes
-`sendConcernLevel` from submission `sendRiskScore` only. It never reads
-`IlpEvidenceEntry`. A student with 5 CONCERN entries this term can still
-show `sendConcernLevel: 'low'` in their profile if their submission scores
-are acceptable.
-
-**Fix:** In `updateLearningProfile()`, count CONCERN entries this term
-from `IlpEvidenceEntry` and factor into `sendConcernLevel` calculation.
+### TODO-SEND-1 ✅ COMPLETE — learningProfile included in both generateIlpProgressReport and generateEhcpAnnualReview
+### TODO-SEND-2 ✅ COMPLETE — auto-transition to achieved + audit entry + SENCO notification (commit 5bfdc41)
+### TODO-SEND-3 ❌ OUTSTANDING — `sendConcernLevel` should factor in IlpEvidenceEntry CONCERN count this term
 
 ---
 
 ## 5. PLANS REFLECTING ADAPTIVE LEARNING
 
-Current state: adaptive learning and SEND plans operate as parallel systems
-with one-way data flows and no feedback loops.
-
-### What currently works (one-way reads)
-
-| Flow | Trigger | Location |
+| Flow | Status | Notes |
 |---|---|---|
-| Homework submission → `StudentLearningProfile` | `markSubmission()` fire-and-forget | `homework.ts:1216` |
-| IlpEvidenceEntry CONCERN count → SENCO notification | `saveIlpEvidenceEntries()` | `homework.ts:1511–1548` |
-| SEND status + ILP targets → adaptive homework suggestions | `getAdaptiveHomeworkSuggestions()` | `adaptive-learning.ts:469` |
-| `StudentLearningProfile.predictedGrade` → analytics/RAG | read-only | `analytics.ts`, `rag.ts` |
+| Homework submission → `StudentLearningProfile` | ✅ | `markSubmission` fire-and-forget |
+| IlpEvidenceEntry CONCERN → SENCO notification | ✅ | `saveIlpEvidenceEntries` |
+| IlpEvidenceEntry PROGRESS → target `achieved` | ✅ | `saveIlpEvidenceEntries` — commit 5bfdc41 |
+| SEND status + ILP → adaptive homework suggestions | ✅ | `getAdaptiveHomeworkSuggestions` |
+| Early-warning cron → `computeAndSaveAdaptiveProfile` | ✅ | `early-warning/route.ts` — commit f5263df |
+| `StudentLearningProfile` → ILP/EHCP reports | ✅ | `ehcp.ts` — profileSummary, preferredTypes, etc. in prompt |
+| `preferredTypes` → revision task generation | ✅ | `content-generator.ts` — `preferredTypes` used in prompt |
+| Adaptive profile card in SENCO ILP view | ✅ | `IlpEvidenceView` — `profileSummary` displayed |
+| K Plan ↔ ILP strategy bidirectional sync | ❌ | TODO-PLAN-3 — still two independent systems |
 
-### What is missing (no connection exists)
-
-### TODO-PLAN-1 — Trigger `updateLearningProfile()` from early-warning cron · **High**
-
-The 6 am early-warning cron (`api/cron/early-warning/route.ts`) detects
-homework completion drops and score declines and creates `EarlyWarningFlag`
-records, but never calls `updateLearningProfile()`. The student's
-`sendConcernLevel` in `StudentLearningProfile` therefore does not reflect
-the flag.
-
-**Fix:** After `analyseStudentPatterns()` creates a flag for a student,
-call `updateLearningProfile(studentId)` so the profile's `sendConcernLevel`
-is recalculated immediately.
-
-### TODO-PLAN-2 — Pass `StudentLearningProfile` context to revision task generation · **Medium**
-
-`generateRevisionTask()` (`lib/revision/content-generator.ts:59–158`)
-receives SEND adaptations and ILP targets but ignores the student's
-`preferredTypes`, `bloomsPerformance`, and `classroomStrategies`. Revision
-tasks are therefore generic rather than adapted to how the student learns.
-
-**Fix:** Accept `learningProfile: Pick<StudentLearningProfile, 'preferredTypes' | 'bloomsPerformance' | 'classroomStrategies'>` as an optional param; include it in the Claude prompt's differentiation section.
-
-### TODO-PLAN-3 — Bidirectional sync: K Plan `classroomStrategies` ↔ ILP target strategy · **Medium**
-
-K Plan (`classroomStrategies` in `StudentLearningProfile`) and ILP target
-strategies (`IlpTarget.strategy`) are maintained independently. Changes to
-one are never reflected in the other. SENCO editing an ILP strategy and a
-teacher approving a K Plan can produce contradictory guidance.
-
-**Fix (lightweight):** When SENCO saves an ILP target strategy change
-(`send-support.ts`), append the new strategy to
-`StudentLearningProfile.classroomStrategies` (deduplicated). When a K Plan
-is approved (`students.ts:approveLearningPassport`), surface new strategies
-as suggested additions to any active ILP target (notification, not auto-write).
-
-### TODO-PLAN-4 — Surface `StudentLearningProfile` summary in SENCO ILP view · **Low**
-
-SENCO reviewing `/send/ilp/[studentId]` cannot see the student's adaptive
-profile (preferred homework types, Bloom's performance, concern level trend).
-This data exists in `StudentLearningProfile` but is not displayed in any
-SEND-facing UI.
-
-**Fix:** Add a collapsible "Adaptive Profile" card to the ILP detail page
-that shows `profileSummary`, `preferredTypes`, `sendConcernLevel`, and
-`classroomStrategies`.
+### TODO-PLAN-1 ✅ COMPLETE — cron refreshes all active students' profiles (commit f5263df)
+### TODO-PLAN-2 ✅ COMPLETE — `preferredTypes` passed to `generateRevisionTask`
+### TODO-PLAN-3 ❌ OUTSTANDING — K Plan strategies and ILP target strategies not synced
+### TODO-PLAN-4 ✅ COMPLETE — `profileSummary` shown in IlpEvidenceView
 
 ---
 
-## Priority Summary
+## 6. HARDENING & DESIGN POLISH (May 2026)
+
+| Item | Status | Notes |
+|---|---|---|
+| `app/calendar/error.tsx` missing | ✅ | Added — commit (this session) |
+| Bare `<a href>` in early-warning/page.tsx | ✅ | Changed to `<Link>` — commit (this session) |
+| Bare `<a href>` in ClassRosterTab.tsx | ✅ | Changed to `<Link>` — commit (this session) |
+| `SencoRow` header div missing `role`/`tabIndex`/keyboard handler | ✅ | Fixed — commit (this session) |
+| `StudentAnalyticsView` homework row missing accessibility | ✅ | Fixed — commit (this session) |
+| AI endpoints rate-limited | ✅ | generate-homework: 10/day; generate-ilp: 20/day |
+| All API routes auth-checked | ✅ | Only `[...nextauth]` is public (correct) |
+| `revalidateTag` second arg `'default'` | ✅ | Fixed in P2 audit (commit 55c12bd) |
+| Login rate limiting (Upstash) | ⚠️ | No-op without env vars — skipped intentionally |
+
+---
+
+## Priority Summary — Outstanding Items
 
 | ID | Area | Priority | Effort |
 |---|---|---|---|
-| TODO-HW-1 | Add `homeworkId` to roster submissions → fix entry points B & C | **Critical** | Small |
-| TODO-SEND-1 | Pass `StudentLearningProfile` to ILP/EHCP report generation | **High** | Small |
-| TODO-SEND-2 | Surface ILP target status suggestions from evidence count | **High** | Medium |
-| TODO-PLAN-1 | Call `updateLearningProfile()` from early-warning cron | **High** | Small |
-| TODO-REV-1 | Fetch all lessons in period for revision, not just most recent | **High** | Medium |
-| TODO-SEND-3 | Include `IlpEvidenceEntry` in `sendConcernLevel` calculation | **Medium** | Small |
-| TODO-CLS-1 | Add search field to My Classes | **Medium** | Small |
-| TODO-CLS-2 | Surface homework KPIs on My Classes page | **Medium** | Medium |
-| TODO-REV-2 | Pre-tick weak topics in year-revision UI | **Medium** | Small |
-| TODO-PLAN-2 | Pass learning profile to revision task generation | **Medium** | Small |
-| TODO-PLAN-3 | K Plan ↔ ILP strategy bidirectional sync | **Medium** | Medium |
-| TODO-CLS-3 | "Needs Marking" badge on class pills | **Low** | Small |
-| TODO-CLS-4 | Filter chips + Clear all on My Classes | **Low** | Small |
-| TODO-PLAN-4 | Adaptive profile card in SENCO ILP view | **Low** | Medium |
+| TODO-SEND-3 | Factor IlpEvidenceEntry CONCERNs into `sendConcernLevel` | Medium | Small |
+| TODO-CLS-2 | KPI strip on My Classes (students, SEND, to-mark) | Medium | Medium |
+| TODO-REV-2 | Pre-tick weak topics in year-revision topic selector | Medium | Small |
+| TODO-PLAN-3 | K Plan ↔ ILP strategy bidirectional sync | Medium | Medium |
+| TODO-CLS-3 | "Needs Marking" badge on class pills | Low | Small |
+| TODO-CLS-4 | Filter chips + Clear all on My Classes | Low | Small |

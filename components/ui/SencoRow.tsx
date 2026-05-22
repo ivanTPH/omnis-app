@@ -53,7 +53,13 @@ export function SencoRow({
     <div className={`senco-row${isExpanded ? ' expanded' : ''}`}>
 
       {/* HEADER — always visible */}
-      <div className="senco-row-header" onClick={onToggle}>
+      <div
+        className="senco-row-header"
+        role="button"
+        tabIndex={0}
+        onClick={onToggle}
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onToggle()}
+      >
 
         {/* Avatar */}
         <div className={`w-9 h-9 rounded-full ${avatarColour} flex items-center justify-center flex-shrink-0`}>

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { getEarlyWarningFlags } from '@/app/actions/send-support'
@@ -39,9 +40,9 @@ export default async function EarlyWarningPage() {
                     <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
                       <span className="text-[9px] font-bold text-rose-600">{s.firstName[0]}{s.lastName[0]}</span>
                     </div>
-                    <a href={`/send/ilp/${s.id}`} className="text-[12px] font-medium text-rose-800 hover:underline">
+                    <Link href={`/send/ilp/${s.id}`} className="text-[12px] font-medium text-rose-800 hover:underline">
                       {s.firstName} {s.lastName}
-                    </a>
+                    </Link>
                     {s.yearGroup && <span className="text-[11px] text-rose-500">Y{s.yearGroup}</span>}
                     <span className="ml-auto text-[11px] font-bold text-rose-700">{s.concernCount}× CONCERN</span>
                   </div>

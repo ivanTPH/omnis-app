@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
+import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 import { prisma } from '@/lib/prisma'
 
 export const maxDuration = 300
@@ -46,10 +47,36 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const durationMs = Date.now() - startTime
-    console.log(`[early-warning cron] Complete — ${totalFlags} new flags across ${schools.length} schools in ${durationMs}ms`)
+    // Refresh adaptive learning profiles for all students across all schools.
+    // Runs after flag analysis so profile data is fresh for SENCO dashboards.
+    // Processes in batches of 5 with a 500ms pause to avoid DB connection spikes.
+    let totalProfiles = 0
+    for (const school of schools) {
+      try {
+        const students = await prisma.user.findMany({
+          where:  { schoolId: school.id, role: 'STUDENT', isActive: true },
+          select: { id: true },
+        })
+        const BATCH = 5
+        for (let i = 0; i < students.length; i += BATCH) {
+          const batch = students.slice(i, i + BATCH)
+          await Promise.allSettled(
+            batch.map(s => computeAndSaveAdaptiveProfile(s.id, school.id))
+          )
+          totalProfiles += batch.length
+          if (i + BATCH < students.length) {
+            await new Promise(r => setTimeout(r, 500))
+          }
+        }
+      } catch (err) {
+        console.error(`[early-warning cron] Profile refresh error for school ${school.id}:`, err)
+      }
+    }
 
-    return NextResponse.json({ success: true, totalFlags, schools: results, durationMs })
+    const durationMs = Date.now() - startTime
+    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalProfiles} profiles refreshed across ${schools.length} schools in ${durationMs}ms`)
+
+    return NextResponse.json({ success: true, totalFlags, totalProfiles, schools: results, durationMs })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[early-warning cron] FATAL:', err)

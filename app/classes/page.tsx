@@ -15,47 +15,65 @@ export default async function ClassesPage() {
 
   const classIds = teacherClasses.map((c: { id: string }) => c.id)
 
-  // Fetch per-class KPIs in parallel
-  const [enrolmentRows, kpiRows] = await Promise.all([
-    // Student count per class
+  // Fetch all KPI data in 4 batch queries (no N+1)
+  const [enrolmentCounts, allEnrolments, homeworkRows, sendStatuses] = await Promise.all([
+    // 1. Student count per class
     prisma.enrolment.groupBy({
       by:    ['classId'],
       where: { classId: { in: classIds } },
       _count: { classId: true },
     }),
-    // Per-class SEND + needs-marking counts (parallel per class)
-    Promise.all(
-      classIds.map(async (id: string) => {
-        const [sendCount, needsMarking] = await Promise.all([
-          prisma.sendStatus.count({
-            where: {
-              activeStatus: { not: 'NONE' },
-              student: { enrolments: { some: { classId: id } } },
-            },
-          }),
-          prisma.submission.count({
-            where: {
-              status:   'SUBMITTED',
-              homework: { classId: id },
-            },
-          }),
-        ])
-        return { classId: id, sendCount, needsMarking }
-      })
-    ),
+    // 2. All userId→classId mappings for these classes (for SEND join)
+    prisma.enrolment.findMany({
+      where:  { classId: { in: classIds } },
+      select: { classId: true, userId: true },
+    }),
+    // 3. All homeworks for these classes
+    prisma.homework.findMany({
+      where:  { classId: { in: classIds } },
+      select: { id: true, classId: true },
+    }),
+    // 4. All SEND students in this school
+    prisma.sendStatus.findMany({
+      where:  { activeStatus: { not: 'NONE' }, student: { schoolId } },
+      select: { studentId: true },
+    }),
   ])
 
-  // Per-class student count
+  // 5. Batch submitted submission counts by homework ID
+  const homeworkIds = homeworkRows.map((h: { id: string }) => h.id)
+  const submissionCounts = homeworkIds.length > 0
+    ? await prisma.submission.groupBy({
+        by:    ['homeworkId'],
+        where: { homeworkId: { in: homeworkIds }, status: 'SUBMITTED' },
+        _count: { homeworkId: true },
+      })
+    : []
+
+  // Aggregate in JS
   const studentCount: Record<string, number> = {}
-  for (const r of enrolmentRows) {
+  for (const r of enrolmentCounts) {
     if (r.classId) studentCount[r.classId] = r._count.classId
   }
 
-  const sendCount: Record<string, number>    = {}
+  const sendUserIds = new Set(sendStatuses.map((s: { studentId: string }) => s.studentId))
+  const sendCount: Record<string, number> = {}
+  for (const r of allEnrolments) {
+    if (r.classId && sendUserIds.has(r.userId)) {
+      sendCount[r.classId] = (sendCount[r.classId] ?? 0) + 1
+    }
+  }
+
+  // Map homeworkId → classId
+  const hwClassMap: Record<string, string> = {}
+  for (const h of homeworkRows) {
+    if (h.classId) hwClassMap[h.id] = h.classId
+  }
+
   const needsMarking: Record<string, number> = {}
-  for (const r of kpiRows) {
-    sendCount[r.classId]    = r.sendCount
-    needsMarking[r.classId] = r.needsMarking
+  for (const r of submissionCounts) {
+    const cid = hwClassMap[r.homeworkId]
+    if (cid) needsMarking[cid] = (needsMarking[cid] ?? 0) + r._count.homeworkId
   }
 
   const kpiData: Record<string, ClassKpis> = {}

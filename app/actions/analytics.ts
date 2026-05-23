@@ -739,9 +739,10 @@ export async function getClassSummaries(
 // ── Teacher defaults for analytics pre-population ────────────────────────────
 
 export type TeacherDefaults = {
-  teacherName:    string
-  teacherUserId:  string
-  teacherClasses: { id: string; name: string; subject: string; yearGroup: number; examBoard: string | null; examModules: string[] }[]
+  teacherName:       string
+  teacherUserId:     string
+  teacherExamBoard:  string | null  // from UserSettings.preferredExamBoard
+  teacherClasses:    { id: string; name: string; subject: string; yearGroup: number; examBoard: string | null; examModules: string[] }[]
 }
 
 export async function getTeacherDefaults(): Promise<TeacherDefaults> {
@@ -749,18 +750,29 @@ export async function getTeacherDefaults(): Promise<TeacherDefaults> {
   if (!session) throw new Error('Unauthenticated')
   const { id: userId, schoolId, firstName, lastName } = session.user as any
 
-  const classes = await prisma.schoolClass.findMany({
-    where:   { schoolId, teachers: { some: { userId } } },
-    select:  { id: true, name: true, subject: true, yearGroup: true, examBoard: true, examModules: true } as any,
-    orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
-  })
+  const [classes, settings] = await Promise.all([
+    prisma.schoolClass.findMany({
+      where:   { schoolId, teachers: { some: { userId } } },
+      select:  { id: true, name: true, subject: true, yearGroup: true, examBoard: true, examModules: true },
+      orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
+    }),
+    prisma.userSettings.findUnique({
+      where:  { userId },
+      select: { preferredExamBoard: true },
+    }),
+  ])
+
+  const teacherExamBoard = settings?.preferredExamBoard ?? null
 
   return {
-    teacherName:    `${firstName} ${lastName}`,
-    teacherUserId:  userId,
-    teacherClasses: (classes as any[]).map(c => ({
+    teacherName:      `${firstName} ${lastName}`,
+    teacherUserId:    userId,
+    teacherExamBoard,
+    teacherClasses:   classes.map(c => ({
       id: c.id, name: c.name, subject: c.subject, yearGroup: c.yearGroup,
-      examBoard: c.examBoard ?? null, examModules: c.examModules ?? [],
+      // Fall back to teacher's preferred exam board if class has none set
+      examBoard:   c.examBoard ?? teacherExamBoard,
+      examModules: c.examModules ?? [],
     })),
   }
 }

@@ -834,3 +834,117 @@ export async function getSchoolAuditLog(page = 0, pageSize = 50): Promise<{ entr
     })),
   }
 }
+
+// ─── Subject Config ────────────────────────────────────────────────────────────
+
+export type SubjectConfigRow = {
+  id:        string
+  subject:   string
+  examBoard: string | null
+  tier:      string | null
+  updatedAt: string
+  /** How many classes use this subject (for context) */
+  classCount: number
+}
+
+/** Allowed roles: SCHOOL_ADMIN, SLT, HEAD_OF_DEPT (read + edit their own dept), HEAD_OF_YEAR (read only) */
+const SUBJECT_CONFIG_ROLES = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR']
+
+export async function getSubjectConfigs(): Promise<SubjectConfigRow[]> {
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthenticated')
+  const { schoolId, role } = session.user as { schoolId: string; role: string }
+  if (!SUBJECT_CONFIG_ROLES.includes(role)) throw new Error('Forbidden')
+
+  // All distinct subjects in the school's classes
+  const [classes, configs] = await Promise.all([
+    prisma.schoolClass.groupBy({
+      by:    ['subject'],
+      where: { schoolId },
+      _count: { subject: true },
+    }),
+    prisma.subjectConfig.findMany({
+      where:   { schoolId },
+      orderBy: { subject: 'asc' },
+    }),
+  ])
+
+  const configMap = new Map(configs.map(c => [c.subject, c]))
+  const classCounts = new Map(classes.map(c => [c.subject, c._count.subject]))
+  const allSubjects = [...new Set([
+    ...classes.map(c => c.subject),
+    ...configs.map(c => c.subject),
+  ])].sort()
+
+  return allSubjects.map(subject => {
+    const cfg = configMap.get(subject)
+    return {
+      id:         cfg?.id        ?? '',
+      subject,
+      examBoard:  cfg?.examBoard ?? null,
+      tier:       cfg?.tier      ?? null,
+      updatedAt:  cfg?.updatedAt?.toISOString() ?? '',
+      classCount: classCounts.get(subject) ?? 0,
+    }
+  })
+}
+
+export async function saveSubjectConfig(input: {
+  subject:   string
+  examBoard: string
+  tier:      string
+}): Promise<{ ok: true; error?: never } | { ok?: never; error: string }> {
+  const session = await auth()
+  if (!session?.user) return { error: 'Unauthenticated' }
+  const { schoolId, id: userId, role } = session.user as { schoolId: string; id: string; role: string }
+  if (!['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'].includes(role)) return { error: 'Forbidden' }
+
+  const examBoard = input.examBoard || null
+  const tier      = input.tier      || null
+
+  await prisma.subjectConfig.upsert({
+    where:  { schoolId_subject: { schoolId, subject: input.subject } },
+    create: { schoolId, subject: input.subject, examBoard, tier, updatedBy: userId },
+    update: { examBoard, tier, updatedBy: userId },
+  })
+
+  // Propagate to any classes with this subject that don't have an exam board yet
+  if (examBoard) {
+    await prisma.schoolClass.updateMany({
+      where: { schoolId, subject: input.subject, examBoard: null },
+      data:  { examBoard },
+    })
+  }
+
+  await writeAudit({
+    schoolId, actorId: userId, action: 'CLASS_UPDATED',
+    targetType: 'SubjectConfig', targetId: input.subject,
+    metadata: { subject: input.subject, examBoard, tier },
+  })
+
+  revalidatePath('/admin/subjects')
+  revalidatePath('/classes')
+  revalidatePath('/admin/classes')
+  return { ok: true }
+}
+
+/** Apply a subject's configured exam board to ALL classes (not just unset ones). */
+export async function applySubjectConfigToAllClasses(input: {
+  subject:   string
+  examBoard: string
+}): Promise<{ ok: true; updated: number }> {
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthenticated')
+  const { schoolId, role } = session.user as { schoolId: string; role: string }
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) throw new Error('Forbidden')
+
+  const result = await prisma.schoolClass.updateMany({
+    where: { schoolId, subject: input.subject },
+    data:  { examBoard: input.examBoard || null },
+  })
+
+  revalidatePath('/admin/subjects')
+  revalidatePath('/classes')
+  revalidatePath('/admin/classes')
+  return { ok: true, updated: result.count }
+}

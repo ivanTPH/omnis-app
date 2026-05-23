@@ -301,6 +301,27 @@ model School {
 
   // TA notes
   taNotes              TaNote[]
+
+  // Subject-level exam board defaults
+  subjectConfigs       SubjectConfig[]
+}
+
+// ─── Subject-level exam board config ─────────────────────────────────────────
+// School admin sets default exam board per subject; used as fallback when a
+// class has no exam board set, and shown to HOD/HOY for oversight.
+
+model SubjectConfig {
+  id         String   @id @default(cuid())
+  school     School   @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  subject    String
+  examBoard  String?  // "AQA" | "Edexcel" | "OCR" | "WJEC" | etc.
+  tier       String?  // "Foundation" | "Higher" | null
+  updatedAt  DateTime @updatedAt
+  updatedBy  String?  // userId who last changed this
+
+  @@unique([schoolId, subject])
+  @@index([schoolId])
 }
 
 model TermDate {

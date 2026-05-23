@@ -386,14 +386,18 @@ export async function generateHomeworkFromResources(
 
   const lesson = await prisma.lesson.findFirst({
     where:   { id: lessonId, schoolId },
-    include: { resources: { orderBy: { createdAt: 'asc' } }, class: { select: { subject: true, yearGroup: true } } },
+    include: {
+      resources: { orderBy: { createdAt: 'asc' } },
+      class: { select: { subject: true, yearGroup: true, examBoard: true, examModules: true } },
+    },
   })
   if (!lesson) throw new Error('Lesson not found')
 
   const subject       = lesson.class?.subject   ?? 'the subject'
   const yearGroup     = lesson.class?.yearGroup ?? 10
   const qualification = yearGroup <= 9 ? 'KS3' : yearGroup <= 11 ? 'GCSE' : 'A-Level'
-  const examBoard     = (lesson as any).examBoard ?? ''
+  // Prefer lesson-level exam board, fall back to class-level
+  const examBoard     = lesson.examBoard ?? lesson.class?.examBoard ?? ''
   const topic         = (lesson as any).topic ?? ''
   const type          = forceType ?? 'SHORT_ANSWER'
 

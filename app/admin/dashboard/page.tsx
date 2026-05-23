@@ -7,9 +7,10 @@ import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import Icon from '@/components/ui/Icon'
 
 const QUICK_LINKS = [
-  { label: 'Staff',      href: '/admin/staff',     iconName: 'how_to_reg',    desc: 'View all staff members'      },
-  { label: 'Students',   href: '/admin/students',  iconName: 'people',        desc: 'Browse students by year'     },
-  { label: 'Classes',    href: '/admin/classes',   iconName: 'menu_book',     desc: 'Classes & assignments'       },
+  { label: 'Staff',             href: '/admin/staff',     iconName: 'how_to_reg',    desc: 'View all staff members'      },
+  { label: 'Students',          href: '/admin/students',  iconName: 'people',        desc: 'Browse students by year'     },
+  { label: 'Classes',           href: '/admin/classes',   iconName: 'menu_book',     desc: 'Classes & assignments'       },
+  { label: 'Subjects & Boards', href: '/admin/subjects',  iconName: 'school',        desc: 'Set exam boards per subject' },
   { label: 'Timetable',  href: '/admin/timetable', iconName: 'schedule',      desc: 'Weekly timetable grid'       },
   { label: 'Calendar',   href: '/admin/calendar',  iconName: 'calendar_today',desc: 'Term dates & holidays'       },
   { label: 'Analytics',  href: '/slt/analytics',   iconName: 'bar_chart',     desc: 'School performance data'     },

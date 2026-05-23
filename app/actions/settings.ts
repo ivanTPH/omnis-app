@@ -183,6 +183,14 @@ export async function saveProfessionalPrefs(input: {
     update: { defaultSubject: newSubject, preferredExamBoard: newExamBoard, teachingModules: newModules },
   })
 
+  // Propagate the new exam board to any of this teacher's classes that don't have one set yet
+  if (newExamBoard && newExamBoard !== (current?.preferredExamBoard ?? null)) {
+    await prisma.schoolClass.updateMany({
+      where: { schoolId, teachers: { some: { userId } }, examBoard: null },
+      data:  { examBoard: newExamBoard },
+    })
+  }
+
   if ((current?.defaultSubject ?? null) !== newSubject) {
     await writeAudit({
       schoolId,
@@ -195,6 +203,7 @@ export async function saveProfessionalPrefs(input: {
   }
 
   revalidatePath('/settings')
+  revalidatePath('/classes')
   return { ok: true }
 }
 

@@ -74,6 +74,7 @@ export type IlpWithTargets = {
   dislikes: string | null
   resourcesNeeded: string[]
   createdAt: Date
+  updatedAt: Date
   sendStatus: string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
   needArea: string | null
 }
@@ -903,6 +904,7 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
     dislikes: ilp.dislikes,
     resourcesNeeded: ilp.resourcesNeeded,
     createdAt: ilp.createdAt,
+    updatedAt: ilp.updatedAt,
     sendStatus: sendStatusRecord?.activeStatus ?? 'NONE',
     needArea:   sendStatusRecord?.needArea ?? null,
   }
@@ -974,6 +976,7 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       dislikes: ilp.dislikes,
       resourcesNeeded: ilp.resourcesNeeded,
       createdAt: ilp.createdAt,
+      updatedAt: ilp.updatedAt,
       sendStatus: ss?.activeStatus ?? 'NONE',
       needArea:   ss?.needArea ?? null,
     }
@@ -1142,7 +1145,7 @@ export async function updateIlpTargetText(
       strategy: true,
       successMeasure: true,
       ilpId: true,
-      ilp: { select: { approvedBySenco: true, schoolId: true } },
+      ilp: { select: { approvedBySenco: true, schoolId: true, studentId: true } },
     },
   })
   if (!current) throw new Error('Target not found')
@@ -1172,6 +1175,13 @@ export async function updateIlpTargetText(
       newValue,
       changeType:    'EDITED',
     })
+  }
+
+  // Auto-sync: when a target strategy changes, regenerate the K Plan DRAFT
+  if (field === 'strategy') {
+    void generateLearnerPassportInternal(current.ilp.studentId, user.id, schoolId).catch(err =>
+      console.error('[updateIlpTargetText] K Plan auto-sync failed:', err)
+    )
   }
 
   revalidatePath('/senco/ilp')

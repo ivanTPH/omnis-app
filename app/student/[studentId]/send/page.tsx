@@ -144,6 +144,7 @@ export default async function StudentSendPage({
             studentId={student.id}
             studentName={studentName}
             userRole={user.role}
+            ilpUpdatedAt={ilp?.updatedAt ?? null}
           />
         </section>
 

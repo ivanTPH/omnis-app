@@ -7,13 +7,14 @@ import { approveLearnerPassport, regenerateLearnerPassport, generateLearnerPassp
 import KPlanModal from './KPlanModal'
 
 type Props = {
-  passport:    LearnerPassportRow | null
-  studentId:   string
-  studentName: string
-  userRole:    string
+  passport:      LearnerPassportRow | null
+  studentId:     string
+  studentName:   string
+  userRole:      string
+  ilpUpdatedAt?: Date | null
 }
 
-export default function KPlanSection({ passport: initial, studentId, studentName, userRole }: Props) {
+export default function KPlanSection({ passport: initial, studentId, studentName, userRole, ilpUpdatedAt }: Props) {
   const [passport,     setPassport]     = useState<LearnerPassportRow | null>(initial)
   const [expanded,     setExpanded]     = useState(false)
   const [modalOpen,    setModalOpen]    = useState(false)
@@ -23,6 +24,13 @@ export default function KPlanSection({ passport: initial, studentId, studentName
 
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(userRole)
   const firstName = studentName.split(' ')[0]
+
+  // True when the ILP has been updated AFTER the K Plan was last generated
+  const isStale = !!(
+    passport &&
+    ilpUpdatedAt &&
+    new Date(ilpUpdatedAt) > new Date(passport.generatedAt)
+  )
 
   async function handleApprove() {
     if (!passport) return
@@ -154,6 +162,24 @@ export default function KPlanSection({ passport: initial, studentId, studentName
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
           <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">{passport.sendInformation}</p>
         </div>
+
+        {/* Stale warning — ILP strategies changed since K Plan was generated */}
+        {isStale && isSenco && (
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border-b border-amber-100">
+            <Icon name="sync_problem" size="sm" className="text-amber-500 shrink-0" />
+            <p className="text-xs text-amber-800 flex-1">
+              ILP strategies have been updated since this K Plan was generated.
+            </p>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
+            >
+              {regenerating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="sync" size="sm" />}
+              Sync now
+            </button>
+          </div>
+        )}
 
         {/* Expandable three-column section */}
         {expanded && (

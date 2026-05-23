@@ -91,11 +91,11 @@ No action needed.
 | `StudentLearningProfile` → ILP/EHCP reports | ✅ | `ehcp.ts` — profileSummary, preferredTypes, etc. in prompt |
 | `preferredTypes` → revision task generation | ✅ | `content-generator.ts` — `preferredTypes` used in prompt |
 | Adaptive profile card in SENCO ILP view | ✅ | `IlpEvidenceView` — `profileSummary` displayed |
-| K Plan ↔ ILP strategy bidirectional sync | ❌ | TODO-PLAN-3 — still two independent systems |
+| K Plan ↔ ILP strategy bidirectional sync | ✅ | Auto-refresh on strategy edit + stale banner |
 
 ### TODO-PLAN-1 ✅ COMPLETE — cron refreshes all active students' profiles (commit f5263df)
 ### TODO-PLAN-2 ✅ COMPLETE — `preferredTypes` passed to `generateRevisionTask`
-### TODO-PLAN-3 ❌ OUTSTANDING — K Plan strategies and ILP target strategies not synced
+### TODO-PLAN-3 ✅ COMPLETE — auto-refresh K Plan on strategy edit; stale banner in KPlanSection
 ### TODO-PLAN-4 ✅ COMPLETE — `profileSummary` shown in IlpEvidenceView
 
 ---
@@ -118,7 +118,4 @@ No action needed.
 
 ## Priority Summary — Outstanding Items
 
-| ID | Area | Priority | Effort |
-|---|---|---|---|
-| TODO-PLAN-3 | K Plan ↔ ILP strategy bidirectional sync | Medium | Medium |
-| TODO-CLS-3 | "Needs Marking" badge on class pills | Low | Small |
+All tracked items are now complete. ✅

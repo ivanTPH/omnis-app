@@ -95,7 +95,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
             ) : (
               <span className="text-[11px] font-semibold px-2 py-1 bg-amber-500 rounded-full">Draft</span>
             )}
-            <button onClick={onClose} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors">
+            <button onClick={onClose} aria-label="Close" className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors">
               <Icon name="close" size="sm" />
             </button>
           </div>

@@ -927,7 +927,7 @@ function FlagConcernModal({ studentId, studentName, onClose }: { studentId: stri
             <Icon name="flag" size="sm" className="text-amber-500" />
             <h2 className="text-base font-semibold text-gray-900">Flag SEND Concern</h2>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 transition-colors">
             <Icon name="close" size="sm" />
           </button>
         </div>

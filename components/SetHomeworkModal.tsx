@@ -150,7 +150,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
             <h2 className="font-bold text-gray-900 text-lg">Set Homework</h2>
             <p className="text-sm text-gray-400">Link to a lesson, generate questions with AI, then publish</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 shrink-0">
             <Icon name="close" size="md" />
           </button>
         </div>

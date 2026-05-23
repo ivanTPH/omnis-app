@@ -724,7 +724,7 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full border border-blue-100">
       {label}
-      <button onClick={onRemove} className="hover:text-blue-900 ml-0.5"><Icon name="close" size="sm" /></button>
+      <button onClick={onRemove} aria-label={`Remove ${label} filter`} className="hover:text-blue-900 ml-0.5"><Icon name="close" size="sm" /></button>
     </span>
   )
 }
@@ -880,7 +880,14 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         </div>
 
         {/* Completion */}
-        <div onClick={onExpand} className="hidden sm:flex items-center gap-2 cursor-pointer">
+        <div
+          onClick={onExpand}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onExpand()}
+          aria-label={`${student.completionRate}% completion — expand row`}
+          className="hidden sm:flex items-center gap-2 cursor-pointer"
+        >
           <div className="flex-1 bg-gray-100 rounded-full h-1.5 min-w-[48px]">
             <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${student.completionRate}%` }} />
           </div>
@@ -888,8 +895,15 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         </div>
 
         {/* Avg score */}
-        <div onClick={onExpand} className="hidden sm:block text-sm text-gray-700 cursor-pointer px-1"
-          title={student.avgScore != null ? `Running average across all homework tasks` : undefined}>
+        <div
+          onClick={onExpand}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onExpand()}
+          aria-label={student.avgScore != null ? `Average score ${gradeLabel(scoreToGrade(student.avgScore))} — expand row` : 'No score — expand row'}
+          className="hidden sm:block text-sm text-gray-700 cursor-pointer px-1"
+          title={student.avgScore != null ? `Running average across all homework tasks` : undefined}
+        >
           {student.avgScore != null ? (
             <span>{gradeLabel(scoreToGrade(student.avgScore))}</span>
           ) : (
@@ -898,7 +912,15 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         </div>
 
         {/* vs class avg — POSITIVE = above average (green), NEGATIVE = below average (red) */}
-        <div onClick={onExpand} className="hidden sm:block text-sm cursor-pointer px-1" title={deltaLabel ?? undefined}>
+        <div
+          onClick={onExpand}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && onExpand()}
+          aria-label={deltaLabel ?? 'No class comparison — expand row'}
+          className="hidden sm:block text-sm cursor-pointer px-1"
+          title={deltaLabel ?? undefined}
+        >
           {delta != null ? (
             delta === 0 ? (
               <span className="text-xs text-gray-400 font-medium">≈ avg</span>
@@ -991,7 +1013,7 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
             <p className="text-sm text-gray-600 mt-0.5">{detail.homework.title}</p>
             <p className="text-xs text-gray-400 mt-0.5">Submitted {submittedDate}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0"><Icon name="close" size="sm" /></button>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0"><Icon name="close" size="sm" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           {(detail.finalScore != null || detail.grade) && (

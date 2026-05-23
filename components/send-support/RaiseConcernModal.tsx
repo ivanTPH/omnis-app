@@ -53,7 +53,7 @@ export default function RaiseConcernModal({ studentId, studentName, onClose }: P
             <Icon name="warning" size="md" className="text-amber-500" />
             <h2 className="font-semibold text-gray-900">Raise SEND Concern</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100">
             <Icon name="close" size="md" />
           </button>
         </div>

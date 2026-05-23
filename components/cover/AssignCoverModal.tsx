@@ -58,7 +58,7 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[14px] font-bold text-gray-900">Assign Cover</h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-400 hover:text-gray-700">
             <Icon name="close" size="sm" />
           </button>
         </div>

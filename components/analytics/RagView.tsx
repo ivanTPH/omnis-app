@@ -226,7 +226,7 @@ function RagStudentPanel({
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0">
             <Icon name="close" size="sm" />
           </button>
         </div>

@@ -106,7 +106,7 @@ export default function PlanGeneratorModal({
             <Icon name="auto_fix_high" size="sm" className="text-blue-600" />
             <h2 className="text-[15px] font-bold text-gray-900">Generate Revision Plan</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><Icon name="close" size="md" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><Icon name="close" size="md" /></button>
         </div>
 
         {/* Step indicator */}

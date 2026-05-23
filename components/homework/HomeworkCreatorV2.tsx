@@ -153,7 +153,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               ))}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
         </div>
 
         <div className="p-6 space-y-5">

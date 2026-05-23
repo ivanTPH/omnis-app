@@ -83,7 +83,7 @@ export default function ResourcePreviewModal({
               <p className="text-[11px] text-gray-400 mt-0.5">{detail.unit.title}</p>
             )}
           </div>
-          <button onClick={onClose} className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400">
+          <button onClick={onClose} aria-label="Close" className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400">
             <Icon name="close" size="sm" />
           </button>
         </div>

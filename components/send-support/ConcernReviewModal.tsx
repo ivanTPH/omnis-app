@@ -86,7 +86,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
             <h2 className="font-semibold text-gray-900">Review SEND Concern</h2>
             <p className="text-xs text-gray-500 mt-0.5">{concern.studentName} · <CategoryBadge category={concern.category} /></p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">

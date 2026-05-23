@@ -99,7 +99,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
             >
               <Icon name="download" size="sm" /> Export PDF
             </a>
-            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
+            <button onClick={onClose} aria-label="Close" className="p-1.5 text-slate-400 hover:text-white rounded-lg">
               <Icon name="close" size="sm" />
             </button>
           </div>

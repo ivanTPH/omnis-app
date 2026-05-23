@@ -154,7 +154,7 @@ function ClassSlideOver({
             </p>
             {mode === 'edit' && <p className="text-[12px] text-gray-400 mt-0.5">{cls!.subject} · Year {cls!.yearGroup}</p>}
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <Icon name="close" size="md" />
           </button>
         </div>

@@ -234,7 +234,7 @@ export default function LessonSlideOver({
             <p className="text-[11px] text-gray-400 mt-0.5">Step {step} of 3 — {STEPS[step - 1].label}</p>
             {step === 3 && <p className="text-[10px] text-blue-600 mt-0.5 font-medium">Review your details, then click Save lesson</p>}
           </div>
-          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
             <Icon name="close" size="sm" className="text-gray-500" />
           </button>
         </div>

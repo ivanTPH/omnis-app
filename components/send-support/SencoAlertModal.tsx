@@ -69,7 +69,7 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
               <p className="text-[11px] text-gray-500">{studentName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>

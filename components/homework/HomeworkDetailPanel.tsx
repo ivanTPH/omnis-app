@@ -175,7 +175,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               <p className="text-[11px] text-gray-400 mt-0.5">Teacher view — students do not see model answers</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-gray-100 transition-colors">
             <Icon name="close" size="sm" className="text-gray-400" />
           </button>
         </div>

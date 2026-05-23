@@ -158,7 +158,7 @@ function QuickUpload({
     <form onSubmit={handleUpload} className="border border-dashed border-blue-300 rounded-xl p-4 space-y-3 bg-blue-50/40">
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-semibold text-blue-700">Upload a file</p>
-        <button type="button" onClick={() => setMode(null)} className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
+        <button type="button" onClick={() => setMode(null)} aria-label="Close" className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
       </div>
       <label className="flex items-center gap-3 border border-dashed border-gray-300 rounded-lg p-3 cursor-pointer bg-white hover:border-blue-400 transition-colors">
         <Icon name="upload" size="md" className="text-gray-400 shrink-0" />
@@ -182,7 +182,7 @@ function QuickUpload({
     <form onSubmit={handleLink} className="border border-dashed border-blue-300 rounded-xl p-4 space-y-3 bg-blue-50/40">
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-semibold text-blue-700">Add a link</p>
-        <button type="button" onClick={() => setMode(null)} className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
+        <button type="button" onClick={() => setMode(null)} aria-label="Close" className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
       </div>
       <input type="url" required value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…"
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />

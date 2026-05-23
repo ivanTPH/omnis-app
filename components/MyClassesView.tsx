@@ -175,8 +175,8 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                 <button
                   type="button"
                   onClick={() => setRosterSelectedIds([])}
+                  aria-label="Clear selection"
                   className="text-gray-400 hover:text-gray-600"
-                  title="Clear selection"
                 >
                   <Icon name="close" size="sm" />
                 </button>
@@ -212,6 +212,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
           {search && (
             <button
               onClick={() => setSearch('')}
+              aria-label="Clear search"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <Icon name="close" size="sm" />
@@ -226,6 +227,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
               <button
                 key={chip.key}
                 onClick={chip.clear}
+                aria-label={`Remove ${chip.label} filter`}
                 className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-[11px] rounded-full border border-blue-100 hover:bg-blue-100 transition"
               >
                 {chip.label}
@@ -287,7 +289,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                 {UK_EXAM_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               {examSaving && <Icon name="refresh" size="sm" className="animate-spin text-indigo-500" />}
-              <button onClick={() => setExamEditing(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setExamEditing(false)} aria-label="Cancel exam board edit" className="text-gray-400 hover:text-gray-600">
                 <Icon name="close" size="sm" />
               </button>
             </div>

@@ -157,7 +157,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                                       (kplan?.status ?? 'draft'),
               )
             )}
-            <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+            <button onClick={onClose} aria-label="Close" className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
               <Icon name="close" size="sm" />
             </button>
           </div>

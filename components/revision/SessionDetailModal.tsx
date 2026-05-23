@@ -118,7 +118,7 @@ export default function SessionDetailModal({
               {' · '}{session.durationMins} min
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-3 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 ml-3 shrink-0">
             <Icon name="close" size="md" />
           </button>
         </div>

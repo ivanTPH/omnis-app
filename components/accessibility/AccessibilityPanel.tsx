@@ -106,7 +106,7 @@ export default function AccessibilityPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
         <h2 className="text-[14px] font-bold text-gray-900">Accessibility</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+        <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
           <Icon name="close" size="sm" />
         </button>
       </div>

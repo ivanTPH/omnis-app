@@ -55,6 +55,14 @@ export const USERS = {
     lastName: 'Patel',
     school: 'Omnis Demo School',
   },
+  hod: {
+    email: 'd.brooks@omnisdemo.school',
+    password: 'Demo1234!',
+    role: 'HEAD_OF_DEPT',
+    firstName: 'D',
+    lastName: 'Brooks',
+    school: 'Omnis Demo School',
+  },
 } as const
 
 export type UserKey = keyof typeof USERS

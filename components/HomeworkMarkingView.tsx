@@ -933,12 +933,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
           <button
             onClick={() => handleFilterClick('all')}
-            style={{
-              backgroundColor: pupilFilter === 'all' ? '#1f2937' : '#f9fafb',
-              color:            pupilFilter === 'all' ? '#ffffff' : '#374151',
-              border: '1px solid #e5e7eb',
-            }}
-            className="flex flex-col items-center w-16 py-2 rounded-xl"
+            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-gray-200 ${
+              pupilFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-700'
+            }`}
           >
             <span className="text-2xl font-bold leading-none">{pupils.length}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">All</span>
@@ -946,12 +943,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
           <button
             onClick={() => handleFilterClick('submitted')}
-            style={{
-              backgroundColor: pupilFilter === 'submitted' ? '#2563eb' : '#eff6ff',
-              color:            pupilFilter === 'submitted' ? '#ffffff' : '#1d4ed8',
-              border: '1px solid #bfdbfe',
-            }}
-            className="flex flex-col items-center w-16 py-2 rounded-xl"
+            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-blue-200 ${
+              pupilFilter === 'submitted' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'
+            }`}
           >
             <span className="text-2xl font-bold leading-none">{submittedCount}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Due</span>
@@ -961,12 +955,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <button
               onClick={() => handleFilterClick('ungraded')}
               title="Ungraded — submitted but not yet marked"
-              style={{
-                backgroundColor: pupilFilter === 'ungraded' ? '#d97706' : '#fffbeb',
-                color:            pupilFilter === 'ungraded' ? '#ffffff' : '#b45309',
-                border: '1px solid #fde68a',
-              }}
-              className="flex flex-col items-center w-16 py-2 rounded-xl"
+              className={`flex flex-col items-center w-16 py-2 rounded-xl border border-amber-200 ${
+                pupilFilter === 'ungraded' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700'
+              }`}
             >
               <span className="text-2xl font-bold leading-none">{ungradedCount}</span>
               <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Ungraded</span>
@@ -976,12 +967,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           <button
             onClick={() => handleFilterClick('returned')}
             title="Returned — homework marked and sent back to students"
-            style={{
-              backgroundColor: pupilFilter === 'returned' ? '#16a34a' : '#f0fdf4',
-              color:            pupilFilter === 'returned' ? '#ffffff' : '#15803d',
-              border: '1px solid #bbf7d0',
-            }}
-            className="flex flex-col items-center w-16 py-2 rounded-xl"
+            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-green-200 ${
+              pupilFilter === 'returned' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'
+            }`}
           >
             <span className="text-2xl font-bold leading-none">{returnedCount}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Done</span>
@@ -990,12 +978,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           <button
             onClick={() => handleFilterClick('missing')}
             title="Missing — students who have not submitted yet"
-            style={{
-              backgroundColor: pupilFilter === 'missing' ? '#dc2626' : '#fef2f2',
-              color:            pupilFilter === 'missing' ? '#ffffff' : '#dc2626',
-              border: '1px solid #fecaca',
-            }}
-            className="flex flex-col items-center w-16 py-2 rounded-xl"
+            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-red-200 ${
+              pupilFilter === 'missing' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'
+            }`}
           >
             <span className="text-2xl font-bold leading-none">{missingCount}</span>
             <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">Missing</span>
@@ -1005,12 +990,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <button
               onClick={() => handleFilterClick('send')}
               title="SEND — students with an active SEN Support or EHCP plan"
-              style={{
-                backgroundColor: pupilFilter === 'send' ? '#9333ea' : '#faf5ff',
-                color:            pupilFilter === 'send' ? '#ffffff' : '#7c3aed',
-                border: '1px solid #e9d5ff',
-              }}
-              className="flex flex-col items-center w-16 py-2 rounded-xl"
+              className={`flex flex-col items-center w-16 py-2 rounded-xl border border-purple-200 ${
+                pupilFilter === 'send' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700'
+              }`}
             >
               <span className="text-2xl font-bold leading-none">{sendCount}</span>
               <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">SEND</span>

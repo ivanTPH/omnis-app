@@ -7,6 +7,7 @@ import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
 import { checkILPEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
+import { sendHomeworkReminderEmail } from '@/lib/email'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -1279,7 +1280,7 @@ export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
   return { queued, alreadyMarked }
 }
 
-/** Send a homework reminder notification to a student who hasn't submitted. */
+/** Send a homework reminder notification (in-app + email) to a student who hasn't submitted. */
 export async function resendHomeworkReminder(homeworkId: string, studentId: string): Promise<{ ok: true }> {
   const session = await auth()
   if (!session?.user) throw new Error('Unauthenticated')
@@ -1290,6 +1291,11 @@ export async function resendHomeworkReminder(homeworkId: string, studentId: stri
     select: { title: true, dueAt: true },
   })
   if (!hw) throw new Error('Homework not found')
+
+  const student = await prisma.user.findUnique({
+    where:  { id: studentId },
+    select: { email: true, firstName: true },
+  })
 
   await prisma.notification.create({
     data: {
@@ -1303,6 +1309,18 @@ export async function resendHomeworkReminder(homeworkId: string, studentId: stri
       linkHref: `/student/homework/${homeworkId}`,
     },
   })
+
+  // Fire-and-forget email — never blocks the response
+  if (student?.email) {
+    const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
+    void sendHomeworkReminderEmail({
+      to:               student.email,
+      studentFirstName: student.firstName,
+      homeworkTitle:    hw.title,
+      dueAt:            hw.dueAt,
+      homeworkUrl:      `${baseUrl}/student/homework/${homeworkId}`,
+    })
+  }
 
   return { ok: true }
 }

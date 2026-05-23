@@ -83,6 +83,7 @@ export default function ResourceCard({ resource, canDelete, onDelete, onSelect }
         <div className="border-t border-gray-100 px-4 py-4 bg-gray-50">
           <div
             className="prose prose-sm max-w-none text-[12px] leading-relaxed"
+            // html is produced by marked.parse() on AI-generated content from our own Anthropic API — not user input
             dangerouslySetInnerHTML={{ __html: html }}
           />
           {resource.sendNotes && (

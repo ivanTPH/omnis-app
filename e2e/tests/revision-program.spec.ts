@@ -83,7 +83,7 @@ test.describe('Revision Program — student view', () => {
 test.describe('Revision Program — HOD access', () => {
   test('HOD can access revision program list', async ({ page }) => {
     test.setTimeout(60_000)
-    await loginAs(page, { email: 'd.brooks@omnisdemo.school', password: 'Demo1234!', role: 'HEAD_OF_DEPT', firstName: 'D', lastName: 'Brooks', school: 'Omnis Demo School' })
+    await loginAs(page, USERS.hod)
     await page.goto('/revision-program')
     await page.waitForLoadState('networkidle')
     await expect(page).not.toHaveURL(/\/login/)

@@ -134,6 +134,7 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
         <div className="flex-1 overflow-auto bg-white border border-gray-200 rounded-xl p-5">
           <div
             className="prose prose-sm max-w-none text-[13px] leading-relaxed"
+            // html is produced by marked.parse() on AI-generated content from our own Anthropic API — not user input
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </div>

@@ -13,7 +13,7 @@ export default async function StudentRevisionTaskPage({ params }: { params: Prom
 
   const { taskId } = await params
 
-  const task = await (prisma as any).revisionTask.findFirst({
+  const task = await prisma.revisionTask.findFirst({
     where: { id: taskId, studentId: userId, schoolId },
     include: { program: { select: { title: true, subject: true, yearGroup: true, mode: true, deadline: true } } },
   })

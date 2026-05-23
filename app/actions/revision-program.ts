@@ -37,7 +37,7 @@ export async function getClassPerformanceAnalysis(
     const user = await requireStaff()
 
     // Check cache first
-    const cached = await (prisma as any).revisionAnalyticsCache.findFirst({
+    const cached = await prisma.revisionAnalyticsCache.findFirst({
       where: {
         classId,
         schoolId:    user.schoolId,
@@ -53,13 +53,13 @@ export async function getClassPerformanceAnalysis(
     const analysis = await analyseClassPerformance(classId, user.schoolId, periodStart, periodEnd, prisma)
 
     // Fetch subject from class for cache
-    const schoolClass = await (prisma as any).schoolClass.findFirst({
+    const schoolClass = await prisma.schoolClass.findFirst({
       where: { id: classId, schoolId: user.schoolId },
       select: { subject: true },
     })
 
     try {
-      await (prisma as any).revisionAnalyticsCache.create({
+      await prisma.revisionAnalyticsCache.create({
         data: {
           schoolId:    user.schoolId,
           classId,
@@ -111,7 +111,7 @@ export async function createRevisionProgram(input: {
 
     // Rate limit: max 3 programs per class per week
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    const recentCount = await (prisma as any).revisionProgram.count({
+    const recentCount = await prisma.revisionProgram.count({
       where: { classId: input.classId, schoolId: user.schoolId, createdAt: { gte: oneWeekAgo } },
     })
     if (recentCount >= 3) {
@@ -119,7 +119,7 @@ export async function createRevisionProgram(input: {
     }
 
     // Get class info
-    const schoolClass = await (prisma as any).schoolClass.findFirst({
+    const schoolClass = await prisma.schoolClass.findFirst({
       where: { id: input.classId, schoolId: user.schoolId },
       include: { enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true } } } } },
     })
@@ -134,7 +134,7 @@ export async function createRevisionProgram(input: {
     )
 
     // Fetch ALL lessons taught in the period for multi-topic question coverage
-    let periodLessons: { title: string; objectives: string[] }[] = await (prisma as any).lesson.findMany({
+    let periodLessons: { title: string; objectives: string[] }[] = await prisma.lesson.findMany({
       where: {
         classId:  input.classId,
         schoolId: user.schoolId,
@@ -145,7 +145,7 @@ export async function createRevisionProgram(input: {
     })
     // Fallback: if no lessons fall in the date range, use the 5 most recent lessons for this class
     if (periodLessons.length === 0) {
-      const recentFallback: { title: string; objectives: string[] }[] = await (prisma as any).lesson.findMany({
+      const recentFallback: { title: string; objectives: string[] }[] = await prisma.lesson.findMany({
         where: { classId: input.classId, schoolId: user.schoolId },
         orderBy: { scheduledAt: 'desc' },
         take: 5,
@@ -158,7 +158,7 @@ export async function createRevisionProgram(input: {
 
     // Fetch adaptive learning profiles for all enrolled students
     const studentIds = enrolledStudents.map((s: any) => s.id)
-    const learningProfiles = await (prisma as any).studentLearningProfile.findMany({
+    const learningProfiles = await prisma.studentLearningProfile.findMany({
       where: { studentId: { in: studentIds }, schoolId: user.schoolId },
       select: {
         studentId:          true,
@@ -325,7 +325,7 @@ export async function getRevisionPrograms(classId?: string): Promise<{
     if (classId) where.classId = classId
     if (user.role === 'TEACHER') where.createdBy = user.id
 
-    const programs = await (prisma as any).revisionProgram.findMany({
+    const programs = await prisma.revisionProgram.findMany({
       where,
       include: { tasks: { select: { id: true, status: true } } },
       orderBy: { createdAt: 'desc' },
@@ -360,7 +360,7 @@ export async function getRevisionProgramDetail(programId: string): Promise<{
   try {
     const user = await requireStaff()
 
-    const program = await (prisma as any).revisionProgram.findFirst({
+    const program = await prisma.revisionProgram.findFirst({
       where: { id: programId, schoolId: user.schoolId },
       include: { tasks: { orderBy: { studentId: 'asc' } } },
     })
@@ -393,7 +393,7 @@ export async function updateRevisionTaskQuestions(
 ): Promise<void> {
   const user = await requireTeacherOrAbove()
 
-  const task = await (prisma as any).revisionTask.findFirst({
+  const task = await prisma.revisionTask.findFirst({
     where: { id: taskId, schoolId: user.schoolId },
     include: { program: { select: { createdBy: true } } },
   })
@@ -405,7 +405,7 @@ export async function updateRevisionTaskQuestions(
   }
 
   const current = (task.structuredContent as any) ?? {}
-  await (prisma as any).revisionTask.update({
+  await prisma.revisionTask.update({
     where: { id: taskId },
     data: { structuredContent: { ...current, questions } as any },
   })
@@ -423,14 +423,14 @@ export async function submitRevisionTask(
     if (!session) redirect('/login')
     const user = session.user as any
 
-    const task = await (prisma as any).revisionTask.findFirst({
+    const task = await prisma.revisionTask.findFirst({
       where: { id: taskId, schoolId: user.schoolId, studentId: user.id },
     })
     if (!task) throw new Error('Task not found or not authorised')
 
-    const program = await (prisma as any).revisionProgram.findFirst({ where: { id: task.programId } })
+    const program = await prisma.revisionProgram.findFirst({ where: { id: task.programId } })
 
-    await (prisma as any).revisionTask.update({
+    await prisma.revisionTask.update({
       where: { id: taskId },
       data: {
         studentResponse: response as any,
@@ -441,7 +441,7 @@ export async function submitRevisionTask(
     })
 
     if (program?.mode === 'study_guide') {
-      await (prisma as any).revisionTask.update({
+      await prisma.revisionTask.update({
         where: { id: taskId },
         data: { completedAt: new Date() },
       })
@@ -463,13 +463,13 @@ export async function selfAssessRevisionTask(
     if (!session) redirect('/login')
     const user = session.user as any
 
-    const task = await (prisma as any).revisionTask.findFirst({
+    const task = await prisma.revisionTask.findFirst({
       where: { id: taskId, schoolId: user.schoolId, studentId: user.id },
       include: { program: { select: { subject: true } } },
     })
     if (!task) throw new Error('Task not found')
 
-    await (prisma as any).revisionTask.update({
+    await prisma.revisionTask.update({
       where: { id: taskId },
       data: { selfConfidence: Math.min(5, Math.max(1, confidence)) },
     })
@@ -477,7 +477,7 @@ export async function selfAssessRevisionTask(
     // Update RevisionProgress for each focus topic
     for (const topic of task.focusTopics) {
       try {
-        await (prisma as any).revisionProgress.upsert({
+        await prisma.revisionProgress.upsert({
           where: { studentId_subject_topic: { studentId: user.id, subject: task.program.subject, topic } },
           create: {
             studentId:      user.id,
@@ -514,7 +514,7 @@ export async function markRevisionTask(
   try {
     const user = await requireTeacherOrAbove()
 
-    const task = await (prisma as any).revisionTask.findFirst({
+    const task = await prisma.revisionTask.findFirst({
       where: { id: taskId, schoolId: user.schoolId },
       include: { program: { select: { subject: true, createdBy: true } } },
     })
@@ -525,7 +525,7 @@ export async function markRevisionTask(
       throw new Error('Not authorised to mark this task')
     }
 
-    await (prisma as any).revisionTask.update({
+    await prisma.revisionTask.update({
       where: { id: taskId },
       data: {
         teacherScore,
@@ -539,7 +539,7 @@ export async function markRevisionTask(
     // Update RevisionProgress with post-revision score
     for (const topic of task.focusTopics) {
       try {
-        await (prisma as any).revisionProgress.upsert({
+        await prisma.revisionProgress.upsert({
           where: { studentId_subject_topic: { studentId: task.studentId, subject: task.program.subject, topic } },
           create: {
             studentId:      task.studentId,
@@ -589,7 +589,7 @@ export async function getStudentRevisionTasks(studentId?: string): Promise<{
       if (!link) throw new Error('Not authorised')
     }
 
-    const tasks = await (prisma as any).revisionTask.findMany({
+    const tasks = await prisma.revisionTask.findMany({
       where: { studentId: targetStudentId, schoolId: user.schoolId },
       include: { program: { select: { title: true, subject: true, mode: true, deadline: true } } },
       orderBy: { program: { deadline: 'asc' } },
@@ -816,7 +816,7 @@ export async function createYearRevisionProgram(input: {
     const sendMap = new Map(sendStatuses.map(s => [s.studentId, s.activeStatus]))
 
     // TeacherPredictions per student for this subject (for predicted grade comparison)
-    const predictions = await (prisma as any).teacherPrediction.findMany({
+    const predictions = await prisma.teacherPrediction.findMany({
       where: {
         schoolId:  user.schoolId,
         studentId: { in: students.map(s => s.id) },
@@ -958,7 +958,7 @@ export async function startTestSession(
   const user = session.user as any
   if (user.role !== 'STUDENT') throw new Error('Students only')
 
-  const task = await (prisma as any).revisionTask.findFirst({
+  const task = await prisma.revisionTask.findFirst({
     where:   { id: taskId, studentId: user.id, schoolId: user.schoolId },
     include: { program: { select: { subject: true, yearGroup: true } } },
   })
@@ -968,12 +968,12 @@ export async function startTestSession(
   const excludeTexts: string[] = []
   if (previousSessionId) {
     try {
-      const prev = await (prisma as any).revisionTestSession.findFirst({
+      const prev = await prisma.revisionTestSession.findFirst({
         where:  { id: previousSessionId, studentId: user.id },
         select: { questions: true },
       })
       if (prev) {
-        const prevQs = prev.questions as TestQuestion[]
+        const prevQs = prev.questions as unknown as TestQuestion[]
         excludeTexts.push(...prevQs.map((q: TestQuestion) => q.text.slice(0, 100)))
       }
     } catch { /* non-fatal */ }
@@ -984,8 +984,8 @@ export async function startTestSession(
   let ilpTargets: string[] = []
   if (hasIlp) {
     try {
-      const targets = await (prisma as any).iLPTarget.findMany({
-        where:  { id: { in: task.ilpTargetIds }, status: 'active' },
+      const targets = await prisma.iLPTarget.findMany({
+        where:  { id: { in: task.ilpTargetIds } },
         select: { description: true },
       })
       ilpTargets = targets.map((t: any) => String(t.description))
@@ -1006,7 +1006,7 @@ export async function startTestSession(
   })
   question.index = 0
 
-  const testSession = await (prisma as any).revisionTestSession.create({
+  const testSession = await prisma.revisionTestSession.create({
     data: {
       taskId,
       studentId: user.id,
@@ -1032,7 +1032,7 @@ export async function submitTestAnswer(
   if (!session) throw new Error('Unauthenticated')
   const user = session.user as any
 
-  const testSession = await (prisma as any).revisionTestSession.findFirst({
+  const testSession = await prisma.revisionTestSession.findFirst({
     where: { id: sessionId, studentId: user.id, schoolId: user.schoolId, status: 'active' },
   })
   if (!testSession) throw new Error('Test session not found or already complete')
@@ -1041,8 +1041,8 @@ export async function submitTestAnswer(
     generateQuestion, evaluateAnswer, calculateResults, selectQuestionType,
   } = await import('@/lib/revision/test-engine')
 
-  const questions: TestQuestion[] = testSession.questions as TestQuestion[]
-  const answers:   TestAnswer[]   = testSession.answers   as TestAnswer[]
+  const questions: TestQuestion[] = testSession.questions as unknown as TestQuestion[]
+  const answers:   TestAnswer[]   = testSession.answers   as unknown as TestAnswer[]
   const current = questions[questions.length - 1]
 
   const { score, feedback } = await evaluateAnswer(current, answer, testSession.subject)
@@ -1062,7 +1062,7 @@ export async function submitTestAnswer(
   if (isComplete) {
     const results = calculateResults(updatedAnswers)
 
-    await (prisma as any).revisionTestSession.update({
+    await prisma.revisionTestSession.update({
       where: { id: sessionId },
       data: {
         answers:        updatedAnswers as any,
@@ -1077,7 +1077,7 @@ export async function submitTestAnswer(
 
     // Auto-submit the revision task with the test score
     try {
-      await (prisma as any).revisionTask.update({
+      await prisma.revisionTask.update({
         where: { id: testSession.taskId },
         data: {
           studentResponse: { testSessionId: sessionId, score: results.percentage } as any,
@@ -1114,7 +1114,7 @@ export async function submitTestAnswer(
   })
   nextQ.index = updatedAnswers.length
 
-  await (prisma as any).revisionTestSession.update({
+  await prisma.revisionTestSession.update({
     where: { id: sessionId },
     data: {
       questions: [...questions, nextQ] as any,

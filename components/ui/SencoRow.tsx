@@ -96,8 +96,7 @@ export function SencoRow({
 
         {/* Chevron */}
         <div
-          className="ml-2 flex-shrink-0 transition-transform duration-200"
-          style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          className={`ml-2 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
         >
           <Icon name="expand_more" size="sm" className="text-gray-400" />
         </div>

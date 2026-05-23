@@ -103,7 +103,7 @@ export async function POST(request: Request) {
                 where: { student: { enrolments: { some: { classId: lesson.classId } } }, NOT: { activeStatus: 'NONE' } },
                 select: { studentId: true, activeStatus: true, needArea: true },
               }),
-              (prisma as any).individualLearningPlan.findMany({
+              prisma.individualLearningPlan.findMany({
                 where: { approvedBySenco: true, status: 'active', student: { enrolments: { some: { classId: lesson.classId } } } },
                 select: { studentId: true, sendCategory: true, areasOfNeed: true, targets: { where: { status: 'active' }, select: { target: true }, take: 2 } },
               }),

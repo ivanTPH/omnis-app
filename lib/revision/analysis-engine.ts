@@ -65,7 +65,7 @@ export async function analyseClassPerformance(
     })
 
     // 2. Fetch class info and enrolled students
-    const schoolClass = await (prisma as any).schoolClass.findFirst({
+    const schoolClass = await prisma.schoolClass.findFirst({
       where: { id: classId, schoolId },
       select: { subject: true, enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true } } } } },
     })
@@ -88,7 +88,7 @@ export async function analyseClassPerformance(
     })
 
     // 4. Fetch learning profiles
-    const profiles = await (prisma as any).studentLearningProfile.findMany({
+    const profiles = await prisma.studentLearningProfile.findMany({
       where: { studentId: { in: studentIds }, schoolId },
     })
     const profileByStudent = Object.fromEntries(profiles.map((p: any) => [p.studentId, p]))
@@ -100,7 +100,7 @@ export async function analyseClassPerformance(
     const sendByStudent = Object.fromEntries(sendStatuses.map((s: any) => [s.studentId, s]))
 
     // 6. Fetch ILP targets due within 28 days
-    const ilpTargets = await (prisma as any).ilpTarget.findMany({
+    const ilpTargets = await prisma.ilpTarget.findMany({
       where: {
         ilp: { schoolId, studentId: { in: studentIds }, status: 'active' },
         status: 'active',

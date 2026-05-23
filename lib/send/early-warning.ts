@@ -260,7 +260,7 @@ async function upsertFlag(flag: NewFlag, schoolId: string, now: Date): Promise<v
   // Keep StudentLearningProfile.sendConcernLevel in sync with the flag severity
   try {
     const newConcernLevel = flag.severity === 'high' ? 85 : 65
-    await (prisma as any).studentLearningProfile.upsert({
+    await prisma.studentLearningProfile.upsert({
       where:  { studentId: flag.studentId },
       create: { studentId: flag.studentId, schoolId, sendConcernLevel: newConcernLevel },
       update: { sendConcernLevel: newConcernLevel },

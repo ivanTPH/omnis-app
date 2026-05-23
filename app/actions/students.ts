@@ -595,14 +595,14 @@ export async function updateClassroomStrategies(
   strategies: string[],
 ): Promise<void> {
   const user = await requireStaff()
-  const existing = await (prisma as any).studentLearningProfile.findUnique({ where: { studentId } })
+  const existing = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
   if (existing) {
-    await (prisma as any).studentLearningProfile.update({
+    await prisma.studentLearningProfile.update({
       where: { studentId },
       data:  { classroomStrategies: strategies, passportStatus: 'DRAFT', lastUpdated: new Date() },
     })
   } else {
-    await (prisma as any).studentLearningProfile.create({
+    await prisma.studentLearningProfile.create({
       data: {
         studentId,
         schoolId: user.schoolId,
@@ -624,14 +624,14 @@ export async function saveStudentVoice(voice: string): Promise<void> {
   const user = session.user as any
   if (user.role !== 'STUDENT') throw new Error('Students only')
   const { schoolId, id: studentId } = user
-  const existing = await (prisma as any).studentLearningProfile.findUnique({ where: { studentId } })
+  const existing = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
   if (existing) {
-    await (prisma as any).studentLearningProfile.update({
+    await prisma.studentLearningProfile.update({
       where: { studentId },
       data:  { studentVoice: voice.trim() || null },
     })
   } else {
-    await (prisma as any).studentLearningProfile.create({
+    await prisma.studentLearningProfile.create({
       data: { studentId, schoolId, studentVoice: voice.trim() || null, passportStatus: 'DRAFT', approvedByTeacher: false },
     })
   }
@@ -649,7 +649,7 @@ export async function getStudentOwnPassport(): Promise<{
   if (!session) return null
   const user = session.user as any
   if (user.role !== 'STUDENT') return null
-  const profile = await (prisma as any).studentLearningProfile.findUnique({
+  const profile = await prisma.studentLearningProfile.findUnique({
     where:  { studentId: user.id },
     select: { strengthAreas: true, developmentAreas: true, classroomStrategies: true, studentVoice: true },
   })
@@ -709,23 +709,24 @@ export async function addPassportRecommendation(
   studentId:  string,
   suggestion: string,
 ): Promise<void> {
-  await requireStaff()
+  const staff = await requireStaff()
 
-  const existing = await (prisma as any).studentLearningProfile.findUnique({
+  const existing = await prisma.studentLearningProfile.findUnique({
     where:  { studentId },
     select: { classroomStrategies: true },
   })
 
   if (existing) {
     const updated = [...(existing.classroomStrategies ?? []), suggestion]
-    await (prisma as any).studentLearningProfile.update({
+    await prisma.studentLearningProfile.update({
       where: { studentId },
       data:  { classroomStrategies: updated, passportStatus: 'DRAFT' },
     })
   } else {
-    await (prisma as any).studentLearningProfile.create({
+    await prisma.studentLearningProfile.create({
       data: {
         studentId,
+        schoolId:            staff.schoolId,
         classroomStrategies: [suggestion],
         passportStatus:      'DRAFT',
         approvedByTeacher:   false,

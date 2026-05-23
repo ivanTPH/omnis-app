@@ -74,7 +74,7 @@ DIRECT_URL="...port 5432..."
 NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="http://localhost:3000"
 ANTHROPIC_API_KEY="..."
-RESEND_API_KEY="..."      # for marketing contact forms (not yet built)
+RESEND_API_KEY="..."      # transactional emails via lib/email.ts (homework reminders, etc.) + future marketing contact forms
 CRON_SECRET="..."         # bearer token for Oak sync + early-warning cron endpoints
 WONDE_API_TOKEN="..."     # Wonde MIS API token
 WONDE_SCHOOL_ID="..."     # Wonde school ID (A1930499544 for test school)
@@ -327,7 +327,9 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 |---|---|
 | `lib/auth.ts` | NextAuth full config — Credentials provider, bcrypt, Prisma adapter, JWT callbacks |
 | `auth.config.ts` | Edge-safe auth config — middleware role routing only, no Prisma/bcrypt |
-| `lib/prisma.ts` | Prisma singleton + `writeAudit()` helper |
+| `lib/session.ts` | `requireAuth(allowedRoles?, fallback?)` — typed session helper for server pages/actions. Replaces `session.user as any` pattern. Returns `AuthUser` (`id, schoolId, schoolName, role, firstName, lastName`). |
+| `lib/email.ts` | Resend transactional email — `sendHomeworkReminderEmail`, `sendHomeworkReturnedEmail`, `sendConcernRaisedEmail`. No-ops when `RESEND_API_KEY` absent. Never throws (catches internally). |
+| `lib/prisma.ts` | Prisma singleton + `writeAudit()` helper. Extended with AuditLog immutability guard (`$extends`). All models fully typed — **never use `(prisma as any)`**. |
 | `lib/grading.ts` | `percentToGcseGrade()`, `suggestGrade()`, `normalizeScoreForForm()`, `formatScore()`, `gradeLabel()`, `gradePillClass()`, `GCSE_LETTERS` |
 | `lib/gradeUtils.ts` | Display helpers built on grading.ts: `formatGrade()`, `formatRawScore()`, `scoreToGcseGrade()`, `formatAvgGrade()` (returns `{ main, sub }` for analytics avg display) |
 | `lib/accessibility.ts` | `settingsToClasses()`, defaults |
@@ -545,9 +547,11 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Needs `periods.read` and `lessons.read` enabled in Wonde dashboard.
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
-### E2E tests needed
-- Wonde sync: `e2e/tests/wonde-sync.spec.ts`
-- Revision Program: `e2e/tests/revision-program.spec.ts` (currently stubbed/skipped)
+### E2E tests
+Both specs are implemented and passing:
+- Wonde sync: `e2e/tests/wonde-sync.spec.ts` — 6 tests (access control + panel content)
+- Revision Program: `e2e/tests/revision-program.spec.ts` — 9 tests (teacher/student/HOD access + content)
+- HOD fixture added to `e2e/fixtures/users.ts` as `USERS.hod` (d.brooks@omnisdemo.school)
 
 ### Unbuilt routes (stub pages with AppShell — show "coming soon")
 - `/lessons` — `app/lessons/page.tsx` stub (Cover Manager nav)

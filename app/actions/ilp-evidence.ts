@@ -24,7 +24,7 @@ export async function requestILPEvidence(
   if (!student) return { success: false, error: 'Student not found' }
 
   // Count ILP targets that have no evidence yet
-  const ilp = await (prisma as any).individualLearningPlan.findFirst({
+  const ilp = await prisma.individualLearningPlan.findFirst({
     where:  { studentId, schoolId, status: 'active' },
     select: { targets: { where: { status: 'active' }, select: { id: true } } },
   })

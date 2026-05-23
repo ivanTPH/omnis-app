@@ -143,7 +143,7 @@ export async function computeAndSaveAdaptiveProfile(
     where: { schoolId, startsAt: { lte: now }, endsAt: { gte: now } },
   })
   const termStart      = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
-  const ilpConcernCount = await (prisma as any).ilpEvidenceEntry.count({
+  const ilpConcernCount = await prisma.ilpEvidenceEntry.count({
     where: { schoolId, studentId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
   })
   const evidenceBasedConcern = Math.min(ilpConcernCount * 10, 100)

@@ -76,7 +76,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
   // Active ILP goals for SEND students — use new IndividualLearningPlan model (Phase 2.2)
   const sendStudentIds = sendStatuses.map(s => s.studentId)
   const ilpRaw: any[] = sendStudentIds.length
-    ? await (prisma as any).individualLearningPlan.findMany({
+    ? await prisma.individualLearningPlan.findMany({
         where: { studentId: { in: sendStudentIds }, schoolId, status: 'active', approvedBySenco: true },
         select: {
           id: true, studentId: true, areasOfNeed: true,
@@ -106,7 +106,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
   // Teacher notes for each submission
   const subIds = hw.submissions.map(s => s.id)
   const rawNotes: Array<{ id: string; planId: string; note: string; createdAt: Date; teacher: { firstName: string; lastName: string } }> = subIds.length
-    ? await (prisma as any).teacherPlanNote.findMany({
+    ? await prisma.teacherPlanNote.findMany({
         where: { planType: 'homework_submission', planId: { in: subIds }, schoolId },
         select: { id: true, planId: true, note: true, createdAt: true, teacher: { select: { firstName: true, lastName: true } } },
         orderBy: { createdAt: 'asc' as const },
@@ -468,7 +468,7 @@ export async function generateHomeworkFromResources(
           },
           select: { studentId: true, activeStatus: true, needArea: true },
         }),
-        (prisma as any).individualLearningPlan.findMany({
+        prisma.individualLearningPlan.findMany({
           where: {
             approvedBySenco: true,
             status: 'active',
@@ -1096,7 +1096,7 @@ export async function markSubmission(submissionId: string, data: {
 
   // Check for active approved ILP with active targets (new IndividualLearningPlan model)
   const studentId = sub.studentId
-  const ilpRecord = await (prisma as any).individualLearningPlan.findFirst({
+  const ilpRecord = await prisma.individualLearningPlan.findFirst({
     where: { studentId, schoolId, status: 'active', approvedBySenco: true },
     select: {
       id: true,
@@ -1335,7 +1335,7 @@ export async function saveHomeworkTeacherNote(submissionId: string, note: string
   const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
   if (!sub) throw new Error('Submission not found')
 
-  await (prisma as any).teacherPlanNote.create({
+  await prisma.teacherPlanNote.create({
     data: { planType: 'homework_submission', planId: submissionId, teacherId: userId, schoolId, note },
   })
 
@@ -1353,10 +1353,10 @@ export async function recordHomeworkAsIlpEvidence(homeworkId: string, ilpTargetI
   const hw = await prisma.homework.findFirst({ where: { id: homeworkId, schoolId } })
   if (!hw) throw new Error('Homework not found')
 
-  const existing = await (prisma as any).ilpHomeworkLink.findFirst({ where: { ilpTargetId, homeworkId } })
+  const existing = await prisma.ilpHomeworkLink.findFirst({ where: { ilpTargetId, homeworkId } })
   if (existing) return { alreadyLinked: true }
 
-  await (prisma as any).ilpHomeworkLink.create({
+  await prisma.ilpHomeworkLink.create({
     data: { ilpTargetId, homeworkId, linkedBy: userId },
   })
 
@@ -1423,7 +1423,7 @@ export async function updateIlpEvidence(
   const staffRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'SUPER_ADMIN']
   if (!staffRoles.includes((session.user as any).role)) throw new Error('Forbidden')
 
-  await (prisma as any).ilpEvidenceEntry.updateMany({
+  await prisma.ilpEvidenceEntry.updateMany({
     where: { id: evidenceId, schoolId },
     data:  {
       evidenceType: data.evidenceType,
@@ -1455,7 +1455,7 @@ export async function saveIlpEvidenceEntries(
   })
   if (!sub) throw new Error('Submission not found')
 
-  await (prisma as any).ilpEvidenceEntry.createMany({
+  await prisma.ilpEvidenceEntry.createMany({
     data: entries.map(e => ({
       schoolId,
       studentId:    sub.studentId,
@@ -1486,7 +1486,7 @@ export async function saveIlpEvidenceEntries(
       const termStart = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
 
       // Count overall CONCERN entries for this student this term
-      const concernCount = await (prisma as any).ilpEvidenceEntry.count({
+      const concernCount = await prisma.ilpEvidenceEntry.count({
         where: { schoolId, studentId: sub.studentId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
       })
       if (concernCount >= 3) {
@@ -1536,7 +1536,7 @@ export async function saveIlpEvidenceEntries(
       // Per-target: count CONCERN entries and notify SENCO if a specific target has 3+ concerns
       const concernTargetIds = entries.filter(e => e.evidenceType === 'CONCERN').map(e => e.ilpTargetId)
       for (const targetId of concernTargetIds) {
-        const targetConcernCount = await (prisma as any).ilpEvidenceEntry.count({
+        const targetConcernCount = await prisma.ilpEvidenceEntry.count({
           where: { schoolId, studentId: sub.studentId, ilpTargetId: targetId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
         })
         if (targetConcernCount >= 3) {
@@ -1567,19 +1567,19 @@ export async function saveIlpEvidenceEntries(
       if (hasProgress) {
         const progressTargetIds = entries.filter(e => e.evidenceType === 'PROGRESS').map(e => e.ilpTargetId)
         for (const targetId of progressTargetIds) {
-          const target = await (prisma as any).ilpTarget.findUnique({
+          const target = await prisma.ilpTarget.findUnique({
             where: { id: targetId },
             select: { id: true, status: true, ilpId: true, target: true },
           })
           if (!target || target.status !== 'active') continue
 
-          const progressCount = await (prisma as any).ilpEvidenceEntry.count({
+          const progressCount = await prisma.ilpEvidenceEntry.count({
             where: { schoolId, studentId: sub.studentId, ilpTargetId: targetId, evidenceType: 'PROGRESS', createdAt: { gte: termStart } },
           })
           if (progressCount < 3) continue
 
           // Auto-transition to achieved
-          await (prisma as any).ilpTarget.update({
+          await prisma.ilpTarget.update({
             where: { id: targetId },
             data:  { status: 'achieved', reviewedAt: new Date() },
           })
@@ -1642,7 +1642,7 @@ export async function getIlpEvidenceForStudent(studentId: string): Promise<Array
   if (!session) throw new Error('Unauthenticated')
   const { schoolId } = session.user as any
 
-  return (prisma as any).ilpEvidenceEntry.findMany({
+  return prisma.ilpEvidenceEntry.findMany({
     where: { studentId, schoolId },
     select: {
       id: true, ilpTargetId: true, homeworkTitle: true, subject: true,
@@ -1692,7 +1692,7 @@ export async function getStudentSubmissionsForEvidencing(studentId: string): Pro
       orderBy: { submittedAt: 'desc' },
       take:    50,
     }),
-    (prisma as any).ilpEvidenceEntry.findMany({
+    prisma.ilpEvidenceEntry.findMany({
       where:  { studentId },
       select: { submissionId: true, ilpTargetId: true },
     }) as Promise<Array<{ submissionId: string | null; ilpTargetId: string }>>,
@@ -1735,7 +1735,7 @@ export async function getIlpConcernsThisTerm(): Promise<Array<{
   })
   const termStart = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
 
-  const concerns = await (prisma as any).ilpEvidenceEntry.groupBy({
+  const concerns = await prisma.ilpEvidenceEntry.groupBy({
     by: ['studentId'],
     where: { schoolId, evidenceType: 'CONCERN', createdAt: { gte: termStart } },
     _count: { studentId: true },

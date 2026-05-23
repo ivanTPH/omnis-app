@@ -708,7 +708,7 @@ export async function getStudentActiveIlpTargets(studentId: string): Promise<{ i
   const user = await requireAuth()
   const { schoolId } = user
 
-  const ilp = await (prisma as any).individualLearningPlan.findFirst({
+  const ilp = await prisma.individualLearningPlan.findFirst({
     where:  { studentId, schoolId, status: 'active' },
     select: {
       targets: {

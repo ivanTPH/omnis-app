@@ -12,6 +12,7 @@ type RevTask = {
   taskType:       string
   instructions:   string
   modelAnswer?:   string | null
+  structuredContent?: any
   focusTopics:    string[]
   weakTopics:     string[]
   strongTopics:   string[]
@@ -27,6 +28,97 @@ type RevTask = {
   selfConfidence?: number | null
   completedAt?:   Date | string | null
   timeSpentMins?: number | null
+}
+
+const BLOOMS_COLOURS: Record<string, string> = {
+  remember:  'bg-blue-100 text-blue-700',
+  understand:'bg-cyan-100 text-cyan-700',
+  apply:     'bg-green-100 text-green-700',
+  analyse:   'bg-amber-100 text-amber-700',
+  evaluate:  'bg-orange-100 text-orange-700',
+  create:    'bg-purple-100 text-purple-700',
+}
+
+function QuestionPanel({ q, idx, studentAnswer, isMarked }: {
+  q: any
+  idx: number
+  studentAnswer?: string
+  isMarked: boolean
+}) {
+  const [showScheme, setShowScheme] = useState(false)
+  const bloomColour = BLOOMS_COLOURS[q.bloomsLevel] ?? 'bg-gray-100 text-gray-600'
+
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      {/* Question header */}
+      <div className="px-4 py-3 bg-gray-50 flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2 flex-1 min-w-0">
+          <span className="shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
+          <p className="text-[13px] text-gray-900 leading-relaxed">{q.question}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {q.bloomsLevel && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${bloomColour}`}>{q.bloomsLevel}</span>
+          )}
+          <span className="text-[11px] font-semibold text-gray-500 whitespace-nowrap">{q.marks} {q.marks === 1 ? 'mark' : 'marks'}</span>
+        </div>
+      </div>
+
+      {/* Student answer */}
+      {studentAnswer != null && (
+        <div className="px-4 py-3 border-t border-gray-100">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Student Answer</p>
+          <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[2.5rem]">
+            {studentAnswer.trim() || <span className="text-gray-400 italic">No answer given</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Mark scheme + model answer (collapsible) */}
+      <div className="border-t border-gray-100">
+        <button
+          onClick={() => setShowScheme(s => !s)}
+          className="w-full flex items-center justify-between px-4 py-2.5 text-[11px] font-semibold text-gray-500 hover:bg-gray-50 transition-colors"
+        >
+          <span className="flex items-center gap-1.5">
+            <Icon name="checklist" size="sm" className="text-gray-400" />
+            Mark Scheme
+          </span>
+          <Icon name={showScheme ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400" />
+        </button>
+        {showScheme && (
+          <div className="px-4 pb-4 space-y-2">
+            {q.markScheme && (
+              <p className="text-[12px] text-gray-700 leading-relaxed bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">{q.markScheme}</p>
+            )}
+            {Array.isArray(q.modelAnswerBullets) && q.modelAnswerBullets.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Award marks for:</p>
+                <ul className="space-y-1">
+                  {q.modelAnswerBullets.map((b: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
+                      <span className="shrink-0 mt-0.5 text-green-500 font-bold">✓</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Improvement note (for marked tasks) */}
+      {isMarked && Array.isArray(q.modelAnswerBullets) && q.modelAnswerBullets.length > 0 && (
+        <div className="border-t border-green-100 px-4 py-3 bg-green-50">
+          <p className="text-[10px] font-semibold text-green-700 uppercase tracking-wide mb-1">Revision recommendation for student</p>
+          <p className="text-[11px] text-green-800 leading-relaxed">
+            To improve on this question: {q.modelAnswerBullets.join(' • ')}
+          </p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 type ProgramRow = {
@@ -230,26 +322,64 @@ export default function RevisionProgramDetail({
                 </div>
               </div>
 
+              {/* Questions (from structuredContent) */}
+              {(() => {
+                const sc = selected.structuredContent as any
+                const questions: any[] = Array.isArray(sc?.questions) ? sc.questions : []
+                const hasSubmission = ['submitted', 'marked', 'returned'].includes(selected.status)
+                const isMarked = ['marked', 'returned'].includes(selected.status)
+                const resp = selected.studentResponse
+
+                // Normalise student response: could be { "1": "text" } or a plain string
+                const getAnswer = (q: any, idx: number): string | undefined => {
+                  if (!hasSubmission || resp == null) return undefined
+                  if (typeof resp === 'string') return idx === 0 ? resp : undefined
+                  const byId = resp[q.id ?? String(idx + 1)]
+                  if (byId != null) return String(byId)
+                  const byIdx = resp[String(idx + 1)] ?? resp[String(idx)]
+                  return byIdx != null ? String(byIdx) : undefined
+                }
+
+                if (questions.length === 0) {
+                  // Fallback: show free-text student response if no structured questions
+                  if (!hasSubmission || resp == null) return null
+                  const text = typeof resp === 'string' ? resp : (resp?.text ?? JSON.stringify(resp, null, 2))
+                  return (
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Response</p>
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{text}</div>
+                      {selected.timeSpentMins && <p className="text-xs text-gray-400 mt-1.5">Time spent: {selected.timeSpentMins} min</p>}
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Questions ({questions.length})</p>
+                      <span className="text-[11px] text-gray-400">Total: {questions.reduce((s: number, q: any) => s + (q.marks ?? 0), 0)} marks</span>
+                    </div>
+                    {questions.map((q: any, idx: number) => (
+                      <QuestionPanel
+                        key={q.id ?? idx}
+                        q={q}
+                        idx={idx}
+                        studentAnswer={getAnswer(q, idx)}
+                        isMarked={isMarked}
+                      />
+                    ))}
+                    {hasSubmission && selected.timeSpentMins && (
+                      <p className="text-xs text-gray-400">Time spent: {selected.timeSpentMins} min</p>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* SEND adaptations */}
               {selected.sendAdaptations.length > 0 && (
                 <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3">
                   <p className="text-xs font-semibold text-purple-700">SEND Adaptations Applied</p>
                   <p className="text-xs text-purple-600 mt-0.5">{selected.sendAdaptations.join(', ')}</p>
-                </div>
-              )}
-
-              {/* submission (if any) */}
-              {selected.studentResponse && (
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Response</p>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed">
-                    {typeof selected.studentResponse === 'string'
-                      ? selected.studentResponse
-                      : JSON.stringify(selected.studentResponse, null, 2)}
-                  </div>
-                  {selected.timeSpentMins && (
-                    <p className="text-xs text-gray-400 mt-1.5">Time spent: {selected.timeSpentMins} minutes</p>
-                  )}
                 </div>
               )}
 
@@ -262,6 +392,33 @@ export default function RevisionProgramDetail({
                       <Icon key={n} name="star" size="sm" className={n <= (selected.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-300'} />
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Overall model answer / teacher reference */}
+              {selected.modelAnswer && selected.modelAnswer !== 'See individual question mark schemes above.' && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                    <Icon name="auto_stories" size="sm" className="text-gray-400" />
+                    <p className="text-[12px] font-semibold text-gray-700">Full Mark Scheme (Teacher Reference)</p>
+                  </div>
+                  <div className="px-4 py-3 text-[13px] text-gray-700 leading-relaxed whitespace-pre-wrap">{selected.modelAnswer}</div>
+                </div>
+              )}
+
+              {/* Returned result summary (marked/returned) */}
+              {['marked', 'returned'].includes(selected.status) && (selected.finalScore != null || selected.feedback) && (
+                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-4 space-y-2">
+                  <p className="text-[11px] font-semibold text-green-700 uppercase tracking-wide">Teacher Mark</p>
+                  {selected.finalScore != null && (
+                    <p className="text-2xl font-bold text-green-800">
+                      {selected.finalScore}/9
+                      <span className="text-[13px] font-normal text-green-600 ml-2">GCSE grade</span>
+                    </p>
+                  )}
+                  {selected.feedback && (
+                    <p className="text-[13px] text-green-900 leading-relaxed border-t border-green-200 pt-2 mt-2">{selected.feedback}</p>
+                  )}
                 </div>
               )}
 

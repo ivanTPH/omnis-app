@@ -924,7 +924,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
           <button
             onClick={() => handleFilterClick('all')}
-            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-gray-200 ${
+            className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-gray-200 ${
               pupilFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-50 text-gray-700'
             }`}
           >
@@ -934,7 +934,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
           <button
             onClick={() => handleFilterClick('submitted')}
-            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-blue-200 ${
+            className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-blue-200 ${
               pupilFilter === 'submitted' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'
             }`}
           >
@@ -946,7 +946,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <button
               onClick={() => handleFilterClick('ungraded')}
               title="Ungraded — submitted but not yet marked"
-              className={`flex flex-col items-center w-16 py-2 rounded-xl border border-amber-200 ${
+              className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-amber-200 ${
                 pupilFilter === 'ungraded' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700'
               }`}
             >
@@ -958,7 +958,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           <button
             onClick={() => handleFilterClick('returned')}
             title="Returned — homework marked and sent back to students"
-            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-green-200 ${
+            className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-green-200 ${
               pupilFilter === 'returned' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'
             }`}
           >
@@ -969,7 +969,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           <button
             onClick={() => handleFilterClick('missing')}
             title="Missing — students who have not submitted yet"
-            className={`flex flex-col items-center w-16 py-2 rounded-xl border border-red-200 ${
+            className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-red-200 ${
               pupilFilter === 'missing' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'
             }`}
           >
@@ -981,7 +981,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <button
               onClick={() => handleFilterClick('send')}
               title="SEND — students with an active SEN Support or EHCP plan"
-              className={`flex flex-col items-center w-16 py-2 rounded-xl border border-purple-200 ${
+              className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-purple-200 ${
                 pupilFilter === 'send' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700'
               }`}
             >

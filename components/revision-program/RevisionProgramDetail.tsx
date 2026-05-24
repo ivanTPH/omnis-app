@@ -241,10 +241,10 @@ export default function RevisionProgramDetail({
                 color:           filter === tile.key ? '#ffffff' : '#374151',
                 border: '1px solid #e5e7eb',
               }}
-              className="flex flex-col items-center w-16 py-2 rounded-xl"
+              className="flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl"
             >
               <span className="text-2xl font-bold leading-none">{tile.count}</span>
-              <span className="text-[10px] font-semibold uppercase tracking-wide mt-1">{tile.label}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide mt-1 text-center leading-tight">{tile.label}</span>
             </button>
           ))}
         </div>

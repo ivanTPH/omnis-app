@@ -1,6 +1,5 @@
 'use server'
 
-import { auth } from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag } from 'next/cache'
@@ -887,10 +886,7 @@ export async function saveSubjectConfig(input: {
   examBoard: string
   tier:      string
 }): Promise<{ ok: true; error?: never } | { ok?: never; error: string }> {
-  const session = await auth()
-  if (!session?.user) return { error: 'Unauthenticated' }
-  const { schoolId, id: userId, role } = session.user as { schoolId: string; id: string; role: string }
-  if (!['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'].includes(role)) return { error: 'Forbidden' }
+  const { schoolId, id: userId } = await requireAuth(['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'])
 
   const examBoard = input.examBoard || null
   const tier      = input.tier      || null

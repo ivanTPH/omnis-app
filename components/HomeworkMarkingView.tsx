@@ -1984,7 +1984,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     {yearPlan}
                   </p>
                   <p className="text-[10px] text-blue-400 mt-1 italic">
-                    Evidence recorded here links to both the student's ILP targets and the shared curriculum objectives above.
+                    Evidence recorded here links to both the student&apos;s ILP targets and the shared curriculum objectives above.
                   </p>
                 </div>
               </details>

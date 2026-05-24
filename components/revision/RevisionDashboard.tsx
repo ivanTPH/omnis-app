@@ -78,7 +78,7 @@ export default function RevisionDashboard({
   initialStats:      Stats
   initialConfidence: ConfidenceEntry[]
 }) {
-  const [exams,      setExams]      = useState<Exam[]>(initialExams)
+  const [exams,      _setExams]     = useState<Exam[]>(initialExams)
   const [sessions,   setSessions]   = useState<Session[]>(initialSessions)
   const [stats,      setStats]      = useState<Stats>(initialStats)
   const [confidence, setConfidence] = useState<ConfidenceEntry[]>(initialConfidence)

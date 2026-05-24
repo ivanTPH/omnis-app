@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import UnifiedRevisionView from '@/components/revision/UnifiedRevisionView'
@@ -6,9 +6,7 @@ import { getMyExams, getMyRevisionSessions, getRevisionStats, getConfidenceProfi
 import { getStudentRevisionTasks } from '@/app/actions/revision-program'
 
 export default async function StudentRevisionPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { id: userId, role, firstName, lastName, schoolName } = session.user as any
+  const { id: userId, role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')
 
   const [exams, sessions, stats, confidence, tasks] = await Promise.all([

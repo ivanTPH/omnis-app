@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
@@ -42,9 +42,7 @@ export default async function AdminAuditPage({
 }: {
   searchParams: Promise<{ page?: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
   const sp   = await searchParams

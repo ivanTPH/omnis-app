@@ -6,7 +6,6 @@ import Tooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
 import { gradeLabel } from '@/lib/grading'
 import { getClassPerformanceAnalysis, createRevisionProgram, getRevisionProgramDetail, updateRevisionTaskQuestions } from '@/app/actions/revision-program'
-import { getTeacherClasses } from '@/app/actions/homework'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -57,7 +56,7 @@ function Step1({
   onChange: (patch: Partial<WizardState>) => void
   onNext: () => void
 }) {
-  const [analysing, startAnalysing] = useTransition()
+  const [analysing, _startAnalysing] = useTransition()
 
   const selectedClass = classes.find(c => c.id === state.classId)
 
@@ -371,7 +370,6 @@ function Step4({
   }
 
   function addQuestion(taskId: string) {
-    const qi = (editedQs[taskId]?.length ?? 0) + 1
     const newQ = { id: `new_${Date.now()}`, question: '', marks: 1, bloomsLevel: 'retrieval' }
     setEditedQs(prev => ({ ...prev, [taskId]: [...(prev[taskId] ?? []), newQ] }))
     setDirtyIds(prev => new Set(prev).add(taskId))

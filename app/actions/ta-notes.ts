@@ -1,14 +1,12 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 const ALLOWED_ROLES = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','TEACHING_ASSISTANT']
 
 async function requireAllowed() {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const user = session.user as { id: string; schoolId: string; role: string; firstName: string; lastName: string }
+  const user = await requireAuth()
   if (!ALLOWED_ROLES.includes(user.role)) throw new Error('Forbidden')
   return user
 }
@@ -170,9 +168,7 @@ export async function getUrgentTaNotesByClass(classId: string): Promise<{
 export type TaClass = { id: string; name: string; subject: string; yearGroup: number }
 
 export async function getTaClasses(): Promise<TaClass[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const classes = await prisma.schoolClass.findMany({
     where:   { schoolId },

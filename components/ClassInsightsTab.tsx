@@ -26,7 +26,7 @@ const RAG_LABEL = {
   none:  { cls: 'bg-gray-100 text-gray-400',   text: 'No data' },
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload
   return (

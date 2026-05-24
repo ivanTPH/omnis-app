@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
@@ -8,9 +8,7 @@ const EDIT_ROLES    = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT'
 const APPROVE_ROLES = ['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN']
 
 async function requireAccess() {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const u = session.user as any
+  const u = await requireAuth()
   if (!ALLOWED_ROLES.includes(u.role)) throw new Error('Forbidden')
   return u
 }

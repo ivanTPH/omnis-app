@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
@@ -12,9 +12,7 @@ import IlpEvidenceTimeline from '@/components/send-support/IlpEvidenceTimeline'
 import IlpEvidenceLinkPanel from '@/components/send-support/IlpEvidenceLinkPanel'
 
 export default async function StudentIlpPage({ params }: { params: Promise<{ studentId: string }> }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SCHOOL_ADMIN', 'SLT', 'HEAD_OF_YEAR', 'TEACHER'].includes(role)) redirect('/dashboard')
 
   const { studentId } = await params

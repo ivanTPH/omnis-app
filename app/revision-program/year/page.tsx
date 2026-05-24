@@ -1,13 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import YearRevisionCreator from '@/components/revision-program/YearRevisionCreator'
 import { getTeacherSubjectsYearGroups } from '@/app/actions/revision-program'
 
 export default async function YearRevisionPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
 
   const allowed = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SLT','SCHOOL_ADMIN','SUPER_ADMIN']
   if (!allowed.includes(role)) redirect('/dashboard')

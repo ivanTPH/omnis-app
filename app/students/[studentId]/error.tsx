@@ -1,5 +1,5 @@
 'use client'
-export default function StudentFileError({ error, reset }: { error: Error; reset: () => void }) {
+export default function StudentFileError({ reset }: { error: Error; reset: () => void }) {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import AppShell from '@/components/AppShell'
 import { getSubjectConfigs } from '@/app/actions/admin'
 import SubjectConfigPanel from '@/components/admin/SubjectConfigPanel'
@@ -7,9 +7,7 @@ import SubjectConfigPanel from '@/components/admin/SubjectConfigPanel'
 const ALLOWED = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR']
 
 export default async function AdminSubjectsPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!ALLOWED.includes(role)) redirect('/dashboard')
 
   const configs = await getSubjectConfigs()

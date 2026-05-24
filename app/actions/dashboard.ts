@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, unstable_cache } from 'next/cache'
 
@@ -263,12 +263,7 @@ const getCachedDashboardData = unstable_cache(
 )
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId   = (session.user as any).id   as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const schoolId = (session.user as any).schoolId as string
+  const { id: userId, schoolId } = await requireAuth()
 
   // Use local-time day start as the date key — cache busts automatically at midnight
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
@@ -279,16 +274,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 // ─── Concern actions (for raising teacher from dashboard) ─────────────────────
 
 export async function addConcernNote(concernId: string, note: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId   = (session.user as any).id as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const schoolId = (session.user as any).schoolId as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const firstName = (session.user as any).firstName as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lastName  = (session.user as any).lastName  as string
+  const { schoolId, id: userId, firstName, lastName } = await requireAuth()
 
   const concern = await prisma.sendConcern.findFirst({
     where: { id: concernId, schoolId, raisedBy: userId },
@@ -315,16 +301,7 @@ export async function escalateConcernToStaff(
   targetRoles: string[],
   message: string,
 ): Promise<{ notified: number }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userId    = (session.user as any).id as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const schoolId  = (session.user as any).schoolId as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const firstName = (session.user as any).firstName as string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lastName  = (session.user as any).lastName  as string
+  const { schoolId, firstName, lastName } = await requireAuth()
 
   const concern = await prisma.sendConcern.findFirst({
     where: { id: concernId, schoolId },
@@ -375,10 +352,7 @@ export async function sendSencoAlert(
   message:     string,
   teacherIds:  string[],
 ): Promise<{ notified: number }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { id: actorId, schoolId, role, firstName, lastName } = session.user as any
+  const { id: actorId, schoolId, role, firstName, lastName } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) throw new Error('Not authorized')
   if (!teacherIds.length) return { notified: 0 }
 
@@ -413,10 +387,7 @@ export async function sendSencoAlert(
 }
 
 export async function dismissSencoAlert(notificationId: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { id: userId, schoolId } = session.user as any
+  const { id: userId, schoolId } = await requireAuth()
 
   await prisma.notification.updateMany({
     where: { id: notificationId, schoolId, userId },

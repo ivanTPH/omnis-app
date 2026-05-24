@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
@@ -6,9 +6,7 @@ import RevisionTaskView from '@/components/revision-program/RevisionTaskView'
 import { prisma } from '@/lib/prisma'
 
 export default async function StudentRevisionTaskPage({ params }: { params: Promise<{ taskId: string }> }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName, id: userId, schoolId } = session.user as any
+  const { role, firstName, lastName, schoolName, id: userId, schoolId } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')
 
   const { taskId } = await params

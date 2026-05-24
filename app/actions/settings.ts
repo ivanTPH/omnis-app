@@ -1,6 +1,6 @@
 'use server'
 
-import { auth }                from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit }  from '@/lib/prisma'
 import { revalidatePath }      from 'next/cache'
 import bcrypt                  from 'bcryptjs'
@@ -38,10 +38,8 @@ export type SettingsData = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getSession() {
-  const session = await auth()
-  if (!session?.user) throw new Error('Unauthenticated')
-  const user = session.user as any
-  return { userId: user.id as string, schoolId: user.schoolId as string }
+  const { id: userId, schoolId } = await requireAuth()
+  return { userId, schoolId }
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -287,9 +285,7 @@ export async function saveSharingSettings(input: {
 /** Fetch the current user's avatar URL (for sidebar display). */
 export async function getMyAvatarUrl(): Promise<string | null> {
   try {
-    const session = await auth()
-    if (!session?.user) return null
-    const { id: userId } = session.user as any
+    const { id: userId } = await requireAuth()
     const settings = await prisma.userSettings.findUnique({
       where:  { userId },
       select: { profilePictureUrl: true },

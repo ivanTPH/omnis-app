@@ -44,7 +44,7 @@ async function analyseStudent(
   schoolId: string,
   fourWeeksAgo: Date,
   eightWeeksAgo: Date,
-  now: Date,
+  _now: Date,
 ): Promise<NewFlag[]> {
   const flags: NewFlag[] = []
 

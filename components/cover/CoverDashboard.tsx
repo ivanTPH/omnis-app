@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Icon from '@/components/ui/Icon'
-import type { CoverSummary, AbsenceWithStaff, AssignmentWithDetails } from '@/app/actions/cover'
+import type { CoverSummary } from '@/app/actions/cover'
 import { getTodaysCoverSummary } from '@/app/actions/cover'
 import AbsenceList from './AbsenceList'
 import CoverAssignmentGrid from './CoverAssignmentGrid'

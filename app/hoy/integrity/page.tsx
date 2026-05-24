@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import Icon from '@/components/ui/Icon'
@@ -20,9 +20,7 @@ function relativeTime(iso: Date | string) {
 }
 
 export default async function HoyIntegrityPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName, schoolId } = session.user as any
+  const { role, firstName, lastName, schoolName, schoolId } = await requireAuth()
   if (!['HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
   // Flagged signals scoped to school via submission → student

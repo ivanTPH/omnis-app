@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getAllIlps, getStudentsWithSendButNoIlp } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
@@ -6,9 +6,7 @@ import IlpPageView from '@/components/send-support/IlpPageView'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function IlpPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
   const [ilps, studentsWithoutIlp] = await Promise.all([

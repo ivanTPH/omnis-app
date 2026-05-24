@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath, unstable_cache } from 'next/cache'
 import { ResourceType } from '@prisma/client'
@@ -143,10 +143,7 @@ export async function addOakLessonToLesson(
   lessonId:       string,
   oakLessonSlug:  string,
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const lesson = await prisma.lesson.findFirst({ where: { id: lessonId, schoolId } })
   if (!lesson) throw new Error('Lesson not found')

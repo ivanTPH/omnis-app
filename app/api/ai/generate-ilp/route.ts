@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import { revalidatePath } from 'next/cache'
@@ -17,10 +17,7 @@ export async function POST(request: Request) {
     async start(controller) {
       try {
         // ── Auth — SENCO only ────────────────────────────────────────────────
-        const session = await auth()
-        if (!session) { emit(controller, { type: 'error', message: 'Unauthenticated' }); return }
-
-        const user = session.user as { id: string; schoolId: string; role: string }
+        const user = await requireAuth()
         if (user.role !== 'SENCO') {
           emit(controller, { type: 'error', message: 'Only SENCOs can generate ILPs.' })
           return

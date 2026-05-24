@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -21,10 +21,7 @@ const CreateSchoolSchema = z.object({
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
 async function requirePlatformAdmin() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const u = session.user as any
+  const u = await requireAuth()
   if (u.role !== 'PLATFORM_ADMIN') redirect('/dashboard')
   return u
 }

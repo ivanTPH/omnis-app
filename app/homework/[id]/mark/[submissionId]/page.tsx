@@ -1,5 +1,5 @@
-import { auth } from '@/lib/auth'
-import { redirect, notFound } from 'next/navigation'
+import { requireAuth } from '@/lib/session'
+import { notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import SubmissionMarkingView from '@/components/SubmissionMarkingView'
 import { getSubmissionForMarking } from '@/app/actions/homework'
@@ -11,9 +11,7 @@ export default async function SubmissionMarkingPage({
 }: {
   params: Promise<{ id: string; submissionId: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   const canGrade = ['TEACHER', 'HEAD_OF_DEPT'].includes(role)
 
   const { id: homeworkId, submissionId } = await params

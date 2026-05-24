@@ -1,4 +1,4 @@
-import { auth }           from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect }       from 'next/navigation'
 import AppShell           from '@/components/AppShell'
 import StudentDashboard   from '@/components/StudentDashboard'
@@ -11,9 +11,7 @@ export default async function StudentDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
 
   const { id } = await params
   const data = await getStudentDetail(id)

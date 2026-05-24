@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getSencoDashboardData } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'
@@ -6,9 +6,7 @@ import SencoDashboard from '@/components/send-support/SencoDashboard'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function SencoDashboardPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
   const data = await getSencoDashboardData()

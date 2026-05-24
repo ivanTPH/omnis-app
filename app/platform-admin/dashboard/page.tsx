@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getPlatformStats, getPlatformUsageStats, getAuditLog } from '@/app/actions/platform-admin'
@@ -7,10 +7,7 @@ import PlatformUsageChart from '@/components/platform-admin/PlatformUsageChart'
 import PlatformAuditLogTable from '@/components/platform-admin/PlatformAuditLogTable'
 
 export default async function PlatformDashboardPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PLATFORM_ADMIN') redirect('/dashboard')
 
   const [stats, usageStats, auditLog] = await Promise.all([

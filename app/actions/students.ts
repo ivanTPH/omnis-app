@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
@@ -8,9 +8,7 @@ import type { ApdrRow } from '@/app/actions/send-support'
 // ── Auth helpers ────────────────────────────────────────────────────────────
 
 async function requireStaff() {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const user = session.user as { id: string; schoolId: string; role: string; firstName: string; lastName: string }
+  const user = await requireAuth()
   const allowed = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','TEACHING_ASSISTANT']
   if (!allowed.includes(user.role)) throw new Error('Forbidden')
   return user
@@ -619,9 +617,7 @@ export async function updateClassroomStrategies(
 // ── Student voice (student edits their own LP "My View") ──────────────────────
 
 export async function saveStudentVoice(voice: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const user = session.user as any
+  const user = await requireAuth()
   if (user.role !== 'STUDENT') throw new Error('Students only')
   const { schoolId, id: studentId } = user
   const existing = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
@@ -645,9 +641,7 @@ export async function getStudentOwnPassport(): Promise<{
   classroomStrategies: string[]
   studentVoice: string | null
 } | null> {
-  const session = await auth()
-  if (!session) return null
-  const user = session.user as any
+  const user = await requireAuth()
   if (user.role !== 'STUDENT') return null
   const profile = await prisma.studentLearningProfile.findUnique({
     where:  { studentId: user.id },
@@ -691,6 +685,9 @@ export async function deleteStudentNote(noteId: string, studentId: string): Prom
 export async function approveLearningPassport(studentId: string): Promise<void> {
   const user = await requireStaff()
   const { schoolId } = user
+  // Verify student's profile belongs to this school
+  const profile = await prisma.studentLearningProfile.findUnique({ where: { studentId }, select: { schoolId: true } })
+  if (profile && profile.schoolId !== schoolId) throw new Error('Forbidden')
   await prisma.studentLearningProfile.update({
     where:  { studentId },
     data:   {
@@ -742,7 +739,6 @@ export async function addPassportRecommendation(
 export async function proposeIlpFieldEdit(
   ilpId: string,
   fieldChanged: string,
-  currentValue: string,
   proposedValue: string,
   studentId: string,
 ): Promise<void> {

@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -10,10 +11,7 @@ import bcrypt from 'bcryptjs'
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
 async function requireAdminOrSlt() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const u = session.user as any
+  const u = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER'].includes(u.role)) redirect('/dashboard')
   return u
 }
@@ -552,11 +550,8 @@ export async function updateClassExamBoard(input: {
   examBoard:  string
   examModules: string[]
 }): Promise<{ success?: true; error?: string }> {
-  const session = await auth()
-  if (!session?.user) return { error: 'Unauthenticated' }
-  const user = session.user as any
-  if (!['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'].includes(user.role)) return { error: 'Forbidden' }
-  const schoolId = user.schoolId as string
+  const { schoolId, id: userId, role } = await requireAuth()
+  if (!['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'].includes(role)) return { error: 'Forbidden' }
 
   await prisma.schoolClass.update({
     where: { id: input.classId, schoolId },
@@ -564,7 +559,7 @@ export async function updateClassExamBoard(input: {
   })
 
   await writeAudit({
-    schoolId, actorId: user.id, action: 'CLASS_UPDATED',
+    schoolId, actorId: userId, action: 'CLASS_UPDATED',
     targetType: 'SchoolClass', targetId: input.classId,
     metadata: { field: 'examBoard', examBoard: input.examBoard, examModules: input.examModules },
   })
@@ -851,9 +846,7 @@ export type SubjectConfigRow = {
 const SUBJECT_CONFIG_ROLES = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR']
 
 export async function getSubjectConfigs(): Promise<SubjectConfigRow[]> {
-  const session = await auth()
-  if (!session?.user) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as { schoolId: string; role: string }
+  const { schoolId, role } = await requireAuth()
   if (!SUBJECT_CONFIG_ROLES.includes(role)) throw new Error('Forbidden')
 
   // All distinct subjects in the school's classes
@@ -933,9 +926,7 @@ export async function applySubjectConfigToAllClasses(input: {
   subject:   string
   examBoard: string
 }): Promise<{ ok: true; updated: number }> {
-  const session = await auth()
-  if (!session?.user) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as { schoolId: string; role: string }
+  const { schoolId, role } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) throw new Error('Forbidden')
 
   const result = await prisma.schoolClass.updateMany({

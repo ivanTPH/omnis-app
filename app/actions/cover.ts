@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -67,10 +67,7 @@ export type CoverHistoryEntry = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function requireAdminOrSlt() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER'].includes(user.role)) redirect('/dashboard')
   return user
 }

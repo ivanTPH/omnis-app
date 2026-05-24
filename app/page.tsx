@@ -1,9 +1,7 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 export default async function RootPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const role = (session.user as any).role
+  const { role } = await requireAuth()
   if (role === 'STUDENT')      redirect('/student/dashboard')
   if (role === 'PARENT')       redirect('/parent/dashboard')
   if (role === 'SENCO')        redirect('/send/dashboard')

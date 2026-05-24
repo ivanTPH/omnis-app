@@ -1,11 +1,9 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { getMyResources, getSchoolResources } from '@/app/actions/ai-generator'
 import { getTeacherLessons } from '@/app/actions/homework'
 import AppShell from '@/components/AppShell'
 import AiGeneratorShell from '@/components/ai-generator/AiGeneratorShell'
-import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 const ALLOWED_ROLES = [
@@ -24,10 +22,7 @@ function roleHome(role: string): string {
 }
 
 export default async function AiGeneratorPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   if (!ALLOWED_ROLES.includes(user.role)) redirect('/dashboard')
 

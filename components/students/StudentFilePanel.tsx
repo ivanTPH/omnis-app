@@ -7,8 +7,8 @@ import SendBadge from '@/components/ui/SendBadge'
 import { TableSkeleton } from '@/components/ui/skeletons'
 import { formatRawScore } from '@/lib/gradeUtils'
 import {
-  StudentFileData, KPlanDoc, IlpDoc, EhcpDoc, SubjectPerf,
-  HomeworkHistoryRow, NoteRow, StudentContact, WondeAttendanceSummary,
+  StudentFileData, KPlanDoc, IlpDoc, EhcpDoc,
+  HomeworkHistoryRow, NoteRow, StudentContact,
   LearningPassportDoc, TaNoteRowInline,
   saveStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
   generateRevisionSuggestions, approveLearningPassport,
@@ -83,7 +83,7 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 // ── Learning Passport Section ──────────────────────────────────────────────────
 
 function LearningPassportSection({
-  passport, isSenco, studentId, role,
+  passport, isSenco: _isSenco, studentId, role,
 }: { passport: LearningPassportDoc; isSenco: boolean; studentId: string; role: string }) {
   const [approving,         startApprove]    = useTransition()
   const [approved,          setApproved]     = useState(passport.approvedByTeacher)
@@ -572,8 +572,7 @@ function EhcpSection({ ehcp, isSenco }: { ehcp: EhcpDoc; isSenco: boolean }) {
 
 // ── Performance Tab ───────────────────────────────────────────────────────────
 
-function PerformanceTab({ data, studentName, onClose, role = '' }: { data: StudentFileData; studentName: string; onClose?: () => void; role?: string }) {
-  const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
+function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { data: StudentFileData; studentName: string; onClose?: () => void; role?: string }) {
   const [expanded,      setExpanded]      = useState<string | null>(null)
   const [suggestions,   setSuggestions]   = useState<string | null>(null)
   const [loadingSugg,   startSuggTransition] = useTransition()
@@ -582,6 +581,7 @@ function PerformanceTab({ data, studentName, onClose, role = '' }: { data: Stude
   const [subDetail,     setSubDetail]     = useState<SubmissionReadOnly | null>(null)
   const [detailCache,   setDetailCache]   = useState<Record<string, SubmissionReadOnly>>({})
   const [markSchemeOpen, setMarkSchemeOpen] = useState(false)
+  const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
 
   // Close slide-over on Escape
   useEffect(() => {
@@ -1210,7 +1210,7 @@ function ApdrSectionEditor({
 }
 
 function ApdrCycleCard({
-  cycle, isSenco, isTA, studentId,
+  cycle, isSenco, isTA, studentId: _studentId,
 }: {
   cycle: ApdrRow
   isSenco: boolean
@@ -1430,7 +1430,7 @@ const GRADE_COLORS: Record<number, string> = {
   1: 'bg-red-200 text-red-700',
 }
 
-function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: string[] }) {
+function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; classIds?: string[] }) {
   const [rows,          setRows]          = useState<AssessmentRow[]>([])
   const [loading,       setLoading]       = useState(true)
   const [showForm,      setShowForm]      = useState(false)
@@ -1676,8 +1676,8 @@ function AssessmentTab({ studentId, classIds }: { studentId: string; classIds?: 
 
 export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
-  const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
   const isTA    = role === 'TEACHING_ASSISTANT'
+  const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
   const { student } = data
   const studentName = `${student.firstName} ${student.lastName}`
 

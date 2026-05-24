@@ -1,5 +1,5 @@
-import { auth }               from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
+import { requireAuth } from '@/lib/session'
 import { NextRequest }        from 'next/server'
 import { revalidatePath }     from 'next/cache'
 
@@ -7,11 +7,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png']
 const MAX_BYTES     = 5 * 1024 * 1024   // 5 MB
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user) {
-    return Response.json({ error: 'Unauthorised' }, { status: 401 })
-  }
-  const { id: userId, schoolId } = session.user as any
+  const { id: userId, schoolId } = await requireAuth()
 
   let formData: FormData
   try {

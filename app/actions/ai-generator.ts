@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
@@ -184,9 +185,7 @@ function subjectToOakSlug(subject: string): string {
 
 /** Subjects taught at this school (from SchoolClass, scoped by session schoolId). */
 export async function getSubjectsForSchool(): Promise<string[]> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
   const rows = await prisma.schoolClass.findMany({
     where:   { schoolId },
     select:  { subject: true },
@@ -197,9 +196,7 @@ export async function getSubjectsForSchool(): Promise<string[]> {
 
 /** Year groups that teach a given subject at this school. */
 export async function getYearGroupsForSubject(subject: string): Promise<number[]> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
   const rows = await prisma.schoolClass.findMany({
     where:   { schoolId, subject },
     select:  { yearGroup: true },
@@ -245,10 +242,7 @@ const AI_DAILY_LIMIT = 20
 export async function generateResource(
   input: GenerateInput,
 ): Promise<{ id: string; content: string; title: string }> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   // Validate input (includes length limits to prevent prompt injection)
   const validated = GenerateInputSchema.parse(input)
@@ -454,10 +448,7 @@ export async function getMyResources(
   _userId: string,
 ): Promise<GeneratedResourceData[]> {
   // Security: always use session IDs — never trust client-provided schoolId/userId
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   return prisma.generatedResource.findMany({
     where: { schoolId: user.schoolId, createdBy: user.id },
@@ -468,10 +459,7 @@ export async function getMyResources(
 export async function getSchoolResources(
   schoolId: string,
 ): Promise<GeneratedResourceData[]> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const role = (session.user as any).role
+  const { role } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
   return prisma.generatedResource.findMany({
     where: { schoolId },
@@ -480,10 +468,7 @@ export async function getSchoolResources(
 }
 
 export async function deleteGeneratedResource(id: string): Promise<void> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   // Security: verify resource belongs to user's school before fetching
   const resource = await prisma.generatedResource.findFirst({
@@ -503,10 +488,7 @@ export async function linkResourceToLesson(
   resourceId: string,
   lessonId: string,
 ): Promise<void> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   // Security: verify resource belongs to user's school (IDOR protection)
   const resource = await prisma.generatedResource.findFirst({

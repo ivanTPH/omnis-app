@@ -1,5 +1,6 @@
 'use server'
 import { auth }            from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit, writeILPAudit } from '@/lib/prisma'
 import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
@@ -12,9 +13,7 @@ import { sendHomeworkReminderEmail } from '@/lib/email'
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
 export async function getHomeworkList() {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   return prisma.homework.findMany({
     where: { schoolId, class: { teachers: { some: { userId } } } },
@@ -28,9 +27,7 @@ export async function getHomeworkList() {
 }
 
 export async function getHomeworkForMarking(homeworkId: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const hw = await prisma.homework.findFirst({
     where: { id: homeworkId, schoolId },
@@ -144,9 +141,7 @@ export async function getHomeworkForMarking(homeworkId: string) {
 }
 
 export async function getSubmissionForMarking(submissionId: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
@@ -248,9 +243,7 @@ export type ClassForHomework = {
 // ── Teacher homework detail (questions + mark scheme) ────────────────────────
 
 export async function getHomeworkDetail(homeworkId: string) {
-  const session = await auth()
-  if (!session) return null
-  const { schoolId, role } = session.user as { schoolId: string; role: string }
+  const { schoolId, role } = await requireAuth()
 
   const teacherRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
   if (!teacherRoles.includes(role)) return null
@@ -268,9 +261,7 @@ export async function getHomeworkDetail(homeworkId: string) {
 export type HomeworkDetail = Awaited<ReturnType<typeof getHomeworkDetail>>
 
 export async function getTeacherLessons(): Promise<LessonForHomework[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const lessons = await prisma.lesson.findMany({
     where:   { schoolId, createdBy: userId },
@@ -294,9 +285,7 @@ export async function getTeacherLessons(): Promise<LessonForHomework[]> {
 }
 
 export async function getTeacherClasses(): Promise<ClassForHomework[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   return prisma.schoolClass.findMany({
     where:   { schoolId, teachers: { some: { userId } } },
@@ -330,9 +319,7 @@ export async function createHomework(input: {
   differentiationNotes?: string
   estimatedMins?:        number
 }): Promise<{ id: string }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const hw = await prisma.homework.create({
     data: {
@@ -370,8 +357,8 @@ export async function createHomework(input: {
 
 // ── AI helpers (types + prompt builders live in lib/homework-helpers.ts) ──────
 
-export type { MCQQuestion, SAQuestion, ProposalResult } from '@/lib/homework-helpers'
-import { buildTypePrompt, noApiKeyFallback, defaultBands, type ProposalResult, type MCQQuestion, type SAQuestion } from '@/lib/homework-helpers'
+export type { MCQQuestion, ProposalResult } from '@/lib/homework-helpers'
+import { buildTypePrompt, noApiKeyFallback, defaultBands, type ProposalResult } from '@/lib/homework-helpers'
 
 // ── Generate from lesson content (objectives + resources) ─────────────────────
 
@@ -380,9 +367,7 @@ export async function generateHomeworkFromResources(
   forceType?: HomeworkType,
   preferredResourceId?: string,
 ): Promise<ProposalResult> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const lesson = await prisma.lesson.findFirst({
     where:   { id: lessonId, schoolId },
@@ -546,7 +531,7 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
 
   // P1-8: Rate limit — max 10 AI homework generations per teacher per calendar day.
   // Checked against AuditLog so it's durable across server restarts.
-  const generatingUserId = session.user.id
+  const generatingUserId = userId
   const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0)
   const todayGenerationCount = await prisma.auditLog.count({
     where: {
@@ -774,9 +759,7 @@ export type GeneratedHomeworkContent = {
 }
 
 export async function extractLearningFromLesson(lessonId: string): Promise<LearningExtraction> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const lesson = await prisma.lesson.findFirst({
     where: { id: lessonId, schoolId },
@@ -903,8 +886,7 @@ export async function generateHomeworkContent(input: {
   ilpTargets?: string[]
   durationMins: number
 }): Promise<GeneratedHomeworkContent> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
+  await requireAuth()
 
   const qualification = input.yearGroup <= 9 ? 'KS3' : input.yearGroup <= 11 ? 'GCSE' : 'A-Level'
 
@@ -974,9 +956,7 @@ Return JSON:
 }
 
 export async function autoMarkSubmission(submissionId: string): Promise<{ score: number; maxScore: number; feedback: string }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
@@ -1076,9 +1056,7 @@ export async function markSubmission(submissionId: string, data: {
   ilpData: { studentId: string; ilpId: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> } | null
   gradeDrop: { studentId: string; studentName: string; previousGrade: number; newGrade: number; drop: number; suggestion: string } | null
 }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
   if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) throw new Error('Only teaching staff can grade homework')
 
   const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
@@ -1226,9 +1204,7 @@ export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
   queued: number
   alreadyMarked: number
 }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const hw = await prisma.homework.findFirst({
     where: { id: homeworkId, schoolId },
@@ -1286,9 +1262,7 @@ export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
 
 /** Send a homework reminder notification (in-app + email) to a student who hasn't submitted. */
 export async function resendHomeworkReminder(homeworkId: string, studentId: string): Promise<{ ok: true }> {
-  const session = await auth()
-  if (!session?.user) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const hw = await prisma.homework.findFirst({
     where:  { id: homeworkId, schoolId },
@@ -1332,9 +1306,7 @@ export async function resendHomeworkReminder(homeworkId: string, studentId: stri
 // ── Teacher notes on submissions ──────────────────────────────────────────────
 
 export async function saveHomeworkTeacherNote(submissionId: string, note: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
   if (!sub) throw new Error('Submission not found')
@@ -1350,9 +1322,7 @@ export async function saveHomeworkTeacherNote(submissionId: string, note: string
 // ── Link homework to ILP target as evidence ───────────────────────────────────
 
 export async function recordHomeworkAsIlpEvidence(homeworkId: string, ilpTargetId: string): Promise<{ alreadyLinked: boolean }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const hw = await prisma.homework.findFirst({ where: { id: homeworkId, schoolId } })
   if (!hw) throw new Error('Homework not found')
@@ -1421,11 +1391,9 @@ export async function updateIlpEvidence(
   evidenceId: string,
   data: { evidenceType: 'PROGRESS' | 'CONCERN' | 'NEUTRAL'; teacherNote?: string },
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId, role } = await requireAuth()
   const staffRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'SUPER_ADMIN']
-  if (!staffRoles.includes((session.user as any).role)) throw new Error('Forbidden')
+  if (!staffRoles.includes(role)) throw new Error('Forbidden')
 
   await prisma.ilpEvidenceEntry.updateMany({
     where: { id: evidenceId, schoolId },
@@ -1447,9 +1415,7 @@ export async function saveIlpEvidenceEntries(
     teacherNote?: string
   }>
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
@@ -1642,9 +1608,7 @@ export async function getIlpEvidenceForStudent(studentId: string): Promise<Array
   score: number | null; maxScore: number | null; evidenceType: string
   aiSummary: string | null; teacherNote: string | null; createdAt: Date
 }>> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   return prisma.ilpEvidenceEntry.findMany({
     where: { studentId, schoolId },
@@ -1674,9 +1638,7 @@ export type SubmissionForEvidencing = {
 }
 
 export async function getStudentSubmissionsForEvidencing(studentId: string): Promise<SubmissionForEvidencing[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'].includes(role)) {
     throw new Error('Unauthorized')
   }
@@ -1729,9 +1691,7 @@ export async function getStudentSubmissionsForEvidencing(studentId: string): Pro
 export async function getIlpConcernsThisTerm(): Promise<Array<{
   id: string; firstName: string; lastName: string; yearGroup: number | null; concernCount: number
 }>> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const now = new Date()
   const currentTerm = await prisma.termDate.findFirst({
@@ -1765,9 +1725,7 @@ export async function getIlpConcernsThisTerm(): Promise<Array<{
 export async function suggestHomeworkGrade(
   submissionId: string,
 ): Promise<{ grade: string; rationale: string; feedback: string; confidence: 'high' | 'medium' | 'low' }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { role } = session.user as any
+  const { role } = await requireAuth()
   if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) {
     return { grade: '', rationale: 'Not authorized', feedback: '', confidence: 'low' as const }
   }
@@ -1844,9 +1802,7 @@ export type SubmissionReadOnly = {
 export async function getSubmissionReadOnly(
   submissionId: string,
 ): Promise<SubmissionReadOnly | null> {
-  const session = await auth()
-  if (!session) return null
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
 
   const staffRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
   if (!staffRoles.includes(role)) return null

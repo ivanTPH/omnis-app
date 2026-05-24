@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
@@ -12,9 +12,7 @@ function termLabel(id: string) {
 }
 
 export default async function SltAnalyticsPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
   // All classes with teachers and enrolment counts

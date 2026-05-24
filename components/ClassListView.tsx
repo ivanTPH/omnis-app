@@ -139,7 +139,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                       </div>
 
                       <div className="divide-y divide-gray-50">
-                        {cls.students.map((s, i) => (
+                        {cls.students.map((s, _i) => (
                           <div
                             key={s.id}
                             className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_100px_120px] items-center px-5 py-2.5 text-sm hover:bg-gray-50 transition-colors"

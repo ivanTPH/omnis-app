@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
@@ -7,9 +7,7 @@ import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
 export default async function IlpListPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SCHOOL_ADMIN', 'SLT', 'HEAD_OF_YEAR'].includes(role)) redirect('/dashboard')
 
   const sendStatuses = await prisma.sendStatus.findMany({
@@ -28,7 +26,6 @@ export default async function IlpListPage() {
     orderBy: { updatedAt: 'desc' },
   })
   const planByStudent = Object.fromEntries(plans.map(p => [p.studentId, p]))
-  const ssById        = Object.fromEntries(sendStatuses.map(s => [s.studentId, s]))
 
   const statusLabel: Record<string, string> = {
     [PlanStatus.DRAFT]:                'Draft',

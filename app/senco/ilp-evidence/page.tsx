@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getIlpEvidenceStudents } from '@/app/actions/adaptive-learning'
 import AppShell from '@/components/AppShell'
@@ -6,9 +6,7 @@ import IlpEvidenceView from '@/components/send-support/IlpEvidenceView'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function IlpEvidencePage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as { schoolId: string; role: string; firstName: string; lastName: string; schoolName: string }
+  const user = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) redirect('/dashboard')
 
   const data = await getIlpEvidenceStudents()

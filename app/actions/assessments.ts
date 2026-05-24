@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 
 export type AssessmentRow = {
@@ -14,9 +14,7 @@ export type AssessmentRow = {
 }
 
 export async function getStudentAssessments(studentId: string): Promise<AssessmentRow[]> {
-  const session = await auth()
-  if (!session) return []
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const rows = await prisma.assessment.findMany({
     where:   { schoolId, studentId },
@@ -54,9 +52,7 @@ export async function addAssessment(data: {
   date:           string   // ISO string
   notes?:         string
 }): Promise<{ id: string }> {
-  const session = await auth()
-  if (!session) throw new Error('Not authenticated')
-  const { schoolId, id: teacherId } = session.user as any
+  const { schoolId, id: teacherId } = await requireAuth()
 
   const record = await prisma.assessment.create({
     data: {
@@ -76,9 +72,7 @@ export async function addAssessment(data: {
 }
 
 export async function deleteAssessment(id: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Not authenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
   await prisma.assessment.deleteMany({ where: { id, schoolId } })
 }
 
@@ -86,9 +80,7 @@ export async function editAssessment(
   id: string,
   data: { score: number; notes?: string },
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Not authenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
   await prisma.assessment.updateMany({
     where: { id, schoolId },
     data:  { score: data.score, notes: data.notes ?? null },

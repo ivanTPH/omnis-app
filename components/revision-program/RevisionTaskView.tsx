@@ -159,7 +159,7 @@ function MarkSchemeReview({ task, response, onContinue }: {
   const lessonTitle = sc?.lessonTitle as string | undefined
 
   const [selfMarks, setSelfMarks] = useState<Record<string, number>>({})
-  const [revealed, setRevealed]   = useState(false)
+  const [_revealed, _setRevealed]   = useState(false)
 
   const totalAvailable = questions.reduce((sum: number, q: any) => sum + (q.marks ?? 0), 0)
   const totalEarned    = Object.values(selfMarks).reduce((s: number, v) => s + (v as number), 0)

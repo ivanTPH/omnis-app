@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, unstable_cache } from 'next/cache'
 import { LessonType, AudienceType, PlanStatus, ResourceType } from '@prisma/client'
@@ -27,9 +27,7 @@ export type CalendarLessonData = {
 
 export async function getWeekLessons(weekStartISO: string): Promise<CalendarLessonData[]> {
   try {
-    const session = await auth()
-    if (!session) return []
-    const { schoolId, id: userId } = session.user as any
+    const { schoolId, id: userId } = await requireAuth()
 
     const weekStart = new Date(weekStartISO)
     // Add 5 days in ms then subtract 1ms → end of Friday regardless of client timezone offset
@@ -84,9 +82,7 @@ export type CreateLessonInput = {
 }
 
 export async function createLesson(input: CreateLessonInput) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const lesson = await prisma.lesson.create({
     data: {
@@ -161,9 +157,7 @@ Example format: ["Students will be able to ...", "Students will be able to ...",
 
 export async function getLessonDetails(lessonId: string) {
   try {
-  const session = await auth()
-  if (!session) return null
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const lesson = await prisma.lesson.findFirst({
     where: { id: lessonId, schoolId },
@@ -261,9 +255,7 @@ export async function getLessonDetails(lessonId: string) {
 }
 
 export async function updateLessonObjectives(lessonId: string, objectives: string[]) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
   await prisma.lesson.updateMany({
     where: { id: lessonId, schoolId },
     data: { objectives },
@@ -275,9 +267,7 @@ export async function updateLessonOverview(lessonId: string, data: {
   title: string
   objectives: string[]
 }) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   await prisma.lesson.updateMany({
     where: { id: lessonId, schoolId },
@@ -320,9 +310,7 @@ function scoreOakLesson(lesson: { title: string; unitSlug: string; pupilLessonOu
 }
 
 export async function generateLessonObjectives(lessonId: string): Promise<string[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   // Fetch lesson + class context
   const lesson = await prisma.lesson.findFirst({
@@ -451,9 +439,7 @@ Example: ["Students will be able to ...", "Students will be able to ...", "Stude
 // ── Resource library ──────────────────────────────────────────────────────────
 
 export async function getSchoolResourceLibrary(forLessonId?: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   // Resolve the calling lesson's subject + yearGroup for contextual filtering
   let contextSubject: string | undefined
@@ -490,9 +476,7 @@ export async function addUrlResource(
   lessonId: string,
   input: { label: string; type: ResourceType; url: string; description?: string }
 ): Promise<{ resourceId: string; review: ReviewResult }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const resource = await prisma.resource.create({
     data: {
@@ -538,9 +522,7 @@ export async function addUploadedResource(
   lessonId: string,
   input: { label: string; type: ResourceType; fileName: string; description?: string }
 ): Promise<{ resourceId: string; review: ReviewResult }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const resource = await prisma.resource.create({
     data: {
@@ -585,9 +567,7 @@ export async function addLibraryResource(
   lessonId: string,
   sourceResourceId: string
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId } = session.user as any
+  const { schoolId, id: userId } = await requireAuth()
 
   const source = await prisma.resource.findFirst({
     where:   { id: sourceResourceId, schoolId },
@@ -632,9 +612,7 @@ export async function reReviewResource(
   resourceId: string,
   updates: { label: string; description?: string }
 ): Promise<{ review: ReviewResult }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const resource = await prisma.resource.findFirst({ where: { id: resourceId, schoolId } })
   if (!resource) throw new Error('Resource not found')
@@ -671,9 +649,7 @@ export async function reReviewResource(
 // ── Remove resource ───────────────────────────────────────────────────────────
 
 export async function removeResource(resourceId: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   // Delete review first (FK constraint)
   await prisma.resourceReview.deleteMany({ where: { resourceId } })
@@ -686,9 +662,7 @@ export async function removeResource(resourceId: string): Promise<void> {
 // ── Delete lesson ─────────────────────────────────────────────────────────────
 
 export async function deleteLesson(lessonId: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   // Cascade: reviews → resource versions → resources → homework → lesson
   const resources = await prisma.resource.findMany({ where: { lessonId, schoolId }, select: { id: true } })
@@ -710,9 +684,7 @@ export async function rescheduleLesson(
   scheduledAt: string,
   endsAt: string,
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   await prisma.lesson.updateMany({
     where: { id: lessonId, schoolId },
@@ -728,9 +700,7 @@ export async function updateResource(
   resourceId: string,
   data: { label?: string; url?: string }
 ): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   await prisma.resource.updateMany({
     where: { id: resourceId, schoolId },
@@ -822,9 +792,7 @@ async function fetchClassRosterFromDb(classId: string, schoolId: string): Promis
 
 export async function getClassRoster(classId: string): Promise<ClassRosterRow[]> {
   try {
-    const session = await auth()
-    if (!session) return []
-    const { schoolId } = session.user as any
+    const { schoolId } = await requireAuth()
     return await unstable_cache(
       () => fetchClassRosterFromDb(classId, schoolId),
       [`roster-${classId}-${schoolId}`],
@@ -855,9 +823,7 @@ export async function getStudentClassDetail(
   classId:   string,
 ): Promise<StudentClassDetail> {
   try {
-    const session = await auth()
-    if (!session) return { recentSubmissions: [] }
-    const { schoolId } = session.user as any
+    const { schoolId } = await requireAuth()
 
     const submissions = await prisma.submission.findMany({
       where: {
@@ -913,9 +879,7 @@ function maxFromBandsServer(bands: unknown): number {
 
 export async function getClassInsights(classId: string): Promise<ClassInsightsData> {
   try {
-    const session = await auth()
-    if (!session) return { students: [], classAvg: null, totalHomework: 0 }
-    const { schoolId } = session.user as any
+    const { schoolId } = await requireAuth()
 
     const [enrolments, homework] = await Promise.all([
       prisma.enrolment.findMany({
@@ -1012,9 +976,7 @@ export async function getStudentRosterDetail(
   classId:   string,
 ): Promise<StudentRosterDetail> {
   try {
-    const session = await auth()
-    if (!session) return { recentHomework: [], examScores: [], rosterNotes: [] }
-    const { schoolId } = session.user as any
+    const { schoolId } = await requireAuth()
 
     // Recent homework submissions for this student in this class
     const [classSubs, allSubs, auditNotes] = await Promise.all([
@@ -1127,9 +1089,7 @@ export type ClassTimeSeriesData = {
 
 export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeriesData> {
   try {
-    const session = await auth()
-    if (!session) return { points: [], studentNames: [] }
-    const { schoolId } = session.user as any
+    const { schoolId } = await requireAuth()
 
     // 1. Get class metadata
     const cls = await prisma.schoolClass.findFirst({
@@ -1242,9 +1202,7 @@ export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeri
 
 export async function addRosterNote(studentId: string, content: string): Promise<void> {
   try {
-    const session = await auth()
-    if (!session) return
-    const { schoolId, id: actorId } = session.user as any
+    const { schoolId, id: actorId } = await requireAuth()
     await writeAudit({
       schoolId,
       actorId,

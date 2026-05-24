@@ -29,7 +29,7 @@ type Props = {
 
 export default function CoverAssignmentGrid({
   assignments,
-  absences,
+  absences: _absences,
   selectedAbsenceId,
   schoolId,
   date,

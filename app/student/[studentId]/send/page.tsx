@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getStudentConcerns, getStudentIlp, getEarlyWarningFlags, getStudentLearnerPassport } from '@/app/actions/send-support'
 import { prisma } from '@/lib/prisma'
@@ -20,9 +20,7 @@ export default async function StudentSendPage({
 }: {
   params: Promise<{ studentId: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as { role: string; schoolId: string; firstName: string; lastName: string; schoolName: string }
+  const user = await requireAuth()
   if (!ALLOWED.includes(user.role)) redirect('/dashboard')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
 

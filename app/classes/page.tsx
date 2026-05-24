@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import MyClassesView, { type ClassKpis } from '@/components/MyClassesView'
@@ -7,10 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 
 export default async function ClassesPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-
-  const { role, firstName, lastName, schoolName, schoolId } = session.user as any
+  const { role, firstName, lastName, schoolName, schoolId } = await requireAuth()
   const { teacherClasses } = await getTeacherDefaults()
 
   const classIds = teacherClasses.map((c: { id: string }) => c.id)

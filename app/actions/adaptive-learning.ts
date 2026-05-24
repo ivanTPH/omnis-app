@@ -1,15 +1,14 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 
 async function requireStaff() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as { id: string; schoolId: string; role: string }
+  const user = await requireAuth()
   if (!['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) {
     redirect('/dashboard')
   }

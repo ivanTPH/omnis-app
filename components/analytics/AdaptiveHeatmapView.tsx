@@ -6,7 +6,7 @@ import { getClassTopicHeatmap } from '@/app/actions/analytics'
 import { generateResource } from '@/app/actions/ai-generator'
 import type { ClassTopicHeatmap } from '@/app/actions/analytics'
 import StudentAvatar from '@/components/StudentAvatar'
-import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
+import { percentToGcseGrade } from '@/lib/grading'
 
 type Props = {
   classId:         string

@@ -1,7 +1,7 @@
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
-import { auth }        from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { generatePdf } from '@/lib/pdf/generator'
 import { kPlanPdf }    from '@/lib/pdf/k-plan-template'
@@ -10,9 +10,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ studentId: string }> },
 ) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  const user = session.user as { id: string; schoolId: string; schoolName: string; role: string }
+  const user = await requireAuth()
 
   const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
   if (!allowedRoles.includes(user.role)) {

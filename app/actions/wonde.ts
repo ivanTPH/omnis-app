@@ -1,5 +1,5 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { runWondeSync, type WondeSyncResult } from '@/lib/wonde-sync'
 import { fetchWondeSchool } from '@/lib/wonde-client'
@@ -19,9 +19,7 @@ export async function getWondeConfig(): Promise<{
   syncedAt: Date | null
   lastDeltaAt: Date | null
 } | null> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
   requireAdminOrSlt(role)
 
   const wondeEnvId = process.env.WONDE_SCHOOL_ID ?? null
@@ -49,9 +47,7 @@ export async function testWondeConnection(): Promise<{
   mis?: string
   error?: string
 }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { role } = session.user as any
+  const { role } = await requireAuth()
   requireAdminOrSlt(role)
 
   const token    = process.env.WONDE_API_TOKEN
@@ -81,9 +77,7 @@ export async function triggerWondeSync(): Promise<{
   logId?: string
   error?: string
 }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
   requireAdminOrSlt(role)
 
   const token       = process.env.WONDE_API_TOKEN
@@ -144,9 +138,7 @@ export async function triggerWondeSync(): Promise<{
 // ── Sync logs ─────────────────────────────────────────────────────────────────
 
 export async function getWondeSyncLogs(limit = 20) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
   requireAdminOrSlt(role)
 
   return prisma.wondeSyncLog.findMany({
@@ -159,9 +151,7 @@ export async function getWondeSyncLogs(limit = 20) {
 // ── Wonde data counts ─────────────────────────────────────────────────────────
 
 export async function getWondeCounts() {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, role } = session.user as any
+  const { schoolId, role } = await requireAuth()
   requireAdminOrSlt(role)
 
   const [employees, students, classes, groups, periods, timetable] = await Promise.all([

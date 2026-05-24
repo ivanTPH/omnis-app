@@ -2,7 +2,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { getDashboardData, addConcernNote, escalateConcernToStaff, dismissSencoAlert, type DashboardData, type OpenConcern } from '@/app/actions/dashboard'
-import { CONCERN_SECTIONS, sectionForCategory } from '@/components/send-support/ConcernList'
+import { CONCERN_SECTIONS } from '@/components/send-support/ConcernList'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatCardSkeleton, StudentListSkeleton, HomeworkCardSkeleton } from '@/components/ui/skeletons'

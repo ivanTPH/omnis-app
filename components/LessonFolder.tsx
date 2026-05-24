@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom'
 import Icon from '@/components/ui/Icon'
 import UITooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives } from '@/app/actions/lessons'
@@ -17,10 +16,7 @@ import { HomeworkType } from '@prisma/client'
 import { gradeLabel } from '@/lib/grading'
 import { formatRawScore } from '@/lib/gradeUtils'
 import dynamic from 'next/dynamic'
-import AddResourcePanel       from '@/components/AddResourcePanel'
-import OakResourcePanel       from '@/components/OakResourcePanel'
 import UnifiedResourceSearch  from '@/components/UnifiedResourceSearch'
-const RevisionAnalysisPanel  = dynamic(() => import('@/components/revision-program/RevisionAnalysisPanel'), { ssr: false })
 const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab'),          { ssr: false })
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
@@ -1562,8 +1558,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {lesson?.homework && lesson.homework.length > 0 ? (
                     <div className="space-y-4">
                       {lesson.homework.map(hw => {
-                        const submitted = hw.submissions.filter(s => s.status !== 'RETURNED' && s.status !== 'MARKED')
-                        const marked    = hw.submissions.filter(s => s.status === 'RETURNED' || s.status === 'MARKED')
                         return (
                           <div key={hw.id} className="border border-gray-200 rounded-xl overflow-hidden">
                             {/* Homework header */}

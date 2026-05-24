@@ -1,7 +1,7 @@
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
-import { auth }         from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma }       from '@/lib/prisma'
 import { generatePdf }  from '@/lib/pdf/generator'
 import { revisionTimetablePdf } from '@/lib/pdf/revision-timetable-template'
@@ -15,10 +15,7 @@ function getMonday(date: Date): Date {
 }
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   const { searchParams } = new URL(req.url)
   const studentId  = searchParams.get('studentId') ?? user.id

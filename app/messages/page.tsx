@@ -1,5 +1,4 @@
-import { auth }          from '@/lib/auth'
-import { redirect }      from 'next/navigation'
+import { requireAuth } from '@/lib/session'
 import AppShell          from '@/components/AppShell'
 import { getMyThreads }  from '@/app/actions/messaging'
 import MessagingShell    from '@/components/messaging/MessagingShell'
@@ -9,9 +8,7 @@ export default async function MessagesPage({
 }: {
   searchParams: Promise<{ threadId?: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as any
+  const user = await requireAuth()
   const { threadId } = await searchParams
 
   const threads = await getMyThreads()

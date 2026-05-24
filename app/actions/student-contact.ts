@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -41,9 +41,7 @@ export type StudentContactData = {
 // ── getStudentContactData ──────────────────────────────────────────────────────
 
 export async function getStudentContactData(studentId: string): Promise<StudentContactData | null> {
-  const session = await auth()
-  if (!session) return null
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   // 1. Core student data + independent queries in parallel
   const [user, sendStatus, ilp, ehcp, quickNotes, parentLinks] = await Promise.all([
@@ -150,9 +148,7 @@ export async function getStudentContactData(studentId: string): Promise<StudentC
 // ── saveStudentQuickNote ───────────────────────────────────────────────────────
 
 export async function saveStudentQuickNote(studentId: string, content: string): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: authorId } = session.user as any
+  const { schoolId, id: authorId } = await requireAuth()
 
   const trimmed = content.trim()
   if (!trimmed) return

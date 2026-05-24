@@ -1,5 +1,4 @@
-import { redirect }               from 'next/navigation'
-import { auth }                    from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { getAccessibilitySettings } from '@/app/actions/accessibility'
 import AccessibilitySettingsView   from '@/components/accessibility/AccessibilitySettingsView'
 import AppShell                    from '@/components/AppShell'
@@ -7,10 +6,7 @@ import Link                        from 'next/link'
 import Icon                        from '@/components/ui/Icon'
 
 export default async function AccessibilitySettingsPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
 
   const settings = await getAccessibilitySettings(user.id)
 

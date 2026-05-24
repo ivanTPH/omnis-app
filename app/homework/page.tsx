@@ -1,13 +1,10 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import HomeworkFilterView from '@/components/HomeworkFilterView'
 
 export default async function HomeworkPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, id: userId, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
 
   // Teachers and cover managers only see their own classes' homework.
   // All other staff roles (HOD, HOY, SENCO, SLT, SCHOOL_ADMIN) see the full school.

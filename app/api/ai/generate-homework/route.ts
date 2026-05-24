@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import { HomeworkType } from '@prisma/client'
@@ -21,12 +21,7 @@ export async function POST(request: Request) {
     async start(controller) {
       try {
         // ── Auth ────────────────────────────────────────────────────────────
-        const session = await auth()
-        if (!session) {
-          emit(controller, { type: 'error', message: 'Unauthenticated' })
-          return
-        }
-        const { schoolId, id: generatingUserId } = session.user as { schoolId: string; id: string }
+        const { schoolId, id: generatingUserId } = await requireAuth()
 
         const body = await request.json()
         const { lessonId, forceType, preferredResourceId } = body as {

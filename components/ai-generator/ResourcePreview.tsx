@@ -59,7 +59,7 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
           <h2 className="text-[15px] font-bold text-gray-900 leading-tight">{resource.title}</h2>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="flex items-center gap-1 text-[11px] text-gray-500">
-              <ResourceTypeIcon type={resource.resourceType} size={11} />
+              <ResourceTypeIcon type={resource.resourceType} />
               {typeLabel}
             </span>
             <span className="text-gray-300">·</span>

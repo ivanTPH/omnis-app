@@ -1,12 +1,10 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 export async function sendParentMessage(conversationId: string, content: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { id: userId, role } = session.user as any
+  const { id: userId, role } = await requireAuth()
   if (role !== 'PARENT') throw new Error('Forbidden')
 
   const conv = await prisma.parentConversation.findFirst({

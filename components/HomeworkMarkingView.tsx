@@ -9,7 +9,7 @@ import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, record
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
-import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS, gradeLabel as gcseGradeLabel } from '@/lib/grading'
+import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getHomeworkForMarking>>>
@@ -36,14 +36,6 @@ function suggestGrade(score: number, bands: unknown): string {
 }
 
 // ── status helpers ─────────────────────────────────────────────────────────────
-
-const STATUS_STYLES: Record<string, string> = {
-  RETURNED:         'bg-green-100 text-green-700',
-  MARKED:           'bg-blue-100  text-blue-700',
-  UNDER_REVIEW:     'bg-amber-100 text-amber-700',
-  RESUBMISSION_REQ: 'bg-rose-100  text-rose-700',
-  SUBMITTED:        'bg-gray-100  text-gray-600',
-}
 
 function statusLabel(s: string) {
   if (s === 'RESUBMISSION_REQ') return 'Resubmit'
@@ -819,7 +811,6 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     isAutoMarkedPending ? 'auto' :
     'empty'
   const gradeHasValue = !!(form?.grade && form.grade !== '')
-  const gradeBoxClass =
     gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-700' :
     gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-700' :
     gradeState === 'final'     ? 'bg-white border-gray-300 text-gray-900 font-semibold' :

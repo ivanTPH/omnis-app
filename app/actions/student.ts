@@ -1,13 +1,11 @@
 'use server'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
 
 export async function getStudentHomework(homeworkId: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId, role } = session.user as any
+  const { schoolId, id: userId, role } = await requireAuth()
   if (role !== 'STUDENT') throw new Error('Forbidden')
 
   const [hw, sendStatusRecord] = await Promise.all([
@@ -138,9 +136,7 @@ export async function getStudentHomework(homeworkId: string) {
 }
 
 export async function submitHomework(homeworkId: string, content: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId, role } = session.user as any
+  const { schoolId, id: userId, role } = await requireAuth()
   if (role !== 'STUDENT') throw new Error('Forbidden')
 
   const hw = await prisma.homework.findFirst({
@@ -336,9 +332,7 @@ export type SubjectGradeSummary = {
 }
 
 export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId, role } = session.user as any
+  const { schoolId, id: userId, role } = await requireAuth()
   if (role !== 'STUDENT') throw new Error('Forbidden')
 
   const { percentToGcseGrade } = await import('@/lib/grading')

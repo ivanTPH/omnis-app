@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
@@ -8,9 +8,7 @@ import StudentMobileDashboard, { type MobileHw, type SubjectProgress } from '@/c
 import AppShell from '@/components/AppShell'
 
 export default async function StudentDashboardPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, id: userId, firstName, lastName, avatarUrl, schoolName } = session.user as any
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')
 
   const enrolments = await prisma.enrolment.findMany({ where: { userId }, select: { classId: true } })
@@ -116,7 +114,7 @@ export default async function StudentDashboardPage() {
         userId={userId}
         firstName={firstName}
         lastName={lastName}
-        avatarUrl={avatarUrl ?? null}
+        avatarUrl={null}
         schoolName={schoolName}
         homework={mobileHw}
         subjectProgress={subjectProgress}

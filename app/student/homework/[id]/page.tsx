@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect, notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import HomeworkSubmissionView from '@/components/HomeworkSubmissionView'
@@ -7,9 +7,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 
 export default async function StudentHomeworkPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')
 
   const { id } = await params

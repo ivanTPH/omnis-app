@@ -240,7 +240,6 @@ export default function SubmissionMarkingView({
                 {(data as any).autoScore != null && (() => {
                   const as_ = (data as any).autoScore
                   const isLegacyPct = as_ > maxScore && maxScore <= 20
-                  const rawScore = isLegacyPct ? Math.round((as_ / 100) * maxScore) : as_
                   const pct = isLegacyPct ? as_ : Math.round((as_ / maxScore) * 100)
                   return (
                     <p className="text-sm text-amber-900">

@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma, writeEHCPAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -9,9 +10,7 @@ import Anthropic from '@anthropic-ai/sdk'
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
 async function requireSencoOrStaff() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as { id: string; schoolId: string; role: string; firstName: string; lastName: string }
+  const user = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR', 'TEACHER', 'HEAD_OF_DEPT'].includes(user.role)) {
     redirect('/dashboard')
   }
@@ -19,9 +18,7 @@ async function requireSencoOrStaff() {
 }
 
 async function requireSenco() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as { id: string; schoolId: string; role: string; firstName: string; lastName: string }
+  const user = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) redirect('/dashboard')
   return user
 }

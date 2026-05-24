@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
@@ -7,9 +7,7 @@ import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
 export default async function ParentDashboardPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, id: userId, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PARENT') redirect('/dashboard')
 
   const links = await prisma.parentStudentLink.findMany({

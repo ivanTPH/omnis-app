@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useTransition, useMemo, useRef } from 'react'
+import { useState, useEffect, useTransition, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
 import { useRouter } from 'next/navigation'
@@ -129,16 +129,15 @@ export default function WeeklyCalendar({
   const [slideOver,    setSlideOver]    = useState<{ date: string; hour: number; endHour?: number } | null>(null)
 
   // Mobile day view
-  const [mobileViewMode, setMobileViewMode] = useState<'week' | 'day'>('week')
-  const [mobileDayIndex, setMobileDayIndex] = useState(() => {
+  const [_mobileViewMode, _setMobileViewMode] = useState<'week' | 'day'>('week')
+  const [_mobileDayIndex, _setMobileDayIndex] = useState(() => {
     const today = new Date()
     const dow = today.getDay()
     return dow >= 1 && dow <= 5 ? dow - 1 : 0
   })
-  const touchStartX = useRef(0)
 
   useEffect(() => {
-    if (window.innerWidth < 768) setMobileViewMode('day')
+    if (window.innerWidth < 768) _setMobileViewMode('day')
   }, [])
 
   // Drag-to-create

@@ -1,14 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getPurposes, getConsentMatrix, getDataSubjectRequests } from '@/app/actions/gdpr'
 import GdprAdminShell from '@/components/gdpr/GdprAdminShell'
 
 export default async function AdminGdprPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
   const [purposes, matrix, dsrs] = await Promise.all([

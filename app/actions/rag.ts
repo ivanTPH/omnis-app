@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { writeAudit } from '@/lib/prisma'
 import { currentTermLabel, termLabelToDates } from '@/lib/termUtils'
@@ -93,9 +93,7 @@ export async function getClassRagData(
   termLabel?: string,
 ): Promise<RagStudent[]> {
   try {
-  const session = await auth()
-  if (!session) return []
-  const { schoolId, id: teacherId } = session.user as any
+  const { schoolId, id: teacherId } = await requireAuth()
 
   const term       = termLabel ?? currentTermLabel()
   const { from, to } = termLabelToDates(term)
@@ -248,9 +246,7 @@ export async function getClassRagData(
 // ── upsertTeacherPrediction ────────────────────────────────────────────────────
 
 export async function upsertTeacherPrediction(input: SavePredictionInput): Promise<void> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: teacherId } = session.user as any
+  const { schoolId, id: teacherId } = await requireAuth()
 
   await prisma.teacherPrediction.upsert({
     where: {

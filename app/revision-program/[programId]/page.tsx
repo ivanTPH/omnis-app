@@ -1,14 +1,12 @@
-import { auth } from '@/lib/auth'
-import { redirect, notFound } from 'next/navigation'
+import { requireAuth } from '@/lib/session'
+import { notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import RevisionProgramDetail from '@/components/revision-program/RevisionProgramDetail'
 import { getRevisionProgramDetail } from '@/app/actions/revision-program'
 import { prisma } from '@/lib/prisma'
 
 export default async function RevisionProgramDetailPage({ params }: { params: Promise<{ programId: string }> }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName, schoolId } = session.user as any
+  const { role, firstName, lastName, schoolName, schoolId } = await requireAuth()
 
   const { programId } = await params
   const detail = await getRevisionProgramDetail(programId)

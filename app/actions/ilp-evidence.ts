@@ -1,6 +1,6 @@
 'use server'
 
-import { auth }                from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit }  from '@/lib/prisma'
 import Anthropic               from '@anthropic-ai/sdk'
 
@@ -9,9 +9,7 @@ import Anthropic               from '@anthropic-ai/sdk'
 export async function requestILPEvidence(
   studentId: string,
 ): Promise<{ success: boolean; teachersNotified?: number; error?: string }> {
-  const session = await auth()
-  if (!session) return { success: false, error: 'Unauthorized' }
-  const { schoolId, id: actorId, role } = session.user as any
+  const { schoolId, id: actorId, role } = await requireAuth()
 
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) {
     return { success: false, error: 'Only SENCO can request ILP evidence' }

@@ -118,7 +118,7 @@ function SyncLogRow({ log }: { log: SyncLog }) {
 type Props = { logs: SyncLog[] }
 
 export default function OakSyncStatus({ logs: initialLogs }: Props) {
-  const [logs,     setLogs]     = useState<SyncLog[]>(initialLogs)
+  const [logs,     _setLogs]    = useState<SyncLog[]>(initialLogs)
   const [result,   setResult]   = useState<string | null>(null)
   const [pending,  start]       = useTransition()
 

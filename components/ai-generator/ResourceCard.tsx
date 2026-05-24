@@ -50,7 +50,7 @@ export default function ResourceCard({ resource, canDelete, onDelete, onSelect }
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2 mb-1">
             <span className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md shrink-0 ${typeColour}`}>
-              <ResourceTypeIcon type={resource.resourceType} size={10} />
+              <ResourceTypeIcon type={resource.resourceType} />
               {typeLabel}
             </span>
             {resource.sendAdapted && (

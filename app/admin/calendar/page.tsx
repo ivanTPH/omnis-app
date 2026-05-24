@@ -1,14 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getCalendarEntries } from '@/app/actions/admin'
 import AdminCalendar from '@/components/admin/AdminCalendar'
 
 export default async function AdminCalendarPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
   const entries = await getCalendarEntries(schoolId)

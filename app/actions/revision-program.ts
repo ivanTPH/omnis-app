@@ -1,5 +1,5 @@
 'use server'
-import { auth }         from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma }       from '@/lib/prisma'
 import { redirect }     from 'next/navigation'
 import { analyseClassPerformance, type ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
@@ -9,18 +9,14 @@ import type { TestQuestion, TestAnswer, TestResults } from '@/lib/revision/test-
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 async function requireStaff() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as any
+  const user = await requireAuth()
   const staffRoles = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','SUPER_ADMIN']
   if (!staffRoles.includes(user.role)) redirect('/student/dashboard')
   return user as { id: string; schoolId: string; role: string }
 }
 
 async function requireTeacherOrAbove() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as any
+  const user = await requireAuth()
   const allowed = ['TEACHER','HEAD_OF_DEPT','SLT','SCHOOL_ADMIN','SUPER_ADMIN']
   if (!allowed.includes(user.role)) redirect('/dashboard')
   return user as { id: string; schoolId: string; role: string }
@@ -419,9 +415,7 @@ export async function submitRevisionTask(
   timeSpentMins?: number,
 ): Promise<void> {
   try {
-    const session = await auth()
-    if (!session) redirect('/login')
-    const user = session.user as any
+    const user = await requireAuth()
 
     const task = await prisma.revisionTask.findFirst({
       where: { id: taskId, schoolId: user.schoolId, studentId: user.id },
@@ -459,9 +453,7 @@ export async function selfAssessRevisionTask(
   confidence: number,
 ): Promise<void> {
   try {
-    const session = await auth()
-    if (!session) redirect('/login')
-    const user = session.user as any
+    const user = await requireAuth()
 
     const task = await prisma.revisionTask.findFirst({
       where: { id: taskId, schoolId: user.schoolId, studentId: user.id },
@@ -572,9 +564,7 @@ export async function getStudentRevisionTasks(studentId?: string): Promise<{
   upcoming:  any[]
 }> {
   try {
-    const session = await auth()
-    if (!session) redirect('/login')
-    const user = session.user as any
+    const user = await requireAuth()
 
     let targetStudentId = studentId ?? user.id
 
@@ -953,9 +943,7 @@ export async function startTestSession(
   taskId:            string,
   previousSessionId?: string,
 ): Promise<{ sessionId: string; question: TestQuestion; totalQuestions: number }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const user = session.user as any
+  const user = await requireAuth()
   if (user.role !== 'STUDENT') throw new Error('Students only')
 
   const task = await prisma.revisionTask.findFirst({
@@ -1028,9 +1016,7 @@ export async function submitTestAnswer(
   sessionId: string,
   answer:    string,
 ): Promise<{ nextQuestion: TestQuestion | null; sessionComplete: boolean; results?: TestResults }> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const user = session.user as any
+  const user = await requireAuth()
 
   const testSession = await prisma.revisionTestSession.findFirst({
     where: { id: sessionId, studentId: user.id, schoolId: user.schoolId, status: 'active' },

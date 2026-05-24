@@ -1,13 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import WondeSyncPanel from '@/components/admin/WondeSyncPanel'
 import { getWondeConfig, getWondeSyncLogs, getWondeCounts } from '@/app/actions/wonde'
 
 export default async function WondeSyncPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
   const [config, logs, counts] = await Promise.all([

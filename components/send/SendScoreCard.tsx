@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useTransition } from 'react'
+import { useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import type { SendQualityScoreData } from '@/app/actions/send-scorer'
 import { forceRescoreLesson } from '@/app/actions/send-scorer'

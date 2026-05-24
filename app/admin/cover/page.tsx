@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import AppShell from '@/components/AppShell'
 import { getTodaysCoverSummary, getCoverHistory, getStaffList } from '@/app/actions/cover'
 import CoverPageTabs from '@/components/cover/CoverPageTabs'
@@ -7,10 +7,7 @@ import CoverPageTabs from '@/components/cover/CoverPageTabs'
 const ALLOWED = ['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER']
 
 export default async function CoverPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const user = session.user as any
+  const user = await requireAuth()
   const { role, firstName, lastName, schoolName } = user
   if (!ALLOWED.includes(role)) redirect('/dashboard')
 

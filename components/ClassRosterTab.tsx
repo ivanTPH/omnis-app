@@ -72,7 +72,7 @@ export default function ClassRosterTab({
     kPlanFullCache, kPlanChecked, kPlanLoading, kPlanModal, generatingIlp, ilpError,
     newNotes, savingNote, docSlideOver, flagConcernStudent,
     expandedId, expandedTab, selectedIds, searchQuery, sendFilter, contactStudentId,
-    setRows, setExpandedId, setExpandedTab, setSelectedIds,
+    setExpandedId, setExpandedTab, setSelectedIds,
     setSearchQuery, setSendFilter, setContactStudentId,
     setDocSlideOver, setFlagConcernStudent, setKPlanModal, setKPlanChecked,
     setNewNotes, setIlpError,

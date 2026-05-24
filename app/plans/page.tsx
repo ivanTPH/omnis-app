@@ -1,4 +1,4 @@
-import { auth }       from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect }   from 'next/navigation'
 import AppShell       from '@/components/AppShell'
 import PlansView      from '@/components/PlansView'
@@ -7,11 +7,7 @@ import { getPlansData } from '@/app/actions/plans'
 const ALLOWED = ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR']
 
 export default async function PlansPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { id: userId, role, firstName, lastName, schoolName, schoolId } = session.user as {
-    id: string; role: string; firstName: string; lastName: string; schoolName: string; schoolId: string
-  }
+  const { role, firstName, lastName, schoolName } = await requireAuth()
 
   if (!ALLOWED.includes(role)) redirect('/dashboard')
 

@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -58,19 +58,13 @@ export type ChildConsentData = {
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
 async function requireAdminOrSlt() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const u = session.user as any
+  const u = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(u.role)) redirect('/dashboard')
   return u
 }
 
 async function requireParent() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const u = session.user as any
+  const u = await requireAuth()
   if (u.role !== 'PARENT') redirect('/dashboard')
   return u
 }

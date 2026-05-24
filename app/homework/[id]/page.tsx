@@ -1,14 +1,12 @@
-import { auth } from '@/lib/auth'
-import { redirect, notFound } from 'next/navigation'
+import { requireAuth } from '@/lib/session'
+import { notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import HomeworkMarkingView from '@/components/HomeworkMarkingView'
 import { getHomeworkForMarking } from '@/app/actions/homework'
 import { getYearGroupPlanContext } from '@/app/actions/year-group-plans'
 
 export default async function HomeworkMarkingPage({ params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName, schoolId } = session.user as any
+  const { role, firstName, lastName, schoolName, schoolId } = await requireAuth()
   const canGrade = ['TEACHER', 'HEAD_OF_DEPT'].includes(role)
 
   const { id } = await params

@@ -1,14 +1,10 @@
-import { auth }    from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { requireAuth } from '@/lib/session'
 import { prisma }   from '@/lib/prisma'
 import AppShell     from '@/components/AppShell'
 import WeeklyCalendar, { type CalendarLesson, type UnscheduledLesson } from '@/components/WeeklyCalendar'
 
 export default async function CalendarPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { schoolId, role, id: userId, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
 
   // Current week Mon 00:00 → Fri 23:59
   const now    = new Date()

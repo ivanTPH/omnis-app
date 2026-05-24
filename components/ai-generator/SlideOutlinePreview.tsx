@@ -21,7 +21,7 @@ type Props = {
   deckTitle: string
 }
 
-export default function SlideOutlinePreview({ content, deckTitle }: Props) {
+export default function SlideOutlinePreview({ content }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [exporting, setExporting] = useState(false)
 

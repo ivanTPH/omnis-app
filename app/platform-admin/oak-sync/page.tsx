@@ -1,14 +1,11 @@
 import { redirect } from 'next/navigation'
-import { auth }     from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import AppShell     from '@/components/AppShell'
 import { getOakSyncLogs } from '@/app/actions/platform-admin'
 import OakSyncStatus      from '@/components/platform-admin/OakSyncStatus'
 
 export default async function OakSyncPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PLATFORM_ADMIN') redirect('/dashboard')
 
   const logs = await getOakSyncLogs()

@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getMyChildrenConsents } from '@/app/actions/gdpr'
@@ -6,10 +6,7 @@ import ParentConsentPortal from '@/components/gdpr/ParentConsentPortal'
 import Icon from '@/components/ui/Icon'
 
 export default async function ParentConsentPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PARENT') redirect('/dashboard')
 
   const children = await getMyChildrenConsents(schoolId)

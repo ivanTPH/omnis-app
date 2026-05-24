@@ -1,14 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { getSchoolList } from '@/app/actions/platform-admin'
 import SchoolListTable from '@/components/platform-admin/SchoolListTable'
 
 export default async function PlatformSchoolsPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PLATFORM_ADMIN') redirect('/dashboard')
 
   const schools = await getSchoolList()

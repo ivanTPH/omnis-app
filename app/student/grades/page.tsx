@@ -1,13 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import StudentGradesView from '@/components/student/StudentGradesView'
 import { getStudentGradeHistory } from '@/app/actions/student'
 
 export default async function StudentGradesPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')
 
   const subjectSummaries = await getStudentGradeHistory()

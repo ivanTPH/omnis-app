@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
@@ -76,9 +76,7 @@ function Section({ icon, title, colour, items, ssById, now, in7 }: {
 }
 
 export default async function ReviewDuePage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SCHOOL_ADMIN', 'SLT', 'HEAD_OF_YEAR'].includes(role)) redirect('/dashboard')
 
   const now  = new Date()

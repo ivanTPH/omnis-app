@@ -20,13 +20,11 @@ export const RESOURCE_TYPE_LABELS: Record<string, string> = {
 
 export default function ResourceTypeIcon({
   type,
-  size,
   className = '',
 }: {
   type: string
-  size?: number
   className?: string
 }) {
   const iconName = ICON_MAP[type] ?? 'description'
-  return <Icon name={iconName} size="sm" className={className} />
+  return <Icon name={iconName} className={className} />
 }

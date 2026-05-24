@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getEarlyWarningFlags } from '@/app/actions/send-support'
 import { getIlpConcernsThisTerm } from '@/app/actions/homework'
@@ -9,9 +9,7 @@ import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function EarlyWarningPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT'].includes(role)) redirect('/dashboard')
 
   const [flags, ilpConcerns] = await Promise.all([

@@ -1,4 +1,4 @@
-import { auth }        from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { redirect }    from 'next/navigation'
 import AppShell        from '@/components/AppShell'
@@ -7,10 +7,7 @@ import SettingsShell   from '@/components/settings/SettingsShell'
 export const metadata = { title: 'Settings — Omnis' }
 
 export default async function SettingsPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-
-  const { id: userId, schoolId, role, firstName, lastName, schoolName } = session.user as any
+  const { id: userId, role, firstName, lastName, schoolName } = await requireAuth()
 
   const [user, settings] = await Promise.all([
     prisma.user.findUnique({

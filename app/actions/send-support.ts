@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma, writeAudit, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -211,14 +212,6 @@ export type SencoDashboardData = {
 }
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  return session.user as {
-    id: string; schoolId: string; role: string; firstName: string; lastName: string
-  }
-}
 
 async function requireSenco() {
   const user = await requireAuth()
@@ -1831,7 +1824,6 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
     if (!match) return { success: false, error: 'AI did not return valid JSON' }
     const gen = JSON.parse(match[0])
 
-    const twelveWeeks = new Date(Date.now() + 12 * 7 * 24 * 60 * 60 * 1000)
     const thirteenWeeks = new Date(Date.now() + 13 * 7 * 24 * 60 * 60 * 1000)
 
     await prisma.individualLearningPlan.create({
@@ -2371,7 +2363,7 @@ studentCommitments: 4–6 items written in first person ("I will..."). Written a
  */
 export async function generateLearnerPassportInternal(
   studentId: string,
-  createdByUserId: string,
+  _createdByUserId: string,
   schoolId: string,
 ): Promise<void> {
   const [student, ilp, ehcp, apdr] = await Promise.all([

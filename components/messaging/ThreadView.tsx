@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 
-import type { ThreadDetail, MessageRow } from '@/app/actions/messaging'
+import type { ThreadDetail } from '@/app/actions/messaging'
 import { sendMessage, archiveThread, getThread } from '@/app/actions/messaging'
 import MessageBubble from './MessageBubble'
 import MessageComposer from './MessageComposer'

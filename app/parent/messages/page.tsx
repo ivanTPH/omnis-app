@@ -1,13 +1,11 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import ParentMessagesView from '@/components/ParentMessagesView'
 
 export default async function ParentMessagesPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, id: userId, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PARENT') redirect('/dashboard')
 
   const conversations = await prisma.parentConversation.findMany({

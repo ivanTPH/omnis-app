@@ -1,6 +1,6 @@
 'use server'
 
-import { auth }    from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma }  from '@/lib/prisma'
 import Anthropic   from '@anthropic-ai/sdk'
@@ -8,10 +8,7 @@ import Anthropic   from '@anthropic-ai/sdk'
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
 async function requireStudent() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const u = session.user as any
+  const u = await requireAuth()
   if (u.role !== 'STUDENT') redirect('/student/dashboard')
   return u
 }
@@ -252,7 +249,7 @@ export async function markSessionComplete(
 
   await prisma.revisionSession.update({
     where: { id: sessionId },
-    data:  { status: 'completed', confidence, notes: notes ?? null },
+    data:  { status: 'completed', notes: notes ?? null },
   })
 
   // Upsert confidence record
@@ -311,7 +308,7 @@ export async function getRevisionStats(_studentId: string) {
   const user = await requireStudent()
   const studentId = user.id as string
 
-  const [sessions, confidence] = await Promise.all([
+  const [sessions] = await Promise.all([
     prisma.revisionSession.findMany({
       where:  { studentId },
       select: { status: true, confidence: true, subject: true, scheduledAt: true },

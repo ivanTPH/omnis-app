@@ -1,6 +1,7 @@
 'use server'
 
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
@@ -224,10 +225,7 @@ export async function getOrCreateSendScore(
 export async function forceRescoreLesson(
   oakLessonSlug: string,
 ): Promise<SendQualityScoreData> {
-  const session = await auth()
-  if (!session) redirect('/login')
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const role = (session.user as any).role
+  const { role } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
   // Delete existing score

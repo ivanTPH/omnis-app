@@ -1,4 +1,4 @@
-import { auth }         from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect }     from 'next/navigation'
 import AppShell         from '@/components/AppShell'
 import { prisma }       from '@/lib/prisma'
@@ -10,9 +10,7 @@ export default async function ThreadPage({
 }: {
   params: Promise<{ threadId: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const user = session.user as any
+  const user = await requireAuth()
   const { threadId } = await params
 
   // Verify participant

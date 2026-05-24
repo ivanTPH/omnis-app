@@ -107,7 +107,7 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
     }
     error?: string
   } | null>(null)
-  const [logs, setLogs] = useState(initialLogs)
+  const [logs, _setLogs] = useState(initialLogs)
 
   async function handleTest() {
     setTesting(true)

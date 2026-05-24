@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import { percentToGcseGrade, gradeLabel } from '@/lib/grading'
+import { gradeLabel } from '@/lib/grading'
 import { saveStudentVoice } from '@/app/actions/students'
 import StudentAvatar from '@/components/StudentAvatar'
 import { useMobileMenu } from '@/lib/mobileMenuContext'
@@ -115,7 +115,7 @@ export default function StudentMobileDashboard({
   passport,
 }: Props) {
   const [tab, setTab] = useState<Tab>('home')
-  const { openMenu } = useMobileMenu()
+  useMobileMenu()
 
   // ── Student voice state ───────────────────────────────────────────────────────
   const [voiceText,   setVoiceText]   = useState(passport?.studentVoice ?? '')

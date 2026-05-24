@@ -1,5 +1,4 @@
-import { auth } from '@/lib/auth'
-import { redirect } from 'next/navigation'
+import { requireAuth } from '@/lib/session'
 import AppShell from '@/components/AppShell'
 import StudentAnalyticsView from '@/components/StudentAnalyticsView'
 import { getAnalyticsFilters, getTeacherDefaults } from '@/app/actions/analytics'
@@ -9,9 +8,7 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ classId?: string; subject?: string; yearGroup?: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
 
   const [filterOptions, teacherDefaults, params] = await Promise.all([
     getAnalyticsFilters(),

@@ -1,14 +1,11 @@
-import { auth }     from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell    from '@/components/AppShell'
 import TaNotesHub  from '@/components/TaNotesHub'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function TaNotesPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'TEACHING_ASSISTANT') redirect('/dashboard')
 
   return (

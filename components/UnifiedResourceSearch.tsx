@@ -433,7 +433,7 @@ export default function UnifiedResourceSearch({
           </p>
         )}
 
-        {filtered.map((item, i) => {
+        {filtered.map((item, _i) => {
           if (item.kind === 'oak') {
             const r = item.data
             const id = r.slug

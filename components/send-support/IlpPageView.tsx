@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import SendBadge from '@/components/ui/SendBadge'
 import { SencoRow } from '@/components/ui/SencoRow'
-import type { IlpWithTargets, PendingIlpEdit, GeneratedIlpGoal, StudentWithoutIlp } from '@/app/actions/send-support'
+import type { IlpWithTargets, PendingIlpEdit, StudentWithoutIlp } from '@/app/actions/send-support'
 import {
   getPendingIlpEdits, approveIlpEdit, rejectIlpEdit,
   generateIlpGoalsForStudent, createIlp, approveGeneratedIlp, scheduleIlpReview,
@@ -46,7 +46,7 @@ type ReviewScheduleModal =
 type Props = { ilps: IlpWithTargets[]; studentsWithoutIlp?: StudentWithoutIlp[] }
 
 export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: Props) {
-  const [ilps,           setIlps]           = useState(initial)
+  const [ilps,           _setIlps]          = useState(initial)
   const [showForm,       setShowForm]       = useState(false)
   const [expanded,       setExpanded]       = useState<Set<string>>(new Set())
   const [studentId,      setStudentId]      = useState('')

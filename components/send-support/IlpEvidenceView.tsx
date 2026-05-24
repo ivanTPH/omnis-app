@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
-import SendBadge from '@/components/ui/SendBadge'
 import { SencoRow } from '@/components/ui/SencoRow'
 import type { IlpEvidenceSummary, IlpEvidenceStudent, IlpEvidenceTarget } from '@/app/actions/adaptive-learning'
 import { requestILPEvidence } from '@/app/actions/ilp-evidence'

@@ -1,5 +1,6 @@
 'use server'
 import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import { SendStatusValue, HomeworkStatus, Role } from '@prisma/client'
@@ -19,9 +20,7 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
   classId?: string
   studentId?: string
 }): Promise<HomeworkAdaptiveAnalytics> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const hwWhere: any = { schoolId, status: { not: 'DRAFT' } }
   if (filters?.classId) hwWhere.classId = filters.classId
@@ -201,9 +200,7 @@ const fetchFilterOptions = unstable_cache(
 )
 
 export async function getAnalyticsFilters(): Promise<FilterOptions> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
   try {
     return await fetchFilterOptions(schoolId)
   } catch {
@@ -212,9 +209,7 @@ export async function getAnalyticsFilters(): Promise<FilterOptions> {
 }
 
 export async function getStudentPerformance(filters: AnalyticsFilters): Promise<StudentPerformanceResult> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   // ── Step 1: Resolve student IDs ──────────────────────────────────────────
   let studentIds: string[]
@@ -481,9 +476,7 @@ export type StudentDetailData = {
 }
 
 export async function getStudentDetail(studentId: string): Promise<StudentDetailData | null> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const student = await prisma.user.findFirst({
     where:   { id: studentId, schoolId, role: 'STUDENT' },
@@ -611,9 +604,7 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
 }
 
 export async function getSubmissionDetail(submissionId: string) {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const sub = await prisma.submission.findFirst({
     where:   { id: submissionId, schoolId },
@@ -661,9 +652,7 @@ export async function getClassSummaries(
   dateFrom?: string,
   dateTo?:   string,
 ): Promise<ClassSummary[]> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId, id: userId, role } = session.user as any
+  const { schoolId, id: userId, role } = await requireAuth()
 
   const restrictToTeacher = ['TEACHER', 'COVER_MANAGER', 'HEAD_OF_DEPT'].includes(role)
 
@@ -746,9 +735,7 @@ export type TeacherDefaults = {
 }
 
 export async function getTeacherDefaults(): Promise<TeacherDefaults> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { id: userId, schoolId, firstName, lastName } = session.user as any
+  const { id: userId, schoolId, firstName, lastName } = await requireAuth()
 
   const [classes, settings] = await Promise.all([
     prisma.schoolClass.findMany({
@@ -806,9 +793,7 @@ export type ClassTopicHeatmap = {
 }
 
 export async function getClassTopicHeatmap(classId: string): Promise<ClassTopicHeatmap> {
-  const session = await auth()
-  if (!session) throw new Error('Unauthenticated')
-  const { schoolId } = session.user as any
+  const { schoolId } = await requireAuth()
 
   const termStart = new Date()
   termStart.setDate(termStart.getDate() - 90)

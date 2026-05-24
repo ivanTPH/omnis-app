@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
@@ -10,9 +10,7 @@ function termLabel(id: string) {
 }
 
 export default async function HoyAnalyticsPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { schoolId, role, id: userId, firstName, lastName, schoolName } = session.user as any
+  const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (!['HEAD_OF_YEAR', 'SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
   // HoY's own year group (from user record) — admins see all

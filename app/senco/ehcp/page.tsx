@@ -1,4 +1,4 @@
-import { auth } from '@/lib/auth'
+import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { getAllEhcpPlans, getStudentsWithSendButNoEhcp } from '@/app/actions/ehcp'
 import AppShell from '@/components/AppShell'
@@ -6,9 +6,7 @@ import EhcpPageClient from '@/components/send-support/EhcpPageClient'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 export default async function EhcpPlansPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-  const { role, firstName, lastName, schoolName } = session.user as any
+  const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role)) redirect('/dashboard')
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
 

@@ -1848,7 +1848,32 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
       {activeTab === 'Plans' && (
         <div className="space-y-4">
           {!data.learningPassport && !data.kPlan && !data.ilp && !data.ehcp && (
-            <p className="text-sm text-gray-400 text-center py-8">No SEND documents on file for this student.</p>
+            <div className="py-8 text-center space-y-3">
+              {data.student.sendStatus && data.student.sendStatus !== 'NONE' ? (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+                    <Icon name="description" size="md" className="text-amber-600" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700">No SEND documents yet</p>
+                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                    {student.firstName} is on the SEND register ({data.student.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}) but has no ILP or Learning Passport on file.
+                  </p>
+                  {isSenco ? (
+                    <Link
+                      href={`/senco/ilp`}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      <Icon name="auto_awesome" size="sm" />
+                      Generate ILP in SENCO Hub
+                    </Link>
+                  ) : (
+                    <p className="text-xs text-gray-400">Contact your SENCO to create an ILP for this student.</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-400">No SEND documents on file for this student.</p>
+              )}
+            </div>
           )}
           {data.learningPassport && (
             <SectionCard

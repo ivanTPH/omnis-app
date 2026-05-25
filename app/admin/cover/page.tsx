@@ -30,7 +30,7 @@ export default async function CoverPage() {
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex flex-col h-full p-6 gap-4 min-h-0">
         <div className="flex-shrink-0">
-          <h1 className="text-[20px] font-bold text-gray-900">Cover Management</h1>
+          <h1 className="text-[22px] font-bold text-gray-900">Cover Management</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
             {today.toLocaleDateString('en-GB', {
               weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',

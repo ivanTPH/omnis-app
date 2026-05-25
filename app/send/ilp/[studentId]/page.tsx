@@ -125,7 +125,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   <span className="text-blue-700 font-bold text-[13px]">{student.firstName[0]}{student.lastName[0]}</span>
                 </div>
                 <div>
-                  <h1 className="text-[20px] font-bold text-gray-900 leading-tight">{student.firstName} {student.lastName}</h1>
+                  <h1 className="text-[22px] font-bold text-gray-900 leading-tight">{student.firstName} {student.lastName}</h1>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     {student.yearGroup && (
                       <span className="text-[11px] text-gray-400">Year {student.yearGroup}</span>

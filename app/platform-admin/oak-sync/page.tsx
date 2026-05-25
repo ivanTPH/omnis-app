@@ -14,7 +14,7 @@ export default async function OakSyncPage() {
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="p-6 max-w-5xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-[20px] font-bold text-gray-900">Oak Content Sync</h1>
+          <h1 className="text-[22px] font-bold text-gray-900">Oak Content Sync</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
             Monitor and trigger delta syncs with the Oak National Academy content library.
           </p>

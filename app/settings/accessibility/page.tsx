@@ -18,7 +18,7 @@ export default async function AccessibilitySettingsPage() {
             <Icon name="arrow_back" size="sm" />
             Settings
           </Link>
-          <h1 className="text-[20px] font-bold text-gray-900">Accessibility</h1>
+          <h1 className="text-[22px] font-bold text-gray-900">Accessibility</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
             Personalise your experience. Settings are saved to your account and apply on every device.
           </p>

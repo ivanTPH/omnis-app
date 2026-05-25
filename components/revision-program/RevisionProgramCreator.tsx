@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
@@ -58,13 +58,14 @@ function Step1({
   state,
   onChange,
   onNext,
+  loading,
 }: {
   classes: { id: string; name: string; subject: string; yearGroup: number }[]
   state: WizardState
   onChange: (patch: Partial<WizardState>) => void
   onNext: () => void
+  loading: boolean
 }) {
-  const [analysing, _startAnalysing] = useTransition()
 
   const selectedClass = classes.find(c => c.id === state.classId)
 
@@ -186,11 +187,11 @@ function Step1({
 
       <button
         onClick={handleNext}
-        disabled={!canProceed || analysing}
+        disabled={!canProceed || loading}
         className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
       >
-        {analysing ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
-        Analyse Class →
+        {loading ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
+        {loading ? 'Analysing…' : 'Analyse Class →'}
       </button>
     </div>
   )
@@ -780,7 +781,7 @@ export default function RevisionProgramCreator({
   const [analysis, setAnalysis] = useState<ClassPerformanceAnalysis | null>(null)
   const [generatedProgramId, setGeneratedProgramId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [isLoading, setIsLoading] = useState(false)
   const [state, setState] = useState<WizardState>({
     classId: '', className: '', subject: '', yearGroup: 0,
     periodPreset: 'this_term',
@@ -808,24 +809,24 @@ export default function RevisionProgramCreator({
 
   function patch(p: Partial<WizardState>) { setState(prev => ({ ...prev, ...p })) }
 
-  function handleAnalyse() {
+  async function handleAnalyse() {
     setError(null)
+    setIsLoading(true)
     const start = state.periodPreset !== 'custom'
       ? termDates(state.periodPreset as 'this_term' | 'last_term').start
       : new Date(state.periodStart)
     const end = state.periodPreset !== 'custom'
       ? termDates(state.periodPreset as 'this_term' | 'last_term').end
       : new Date(state.periodEnd)
-
-    startTransition(async () => {
-      try {
-        const result = await getClassPerformanceAnalysis(state.classId, start, end)
-        setAnalysis(result)
-        setStep(2)
-      } catch (e) {
-        setError('Failed to analyse class performance. Please try again.')
-      }
-    })
+    try {
+      const result = await getClassPerformanceAnalysis(state.classId, start, end)
+      setAnalysis(result)
+      setStep(2)
+    } catch {
+      setError('Failed to analyse class performance. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   function handleGoToTopics() {
@@ -834,34 +835,35 @@ export default function RevisionProgramCreator({
     setStep(3)
   }
 
-  function handleGenerate(topics: TopicEntry[]) {
+  async function handleGenerate(topics: TopicEntry[]) {
     if (!analysis) return
     setError(null)
+    setIsLoading(true)
     setStep(4)
 
     const start = new Date(state.periodStart)
     const end   = new Date(state.periodEnd)
 
-    startTransition(async () => {
-      try {
-        const result = await createRevisionProgram({
-          classId:      state.classId,
-          title:        `${state.subject} Revision — ${new Date(state.periodStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-          subject:      state.subject,
-          periodStart:  start,
-          periodEnd:    end,
-          mode:         state.mode,
-          deadline:     state.mode === 'formal_assignment' ? new Date(state.deadline) : undefined,
-          durationWeeks: state.durationWeeks,
-          approvedTopics: topics,
-        })
-        setGeneratedProgramId(result.programId)
-        setStep(5)
-      } catch (e: any) {
-        setError(e?.message ?? 'Failed to generate revision program.')
-        setStep(3)
-      }
-    })
+    try {
+      const result = await createRevisionProgram({
+        classId:      state.classId,
+        title:        `${state.subject} Revision — ${new Date(state.periodStart).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+        subject:      state.subject,
+        periodStart:  start,
+        periodEnd:    end,
+        mode:         state.mode,
+        deadline:     state.mode === 'formal_assignment' ? new Date(state.deadline) : undefined,
+        durationWeeks: state.durationWeeks,
+        approvedTopics: topics,
+      })
+      setGeneratedProgramId(result.programId)
+      setStep(5)
+    } catch (e: any) {
+      setError(e?.message ?? 'Failed to generate revision program.')
+      setStep(3)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const stepLabels = ['Scope', 'Analysis', 'Topics', 'Generating', 'Review']
@@ -900,13 +902,13 @@ export default function RevisionProgramCreator({
         </div>
       )}
       {step === 1 && (
-        <Step1 classes={classes} state={state} onChange={patch} onNext={handleAnalyse} />
+        <Step1 classes={classes} state={state} onChange={patch} onNext={handleAnalyse} loading={isLoading} />
       )}
       {step === 2 && analysis && (
-        <Step2 analysis={analysis} onBack={() => setStep(1)} onGenerate={handleGoToTopics} generating={isPending} />
+        <Step2 analysis={analysis} onBack={() => setStep(1)} onGenerate={handleGoToTopics} generating={isLoading} />
       )}
       {step === 3 && analysis && (
-        <TopicReview analysis={analysis} onBack={() => setStep(2)} onGenerate={handleGenerate} generating={isPending} />
+        <TopicReview analysis={analysis} onBack={() => setStep(2)} onGenerate={handleGenerate} generating={isLoading} />
       )}
       {step === 4 && (
         <Step3 studentCount={analysis?.studentAnalysis.length ?? 0} />

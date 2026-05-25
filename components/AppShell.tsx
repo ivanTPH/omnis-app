@@ -8,6 +8,8 @@ import { getTeacherDefaults } from '@/app/actions/analytics'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
 import { MobileMenuContext } from '@/lib/mobileMenuContext'
 import { ToastContainer } from '@/components/ui/Toast'
+import GuideChatButton from '@/components/help/GuideChatButton'
+import OnboardingChecklist from '@/components/help/OnboardingChecklist'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
 const STAFF_ROLES = new Set(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'])
@@ -126,6 +128,8 @@ export default function AppShell({
         </div>
       </div>
       <ToastContainer />
+      <GuideChatButton />
+      <OnboardingChecklist role={role} />
     </TeacherProfileContext.Provider>
     </MobileMenuContext.Provider>
   )

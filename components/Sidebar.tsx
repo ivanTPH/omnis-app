@@ -202,8 +202,19 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         })}
       </nav>
 
-      {/* Settings */}
+      {/* Help + Settings */}
       <div className="px-2 pb-1 shrink-0 border-t border-gray-100 pt-2">
+        <Link
+          href="/help"
+          onClick={onClose}
+          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+            pathname === '/help'
+              ? 'bg-blue-700 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          <Icon name="help_outline" size="sm" className="shrink-0" />Help Centre
+        </Link>
         <Link
           href="/settings"
           onClick={onClose}

@@ -10,6 +10,7 @@ import StudentAvatar from '@/components/StudentAvatar'
 import { StudentListSkeleton, StatCardSkeleton } from '@/components/ui/skeletons'
 import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 import { formatRawScore } from '@/lib/gradeUtils'
+import InfoTip from '@/components/ui/InfoTip'
 
 // ── RAG helpers ───────────────────────────────────────────────────────────────
 
@@ -131,12 +132,18 @@ function PredictionForm({
             className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-gray-500">Adjustment <span className="text-gray-400">(+/−)</span></label>
+          <label className="text-[11px] text-gray-500 flex items-center">
+            Adjustment <span className="text-gray-400 ml-1">(+/−)</span>
+            <InfoTip content="Add a positive or negative adjustment to account for exceptional circumstances, e.g. illness or external factors. Range: −20 to +20." side="right" />
+          </label>
           <input type="number" min={-20} max={20} step={1} value={adj} onChange={e => setAdj(Number(e.target.value))}
             className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-gray-500">Effective</label>
+          <label className="text-[11px] text-gray-500 flex items-center">
+            Effective
+            <InfoTip content="The final predicted score used for RAG calculation: Predicted Score + Adjustment." side="right" />
+          </label>
           <div className="px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700 min-w-[60px] text-center">
             {effective}
           </div>
@@ -631,11 +638,26 @@ export default function RagView({ classId, subject, termLabel }: Props) {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="grid grid-cols-[1fr_auto_80px_80px_80px_80px_32px] items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
           <span>Student</span>
-          <span>Status</span>
-          <span className="text-right">Baseline</span>
-          <span className="text-right">Predicted</span>
-          <span className="text-right">Working at</span>
-          <span className="text-right">Last score</span>
+          <span className="flex items-center">
+            Status
+            <InfoTip content="Green = at or above predicted grade. Amber = 1 grade below. Red = 2+ grades below predicted." />
+          </span>
+          <span className="text-right flex items-center justify-end">
+            Baseline
+            <InfoTip content="Starting point score (0–100) from CAT tests or prior attainment. Used as fallback when no teacher prediction is set." side="top" />
+          </span>
+          <span className="text-right flex items-center justify-end">
+            Predicted
+            <InfoTip content="Best available predicted score: Teacher Prediction → Student Baseline → Learning Passport. Click the pencil icon to set or update." side="top" />
+          </span>
+          <span className="text-right flex items-center justify-end">
+            Working at
+            <InfoTip content="Average percentage across all marked homework this term, converted to a GCSE grade 1–9." side="top" />
+          </span>
+          <span className="text-right flex items-center justify-end">
+            Last score
+            <InfoTip content="The most recently marked homework score, converted to a GCSE grade." side="top" />
+          </span>
           <span title="Edit prediction"><Icon name="edit" size="sm" /></span>
         </div>
 

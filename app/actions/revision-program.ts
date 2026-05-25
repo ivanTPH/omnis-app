@@ -100,7 +100,8 @@ export async function createRevisionProgram(input: {
   mode:             'study_guide' | 'formal_assignment'
   deadline?:        Date
   durationWeeks:    number
-  overrideTaskType?: string
+  overrideTaskType?:  string
+  approvedTopics?:  { name: string; sourceMaterial?: string }[]
 }): Promise<{ programId: string; taskCount: number }> {
   try {
     const user = await requireTeacherOrAbove()
@@ -165,6 +166,17 @@ export async function createRevisionProgram(input: {
     })
     const profileMap = new Map(learningProfiles.map((p: any) => [p.studentId, p]))
 
+    // Use teacher-approved topics if provided; else use analysis recommendations
+    const finalTopics = (input.approvedTopics && input.approvedTopics.length > 0)
+      ? input.approvedTopics.map(t => t.name)
+      : analysis.topicsNeedingRevision
+
+    // Collect teacher-provided source materials into a combined context string
+    const additionalContext = input.approvedTopics
+      ?.filter(t => t.sourceMaterial?.trim())
+      .map(t => `Topic: ${t.name}\n${t.sourceMaterial}`)
+      .join('\n\n') || undefined
+
     // Batch AI generation — max 5 concurrent
     const taskInputs = enrolledStudents.map((student: any) => {
       const studentAnalysis = analysis.studentAnalysis.find(s => s.studentId === student.id)
@@ -204,22 +216,23 @@ export async function createRevisionProgram(input: {
       const results = await Promise.all(
         batch.map(async (t: any) => {
           const content = await generateRevisionTask({
-            studentId:          t.student.id,
-            studentName:        `${t.student.firstName} ${t.student.lastName}`,
-            subject:            input.subject,
-            yearGroup:          schoolClass.yearGroup,
-            weakTopics:         t.weakTopics,
-            strongTopics:       t.strongTopics,
-            taskType:           t.taskType,
-            sendAdaptations:    t.sendAdaptations,
-            ilpTargets:         t.ilpTargets,
-            durationMins:       input.durationWeeks * 30,
-            lessonTitle:        recentLesson?.title,
-            objectives:         recentLesson?.objectives ?? [],
-            allLessons:         periodLessons,
-            preferredTypes:     t.preferredTypes,
-            bloomsProfile:      t.bloomsProfile,
+            studentId:           t.student.id,
+            studentName:         `${t.student.firstName} ${t.student.lastName}`,
+            subject:             input.subject,
+            yearGroup:           schoolClass.yearGroup,
+            weakTopics:          finalTopics.length > 0 ? finalTopics : t.weakTopics,
+            strongTopics:        t.strongTopics,
+            taskType:            t.taskType,
+            sendAdaptations:     t.sendAdaptations,
+            ilpTargets:          t.ilpTargets,
+            durationMins:        input.durationWeeks * 30,
+            lessonTitle:         recentLesson?.title,
+            objectives:          recentLesson?.objectives ?? [],
+            allLessons:          periodLessons,
+            preferredTypes:      t.preferredTypes,
+            bloomsProfile:       t.bloomsProfile,
             learningFormatNotes: t.learningFormatNotes,
+            additionalContext,
           })
           return { studentId: t.student.id, content }
         }),
@@ -239,7 +252,7 @@ export async function createRevisionProgram(input: {
           yearGroup:    schoolClass.yearGroup,
           periodStart:  input.periodStart,
           periodEnd:    input.periodEnd,
-          topics:       analysis.topicsNeedingRevision,
+          topics:       finalTopics,
           mode:         input.mode,
           deadline:     input.deadline,
           durationWeeks: input.durationWeeks,
@@ -629,6 +642,38 @@ export async function getTeacherSubjectsYearGroups(): Promise<
     console.error('[getTeacherSubjectsYearGroups] error:', err)
     return []
   }
+}
+
+
+// ── sendRevisionReminder ──────────────────────────────────────────────────────
+
+export async function sendRevisionReminder(taskId: string): Promise<void> {
+  const user = await requireTeacherOrAbove()
+
+  const task = await prisma.revisionTask.findFirst({
+    where: { id: taskId, schoolId: user.schoolId },
+    include: { program: { select: { title: true, deadline: true, createdBy: true } } },
+  })
+  if (!task) throw new Error('Task not found')
+
+  const adminRoles = ['SLT', 'SCHOOL_ADMIN', 'SUPER_ADMIN', 'HEAD_OF_DEPT']
+  if (!adminRoles.includes(user.role) && task.program.createdBy !== user.id) {
+    throw new Error('Not authorised to send reminders for this program')
+  }
+
+  await prisma.notification.create({
+    data: {
+      userId:   task.studentId,
+      schoolId: user.schoolId,
+      type:     'HOMEWORK_REMINDER',
+      title:    `Reminder: ${task.program.title}`,
+      body:     task.program.deadline
+        ? `This revision task is overdue. Please complete it as soon as possible. Due date was ${new Date(task.program.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}.`
+        : 'Please complete this revision task as soon as possible.',
+      linkHref: '/student/dashboard',
+      read:     false,
+    },
+  })
 }
 
 // ── getYearTopics ──────────────────────────────────────────────────────────────

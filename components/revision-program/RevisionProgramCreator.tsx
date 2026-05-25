@@ -10,7 +10,7 @@ import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
-type Step = 1 | 2 | 3 | 4
+type Step = 1 | 2 | 3 | 4 | 5
 type Mode = 'study_guide' | 'formal_assignment'
 
 type WizardState = {
@@ -24,6 +24,14 @@ type WizardState = {
   mode:         Mode
   deadline:     string
   durationWeeks: number
+}
+
+type TopicEntry = {
+  id:              string
+  name:            string
+  hasLesson:       boolean
+  sourceMaterial?: string
+  showSource?:     boolean
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -286,6 +294,179 @@ function Step2({
         </button>
         <button onClick={onGenerate} disabled={generating} className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
           {generating ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
+          Review Topics →
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── TopicReview (Step 3) ─────────────────────────────────────────────────────
+
+function TopicReview({
+  analysis,
+  onBack,
+  onGenerate,
+  generating,
+}: {
+  analysis:   ClassPerformanceAnalysis
+  onBack:     () => void
+  onGenerate: (topics: TopicEntry[]) => void
+  generating: boolean
+}) {
+  const lessonTopics = new Set(analysis.topicsCovered.map(t => t.topic))
+
+  const [topics, setTopics] = useState<TopicEntry[]>(() => {
+    const base = analysis.topicsNeedingRevision.length > 0
+      ? analysis.topicsNeedingRevision
+      : analysis.topicsCovered.map(t => t.topic)
+    return [...new Set(base)].map((name, i) => ({
+      id: `t${i}`,
+      name,
+      hasLesson: lessonTopics.has(name),
+    }))
+  })
+
+  const [newName, setNewName] = useState('')
+
+  function addTopic() {
+    const trimmed = newName.trim()
+    if (!trimmed) return
+    const hasLesson = lessonTopics.has(trimmed)
+    setTopics(prev => [...prev, {
+      id: `custom-${Date.now()}`,
+      name: trimmed,
+      hasLesson,
+      showSource: !hasLesson,
+    }])
+    setNewName('')
+  }
+
+  function removeTopic(id: string) {
+    setTopics(prev => prev.filter(t => t.id !== id))
+  }
+
+  function updateTopic(id: string, patch: Partial<TopicEntry>) {
+    setTopics(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t))
+  }
+
+  const noSourceTopics = topics.filter(t => !t.hasLesson && !t.sourceMaterial?.trim())
+
+  return (
+    <div className="space-y-5 max-w-lg">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+        <p className="text-sm font-semibold text-blue-800">Review revision topics</p>
+        <p className="text-xs text-blue-600 mt-1">
+          Topics below were identified from lesson performance data. Edit, remove or rename any topic.
+          Topics with a book icon have lessons behind them — added topics without lessons need source material.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {topics.map(topic => (
+          <div
+            key={topic.id}
+            className={`border rounded-xl overflow-hidden transition-colors ${
+              topic.hasLesson ? 'border-gray-200' : 'border-amber-200'
+            }`}
+          >
+            <div className={`flex items-center gap-2 px-3 py-2.5 ${topic.hasLesson ? 'bg-white' : 'bg-amber-50'}`}>
+              <Icon
+                name={topic.hasLesson ? 'menu_book' : 'add_circle'}
+                size="sm"
+                className={`shrink-0 ${topic.hasLesson ? 'text-blue-500' : 'text-amber-500'}`}
+              />
+              <input
+                type="text"
+                value={topic.name}
+                onChange={e => updateTopic(topic.id, { name: e.target.value })}
+                className="flex-1 text-sm text-gray-800 bg-transparent border-0 focus:outline-none font-medium"
+              />
+              {!topic.hasLesson && (
+                <button
+                  onClick={() => updateTopic(topic.id, { showSource: !topic.showSource })}
+                  className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 transition-colors ${
+                    topic.sourceMaterial?.trim()
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                  }`}
+                >
+                  {topic.sourceMaterial?.trim() ? 'Source ✓' : 'Add source'}
+                </button>
+              )}
+              <button
+                onClick={() => removeTopic(topic.id)}
+                className="text-gray-300 hover:text-rose-500 shrink-0 transition-colors"
+                title="Remove topic"
+              >
+                <Icon name="close" size="sm" />
+              </button>
+            </div>
+
+            {topic.showSource && !topic.hasLesson && (
+              <div className="px-3 pb-3 pt-2 border-t border-amber-100 bg-amber-50 space-y-1.5">
+                <p className="text-[10px] text-amber-700 font-semibold">
+                  No lesson found for this topic — paste source material so questions are grounded in content:
+                </p>
+                <textarea
+                  rows={3}
+                  value={topic.sourceMaterial ?? ''}
+                  onChange={e => updateTopic(topic.id, { sourceMaterial: e.target.value })}
+                  placeholder="Paste lesson notes, textbook extracts, key facts or mark-scheme points…"
+                  className="w-full text-xs border border-amber-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white resize-none"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {topics.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-4">No topics yet — add one below.</p>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTopic() } }}
+          placeholder="Add a topic not covered above…"
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          onClick={addTopic}
+          disabled={!newName.trim()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 hover:bg-blue-700 transition-colors"
+        >
+          Add
+        </button>
+      </div>
+
+      {noSourceTopics.length > 0 && (
+        <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+          <Icon name="info" size="sm" className="text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">
+            <span className="font-semibold">{noSourceTopics.map(t => `"${t.name}"`).join(', ')}</span>
+            {noSourceTopics.length === 1 ? ' has' : ' have'} no lesson or source material —
+            questions will draw on general curriculum knowledge. Add source material for best results.
+          </p>
+        </div>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          <Icon name="chevron_left" size="sm" /> Back
+        </button>
+        <button
+          onClick={() => onGenerate(topics)}
+          disabled={topics.length === 0 || generating}
+          className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+        >
+          {generating ? <Icon name="refresh" size="sm" className="animate-spin" /> : null}
           Generate Personalised Programs →
         </button>
       </div>
@@ -293,7 +474,7 @@ function Step2({
   )
 }
 
-// ── Step 3 ────────────────────────────────────────────────────────────────────
+// ── Step 4 ────────────────────────────────────────────────────────────────────
 
 function Step3({ studentCount }: { studentCount: number }) {
   return (
@@ -647,10 +828,16 @@ export default function RevisionProgramCreator({
     })
   }
 
-  function handleGenerate() {
+  function handleGoToTopics() {
     if (!analysis) return
     setError(null)
     setStep(3)
+  }
+
+  function handleGenerate(topics: TopicEntry[]) {
+    if (!analysis) return
+    setError(null)
+    setStep(4)
 
     const start = new Date(state.periodStart)
     const end   = new Date(state.periodEnd)
@@ -666,17 +853,18 @@ export default function RevisionProgramCreator({
           mode:         state.mode,
           deadline:     state.mode === 'formal_assignment' ? new Date(state.deadline) : undefined,
           durationWeeks: state.durationWeeks,
+          approvedTopics: topics,
         })
         setGeneratedProgramId(result.programId)
-        setStep(4) // Show review before navigating
+        setStep(5)
       } catch (e: any) {
         setError(e?.message ?? 'Failed to generate revision program.')
-        setStep(2)
+        setStep(3)
       }
     })
   }
 
-  const stepLabels = ['Scope', 'Analysis', 'Generating', 'Review']
+  const stepLabels = ['Scope', 'Analysis', 'Topics', 'Generating', 'Review']
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -715,17 +903,20 @@ export default function RevisionProgramCreator({
         <Step1 classes={classes} state={state} onChange={patch} onNext={handleAnalyse} />
       )}
       {step === 2 && analysis && (
-        <Step2 analysis={analysis} onBack={() => setStep(1)} onGenerate={handleGenerate} generating={isPending} />
+        <Step2 analysis={analysis} onBack={() => setStep(1)} onGenerate={handleGoToTopics} generating={isPending} />
       )}
-      {step === 3 && (
+      {step === 3 && analysis && (
+        <TopicReview analysis={analysis} onBack={() => setStep(2)} onGenerate={handleGenerate} generating={isPending} />
+      )}
+      {step === 4 && (
         <Step3 studentCount={analysis?.studentAnalysis.length ?? 0} />
       )}
-      {step === 4 && analysis && generatedProgramId && (
+      {step === 5 && analysis && generatedProgramId && (
         <Step4
           programId={generatedProgramId}
           analysis={analysis}
           onApprove={() => router.push(`/revision-program/${generatedProgramId}`)}
-          onRegenerate={() => setStep(2)}
+          onRegenerate={() => setStep(3)}
         />
       )}
     </div>

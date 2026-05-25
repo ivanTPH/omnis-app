@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import { markRevisionTask } from '@/app/actions/revision-program'
+import { markRevisionTask, sendRevisionReminder } from '@/app/actions/revision-program'
 import StudentAvatar from '@/components/StudentAvatar'
 
 type RevTask = {
@@ -132,7 +132,7 @@ type ProgramRow = {
 
 type StudentMap = Record<string, { firstName: string; lastName: string; avatarUrl?: string | null }>
 
-type FilterKey = 'all' | 'to_mark' | 'done' | 'not_started' | 'send'
+type FilterKey = 'all' | 'to_mark' | 'done' | 'not_started' | 'overdue' | 'send'
 
 function statusLabel(s: string) {
   const map: Record<string, string> = {
@@ -167,11 +167,28 @@ export default function RevisionProgramDetail({
 
   const isAssignment = program.mode === 'formal_assignment'
 
+  // overdue computation
+  const now = new Date()
+  const deadlinePassed = !!(program.deadline && new Date(program.deadline) < now)
+  const overdueCount = deadlinePassed
+    ? tasks.filter(t => ['not_started', 'in_progress'].includes(t.status)).length
+    : 0
+
+  const [remindedIds, setRemindedIds] = useState<Set<string>>(new Set())
+
+  async function handleSendReminder(taskId: string) {
+    try {
+      await sendRevisionReminder(taskId)
+      setRemindedIds(prev => new Set(prev).add(taskId))
+    } catch { /* ignore */ }
+  }
+
   // filter tasks
   const filtered = tasks.filter(t => {
     if (filter === 'to_mark')     return t.status === 'submitted'
     if (filter === 'done')        return ['marked', 'returned'].includes(t.status)
     if (filter === 'not_started') return t.status === 'not_started'
+    if (filter === 'overdue')     return deadlinePassed && ['not_started', 'in_progress'].includes(t.status)
     if (filter === 'send')        return (studentMap[t.studentId] as any)?.sendStatus && (studentMap[t.studentId] as any)?.sendStatus !== 'NONE'
     return true
   })
@@ -210,6 +227,7 @@ export default function RevisionProgramDetail({
     { key: 'to_mark',     count: completionStats.submitted,  label: 'To Mark',     activeColor: '#2563eb', inactiveColor: '#eff6ff' },
     { key: 'done',        count: completionStats.marked,     label: 'Done',        activeColor: '#16a34a', inactiveColor: '#f0fdf4' },
     { key: 'not_started', count: completionStats.notStarted, label: 'Not Started', activeColor: '#dc2626', inactiveColor: '#fef2f2' },
+    ...(overdueCount > 0 ? [{ key: 'overdue' as FilterKey, count: overdueCount, label: 'Overdue', activeColor: '#7c3aed', inactiveColor: '#faf5ff' }] : []),
   ]
 
   return (
@@ -250,6 +268,25 @@ export default function RevisionProgramDetail({
         </div>
       </div>
 
+      {/* Completion progress bar */}
+      <div className="px-6 py-2 border-b bg-gray-50 shrink-0 flex items-center gap-3">
+        <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 rounded-full transition-all"
+            style={{ width: `${completionStats.total > 0 ? Math.round((completionStats.marked / completionStats.total) * 100) : 0}%` }}
+          />
+        </div>
+        <span className="text-xs text-gray-500 shrink-0 whitespace-nowrap">
+          {completionStats.total > 0 ? Math.round((completionStats.marked / completionStats.total) * 100) : 0}% complete
+          {overdueCount > 0 && <span className="text-purple-600 ml-2">· {overdueCount} overdue</span>}
+          {isAssignment && program.deadline && (
+            <span className="text-gray-400 ml-2">
+              · Due {new Date(program.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+            </span>
+          )}
+        </span>
+      </div>
+
       {/* two-panel */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
@@ -275,7 +312,17 @@ export default function RevisionProgramDetail({
                   </div>
                   {isDone && <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />}
                   {isPending2 && !isDone && <Icon name="schedule" size="sm" className="text-amber-400 shrink-0" />}
-                  {t.status === 'not_started' && <Icon name="error" size="sm" className="text-gray-300 shrink-0" />}
+                  {!isDone && !isPending2 && t.status !== 'not_started' && <Icon name="error" size="sm" className="text-gray-300 shrink-0" />}
+                  {t.status === 'not_started' && !deadlinePassed && <Icon name="error" size="sm" className="text-gray-300 shrink-0" />}
+                  {deadlinePassed && ['not_started', 'in_progress'].includes(t.status) && (
+                    <button
+                      title={remindedIds.has(t.id) ? 'Reminder sent' : 'Send reminder'}
+                      onClick={e => { e.stopPropagation(); void handleSendReminder(t.id) }}
+                      className={`shrink-0 transition-colors ${remindedIds.has(t.id) ? 'text-green-500' : 'text-purple-400 hover:text-purple-600'}`}
+                    >
+                      <Icon name={remindedIds.has(t.id) ? 'check_circle' : 'notifications'} size="sm" />
+                    </button>
+                  )}
                 </button>
               )
             })}
@@ -301,6 +348,25 @@ export default function RevisionProgramDetail({
                   <p className="text-xs text-gray-400 mt-0.5 capitalize">{statusLabel(selected.status)}</p>
                 </div>
               </div>
+
+              {/* overdue banner */}
+              {deadlinePassed && ['not_started', 'in_progress'].includes(selected.status) && (
+                <div className="flex items-center justify-between px-4 py-2.5 bg-purple-50 border border-purple-200 rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <Icon name="alarm" size="sm" className="text-purple-500 shrink-0" />
+                    <p className="text-xs font-semibold text-purple-700">
+                      Overdue — deadline was {new Date(program.deadline!).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => void handleSendReminder(selected.id)}
+                    disabled={remindedIds.has(selected.id)}
+                    className="text-xs font-semibold text-purple-700 bg-purple-100 px-2.5 py-1 rounded-lg hover:bg-purple-200 disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    {remindedIds.has(selected.id) ? '✓ Reminder sent' : 'Send reminder'}
+                  </button>
+                </div>
+              )}
 
               {/* focus topics */}
               {selected.focusTopics.length > 0 && (
@@ -426,7 +492,7 @@ export default function RevisionProgramDetail({
               {isAssignment && ['submitted', 'marked', 'returned'].includes(selected.status) && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                    <p className="text-[12px] font-semibold text-gray-700">Mark Submission</p>
+                    <p className="text-[12px] font-semibold text-gray-700">Teacher Assessment &amp; Sign-off</p>
                   </div>
                   <div className="px-4 py-4 space-y-4">
                     <div className="flex items-start gap-4">
@@ -436,7 +502,7 @@ export default function RevisionProgramDetail({
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Feedback to Student</label>
+                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Sign-off feedback (returned to student)</label>
                       <textarea rows={4} value={formFeedback} onChange={e => setFormFeedback(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Write constructive feedback…" />
                     </div>
                     {error && <p className="text-xs text-rose-600">{error}</p>}

@@ -70,13 +70,14 @@ export async function generateRevisionTask(input: {
   sendAdaptations:    string[]
   ilpTargets:         string[]
   durationMins:       number
-  bloomsLevel?:       string
-  lessonTitle?:       string
-  objectives?:        string[]
-  allLessons?:        { title: string; objectives: string[] }[]
-  preferredTypes?:    string[]
-  bloomsProfile?:     string   // e.g. "strong at remember/understand, needs practice at analyse/evaluate"
+  bloomsLevel?:         string
+  lessonTitle?:         string
+  objectives?:          string[]
+  allLessons?:          { title: string; objectives: string[] }[]
+  preferredTypes?:      string[]
+  bloomsProfile?:       string   // e.g. "strong at remember/understand, needs practice at analyse/evaluate"
   learningFormatNotes?: string
+  additionalContext?:   string   // teacher-pasted source material for topics not covered in lessons
 }): Promise<RevisionTaskContent> {
   console.log('[generateRevisionTask] lessons:', input.allLessons?.map(l => l.title), 'lessonTitle:', input.lessonTitle, 'weakTopics:', input.weakTopics)
 
@@ -121,6 +122,10 @@ export async function generateRevisionTask(input: {
     ? `Topics covered: ${input.allLessons!.map(l => `"${l.title}"`).join(', ')}`
     : `Lesson topic: "${topic}"`
 
+  const contextNote = input.additionalContext?.trim()
+    ? `\nTeacher-provided source material for topics not in class lessons:\n${input.additionalContext}`
+    : ''
+
   const userPrompt = `You are a UK secondary school teacher creating a structured revision task for ${input.studentName}.
 
 ${topicLine}
@@ -130,6 +135,7 @@ ${weakNote ? `\n${weakNote}` : ''}
 ${sendNote ? `\n${sendNote}` : ''}
 ${profileNote ? `\nAdaptive learning profile: ${profileNote}` : ''}
 ${input.ilpTargets.length > 0 ? `\nILP targets to support: ${input.ilpTargets.join('; ')}` : ''}
+${contextNote}
 
 ${multiLesson
   ? `Create EXACTLY 5 exam-style questions distributed across the lessons above (at least 1 question per lesson where possible):`

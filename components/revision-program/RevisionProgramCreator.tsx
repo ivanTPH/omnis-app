@@ -6,7 +6,9 @@ import Tooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
 import { gradeLabel } from '@/lib/grading'
 import { getClassPerformanceAnalysis, createRevisionProgram, getRevisionProgramDetail, updateRevisionTaskQuestions } from '@/app/actions/revision-program'
+import { getCurriculumCoverage } from '@/app/actions/year-group-plans'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
+import type { CurriculumCoverage } from '@/app/actions/year-group-plans'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -201,12 +203,14 @@ function Step1({
 
 function Step2({
   analysis,
+  coverage,
   onBack,
   onGenerate,
   generating,
 }: {
-  analysis: ClassPerformanceAnalysis
-  onBack: () => void
+  analysis:   ClassPerformanceAnalysis
+  coverage:   CurriculumCoverage | null
+  onBack:     () => void
   onGenerate: () => void
   generating: boolean
 }) {
@@ -280,6 +284,48 @@ function Step2({
         </div>
       </div>
 
+      {/* Curriculum coverage */}
+      {coverage && coverage.hasSchemeOfWork && coverage.units.length > 0 && (
+        <div>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Scheme of Work Coverage</h3>
+          <div className="space-y-1.5">
+            {coverage.units.map(unit => (
+              <div key={unit.title} className={`flex items-start gap-2.5 px-3 py-2 rounded-lg ${unit.taught ? 'bg-green-50' : 'bg-amber-50'}`}>
+                <Icon
+                  name={unit.taught ? 'check_circle' : 'warning'}
+                  size="sm"
+                  className={`shrink-0 mt-0.5 ${unit.taught ? 'text-green-500' : 'text-amber-500'}`}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-semibold ${unit.taught ? 'text-green-800' : 'text-amber-800'}`}>{unit.title}</p>
+                  {unit.topics.length > 0 && (
+                    <p className="text-[10px] text-gray-500 mt-0.5 truncate">{unit.topics.slice(0, 3).join(' · ')}{unit.topics.length > 3 ? ` +${unit.topics.length - 3} more` : ''}</p>
+                  )}
+                </div>
+                <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded ${unit.taught ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                  {unit.taught ? 'Taught' : 'Gap'}
+                </span>
+              </div>
+            ))}
+          </div>
+          {coverage.units.some(u => !u.taught) && (
+            <p className="text-[10px] text-amber-700 mt-2 pl-1">
+              Gap units can be added as revision topics in the next step — paste source material for best results.
+            </p>
+          )}
+        </div>
+      )}
+
+      {coverage && !coverage.hasSchemeOfWork && (
+        <div className="flex items-center gap-2.5 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
+          <Icon name="info" size="sm" className="text-gray-400 shrink-0" />
+          <p className="text-xs text-gray-500">
+            No approved scheme of work found for this subject and year group.{' '}
+            <a href="/plans/year-group" target="_blank" className="text-blue-600 underline hover:text-blue-800">Add one →</a>
+          </p>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
         <p className="text-sm text-blue-800 font-medium">
@@ -306,16 +352,22 @@ function Step2({
 
 function TopicReview({
   analysis,
+  coverage,
   onBack,
   onGenerate,
   generating,
 }: {
   analysis:   ClassPerformanceAnalysis
+  coverage:   CurriculumCoverage | null
   onBack:     () => void
   onGenerate: (topics: TopicEntry[]) => void
   generating: boolean
 }) {
   const lessonTopics = new Set(analysis.topicsCovered.map(t => t.topic))
+
+  const gapTopics: string[] = coverage?.units
+    .filter(u => !u.taught)
+    .flatMap(u => u.topics.length > 0 ? u.topics : [u.title]) ?? []
 
   const [topics, setTopics] = useState<TopicEntry[]>(() => {
     const base = analysis.topicsNeedingRevision.length > 0
@@ -443,6 +495,40 @@ function TopicReview({
           Add
         </button>
       </div>
+
+      {/* SoW gap topics callout */}
+      {gapTopics.length > 0 && (() => {
+        const alreadyAdded = new Set(topics.map(t => t.name.toLowerCase()))
+        const missing = gapTopics.filter(g => !alreadyAdded.has(g.toLowerCase()))
+        if (missing.length === 0) return null
+        return (
+          <div className="border border-amber-200 bg-amber-50 rounded-xl px-3 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Icon name="school" size="sm" className="text-amber-600 shrink-0" />
+              <p className="text-xs font-semibold text-amber-800">
+                {missing.length} SoW topic{missing.length !== 1 ? 's' : ''} not yet in this list (curriculum gaps)
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {missing.map(name => (
+                <button
+                  key={name}
+                  onClick={() => setTopics(prev => [...prev, {
+                    id: `gap-${Date.now()}-${name}`,
+                    name,
+                    hasLesson: false,
+                    showSource: true,
+                  }])}
+                  className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 transition-colors"
+                >
+                  + {name}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-amber-700">Click to add to revision list. Paste source material for topics not yet taught.</p>
+          </div>
+        )
+      })()}
 
       {noSourceTopics.length > 0 && (
         <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
@@ -779,6 +865,7 @@ export default function RevisionProgramCreator({
   const searchParams = useSearchParams()
   const [step, setStep] = useState<Step>(1)
   const [analysis, setAnalysis] = useState<ClassPerformanceAnalysis | null>(null)
+  const [curriculumCoverage, setCurriculumCoverage] = useState<CurriculumCoverage | null>(null)
   const [generatedProgramId, setGeneratedProgramId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -819,8 +906,12 @@ export default function RevisionProgramCreator({
       ? termDates(state.periodPreset as 'this_term' | 'last_term').end
       : new Date(state.periodEnd)
     try {
-      const result = await getClassPerformanceAnalysis(state.classId, start, end)
+      const [result, coverage] = await Promise.all([
+        getClassPerformanceAnalysis(state.classId, start, end),
+        getCurriculumCoverage(state.classId, state.subject, state.yearGroup).catch(() => null),
+      ])
       setAnalysis(result)
+      setCurriculumCoverage(coverage)
       setStep(2)
     } catch {
       setError('Failed to analyse class performance. Please try again.')
@@ -905,10 +996,10 @@ export default function RevisionProgramCreator({
         <Step1 classes={classes} state={state} onChange={patch} onNext={handleAnalyse} loading={isLoading} />
       )}
       {step === 2 && analysis && (
-        <Step2 analysis={analysis} onBack={() => setStep(1)} onGenerate={handleGoToTopics} generating={isLoading} />
+        <Step2 analysis={analysis} coverage={curriculumCoverage} onBack={() => setStep(1)} onGenerate={handleGoToTopics} generating={isLoading} />
       )}
       {step === 3 && analysis && (
-        <TopicReview analysis={analysis} onBack={() => setStep(2)} onGenerate={handleGenerate} generating={isLoading} />
+        <TopicReview analysis={analysis} coverage={curriculumCoverage} onBack={() => setStep(2)} onGenerate={handleGenerate} generating={isLoading} />
       )}
       {step === 4 && (
         <Step3 studentCount={analysis?.studentAnalysis.length ?? 0} />

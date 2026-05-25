@@ -5,6 +5,7 @@ import Icon from '@/components/ui/Icon'
 import type { LessonForHomework, ClassForHomework, LearningExtraction, GeneratedHomeworkContent } from '@/app/actions/homework'
 import { extractLearningFromLesson, generateHomeworkContent, createHomework } from '@/app/actions/homework'
 import { suggestSpacedRepetition, suggestNextHomework, getClassFormatInsights } from '@/app/actions/adaptive-learning'
+import { getSoWTopicsForClass } from '@/app/actions/year-group-plans'
 import type { ClassFormatInsight } from '@/app/actions/adaptive-learning'
 import { HomeworkType } from '@prisma/client'
 import IlpTargetHomeworkPanel from './IlpTargetHomeworkPanel'
@@ -60,6 +61,8 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
   const [objectives, setObjectives] = useState<ObjectiveEntry[]>([])
+  const [sowTopics, setSowTopics] = useState<string[]>([])
+  const [sowExpanded, setSowExpanded] = useState(false)
 
   const classId = selectedLesson?.class?.id ?? selectedClassId
 
@@ -75,6 +78,12 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
         text,
         fromLesson: true,
       })))
+      // Fetch SoW topics for curriculum context
+      if (selectedLesson.class?.subject && selectedLesson.class?.yearGroup) {
+        getSoWTopicsForClass(selectedLesson.class.subject, selectedLesson.class.yearGroup)
+          .then(t => setSowTopics(t))
+          .catch(() => {})
+      }
       // Fetch spacing suggestion
       if (classId && selectedLesson.class?.subject) {
         try {
@@ -108,6 +117,12 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
       fromLesson: false,
       showSource: true,
     }])
+    const cls = classes.find(c => c.id === selectedClassId)
+    if (cls) {
+      getSoWTopicsForClass(cls.subject, cls.yearGroup)
+        .then(t => setSowTopics(t))
+        .catch(() => {})
+    }
     setStep(2)
   }
 
@@ -390,6 +405,57 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                     Some added objectives have no source material — questions will draw on general curriculum knowledge.
                     Add source material for more accurate content.
                   </p>
+                </div>
+              )}
+
+              {/* Curriculum context — SoW topic chips */}
+              {sowTopics.length > 0 && (
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setSowExpanded(v => !v)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon name="library_books" size="sm" className="text-blue-500" />
+                      <span className="text-xs font-semibold text-gray-700">Curriculum context</span>
+                      <span className="text-[10px] text-gray-400">({sowTopics.length} SoW topics)</span>
+                    </div>
+                    <Icon name={sowExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0" />
+                  </button>
+                  {sowExpanded && (
+                    <div className="px-3 py-3 bg-white space-y-2">
+                      <p className="text-[10px] text-gray-500">Click a topic to add it as a learning objective:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sowTopics.map(topic => {
+                          const alreadyAdded = objectives.some(o => o.text.toLowerCase() === topic.toLowerCase())
+                          return (
+                            <button
+                              key={topic}
+                              type="button"
+                              disabled={alreadyAdded}
+                              onClick={() => {
+                                if (alreadyAdded) return
+                                setObjectives(prev => [...prev, {
+                                  id: `sow-${Date.now()}-${topic}`,
+                                  text: topic,
+                                  fromLesson: false,
+                                  showSource: false,
+                                }])
+                              }}
+                              className={`text-[10px] font-medium px-2 py-0.5 rounded border transition-colors ${
+                                alreadyAdded
+                                  ? 'bg-green-50 text-green-700 border-green-200 cursor-default'
+                                  : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                              }`}
+                            >
+                              {alreadyAdded ? '✓ ' : '+ '}{topic}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -122,7 +122,8 @@ export async function createEhcpPlan(data: {
       planDate: data.planDate,
       reviewDate: data.reviewDate,
       coordinatorName: data.coordinatorName ?? null,
-      status: 'active',
+      status: 'under_review',
+      approvedBySenco: false,
       createdBy: user.id,
       outcomes: {
         create: data.outcomes.map(o => ({
@@ -893,8 +894,8 @@ export async function generateEHCPFromILP(
 
 // ─── EHCP Approval & Section Editing ─────────────────────────────────────────
 
-/** Approve a SENCO-reviewed auto-generated EHCP — makes it visible to teachers. */
-export async function approveGeneratedEhcp(ehcpId: string): Promise<void> {
+/** Approve a SENCO-reviewed EHCP (auto-generated or manually created) — makes it active and visible to teachers. */
+export async function approveGeneratedEhcp(ehcpId: string, reviewNote?: string): Promise<void> {
   const user = await requireSenco()
   const schoolId = user.schoolId
 
@@ -913,6 +914,31 @@ export async function approveGeneratedEhcp(ehcpId: string): Promise<void> {
       approvedBy:      user.id,
     },
   })
+
+  // Write SENCO sign-off audit entry if a review note was provided
+  if (reviewNote?.trim()) {
+    await writeEHCPAudit({
+      ehcpId,
+      userId:        user.id,
+      userName:      `${user.firstName} ${user.lastName}`,
+      userRole:      user.role,
+      fieldChanged:  'SENCO approval',
+      previousValue: 'under_review',
+      newValue:      'active',
+      changeType:    'EDITED',
+    })
+    // Store the review note as a second audit entry
+    await writeEHCPAudit({
+      ehcpId,
+      userId:        user.id,
+      userName:      `${user.firstName} ${user.lastName}`,
+      userRole:      user.role,
+      fieldChanged:  'SENCO review commentary',
+      previousValue: '',
+      newValue:      reviewNote.trim(),
+      changeType:    'ADDED',
+    })
+  }
 
   // Notify class teachers + HoY
   const [classTeachers, hoys, student] = await Promise.all([

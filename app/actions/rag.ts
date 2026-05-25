@@ -283,3 +283,84 @@ export async function upsertTeacherPrediction(input: SavePredictionInput): Promi
     metadata:   { subject: input.subject, termLabel: input.termLabel, predictedScore: input.predictedScore, adjustment: input.adjustment },
   })
 }
+
+export type ConfirmPredictionInput = {
+  studentId:    string
+  subject:      string
+  termLabel:    string
+  confirmedScore: number   // 0–100
+  commentary:   string
+}
+
+/**
+ * Formally confirm (sign off) a grade prediction with mandatory commentary.
+ * Notifies HODs in the school and writes an audit entry.
+ */
+export async function confirmGradePrediction(input: ConfirmPredictionInput): Promise<void> {
+  const { schoolId, id: teacherId, firstName, lastName } = await requireAuth()
+
+  // Upsert the prediction with confirmation commentary
+  await prisma.teacherPrediction.upsert({
+    where: {
+      studentId_teacherId_subject_termLabel: {
+        studentId: input.studentId,
+        teacherId,
+        subject:   input.subject,
+        termLabel: input.termLabel,
+      },
+    },
+    update: {
+      predictedScore: input.confirmedScore,
+      adjustment:     0,
+      notes:          `[Confirmed ${new Date().toLocaleDateString('en-GB')}] ${input.commentary.trim()}`,
+    },
+    create: {
+      studentId:      input.studentId,
+      teacherId,
+      schoolId,
+      subject:        input.subject,
+      termLabel:      input.termLabel,
+      predictedScore: input.confirmedScore,
+      adjustment:     0,
+      notes:          `[Confirmed ${new Date().toLocaleDateString('en-GB')}] ${input.commentary.trim()}`,
+    },
+  })
+
+  // Audit trail
+  await writeAudit({
+    schoolId,
+    actorId:    teacherId,
+    action:     'GRADE_OVERRIDDEN',
+    targetType: 'TeacherPrediction',
+    targetId:   input.studentId,
+    metadata:   {
+      subject:        input.subject,
+      termLabel:      input.termLabel,
+      confirmedScore: input.confirmedScore,
+      commentary:     input.commentary.slice(0, 300),
+    },
+  })
+
+  // Notify all HODs in the school
+  const [student, hods] = await Promise.all([
+    prisma.user.findUnique({ where: { id: input.studentId }, select: { firstName: true, lastName: true } }),
+    prisma.user.findMany({ where: { schoolId, role: 'HEAD_OF_DEPT', isActive: true }, select: { id: true } }),
+  ])
+  const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+  const teacherName = `${firstName} ${lastName}`
+
+  if (hods.length > 0) {
+    await prisma.notification.createMany({
+      data: hods.map(h => ({
+        schoolId,
+        userId:   h.id,
+        type:     'GRADE_CONFIRMED',
+        title:    `Grade confirmed: ${studentName} — ${input.subject}`,
+        body:     `${teacherName} has formally confirmed a predicted grade for ${studentName} (${input.subject}, ${input.termLabel}). Commentary: ${input.commentary.slice(0, 150)}`,
+        linkHref: `/analytics`,
+        read:     false,
+      })),
+      skipDuplicates: true,
+    })
+  }
+}

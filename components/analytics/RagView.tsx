@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { getClassRagData, upsertTeacherPrediction } from '@/app/actions/rag'
+import { getClassRagData, upsertTeacherPrediction, confirmGradePrediction } from '@/app/actions/rag'
 import type { RagStudent, RagStatus, SavePredictionInput } from '@/app/actions/rag'
 import { getStudentFile, saveStudentNote } from '@/app/actions/students'
 import type { StudentFileData } from '@/app/actions/students'
@@ -66,12 +66,15 @@ function PredictionForm({
   termLabel: string
   onSaved:   (studentId: string) => void
 }) {
-  const existing = student.prediction
-  const [score,  setScore]  = useState(existing?.predictedScore ?? student.baselineScore ?? 60)
-  const [adj,    setAdj]    = useState(existing?.adjustment     ?? 0)
-  const [notes,  setNotes]  = useState(existing?.notes          ?? '')
-  const [saving, startSave] = useTransition()
-  const [saved,  setSaved]  = useState(false)
+  const existing  = student.prediction
+  const isConfirmed = !!existing?.notes?.startsWith('[Confirmed')
+  const [score,    setScore]    = useState(existing?.predictedScore ?? student.baselineScore ?? 60)
+  const [adj,      setAdj]      = useState(existing?.adjustment     ?? 0)
+  const [notes,    setNotes]    = useState(existing?.notes?.replace(/^\[Confirmed [^\]]+\]\s*/, '') ?? '')
+  const [saving,   startSave]   = useTransition()
+  const [confirming, startConfirm] = useTransition()
+  const [saved,    setSaved]    = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
   function handleSave() {
     const input: SavePredictionInput = {
@@ -85,13 +88,35 @@ function PredictionForm({
     })
   }
 
+  function handleConfirm() {
+    if (!notes.trim()) return
+    startConfirm(async () => {
+      await confirmGradePrediction({
+        studentId:      student.id,
+        subject,
+        termLabel,
+        confirmedScore: Number(score) + Number(adj),
+        commentary:     notes.trim(),
+      })
+      setConfirmed(true)
+      setTimeout(() => { setConfirmed(false); onSaved(student.id) }, 1200)
+    })
+  }
+
   const effective = Number(score) + Number(adj)
 
   return (
     <div className="bg-gray-50 border-t border-gray-100 px-5 py-4 space-y-3">
-      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-        Teacher Prediction — {termLabel}
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+          Teacher Prediction — {termLabel}
+        </p>
+        {isConfirmed && (
+          <span className="flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+            <Icon name="verified" size="sm" /> Grade confirmed
+          </span>
+        )}
+      </div>
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
           <label className="text-[11px] text-gray-500">Baseline</label>
@@ -118,9 +143,11 @@ function PredictionForm({
         </div>
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-[11px] text-gray-500">Notes <span className="text-gray-400">(optional)</span></label>
+        <label className="text-[11px] text-gray-500">
+          Confirmation commentary <span className="text-gray-400">(required to formally sign off)</span>
+        </label>
         <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
-          placeholder="Context, observations, supporting evidence…"
+          placeholder="Evidence, observations, rationale for this grade — required for formal sign-off…"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
         {existing?.updatedAt && (
           <p className="text-[10px] text-gray-400">
@@ -128,11 +155,21 @@ function PredictionForm({
           </p>
         )}
       </div>
-      <button onClick={handleSave} disabled={saving || saved}
-        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60">
-        {saving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
-        {saved ? 'Saved' : saving ? 'Saving…' : 'Save prediction'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button onClick={handleSave} disabled={saving || saved}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors disabled:opacity-60">
+          {saving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save draft'}
+        </button>
+        <button onClick={handleConfirm} disabled={!notes.trim() || confirming || confirmed}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60">
+          {confirming ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="verified" size="sm" />}
+          {confirmed ? 'Grade confirmed ✓' : confirming ? 'Confirming…' : 'Confirm grade →'}
+        </button>
+      </div>
+      {!notes.trim() && (
+        <p className="text-[10px] text-amber-600">Add confirmation commentary to formally sign off this grade prediction.</p>
+      )}
     </div>
   )
 }
@@ -445,17 +482,19 @@ function RagRow({
         {/* Last score */}
         <div className="text-right text-sm">{scoreCell(student.lastScore)}</div>
 
-        {/* Edit prediction button — stops propagation so it doesn't open panel */}
+        {/* Edit prediction / confirmed badge — stops propagation so it doesn't open panel */}
         <button
           onClick={e => { e.stopPropagation(); onExpand() }}
-          title="Edit teacher prediction"
+          title={student.prediction?.notes?.startsWith('[Confirmed') ? 'Grade confirmed — click to review' : 'Edit teacher prediction'}
           className={`p-1 rounded-md transition-colors ${
             expanded
               ? 'bg-blue-100 text-blue-600'
-              : 'text-gray-300 hover:bg-gray-100 hover:text-gray-600'
+              : student.prediction?.notes?.startsWith('[Confirmed')
+                ? 'text-green-600 hover:bg-green-50'
+                : 'text-gray-300 hover:bg-gray-100 hover:text-gray-600'
           }`}
         >
-          <Icon name="edit" size="sm" />
+          <Icon name={student.prediction?.notes?.startsWith('[Confirmed') ? 'verified' : 'edit'} size="sm" />
         </button>
       </div>
 

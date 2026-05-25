@@ -118,3 +118,87 @@ export async function getYearGroupPlanContext(schoolId: string, subject: string,
   if (!plan || plan.status === 'DRAFT') return null
   return plan.planContent
 }
+
+// ── Phase 4: Curriculum coverage helpers ──────────────────────────────────────
+
+export type CoverageUnit = {
+  title:  string
+  taught: boolean
+  topics: string[]
+}
+
+export type CurriculumCoverage = {
+  hasSchemeOfWork:   boolean
+  units:             CoverageUnit[]
+  taughtLessonTopics: string[]
+}
+
+/** Compare lessons taught in a class against the approved SoW for that subject/year. */
+export async function getCurriculumCoverage(
+  classId:   string,
+  subject:   string,
+  yearGroup: number,
+): Promise<CurriculumCoverage> {
+  const user = await requireAccess()
+
+  const plan = await prisma.yearGroupPlan.findUnique({
+    where: { schoolId_yearGroup_subject: { schoolId: user.schoolId, yearGroup, subject } },
+    select: { planContent: true, status: true },
+  })
+
+  if (!plan || plan.status === 'DRAFT') {
+    return { hasSchemeOfWork: false, units: [], taughtLessonTopics: [] }
+  }
+
+  const lessons = await prisma.lesson.findMany({
+    where: { classId, schoolId: user.schoolId },
+    select: { title: true },
+  })
+
+  const taughtLessonTopics = lessons.map(l => l.title)
+  const taughtWords = new Set(
+    lessons.flatMap(l =>
+      l.title.toLowerCase().split(/[\s\-—,;:()\[\]]+/).filter(w => w.length > 3)
+    )
+  )
+
+  const units: CoverageUnit[] = []
+  let current: CoverageUnit | null = null
+
+  for (const line of plan.planContent.split('\n')) {
+    const headingMatch = line.match(/^##\s+(.+)/)
+    if (headingMatch) {
+      if (current) units.push(current)
+      const title      = headingMatch[1].trim()
+      const titleWords = title.toLowerCase().split(/[\s\-—,;:()\[\]]+/).filter(w => w.length > 3)
+      current = { title, taught: titleWords.some(w => taughtWords.has(w)), topics: [] }
+    } else if (current && line.startsWith('- ')) {
+      const topic = line.slice(2).split(':')[0].trim()
+      if (topic) current.topics.push(topic)
+    }
+  }
+  if (current) units.push(current)
+
+  return { hasSchemeOfWork: true, units, taughtLessonTopics }
+}
+
+/** Return a flat list of SoW topic names for a subject/year group (homework objective chips). */
+export async function getSoWTopicsForClass(subject: string, yearGroup: number): Promise<string[]> {
+  const user = await requireAccess()
+
+  const plan = await prisma.yearGroupPlan.findUnique({
+    where: { schoolId_yearGroup_subject: { schoolId: user.schoolId, yearGroup, subject } },
+    select: { planContent: true, status: true },
+  })
+
+  if (!plan || plan.status === 'DRAFT') return []
+
+  const topics: string[] = []
+  for (const line of plan.planContent.split('\n')) {
+    if (line.startsWith('- ')) {
+      const topic = line.slice(2).split(':')[0].trim()
+      if (topic) topics.push(topic)
+    }
+  }
+  return topics
+}

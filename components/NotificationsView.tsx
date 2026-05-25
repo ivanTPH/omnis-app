@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { markPlatformNotificationRead, markAllPlatformNotificationsRead } from '@/app/actions/messaging'
+import { logTeacherIntervention } from '@/app/actions/send-support'
 import type { PlatformNotificationRow } from '@/app/actions/messaging'
 
 function timeAgo(date: Date | string) {
@@ -24,6 +25,7 @@ const TYPE_COLOURS: Record<string, string> = {
   EARLY_WARNING:      'bg-rose-100 text-rose-700',
   NEW_MESSAGE:        'bg-green-100 text-green-700',
   SUBMISSION_MARKED:  'bg-teal-100 text-teal-700',
+  SEND_WARNING_ACTION: 'bg-rose-100 text-rose-700',
 }
 
 function typeBadge(type: string) {
@@ -44,6 +46,24 @@ export default function NotificationsView({
   const [items, setItems]   = useState(initial)
   const [isPending, start]  = useTransition()
   const router              = useRouter()
+
+  // State for EARLY_WARNING intervention log (per notification id)
+  const [interventionOpen,  setInterventionOpen]  = useState<Record<string, boolean>>({})
+  const [interventionNote,  setInterventionNote]  = useState<Record<string, string>>({})
+  const [interventionSaved, setInterventionSaved] = useState<Record<string, boolean>>({})
+  const [interventionSaving, setInterventionSaving] = useState<Record<string, boolean>>({})
+
+  async function handleLogIntervention(notifId: string, studentId: string) {
+    const note = interventionNote[notifId] ?? ''
+    setInterventionSaving(prev => ({ ...prev, [notifId]: true }))
+    try {
+      await logTeacherIntervention(studentId, note)
+      setInterventionSaved(prev => ({ ...prev, [notifId]: true }))
+      setInterventionOpen(prev => ({ ...prev, [notifId]: false }))
+      handleRead(notifId)
+    } catch { /* ignore */ }
+    finally { setInterventionSaving(prev => ({ ...prev, [notifId]: false })) }
+  }
 
   const unreadCount = items.filter(n => !n.read).length
 
@@ -138,6 +158,58 @@ export default function NotificationsView({
                   )}
                 </div>
               </div>
+
+              {/* Intervention log panel for EARLY_WARNING notifications */}
+              {n.type === 'EARLY_WARNING' && (() => {
+                const studentId = n.linkHref?.split('/student/')[1]?.split('/')[0]?.split('?')[0]
+                if (!studentId) return null
+                const isSaved  = interventionSaved[n.id]
+                const isOpen   = interventionOpen[n.id]
+                const isSaving = interventionSaving[n.id]
+                return (
+                  <div className="mt-2 border-t border-rose-100 pt-2">
+                    {isSaved ? (
+                      <p className="text-[11px] text-green-700 flex items-center gap-1">
+                        <Icon name="check_circle" size="sm" /> Intervention logged — SENCO notified
+                      </p>
+                    ) : isOpen ? (
+                      <div className="space-y-2">
+                        <textarea
+                          rows={2}
+                          value={interventionNote[n.id] ?? ''}
+                          onChange={e => setInterventionNote(prev => ({ ...prev, [n.id]: e.target.value }))}
+                          placeholder="Briefly describe the intervention you have taken or plan to take…"
+                          className="w-full text-xs border border-rose-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-rose-400 resize-none bg-white"
+                        />
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleLogIntervention(n.id, studentId)}
+                            disabled={isSaving}
+                            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50 transition-colors"
+                          >
+                            {isSaving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
+                            {isSaving ? 'Logging…' : 'Log intervention'}
+                          </button>
+                          <button
+                            onClick={() => setInterventionOpen(prev => ({ ...prev, [n.id]: false }))}
+                            className="text-[11px] text-gray-400 hover:text-gray-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setInterventionOpen(prev => ({ ...prev, [n.id]: true }))}
+                        className="flex items-center gap-1 text-[11px] font-medium text-rose-700 hover:text-rose-900 transition-colors"
+                      >
+                        <Icon name="assignment_turned_in" size="sm" />
+                        Log intervention taken →
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
           ))}
         </div>

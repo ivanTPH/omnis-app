@@ -152,11 +152,16 @@ export default function EarlyWarningActionSlideOver({ flag, onClose, onResolve, 
               ))}
             </div>
 
-            <label className="text-xs font-medium text-gray-600 block mb-1">Notes</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">
+              {actionType === 'notify_teachers' ? 'Recommended intervention for teachers' : 'Notes'}
+            </label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Add notes about the action taken or planned..."
+              placeholder={actionType === 'notify_teachers'
+                ? 'Describe the specific intervention you want teachers to take — this will be sent directly in their notification…'
+                : 'Add notes about the action taken or planned…'
+              }
               rows={3}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
             />

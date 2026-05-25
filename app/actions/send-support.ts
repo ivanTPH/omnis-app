@@ -1488,16 +1488,18 @@ export async function resolveEarlyWarningFlag({
         select: { firstName: true, lastName: true },
       })
       const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
-      const notesSnippet = notes.trim() ? ` Notes: ${notes.trim().slice(0, 150)}` : ''
 
+      const interventionLabel = notes.trim()
+        ? `Recommended intervention: ${notes.trim().slice(0, 200)}`
+        : 'Please review the student\'s SEND record and log any intervention taken.'
       await prisma.notification.createMany({
         data: teacherIds.map(teacherId => ({
           schoolId,
           userId: teacherId,
-          type: 'GENERAL',
-          title: 'Early warning flag actioned',
-          body: `The SENCO has reviewed the early warning flag for ${studentName}.${notesSnippet}`,
-          linkHref: `/student/${flag.studentId}/send`,
+          type: 'EARLY_WARNING',
+          title: `SENCO alert: ${studentName} — ${flag.flagType.replace(/_/g, ' ')}`,
+          body: interventionLabel,
+          linkHref: `/student/${flag.studentId}/send?flagId=${flag.id}`,
           read: false,
         })),
         skipDuplicates: true,
@@ -1529,6 +1531,50 @@ export async function triggerEarlyWarningAnalysis(): Promise<{ flagsCreated: num
   const flagsCreated = await analyseStudentPatterns(user.schoolId)
   revalidatePath('/senco/early-warning')
   return { flagsCreated }
+}
+
+/** Called by a class teacher to confirm they have taken an intervention action for a flagged student. */
+export async function logTeacherIntervention(studentId: string, note: string): Promise<void> {
+  const user = await requireAuth()
+  const schoolId = user.schoolId
+
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId, role: 'STUDENT' },
+    select: { firstName: true, lastName: true },
+  })
+  if (!student) throw new Error('Student not found')
+
+  const studentName = `${student.firstName} ${student.lastName}`
+  const teacherName = `${user.firstName} ${user.lastName}`
+
+  // Notify all SENCOs in the school
+  const sencos = await prisma.user.findMany({
+    where: { schoolId, role: 'SENCO', isActive: true },
+    select: { id: true },
+  })
+  if (sencos.length > 0) {
+    await prisma.sendNotification.createMany({
+      data: sencos.map(s => ({
+        schoolId,
+        recipientId: s.id,
+        type: 'GENERAL',
+        title: `Intervention confirmed: ${studentName}`,
+        body: `${teacherName} has logged an intervention for ${studentName}${note.trim() ? `: "${note.trim().slice(0, 200)}"` : '.'}`,
+        linkHref: `/student/${studentId}/send`,
+      })),
+    })
+  }
+
+  // Log to SEND review log
+  await prisma.sendReviewLog.create({
+    data: {
+      schoolId,
+      studentId,
+      action: 'concern_reviewed',
+      actorId: user.id,
+      metadata: { action: 'teacher_intervention_confirmed', teacherName, note: note.slice(0, 300) },
+    },
+  })
 }
 
 // ─── SENCO Dashboard ──────────────────────────────────────────────────────────

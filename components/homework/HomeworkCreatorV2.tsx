@@ -9,6 +9,14 @@ import type { ClassFormatInsight } from '@/app/actions/adaptive-learning'
 import { HomeworkType } from '@prisma/client'
 import IlpTargetHomeworkPanel from './IlpTargetHomeworkPanel'
 
+type ObjectiveEntry = {
+  id:              string
+  text:            string
+  fromLesson:      boolean   // true = extracted from lesson, false = added manually
+  sourceMaterial?: string
+  showSource?:     boolean
+}
+
 const VARIANT_TYPES = [
   { id: 'retrieval_practice', label: 'Retrieval Practice', blooms: 'remember' },
   { id: 'quiz',               label: 'Quiz',               blooms: 'understand' },
@@ -51,6 +59,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
+  const [objectives, setObjectives] = useState<ObjectiveEntry[]>([])
 
   const classId = selectedLesson?.class?.id ?? selectedClassId
 
@@ -61,6 +70,11 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
       const ex = await extractLearningFromLesson(selectedLesson.id)
       setExtraction(ex)
       if (ex.suggestedHomeworkTypes[0]) setSelectedType(ex.suggestedHomeworkTypes[0])
+      setObjectives(ex.learningObjectives.map((text, i) => ({
+        id: `ex-${i}`,
+        text,
+        fromLesson: true,
+      })))
       // Fetch spacing suggestion
       if (classId && selectedLesson.class?.subject) {
         try {
@@ -88,6 +102,12 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
       suggestedDurationMins: 20,
       rationale: 'Manual entry',
     })
+    setObjectives([{
+      id: 'manual-0',
+      text: 'Enter your learning objective',
+      fromLesson: false,
+      showSource: true,
+    }])
     setStep(2)
   }
 
@@ -96,15 +116,23 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
     setLoading(true); setError('')
     try {
       const cls = selectedLesson?.class ?? classes.find(c => c.id === selectedClassId)
+      const editedObjectives = objectives.length > 0
+        ? objectives.map(o => o.text).filter(Boolean)
+        : extraction.learningObjectives
+      const additionalContext = objectives
+        .filter(o => !o.fromLesson && o.sourceMaterial?.trim())
+        .map(o => `Objective: ${o.text}\n${o.sourceMaterial}`)
+        .join('\n\n') || undefined
       const gen = await generateHomeworkContent({
         homeworkVariantType: selectedType,
         subject: cls?.subject ?? 'Unknown',
         yearGroup: cls?.yearGroup ?? 10,
-        learningObjectives: extraction.learningObjectives,
+        learningObjectives: editedObjectives,
         bloomsLevel: extraction.bloomsLevel,
         keyTopics: extraction.keyTopics,
         durationMins: extraction.suggestedDurationMins,
         ilpTargets: suggestedIlpTargets.length > 0 ? suggestedIlpTargets : undefined,
+        additionalContext,
       })
       setGenerated(gen)
       setEditedTitle(gen.title)
@@ -240,19 +268,131 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
             </div>
           )}
 
-          {/* Step 2: Review objectives */}
+          {/* Step 2: Review & edit objectives */}
           {step === 2 && extraction && (
             <div className="space-y-4">
               <h3 className="font-medium text-gray-900">Step 2 — Learning objectives</h3>
-              <div className="bg-blue-50 rounded-xl p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-blue-900">Bloom&apos;s level: <span className="capitalize">{extraction.bloomsLevel}</span></p>
-                  <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">{extraction.suggestedDurationMins} mins</span>
-                </div>
-                <ul className="space-y-1">
-                  {extraction.learningObjectives.map((o, i) => <li key={i} className="text-sm text-blue-800">• {o}</li>)}
-                </ul>
+
+              {/* Meta row */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Bloom&apos;s: <span className="text-gray-800 capitalize font-bold">{extraction.bloomsLevel}</span>
+                </span>
+                <span className="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full">
+                  {extraction.suggestedDurationMins} mins
+                </span>
               </div>
+
+              {/* Editable objectives */}
+              <div className="space-y-2">
+                {objectives.map((obj, idx) => (
+                  <div
+                    key={obj.id}
+                    className={`border rounded-xl overflow-hidden ${obj.fromLesson ? 'border-gray-200' : 'border-amber-200'}`}
+                  >
+                    <div className={`flex items-center gap-2 px-3 py-2 ${obj.fromLesson ? 'bg-white' : 'bg-amber-50'}`}>
+                      <Icon
+                        name={obj.fromLesson ? 'menu_book' : 'add_circle'}
+                        size="sm"
+                        className={`shrink-0 ${obj.fromLesson ? 'text-blue-400' : 'text-amber-500'}`}
+                      />
+                      <input
+                        type="text"
+                        value={obj.text}
+                        onChange={e => setObjectives(prev => prev.map((o, i) => i === idx ? { ...o, text: e.target.value } : o))}
+                        className="flex-1 text-sm text-gray-800 bg-transparent border-0 focus:outline-none"
+                        placeholder="Objective…"
+                      />
+                      {!obj.fromLesson && (
+                        <button
+                          onClick={() => setObjectives(prev => prev.map((o, i) => i === idx ? { ...o, showSource: !o.showSource } : o))}
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 transition-colors ${
+                            obj.sourceMaterial?.trim() ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                          }`}
+                        >
+                          {obj.sourceMaterial?.trim() ? 'Source ✓' : 'Add source'}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setObjectives(prev => prev.filter((_, i) => i !== idx))}
+                        className="text-gray-300 hover:text-rose-500 shrink-0 transition-colors"
+                        title="Remove objective"
+                      >
+                        <Icon name="close" size="sm" />
+                      </button>
+                    </div>
+                    {obj.showSource && !obj.fromLesson && (
+                      <div className="px-3 pb-3 pt-2 border-t border-amber-100 bg-amber-50 space-y-1.5">
+                        <p className="text-[10px] text-amber-700 font-semibold">
+                          No lesson covers this objective — paste source material so the AI generates accurate content:
+                        </p>
+                        <textarea
+                          rows={3}
+                          value={obj.sourceMaterial ?? ''}
+                          onChange={e => setObjectives(prev => prev.map((o, i) => i === idx ? { ...o, sourceMaterial: e.target.value } : o))}
+                          placeholder="Paste notes, textbook extracts, key facts…"
+                          className="w-full text-xs border border-amber-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white resize-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {objectives.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-2">No objectives yet — add one below.</p>
+                )}
+              </div>
+
+              {/* Add objective row */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Add an objective…"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                      const text = e.currentTarget.value.trim()
+                      const fromLesson = source === 'lesson' && (extraction?.learningObjectives ?? []).includes(text)
+                      setObjectives(prev => [...prev, {
+                        id: `add-${Date.now()}`,
+                        text,
+                        fromLesson,
+                        showSource: !fromLesson,
+                      }])
+                      e.currentTarget.value = ''
+                    }
+                  }}
+                />
+                <button
+                  onClick={e => {
+                    const input = (e.currentTarget.previousSibling as HTMLInputElement)
+                    const text = input.value.trim()
+                    if (!text) return
+                    const fromLesson = source === 'lesson' && (extraction?.learningObjectives ?? []).includes(text)
+                    setObjectives(prev => [...prev, {
+                      id: `add-${Date.now()}`,
+                      text,
+                      fromLesson,
+                      showSource: !fromLesson,
+                    }])
+                    input.value = ''
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Add
+                </button>
+              </div>
+
+              {/* Warning for objectives without source */}
+              {objectives.some(o => !o.fromLesson && !o.sourceMaterial?.trim()) && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-xl">
+                  <Icon name="info" size="sm" className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800">
+                    Some added objectives have no source material — questions will draw on general curriculum knowledge.
+                    Add source material for more accurate content.
+                  </p>
+                </div>
+              )}
+
               {spacingSuggestion && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
                   📅 Spacing: {spacingSuggestion}
@@ -271,6 +411,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   <p className="text-xs text-purple-600">These will be incorporated into the AI-generated content. You can link specific targets in Step 5.</p>
                 </div>
               )}
+
               <div className="flex gap-3">
                 <button onClick={() => setStep(1)} className="flex items-center gap-1 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
                   <Icon name="chevron_left" size="sm" /> Back
@@ -288,7 +429,8 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                       finally { setLoadingInsight(false) }
                     }
                   }}
-                  className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                  disabled={objectives.length === 0}
+                  className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                 >
                   Next <Icon name="chevron_right" size="sm" />
                 </button>

@@ -885,6 +885,7 @@ export async function generateHomeworkContent(input: {
   sendAdaptations?: string[]
   ilpTargets?: string[]
   durationMins: number
+  additionalContext?: string
 }): Promise<GeneratedHomeworkContent> {
   await requireAuth()
 
@@ -911,6 +912,9 @@ export async function generateHomeworkContent(input: {
   const ilpNote = input.ilpTargets?.length
     ? `\nCRITICAL: This homework must provide evidence opportunities for these ILP targets. Design at least one question or task that directly addresses each target:\n${input.ilpTargets.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
     : ''
+  const contextNote = input.additionalContext?.trim()
+    ? `\nTeacher-provided source material for additional objectives:\n${input.additionalContext}`
+    : ''
 
   const fallback: GeneratedHomeworkContent = {
     title: `${input.subject} — ${input.keyTopics[0] ?? 'Homework'}`,
@@ -935,7 +939,7 @@ Type: ${input.homeworkVariantType}
 Duration: ${input.durationMins} minutes
 Bloom's level: ${input.bloomsLevel}
 Objectives: ${input.learningObjectives.join('; ')}
-Key topics: ${input.keyTopics.join(', ')}${sendNote}${ilpNote}
+Key topics: ${input.keyTopics.join(', ')}${sendNote}${ilpNote}${contextNote}
 
 ${typeGuide}
 

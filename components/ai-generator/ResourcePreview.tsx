@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import { marked } from 'marked'
+import { sanitizeAiHtml } from '@/lib/sanitizeHtml'
 import type { GeneratedResourceData } from '@/app/actions/ai-generator'
 import { deleteGeneratedResource, linkResourceToLesson } from '@/app/actions/ai-generator'
 import ResourceTypeIcon, { RESOURCE_TYPE_LABELS } from './ResourceTypeIcon'
@@ -25,7 +26,7 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
   const html = useMemo(() => {
     // marked.parse is sync when async:false (default in v17)
     const result = marked.parse(resource.content)
-    return typeof result === 'string' ? result : ''
+    return sanitizeAiHtml(typeof result === 'string' ? result : '')
   }, [resource.content])
 
   function handleCopy() {

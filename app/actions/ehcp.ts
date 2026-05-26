@@ -520,7 +520,7 @@ export async function generateIlpProgressReport(studentId: string): Promise<stri
   try {
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1000,
       system: 'You are a UK SENCO writing professional ILP progress reports. Use positive, evidence-based language. Avoid diagnoses. Reference specific targets.',
       messages: [{
@@ -601,7 +601,7 @@ export async function generateEhcpAnnualReview(studentId: string): Promise<strin
   try {
     const client = new Anthropic({ apiKey })
     const msg = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1200,
       system: 'You are a UK SENCO writing EHCP annual review reports. Use formal, evidence-based language appropriate for an official local authority document. Structure clearly by outcome.',
       messages: [{

@@ -764,7 +764,7 @@ export async function generateDifferentiatedVersions(
     try {
       const client = new Anthropic({ apiKey })
       const msg = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1200,
         system: 'You are a UK SENCO and differentiation expert. Adapt homework for specific student needs. Keep the same learning objectives. Return ONLY valid JSON matching the original structuredContent schema exactly.',
         messages: [{

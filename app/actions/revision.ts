@@ -174,7 +174,7 @@ Rules:
   try {
     const client = new Anthropic({ apiKey })
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       system: `You are a UK secondary school revision coach. You create balanced, realistic revision timetables for GCSE and A-Level students. You prioritise subjects where the student has low confidence, space repetitions using spaced learning principles, and avoid overloading any single day. Always respond with ONLY valid JSON — no preamble.`,
       messages: [{ role: 'user', content: userPrompt }],

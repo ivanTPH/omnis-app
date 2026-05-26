@@ -39,16 +39,24 @@ export type ChatMessage = {
   content: string
 }
 
+const MAX_MESSAGES    = 20   // cap conversation history (10 turns)
+const MAX_MSG_LENGTH  = 2000 // chars per message — prevents prompt injection / cost inflation
+
 export async function askGuideChat(messages: ChatMessage[]): Promise<string> {
   await requireAuth()
 
   if (!messages.length) return ''
 
+  // Sanitise: truncate individual messages and cap history window
+  const safe = messages
+    .slice(-MAX_MESSAGES)
+    .map(m => ({ role: m.role, content: String(m.content).slice(0, MAX_MSG_LENGTH) }))
+
   const response = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 600,
     system:     SYSTEM_PROMPT,
-    messages,
+    messages:   safe,
   })
 
   const block = response.content[0]

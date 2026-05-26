@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import { marked } from 'marked'
+import { sanitizeAiHtml } from '@/lib/sanitizeHtml'
 import type { GeneratedResourceData } from '@/app/actions/ai-generator'
 import { deleteGeneratedResource } from '@/app/actions/ai-generator'
 import ResourceTypeIcon, { RESOURCE_TYPE_LABELS } from './ResourceTypeIcon'
@@ -27,7 +28,7 @@ export default function ResourceCard({ resource, canDelete, onDelete, onSelect }
   const [deleting, startDelete]   = useTransition()
 
   const html = expanded
-    ? String(marked.parse(resource.content))
+    ? sanitizeAiHtml(String(marked.parse(resource.content)))
     : ''
 
   function handleDelete(e: React.MouseEvent) {

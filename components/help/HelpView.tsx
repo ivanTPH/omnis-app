@@ -373,15 +373,20 @@ function AccordionSection({ section }: { section: Section }) {
 export default function HelpView({ role }: { role: string }) {
   const [search, setSearch] = useState('')
 
-  const lower = search.toLowerCase().trim()
-  const sections = lower
-    ? SECTIONS.filter(s =>
-        s.title.toLowerCase().includes(lower) ||
-        s.intro.toLowerCase().includes(lower) ||
-        s.steps.some(g => g.heading.toLowerCase().includes(lower) || g.steps.some(st => st.toLowerCase().includes(lower))) ||
-        s.faqs.some(f => f.q.toLowerCase().includes(lower) || f.a.toLowerCase().includes(lower))
-      )
-    : SECTIONS
+  // Split query into meaningful keywords (ignore short words like "i", "do", "an")
+  const keywords = search.toLowerCase().trim().split(/\s+/).filter(w => w.length > 2)
+
+  const sections = keywords.length === 0
+    ? SECTIONS
+    : SECTIONS.filter(s => {
+        const haystack = [
+          s.title,
+          s.intro,
+          ...s.steps.flatMap(g => [g.heading, ...g.steps]),
+          ...s.faqs.flatMap(f => [f.q, f.a]),
+        ].join(' ').toLowerCase()
+        return keywords.some(k => haystack.includes(k))
+      })
 
   return (
     <div className="flex-1 overflow-auto px-6 py-6 max-w-3xl mx-auto w-full">

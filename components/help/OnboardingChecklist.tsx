@@ -82,7 +82,7 @@ export default function OnboardingChecklist({ role }: { role: string }) {
             <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
               <button
                 onClick={() => toggleItem(item.id)}
-                className={`shrink-0 w-4.5 h-4.5 rounded border transition-colors flex items-center justify-center ${
+                className={`shrink-0 w-5 h-5 rounded border transition-colors flex items-center justify-center ${
                   done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-400'
                 }`}
                 aria-label={done ? 'Mark incomplete' : 'Mark complete'}

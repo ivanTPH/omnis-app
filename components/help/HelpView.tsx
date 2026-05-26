@@ -373,8 +373,9 @@ function AccordionSection({ section }: { section: Section }) {
 export default function HelpView({ role }: { role: string }) {
   const [search, setSearch] = useState('')
 
-  // Split query into meaningful keywords (ignore short words like "i", "do", "an")
-  const keywords = search.toLowerCase().trim().split(/\s+/).filter(w => w.length > 2)
+  // Split into keywords — skip single-char words and common stopwords only
+  const STOPWORDS = new Set(['do','an','the','is','it','in','of','to','a','i','how','what','where','when','why','can'])
+  const keywords = search.toLowerCase().trim().split(/\s+/).filter(w => w.length >= 2 && !STOPWORDS.has(w))
 
   const sections = keywords.length === 0
     ? SECTIONS

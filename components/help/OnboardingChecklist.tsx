@@ -54,7 +54,7 @@ export default function OnboardingChecklist({ role }: { role: string }) {
   const allDone   = doneCount === items.length
 
   return (
-    <div className="fixed bottom-20 right-5 z-30 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
+    <div className="fixed bottom-36 right-4 z-50 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700">
         <div>

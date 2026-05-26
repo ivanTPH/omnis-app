@@ -13,9 +13,10 @@ export default function GuideChatButton() {
         onClick={() => setOpen(true)}
         aria-label="Open Omnis Guide"
         title="Ask the Omnis Guide"
-        className="fixed bottom-5 right-5 z-30 w-12 h-12 rounded-full bg-blue-700 text-white shadow-lg flex items-center justify-center hover:bg-blue-800 hover:scale-105 active:scale-95 transition-all"
+        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 pl-3 pr-4 py-2.5 rounded-full bg-blue-700 text-white shadow-xl hover:bg-blue-800 hover:scale-105 active:scale-95 transition-all"
       >
-        <Icon name="help" size="md" />
+        <Icon name="auto_awesome" size="sm" />
+        <span className="text-sm font-semibold">Guide</span>
       </button>
 
       {open && <GuideChatSlideOver onClose={() => setOpen(false)} />}

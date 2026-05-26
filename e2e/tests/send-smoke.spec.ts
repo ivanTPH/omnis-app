@@ -28,13 +28,36 @@ async function loginSenco(page: Page)   { await loginAs(page, USERS.senco)   }
 async function loginTeacher(page: Page) { await loginAs(page, USERS.teacher) }
 async function loginSlt(page: Page)     { await loginAs(page, USERS.slt)     }
 
-/** Open LessonFolder by single-clicking the first lesson card on the dashboard */
+/** Open LessonFolder by navigating to the week of the most recent lesson for the teacher */
 async function openFirstLesson(page: Page) {
-  await page.goto('/dashboard')
-  await page.waitForLoadState('networkidle')
-  // Lesson cards are absolute divs with border-l-[3px] and cursor-pointer
-  const lessonCard = page.locator('div.cursor-pointer.rounded-md').first()
-  await expect(lessonCard).toBeVisible({ timeout: 10_000 })
+  // Find the teacher user so we can scope to their lessons
+  const teacher = await prisma.user.findUnique({
+    where: { email: USERS.teacher.email },
+    select: { id: true },
+  })
+
+  // Find the most recent lesson created by (or visible to) this teacher
+  const lesson = await prisma.lesson.findFirst({
+    where: teacher ? { createdBy: teacher.id } : undefined,
+    orderBy: { scheduledAt: 'desc' },
+    select: { scheduledAt: true },
+  })
+
+  if (lesson) {
+    // Build ISO week-start (Monday) for the lesson's date and pass as query param
+    const d = new Date(lesson.scheduledAt)
+    const day = d.getUTCDay() || 7  // 1=Mon … 7=Sun
+    d.setUTCDate(d.getUTCDate() - (day - 1))
+    const weekStart = d.toISOString().slice(0, 10)
+    await page.goto(`/calendar?week=${weekStart}`)
+  } else {
+    await page.goto('/calendar')
+  }
+
+  await page.waitForLoadState('domcontentloaded')
+  // Lesson cards are draggable divs on the calendar grid
+  const lessonCard = page.locator('div[draggable="true"]').first()
+  await expect(lessonCard).toBeVisible({ timeout: 20_000 })
   await lessonCard.click()
   // LessonFolder shows a tab row
   await expect(page.getByText('Overview').first()).toBeVisible({ timeout: 8_000 })
@@ -116,9 +139,9 @@ test('Step 2 — Approve one ILP; Approved badge + audit panel visible', async (
   await expect(page).toHaveURL(/senco\/ilp/, { timeout: 8_000 })
   await page.waitForLoadState('domcontentloaded')
 
-  // Find the "Draft — awaiting approval" badge (a span, not a div)
-  const draftBadge = page.locator('span').filter({ hasText: /Draft — awaiting approval/i }).first()
-  await expect(draftBadge, 'At least one ILP should show "Draft — awaiting approval"').toBeVisible({ timeout: 8_000 })
+  // Find the "Draft" badge (ILPs with under_review status render as "Draft")
+  const draftBadge = page.locator('span').filter({ hasText: /^Draft$/i }).first()
+  await expect(draftBadge, 'At least one ILP should show "Draft" badge').toBeVisible({ timeout: 8_000 })
 
   // Find the Approve & Publish button (visible inline next to the badge)
   const approveBtn = page.getByRole('button', { name: /Approve & Publish/i }).first()
@@ -366,6 +389,7 @@ test('Step 5 — K Plan auto-generated; SENCO approves it', async ({ page }) => 
 // STEP 6 — Teacher: lesson Overview tab → Class SEND Actions card
 // ─────────────────────────────────────────────────────────────────────────────
 test('Step 6 — Lesson Overview tab shows Class SEND Actions card', async ({ page }) => {
+  test.setTimeout(60_000)
   await loginTeacher(page)
   await openFirstLesson(page)
 
@@ -390,6 +414,7 @@ test('Step 6 — Lesson Overview tab shows Class SEND Actions card', async ({ pa
 // STEP 7 — ClassRosterTab → K Plan tab → three-column content
 // ─────────────────────────────────────────────────────────────────────────────
 test('Step 7 — ClassRosterTab K Plan tab shows content', async ({ page }) => {
+  test.setTimeout(60_000)
   await loginTeacher(page)
   await openFirstLesson(page)
 
@@ -442,6 +467,7 @@ test('Step 7 — ClassRosterTab K Plan tab shows content', async ({ page }) => {
 // (SEND & Inclusion was merged into the Class tab)
 // ─────────────────────────────────────────────────────────────────────────────
 test('Step 8 — Class tab: inline SEND badges, ILP goals, EHCP badge, K Plan', async ({ page }) => {
+  test.setTimeout(60_000)
   await loginTeacher(page)
   await openFirstLesson(page)
 

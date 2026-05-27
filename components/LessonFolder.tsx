@@ -1973,23 +1973,22 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     {previewUrl && typeof window !== 'undefined' && createPortal(
       <div className="fixed inset-0 z-[200] flex flex-col bg-black/80">
         <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
-          <p className="text-sm font-semibold text-gray-900 truncate mr-4">{previewLabel}</p>
-          <div className="flex items-center gap-3 shrink-0">
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
-            >
-              <Icon name="open_in_new" size="sm" /> Open in new tab
-            </a>
-            <button
-              onClick={() => setPreviewUrl(null)}
-              className="text-gray-500 hover:text-gray-800"
-            >
-              <Icon name="close" size="sm" />
-            </button>
-          </div>
+          <button
+            onClick={() => setPreviewUrl(null)}
+            className="flex items-center gap-1.5 text-[13px] font-medium text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <Icon name="arrow_back" size="sm" />
+            Back to Resources
+          </button>
+          <p className="text-sm font-semibold text-gray-900 truncate mx-4 flex-1 text-center">{previewLabel}</p>
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 text-xs text-blue-600 hover:underline shrink-0"
+          >
+            <Icon name="open_in_new" size="sm" /> Open in new tab
+          </a>
         </div>
         <iframe
           src={getEmbedUrl(previewUrl)}

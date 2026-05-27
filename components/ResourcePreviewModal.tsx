@@ -83,8 +83,11 @@ export default function ResourcePreviewModal({
               <p className="text-[11px] text-gray-400 mt-0.5">{detail.unit.title}</p>
             )}
           </div>
-          <button onClick={onClose} aria-label="Close" className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-400">
-            <Icon name="close" size="sm" />
+          <button
+            onClick={onClose}
+            className="shrink-0 flex items-center gap-1 text-[12px] font-medium text-gray-500 hover:text-gray-800 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100"
+          >
+            <Icon name="arrow_back" size="sm" /> Back to resources
           </button>
         </div>
 
@@ -97,7 +100,7 @@ export default function ResourcePreviewModal({
                   onClick={() => setPreviewUrl(null)}
                   className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  <Icon name="arrow_back" size="sm" /> Back
+                  <Icon name="arrow_back" size="sm" /> Back to lesson details
                 </button>
                 <a
                   href={previewUrl}

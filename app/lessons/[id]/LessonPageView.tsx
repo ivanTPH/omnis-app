@@ -9,7 +9,7 @@ export default function LessonPageView({ lessonId }: { lessonId: string }) {
     <div className="flex flex-col flex-1 min-h-0">
       <LessonFolder
         lessonId={lessonId}
-        onClose={() => router.back()}
+        onClose={() => router.push('/dashboard')}
         inline
       />
     </div>

@@ -410,7 +410,13 @@ export async function generateHomeworkFromResources(
   const oakDetails = oakSlugs.length
     ? await prisma.oakLesson.findMany({
         where:  { slug: { in: oakSlugs } },
-        select: { slug: true, title: true, pupilLessonOutcome: true },
+        select: {
+          slug: true, title: true, pupilLessonOutcome: true,
+          keyLearningPoints: true, lessonKeywords: true, lessonOutline: true,
+          starterQuiz: true, exitQuiz: true,
+          misconceptionsAndCommonMistakes: true, teacherTips: true,
+          transcriptSentences: true,
+        },
       })
     : []
   const oakBySlug = Object.fromEntries(oakDetails.map(o => [o.slug, o]))
@@ -425,16 +431,89 @@ export async function generateHomeworkFromResources(
   const primaryResource = orderedResources[0]
   const hasPrimaryNonOak = !!(primaryResource && !primaryResource.oakContentId && preferredResourceId)
 
+  // Build rich Oak content block from all available curriculum data
+  function buildOakContentBlock(oak: (typeof oakDetails)[number]): string {
+    const lines: string[] = []
+
+    if (oak.pupilLessonOutcome) {
+      lines.push(`  Learning outcome: ${oak.pupilLessonOutcome}`)
+    }
+
+    const klp = Array.isArray(oak.keyLearningPoints) ? oak.keyLearningPoints as any[] : []
+    if (klp.length > 0) {
+      lines.push(`  Key learning points:`)
+      klp.slice(0, 6).forEach((p: any, i: number) => {
+        const text = typeof p === 'string' ? p : p?.keyLearningPoint ?? ''
+        if (text) lines.push(`    ${i + 1}. ${text}`)
+      })
+    }
+
+    const kw = Array.isArray(oak.lessonKeywords) ? oak.lessonKeywords as any[] : []
+    if (kw.length > 0) {
+      const vocabList = kw.slice(0, 8)
+        .map((k: any) => {
+          const word = typeof k === 'string' ? k : k?.keyword ?? ''
+          const desc = typeof k === 'object' ? k?.description ?? '' : ''
+          return desc ? `${word}: ${desc}` : word
+        })
+        .filter(Boolean)
+      if (vocabList.length > 0) {
+        lines.push(`  Key vocabulary: ${vocabList.join('; ')}`)
+      }
+    }
+
+    const sq = Array.isArray(oak.starterQuiz) ? oak.starterQuiz as any[] : []
+    const eq = Array.isArray(oak.exitQuiz) ? oak.exitQuiz as any[] : []
+    const quizItems = [...sq, ...eq].slice(0, 4)
+    if (quizItems.length > 0) {
+      lines.push(`  Curriculum quiz questions (use these as models for depth and style):`)
+      quizItems.forEach((q: any, i: number) => {
+        const stem = q?.questionStem ?? q?.question ?? ''
+        if (!stem) return
+        lines.push(`    Q${i + 1}: ${stem}`)
+        const answers = Array.isArray(q?.answers) ? q.answers as any[] : []
+        const correct = answers.find((a: any) => a?.answerIsCorrect)
+        if (correct) {
+          const ans = correct?.answer ?? ''
+          if (ans) lines.push(`         → ${ans}`)
+        }
+      })
+    }
+
+    const misc = Array.isArray(oak.misconceptionsAndCommonMistakes) ? oak.misconceptionsAndCommonMistakes as any[] : []
+    if (misc.length > 0) {
+      lines.push(`  Common misconceptions to probe with questions:`)
+      misc.slice(0, 3).forEach((m: any) => {
+        const mc = typeof m === 'string' ? m : m?.misconception ?? ''
+        if (mc) lines.push(`    - ${mc}`)
+      })
+    }
+
+    const trans = Array.isArray(oak.transcriptSentences) ? oak.transcriptSentences as any[] : []
+    if (trans.length > 0 && klp.length === 0) {
+      // Only include transcript excerpt when no structured content available
+      const excerpt = trans.slice(0, 8)
+        .map((t: any) => typeof t === 'string' ? t : t?.transcriptSentence ?? '')
+        .filter(Boolean)
+        .join(' ')
+        .slice(0, 600)
+      if (excerpt) lines.push(`  Lesson transcript excerpt: ${excerpt}`)
+    }
+
+    return lines.join('\n')
+  }
+
   // Build resource context — primary resource is clearly marked for the AI
   const resourceContext = orderedResources.length > 0
     ? orderedResources.map((r, idx) => {
         const isPrimary = idx === 0 && !!preferredResourceId
         if (r.oakContentId && oakBySlug[r.oakContentId]) {
           const oak = oakBySlug[r.oakContentId]
-          const outcome = oak.pupilLessonOutcome ? `\n      Learning outcome: ${oak.pupilLessonOutcome}` : ''
-          return isPrimary
-            ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [Oak Lesson] "${oak.title}"${outcome}`
-            : `  - [Oak Lesson] "${oak.title}"${outcome}`
+          const contentBlock = buildOakContentBlock(oak)
+          const header = isPrimary
+            ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [Oak Lesson] "${oak.title}"`
+            : `  - [Oak Lesson] "${oak.title}"`
+          return contentBlock ? `${header}\n${contentBlock}` : header
         }
         const urlPart = r.url ? ` (${r.url})` : ''
         const filePart = r.fileKey && !r.url ? ` — teacher's own uploaded file` : ''
@@ -581,7 +660,7 @@ ${typePrompt}`
   try {
     const client  = new Anthropic({ apiKey })
     const message = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
+      model:      'claude-sonnet-4-6',
       max_tokens: 4000,
       system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
       messages:   [{ role: 'user', content: prompt }],

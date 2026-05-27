@@ -257,14 +257,23 @@ export default function UnifiedResourceSearch({
   const [showHwBanner,     setShowHwBanner]     = useState(false)
   const [, startAdd]                            = useTransition()
   const debounceRef                             = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Generation counter — each call to runSearch gets a unique gen; stale searches are discarded
+  const searchGenRef                            = useRef(0)
+  // Track the last auto-search key to avoid duplicate fires when lessonTitle arrives late
+  const lastAutoKeyRef                          = useRef<string | null>(null)
 
-  // Initial load: search by lesson title keywords first, then fall back to subject browse
+  // Initial load: search by lesson title keywords, debounced against duplicate fires
   useEffect(() => {
     if (!subjectSlug) return
-    runSearch(titleToKeywords(lessonTitle))
+    const q   = titleToKeywords(lessonTitle)
+    const key = `${subjectSlug}:${yearGroup ?? ''}:${q}`
+    if (lastAutoKeyRef.current === key) return   // same params — already running/ran
+    lastAutoKeyRef.current = key
+    runSearch(q)
   }, [subjectSlug, yearGroup, lessonTitle]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function runSearch(q: string) {
+    const gen = ++searchGenRef.current
     setLoading(true)
     setBroadened(false)
     try {
@@ -275,10 +284,12 @@ export default function UnifiedResourceSearch({
         getSchoolResourceLibrary(lessonId),
       ])
 
+      if (gen !== searchGenRef.current) return   // a newer search started — discard
+
       // Second pass: AND terms, drop year group (finds e.g. Yr7 Norman Conquest for a Yr8 lesson)
       if (oakResults.length < 3 && subjectSlug && q) {
         let broader = await searchOakLessons({ subjectSlug, query: q, andTerms: true, limit: 20 })
-        // Third pass: OR mode — catches topics where keywords span different lessons/units
+        // Third pass: OR mode — catches topics where lesson keywords span units/titles
         // e.g. "tudors elizabeth armada" won't AND-match "Elizabeth I and the Spanish Armada"
         // because that lesson doesn't contain "tudor", but OR mode finds it via "elizabeth"+"armada"
         if (broader.length < 3) {
@@ -286,9 +297,12 @@ export default function UnifiedResourceSearch({
         }
         if (broader.length > oakResults.length) {
           oakResults = broader
+          if (gen !== searchGenRef.current) return   // check again after awaits
           setBroadened(true)
         }
       }
+
+      if (gen !== searchGenRef.current) return   // discard stale result
 
       const combined: CombinedResult[] = [
         ...oakResults.map(d => ({ kind: 'oak' as const, data: d })),
@@ -300,7 +314,7 @@ export default function UnifiedResourceSearch({
     } catch {
       // ignore
     } finally {
-      setLoading(false)
+      if (gen === searchGenRef.current) setLoading(false)
     }
   }
 
@@ -382,8 +396,8 @@ export default function UnifiedResourceSearch({
 
       {/* Broadened year notice */}
       {broadened && yearGroup && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-          No exact Year {yearGroup} matches — showing resources from related year groups
+        <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+          Showing resources across all year groups — fewer than 3 exact Year {yearGroup} matches found
         </p>
       )}
 

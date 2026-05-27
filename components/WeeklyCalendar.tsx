@@ -504,7 +504,12 @@ export default function WeeklyCalendar({
         classes={classes}
         allClasses={allClasses}
         teacherSubjects={teacherSubjects}
-        onCreated={id => { setSlideOver(null); router.push('/lessons/' + id) }}
+        onCreated={async id => {
+          const fresh = await getWeekLessons(weekStart.toISOString())
+          setFetchedLessons(fresh)
+          router.refresh()
+          setSelectedLessonId(id)
+        }}
       />
 
       {/* ── Lesson detail drawer ─────────────────────────────────────── */}

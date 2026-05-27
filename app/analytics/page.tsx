@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/session'
 import AppShell from '@/components/AppShell'
 import StudentAnalyticsView from '@/components/StudentAnalyticsView'
 import { getAnalyticsFilters, getTeacherDefaults } from '@/app/actions/analytics'
+import { getGradeCalibrationReport } from '@/app/actions/homework'
 
 export default async function AnalyticsPage({
   searchParams,
@@ -10,10 +11,13 @@ export default async function AnalyticsPage({
 }) {
   const { role, firstName, lastName, schoolName } = await requireAuth()
 
-  const [filterOptions, teacherDefaults, params] = await Promise.all([
+  const showCalibration = ['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN'].includes(role)
+
+  const [filterOptions, teacherDefaults, params, calibrationReport] = await Promise.all([
     getAnalyticsFilters(),
     getTeacherDefaults(),
     searchParams,
+    showCalibration ? getGradeCalibrationReport() : Promise.resolve(undefined),
   ])
 
   // TEACHER and HEAD_OF_DEPT see only their own classes; SLT/admin/others see all
@@ -30,6 +34,7 @@ export default async function AnalyticsPage({
         teacherDefaults={teacherDefaults}
         isRestrictedRole={isRestrictedRole}
         initialFilters={initialFilters}
+        calibrationReport={calibrationReport}
       />
     </AppShell>
   )

@@ -18,6 +18,7 @@ import SendBadge from '@/components/ui/SendBadge'
 import RagView from '@/components/analytics/RagView'
 import StudentContactPanel from '@/components/StudentContactPanel'
 import ClassRosterTab from '@/components/ClassRosterTab'
+import type { GradeCalibrationReport } from '@/app/actions/homework'
 
 type SubmissionDetail = NonNullable<Awaited<ReturnType<typeof getSubmissionDetail>>>
 type SortCol = 'name' | 'completion' | 'score'
@@ -75,13 +76,14 @@ function scoreToGrade(score: number): number {
 }
 
 type Props = {
-  filterOptions:    FilterOptions
-  teacherDefaults:  TeacherDefaults
-  isRestrictedRole: boolean
-  initialFilters?:  { classId?: string; subject?: string; yearGroup?: string }
+  filterOptions:      FilterOptions
+  teacherDefaults:    TeacherDefaults
+  isRestrictedRole:   boolean
+  initialFilters?:    { classId?: string; subject?: string; yearGroup?: string }
+  calibrationReport?: GradeCalibrationReport
 }
 
-export default function StudentAnalyticsView({ filterOptions, teacherDefaults, isRestrictedRole, initialFilters }: Props) {
+export default function StudentAnalyticsView({ filterOptions, teacherDefaults, isRestrictedRole, initialFilters, calibrationReport }: Props) {
   const router = useRouter()
 
   // Stable derived constant — safe to use in useState initialisers
@@ -706,6 +708,86 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
           </>
         )}
       </div>
+
+      {/* ── Grade Calibration Report (HOD / SLT) ── */}
+      {calibrationReport && calibrationReport.teacherRows.length > 0 && (
+        <div className="mt-8 bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+            <Icon name="balance" size="sm" className="text-blue-600" />
+            <div>
+              <h3 className="text-[13px] font-bold text-gray-800">Grade Calibration</h3>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Per-teacher grade distribution vs school median (Gr {calibrationReport.schoolMedian}) — current term
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="text-left px-6 py-2.5 font-semibold text-gray-500">Teacher</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Graded</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Avg Grade</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Drift</th>
+                  <th className="px-6 py-2.5 font-semibold text-gray-500">Distribution (1–9)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {calibrationReport.teacherRows.map(row => {
+                  const driftColour = Math.abs(row.drift) < 0.5
+                    ? 'text-green-600 bg-green-50'
+                    : row.drift > 0
+                      ? 'text-amber-700 bg-amber-50'
+                      : 'text-blue-700 bg-blue-50'
+                  const maxCount = Math.max(...Object.values(row.distribution), 1)
+                  return (
+                    <tr key={row.teacherId} className="hover:bg-gray-50/60">
+                      <td className="px-6 py-3 font-medium text-gray-800 whitespace-nowrap">{row.teacherName}</td>
+                      <td className="px-4 py-3 text-right text-gray-500">{row.gradedCount}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-800">Gr {row.avgGrade}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ${driftColour}`}>
+                          {row.drift > 0 ? '+' : ''}{row.drift}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3">
+                        <div className="flex items-end gap-0.5 h-6">
+                          {['1','2','3','4','5','6','7','8','9'].map(g => {
+                            const count = row.distribution[g] ?? 0
+                            const pct   = count / maxCount
+                            const barColour = parseInt(g) >= 7 ? 'bg-green-400'
+                              : parseInt(g) >= 5 ? 'bg-amber-400'
+                              : 'bg-rose-400'
+                            return (
+                              <div key={g} className="flex flex-col items-center gap-0.5 w-4" title={`Grade ${g}: ${count}`}>
+                                <div className={`w-3 rounded-sm ${barColour}`} style={{ height: `${Math.max(pct * 20, count > 0 ? 3 : 0)}px` }} />
+                                <span className="text-[9px] text-gray-400">{g}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100 flex items-center gap-4 text-[11px] text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-400" />Drift ±0.4 = within normal range
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />Positive drift = grades above school median
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-400" />Negative drift = grades below school median
+            </span>
+          </div>
+        </div>
+      )}
 
       {submission && <SubmissionModal detail={submission} onClose={() => setSubmission(null)} />}
 

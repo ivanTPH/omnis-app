@@ -1724,6 +1724,100 @@ export async function getIlpConcernsThisTerm(): Promise<Array<{
   })
 }
 
+// ── Grade calibration report (HOD moderation) ─────────────────────────────────
+
+export type GradeCalibrationReport = {
+  schoolMedian:   number
+  teacherRows:    Array<{
+    teacherId:    string
+    teacherName:  string
+    gradedCount:  number
+    avgGrade:     number
+    distribution: Record<string, number>  // grade "1"–"9" → count
+    drift:        number                  // avgGrade − schoolMedian (positive = inflated)
+  }>
+}
+
+/**
+ * Returns per-teacher grade distribution vs school median for the current term.
+ * Accessible to HEAD_OF_DEPT, SLT, SCHOOL_ADMIN only.
+ */
+export async function getGradeCalibrationReport(): Promise<GradeCalibrationReport> {
+  const { schoolId, role } = await requireAuth()
+  if (!['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN', 'PLATFORM_ADMIN'].includes(role)) {
+    return { schoolMedian: 0, teacherRows: [] }
+  }
+
+  const now = new Date()
+  const currentTerm = await prisma.termDate.findFirst({
+    where: { schoolId, startsAt: { lte: now }, endsAt: { gte: now } },
+  })
+  const termStart = currentTerm?.startsAt ?? new Date(now.getTime() - 70 * 24 * 60 * 60 * 1000)
+
+  // Fetch all graded submissions this term that have a numeric grade
+  const submissions = await prisma.submission.findMany({
+    where: {
+      schoolId,
+      status:   'RETURNED',
+      markedAt: { gte: termStart },
+      grade:    { not: null },
+    },
+    select: {
+      grade:    true,
+      homework: { select: { createdBy: true } },
+    },
+  })
+
+  // Parse grade to numeric — skip U / non-numeric
+  const validGrades = ['1','2','3','4','5','6','7','8','9']
+  const graded = submissions
+    .map(s => ({ teacherId: s.homework.createdBy, grade: s.grade ?? '' }))
+    .filter(s => validGrades.includes(s.grade))
+    .map(s => ({ teacherId: s.teacherId, grade: parseInt(s.grade, 10) }))
+
+  if (!graded.length) return { schoolMedian: 0, teacherRows: [] }
+
+  // School-wide median
+  const allGrades = graded.map(s => s.grade).sort((a, b) => a - b)
+  const mid = Math.floor(allGrades.length / 2)
+  const schoolMedian = allGrades.length % 2 === 0
+    ? (allGrades[mid - 1] + allGrades[mid]) / 2
+    : allGrades[mid]
+
+  // Group by teacher
+  const byTeacher = new Map<string, number[]>()
+  for (const { teacherId, grade } of graded) {
+    if (!byTeacher.has(teacherId)) byTeacher.set(teacherId, [])
+    byTeacher.get(teacherId)!.push(grade)
+  }
+
+  // Fetch teacher names
+  const teacherIds = [...byTeacher.keys()]
+  const teachers = await prisma.user.findMany({
+    where: { id: { in: teacherIds }, schoolId },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const nameMap = new Map(teachers.map(t => [t.id, `${t.firstName} ${t.lastName}`]))
+
+  const teacherRows = teacherIds.map(tid => {
+    const grades = byTeacher.get(tid)!
+    const avgGrade = grades.reduce((a, b) => a + b, 0) / grades.length
+    const distribution: Record<string, number> = {}
+    for (const g of validGrades) distribution[g] = 0
+    for (const g of grades) distribution[String(g)]++
+    return {
+      teacherId:    tid,
+      teacherName:  nameMap.get(tid) ?? 'Unknown',
+      gradedCount:  grades.length,
+      avgGrade:     Math.round(avgGrade * 10) / 10,
+      distribution,
+      drift:        Math.round((avgGrade - schoolMedian) * 10) / 10,
+    }
+  }).sort((a, b) => b.drift - a.drift)
+
+  return { schoolMedian: Math.round(schoolMedian * 10) / 10, teacherRows }
+}
+
 // ── AI grade suggestion ────────────────────────────────────────────────────────
 
 export async function suggestHomeworkGrade(
@@ -1738,7 +1832,15 @@ export async function suggestHomeworkGrade(
     where: { id: submissionId },
     select: {
       content:  true,
-      homework: { select: { title: true, modelAnswer: true, gradingBands: true } },
+      homework: {
+        select: {
+          title:        true,
+          modelAnswer:  true,
+          gradingBands: true,
+          type:         true,
+          class: { select: { subject: true, yearGroup: true, examBoard: true } },
+        },
+      },
     },
   })
 
@@ -1748,42 +1850,87 @@ export async function suggestHomeworkGrade(
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return fallback
 
-  const bandsText = sub.homework.gradingBands
-    ? JSON.stringify(sub.homework.gradingBands, null, 2)
-    : 'Standard GCSE descriptors: 9=exceptional, 7-8=strong, 5-6=secure, 3-4=developing, 1-2=basic, U=unclassified'
+  const hw        = sub.homework
+  const subject   = hw.class?.subject   ?? 'this subject'
+  const year      = hw.class?.yearGroup ? `Year ${hw.class.yearGroup}` : 'GCSE'
+  const examBoard = hw.class?.examBoard ?? 'AQA'
+  const hwType    = hw.type ?? 'SHORT_ANSWER'
 
-  const prompt = `You are a UK secondary school teacher marking homework. Suggest a GCSE grade and write brief feedback for this student submission.
+  const bandsText = hw.gradingBands
+    ? Object.entries(hw.gradingBands as Record<string, string>)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n')
+    : null
 
-Homework: ${sub.homework.title}
+  const lengthGuidance = (() => {
+    switch (hwType) {
+      case 'EXTENDED_WRITING':
+        return 'This is an EXTENDED WRITING task. Grade 7–9 requires approximately 300–500 words with sustained analysis and a structured argument. A response under 100 words must not exceed Grade 3. A 1–2 sentence response warrants Grade 1–2.'
+      case 'SHORT_ANSWER':
+        return 'This is a SHORT ANSWER task. Analytical questions (higher-order) require 5–8 full sentences for Grade 7+. Factual recall questions may need only 2–3 sentences. A 1–2 sentence answer to an analytical question must not exceed Grade 3. Assess response length against the cognitive demand of each question.'
+      case 'MIXED':
+        return 'This is a MIXED assessment. Extended sections require sustained analysis (300+ words) for Grade 7+. Short factual questions may be answered concisely. A single-sentence response to an analytical section must not exceed Grade 3.'
+      default:
+        return 'Grade 7–9 requires depth, development, and subject-specific language. A 1–2 sentence response cannot merit Grade 7+ for questions requiring analysis or evaluation.'
+    }
+  })()
 
-Mark scheme / model answer:
-${sub.homework.modelAnswer}
+  const prompt = `You are an experienced UK secondary school teacher and examiner marking ${year} ${subject} homework for ${examBoard}.
 
-Grading bands:
-${bandsText}
+## Task
+Assign a GCSE grade (1–9) to the student submission below. Apply the same rigour as a public examination — do not inflate grades.
 
-Student submission:
-${sub.content || '(no response submitted)'}
+## Homework
+${hw.title}
 
-Respond with ONLY valid JSON: {"grade": "7", "rationale": "Brief justification max 20 words", "feedback": "1-2 sentence constructive feedback written directly to the student", "confidence": "high"}`
+## Mark Scheme / Model Answer
+${hw.modelAnswer}
+
+${bandsText ? `## Grading Bands\n${bandsText}\n` : ''}
+## GCSE Grade Standards (apply strictly)
+- Grade 9 (A**): Exceptional; sophisticated analysis; precise subject vocabulary; all assessment objectives fully met.
+- Grade 8 (A*): Outstanding analytical response; strong sustained argument; high-level language throughout.
+- Grade 7 (A): Secure, well-structured analysis; clear line of argument; mostly accurate subject vocabulary.
+- Grade 6 (B): Mostly secure; some analysis but may lack consistency or depth; generally accurate language.
+- Grade 5 (C+): Partial analysis; relevant content but underdeveloped; some subject-specific language.
+- Grade 4 (C): Basic understanding; description-level response; limited analytical development.
+- Grade 3 (D): Limited understanding; mainly narrative or list; minimal subject vocabulary.
+- Grade 2 (E): Very limited; largely irrelevant or inaccurate.
+- Grade 1 (F): Minimal response; almost no demonstrable knowledge.
+- U: Nothing written, or wholly irrelevant.
+
+## Response Length Requirement (mandatory check before grading)
+${lengthGuidance}
+
+## Student Submission
+${sub.content || '(no response submitted — award Grade 1 or U)'}
+
+## Instructions
+1. Estimate the word count of the student response.
+2. Check whether that length is appropriate for the GCSE grade you are considering.
+3. If the response is too brief for its cognitive demand, cap the grade accordingly — do not award Grade 7+ for analysis questions answered in 1–3 sentences.
+4. Write feedback (3–4 sentences) directly to the student, referencing their specific answer.
+
+Respond with ONLY valid JSON — no markdown:
+{"grade": "7", "rationale": "One sentence: why this grade, referencing length and quality", "feedback": "3-4 sentence feedback written directly to the student", "confidence": "high"}`
 
   try {
     const client   = new Anthropic({ apiKey })
     const response = await client.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+      model:      'claude-sonnet-4-6',
+      max_tokens: 800,
       messages:   [{ role: 'user', content: prompt }],
     })
-    const text     = response.content[0].type === 'text' ? response.content[0].text.trim() : ''
+    const text      = response.content[0].type === 'text' ? response.content[0].text.trim() : ''
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('no JSON in response')
-    const parsed   = JSON.parse(jsonMatch[0])
-    const valid  = ['9', '8', '7', '6', '5', '4', '3', '2', '1', 'U']
+    const parsed    = JSON.parse(jsonMatch[0])
+    const valid     = ['9', '8', '7', '6', '5', '4', '3', '2', '1', 'U']
     if (!valid.includes(parsed.grade)) throw new Error('bad grade')
     return {
       grade:      parsed.grade,
-      rationale:  String(parsed.rationale ?? '').slice(0, 200),
-      feedback:   String(parsed.feedback ?? '').slice(0, 500),
+      rationale:  String(parsed.rationale ?? '').slice(0, 300),
+      feedback:   String(parsed.feedback ?? '').slice(0, 600),
       confidence: (['high', 'medium', 'low'] as const).includes(parsed.confidence) ? parsed.confidence : 'medium',
     }
   } catch {

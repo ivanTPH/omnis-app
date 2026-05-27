@@ -141,9 +141,9 @@ Return this exact JSON structure:
 
 export function defaultBands() {
   return {
-    'Low (1–3)':  'Limited understanding; minimal use of subject vocabulary.',
-    'Mid (4–6)':  'Developing understanding; relevant points with some appropriate vocabulary.',
-    'High (7–9)': 'Secure understanding; well-structured response with accurate terminology.',
+    'Low (1–3)':  'Limited understanding; response is mainly narrative or list-based with minimal subject vocabulary. For written tasks, typically fewer than 3 developed sentences.',
+    'Mid (4–6)':  'Developing understanding; some relevant explanation with attempts to use subject-specific language; ideas are partially developed but lack consistency or analytical depth.',
+    'High (7–9)': 'Secure, analytical understanding; well-structured argument with sustained development across multiple paragraphs; accurate subject vocabulary used throughout; response demonstrates clear command of the topic.',
   }
 }
 

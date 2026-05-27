@@ -14,7 +14,7 @@ test.describe('GDPR consent management', () => {
   test('school admin can access GDPR consent page', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/gdpr')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
     // The GDPR admin shell should render some tab or heading
@@ -24,7 +24,7 @@ test.describe('GDPR consent management', () => {
   test('slt can access GDPR consent page', async ({ page }) => {
     await loginAs(page, USERS.slt)
     await page.goto('/admin/gdpr')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
   })

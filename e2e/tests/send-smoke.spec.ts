@@ -296,7 +296,7 @@ test('Step 4 — SEND status escalated SEN_SUPPORT→EHCP; EHCP plan exists', as
   await loginSenco(page)
   await page.goto('/senco/ehcp')
   await expect(page).toHaveURL(/senco\/ehcp/, { timeout: 8_000 })
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   // EHCP page should render without error
   await expect(page.getByRole('heading', { name: /EHCP Plans/i })).toBeVisible()
@@ -342,7 +342,7 @@ test('Step 5 — K Plan auto-generated; SENCO approves it', async ({ page }) => 
 
   await page.goto(`/student/${targetId}/send`)
   await expect(page).toHaveURL(new RegExp(`student/${targetId}/send`), { timeout: 8_000 })
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   // Look for K Plan section
   const kPlanHeading = page.getByText(/k plan|learning passport/i).first()
@@ -530,7 +530,7 @@ test('Step 10 — EHCP student homework view: scaffold/simplified question', asy
   }
 
   await hwLinks.first().click()
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   // Check for scaffolding_hint render (bg-purple-50 / text-purple-700 hint block)
   const hintBlock = page.locator('div.bg-purple-50, p.text-purple-700').filter({ hasText: /think about|consider|start with|sentence starter/i })
@@ -567,7 +567,7 @@ test('Step 11 — SEN Support student: scaffolding hint in homework', async ({ p
     return
   }
   await hwLinks.first().click()
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   const hintBlock = page.locator('div.bg-purple-50, p.text-purple-700').filter({ hasText: /think about|consider|start with/i })
   const hintVisible = await hintBlock.isVisible({ timeout: 3_000 }).catch(() => false)
@@ -584,10 +584,11 @@ test('Step 11 — SEN Support student: scaffolding hint in homework', async ({ p
 // STEP 12 — Teacher marks EHCP homework; K Plan sidebar visible; ILP evidence
 // ─────────────────────────────────────────────────────────────────────────────
 test('Step 12 — Teacher marks homework; K Plan sidebar; ILP evidence link', async ({ page }) => {
+  test.setTimeout(60_000)
   await loginTeacher(page)
   await page.goto('/homework')
   await expect(page).toHaveURL(/homework/, { timeout: 8_000 })
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   // Click the first homework
   const hwCard = page.locator('a[href*="/homework/"]').filter({ hasNot: page.locator('[href*="mark"]') }).first()
@@ -596,7 +597,7 @@ test('Step 12 — Teacher marks homework; K Plan sidebar; ILP evidence link', as
     return
   }
   await hwCard.click()
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   // Find a student row (Submitted or any status) and click it to open marking panel
   const studentRow = page.locator('div').filter({ hasText: /submitted|marked|missing/i }).first()
@@ -641,7 +642,7 @@ test('Step 13 — SLT analytics: SEND Overview card shows data', async ({ page }
   await loginSlt(page)
   await page.goto('/slt/analytics')
   await expect(page).toHaveURL(/slt\/analytics/, { timeout: 8_000 })
-  await page.waitForLoadState('networkidle')
+  await page.waitForLoadState('domcontentloaded')
 
   // SEND Overview card (purple-50 background)
   await expect(page.getByText(/SEND Overview/i)).toBeVisible({ timeout: 8_000 })

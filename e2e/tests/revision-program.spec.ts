@@ -18,7 +18,7 @@ test.describe('Revision Program — teacher access', () => {
   test('teacher can access revision program list', async ({ page }) => {
     test.setTimeout(60_000)
     await page.goto('/revision-program')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/)
     await expect(page.locator('body')).toBeVisible()
   })
@@ -26,14 +26,14 @@ test.describe('Revision Program — teacher access', () => {
   test('revision program list shows New Program button', async ({ page }) => {
     test.setTimeout(60_000)
     await page.goto('/revision-program')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page.getByRole('button', { name: /new program/i })).toBeVisible({ timeout: 10_000 })
   })
 
   test('teacher can navigate to create new revision program', async ({ page }) => {
     test.setTimeout(60_000)
     await page.goto('/revision-program/new')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/)
     await expect(page.locator('body')).toBeVisible()
   })
@@ -41,7 +41,7 @@ test.describe('Revision Program — teacher access', () => {
   test('teacher can access year revision route', async ({ page }) => {
     test.setTimeout(60_000)
     await page.goto('/revision-program/year')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/)
     await expect(page.locator('body')).toBeVisible()
   })
@@ -51,21 +51,21 @@ test.describe('Revision Program — access control', () => {
   test('student cannot access revision program list', async ({ page }) => {
     await loginAs(page, USERS.student)
     await gotoCommit(page, '/revision-program')
-    await page.waitForTimeout(2_000)
+    await page.waitForURL(url => !url.pathname.startsWith('/revision-program'), { timeout: 8_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/revision-program/)
   })
 
   test('parent cannot access revision program list', async ({ page }) => {
     await loginAs(page, USERS.parent)
     await gotoCommit(page, '/revision-program')
-    await page.waitForTimeout(2_000)
+    await page.waitForURL(url => !url.pathname.startsWith('/revision-program'), { timeout: 8_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/revision-program/)
   })
 
   test('teacher cannot access student revision planner', async ({ page }) => {
     await loginAs(page, USERS.patel)
     await gotoCommit(page, '/student/revision')
-    await page.waitForTimeout(2_000)
+    await page.waitForURL(url => !url.pathname.startsWith('/student/revision'), { timeout: 8_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/student\/revision/)
   })
 })
@@ -85,7 +85,7 @@ test.describe('Revision Program — HOD access', () => {
     test.setTimeout(60_000)
     await loginAs(page, USERS.hod)
     await page.goto('/revision-program')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/)
     await expect(page.locator('body')).toBeVisible()
   })

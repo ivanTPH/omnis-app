@@ -17,7 +17,7 @@ test.describe('Accessibility & settings', () => {
     await loginAs(page, USERS.patel)
     await page.goto('/settings')
     // Wait for page to settle, then check for visible non-hidden form fields
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     const visibleInput = page.locator('input:not([type="hidden"]):not([type="file"])').first()
     await expect(visibleInput).toBeVisible({ timeout: 10_000 })
   })

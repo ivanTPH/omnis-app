@@ -14,7 +14,7 @@ test.describe('AI resource generator', () => {
   test('teacher can access AI generator', async ({ page }) => {
     await loginAs(page, USERS.patel)
     await page.goto('/ai-generator')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
     // The generator form or shell should be present
@@ -24,7 +24,7 @@ test.describe('AI resource generator', () => {
   test('senco can access AI generator', async ({ page }) => {
     await loginAs(page, USERS.senco)
     await page.goto('/ai-generator')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
   })

@@ -28,14 +28,14 @@ test.describe('Wonde MIS Sync — access control', () => {
   test('teacher is redirected away from Wonde sync panel', async ({ page }) => {
     await loginAs(page, USERS.patel)
     await gotoCommit(page, '/admin/wonde')
-    await page.waitForTimeout(2_000)
+    await page.waitForURL(url => !url.pathname.startsWith('/admin/wonde'), { timeout: 8_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/admin\/wonde/)
   })
 
   test('student is redirected away from Wonde sync panel', async ({ page }) => {
     await loginAs(page, USERS.student)
     await gotoCommit(page, '/admin/wonde')
-    await page.waitForTimeout(2_000)
+    await page.waitForURL(url => !url.pathname.startsWith('/admin/wonde'), { timeout: 8_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/admin\/wonde/)
   })
 })

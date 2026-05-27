@@ -21,7 +21,7 @@ test.describe('Adaptive homework', () => {
   test('adaptive analytics page is accessible to teacher', async ({ page }) => {
     await loginAs(page, USERS.patel)
     await page.goto('/analytics/adaptive')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.getByText('Adaptive Learning', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
   })
@@ -45,7 +45,7 @@ test.describe('Adaptive homework', () => {
     // SENCO is included in the /analytics allow-list in auth.config.ts
     await loginAs(page, USERS.senco)
     await page.goto('/analytics/adaptive')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
   })

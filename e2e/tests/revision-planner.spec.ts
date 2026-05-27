@@ -14,7 +14,7 @@ test.describe('Revision planner', () => {
   test('student can access revision planner', async ({ page }) => {
     await loginAs(page, USERS.student)
     await page.goto('/revision')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
   })

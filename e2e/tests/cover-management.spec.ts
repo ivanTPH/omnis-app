@@ -14,7 +14,7 @@ test.describe('Cover management', () => {
   test('school admin can access cover management', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/cover')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('text=Cover Management')).toBeVisible({ timeout: 10_000 })
   })
@@ -22,7 +22,7 @@ test.describe('Cover management', () => {
   test('slt can access cover management', async ({ page }) => {
     await loginAs(page, USERS.slt)
     await page.goto('/admin/cover')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('text=Cover Management')).toBeVisible({ timeout: 10_000 })
   })

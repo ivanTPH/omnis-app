@@ -6,7 +6,7 @@ test.describe('Student avatars', () => {
   test('admin student table renders student list', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/students')
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('h1').filter({ hasText: 'Students' })).toBeVisible({ timeout: 10_000 })
   })

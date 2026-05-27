@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
@@ -8,7 +8,6 @@ import Tooltip from '@/components/ui/Tooltip'
 import SetHomeworkModal from './SetHomeworkModal'
 import ExportPdfButton  from '@/components/ExportPdfButton'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { useTeacherProfile } from '@/lib/teacherProfileContext'
 
 export type HomeworkListItem = {
   id:             string
@@ -38,7 +37,6 @@ function statusDisplayLabel(s: string) {
 
 export default function HomeworkFilterView({ homework }: { homework: HomeworkListItem[] }) {
   const router  = useRouter()
-  const profile = useTeacherProfile()
 
   const [subject,   setSubject]   = useState('')
   const [year,      setYear]      = useState('')
@@ -46,15 +44,6 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
   const [status,    setStatus]    = useState('')
   const [search,    setSearch]    = useState('')
   const [showModal, setShowModal] = useState(false)
-
-  // Apply teacher profile defaults once they arrive from AppShell
-  const defaultsApplied = useRef(false)
-  useEffect(() => {
-    if (defaultsApplied.current || !profile.isLoaded) return
-    defaultsApplied.current = true
-    if (profile.defaultSubject) setSubject(profile.defaultSubject)
-    if (profile.defaultYearGroup != null) setYear(String(profile.defaultYearGroup))
-  }, [profile.isLoaded, profile.defaultSubject, profile.defaultYearGroup])
 
   const now = useMemo(() => new Date(), [])
 
@@ -258,7 +247,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
             </label>
             <select
               value={subject}
-              onChange={e => { defaultsApplied.current = true; setSubject(e.target.value); setClassId('') }}
+              onChange={e => { setSubject(e.target.value); setClassId('') }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Subjects</option>
@@ -273,7 +262,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
             </label>
             <select
               value={year}
-              onChange={e => { defaultsApplied.current = true; setYear(e.target.value); setClassId('') }}
+              onChange={e => { setYear(e.target.value); setClassId('') }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Years</option>

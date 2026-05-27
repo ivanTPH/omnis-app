@@ -1529,6 +1529,7 @@ model UserSettings {
 
   // Professional
   defaultSubject     String?
+  additionalSubjects String[]
   preferredExamBoard String?
   teachingModules    String[]
 

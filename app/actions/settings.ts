@@ -23,6 +23,7 @@ export type SettingsData = {
   profilePictureUrl:          string | null
   bio:                        string | null
   defaultSubject:             string | null
+  additionalSubjects:         string[]
   preferredExamBoard:         string | null
   teachingModules:            string[]
   allowEmailNotifications:    boolean
@@ -158,9 +159,10 @@ export async function requestEmailChange(
   return { status: 'pending_verification' }
 }
 
-/** Save professional preferences (default subject, exam board, modules). */
+/** Save professional preferences (default subject, additional subjects, exam board, modules). */
 export async function saveProfessionalPrefs(input: {
   defaultSubject:     string
+  additionalSubjects: string[]
   preferredExamBoard: string
   teachingModules:    string[]
 }): Promise<{ ok: true }> {
@@ -171,14 +173,15 @@ export async function saveProfessionalPrefs(input: {
     select: { defaultSubject: true, preferredExamBoard: true, teachingModules: true },
   })
 
-  const newSubject   = input.defaultSubject     || null
-  const newExamBoard = input.preferredExamBoard || null
-  const newModules   = input.teachingModules    ?? []
+  const newSubject            = input.defaultSubject            || null
+  const newAdditionalSubjects = input.additionalSubjects        ?? []
+  const newExamBoard          = input.preferredExamBoard        || null
+  const newModules            = input.teachingModules           ?? []
 
   await prisma.userSettings.upsert({
     where:  { userId },
-    create: { userId, defaultSubject: newSubject, preferredExamBoard: newExamBoard, teachingModules: newModules },
-    update: { defaultSubject: newSubject, preferredExamBoard: newExamBoard, teachingModules: newModules },
+    create: { userId, defaultSubject: newSubject, additionalSubjects: newAdditionalSubjects, preferredExamBoard: newExamBoard, teachingModules: newModules },
+    update: { defaultSubject: newSubject, additionalSubjects: newAdditionalSubjects, preferredExamBoard: newExamBoard, teachingModules: newModules },
   })
 
   // Propagate the new exam board to any of this teacher's classes that don't have one set yet

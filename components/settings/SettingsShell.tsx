@@ -64,6 +64,7 @@ type SettingsData = {
   profilePictureUrl:          string | null
   bio:                        string | null
   defaultSubject:             string | null
+  additionalSubjects:         string[]
   preferredExamBoard:         string | null
   teachingModules:            string[]
   allowEmailNotifications:    boolean
@@ -154,9 +155,16 @@ export default function SettingsShell({
   const fileInputRef                    = useRef<HTMLInputElement>(null)
 
   // ── Professional tab state ─────────────────────────────────────────────────
-  const [defaultSubject,     setDefaultSubject]     = useState(initialSettings.defaultSubject     ?? '')
-  const [preferredExamBoard, setPreferredExamBoard] = useState(initialSettings.preferredExamBoard ?? '')
-  const [modulesInput,       setModulesInput]       = useState((initialSettings.teachingModules   ?? []).join(', '))
+  const [defaultSubject,      setDefaultSubject]      = useState(initialSettings.defaultSubject     ?? '')
+  const [additionalSubjects,  setAdditionalSubjects]  = useState<string[]>(initialSettings.additionalSubjects ?? [])
+  const [preferredExamBoard,  setPreferredExamBoard]  = useState(initialSettings.preferredExamBoard ?? '')
+  const [modulesInput,        setModulesInput]        = useState((initialSettings.teachingModules   ?? []).join(', '))
+
+  function toggleAdditionalSubject(subject: string) {
+    setAdditionalSubjects(prev =>
+      prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
+    )
+  }
 
   // ── Privacy tab state ──────────────────────────────────────────────────────
   const [allowEmail,     setAllowEmail]     = useState(initialSettings.allowEmailNotifications)
@@ -253,7 +261,7 @@ export default function SettingsShell({
   async function handleSaveProfessional() {
     await wrap(async () => {
       const teachingModules = modulesInput.split(',').map(s => s.trim()).filter(Boolean)
-      await saveProfessionalPrefs({ defaultSubject, preferredExamBoard, teachingModules })
+      await saveProfessionalPrefs({ defaultSubject, additionalSubjects, preferredExamBoard, teachingModules })
       flash('Professional preferences saved.', true)
     })
   }
@@ -500,16 +508,45 @@ export default function SettingsShell({
         <div className="space-y-8">
           <Section title="Teaching Preferences" description="These preferences help personalise your experience on the platform and feed into AI homework and lesson grading.">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Default subject</label>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Primary subject</label>
               <select
                 value={defaultSubject}
-                onChange={e => setDefaultSubject(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value
+                  setDefaultSubject(val)
+                  // Remove from additional if it was there
+                  if (val) setAdditionalSubjects(prev => prev.filter(s => s !== val))
+                }}
                 className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400 transition-colors"
               >
                 <option value="">— None selected —</option>
                 {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <p className="mt-1 text-xs text-gray-400">Used to pre-fill lesson and resource filters.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-2">Additional subjects you teach</label>
+              <div className="flex flex-wrap gap-2">
+                {SUBJECTS.filter(s => s !== defaultSubject).map(s => {
+                  const active = additionalSubjects.includes(s)
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => toggleAdditionalSubject(s)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        active
+                          ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                          : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+                      }`}
+                    >
+                      {active && <span className="mr-1">✓</span>}{s}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-1.5 text-xs text-gray-400">Select any other subjects you teach. Used to personalise homework and grading context.</p>
             </div>
 
             <div>

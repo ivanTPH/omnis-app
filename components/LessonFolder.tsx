@@ -26,6 +26,35 @@ const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/Homewo
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 
+// Extract plain text from a PPTX file (ZIP containing XML slide files)
+async function extractPptxText(file: File): Promise<string> {
+  try {
+    const JSZip = (await import('jszip')).default
+    const zip = await JSZip.loadAsync(file)
+    const slideFiles = Object.keys(zip.files)
+      .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+      .sort((a, b) => {
+        const na = parseInt(a.match(/\d+/)?.[0] ?? '0')
+        const nb = parseInt(b.match(/\d+/)?.[0] ?? '0')
+        return na - nb
+      })
+    const texts: string[] = []
+    for (const name of slideFiles) {
+      const xml = await zip.files[name].async('string')
+      // Extract all <a:t> text nodes (DrawingML text runs)
+      const matches = xml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) ?? []
+      const slideText = matches
+        .map(m => m.replace(/<[^>]+>/g, '').trim())
+        .filter(Boolean)
+        .join(' ')
+      if (slideText) texts.push(slideText)
+    }
+    return texts.join('\n')
+  } catch {
+    return ''
+  }
+}
+
 type LessonData = Awaited<ReturnType<typeof getLessonDetails>>
 
 // Maps school subject names to Oak National Academy subject slugs
@@ -517,7 +546,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         const ext   = f.name.split('.').pop()?.toLowerCase() ?? ''
         const type  = ext === 'pptx' || ext === 'ppt' ? 'SLIDES' :
                       ext === 'pdf'                    ? 'PLAN'   : 'OTHER'
-        await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name })
+        // Extract text content from supported formats so AI can use it for homework generation
+        let extractedText: string | undefined
+        if (ext === 'pptx' || ext === 'ppt') {
+          extractedText = await extractPptxText(f) || undefined
+        }
+        await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name, extractedText })
       }
       await refreshLesson()
     })

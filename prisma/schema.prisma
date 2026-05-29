@@ -551,11 +551,12 @@ model Resource {
   schoolId     String
   lesson       Lesson?      @relation(fields: [lessonId], references: [id])
   lessonId     String?
-  type         ResourceType
-  label        String
-  url          String?
-  fileKey      String?
-  oakContentId String?
+  type          ResourceType
+  label         String
+  url           String?
+  fileKey       String?
+  oakContentId  String?
+  extractedText String?   // Plain text extracted from uploaded files (PPTX, PDF, etc.)
   createdBy    String
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

@@ -520,7 +520,7 @@ export async function addUrlResource(
 
 export async function addUploadedResource(
   lessonId: string,
-  input: { label: string; type: ResourceType; fileName: string; description?: string }
+  input: { label: string; type: ResourceType; fileName: string; description?: string; extractedText?: string }
 ): Promise<{ resourceId: string; review: ReviewResult }> {
   const { schoolId, id: userId } = await requireAuth()
 
@@ -528,10 +528,11 @@ export async function addUploadedResource(
     data: {
       schoolId,
       lessonId,
-      type:      input.type,
-      label:     input.label,
-      fileKey:   `stub:${input.fileName}`,
-      createdBy: userId,
+      type:          input.type,
+      label:         input.label,
+      fileKey:       `stub:${input.fileName}`,
+      extractedText: input.extractedText ?? null,
+      createdBy:     userId,
     },
   })
 

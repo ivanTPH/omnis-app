@@ -516,9 +516,17 @@ export async function generateHomeworkFromResources(
           return contentBlock ? `${header}\n${contentBlock}` : header
         }
         const urlPart = r.url ? ` (${r.url})` : ''
-        const filePart = r.fileKey && !r.url ? ` — teacher's own uploaded file` : ''
+        const extractedText = (r as any).extractedText as string | null | undefined
+        if (r.fileKey && !r.url && extractedText) {
+          // Uploaded file with extracted text — give the AI the actual content
+          const header = isPrimary
+            ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}" (uploaded file)`
+            : `  - [${r.type}] "${r.label}" (uploaded file)`
+          const excerpt = extractedText.slice(0, 3000)
+          return `${header}\n  Slide/page content:\n${excerpt.split('\n').map(l => `    ${l}`).join('\n')}`
+        }
         return isPrimary
-          ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}"${urlPart}${filePart}`
+          ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}"${urlPart}`
           : `  - [${r.type}] "${r.label}"${urlPart}`
       }).join('\n')
     : '  - No lesson resources attached'
@@ -631,7 +639,7 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
 
   // Task instruction — respect the teacher's chosen primary resource
   const taskInstruction = hasPrimaryNonOak
-    ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own material). Use the lesson title and learning objectives to determine what was taught. Do NOT base questions on any Oak or supplementary resources listed below it.`
+    ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own uploaded material). The slide/page content extracted from that file is provided above — use it as your primary source. Generate questions that test the SPECIFIC facts, arguments, and evidence from those slides. Each model answer MUST be drawn directly from the content shown, including specific details, dates, names, and key vocabulary. Do NOT generate generic questions.`
     : preferredResourceId
       ? `Your homework questions MUST be based primarily on the PRIMARY RESOURCE marked in the resource list above. Generate questions that test the specific content and learning outcome of that resource. Other resources and learning objectives are supplementary context — do not let them override the PRIMARY RESOURCE selection.`
       : lesson.objectives.length > 0

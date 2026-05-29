@@ -669,7 +669,7 @@ ${typePrompt}`
     const client  = new Anthropic({ apiKey })
     const message = await client.messages.create({
       model:      'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 8000,
       system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
       messages:   [{ role: 'user', content: prompt }],
     })
@@ -708,8 +708,9 @@ ${typePrompt}`
       console.warn('[generateHomeworkFromResources] questionsJson missing or too short for', type, '— retrying')
       // Retry once with a more directive prompt
       const retryMsg = await client.messages.create({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
+        model:      'claude-sonnet-4-6',
+        max_tokens: 8000,
+        system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
         messages:   [
           { role: 'user',      content: prompt },
           { role: 'assistant', content: cleaned },

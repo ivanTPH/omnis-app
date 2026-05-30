@@ -618,13 +618,17 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             {(loading || (!!lessonId && !lesson)) ? (
               <div className="h-6 w-48 bg-gray-100 rounded animate-pulse" />
             ) : (
-              <input
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                onBlur={saveOverview}
-                className="text-xl font-semibold text-gray-900 w-full border-0 outline-none bg-transparent focus:ring-0 p-0"
-                placeholder="Lesson title"
-              />
+              <div className="group flex items-center gap-1.5">
+                <input
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  onBlur={saveOverview}
+                  className="text-xl font-semibold text-gray-900 w-full border-0 border-b border-transparent outline-none bg-transparent focus:ring-0 p-0 hover:border-gray-300 focus:border-blue-400 transition-colors"
+                  placeholder="Lesson title"
+                  title="Click to edit lesson title"
+                />
+                <Icon name="edit" size="sm" className="text-gray-300 group-hover:text-gray-400 shrink-0 transition-colors" />
+              </div>
             )}
             {lesson && (
               <div className="flex items-center gap-2 mt-1 flex-wrap">

@@ -329,6 +329,7 @@ export default function LessonSlideOver({
                         : 'e.g. Lesson title'
                   }
                   autoFocus
+                  data-lesson-title-input
                   className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -376,7 +377,11 @@ export default function LessonSlideOver({
                     setLessonId(id)
                     if (id && id !== '__other') {
                       const name = selectedTopic.lessons.find(l => l.id === id)?.name
-                      if (name) setLessonTitle(name)
+                      if (name) {
+                        setLessonTitle(name)
+                        // Scroll to top so teacher sees the title field was updated
+                        document.querySelector('[data-lesson-title-input]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }
                     }
                   }}>
                     <option value="">— Select to fill title —</option>

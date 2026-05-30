@@ -100,7 +100,7 @@ export async function getClassRagData(
 
   // ── 1+2. Resolve class + enrolled students ───────────────────────────────────
   const [cls, enrolments] = await Promise.all([
-    prisma.schoolClass.findUnique({ where: { id: classId }, select: { subject: true } }),
+    prisma.schoolClass.findUnique({ where: { id: classId, schoolId }, select: { subject: true } }),
     prisma.enrolment.findMany({ where: { classId, class: { schoolId } }, select: { userId: true }, distinct: ['userId'] }),
   ])
   if (!cls) return []

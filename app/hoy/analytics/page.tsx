@@ -178,7 +178,7 @@ export default async function HoyAnalyticsPage() {
               { label: 'Students',       value: uniqueStudentIds.length,              colour: 'text-gray-900' },
               { label: 'Classes',        value: allClasses.length,                    colour: 'text-gray-900' },
               { label: 'Avg Completion', value: `${Math.round(avgCompletion * 100)}%`, colour: 'text-blue-600' },
-              { label: 'Avg Score',      value: aggsArr.length ? avgScore.toFixed(1) : '—', colour: 'text-gray-900' },
+              { label: 'Avg Score',      value: aggsArr.length ? formatAvgGrade(avgScore).main : '—', colour: 'text-gray-900' },
               { label: 'SEND Register',  value: sendCount, colour: sendCount > 0 ? 'text-purple-600' : 'text-gray-300' },
             ].map(k => (
               <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-5">

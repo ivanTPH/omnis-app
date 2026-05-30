@@ -1986,6 +1986,9 @@ export async function approveGeneratedIlp(ilpId: string): Promise<void> {
   }
 
   revalidatePath('/senco/ilp')
+  revalidatePath('/send/ilp')
+  revalidatePath(`/send/ilp/${ilp.studentId}`)
+  revalidatePath(`/student/${ilp.studentId}/send`)
 
   // Auto-generate APDR from approved ILP
   void generateAPDRInternal(ilp.studentId, user.id, schoolId).catch(err =>

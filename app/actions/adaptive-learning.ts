@@ -456,8 +456,8 @@ export async function getIlpEvidenceDashboard(schoolId: string) {
   const studentsWithIlp = new Set(activePlans.map(p => p.studentId)).size
 
   const targetsOnTrack = targets.filter(t => linkedTargetIds.has(t.id) || t.status === 'achieved').length
-  const targetsBehind = targets.filter(t => !linkedTargetIds.has(t.id) && t.targetDate < new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) && t.status === 'in_progress').length
-  const targetsWithNoEvidence = targets.filter(t => !linkedTargetIds.has(t.id) && t.status === 'in_progress').length
+  const targetsBehind = targets.filter(t => !linkedTargetIds.has(t.id) && t.targetDate < new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) && t.status === 'active').length
+  const targetsWithNoEvidence = targets.filter(t => !linkedTargetIds.has(t.id) && t.status === 'active').length
 
   // Upcoming reviews
   const reviewsIn30Days = activePlans.filter(p => {
@@ -476,7 +476,7 @@ export async function getIlpEvidenceDashboard(schoolId: string) {
     const s = studentMap.get(p.studentId)
     const planTargets = targets.filter(t => t.ilp.studentId === p.studentId)
     const evidenceGaps = planTargets
-      .filter(t => !linkedTargetIds.has(t.id) && t.status === 'in_progress')
+      .filter(t => !linkedTargetIds.has(t.id) && t.status === 'active')
       .map(t => t.target.slice(0, 60))
 
     return {

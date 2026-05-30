@@ -58,7 +58,7 @@ export async function computeAndSaveAdaptiveProfile(
   let submittedCount = 0
 
   for (const sub of submissions) {
-    if (sub.status !== 'RETURNED') continue
+    if (!['MARKED', 'RETURNED'].includes(sub.status)) continue
     submittedCount++
 
     const varType = sub.homework.homeworkVariantType ?? 'free_text'

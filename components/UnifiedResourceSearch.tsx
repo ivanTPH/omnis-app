@@ -1,6 +1,30 @@
 'use client'
 import { useState, useTransition, useEffect, useRef } from 'react'
 import Icon from '@/components/ui/Icon'
+
+async function extractPptxText(file: File): Promise<string> {
+  try {
+    const JSZip = (await import('jszip')).default
+    const zip = await JSZip.loadAsync(file)
+    const slideFiles = Object.keys(zip.files)
+      .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+      .sort((a, b) => {
+        const na = parseInt(a.match(/\d+/)?.[0] ?? '0')
+        const nb = parseInt(b.match(/\d+/)?.[0] ?? '0')
+        return na - nb
+      })
+    const texts: string[] = []
+    for (const name of slideFiles) {
+      const xml = await zip.files[name].async('string')
+      const matches = xml.match(/<a:t[^>]*>([^<]*)<\/a:t>/g) ?? []
+      const slideText = matches.map(m => m.replace(/<[^>]+>/g, '').trim()).filter(Boolean).join(' ')
+      if (slideText) texts.push(slideText)
+    }
+    return texts.join('\n')
+  } catch {
+    return ''
+  }
+}
 import { searchOakLessons, addOakLessonToLesson } from '@/app/actions/oak'
 import { getSchoolResourceLibrary, addLibraryResource, addUrlResource, addUploadedResource, updateLessonObjectives } from '@/app/actions/lessons'
 import { extractLearningFromLabel } from '@/app/actions/homework'
@@ -66,7 +90,11 @@ function QuickUpload({
     e.preventDefault()
     if (!file || !label) return
     startT(async () => {
-      await addUploadedResource(lessonId, { label, type: 'SLIDES', fileName: file.name })
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+      const extractedText = (ext === 'pptx' || ext === 'ppt')
+        ? await extractPptxText(file) || undefined
+        : undefined
+      await addUploadedResource(lessonId, { label, type: 'SLIDES', fileName: file.name, extractedText })
       onAdded()
       // Extract learning objectives after upload
       setExtracting(true)

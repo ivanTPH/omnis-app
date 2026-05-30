@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useTransition, useCallback } from 'react'
+import { useState, useEffect, useTransition, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import Icon from '@/components/ui/Icon'
 import UITooltip from '@/components/ui/Tooltip'
@@ -221,6 +221,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   // File-drop state
   const [isDragOver, setIsDragOver] = useState(false)
   const [dropPending, startDrop]    = useTransition()
+  const emptyZoneFileRef = useRef<HTMLInputElement | null>(null)
 
   // Inline resource editing
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null)
@@ -1541,10 +1542,41 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       ))}
                     </div>
                   ) : (
-                    <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
+                    <button
+                      type="button"
+                      onClick={() => emptyZoneFileRef.current?.click()}
+                      className="w-full border border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/30 rounded-xl p-8 text-center transition-colors cursor-pointer"
+                    >
                       <Icon name="upload" size="md" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-400">No resources yet. Add from the school library, paste a link, or upload a file.</p>
-                    </div>
+                      <p className="text-[12px] text-gray-500 font-medium">Click to upload a file</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">PDF, PPTX, DOCX — or drag &amp; drop anywhere</p>
+                      <input
+                        ref={emptyZoneFileRef}
+                        type="file"
+                        accept=".pdf,.pptx,.ppt,.docx,.doc"
+                        multiple
+                        className="hidden"
+                        onChange={e => {
+                          const files = Array.from(e.target.files ?? [])
+                          if (!files.length) return
+                          e.target.value = ''
+                          startDrop(async () => {
+                            for (const f of files) {
+                              const label = f.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+                              const ext   = f.name.split('.').pop()?.toLowerCase() ?? ''
+                              const type  = ext === 'pptx' || ext === 'ppt' ? 'SLIDES' :
+                                            ext === 'pdf'                    ? 'PLAN'   : 'OTHER'
+                              let extractedText: string | undefined
+                              if (ext === 'pptx' || ext === 'ppt') {
+                                extractedText = await extractPptxText(f) || undefined
+                              }
+                              await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name, extractedText })
+                            }
+                            await refreshLesson()
+                          })
+                        }}
+                      />
+                    </button>
                   )}
 
                   {/* Unified Oak + school library search */}

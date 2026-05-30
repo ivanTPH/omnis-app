@@ -260,8 +260,8 @@ export async function generateYearRevisionTask(input: {
 }): Promise<YearRevisionContent> {
   if (!process.env.ANTHROPIC_API_KEY) return fallbackYearContent(input)
 
-  const allTopicsStr    = input.allTopics.join(', ')
-    ? input.focusTopics.join(', ')
+  const allTopicsStr    = input.allTopics.length > 0
+    ? input.allTopics.join(', ')
     : 'None identified — produce standard revision for all topics'
   const focusReasonsStr = input.focusReasons.join('\n- ')
   const sendStr         = input.sendAdaptations.length > 0

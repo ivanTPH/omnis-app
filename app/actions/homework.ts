@@ -1517,7 +1517,7 @@ export async function saveIlpEvidenceEntries(
   })
   if (!sub) throw new Error('Submission not found')
 
-  await prisma.ilpEvidenceEntry.createMany({
+  const { count: insertedCount } = await prisma.ilpEvidenceEntry.createMany({
     data: entries.map(e => ({
       schoolId,
       studentId:    sub.studentId,
@@ -1534,6 +1534,8 @@ export async function saveIlpEvidenceEntries(
     })),
     skipDuplicates: true,
   })
+  // All entries already existed — skip notifications to avoid duplicates
+  if (insertedCount === 0) return
 
   // Auto-raise SENCO notification + EarlyWarningFlag if student has 3+ CONCERN entries this term,
   // and auto-transition IlpTarget.status to 'achieved' when 3+ PROGRESS entries accumulate.

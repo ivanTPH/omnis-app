@@ -1330,9 +1330,26 @@ export async function updateSendStatus(
   // When escalating SEN_SUPPORT → EHCP, auto-generate an EHCP from the approved ILP
   if (previousStatus === 'SEN_SUPPORT' && newStatus === 'EHCP') {
     const { generateEHCPFromILP } = await import('./ehcp')
-    void generateEHCPFromILP(studentId, user.id).catch(err =>
+    void generateEHCPFromILP(studentId, user.id).catch(async (err) => {
       console.error('[updateSendStatus] generateEHCPFromILP failed:', err)
-    )
+      // Notify SENCO that EHCP generation failed so they can generate it manually
+      try {
+        const senco = await prisma.user.findFirst({ where: { schoolId, role: 'SENCO' }, select: { id: true } })
+        const student = await prisma.user.findUnique({ where: { id: studentId }, select: { firstName: true, lastName: true } })
+        if (senco && student) {
+          await prisma.notification.create({
+            data: {
+              schoolId,
+              userId:   senco.id,
+              type:     'SYSTEM',
+              title:    `EHCP auto-generation failed for ${student.firstName} ${student.lastName}`,
+              body:     'The EHCP could not be generated automatically. Please generate it manually from the EHCP Plans page.',
+              linkHref: '/senco/ehcp',
+            },
+          })
+        }
+      } catch { /* best-effort notification */ }
+    })
   }
 
   revalidatePath('/senco/concerns')
@@ -2421,7 +2438,7 @@ export async function generateLearnerPassportInternal(
       select: { firstName: true, lastName: true, yearGroup: true, sendStatus: { select: { needArea: true } } },
     }),
     prisma.individualLearningPlan.findFirst({
-      where: { schoolId, studentId, status: 'active', approvedBySenco: true },
+      where: { schoolId, studentId, status: 'ACTIVE', approvedBySenco: true },
       include: { targets: { where: { status: 'active' }, take: 3 } },
       orderBy: { createdAt: 'desc' },
     }),
@@ -2436,6 +2453,13 @@ export async function generateLearnerPassportInternal(
     }),
   ])
   if (!student) return
+
+  // Throttle: skip if a DRAFT was generated within the last 60 seconds (prevents race from multiple call sites)
+  const recentDraft = await prisma.learnerPassport.findFirst({
+    where: { studentId, schoolId, status: 'DRAFT', generatedAt: { gte: new Date(Date.now() - 60_000) } },
+    select: { id: true },
+  })
+  if (recentDraft) return
 
   const needArea  = student.sendStatus?.needArea ?? 'General Learning Support'
   const yearGroup = student.yearGroup ?? 9

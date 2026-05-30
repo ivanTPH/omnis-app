@@ -76,11 +76,14 @@ export async function getStudentHomework(homeworkId: string) {
         resolvedVariantType = 'quiz'
         resolvedStructuredContent = {
           questions: qj.questions.map((q: any, i: number) => ({
-            id:      String(i + 1),
-            question: q.q ?? q.question ?? '',
-            options:  q.options,
-            correct:  q.correct,
-            marks:    q.marks ?? 1,
+            id:               String(i + 1),
+            question:         q.q ?? q.question ?? '',
+            options:          q.options,
+            correct:          q.correct,
+            marks:            q.marks ?? 1,
+            scaffolding_hint: q.scaffolding_hint,
+            ehcp_adaptation:  q.ehcp_adaptation,
+            vocab_support:    q.vocab_support,
           })),
         }
       } else {

@@ -54,9 +54,60 @@ export async function POST(request: Request) {
 
         const oakSlugs = lesson.resources.filter(r => r.oakContentId).map(r => r.oakContentId as string)
         const oakDetails = oakSlugs.length
-          ? await prisma.oakLesson.findMany({ where: { slug: { in: oakSlugs } }, select: { slug: true, title: true, pupilLessonOutcome: true } })
+          ? await prisma.oakLesson.findMany({
+              where:  { slug: { in: oakSlugs } },
+              select: {
+                slug: true, title: true, pupilLessonOutcome: true,
+                keyLearningPoints: true, lessonKeywords: true,
+                starterQuiz: true, exitQuiz: true,
+                misconceptionsAndCommonMistakes: true,
+                transcriptSentences: true,
+              },
+            })
           : []
         const oakBySlug = Object.fromEntries(oakDetails.map(o => [o.slug, o]))
+
+        function buildOakContentBlock(oak: (typeof oakDetails)[number]): string {
+          const lines: string[] = []
+          if (oak.pupilLessonOutcome) lines.push(`  Learning outcome: ${oak.pupilLessonOutcome}`)
+          const klp = Array.isArray(oak.keyLearningPoints) ? oak.keyLearningPoints as any[] : []
+          if (klp.length > 0) {
+            lines.push(`  Key learning points:`)
+            klp.slice(0, 6).forEach((p: any, i: number) => {
+              const text = typeof p === 'string' ? p : p?.keyLearningPoint ?? ''
+              if (text) lines.push(`    ${i + 1}. ${text}`)
+            })
+          }
+          const kw = Array.isArray(oak.lessonKeywords) ? oak.lessonKeywords as any[] : []
+          if (kw.length > 0) {
+            const vocabList = kw.slice(0, 8).map((k: any) => {
+              const word = typeof k === 'string' ? k : k?.keyword ?? ''
+              const desc = typeof k === 'object' ? k?.description ?? '' : ''
+              return desc ? `${word}: ${desc}` : word
+            }).filter(Boolean)
+            if (vocabList.length > 0) lines.push(`  Key vocabulary: ${vocabList.join('; ')}`)
+          }
+          const quizItems = [...(Array.isArray(oak.starterQuiz) ? oak.starterQuiz as any[] : []), ...(Array.isArray(oak.exitQuiz) ? oak.exitQuiz as any[] : [])].slice(0, 4)
+          if (quizItems.length > 0) {
+            lines.push(`  Curriculum quiz questions (use these as models for depth and style):`)
+            quizItems.forEach((q: any, i: number) => {
+              const stem = q?.questionStem ?? q?.question ?? ''
+              if (!stem) return
+              lines.push(`    Q${i + 1}: ${stem}`)
+              const correct = (Array.isArray(q?.answers) ? q.answers as any[] : []).find((a: any) => a?.answerIsCorrect)
+              if (correct?.answer) lines.push(`         → ${correct.answer}`)
+            })
+          }
+          const misc = Array.isArray(oak.misconceptionsAndCommonMistakes) ? oak.misconceptionsAndCommonMistakes as any[] : []
+          if (misc.length > 0) {
+            lines.push(`  Common misconceptions to probe:`)
+            misc.slice(0, 3).forEach((m: any) => {
+              const mc = typeof m === 'string' ? m : m?.misconception ?? ''
+              if (mc) lines.push(`    - ${mc}`)
+            })
+          }
+          return lines.join('\n')
+        }
 
         const orderedResources = preferredResourceId
           ? [...lesson.resources.filter(r => r.id === preferredResourceId), ...lesson.resources.filter(r => r.id !== preferredResourceId)]
@@ -72,16 +123,24 @@ export async function POST(request: Request) {
           ? orderedResources.map((r, idx) => {
               const isPrimary = idx === 0 && !!preferredResourceId
               if (r.oakContentId && oakBySlug[r.oakContentId]) {
-                const oak     = oakBySlug[r.oakContentId]
-                const outcome = oak.pupilLessonOutcome ? `\n      Learning outcome: ${oak.pupilLessonOutcome}` : ''
-                return isPrimary
-                  ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [Oak Lesson] "${oak.title}"${outcome}`
-                  : `  - [Oak Lesson] "${oak.title}"${outcome}`
+                const oak          = oakBySlug[r.oakContentId]
+                const contentBlock = buildOakContentBlock(oak)
+                const header = isPrimary
+                  ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [Oak Lesson] "${oak.title}"`
+                  : `  - [Oak Lesson] "${oak.title}"`
+                return contentBlock ? `${header}\n${contentBlock}` : header
               }
-              const urlPart  = r.url ? ` (${r.url})` : ''
-              const filePart = r.fileKey && !r.url ? ` — teacher's own uploaded file` : ''
+              const urlPart      = r.url ? ` (${r.url})` : ''
+              const extractedText = (r as any).extractedText as string | null | undefined
+              if (r.fileKey && !r.url && extractedText) {
+                const header = isPrimary
+                  ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}" (uploaded file)`
+                  : `  - [${r.type}] "${r.label}" (uploaded file)`
+                const excerpt = extractedText.slice(0, 3000)
+                return `${header}\n  Slide/page content:\n${excerpt.split('\n').map((l: string) => `    ${l}`).join('\n')}`
+              }
               return isPrimary
-                ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}"${urlPart}${filePart}`
+                ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}"${urlPart}`
                 : `  - [${r.type}] "${r.label}"${urlPart}`
             }).join('\n')
           : '  - No lesson resources attached'
@@ -145,7 +204,7 @@ export async function POST(request: Request) {
 
         // ── Build prompt ────────────────────────────────────────────────────
         const taskInstruction = hasPrimaryNonOak
-          ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own material). Use the lesson title and learning objectives to determine what was taught. Do NOT base questions on any Oak or supplementary resources listed below it.`
+          ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own uploaded material). The slide/page content extracted from that file is provided above — use it as your primary source. Generate questions that test the SPECIFIC facts, arguments, and evidence from those slides. Each model answer MUST be drawn directly from the content shown, including specific details, dates, names, and key vocabulary. Do NOT generate generic questions.`
           : preferredResourceId
             ? `Your homework questions MUST be based primarily on the PRIMARY RESOURCE marked in the resource list above. Generate questions that test the specific content and learning outcome of that resource. Other resources and learning objectives are supplementary context — do not let them override the PRIMARY RESOURCE selection.`
             : lesson.objectives.length > 0
@@ -176,8 +235,8 @@ ${buildTypePrompt(type, subject, qualification)}`
 
         const client      = new Anthropic({ apiKey })
         const claudeStream = client.messages.stream({
-          model:      'claude-haiku-4-5-20251001',
-          max_tokens: 4000,
+          model:      'claude-sonnet-4-6',
+          max_tokens: 8000,
           system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
           messages:   [{ role: 'user', content: prompt }],
         })
@@ -221,8 +280,9 @@ ${buildTypePrompt(type, subject, qualification)}`
           emit(controller, { type: 'progress', message: 'Improving response quality…', pct: 90 })
           try {
             const retryMsg = await client.messages.create({
-              model:    'claude-haiku-4-5-20251001',
-              max_tokens: 2000,
+              model:    'claude-sonnet-4-6',
+              max_tokens: 8000,
+              system:   'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
               messages: [
                 { role: 'user',      content: prompt },
                 { role: 'assistant', content: cleaned },

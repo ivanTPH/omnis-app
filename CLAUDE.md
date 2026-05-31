@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-05-06. Authoritative reference for Claude sessions.
+> Last updated: 2026-05-31. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-06.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-31.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -11,9 +11,14 @@
 > May 2026 Part 3 (issues 13-18): RAG badges in Performance tab, Support Profile card in student
 > deep-dive, student slide-over from ConcernList, year revision mode, adaptive test mode wired,
 > student photo proxy SVG initials fallback.
+> May 2026 Part 4: Teaching Assistant role — /ta/notes hub, year+class dropdown filters, seed fix.
+> May 2026 Part 5: Code quality sprint — ClassRosterTab hook refactor, dashboard unstable_cache,
+> debug log removal, bare <a>→<Link> conversions, N+1 fix in addTaNote, error boundaries.
+> May 2026 Part 6: Security audit — getTaClasses() role enforcement, Wonde route auth tightening,
+> TA_NOTE_ADDED/DELETED audit trail, remaining bare <a> links converted. 110/110 e2e on Vercel.
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** 95e8b26 (issues 13-18)
+> **Latest commit:** eeede7e (security audit remediation)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -119,6 +124,7 @@ session.user = { id, schoolId, schoolName, role, firstName, lastName }
 | `l.hughes@parents.omnisdemo.school` | PARENT |
 | `admin@omnisdemo.school` | SCHOOL_ADMIN |
 | `platform@omnis.edu` | PLATFORM_ADMIN |
+| `j.taylor@omnisdemo.school` | TEACHING_ASSISTANT |
 
 ---
 
@@ -548,10 +554,13 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-Both specs are implemented and passing:
-- Wonde sync: `e2e/tests/wonde-sync.spec.ts` — 6 tests (access control + panel content)
-- Revision Program: `e2e/tests/revision-program.spec.ts` — 9 tests (teacher/student/HOD access + content)
+**110/110 tests passing** against both localhost and live Vercel deployment (last run: 2026-05-31).
+18 spec files covering: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
+cover management, platform admin, student photos, revision planner, send scorer.
 - HOD fixture added to `e2e/fixtures/users.ts` as `USERS.hod` (d.brooks@omnisdemo.school)
+- Run locally: `npm run test:e2e`
+- Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`
 
 ### Unbuilt routes (stub pages with AppShell — show "coming soon")
 - `/lessons` — `app/lessons/page.tsx` stub (Cover Manager nav)
@@ -660,6 +669,24 @@ Both specs are implemented and passing:
 - **Issue 16 (Year revision mode):** Already fully implemented. `getYearTopics`, `createYearRevisionProgram` server actions in `revision-program.ts`. `YearRevisionCreator.tsx` 3-step wizard (configure → topic checklist → generating). `YearRevisionView` renders Section A (generic guide) + Section B (personalised focus areas). Route: `/revision-program/year`.
 - **Issue 17 (Adaptive test mode):** Already fully implemented. `RevisionTaskView` phase state machine includes `'test'` phase that renders `RevisionTestMode`. "Start Test" button wired for both standard and year revision tasks. `test-engine.ts` handles difficulty cycling, question generation, evaluation, results.
 - **Issue 18 (Photo proxy SVG fallback):** `app/api/student-photo/[userId]/route.ts` now queries `firstName` and `lastName` alongside `avatarUrl`. Returns deterministic-colour SVG initials avatar instead of 404/error when avatarUrl is null or upstream fetch fails.
+
+**May 2026 Part 4–6 — TA Role + Code Quality + Security Audit ✅ (2026-05-31)**
+- **Teaching Assistant role:** `/ta/notes` hub (`TaNotesHub`) with year group + class cascade dropdowns,
+  student list with SEND badges, inline note add/view/mark-read, urgent flag, TA notifications to class teachers.
+  Route: `/ta/notes`. Sidebar: Student Notes, Messages, Notifications only.
+  Auth: routes to `/ta/notes` on login. Demo user: `j.taylor@omnisdemo.school / Demo1234!`.
+  Seed: TA user now in main `npm run db:seed` (upsert resets password on every seed run).
+- **Code quality:** `ClassRosterTab.tsx` split from 1430→~700 lines via `hooks/useClassRosterData.ts`.
+  `getDashboardData` wrapped in `unstable_cache` (60s TTL per user/day). N+1 in `addTaNote`
+  notifications replaced with `findMany` + `createMany`. Debug console.logs removed (lessons, dashboard).
+  `app/ta/error.tsx` error boundary added. Class Notes / TA Notes labelling distinguished.
+  6 bare `<a href>` internal links converted to `<Link>` (SencoDashboard, StudentFilePanel, StudentAnalyticsView).
+- **Security audit (2026-05-31):** `getTaClasses()` missing role check fixed (now uses `requireAllowed()`).
+  Wonde sync route auth guard tightened (explicit null-checks on schoolId + role). `TA_NOTE_ADDED` and
+  `TA_NOTE_DELETED` added to `AuditAction` enum; `addTaNote()` and `deleteTaNote()` now call `writeAudit()`.
+  `console.error` removed from `TaNotesHub` client. 4 remaining bare `<a href>` links converted
+  (AdaptiveHeatmapView, AdaptiveStudentView, IlpEvidenceView, SencoDashboard).
+- **E2E:** 110/110 tests passing on both localhost and live Vercel deployment.
 
 **Phase 4 — Trial Readiness ✅ (2026-04-08)**
 - Phase 4.1 (Data safety): schoolId scoping confirmed on all queries; SEND data not accessible to student/parent roles; ILP audit trail via writeAudit().

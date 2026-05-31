@@ -23,7 +23,7 @@ export default function TaNotesHub() {
   const [saving, setSaving] = useState<string | null>(null)
 
   useEffect(() => {
-    getTaClasses().then(setClasses).catch(console.error)
+    getTaClasses().then(setClasses).catch(() => {})
   }, [])
 
   const yearGroups = [...new Set(classes.map(c => c.yearGroup))].sort((a, b) => a - b)
@@ -45,7 +45,7 @@ export default function TaNotesHub() {
     setStudentsLoading(true)
     getClassRoster(cls.id)
       .then(setStudents)
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => setStudentsLoading(false))
   }
 

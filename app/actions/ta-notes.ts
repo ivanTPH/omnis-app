@@ -1,6 +1,6 @@
 'use server'
 import { requireAuth } from '@/lib/session'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 
 const ALLOWED_ROLES = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','TEACHING_ASSISTANT']
@@ -98,6 +98,7 @@ export async function addTaNote(
     }
   }
 
+  await writeAudit({ schoolId: user.schoolId, actorId: user.id, action: 'TA_NOTE_ADDED', targetType: 'TaNote', targetId: studentId })
   revalidatePath(`/students/${studentId}`)
 }
 
@@ -118,6 +119,7 @@ export async function deleteTaNote(noteId: string, studentId: string): Promise<v
   const canDelete = note.authorId === user.id || ['SENCO','SLT','SCHOOL_ADMIN'].includes(user.role)
   if (!canDelete) throw new Error('Forbidden')
   await prisma.taNote.delete({ where: { id: noteId } })
+  await writeAudit({ schoolId: user.schoolId, actorId: user.id, action: 'TA_NOTE_DELETED', targetType: 'TaNote', targetId: studentId })
   revalidatePath(`/students/${studentId}`)
 }
 
@@ -168,7 +170,7 @@ export async function getUrgentTaNotesByClass(classId: string): Promise<{
 export type TaClass = { id: string; name: string; subject: string; yearGroup: number }
 
 export async function getTaClasses(): Promise<TaClass[]> {
-  const { schoolId } = await requireAuth()
+  const { schoolId } = await requireAllowed()
 
   const classes = await prisma.schoolClass.findMany({
     where:   { schoolId },

@@ -9,8 +9,8 @@ export const maxDuration = 300
 
 export async function POST() {
   const session = await auth()
-  const user = session?.user as { schoolId?: string; role?: string } | undefined
-  if (!user || !['SCHOOL_ADMIN', 'SLT'].includes(user.role ?? '')) {
+  const user = session?.user as { schoolId?: string; role?: string; id?: string } | undefined
+  if (!user?.schoolId || !user?.role || !['SCHOOL_ADMIN', 'SLT'].includes(user.role)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

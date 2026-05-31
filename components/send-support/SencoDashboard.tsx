@@ -188,13 +188,13 @@ export default function SencoDashboard({ data }: Props) {
                       {r.daysUntil === 0 ? 'Today' : r.daysUntil === 1 ? 'Tomorrow' : `${r.daysUntil}d`}
                     </span>
                   </div>
-                  <a
+                  <Link
                     href="/senco/ilp"
                     className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                     title="Go to ILP records"
                   >
                     <Icon name="arrow_forward" size="sm" />
-                  </a>
+                  </Link>
                 </div>
               </div>
             ))}

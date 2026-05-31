@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
@@ -120,7 +121,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       </button>
     )
     return (
-      <a
+      <Link
         href="/ai-generator"
         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
       >
@@ -129,7 +130,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           ? (gen as { title: string }).title.slice(0, 22) + '…'
           : (gen as { title: string }).title}
         <Icon name="arrow_forward" size="sm" />
-      </a>
+      </Link>
     )
   }
 

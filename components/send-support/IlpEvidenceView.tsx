@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import { SencoRow } from '@/components/ui/SencoRow'
@@ -185,20 +186,20 @@ function StudentRow({ student, expanded, onToggle }: {
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          <a
+          <Link
             href={`/student/${student.studentId}/send`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[12px] font-medium transition-colors"
           >
             <Icon name="open_in_new" size="sm" /> View SEND record
-          </a>
-          <a
+          </Link>
+          <Link
             href="/senco/ilp"
             className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 hover:bg-gray-100 text-gray-700 rounded-lg text-[12px] font-medium transition-colors"
           >
             <Icon name="edit_note" size="sm" /> Manage ILP
-          </a>
+          </Link>
         </div>
       </div>
     </SencoRow>

@@ -189,6 +189,8 @@ enum AuditAction {
   PLAN_NOTE_ADDED
   AI_HOMEWORK_GENERATED
   AI_ILP_GENERATED
+  TA_NOTE_ADDED
+  TA_NOTE_DELETED
 }
 
 enum LessonSharingLevel {

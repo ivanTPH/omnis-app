@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import { getClassTopicHeatmap } from '@/app/actions/analytics'
@@ -310,7 +311,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                           </button>
                         )}
                         {gen != null && gen !== 'generating' && gen !== 'error' && (
-                          <a
+                          <Link
                             href="/ai-generator"
                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
                           >
@@ -319,7 +320,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                               ? (gen as { id: string; title: string }).title.slice(0, 18) + '…'
                               : (gen as { id: string; title: string }).title}
                             <Icon name="arrow_forward" size="sm" />
-                          </a>
+                          </Link>
                         )}
                       </div>
                     )}

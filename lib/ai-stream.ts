@@ -41,11 +41,14 @@ export async function streamAiRequest<T>(
 
   while (true) {
     const { done, value } = await reader.read()
-    if (done) break
 
-    buffer += decoder.decode(value, { stream: true })
+    if (!done) {
+      buffer += decoder.decode(value, { stream: true })
+    }
+
+    // On final iteration (done=true) process remaining buffer; otherwise process all complete lines
     const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
+    buffer = done ? '' : (lines.pop() ?? '')
 
     for (const line of lines) {
       if (!line.startsWith('data: ')) continue
@@ -65,6 +68,8 @@ export async function streamAiRequest<T>(
         throw new Error(event.message)
       }
     }
+
+    if (done) break
   }
 
   throw new Error('Stream ended without a result event')

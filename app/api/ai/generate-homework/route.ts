@@ -9,7 +9,7 @@ import {
 } from '@/lib/homework-helpers'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+export const maxDuration = 120
 
 function emit(controller: ReadableStreamDefaultController<Uint8Array>, event: object) {
   const encoder = new TextEncoder()

@@ -345,6 +345,26 @@ export async function raiseConcern(data: {
     }
   }
 
+  // Auto-create EarlyWarningFlag for high-risk concern categories
+  const HIGH_RISK_CATEGORIES = ['safeguarding', 'mental_health', 'self_harm', 'exclusion_risk', 'domestic_abuse', 'exploitation']
+  if (HIGH_RISK_CATEGORIES.some(c => validated.category.toLowerCase().includes(c))) {
+    try {
+      await prisma.earlyWarningFlag.create({
+        data: {
+          schoolId,
+          studentId:   validated.studentId,
+          flagType:    'high_risk_concern',
+          severity:    'high',
+          description: `High-risk concern raised (${validated.category}): ${validated.description.slice(0, 200)}`,
+          dataPoints:  { concernId: concern.id, category: validated.category, raisedBy: `${user.firstName} ${user.lastName}` },
+          expiresAt:   new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
+        },
+      })
+    } catch (err) {
+      console.error('[raiseConcern] earlyWarningFlag create failed:', err)
+    }
+  }
+
   revalidatePath('/senco/concerns')
 }
 
@@ -2006,6 +2026,48 @@ export async function approveGeneratedIlp(ilpId: string): Promise<void> {
   revalidatePath('/send/ilp')
   revalidatePath(`/send/ilp/${ilp.studentId}`)
   revalidatePath(`/student/${ilp.studentId}/send`)
+
+  // Flag existing active EHCP as needing review now that ILP has been updated
+  void (async () => {
+    try {
+      const existingEhcp = await prisma.ehcpPlan.findFirst({
+        where: { schoolId, studentId: ilp.studentId, status: 'active' },
+        select: { id: true },
+      })
+      if (existingEhcp) {
+        const senco = await prisma.user.findFirst({
+          where: { schoolId, role: 'SENCO', isActive: true },
+          select: { id: true },
+        })
+        if (senco) {
+          await prisma.notification.create({
+            data: {
+              schoolId,
+              userId:   senco.id,
+              type:     'SYSTEM',
+              title:    `EHCP may need review for ${studentName}`,
+              body:     'An updated ILP has just been approved for this student who already has an active EHCP. Consider reviewing the EHCP to reflect their updated needs.',
+              linkHref: `/senco/ehcp`,
+            },
+          })
+        }
+        // Create early warning flag so it appears in the early warning dashboard
+        await prisma.earlyWarningFlag.create({
+          data: {
+            schoolId,
+            studentId:   ilp.studentId,
+            flagType:    'ehcp_review_due',
+            severity:    'medium',
+            description: `ILP approved for ${studentName} who already has an active EHCP — review EHCP to ensure it reflects updated learning needs`,
+            dataPoints:  { ilpId: ilpId, ehcpId: existingEhcp.id, triggeredBy: 'ilp_approved' },
+            expiresAt:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          },
+        })
+      }
+    } catch (err) {
+      console.error('[approveGeneratedIlp] ehcp stale check failed:', err)
+    }
+  })()
 
   // Auto-generate APDR from approved ILP
   void generateAPDRInternal(ilp.studentId, user.id, schoolId).catch(err =>

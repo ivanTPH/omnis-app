@@ -1378,6 +1378,14 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
                       const grade = percentToGcseGrade(pct)
                       const letter = GCSE_LETTERS[grade] ?? ''
+                      // Confidence: extreme scores (clear pass/fail) are high confidence; mid-range needs human review
+                      const confidence: 'High' | 'Medium' | 'Low' =
+                        pct >= 85 || pct <= 15 ? 'High' :
+                        pct >= 65 || pct <= 35 ? 'Medium' : 'Low'
+                      const confColor =
+                        confidence === 'High'   ? 'text-green-700 bg-green-100' :
+                        confidence === 'Medium' ? 'text-amber-700 bg-amber-100' :
+                                                  'text-red-700 bg-red-100'
                       return (
                         <div className="flex items-center gap-3">
                           <div className={`flex items-center justify-center w-12 h-12 rounded-xl text-xl font-black border-2 ${
@@ -1390,6 +1398,12 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           <div>
                             <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Suggested Grade</p>
                             <p className="text-sm font-bold text-gray-900">Grade {grade} {letter ? `(${letter})` : ''}</p>
+                          </div>
+                          <div className="ml-auto text-right">
+                            <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">AI Confidence</p>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${confColor}`}>
+                              {confidence}
+                            </span>
                           </div>
                         </div>
                       )

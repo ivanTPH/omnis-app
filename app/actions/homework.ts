@@ -1266,13 +1266,28 @@ export async function markSubmission(submissionId: string, data: {
             where:  { id: sub.studentId },
             select: { firstName: true, lastName: true },
           })
+          const sName = student ? `${student.firstName} ${student.lastName}` : 'Student'
           gradeDrop = {
             studentId:     sub.studentId,
-            studentName:   student ? `${student.firstName} ${student.lastName}` : 'Student',
+            studentName:   sName,
             previousGrade: prevGrade,
             newGrade:      currGrade,
             drop,
             suggestion:    `Grade dropped from ${prevGrade} to ${currGrade} on "${homework.title}". Consider adding targeted classroom strategies to their Learning Passport.`,
+          }
+          // SEND risk screening: auto-create EarlyWarningFlag for significant grade drops
+          if (drop >= 2) {
+            void prisma.earlyWarningFlag.create({
+              data: {
+                schoolId,
+                studentId:   sub.studentId,
+                flagType:    'grade_drop',
+                severity:    drop >= 3 ? 'high' : 'medium',
+                description: `Significant grade drop detected for ${sName}: Grade ${prevGrade} → Grade ${currGrade} (↓${drop}) on "${homework.title}"`,
+                dataPoints:  { homeworkId: sub.homeworkId, previousGrade: prevGrade, newGrade: currGrade, drop },
+                expiresAt:   new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              },
+            }).catch(() => {})
           }
         }
       }

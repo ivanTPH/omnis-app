@@ -766,6 +766,7 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
           <div className="flex items-start justify-between px-6 py-5 border-b border-gray-200 shrink-0">
             <div>
               <p className="font-semibold text-gray-900 leading-snug">{selectedHw.title}</p>
+              <p className="text-sm font-medium text-indigo-700 mt-0.5">{studentName}</p>
               <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
                 <span>{selectedHw.className}</span>
                 <span>·</span>

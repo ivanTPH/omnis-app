@@ -34,6 +34,7 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
       ilpTargetIds: true,
       ehcpOutcomeIds: true,
       classId: true,
+      gradingBands: true,
       submissions: {
         where: filters?.studentId ? { studentId: filters.studentId } : undefined,
         select: { finalScore: true, status: true, studentId: true },
@@ -49,10 +50,17 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
   for (const hw of homeworks) {
     const t = hw.homeworkVariantType ?? 'free_text'
     if (!typeMap[t]) typeMap[t] = { scores: [], submitted: 0, total: 0 }
+    const bands = hw.gradingBands as Record<string, unknown> | null
+    const hwMax = bands && Object.keys(bands).length > 0
+      ? Math.max(...Object.keys(bands).map(Number))
+      : 100
     for (const sub of hw.submissions) {
       typeMap[t].total++
       if (sub.status !== 'SUBMITTED' || sub.finalScore != null) typeMap[t].submitted++
-      if (sub.finalScore != null) typeMap[t].scores.push(sub.finalScore)
+      if (sub.finalScore != null) {
+        const pct = Math.min(100, Math.max(0, Math.round((sub.finalScore / hwMax) * 100)))
+        typeMap[t].scores.push(pct)
+      }
     }
 
     if (hw.bloomsLevel) {
@@ -60,7 +68,10 @@ export async function getHomeworkAdaptiveAnalytics(filters?: {
       if (!bloomsMap[b]) bloomsMap[b] = { scores: [], count: 0 }
       bloomsMap[b].count++
       for (const sub of hw.submissions) {
-        if (sub.finalScore != null) bloomsMap[b].scores.push(sub.finalScore)
+        if (sub.finalScore != null) {
+          const pct = Math.min(100, Math.max(0, Math.round((sub.finalScore / hwMax) * 100)))
+          bloomsMap[b].scores.push(pct)
+        }
       }
     }
   }

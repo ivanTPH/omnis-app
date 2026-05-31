@@ -483,8 +483,17 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
     )
   }
 
+  const isFallbackContent = !!(task.structuredContent as any)?._isFallback
+
   return (
     <div className="max-w-2xl mx-auto px-6 py-6 space-y-5">
+      {/* Fallback content notice */}
+      {isFallbackContent && (
+        <div className="flex items-start gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          <Icon name="info" size="sm" className="shrink-0 mt-0.5" />
+          <span>These are standard revision questions. Your teacher&apos;s topic-specific questions will be available once generated.</span>
+        </div>
+      )}
       {/* instructions */}
       <div>
         <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Task Instructions</p>

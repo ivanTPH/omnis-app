@@ -51,6 +51,7 @@ function fallbackContent(input: {
       lessonTitle: input.lessonTitle ?? topic,
       objectives,
       questions,
+      _isFallback: true,
     },
     modelAnswer: 'See individual question mark schemes above.',
     differentiationNotes: input.weakTopics.length > 0

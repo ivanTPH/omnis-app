@@ -997,17 +997,26 @@ export async function startTestSession(
   })
   if (!task) throw new Error('Task not found')
 
-  // Load previous session questions to avoid repeating
+  // Load previous session questions to avoid repeating + warm-start difficulty
   const excludeTexts: string[] = []
+  let initialDifficulty: 'easy' | 'medium' | 'hard' = 'medium'
   if (previousSessionId) {
     try {
       const prev = await prisma.revisionTestSession.findFirst({
         where:  { id: previousSessionId, studentId: user.id },
-        select: { questions: true },
+        select: { questions: true, answers: true },
       })
       if (prev) {
         const prevQs = prev.questions as unknown as TestQuestion[]
         excludeTexts.push(...prevQs.map((q: TestQuestion) => q.text.slice(0, 100)))
+        // Warm-start difficulty from previous session score
+        const prevAnswers = prev.answers as unknown as Array<{ score: number; maxScore: number }>
+        if (prevAnswers?.length > 0) {
+          const totalScore = prevAnswers.reduce((s, a) => s + (a.score ?? 0), 0)
+          const totalMax   = prevAnswers.reduce((s, a) => s + (a.maxScore ?? 1), 0)
+          const prevPct    = totalMax > 0 ? Math.round(totalScore / totalMax * 100) : 50
+          initialDifficulty = prevPct > 70 ? 'hard' : prevPct < 40 ? 'easy' : 'medium'
+        }
       }
     } catch { /* non-fatal */ }
   }
@@ -1033,7 +1042,7 @@ export async function startTestSession(
     yearGroup:    task.program.yearGroup,
     topics,
     type:         selectQuestionType(0, hasIlp),
-    difficulty:   'medium',
+    difficulty:   initialDifficulty,
     excludeTexts,
     ilpTargets,
   })

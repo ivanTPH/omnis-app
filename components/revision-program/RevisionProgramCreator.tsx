@@ -5,7 +5,7 @@ import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
 import { gradeLabel } from '@/lib/grading'
-import { getClassPerformanceAnalysis, createRevisionProgram, getRevisionProgramDetail, updateRevisionTaskQuestions } from '@/app/actions/revision-program'
+import { getClassPerformanceAnalysis, createRevisionProgram, getRevisionProgramDetail, updateRevisionTaskQuestions, getRevisionProgramWeekCount } from '@/app/actions/revision-program'
 import { getCurriculumCoverage } from '@/app/actions/year-group-plans'
 import type { ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 import type { CurriculumCoverage } from '@/app/actions/year-group-plans'
@@ -69,6 +69,8 @@ function Step1({
   loading: boolean
 }) {
 
+  const [weekCount, setWeekCount] = useState<number | null>(null)
+
   const selectedClass = classes.find(c => c.id === state.classId)
 
   const periodDates = state.periodPreset !== 'custom'
@@ -77,9 +79,14 @@ function Step1({
 
   const canProceed = !!state.classId && !!periodDates.start && !!periodDates.end
 
-  function handleClassChange(id: string) {
+  async function handleClassChange(id: string) {
     const cls = classes.find(c => c.id === id)
-    if (cls) onChange({ classId: id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup })
+    if (cls) {
+      onChange({ classId: id, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup })
+      setWeekCount(null)
+      const count = await getRevisionProgramWeekCount(id)
+      setWeekCount(count)
+    }
   }
 
   function handleNext() {
@@ -105,6 +112,11 @@ function Step1({
             <option key={c.id} value={c.id}>{c.name} — {c.subject}</option>
           ))}
         </select>
+        {state.classId && weekCount != null && (
+          <p className={`mt-1.5 text-xs font-medium ${weekCount >= 3 ? 'text-red-600' : weekCount === 2 ? 'text-amber-600' : 'text-gray-500'}`}>
+            {weekCount} of 3 programs used this week{weekCount >= 3 ? ' — limit reached' : ''}
+          </p>
+        )}
       </div>
 
       {selectedClass && (

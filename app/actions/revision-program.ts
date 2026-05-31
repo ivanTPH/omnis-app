@@ -315,6 +315,14 @@ export async function createRevisionProgram(input: {
 
 // ── getRevisionPrograms ───────────────────────────────────────────────────────
 
+export async function getRevisionProgramWeekCount(classId: string): Promise<number> {
+  const { schoolId } = await requireTeacherOrAbove()
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  return prisma.revisionProgram.count({
+    where: { classId, schoolId, createdAt: { gte: oneWeekAgo } },
+  })
+}
+
 export async function getRevisionPrograms(classId?: string): Promise<{
   id: string
   title: string
@@ -1083,6 +1091,7 @@ export async function submitTestAnswer(
 
   const questions: TestQuestion[] = testSession.questions as unknown as TestQuestion[]
   const answers:   TestAnswer[]   = testSession.answers   as unknown as TestAnswer[]
+  if (answers.length >= QUESTIONS_PER_SESSION + 5) throw new Error('Test session exceeded maximum questions')
   const current = questions[questions.length - 1]
 
   const { score, feedback } = await evaluateAnswer(current, answer, testSession.subject)

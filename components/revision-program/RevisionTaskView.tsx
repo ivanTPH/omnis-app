@@ -543,7 +543,13 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setPhase('test')}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem(`revision_draft_${task.id}`)
+                localStorage.removeItem(`revision_start_${task.id}`)
+              }
+              setPhase('test')
+            }}
             className="flex items-center gap-2 border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
             <Icon name="science" size="sm" />

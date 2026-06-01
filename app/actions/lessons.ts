@@ -188,6 +188,14 @@ export async function getLessonDetails(lessonId: string) {
 
   if (!lesson) return null
 
+  // Replace base64 data URLs with authenticated API route to avoid megabytes in JSON payload
+  lesson.resources = lesson.resources.map(r => {
+    if (r.url?.startsWith('data:')) {
+      return { ...r, url: `/api/resource-file/${r.id}` }
+    }
+    return r
+  })
+
   const enrolledIds = lesson.class?.enrolments.map(e => e.user.id) ?? []
 
   const [sendStatuses, plans, snapshots] = enrolledIds.length
@@ -520,7 +528,7 @@ export async function addUrlResource(
 
 export async function addUploadedResource(
   lessonId: string,
-  input: { label: string; type: ResourceType; fileName: string; description?: string; extractedText?: string }
+  input: { label: string; type: ResourceType; fileName: string; description?: string; extractedText?: string; dataUrl?: string }
 ): Promise<{ resourceId: string; review: ReviewResult }> {
   const { schoolId, id: userId } = await requireAuth()
 
@@ -531,6 +539,7 @@ export async function addUploadedResource(
       type:          input.type,
       label:         input.label,
       fileKey:       `stub:${input.fileName}`,
+      url:           input.dataUrl ?? null,
       extractedText: input.extractedText ?? null,
       createdBy:     userId,
     },

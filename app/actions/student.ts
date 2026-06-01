@@ -79,7 +79,7 @@ export async function getStudentHomework(homeworkId: string) {
             id:               String(i + 1),
             question:         q.q ?? q.question ?? '',
             options:          q.options,
-            correct:          q.correct,
+            // NOTE: 'correct' and 'explanation' intentionally omitted — never expose answers to students
             marks:            q.marks ?? 1,
             scaffolding_hint: q.scaffolding_hint,
             ehcp_adaptation:  q.ehcp_adaptation,
@@ -97,6 +97,7 @@ export async function getStudentHomework(homeworkId: string) {
             scaffolding_hint: q.scaffolding_hint,
             ehcp_adaptation:  q.ehcp_adaptation,
             vocab_support:    q.vocab_support,
+            // NOTE: modelAnswer and markScheme intentionally omitted — never expose answers to students
           })),
         }
       }

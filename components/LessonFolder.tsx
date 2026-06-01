@@ -547,12 +547,19 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         const ext   = f.name.split('.').pop()?.toLowerCase() ?? ''
         const type  = ext === 'pptx' || ext === 'ppt' ? 'SLIDES' :
                       ext === 'pdf'                    ? 'PLAN'   : 'OTHER'
-        // Extract text content from supported formats so AI can use it for homework generation
         let extractedText: string | undefined
         if (ext === 'pptx' || ext === 'ppt') {
           extractedText = await extractPptxText(f) || undefined
         }
-        await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name, extractedText })
+        // Read file as base64 data URL so it can be viewed in the browser later
+        const dataUrl: string | undefined = await new Promise(resolve => {
+          if (f.size > 10 * 1024 * 1024) { resolve(undefined); return } // skip > 10 MB
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => resolve(undefined)
+          reader.readAsDataURL(f)
+        })
+        await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name, extractedText, dataUrl })
       }
       await refreshLesson()
     })
@@ -836,7 +843,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       ) : (
                         <>
                           {r.url ? (
-                            <a href={r.url} target="_blank" rel="noreferrer" className="flex-1 text-[13px] text-blue-600 hover:underline truncate">{r.label}</a>
+                            <a
+                              href={r.url.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-1 text-[13px] text-blue-600 hover:underline truncate"
+                            >{r.label}</a>
                           ) : (
                             <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
                           )}
@@ -847,7 +859,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           )}
                           <button
                             title="Edit"
-                            onClick={() => { setEditingResourceId(r.id); setEditLabel(r.label); setEditUrl(r.url ?? '') }}
+                            onClick={() => { setEditingResourceId(r.id); setEditLabel(r.label); setEditUrl(r.url?.startsWith('data:') ? '' : (r.url ?? '')) }}
                             className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-300 hover:text-gray-600 transition-colors"
                           >
                             <Icon name="edit" size="sm" />
@@ -1490,16 +1502,21 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             </div>
                           ) : (
                             <>
-                              {r.url ? (
-                                <button
-                                  onClick={() => { setPreviewUrl(r.url!); setPreviewLabel(r.label) }}
-                                  className="flex-1 text-[13px] text-blue-600 hover:underline truncate text-left flex items-center gap-1"
-                                >
-                                  {r.label}
-                                </button>
-                              ) : (
-                                <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
-                              )}
+                              {(() => {
+                                const viewUrl = r.url
+                                  ? (r.url.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url)
+                                  : null
+                                return viewUrl ? (
+                                  <button
+                                    onClick={() => { setPreviewUrl(viewUrl); setPreviewLabel(r.label) }}
+                                    className="flex-1 text-[13px] text-blue-600 hover:underline truncate text-left flex items-center gap-1"
+                                  >
+                                    {r.label}
+                                  </button>
+                                ) : (
+                                  <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
+                                )
+                              })()}
                               {r.fileKey && !r.url && (
                                 <span className="text-[10px] text-gray-400 shrink-0">
                                   {r.fileKey.startsWith('stub:') ? r.fileKey.slice(5) : r.fileKey}
@@ -1507,8 +1524,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               )}
                               {r.url && (
                                 <button
-                                  title="Preview"
-                                  onClick={() => { setPreviewUrl(r.url!); setPreviewLabel(r.label) }}
+                                  title="Open file"
+                                  onClick={() => {
+                                    const viewUrl = r.url!.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url!
+                                    setPreviewUrl(viewUrl); setPreviewLabel(r.label)
+                                  }}
                                   className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-blue-100 text-gray-300 hover:text-blue-600 transition-colors"
                                 >
                                   <Icon name="visibility" size="sm" />
@@ -1570,7 +1590,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               if (ext === 'pptx' || ext === 'ppt') {
                                 extractedText = await extractPptxText(f) || undefined
                               }
-                              await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name, extractedText })
+                              const dataUrl: string | undefined = await new Promise(resolve => {
+                                if (f.size > 10 * 1024 * 1024) { resolve(undefined); return }
+                                const reader = new FileReader()
+                                reader.onload = () => resolve(reader.result as string)
+                                reader.onerror = () => resolve(undefined)
+                                reader.readAsDataURL(f)
+                              })
+                              await addUploadedResource(lessonId!, { label, type: type as any, fileName: f.name, extractedText, dataUrl })
                             }
                             await refreshLesson()
                           })
@@ -1935,6 +1962,9 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   setAt:           hwSetDate ? new Date(hwSetDate).toISOString() : new Date().toISOString(),
                   dueAt:           new Date(hwDueDate).toISOString(),
                 })
+                // Refresh lesson BEFORE switching to Homework tab so lesson.homework is up-to-date
+                // and the auto-generate effect guard (lesson.homework.length > 0) fires correctly
+                await refreshLesson()
                 router.refresh()
                 setWizardStep(null)
                 setActiveTab('Homework')

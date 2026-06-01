@@ -318,8 +318,8 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
                 </div>
               )}
 
-              {/* Model answer (extended writing) */}
-              {hw.modelAnswer && (
+              {/* Model answer — only for extended writing / UPLOAD where no per-question answers exist */}
+              {hw.modelAnswer && scQuestions.length === 0 && qJson.length === 0 && hqRows.length === 0 && (
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Model answer</p>
                   <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">

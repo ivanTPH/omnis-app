@@ -1069,11 +1069,14 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
       {/* ── Horizontal drag handle ──────────────────────────────────────────── */}
       <div
-        className="w-1 shrink-0 cursor-col-resize bg-gray-200 hover:bg-blue-400 active:bg-blue-500 transition-colors select-none group relative"
+        className="w-3 shrink-0 cursor-col-resize select-none flex flex-col items-center justify-center gap-1 bg-gray-100 hover:bg-blue-100 active:bg-blue-200 border-x border-gray-200 hover:border-blue-300 transition-colors group"
         onMouseDown={startListDrag}
-        title="Drag to resize"
+        title="Drag to resize panels"
       >
-        <div className="absolute inset-y-0 -left-1 -right-1" />
+        {/* Grip dots */}
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="w-1 h-1 rounded-full bg-gray-400 group-hover:bg-blue-500 transition-colors" />
+        ))}
       </div>
 
       {/* ── Right: marking area (main content + optional SEND sidebar) ─────── */}
@@ -1474,14 +1477,16 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 className="sticky bottom-0 bg-white rounded-xl border border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] overflow-hidden"
                 style={{ height: markPanelHeight }}
               >
-                {/* Drag handle — pull up to expand */}
+                {/* Drag handle — pull up/down to resize */}
                 <div
-                  className="h-3 cursor-ns-resize flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors select-none group border-b border-gray-100"
+                  className="h-5 cursor-ns-resize flex items-center justify-center gap-1 bg-gray-50 hover:bg-blue-50 border-b border-gray-200 hover:border-blue-200 transition-colors select-none group"
                   onMouseDown={startPanelDrag}
+                  title="Drag to resize marking panel"
                 >
-                  <div className="w-10 h-1 bg-gray-300 rounded-full group-hover:bg-gray-400 transition-colors" />
+                  <Icon name="drag_handle" size="sm" className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors font-medium">drag to resize</span>
                 </div>
-                <div className="overflow-y-auto" style={{ height: 'calc(100% - 12px)' }}>
+                <div className="overflow-y-auto" style={{ height: 'calc(100% - 20px)' }}>
               {/* marking form — teacher only */}
               {canGrade ? (
               <div className="border-0 overflow-hidden">

@@ -20,7 +20,7 @@ export default async function StudentDetailPage({
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <main className="flex-1 overflow-auto">
-        <StudentDashboard data={data} />
+        <StudentDashboard data={data} staffView />
       </main>
     </AppShell>
   )

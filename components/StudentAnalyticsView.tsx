@@ -1150,7 +1150,7 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 }
 
 function StudentDeepDive({ file }: { file: StudentFileData }) {
-  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport, notes } = file
+  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport, notes, completionRate, avgScore } = file
   const [hwSubjectFilter, setHwSubjectFilter] = useState('')
   const activeTargets = ilp?.targets.filter(t => t.status === 'active') ?? []
   const latestNote = notes?.[0] ?? null
@@ -1176,6 +1176,22 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
               <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
             )}
             {student.needArea != null && <span className="text-xs text-gray-400">{student.needArea}</span>}
+          </div>
+          {/* Quick stats */}
+          <div className="flex flex-wrap gap-3 mt-2">
+            <span
+              title={`${recentHomeworks.filter(h => h.submitted).length} submitted of ${recentHomeworks.length} assigned across all classes`}
+              className="text-[11px] text-gray-500 cursor-help"
+            >
+              <span className={`font-semibold ${completionRate >= 75 ? 'text-green-600' : completionRate >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>{completionRate}%</span>
+              {' '}completion ({recentHomeworks.filter(h => h.submitted).length}/{recentHomeworks.length} tasks)
+            </span>
+            {avgScore != null && (
+              <span className="text-[11px] text-gray-500">
+                Avg grade: <span className="font-semibold text-gray-700">{gradeLabel(percentToGcseGrade(avgScore))}</span>
+                <span className="text-gray-400 ml-1" title="Running average across all marked homework">(all subjects)</span>
+              </span>
+            )}
           </div>
         </div>
         <Link href={`/students/${student.id}`}
@@ -1258,11 +1274,16 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
       {/* Performance vs Predicted */}
       {subjectPerf.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
             <h4 className="font-semibold text-sm text-gray-800">Performance vs Predicted</h4>
+            {subjectPerf.every(r => r.predictedScore == null) && (
+              <span className="text-[11px] text-amber-600 italic">No predicted grades on record</span>
+            )}
           </div>
           <div className="px-5 py-1.5 grid grid-cols-[1fr_72px_90px_120px] gap-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
-            <span>Subject</span><span className="text-right">Avg</span><span className="text-right">Predicted</span><span className="text-right">Status</span>
+            <span>Subject</span><span className="text-right">Avg</span>
+            <span className="text-right" title="Predicted grade set by teacher — add via class analytics">Predicted</span>
+            <span className="text-right">Status</span>
           </div>
           <div className="divide-y divide-gray-50">
             {subjectPerf.map(row => (
@@ -1329,10 +1350,11 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
           </div>
           <div className="divide-y divide-gray-50">
             {filteredHomeworks.slice(0, 8).map(hw => (
-              <div key={hw.homeworkId} className="flex items-center gap-3 px-5 py-2.5 text-sm">
+              <Link key={hw.homeworkId} href={`/homework/${hw.homeworkId}`}
+                className="flex items-center gap-3 px-5 py-2.5 text-sm hover:bg-gray-50 transition-colors group">
                 <Icon name={hw.submitted ? 'check_circle' : 'cancel'} size="sm"
                   className={hw.submitted ? 'text-green-500 shrink-0' : 'text-gray-300 shrink-0'} />
-                <span className="flex-1 text-gray-700 truncate min-w-0">{hw.subject} — {hw.title}</span>
+                <span className="flex-1 text-gray-700 group-hover:text-blue-700 truncate min-w-0">{hw.subject} — {hw.title}</span>
                 <span className="text-gray-400 text-xs shrink-0">
                   {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
@@ -1342,7 +1364,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
                     ? <span className="text-blue-600 text-xs shrink-0">Submitted</span>
                     : <span className="text-rose-400 text-xs shrink-0">Missing</span>
                 }
-              </div>
+              </Link>
             ))}
           </div>
         </div>

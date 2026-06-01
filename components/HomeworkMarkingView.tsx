@@ -309,9 +309,12 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // Per-student adaptive suggestions (fetched lazily on selection)
   const [adaptiveSugg, setAdaptiveSugg] = useState<Record<string, AdaptiveHomeworkSuggestions>>({})
   const [adaptiveSuggLoading, setAdaptiveSuggLoading] = useState(false)
-  // Resizable marking panel
+  // Resizable marking panel (vertical drag)
   const [markPanelHeight, setMarkPanelHeight] = useState(300)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
+  // Resizable student list (horizontal drag)
+  const [listPanelWidth, setListPanelWidth] = useState(224) // default w-56
+  const hDragRef = useRef<{ startX: number; startW: number } | null>(null)
 
   const router = useRouter()
 
@@ -887,6 +890,23 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     window.addEventListener('mouseup', onUp)
   }, [markPanelHeight])
 
+  const startListDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    hDragRef.current = { startX: e.clientX, startW: listPanelWidth }
+    function onMove(ev: MouseEvent) {
+      if (!hDragRef.current) return
+      const delta = ev.clientX - hDragRef.current.startX
+      setListPanelWidth(Math.max(160, Math.min(360, hDragRef.current.startW + delta)))
+    }
+    function onUp() {
+      hDragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [listPanelWidth])
+
   return (
     <div className="flex flex-col h-full min-h-0">
 
@@ -1012,7 +1032,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
       {/* ── Left: student list ─────────────────────────────────────────────── */}
-      <div className="w-56 shrink-0 border-r border-gray-200 flex flex-col">
+      <div className="shrink-0 border-r border-gray-200 flex flex-col" style={{ width: listPanelWidth }}>
 
         {needsReviewCount > 0 && (
           <div className="px-3 py-2 border-b border-amber-100 bg-amber-50">
@@ -1045,6 +1065,15 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             />
           )}
         </div>
+      </div>
+
+      {/* ── Horizontal drag handle ──────────────────────────────────────────── */}
+      <div
+        className="w-1 shrink-0 cursor-col-resize bg-gray-200 hover:bg-blue-400 active:bg-blue-500 transition-colors select-none group relative"
+        onMouseDown={startListDrag}
+        title="Drag to resize"
+      >
+        <div className="absolute inset-y-0 -left-1 -right-1" />
       </div>
 
       {/* ── Right: marking area (main content + optional SEND sidebar) ─────── */}
@@ -1310,8 +1339,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 </div>
               )}
 
-              {/* model answer (collapsible) — for non-structured or overall model answer */}
-              {hw.modelAnswer && (
+              {/* model answer (collapsible) — only for non-structured homework (extended writing etc) */}
+              {hw.modelAnswer && !hasStructuredQuestions && (
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <button
                     onClick={() => setShowModelAnswer(v => !v)}

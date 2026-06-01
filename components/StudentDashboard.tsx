@@ -14,7 +14,7 @@ const SEND_LABEL: Record<string, string> = {
 
 type Subject = string | 'all'
 
-export default function StudentDashboard({ data }: { data: StudentDetailData }) {
+export default function StudentDashboard({ data, staffView = false }: { data: StudentDetailData; staffView?: boolean }) {
   const [subjectFilter, setSubjectFilter] = useState<Subject>('all')
 
   const subjects = [...new Set(data.homeworks.map(h => h.subject))].sort()
@@ -167,9 +167,9 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
             {filtered.map(hw => {
               const due = new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
               return (
-                <a
+                <Link
                   key={hw.homeworkId}
-                  href={`/student/homework/${hw.homeworkId}`}
+                  href={staffView ? `/homework/${hw.homeworkId}` : `/student/homework/${hw.homeworkId}`}
                   className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_80px_70px_70px] items-center gap-x-3 px-5 py-3 text-sm hover:bg-blue-50 transition-colors group"
                 >
                   {/* Title + subject badge */}
@@ -202,7 +202,7 @@ export default function StudentDashboard({ data }: { data: StudentDetailData }) 
                       ? hw.score != null ? formatRawScore(hw.score) : <span className="text-gray-400 font-normal text-xs">Pending</span>
                       : <span className="text-gray-300 font-normal text-xs">—</span>}
                   </div>
-                </a>
+                </Link>
               )
             })}
           </div>

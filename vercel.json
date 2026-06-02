@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/agent-coach",
       "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/agent-quality",
+      "schedule": "0 3 * * *"
     }
   ]
 }

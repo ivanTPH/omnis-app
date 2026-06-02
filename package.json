@@ -29,7 +29,8 @@
     "humanities:seed": "tsx --env-file=.env.local prisma/seed-humanities.ts",
     "send:backfill-snapshots": "tsx --env-file=.env.local scripts/backfill-send-snapshots.ts",
     "demo:reset": "tsx --env-file=.env.local scripts/demo-reset.ts",
-    "demo:seed": "npx prisma db seed"
+    "demo:seed": "npx prisma db seed",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -63,11 +64,18 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
   },
   "prisma": {
     "seed": "tsx --env-file=.env.local prisma/seed.ts"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings=0"
+    ]
   }
 }

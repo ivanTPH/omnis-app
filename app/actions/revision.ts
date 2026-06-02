@@ -4,6 +4,8 @@ import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma }  from '@/lib/prisma'
 import Anthropic   from '@anthropic-ai/sdk'
+import { markDirty } from '@/lib/agents/snapshot'
+import { AgentType } from '@prisma/client'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -261,6 +263,9 @@ export async function markSessionComplete(
       confidence,
     },
   })
+
+  // Mark Coach snapshot dirty — new revision session data
+  void markDirty(user.id, user.schoolId, [AgentType.COACH]).catch(() => {})
 }
 
 export async function skipSession(sessionId: string) {

@@ -9,6 +9,8 @@ import { updateLearningProfile } from '@/app/actions/adaptive-learning'
 import { checkILPEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
 import { sendHomeworkReminderEmail } from '@/lib/email'
+import { markDirty }            from '@/lib/agents/snapshot'
+import { AgentType }            from '@prisma/client'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -1301,6 +1303,9 @@ export async function markSubmission(submissionId: string, data: {
   revalidatePath(`/homework/${sub.homeworkId}/mark/${submissionId}`)
   revalidatePath('/dashboard')
   revalidatePath('/', 'layout')
+
+  // Mark Coach + Quality agent snapshots dirty — new marked submission = new data
+  void markDirty(sub.studentId, schoolId, [AgentType.COACH, AgentType.QUALITY]).catch(() => {})
 
   return { ilpData, gradeDrop }
 }

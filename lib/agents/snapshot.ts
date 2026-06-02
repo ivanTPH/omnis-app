@@ -1,5 +1,3 @@
-'use server'
-
 /**
  * lib/agents/snapshot.ts
  *
@@ -14,8 +12,6 @@
 
 import { AgentType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-
-export type { AgentType }
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

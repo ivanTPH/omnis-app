@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-05-31. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-02. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-05-31.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-02.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -16,9 +16,12 @@
 > debug log removal, bare <a>→<Link> conversions, N+1 fix in addTaNote, error boundaries.
 > May 2026 Part 6: Security audit — getTaClasses() role enforcement, Wonde route auth tightening,
 > TA_NOTE_ADDED/DELETED audit trail, remaining bare <a> links converted. 110/110 e2e on Vercel.
+> June 2026: Homework UX fixes — AI stream final-buffer flush, maxDuration 120s, student answer
+> exposure guard, re-generation flow, resizable two-panel drag handles (grip dots + label),
+> duplicate model answer suppression in HomeworkDetailPanel. 110/110 e2e on Vercel (18b4e38).
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** eeede7e (security audit remediation)
+> **Latest commit:** 18b4e38 (e2e results — 110/110 Vercel)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -554,11 +557,12 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**110/110 tests passing** against both localhost and live Vercel deployment (last run: 2026-05-31).
+**110/110 tests passing** against both localhost and live Vercel deployment (last run: 2026-06-02).
 18 spec files covering: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
 cover management, platform admin, student photos, revision planner, send scorer.
 - HOD fixture added to `e2e/fixtures/users.ts` as `USERS.hod` (d.brooks@omnisdemo.school)
+- 3 known network flakes on Vercel cold starts — all pass on retry #1, not regressions
 - Run locally: `npm run test:e2e`
 - Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`
 
@@ -693,3 +697,12 @@ cover management, platform admin, student photos, revision planner, send scorer.
 - Phase 4.2 (Performance): Loading skeletons on ClassRosterTab, StudentAnalyticsView, IlpPageView; progress bars on ILP gen (60s) and homework gen (30s); DB indexes added (`@@index([userId])` on Enrolment); analytics filter queries wrapped in 60s unstable_cache; classSize parallelised into Promise.all; ILP batch reduced 10→5 with 1s inter-batch delay.
 - Phase 4.3 (Error handling): `app/admin/error.tsx` + `app/student/error.tsx` added (all routes now have error boundaries); `HomeworkSubmissionView` saves draft to localStorage before submit, try/catch with retry button on failure; AI error messages in `generateIlpGoalsForStudent` + `generateILPForStudent` changed from raw `String(err)` to user-friendly strings.
 - Phase 4.4 (Smoke test): Full 16-step end-to-end code audit — all PASS. Adaptive SEND homework (scaffolding_hint/ehcp_adaptation/vocab_support) confirmed generated and rendered. Concern flagging → SENCO notification confirmed. SEND attainment gap in SLT analytics confirmed.
+
+**June 2026 — Homework UX Polish ✅ (2026-06-02)**
+- AI stream: fixed final-buffer flush on stream close so last chunk is never dropped; `maxDuration` increased to 120s on `/api/homework/generate`.
+- Student answer exposure: submission answers are no longer shown to other students in the marking view.
+- Re-generation flow: teachers can regenerate homework content without losing existing submissions.
+- Sign-in redirect: switched to `window.location.href` after NextAuth sign-in so server-side role redirect fires correctly for all roles (including TEACHING_ASSISTANT → `/ta/notes`).
+- Resizable two-panel layout in `HomeworkMarkingView`: left/right panel resized via a 12px grip-dot handle (`cursor-col-resize`, 160–360px range); marking panel height resized via a 20px bar with `drag_handle` icon + "drag to resize" label (`cursor-ns-resize`, 180–700px range).
+- Duplicate model answer fix in `HomeworkDetailPanel`: combined `hw.modelAnswer` block now suppressed when per-question answers are already rendered via `scQuestions`, `qJson`, or `hqRows`.
+- 110/110 e2e passing on Vercel (commit 18b4e38). 3 network flakes on cold start — all pass on retry #1.

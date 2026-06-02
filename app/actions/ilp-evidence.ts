@@ -190,3 +190,95 @@ If no match: {"match": false, "targetIndices": [], "rationale": ""}`
     console.error('[checkILPEvidenceMatch] failed', submissionId)
   }
 }
+
+// ── Proactive EHCP evidence match check (called after marking) ────────────────
+// Fire-and-forget: must not throw.
+
+export async function checkEhcpEvidenceMatch({
+  submissionId,
+  studentId,
+  ehcpOutcomes,
+  homeworkTitle,
+  subject,
+  grade,
+  schoolId,
+  teacherId,
+  homeworkId,
+}: {
+  submissionId:  string
+  studentId:     string
+  ehcpOutcomes:  Array<{ id: string; outcomeText: string; section: string }>
+  homeworkTitle: string
+  subject:       string
+  grade:         string
+  schoolId:      string
+  teacherId:     string
+  homeworkId:    string
+}): Promise<void> {
+  try {
+    const gradeNum = parseInt(grade, 10)
+    if (!isNaN(gradeNum) && gradeNum < 4) return
+    if (ehcpOutcomes.length === 0) return
+
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) return
+
+    const outcomesText = ehcpOutcomes.map((o, i) => `${i + 1}. [Section ${o.section}] ${o.outcomeText}`).join('\n')
+    const prompt = `A student has just had homework graded.
+
+Homework title: "${homeworkTitle}"
+Subject: ${subject || 'Not specified'}
+Grade: ${grade} (GCSE 1–9 scale)
+
+Active EHCP outcomes:
+${outcomesText}
+
+Does this homework likely provide evidence toward any of these EHCP outcomes?
+
+Respond with ONLY valid JSON (no markdown):
+{"match": true/false, "outcomeIndex": 1, "rationale": "one sentence"}
+
+If no match: {"match": false, "outcomeIndex": 0, "rationale": ""}`
+
+    const client = new Anthropic({ apiKey })
+    const msg    = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 150,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+    const text   = (msg.content[0] as any).text.trim()
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+    const result = JSON.parse(text)
+
+    if (!result.match || !result.outcomeIndex) return
+
+    const matchingOutcome = ehcpOutcomes[result.outcomeIndex - 1]
+    if (!matchingOutcome) return
+
+    const student = await prisma.user.findUnique({
+      where:  { id: studentId },
+      select: { firstName: true, lastName: true },
+    })
+    if (!student) return
+
+    const linkHref = `/homework/${homeworkId}/mark`
+
+    const alreadyNotified = await prisma.notification.findFirst({
+      where: { schoolId, userId: teacherId, type: 'EHCP_EVIDENCE_SUGGESTED', linkHref },
+    })
+    if (alreadyNotified) return
+
+    await prisma.notification.create({
+      data: {
+        schoolId,
+        userId:   teacherId,
+        type:     'EHCP_EVIDENCE_SUGGESTED',
+        title:    `EHCP evidence opportunity — ${student.firstName} ${student.lastName}`,
+        body:     `"${homeworkTitle}" (Grade ${grade}) may evidence ${student.firstName}'s EHCP outcome: "${matchingOutcome.outcomeText.slice(0, 100)}…". ${result.rationale} You can link this from the EHCP Plans page.`,
+        linkHref,
+      },
+    })
+  } catch {
+    console.error('[checkEhcpEvidenceMatch] failed', submissionId)
+  }
+}

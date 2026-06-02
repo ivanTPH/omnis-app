@@ -1015,6 +1015,53 @@ export async function updateEhcpSection(
   revalidatePath('/senco/ehcp')
 }
 
+// ── Recent submissions for evidence linking ───────────────────────────────────
+
+export type SubmissionForEvidence = {
+  id:            string
+  homeworkTitle: string
+  subject:       string | null
+  grade:         string | null
+  finalScore:    number | null
+  submittedAt:   Date | null
+  homeworkId:    string
+}
+
+export async function getStudentSubmissionsForEvidence(
+  studentId: string,
+): Promise<SubmissionForEvidence[]> {
+  await requireSencoOrStaff()
+
+  const subs = await prisma.submission.findMany({
+    where:   { studentId, status: { in: ['MARKED', 'RETURNED'] } },
+    select: {
+      id:          true,
+      grade:       true,
+      finalScore:  true,
+      submittedAt: true,
+      homework: {
+        select: {
+          id:    true,
+          title: true,
+          class: { select: { subject: true } },
+        },
+      },
+    },
+    orderBy: { submittedAt: 'desc' },
+    take:    30,
+  })
+
+  return subs.map(s => ({
+    id:            s.id,
+    homeworkTitle: s.homework.title,
+    subject:       s.homework.class?.subject ?? null,
+    grade:         s.grade,
+    finalScore:    s.finalScore,
+    submittedAt:   s.submittedAt,
+    homeworkId:    s.homework.id,
+  }))
+}
+
 /**
  * Returns audit entries for a given EHCP plan.
  * SENCO/SLT/SCHOOL_ADMIN see all; TEACHER/HOD/HOY see only their own.

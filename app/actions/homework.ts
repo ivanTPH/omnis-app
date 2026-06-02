@@ -6,7 +6,7 @@ import { revalidatePath }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
-import { checkILPEvidenceMatch } from '@/app/actions/ilp-evidence'
+import { checkILPEvidenceMatch, checkEhcpEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
 import { sendHomeworkReminderEmail } from '@/lib/email'
 import { markDirty }            from '@/lib/agents/snapshot'
@@ -1217,6 +1217,31 @@ export async function markSubmission(submissionId: string, data: {
       }).catch(() => {})
     }).catch(() => {})
   }
+
+  // Proactive EHCP evidence detection (fire-and-forget)
+  void prisma.ehcpPlan.findFirst({
+    where: { studentId, schoolId, status: 'active' },
+    select: { outcomes: { where: { status: 'active' }, select: { id: true, outcomeText: true, section: true } } },
+  }).then(ehcp => {
+    if (!ehcp || ehcp.outcomes.length === 0) return
+    void prisma.homework.findUnique({
+      where:  { id: sub.homeworkId },
+      select: { title: true, createdBy: true, class: { select: { subject: true } } },
+    }).then(hw => {
+      if (!hw) return
+      void checkEhcpEvidenceMatch({
+        submissionId,
+        studentId,
+        ehcpOutcomes:  ehcp.outcomes,
+        homeworkTitle: hw.title,
+        subject:       hw.class?.subject ?? '',
+        grade:         data.grade ?? '',
+        schoolId,
+        teacherId:     hw.createdBy,
+        homeworkId:    sub.homeworkId,
+      }).catch(() => {})
+    }).catch(() => {})
+  }).catch(() => {})
 
   // ── Grade-drop detection ───────────────────────────────────────────────────
   let gradeDrop: {

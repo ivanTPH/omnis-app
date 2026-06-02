@@ -59,6 +59,8 @@ export type PlanCoherenceAlert = {
   ehcpCoherence:  'OK' | 'REVIEW_NEEDED' | 'URGENT'
   kPlanCoherence: 'OK' | 'REVIEW_NEEDED' | 'URGENT'
   summaryNarrative: string
+  conflicts:      string[]
+  suggestions:    string[]
   lastRunAt:      Date | null
 }
 
@@ -97,6 +99,8 @@ export async function getPlanCoherenceAlerts(schoolId: string): Promise<PlanCohe
     ehcpCoherence:  k.ehcpCoherence,
     kPlanCoherence: k.kPlanCoherence,
     summaryNarrative: k.summaryNarrative,
+    conflicts:      k.conflicts ?? [],
+    suggestions:    k.suggestions ?? [],
     lastRunAt,
   })).sort((a, b) => {
     // URGENT first, then REVIEW_NEEDED

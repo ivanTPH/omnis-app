@@ -10,9 +10,14 @@ import { SeverityBadge } from './EarlyWarningPanel'
 
 type Props = { data: SencoDashboardData }
 
+const COLLAPSED_COUNT = 5
+
 export default function SencoDashboard({ data }: Props) {
-  const [running, setRunning] = useState(false)
-  const [result,  setResult]  = useState<{ flagsCreated: number } | null>(null)
+  const [running,          setRunning]          = useState(false)
+  const [result,           setResult]           = useState<{ flagsCreated: number } | null>(null)
+  const [reviewsExpanded,  setReviewsExpanded]  = useState(false)
+  const [alertsExpanded,   setAlertsExpanded]   = useState(false)
+  const [expandedAlert,    setExpandedAlert]    = useState<string | null>(null)
 
   async function runAnalysis() {
     setRunning(true)
@@ -152,26 +157,28 @@ export default function SencoDashboard({ data }: Props) {
         </div>
       </div>
 
-      {/* Upcoming Reviews — 30-day schedule */}
+      {/* Upcoming Reviews — 30-day schedule (collapsible) */}
       {data.upcomingReviews.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-blue-50">
+          <button
+            onClick={() => setReviewsExpanded(v => !v)}
+            className="w-full px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-blue-50 hover:bg-blue-100 transition-colors text-left"
+          >
             <div className="flex items-center gap-2">
               <Icon name="calendar_today" size="sm" className="text-blue-600" />
               <h3 className="font-semibold text-blue-900 text-sm">Upcoming Reviews — Next 30 Days</h3>
+              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-medium">
+                {data.upcomingReviews.length}
+              </span>
             </div>
-            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-medium">
-              {data.upcomingReviews.length}
-            </span>
-          </div>
+            <Icon name={reviewsExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-blue-600 shrink-0" />
+          </button>
           <div className="divide-y divide-gray-50">
-            {data.upcomingReviews.map(r => (
+            {(reviewsExpanded ? data.upcomingReviews : data.upcomingReviews.slice(0, COLLAPSED_COUNT)).map(r => (
               <div key={r.ilpId} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{r.studentName}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {r.planType} · {r.sendCategory}
-                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{r.planType} · {r.sendCategory}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right">
@@ -179,54 +186,61 @@ export default function SencoDashboard({ data }: Props) {
                       {new Date(r.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                      r.daysUntil <= 7
-                        ? 'bg-red-100 text-red-700'
-                        : r.daysUntil <= 14
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-blue-100 text-blue-700'
+                      r.daysUntil <= 7  ? 'bg-red-100 text-red-700' :
+                      r.daysUntil <= 14 ? 'bg-orange-100 text-orange-700' :
+                                          'bg-blue-100 text-blue-700'
                     }`}>
                       {r.daysUntil === 0 ? 'Today' : r.daysUntil === 1 ? 'Tomorrow' : `${r.daysUntil}d`}
                     </span>
                   </div>
-                  <Link
-                    href="/senco/ilp"
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                    title="Go to ILP records"
-                  >
+                  <Link href="/senco/ilp" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Go to ILP records">
                     <Icon name="arrow_forward" size="sm" />
                   </Link>
                 </div>
               </div>
             ))}
           </div>
-          <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50">
-            <Link href="/senco/ilp" className="text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+          <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50 flex items-center justify-between">
+            {data.upcomingReviews.length > COLLAPSED_COUNT && (
+              <button onClick={() => setReviewsExpanded(v => !v)} className="text-[11px] text-blue-600 hover:text-blue-800 font-medium">
+                {reviewsExpanded ? 'Show less' : `Show all ${data.upcomingReviews.length}`}
+              </button>
+            )}
+            <Link href="/senco/ilp" className="text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 ml-auto">
               View all ILP records <Icon name="arrow_forward" size="sm" />
             </Link>
           </div>
         </div>
       )}
 
-      {/* Plan Coherence Alerts (from AI Plan Synthesis agent) */}
+      {/* Plan Coherence Alerts — collapsible, expandable rows */}
       {data.planCoherenceAlerts.length > 0 && (
         <div className="bg-white border border-purple-200 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-purple-100 flex items-center gap-2 bg-purple-50">
+          <button
+            onClick={() => setAlertsExpanded(v => !v)}
+            className="w-full px-4 py-3 border-b border-purple-100 flex items-center gap-2 bg-purple-50 hover:bg-purple-100 transition-colors text-left"
+          >
             <Icon name="smart_toy" size="sm" className="text-purple-600" />
             <h3 className="font-semibold text-purple-900 text-sm">AI Plan Coherence Review</h3>
             <span className="ml-auto text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-medium">
               {data.planCoherenceAlerts.length} student{data.planCoherenceAlerts.length !== 1 ? 's' : ''}
             </span>
-          </div>
+            <Icon name={alertsExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-purple-600 shrink-0" />
+          </button>
           <div className="divide-y divide-gray-50">
-            {data.planCoherenceAlerts.map(a => {
+            {(alertsExpanded ? data.planCoherenceAlerts : data.planCoherenceAlerts.slice(0, COLLAPSED_COUNT)).map(a => {
               const hasUrgent = a.ilpCoherence === 'URGENT' || a.ehcpCoherence === 'URGENT' || a.kPlanCoherence === 'URGENT'
-              const badgeCls = (v: string) =>
-                v === 'URGENT'       ? 'bg-red-100 text-red-700 border border-red-200' :
-                v === 'REVIEW_NEEDED'? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                      'bg-green-100 text-green-700 border border-green-200'
+              const isOpen    = expandedAlert === a.studentId
+              const badgeCls  = (v: string) =>
+                v === 'URGENT'        ? 'bg-red-100 text-red-700 border border-red-200' :
+                v === 'REVIEW_NEEDED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                        'bg-green-100 text-green-700 border border-green-200'
               return (
-                <div key={a.studentId} className={`px-4 py-3 ${hasUrgent ? 'bg-red-50/30' : ''}`}>
-                  <div className="flex items-start gap-3">
+                <div key={a.studentId} className={hasUrgent ? 'bg-red-50/30' : ''}>
+                  <button
+                    onClick={() => setExpandedAlert(isOpen ? null : a.studentId)}
+                    className="w-full px-4 py-3 flex items-start gap-3 hover:bg-purple-50/40 transition-colors text-left"
+                  >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900">{a.studentName}</p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
@@ -246,24 +260,63 @@ export default function SencoDashboard({ data }: Props) {
                           </span>
                         )}
                       </div>
-                      {a.summaryNarrative && (
-                        <p className="text-xs text-gray-600 mt-1.5 leading-snug line-clamp-2">{a.summaryNarrative}</p>
+                      {!isOpen && a.summaryNarrative && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-1">{a.summaryNarrative}</p>
                       )}
                     </div>
-                    <Link
-                      href={`/senco/ilp`}
-                      className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                      title="View ILP"
-                    >
-                      <Icon name="arrow_forward" size="sm" />
-                    </Link>
-                  </div>
+                    <Icon name={isOpen ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0 mt-0.5" />
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-purple-100 bg-purple-50/20">
+                      {a.summaryNarrative && (
+                        <p className="text-sm text-gray-700 leading-snug pt-3">{a.summaryNarrative}</p>
+                      )}
+                      {a.conflicts.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-red-600 uppercase tracking-wider mb-1.5">Issues Detected</p>
+                          <ul className="space-y-1">
+                            {a.conflicts.map((c, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                <Icon name="report_problem" size="sm" className="text-amber-500 shrink-0 mt-0.5" />
+                                {c}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {a.suggestions.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-purple-600 uppercase tracking-wider mb-1.5">Suggested Actions</p>
+                          <ul className="space-y-1">
+                            {a.suggestions.map((s, i) => (
+                              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                                <Icon name="lightbulb" size="sm" className="text-purple-500 shrink-0 mt-0.5" />
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <Link
+                        href="/senco/ilp"
+                        className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium mt-1"
+                      >
+                        Open ILP Records <Icon name="arrow_forward" size="sm" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
-          <div className="px-4 py-2 border-t border-gray-50 bg-gray-50">
-            <p className="text-[10px] text-gray-400 italic">AI plan review runs nightly — flag is advisory only</p>
+          <div className="px-4 py-2 border-t border-gray-50 bg-gray-50 flex items-center justify-between">
+            {data.planCoherenceAlerts.length > COLLAPSED_COUNT && (
+              <button onClick={() => setAlertsExpanded(v => !v)} className="text-[11px] text-purple-600 hover:text-purple-800 font-medium">
+                {alertsExpanded ? 'Show less' : `Show all ${data.planCoherenceAlerts.length}`}
+              </button>
+            )}
+            <p className="text-[10px] text-gray-400 italic ml-auto">AI plan review — advisory only</p>
           </div>
         </div>
       )}

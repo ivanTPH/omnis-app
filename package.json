@@ -19,6 +19,7 @@
     "send:seed": "tsx --env-file=.env.local prisma/seed-send.ts",
     "messages:seed": "tsx --env-file=.env.local prisma/seed-messages.ts",
     "ta:seed": "tsx --env-file=.env.local prisma/seed-ta-notes.ts",
+    "agents:seed": "tsx --env-file=.env.local prisma/seed-agent-snapshots.ts",
     "grade:seed": "tsx --env-file=.env.local prisma/seed-graded.ts",
     "revision:seed": "tsx --env-file=.env.local prisma/seed-revision.ts",
     "test:e2e": "playwright test",

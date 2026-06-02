@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
 import type { ApdrRow } from '@/app/actions/send-support'
+import { getAgentInsights } from '@/app/actions/agent-insights'
 
 // ── Auth helpers ────────────────────────────────────────────────────────────
 
@@ -220,6 +221,7 @@ export type StudentFileData = {
   taNotes: TaNoteRowInline[]
   parentContacts: StudentContact[]
   wondeAttendance: WondeAttendanceSummary | null
+  agentInsights: import('@/app/actions/agent-insights').AgentInsights | null
 }
 
 // ── Main fetch ───────────────────────────────────────────────────────────────
@@ -583,6 +585,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       authorisedAbsences:   wondeAtt.authorisedAbsences,
       unauthorisedAbsences: wondeAtt.unauthorisedAbsences,
     } : null,
+    agentInsights: await getAgentInsights(studentId).catch(() => null),
   }
 }
 

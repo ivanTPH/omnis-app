@@ -31,6 +31,14 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
   const [linked,            setLinked]            = useState<string | null>(null) // last-linked outcomeId for feedback
 
   async function handleStatusChange(outcomeId: string, status: string) {
+    // Soft guardrail: warn if marking achieved with no evidence
+    const outcome = outcomes.find(o => o.id === outcomeId)
+    if (status === 'achieved' && outcome && outcome.evidenceCount === 0) {
+      const confirmed = window.confirm(
+        'This outcome has no linked evidence.\n\nAre you sure you want to mark it as achieved?\n\nConsider linking homework evidence first using the "Link evidence" button below.'
+      )
+      if (!confirmed) return
+    }
     setUpdatingId(outcomeId)
     try {
       await updateEhcpOutcomeStatus(outcomeId, status)

@@ -499,6 +499,9 @@ async function main() {
       reviewDate: futureReview1,
       coordinatorName: 'Ms J. Freeman',
       status: 'active',
+      approvedBySenco: true,
+      approvedAt: new Date(Date.now() - 170 * 24 * 60 * 60 * 1000),
+      approvedBy: senco.id,
       outcomes: {
         create: [
           {
@@ -551,6 +554,9 @@ async function main() {
       reviewDate: futureReview2,
       coordinatorName: 'Ms J. Freeman',
       status: 'active',
+      approvedBySenco: true,
+      approvedAt: new Date(Date.now() - 85 * 24 * 60 * 60 * 1000),
+      approvedBy: senco.id,
       outcomes: {
         create: [
           {

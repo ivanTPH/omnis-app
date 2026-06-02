@@ -193,6 +193,12 @@ enum AuditAction {
   TA_NOTE_DELETED
 }
 
+enum AgentType {
+  COACH
+  QUALITY
+  PLAN_SYNTHESIS
+}
+
 enum LessonSharingLevel {
   SCHOOL
   SELECTED
@@ -303,6 +309,9 @@ model School {
 
   // TA notes
   taNotes              TaNote[]
+
+  // Agent snapshots (AI coach / quality / plan-synthesis)
+  agentSnapshots       AgentSnapshot[] @relation("AgentSnapshots")
 
   // Subject-level exam board defaults
   subjectConfigs       SubjectConfig[]
@@ -446,6 +455,9 @@ model User {
   // Assessments
   assessmentsAsStudent Assessment[] @relation("StudentAssessments")
   assessmentsAsTeacher Assessment[] @relation("TeacherAssessments")
+
+  // Agent snapshots (AI coach / quality / plan-synthesis)
+  agentSnapshots       AgentSnapshot[] @relation("AgentSnapshots")
 
   @@index([schoolId, role])
 }
@@ -2634,4 +2646,30 @@ model YearGroupPlan {
   @@unique([schoolId, yearGroup, subject])
   @@index([schoolId, subject])
   @@index([schoolId, yearGroup])
+}
+
+// ─── Agent Snapshots (AI coach / quality / plan-synthesis knowledge cache) ───
+
+model AgentSnapshot {
+  id            String     @id @default(cuid())
+  student       User       @relation("AgentSnapshots", fields: [studentId], references: [id])
+  studentId     String
+  school        School     @relation("AgentSnapshots", fields: [schoolId], references: [id])
+  schoolId      String
+  agentType     AgentType
+  /// Cached knowledge state — gap analysis, retention scores, risk flags, recommendations
+  knowledgeJson Json       @default("{}")
+  /// Last time this agent fully ran for this student
+  lastRunAt     DateTime?
+  /// Set whenever new submissions/evidence/sessions arrive that invalidate the snapshot.
+  /// Cron checks: WHERE dirtyAt > lastRunAt (or lastRunAt IS NULL)
+  dirtyAt       DateTime?
+  /// Earliest time the agent should next run even if not dirty (for periodic warm refresh)
+  nextReviewAt  DateTime   @default(now())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@unique([studentId, agentType])
+  @@index([schoolId, agentType])
+  @@index([dirtyAt, nextReviewAt])   // cron query: dirty or overdue
 }

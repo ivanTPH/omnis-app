@@ -1713,6 +1713,9 @@ export async function saveIlpEvidenceEntries(
 
   revalidatePath(`/send/ilp/${sub.studentId}`)
   revalidatePath('/senco/early-warning')
+
+  // Mark Plan Synthesis snapshot dirty — new evidence affects APDR cycle assessment
+  void markDirty(sub.studentId, schoolId, [AgentType.PLAN_SYNTHESIS]).catch(() => {})
 }
 
 // ── Get ILP Evidence for Student ──────────────────────────────────────────────

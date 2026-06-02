@@ -388,6 +388,9 @@ model User {
   behaviourPositive    Int?             // Count of positive behaviour records (Wonde)
   behaviourNegative    Int?             // Count of negative behaviour records (Wonde)
   hasExclusion         Boolean?         // Whether any exclusion record exists (Wonde)
+  isFsm                Boolean?         // Free School Meals eligible — synced from Wonde/MIS
+  isEal                Boolean?         // English as Additional Language — synced from Wonde/MIS
+  ethnicGroup          String?          // Ethnic group code — synced from Wonde/MIS
 
   teacherClasses      ClassTeacher[]
   enrolments          Enrolment[]

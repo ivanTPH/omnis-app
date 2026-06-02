@@ -207,6 +207,67 @@ export default function SencoDashboard({ data }: Props) {
         </div>
       )}
 
+      {/* Plan Coherence Alerts (from AI Plan Synthesis agent) */}
+      {data.planCoherenceAlerts.length > 0 && (
+        <div className="bg-white border border-purple-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-purple-100 flex items-center gap-2 bg-purple-50">
+            <Icon name="smart_toy" size="sm" className="text-purple-600" />
+            <h3 className="font-semibold text-purple-900 text-sm">AI Plan Coherence Review</h3>
+            <span className="ml-auto text-xs bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-medium">
+              {data.planCoherenceAlerts.length} student{data.planCoherenceAlerts.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {data.planCoherenceAlerts.map(a => {
+              const hasUrgent = a.ilpCoherence === 'URGENT' || a.ehcpCoherence === 'URGENT' || a.kPlanCoherence === 'URGENT'
+              const badgeCls = (v: string) =>
+                v === 'URGENT'       ? 'bg-red-100 text-red-700 border border-red-200' :
+                v === 'REVIEW_NEEDED'? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                                      'bg-green-100 text-green-700 border border-green-200'
+              return (
+                <div key={a.studentId} className={`px-4 py-3 ${hasUrgent ? 'bg-red-50/30' : ''}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{a.studentName}</p>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {a.ilpCoherence !== 'OK' && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeCls(a.ilpCoherence)}`}>
+                            ILP · {a.ilpCoherence.replace('_', ' ')}
+                          </span>
+                        )}
+                        {a.ehcpCoherence !== 'OK' && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeCls(a.ehcpCoherence)}`}>
+                            EHCP · {a.ehcpCoherence.replace('_', ' ')}
+                          </span>
+                        )}
+                        {a.kPlanCoherence !== 'OK' && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeCls(a.kPlanCoherence)}`}>
+                            K Plan · {a.kPlanCoherence.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
+                      {a.summaryNarrative && (
+                        <p className="text-xs text-gray-600 mt-1.5 leading-snug line-clamp-2">{a.summaryNarrative}</p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/senco/ilp`}
+                      className="shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                      title="View ILP"
+                    >
+                      <Icon name="arrow_forward" size="sm" />
+                    </Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <div className="px-4 py-2 border-t border-gray-50 bg-gray-50">
+            <p className="text-[10px] text-gray-400 italic">AI plan review runs nightly — flag is advisory only</p>
+          </div>
+        </div>
+      )}
+
       {/* Links */}
       <div className="flex gap-3 flex-wrap">
         <Link href="/senco/concerns" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">

@@ -1324,10 +1324,21 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 </div>
               ) : (
                 /* Flat submission content (extended writing / upload) */
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Submission</p>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
-                    {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
+                <div className="space-y-3">
+                  {/* Task context — show what the student was asked to do */}
+                  {(hw.instructions || hw.title) && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Task</p>
+                      <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-[12px] text-gray-700 leading-relaxed">
+                        {hw.instructions ?? hw.title}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s Response</p>
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[80px]">
+                      {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
+                    </div>
                   </div>
                 </div>
               )}

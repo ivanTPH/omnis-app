@@ -1150,7 +1150,7 @@ function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
 }
 
 function StudentDeepDive({ file }: { file: StudentFileData }) {
-  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport, notes, completionRate, avgScore } = file
+  const { student, subjectPerf, recentHomeworks, ilp, kPlan, learningPassport, notes, completionRate, avgScore, agentInsights } = file
   const [hwSubjectFilter, setHwSubjectFilter] = useState('')
   const activeTargets = ilp?.targets.filter(t => t.status === 'active') ?? []
   const latestNote = notes?.[0] ?? null
@@ -1268,6 +1268,56 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
               Best homework format: <span className="font-medium">{learningPassport.preferredTypes.map((t: string) => t.replace(/_/g, ' ')).join(', ')}</span>
             </p>
           )}
+        </div>
+      )}
+
+      {/* Coach Agent Insights */}
+      {agentInsights?.coach && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-indigo-50 flex items-center gap-2">
+            <Icon name="smart_toy" size="sm" className="text-indigo-600" />
+            <h4 className="font-semibold text-sm text-indigo-800">AI Coach Insights</h4>
+            {agentInsights.lastRunAt.coach && (
+              <span className="ml-auto text-[10px] text-indigo-400">
+                {new Date(agentInsights.lastRunAt.coach).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+              </span>
+            )}
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            {agentInsights.coach.summaryNarrative && (
+              <p className="text-sm text-gray-700 leading-snug">{agentInsights.coach.summaryNarrative}</p>
+            )}
+            {agentInsights.coach.recommendedFocus.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider mb-1.5">Recommended Focus</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {agentInsights.coach.recommendedFocus.map((t, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {agentInsights.coach.weakTopics.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider mb-1.5">Needs Work</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {agentInsights.coach.weakTopics.slice(0, 4).map((t, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-rose-50 border border-rose-200 rounded-full text-xs text-rose-700">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {agentInsights.coach.retentionRisk.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider mb-1.5">Retention Risk (not tested 21d+)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {agentInsights.coach.retentionRisk.slice(0, 4).map((t, i) => (
+                    <span key={i} className="px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

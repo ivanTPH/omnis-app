@@ -9,6 +9,7 @@ import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { getPlanCoherenceAlerts } from '@/app/actions/agent-insights'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -209,6 +210,7 @@ export type SencoDashboardData = {
   activeFlags: EarlyWarningFlagRow[]
   openConcernsList: ConcernRow[]
   upcomingReviews: UpcomingReview[]
+  planCoherenceAlerts: import('@/app/actions/agent-insights').PlanCoherenceAlert[]
 }
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
@@ -1635,6 +1637,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     activeFlagsRaw,
     openConcernsRaw,
     upcomingIlpsRaw,
+    planCoherenceAlerts,
   ] = await Promise.all([
     prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
@@ -1660,6 +1663,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       orderBy: { reviewDate: 'asc' },
       take: 20,
     }),
+    getPlanCoherenceAlerts(schoolId).catch(() => []),
   ])
 
   const userIds = [...new Set([
@@ -1770,6 +1774,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       sendCategory: i.sendCategory,
       daysUntil:   Math.ceil((i.reviewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
     })),
+    planCoherenceAlerts,
   }
 }
 

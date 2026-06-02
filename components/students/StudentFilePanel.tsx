@@ -1842,6 +1842,46 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
               </div>
             </SectionCard>
           )}
+          {/* Quality Agent insights */}
+          {data.agentInsights?.quality && (
+            <SectionCard title="AI Quality Review">
+              <div className="space-y-3">
+                {data.agentInsights.quality.summaryNarrative && (
+                  <p className="text-sm text-gray-700 leading-snug">{data.agentInsights.quality.summaryNarrative}</p>
+                )}
+                {data.agentInsights.quality.issues.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1.5">Flagged Issues</p>
+                    <ul className="space-y-1">
+                      {data.agentInsights.quality.issues.map((issue, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                          <Icon name="warning" size="sm" className="text-amber-500 shrink-0 mt-0.5" />
+                          {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {data.agentInsights.quality.sendAdaptationScore != null && (
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-gray-500 shrink-0">SEND Adaptation Score</p>
+                    <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full ${data.agentInsights.quality.sendAdaptationScore >= 70 ? 'bg-green-500' : data.agentInsights.quality.sendAdaptationScore >= 40 ? 'bg-amber-400' : 'bg-red-500'}`}
+                        style={{ width: `${data.agentInsights.quality.sendAdaptationScore}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-semibold text-gray-700 shrink-0">{data.agentInsights.quality.sendAdaptationScore}/100</span>
+                  </div>
+                )}
+                {data.agentInsights.lastRunAt.quality && (
+                  <p className="text-[10px] text-gray-400 italic">
+                    Last reviewed {new Date(data.agentInsights.lastRunAt.quality).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+            </SectionCard>
+          )}
         </div>
       )}
 

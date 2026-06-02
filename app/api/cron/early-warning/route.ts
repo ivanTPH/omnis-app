@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
+import { runEvidenceAgentBatch } from '@/lib/agents/evidence-agent'
 import { prisma } from '@/lib/prisma'
 
 export const maxDuration = 300
@@ -73,10 +74,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const durationMs = Date.now() - startTime
-    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalProfiles} profiles refreshed across ${schools.length} schools in ${durationMs}ms`)
+    // Run Evidence Agent batch for each school — retroactively link homework evidence to SEND plans
+    let totalEvidenceStudents = 0
+    for (const school of schools) {
+      try {
+        const n = await runEvidenceAgentBatch(school.id)
+        totalEvidenceStudents += n
+      } catch (err) {
+        console.error(`[early-warning cron] Evidence agent error for school ${school.id}:`, err)
+      }
+    }
 
-    return NextResponse.json({ success: true, totalFlags, totalProfiles, schools: results, durationMs })
+    const durationMs = Date.now() - startTime
+    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalProfiles} profiles refreshed, ${totalEvidenceStudents} evidence students processed across ${schools.length} schools in ${durationMs}ms`)
+
+    return NextResponse.json({ success: true, totalFlags, totalProfiles, totalEvidenceStudents, schools: results, durationMs })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[early-warning cron] FATAL:', err)

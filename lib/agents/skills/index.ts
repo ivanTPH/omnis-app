@@ -60,6 +60,10 @@ export const AGENT_SKILLS: Record<AgentType, AgentSkillId[]> = {
     AgentSkillId.APDR_CYCLE,
     AgentSkillId.SEND_DIFFERENTIATION,
   ],
+  [AgentType.EVIDENCE]: [
+    AgentSkillId.SEND_DIFFERENTIATION,
+    AgentSkillId.APDR_CYCLE,
+  ],
 }
 
 /** Runtime guard — throws if an agent attempts to use a skill outside its remit */

@@ -2,8 +2,15 @@
 
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
-import type { EhcpPlanWithOutcomes, SubmissionForEvidence } from '@/app/actions/ehcp'
-import { updateEhcpOutcomeStatus, getStudentSubmissionsForEvidence, linkSubmissionToEhcpOutcome } from '@/app/actions/ehcp'
+import type { EhcpPlanWithOutcomes, SubmissionForEvidence, PendingEvidenceSuggestion } from '@/app/actions/ehcp'
+import {
+  updateEhcpOutcomeStatus,
+  getStudentSubmissionsForEvidence,
+  linkSubmissionToEhcpOutcome,
+  getPendingEvidenceSuggestions,
+  confirmEvidenceSuggestion,
+  dismissEvidenceSuggestion,
+} from '@/app/actions/ehcp'
 
 type Props = { plan: EhcpPlanWithOutcomes }
 
@@ -29,6 +36,12 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
   const [qualityRating,     setQualityRating]     = useState(3)
   const [linking,           setLinking]           = useState(false)
   const [linked,            setLinked]            = useState<string | null>(null) // last-linked outcomeId for feedback
+
+  // AI Evidence Agent suggestion queue
+  const [suggestions,       setSuggestions]       = useState<PendingEvidenceSuggestion[] | null>(null)
+  const [suggestionsOpen,   setSuggestionsOpen]   = useState(false)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [confirmingId,      setConfirmingId]      = useState<string | null>(null)
 
   async function handleStatusChange(outcomeId: string, status: string) {
     // Soft guardrail: warn if marking achieved with no evidence
@@ -77,6 +90,40 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
       setTimeout(() => setLinked(null), 3000)
     } finally {
       setLinking(false)
+    }
+  }
+
+  async function handleToggleSuggestions() {
+    if (!suggestionsOpen && suggestions === null) {
+      setSuggestionsLoading(true)
+      try {
+        const data = await getPendingEvidenceSuggestions(plan.studentId)
+        setSuggestions(data)
+      } finally {
+        setSuggestionsLoading(false)
+      }
+    }
+    setSuggestionsOpen(prev => !prev)
+  }
+
+  async function handleConfirm(evidenceId: string, outcomeId: string) {
+    setConfirmingId(evidenceId)
+    try {
+      await confirmEvidenceSuggestion(evidenceId)
+      setSuggestions(prev => prev ? prev.filter(s => s.id !== evidenceId) : prev)
+      setOutcomes(prev => prev.map(o => o.id === outcomeId ? { ...o, evidenceCount: o.evidenceCount + 1 } : o))
+    } finally {
+      setConfirmingId(null)
+    }
+  }
+
+  async function handleDismiss(evidenceId: string) {
+    setConfirmingId(evidenceId)
+    try {
+      await dismissEvidenceSuggestion(evidenceId)
+      setSuggestions(prev => prev ? prev.filter(s => s.id !== evidenceId) : prev)
+    } finally {
+      setConfirmingId(null)
     }
   }
 
@@ -228,6 +275,88 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
           <p className="text-sm">No outcomes recorded for this EHCP plan.</p>
         </div>
       )}
+
+      {/* AI Evidence Agent suggestion queue */}
+      <div className="border border-purple-200 rounded-xl overflow-hidden">
+        <button
+          onClick={handleToggleSuggestions}
+          className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 text-sm font-medium text-purple-800 hover:bg-purple-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Icon name="auto_awesome" size="sm" className="text-purple-600" />
+            <span>AI Evidence Suggestions</span>
+            {suggestions != null && suggestions.length > 0 && (
+              <span className="text-xs bg-purple-600 text-white px-1.5 py-0.5 rounded-full font-semibold">
+                {suggestions.length}
+              </span>
+            )}
+          </div>
+          <Icon
+            name="chevron_right"
+            size="sm"
+            className={`text-purple-500 transition-transform ${suggestionsOpen ? 'rotate-90' : ''}`}
+          />
+        </button>
+
+        {suggestionsOpen && (
+          <div className="border-t border-purple-100 bg-white p-4">
+            {suggestionsLoading ? (
+              <p className="text-xs text-gray-400 animate-pulse">Checking for AI-suggested evidence…</p>
+            ) : !suggestions || suggestions.length === 0 ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
+                <Icon name="check_circle" size="sm" className="text-green-500" />
+                No pending suggestions — the AI Evidence Agent will scan new submissions automatically.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-purple-700 font-medium">
+                  The Evidence Agent found {suggestions.length} potential evidence link{suggestions.length !== 1 ? 's' : ''} from recent homework. Review and confirm or dismiss each.
+                </p>
+                <div className="space-y-2">
+                  {suggestions.map(s => (
+                    <div key={s.id} className="border border-purple-100 rounded-lg p-3 bg-purple-50 space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-purple-900">
+                            Section {s.section}: {s.outcomeText.slice(0, 100)}{s.outcomeText.length > 100 ? '…' : ''}
+                          </p>
+                          <p className="text-xs text-gray-700 mt-0.5">
+                            <span className="font-medium">&ldquo;{s.homeworkTitle}&rdquo;</span>
+                            {s.subject && <span className="text-gray-500"> · {s.subject}</span>}
+                            {s.grade != null && <span className="ml-1 font-semibold text-purple-700"> · Grade {s.grade}</span>}
+                            {s.submittedAt && <span className="text-gray-400 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
+                          </p>
+                          {s.teacherNote && (
+                            <p className="text-xs text-gray-500 italic mt-1">&ldquo;{s.teacherNote}&rdquo;</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <button
+                          onClick={() => handleConfirm(s.id, s.outcomeId)}
+                          disabled={confirmingId === s.id}
+                          className="flex items-center gap-1 text-xs bg-green-600 text-white px-2.5 py-1 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                        >
+                          <Icon name="check" size="sm" />
+                          {confirmingId === s.id ? 'Confirming…' : 'Confirm evidence'}
+                        </button>
+                        <button
+                          onClick={() => handleDismiss(s.id)}
+                          disabled={confirmingId === s.id}
+                          className="flex items-center gap-1 text-xs border border-gray-200 text-gray-600 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                        >
+                          <Icon name="close" size="sm" />
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

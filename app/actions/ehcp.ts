@@ -1092,3 +1092,122 @@ export async function getEhcpAuditLog(ehcpId: string): Promise<EhcpAuditEntryRow
     createdAt:     e.createdAt,
   }))
 }
+
+// ── Evidence Agent — SENCO review queue ───────────────────────────────────────
+
+export type PendingEvidenceSuggestion = {
+  id:            string
+  outcomeId:     string
+  outcomeText:   string
+  section:       string
+  submissionId:  string
+  homeworkTitle: string
+  subject:       string | null
+  grade:         number | null
+  submittedAt:   Date | null
+  teacherNote:   string | null   // AI rationale stored here
+  qualityRating: number | null
+}
+
+/** Returns AI-suggested (pending) evidence records for a student's EHCP outcomes */
+export async function getPendingEvidenceSuggestions(
+  studentId: string,
+): Promise<PendingEvidenceSuggestion[]> {
+  await requireSencoOrStaff()
+
+  const ehcp = await prisma.ehcpPlan.findFirst({
+    where:  { studentId },
+    select: { id: true },
+  })
+  if (!ehcp) return []
+
+  const rows = await prisma.homeworkEhcpEvidence.findMany({
+    where: {
+      reviewStatus: 'pending',
+      outcome: { ehcpId: ehcp.id },
+    },
+    select: {
+      id:            true,
+      outcomeId:     true,
+      submissionId:  true,
+      teacherNote:   true,
+      qualityRating: true,
+      outcome: {
+        select: { outcomeText: true, section: true },
+      },
+      submission: {
+        select: {
+          finalScore:  true,
+          submittedAt: true,
+          homework: { select: { title: true, class: { select: { subject: true } } } },
+        },
+      },
+    },
+    orderBy: { evidenceDate: 'desc' },
+  })
+
+  return rows.map(r => ({
+    id:            r.id,
+    outcomeId:     r.outcomeId,
+    outcomeText:   r.outcome.outcomeText,
+    section:       r.outcome.section,
+    submissionId:  r.submissionId,
+    homeworkTitle: r.submission.homework.title,
+    subject:       r.submission.homework.class?.subject ?? null,
+    grade:         r.submission.finalScore,
+    submittedAt:   r.submission.submittedAt,
+    teacherNote:   r.teacherNote,
+    qualityRating: r.qualityRating,
+  }))
+}
+
+/** SENCO confirms an AI-suggested evidence link — moves reviewStatus to "confirmed" */
+export async function confirmEvidenceSuggestion(evidenceId: string): Promise<void> {
+  const { id: actorId, firstName, lastName, role } = await requireSencoOrStaff()
+
+  const row = await prisma.homeworkEhcpEvidence.findUnique({
+    where:  { id: evidenceId },
+    select: { outcomeId: true, reviewStatus: true, outcome: { select: { ehcpId: true } } },
+  })
+  if (!row || row.reviewStatus !== 'pending') return
+
+  await prisma.homeworkEhcpEvidence.update({
+    where: { id: evidenceId },
+    data:  { reviewStatus: 'confirmed' },
+  })
+
+  // Increment evidenceCount on the outcome
+  await prisma.ehcpOutcome.update({
+    where: { id: row.outcomeId },
+    data:  { evidenceCount: { increment: 1 } },
+  })
+
+  await prisma.ehcpAuditEntry.create({
+    data: {
+      ehcpId:       row.outcome.ehcpId,
+      userId:       actorId,
+      userName:     `${firstName} ${lastName}`,
+      userRole:     role,
+      fieldChanged: 'evidence',
+      previousValue: 'pending',
+      newValue:      'confirmed',
+      changeType:   'MODIFIED',
+    },
+  })
+}
+
+/** SENCO dismisses an AI-suggested evidence link — moves reviewStatus to "dismissed" */
+export async function dismissEvidenceSuggestion(evidenceId: string): Promise<void> {
+  await requireSencoOrStaff()
+
+  const row = await prisma.homeworkEhcpEvidence.findUnique({
+    where:  { id: evidenceId },
+    select: { reviewStatus: true },
+  })
+  if (!row || row.reviewStatus !== 'pending') return
+
+  await prisma.homeworkEhcpEvidence.update({
+    where: { id: evidenceId },
+    data:  { reviewStatus: 'dismissed' },
+  })
+}

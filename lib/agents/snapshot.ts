@@ -44,7 +44,23 @@ export type PlanKnowledge = {
   summaryNarrative: string
 }
 
-export type AgentKnowledge = CoachKnowledge | QualityKnowledge | PlanKnowledge
+export type EvidenceMatch = {
+  type:          'EHCP' | 'ILP'
+  targetId:      string               // outcomeId or ilpTargetId
+  submissionId:  string
+  rationale:     string               // one-sentence AI rationale
+  confidence:    'HIGH' | 'MEDIUM' | 'LOW'
+}
+
+export type EvidenceKnowledge = {
+  pendingMatches:   EvidenceMatch[]   // AI-suggested, awaiting SENCO review
+  confirmedCount:   number
+  dismissedCount:   number
+  lastScannedAt:    string            // ISO — most recent submission scanned
+  summaryNarrative: string
+}
+
+export type AgentKnowledge = CoachKnowledge | QualityKnowledge | PlanKnowledge | EvidenceKnowledge
 
 // ── Read ─────────────────────────────────────────────────────────────────────
 

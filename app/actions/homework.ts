@@ -1329,8 +1329,8 @@ export async function markSubmission(submissionId: string, data: {
   revalidatePath('/dashboard')
   revalidatePath('/', 'layout')
 
-  // Mark Coach + Quality agent snapshots dirty — new marked submission = new data
-  void markDirty(sub.studentId, schoolId, [AgentType.COACH, AgentType.QUALITY]).catch(() => {})
+  // Mark Coach + Quality + Evidence agent snapshots dirty — new marked submission = new data
+  void markDirty(sub.studentId, schoolId, [AgentType.COACH, AgentType.QUALITY, AgentType.EVIDENCE]).catch(() => {})
 
   return { ilpData, gradeDrop }
 }

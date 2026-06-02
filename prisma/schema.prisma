@@ -191,12 +191,32 @@ enum AuditAction {
   AI_ILP_GENERATED
   TA_NOTE_ADDED
   TA_NOTE_DELETED
+  AGENT_RUN_COMPLETED
+  AGENT_RECOMMENDATION_CONFIRMED
+  AGENT_RECOMMENDATION_OVERRIDDEN
+  AGENT_RECOMMENDATION_DISMISSED
 }
 
 enum AgentType {
   COACH
   QUALITY
   PLAN_SYNTHESIS
+}
+
+enum AgentSkillId {
+  CURRICULUM_ALIGNMENT
+  BLOOMS_ANALYSIS
+  SEND_DIFFERENTIATION
+  RETRIEVAL_SPACING
+  MARKING_CONSISTENCY
+  APDR_CYCLE
+  FEEDBACK_QUALITY
+}
+
+enum AgentReviewOutcome {
+  CONFIRMED   // teacher/SENCO agreed with recommendation
+  OVERRIDDEN  // teacher/SENCO changed the output
+  DISMISSED   // teacher/SENCO rejected — no action taken
 }
 
 enum LessonSharingLevel {
@@ -310,8 +330,9 @@ model School {
   // TA notes
   taNotes              TaNote[]
 
-  // Agent snapshots (AI coach / quality / plan-synthesis)
-  agentSnapshots       AgentSnapshot[] @relation("AgentSnapshots")
+  // Agent snapshots + audit (AI coach / quality / plan-synthesis)
+  agentSnapshots       AgentSnapshot[]   @relation("AgentSnapshots")
+  agentAuditEntries    AgentAuditEntry[] @relation("AgentAuditEntries")
 
   // Subject-level exam board defaults
   subjectConfigs       SubjectConfig[]
@@ -456,8 +477,10 @@ model User {
   assessmentsAsStudent Assessment[] @relation("StudentAssessments")
   assessmentsAsTeacher Assessment[] @relation("TeacherAssessments")
 
-  // Agent snapshots (AI coach / quality / plan-synthesis)
-  agentSnapshots       AgentSnapshot[] @relation("AgentSnapshots")
+  // Agent snapshots + audit (AI coach / quality / plan-synthesis)
+  agentSnapshots         AgentSnapshot[]   @relation("AgentSnapshots")
+  agentAuditAsStudent    AgentAuditEntry[] @relation("AgentAuditStudent")
+  agentAuditAsReviewer   AgentAuditEntry[] @relation("AgentAuditReviewer")
 
   @@index([schoolId, role])
 }
@@ -2646,6 +2669,42 @@ model YearGroupPlan {
   @@unique([schoolId, yearGroup, subject])
   @@index([schoolId, subject])
   @@index([schoolId, yearGroup])
+}
+
+// ─── Agent Audit Entries (immutable — one row per agent skill execution) ─────
+
+model AgentAuditEntry {
+  id             String              @id @default(cuid())
+  school         School              @relation("AgentAuditEntries", fields: [schoolId], references: [id])
+  schoolId       String
+  student        User                @relation("AgentAuditStudent", fields: [studentId], references: [id])
+  studentId      String
+  agentType      AgentType
+  skillId        AgentSkillId
+  skillVersion   Int                 @default(1)
+  /// IDs of the data records this run consumed — submissions, homeworks, ILP targets, etc.
+  inputRefs      Json                @default("{}")
+  /// DfE / Ofsted / EEF standards applied, e.g. ["DfE SEND CoP 2015 §6.44", "Rosenshine 2012 P3"]
+  standardsApplied String[]          @default([])
+  /// Plain-English summary of what the agent found — visible to teachers/SENCO
+  outputSummary  String
+  /// Specific action taken or recommended
+  decision       String
+  /// Agent confidence 0–100 in this output
+  confidence     Int                 @default(0)
+  /// Set when a teacher or SENCO reviews and acts on this entry
+  reviewedBy     User?               @relation("AgentAuditReviewer", fields: [reviewedById], references: [id])
+  reviewedById   String?
+  reviewedAt     DateTime?
+  reviewOutcome  AgentReviewOutcome?
+  /// Free-text note when reviewer overrides or dismisses
+  reviewNote     String?
+  /// Append-only — never updated after insert
+  createdAt      DateTime            @default(now())
+
+  @@index([schoolId, agentType, createdAt])
+  @@index([studentId, skillId, createdAt])
+  @@index([schoolId, reviewOutcome])           // system insight: confirmation rate by school
 }
 
 // ─── Agent Snapshots (AI coach / quality / plan-synthesis knowledge cache) ───

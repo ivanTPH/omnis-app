@@ -6,6 +6,7 @@ export default defineConfig({
   retries: 2,
   fullyParallel: false,
   workers: 1,
+  globalSetup: './e2e/global-setup.ts',
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',

@@ -17,6 +17,17 @@ const TARGET_STATUS_ICONS: Record<string, React.ReactNode> = {
   deferred:     <Icon name="expand_more" size="sm" className="text-orange-500" />,
 }
 
+// APDR (Assess → Plan → Do → Review) cycle derived from ILP status
+const APDR_STEPS = ['Assess', 'Plan', 'Do', 'Review'] as const
+
+function apdrStepIndex(status: string): number {
+  if (status === 'draft')        return 1  // Plan phase
+  if (status === 'active')       return 2  // Do phase
+  if (status === 'under_review') return 3  // Review phase
+  if (status === 'archived')     return 4  // All complete
+  return 1
+}
+
 type Props = { ilp: IlpWithTargets }
 
 export default function IlpCard({ ilp }: Props) {
@@ -194,6 +205,41 @@ export default function IlpCard({ ilp }: Props) {
               </span>
             )}
           </div>
+        </div>
+
+        {/* APDR Cycle indicator */}
+        <div className="mt-3 pt-2.5 border-t border-blue-100 flex items-center gap-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 shrink-0">APDR Cycle</span>
+          <div className="flex items-center">
+            {APDR_STEPS.map((label, i) => {
+              const current = apdrStepIndex(ilp.status)
+              const isCompleted = i < current
+              const isCurrent = i === current
+              return (
+                <div key={label} className="flex items-center">
+                  {i > 0 && (
+                    <div className={`h-px w-5 ${isCompleted ? 'bg-green-400' : isCurrent ? 'bg-blue-300' : 'bg-gray-200'}`} />
+                  )}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
+                      ${isCompleted ? 'bg-green-500 text-white' : isCurrent ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-200' : 'bg-gray-200 text-gray-400'}`}>
+                      {isCompleted ? '✓' : i + 1}
+                    </div>
+                    <span className={`text-[9px] font-semibold whitespace-nowrap
+                      ${isCompleted ? 'text-green-600' : isCurrent ? 'text-blue-700' : 'text-gray-400'}`}>
+                      {label}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          <span className="ml-1 text-[10px] text-gray-500 italic">
+            {ilp.status === 'draft'        ? 'Targets being planned'       :
+             ilp.status === 'active'       ? 'Interventions in progress'   :
+             ilp.status === 'under_review' ? 'Ready for SENCO review'      :
+             ilp.status === 'archived'     ? 'Cycle complete'              : ''}
+          </span>
         </div>
       </div>
 

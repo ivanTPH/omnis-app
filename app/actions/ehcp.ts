@@ -1021,7 +1021,6 @@ export type SubmissionForEvidence = {
   id:            string
   homeworkTitle: string
   subject:       string | null
-  grade:         string | null
   finalScore:    number | null
   submittedAt:   Date | null
   homeworkId:    string
@@ -1036,7 +1035,6 @@ export async function getStudentSubmissionsForEvidence(
     where:   { studentId, status: { in: ['MARKED', 'RETURNED'] } },
     select: {
       id:          true,
-      grade:       true,
       finalScore:  true,
       submittedAt: true,
       homework: {
@@ -1055,7 +1053,6 @@ export async function getStudentSubmissionsForEvidence(
     id:            s.id,
     homeworkTitle: s.homework.title,
     subject:       s.homework.class?.subject ?? null,
-    grade:         s.grade,
     finalScore:    s.finalScore,
     submittedAt:   s.submittedAt,
     homeworkId:    s.homework.id,

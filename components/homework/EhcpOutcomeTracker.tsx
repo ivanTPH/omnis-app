@@ -215,7 +215,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                           >
                             <span className="font-medium">{s.homeworkTitle}</span>
                             {s.subject && <span className="text-gray-400"> · {s.subject}</span>}
-                            {s.grade && <span className="ml-1 font-semibold text-purple-700">Gr {s.grade}</span>}
+                            {s.finalScore != null && <span className="ml-1 font-semibold text-purple-700">Gr {Math.round(s.finalScore)}</span>}
                             {s.submittedAt && <span className="text-gray-400 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
                           </button>
                         ))}
@@ -323,7 +323,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                           <p className="text-xs text-gray-700 mt-0.5">
                             <span className="font-medium">&ldquo;{s.homeworkTitle}&rdquo;</span>
                             {s.subject && <span className="text-gray-500"> · {s.subject}</span>}
-                            {s.grade != null && <span className="ml-1 font-semibold text-purple-700"> · Grade {s.grade}</span>}
+                            {s.grade != null && <span className="ml-1 font-semibold text-purple-700"> · Gr {Math.round(s.grade)}</span>}
                             {s.submittedAt && <span className="text-gray-400 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
                           </p>
                           {s.teacherNote && (

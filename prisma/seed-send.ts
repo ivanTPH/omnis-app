@@ -60,6 +60,55 @@ async function main() {
   console.log(`Teacher: ${teacher.firstName} ${teacher.lastName}`)
   console.log(`Students: ${students.map(s => `${s.firstName} ${s.lastName}`).join(', ')}`)
 
+  // ── 0. Cleanup — delete existing seed data for these students ──────────────
+  console.log('\n0. Cleaning up existing SEND seed data...')
+
+  const studentIds = students.map(s => s.id)
+
+  // EHCP: HomeworkEhcpEvidence → EhcpOutcome → EhcpPlan
+  const existingOutcomes = await prisma.ehcpOutcome.findMany({
+    where: { ehcp: { studentId: { in: studentIds } } },
+    select: { id: true },
+  })
+  const outcomeIds = existingOutcomes.map(o => o.id)
+  if (outcomeIds.length > 0) {
+    await prisma.homeworkEhcpEvidence.deleteMany({ where: { outcomeId: { in: outcomeIds } } })
+  }
+  await prisma.ehcpOutcome.deleteMany({ where: { ehcp: { studentId: { in: studentIds } } } })
+  await prisma.ehcpPlan.deleteMany({ where: { studentId: { in: studentIds } } })
+
+  // ILP: IlpEvidenceEntry → IlpHomeworkLink → IlpTarget → IndividualLearningPlan
+  const existingTargets = await prisma.ilpTarget.findMany({
+    where: { ilp: { studentId: { in: studentIds } } },
+    select: { id: true },
+  })
+  const targetIds = existingTargets.map(t => t.id)
+  if (targetIds.length > 0) {
+    await prisma.ilpEvidenceEntry.deleteMany({ where: { ilpTargetId: { in: targetIds } } })
+    await prisma.ilpHomeworkLink.deleteMany({ where: { ilpTargetId: { in: targetIds } } })
+    await prisma.ilpTarget.deleteMany({ where: { id: { in: targetIds } } })
+  }
+  await prisma.individualLearningPlan.deleteMany({ where: { studentId: { in: studentIds } } })
+
+  // Concerns: SendNotification (concernId) → SendConcern
+  const existingConcerns = await prisma.sendConcern.findMany({
+    where: { studentId: { in: studentIds } },
+    select: { id: true },
+  })
+  const concernIds = existingConcerns.map(c => c.id)
+  if (concernIds.length > 0) {
+    await prisma.sendNotification.deleteMany({ where: { concernId: { in: concernIds } } })
+  }
+  await prisma.sendConcern.deleteMany({ where: { studentId: { in: studentIds } } })
+
+  // Remaining per-student tables
+  await prisma.earlyWarningFlag.deleteMany({ where: { studentId: { in: studentIds } } })
+  await prisma.sendReviewLog.deleteMany({ where: { studentId: { in: studentIds } } })
+  // Remaining SendNotifications for these students (non-concern ones)
+  await prisma.sendNotification.deleteMany({ where: { schoolId: school.id, recipientId: { in: [senco.id, teacher.id, ...(hoy ? [hoy.id] : [])] } } })
+
+  console.log('  Cleanup complete')
+
   // ── 1. SendConcerns ────────────────────────────────────────────────────────
   console.log('\n1. Creating SendConcerns...')
 
@@ -263,7 +312,7 @@ async function main() {
   const flagExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
   await prisma.earlyWarningFlag.createMany({
-    skipDuplicates: false,
+    skipDuplicates: true,
     data: [
       {
         schoolId: school.id,

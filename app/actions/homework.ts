@@ -537,6 +537,7 @@ export async function generateHomeworkFromResources(
   let sendContextBlock = ''
   try {
     if (lesson.classId) {
+      const ehcpStudentIdsForOutcomes: string[] = []
       const [classSize, sendStatuses, ilpData] = await Promise.all([
         prisma.enrolment.count({ where: { classId: lesson.classId } }),
         prisma.sendStatus.findMany({
@@ -553,33 +554,62 @@ export async function generateHomeworkFromResources(
             student: { enrolments: { some: { classId: lesson.classId } } },
           },
           select: {
-            studentId:   true,
+            studentId:    true,
             sendCategory: true,
             areasOfNeed:  true,
+            strategies:   true,
             targets: {
               where: { status: 'active' },
-              select: { target: true },
-              take: 2,
+              select: { id: true, target: true, strategy: true, successMeasure: true },
+              take: 3,
             },
           },
         }),
       ])
       if (sendStatuses.length > 0) {
-        const ilpByStudent: Record<string, { sendCategory: string; areasOfNeed: string; targets: { target: string }[] }> =
-          Object.fromEntries(ilpData.map((i: any) => [i.studentId, i]))
+        const ilpByStudent: Record<string, {
+          sendCategory: string; areasOfNeed: string; strategies: string[];
+          targets: { id: string; target: string; strategy: string; successMeasure: string }[]
+        }> = Object.fromEntries(ilpData.map((i: any) => [i.studentId, i]))
 
         const ehcpStudents = sendStatuses.filter(s => s.activeStatus === 'EHCP')
         const senStudents  = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT')
         const noneCount    = Math.max(0, classSize - sendStatuses.length)
 
+        // Fetch active EHCP outcomes for EHCP students in this class
+        ehcpStudentIdsForOutcomes.push(...ehcpStudents.map(s => s.studentId))
+        const ehcpOutcomes = ehcpStudentIdsForOutcomes.length > 0
+          ? await prisma.ehcpOutcome.findMany({
+              where: {
+                ehcp: { studentId: { in: ehcpStudentIdsForOutcomes }, schoolId, status: 'active' },
+                status: 'active',
+              },
+              select: { outcomeText: true, provisionRequired: true, section: true },
+              take: 4,
+              orderBy: { section: 'asc' },
+            })
+          : []
+
+        // SEN Support: collect unique needs + per-student ILP targets with strategies
         const senNeeds = [...new Set(
           senStudents.map(s => ilpByStudent[s.studentId]?.sendCategory || s.needArea || 'SEN Support').filter(Boolean)
         )].slice(0, 4)
 
-        const senTargets = senStudents
-          .flatMap(s => ilpByStudent[s.studentId]?.targets.map(t => t.target) ?? [])
-          .slice(0, 3)
+        // Collect ILP targets WITH strategies for the prompt (deduplicated, max 4)
+        const senIlpLines = senStudents
+          .flatMap(s => (ilpByStudent[s.studentId]?.targets ?? []).map(t => ({
+            target:   t.target,
+            strategy: t.strategy,
+          })))
+          .slice(0, 4)
+          .map(t => `    • Target: "${t.target}"\n      Strategy: "${t.strategy}"`)
 
+        // ILP-level classroom strategies (from the ILP strategies[] array)
+        const senClassroomStrategies = [...new Set(
+          senStudents.flatMap(s => ilpByStudent[s.studentId]?.strategies ?? [])
+        )].slice(0, 4)
+
+        // EHCP: needs, areas of need, outcomes
         const ehcpNeeds = [...new Set(
           ehcpStudents.map(s => ilpByStudent[s.studentId]?.sendCategory || s.needArea || 'EHCP').filter(Boolean)
         )].slice(0, 4)
@@ -589,16 +619,26 @@ export async function generateHomeworkFromResources(
           .filter(Boolean)
           .slice(0, 2)
 
+        const ehcpOutcomeLines = ehcpOutcomes
+          .map(o => `    • [Section ${o.section}] "${o.outcomeText}"${o.provisionRequired ? ` — provision: ${o.provisionRequired}` : ''}`)
+
         sendContextBlock = `
 CLASS SEND PROFILE — use this to generate all accessibility fields in every question
 =====================================================================================
-- ${noneCount} student${noneCount !== 1 ? 's' : ''}: standard questions only
-- ${senStudents.length} student${senStudents.length !== 1 ? 's' : ''} SEN Support — needs: ${senNeeds.join(', ') || 'general learning support'}
-  ILP targets: ${senTargets.join('; ') || 'not yet recorded'}
-  → For these students: scaffolding_hint must be a sentence starter or step-by-step scaffold
-- ${ehcpStudents.length} student${ehcpStudents.length !== 1 ? 's' : ''} EHCP — categories: ${ehcpNeeds.join(', ') || 'EHCP'}
-  Areas of need: ${ehcpAreas.join('; ') || 'not yet recorded'}
-  → For these students: ehcp_adaptation must simplify the question into plain language and shorter sentences; vocab_support must define 5 key subject terms simply
+Standard (no SEND): ${noneCount} student${noneCount !== 1 ? 's' : ''}
+
+SEN SUPPORT — ${senStudents.length} student${senStudents.length !== 1 ? 's' : ''}:
+  Support needs: ${senNeeds.join(', ') || 'general learning support'}
+${senIlpLines.length > 0 ? '  Active ILP targets and classroom strategies:\n' + senIlpLines.join('\n') : '  No ILP targets recorded yet.'}
+${senClassroomStrategies.length > 0 ? '  ILP classroom strategies to apply: ' + senClassroomStrategies.join(' | ') : ''}
+  → scaffolding_hint for EVERY question: write a sentence starter OR step-by-step thinking scaffold that directly applies the ILP strategies above. It must reduce the cognitive load for this specific target without giving away the answer.
+
+EHCP — ${ehcpStudents.length} student${ehcpStudents.length !== 1 ? 's' : ''}:
+  Categories: ${ehcpNeeds.join(', ') || 'EHCP'}
+  Areas of need: ${ehcpAreas.join('; ') || 'not recorded'}
+${ehcpOutcomeLines.length > 0 ? '  EHCP outcomes this homework can evidence:\n' + ehcpOutcomeLines.join('\n') : ''}
+  → ehcp_adaptation for EVERY question: rewrite the question in plain English (max 2 sentences, no complex clauses), broken into numbered steps if multi-part. Reference the EHCP outcome where relevant.
+  → vocab_support for EVERY question: define exactly 5 key subject terms in simple language (format: "word: plain definition").
 
 ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support fields regardless of class size.
 `

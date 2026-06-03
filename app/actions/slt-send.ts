@@ -118,7 +118,7 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
 
   // Active ILPs per student
   const activeIlps = await prisma.individualLearningPlan.findMany({
-    where:  { schoolId, status: 'ACTIVE', approvedBySenco: true },
+    where:  { schoolId, status: 'active', approvedBySenco: true },
     select: { studentId: true },
   })
   const ilpStudentSet = new Set(activeIlps.map(i => i.studentId))
@@ -186,11 +186,11 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
   // ── 5. ILP coverage ────────────────────────────────────────────────────────
   const [ilpFull, ilpTargets] = await Promise.all([
     prisma.individualLearningPlan.findMany({
-      where:  { schoolId, status: 'ACTIVE' },
+      where:  { schoolId, status: 'active' },
       select: { reviewDate: true },
     }),
     prisma.ilpTarget.findMany({
-      where:  { ilp: { schoolId, status: 'ACTIVE' } },
+      where:  { ilp: { schoolId, status: 'active' } },
       select: { status: true },
     }),
   ])

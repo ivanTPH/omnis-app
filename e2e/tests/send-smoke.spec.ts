@@ -657,8 +657,8 @@ test('Step 13 — SLT analytics: SEND Overview card shows data', async ({ page }
   console.info(`  SEND Overview numeric values found: ${numCount}`)
   expect(numCount, 'SEND Overview should display numeric counts').toBeGreaterThan(0)
 
-  // Link to SEND Dashboard present
-  await expect(page.getByRole('link', { name: /SEND Dashboard/i })).toBeVisible({ timeout: 5_000 })
+  // Link to SEND Reporting Dashboard present
+  await expect(page.getByRole('link', { name: /SEND Reporting Dashboard/i }).first()).toBeVisible({ timeout: 5_000 })
 
   console.info([
     '  NOTE: /slt/analytics has no "SEND Overview tab" — it is a stats card on a single-page view.',

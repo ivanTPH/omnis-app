@@ -1677,6 +1677,12 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
 
 export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
+  // Deep-link support: /students/[id]?tab=APDR
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const t = params.get('tab') as Tab
+    if (t && (TABS as readonly string[]).includes(t)) setActiveTab(t)
+  }, [])
   const isTA    = role === 'TEACHING_ASSISTANT'
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
   const { student } = data

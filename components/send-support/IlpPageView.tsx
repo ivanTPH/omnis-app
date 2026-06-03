@@ -43,9 +43,9 @@ type ReviewScheduleModal =
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-type Props = { ilps: IlpWithTargets[]; studentsWithoutIlp?: StudentWithoutIlp[] }
+type Props = { ilps: IlpWithTargets[]; studentsWithoutIlp?: StudentWithoutIlp[]; userRole?: string }
 
-export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: Props) {
+export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], userRole = 'SENCO' }: Props) {
   const [ilps,           _setIlps]          = useState(initial)
   const [showForm,       setShowForm]       = useState(false)
   const [expanded,       setExpanded]       = useState<Set<string>>(new Set())
@@ -749,7 +749,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [] }: 
                 isExpanded={expanded.has(ilp.id)}
                 onToggle={() => toggleExpand(ilp.id)}
               >
-                <IlpCard ilp={ilp} />
+                <IlpCard ilp={ilp} userRole={userRole} />
               </SencoRow>
             )
           })}

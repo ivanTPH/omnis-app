@@ -1,9 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { IlpWithTargets, IlpAuditEntryRow } from '@/app/actions/send-support'
-import { updateIlpTarget, approveGeneratedIlp, getIlpAuditLog, updateSendStatus, updateIlpDraft, updateIlpTargetText } from '@/app/actions/send-support'
+import {
+  updateIlpTarget, approveGeneratedIlp, getIlpAuditLog, updateSendStatus,
+  updateIlpDraft, updateIlpTargetText,
+  approveAPDR, updateAPDRSection, completeAPDRReview, generateAPDRForStudent,
+} from '@/app/actions/send-support'
 
 const ROLE_LABELS: Record<string, string> = {
   SENCO: 'SENCO', TEACHER: 'Teacher', HEAD_OF_DEPT: 'HoD',
@@ -28,9 +33,9 @@ function apdrStepIndex(status: string): number {
   return 1
 }
 
-type Props = { ilp: IlpWithTargets }
+type Props = { ilp: IlpWithTargets; userRole?: string }
 
-export default function IlpCard({ ilp }: Props) {
+export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
   const [updatingId,       setUpdatingId]       = useState<string | null>(null)
   const [expandedTargetId, setExpandedTargetId] = useState<string | null>(null)
   const [notes,            setNotes]            = useState('')
@@ -53,6 +58,49 @@ export default function IlpCard({ ilp }: Props) {
   // Inline target text editing (works on both draft and approved ILPs)
   const [editingTarget,    setEditingTarget]    = useState<{ id: string; field: 'target' | 'strategy' | 'successMeasure'; value: string } | null>(null)
   const [savingTargetText, setSavingTargetText] = useState(false)
+
+  // APDR cycle panel
+  const isSencoTier = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(userRole)
+  const [apdrOpen,        setApdrOpen]        = useState(false)
+  const [doContent,       setDoContent]       = useState(ilp.activeApdrCycle?.doContent ?? '')
+  const [doEditing,       setDoEditing]       = useState(false)
+  const [apdrReviewOpen,  setApdrReviewOpen]  = useState(false)
+  const [apdrReviewDraft, setApdrReviewDraft] = useState(ilp.activeApdrCycle?.reviewContent ?? '')
+  const [apdrApproved,    setApdrApproved]    = useState(ilp.activeApdrCycle?.approvedBySenco ?? false)
+  const [doSaving,        startDoTransition]  = useTransition()
+  const [apdrApproving,   startApproveApdrTransition] = useTransition()
+  const [apdrCompleting,  startCompleteApdrTransition] = useTransition()
+  const [apdrGenerating,  startGenerateApdrTransition] = useTransition()
+
+  function handleSaveDo() {
+    if (!ilp.activeApdrCycle) return
+    startDoTransition(async () => {
+      await updateAPDRSection(ilp.activeApdrCycle!.id, 'doContent', doContent)
+      setDoEditing(false)
+    })
+  }
+
+  function handleApproveApdr() {
+    if (!ilp.activeApdrCycle) return
+    startApproveApdrTransition(async () => {
+      await approveAPDR(ilp.activeApdrCycle!.id)
+      setApdrApproved(true)
+    })
+  }
+
+  function handleCompleteApdrReview() {
+    if (!ilp.activeApdrCycle) return
+    startCompleteApdrTransition(async () => {
+      await completeAPDRReview(ilp.activeApdrCycle!.id, apdrReviewDraft)
+      setApdrReviewOpen(false)
+    })
+  }
+
+  function handleGenerateApdr() {
+    startGenerateApdrTransition(async () => {
+      await generateAPDRForStudent(ilp.studentId)
+    })
+  }
 
   async function handleToggleAudit() {
     if (!auditOpen && auditEntries === null) {
@@ -240,10 +288,172 @@ export default function IlpCard({ ilp }: Props) {
              ilp.status === 'under_review' ? 'Ready for SENCO review'      :
              ilp.status === 'archived'     ? 'Cycle complete'              : ''}
           </span>
+          <button
+            onClick={() => setApdrOpen(v => !v)}
+            className="ml-auto flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 shrink-0"
+          >
+            <Icon name="loop" size="sm" />
+            {ilp.activeApdrCycle ? `Cycle ${ilp.activeApdrCycle.cycleNumber}` : 'APDR'}
+            <Icon name={apdrOpen ? 'expand_less' : 'expand_more'} size="sm" />
+          </button>
         </div>
       </div>
 
       <div className="p-5 space-y-5">
+        {/* ── APDR cycle panel (expandable) ─────────────────────────────────── */}
+        {apdrOpen && (
+          <div className="rounded-xl border border-indigo-200 overflow-hidden bg-indigo-50/40">
+            {ilp.activeApdrCycle ? (
+              <>
+                {/* Assess + Plan — read-only snippets */}
+                <div className="px-4 py-3 grid sm:grid-cols-2 gap-4 border-b border-indigo-100">
+                  {(['assessContent', 'planContent'] as const).map(field => (
+                    <div key={field}>
+                      <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">
+                        {field === 'assessContent' ? 'Assess' : 'Plan'}
+                      </p>
+                      {ilp.activeApdrCycle![field] ? (
+                        <p className="text-xs text-gray-700 line-clamp-4 whitespace-pre-wrap">
+                          {ilp.activeApdrCycle![field]}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">Not yet completed</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Do — editable by all staff */}
+                <div className="px-4 py-3 border-b border-indigo-100">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Do — Observations</p>
+                    {!doEditing && (
+                      <button
+                        onClick={() => { setDoContent(ilp.activeApdrCycle!.doContent); setDoEditing(true) }}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        <Icon name="edit" size="sm" />Add note
+                      </button>
+                    )}
+                  </div>
+                  {doEditing ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={doContent}
+                        onChange={e => setDoContent(e.target.value)}
+                        rows={3}
+                        placeholder="Observations this cycle — what is working, what needs adjustment."
+                        className="w-full text-xs border border-indigo-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveDo}
+                          disabled={doSaving}
+                          className="px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                        >
+                          {doSaving ? 'Saving…' : 'Save'}
+                        </button>
+                        <button onClick={() => setDoEditing(false)} className="text-xs text-gray-500">Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-700 whitespace-pre-wrap">
+                      {doContent || <span className="text-gray-400 italic">No observations yet — click &ldquo;Add note&rdquo; to record what&apos;s working.</span>}
+                    </p>
+                  )}
+                </div>
+
+                {/* Review — SENCO-only complete form */}
+                {isSencoTier && (
+                  <div className="px-4 py-3 border-b border-indigo-100">
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5">Review</p>
+                    {apdrReviewOpen ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={apdrReviewDraft}
+                          onChange={e => setApdrReviewDraft(e.target.value)}
+                          rows={3}
+                          placeholder="Summarise impact of this cycle and recommendations for the next cycle…"
+                          className="w-full text-xs border border-blue-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white resize-none"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleCompleteApdrReview}
+                            disabled={apdrCompleting}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                          >
+                            <Icon name="done_all" size="sm" />
+                            {apdrCompleting ? 'Completing…' : 'Complete + start next cycle'}
+                          </button>
+                          <button onClick={() => setApdrReviewOpen(false)} className="text-xs text-gray-500">Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500 italic">
+                          {ilp.activeApdrCycle.reviewContent || 'Write review to close this cycle and auto-start the next.'}
+                        </p>
+                        <button
+                          onClick={() => setApdrReviewOpen(true)}
+                          className="ml-3 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 shrink-0"
+                        >
+                          <Icon name="rate_review" size="sm" />Write review
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Footer actions */}
+                <div className="px-4 py-2.5 flex items-center justify-between gap-2 flex-wrap bg-white/60">
+                  <div className="flex items-center gap-2">
+                    {isSencoTier && !apdrApproved && (
+                      <button
+                        onClick={handleApproveApdr}
+                        disabled={apdrApproving}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                      >
+                        <Icon name="verified" size="sm" />
+                        {apdrApproving ? 'Approving…' : 'Approve cycle'}
+                      </button>
+                    )}
+                    {apdrApproved && (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <Icon name="verified" size="sm" />Approved
+                      </span>
+                    )}
+                    <span className="text-[10px] text-gray-400">
+                      Review due {new Date(ilp.activeApdrCycle.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  <Link
+                    href={`/students/${ilp.studentId}?tab=APDR`}
+                    className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600"
+                  >
+                    Full APDR <Icon name="open_in_new" size="sm" />
+                  </Link>
+                </div>
+              </>
+            ) : (
+              /* No active cycle — SENCO can generate one */
+              <div className="px-4 py-6 text-center">
+                <Icon name="loop" size="lg" color="#a5b4fc" />
+                <p className="text-xs text-gray-500 mt-2 mb-3">No active APDR cycle on file.</p>
+                {isSencoTier && (
+                  <button
+                    onClick={handleGenerateApdr}
+                    disabled={apdrGenerating}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                  >
+                    <Icon name={apdrGenerating ? 'refresh' : 'auto_awesome'} size="sm" className={apdrGenerating ? 'animate-spin' : ''} />
+                    {apdrGenerating ? 'Generating…' : 'Generate APDR from ILP'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Edit mode toggle for draft ILPs */}
         {ilp.status === 'under_review' && !approved && (
           <div className="flex items-center justify-between pb-1 border-b border-amber-100">

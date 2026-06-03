@@ -80,6 +80,7 @@ export type IlpWithTargets = {
   updatedAt: Date
   sendStatus: string   // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
   needArea: string | null
+  activeApdrCycle: ApdrRow | null
 }
 
 export type StudentWithoutIlp = {
@@ -948,6 +949,7 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
     updatedAt: ilp.updatedAt,
     sendStatus: sendStatusRecord?.activeStatus ?? 'NONE',
     needArea:   sendStatusRecord?.needArea ?? null,
+    activeApdrCycle: null,
   }
 }
 
@@ -962,7 +964,7 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
   })
 
   const studentIds = [...new Set(ilps.map(i => i.studentId))]
-  const [students, sendStatuses, enrolments] = await Promise.all([
+  const [students, sendStatuses, enrolments, apdrCycles] = await Promise.all([
     prisma.user.findMany({
       where: { id: { in: studentIds } },
       select: { id: true, firstName: true, lastName: true, yearGroup: true },
@@ -976,9 +978,13 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       select: { userId: true, class: { select: { id: true, name: true } } },
       take: studentIds.length * 3,
     }),
+    prisma.assessPlanDoReview.findMany({
+      where: { studentId: { in: studentIds }, schoolId, status: 'ACTIVE' },
+    }),
   ])
   const studentMap    = new Map(students.map(s => [s.id, s]))
   const sendStatusMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  const apdrMap       = new Map(apdrCycles.map(c => [c.studentId, c]))
   // Build first class name per student
   const classNameMap  = new Map<string, string>()
   for (const e of enrolments) {
@@ -1020,6 +1026,18 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       updatedAt: ilp.updatedAt,
       sendStatus: ss?.activeStatus ?? 'NONE',
       needArea:   ss?.needArea ?? null,
+      activeApdrCycle: (() => {
+        const c = apdrMap.get(ilp.studentId)
+        if (!c) return null
+        return {
+          id: c.id, studentId: c.studentId, schoolId: c.schoolId,
+          cycleNumber: c.cycleNumber, assessContent: c.assessContent,
+          planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
+          status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
+          approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
+          approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+        }
+      })(),
     }
   })
 }
@@ -2404,6 +2422,40 @@ export async function getAPDRAuditLog(apdrId: string): Promise<ApdrAuditEntryRow
     userName: e.userName, userRole: e.userRole, fieldChanged: e.fieldChanged,
     previousValue: e.previousValue, newValue: e.newValue,
     changeType: e.changeType, createdAt: e.createdAt,
+  }))
+}
+
+/** All APDR cycles for a school — used by the SENCO APDR overview page. */
+export type APDROverviewRow = ApdrRow & {
+  studentName: string
+  yearGroup: number | null
+  sendCategory: string
+}
+
+export async function getAllAPDRCycles(): Promise<APDROverviewRow[]> {
+  const user = await requireSenco()
+  const cycles = await prisma.assessPlanDoReview.findMany({
+    where: { schoolId: user.schoolId },
+    include: {
+      student: {
+        select: {
+          firstName: true, lastName: true, yearGroup: true,
+          sendStatus: { select: { needArea: true } },
+        },
+      },
+    },
+    orderBy: [{ status: 'asc' }, { reviewDate: 'asc' }],
+  })
+  return cycles.map(c => ({
+    id: c.id, studentId: c.studentId, schoolId: c.schoolId,
+    cycleNumber: c.cycleNumber, assessContent: c.assessContent,
+    planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
+    status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
+    approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
+    approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+    studentName: `${c.student.firstName} ${c.student.lastName}`,
+    yearGroup: c.student.yearGroup,
+    sendCategory: c.student.sendStatus?.needArea ?? 'SEND',
   }))
 }
 

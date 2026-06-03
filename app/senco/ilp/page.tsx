@@ -21,7 +21,7 @@ export default async function IlpPage() {
           <PageHeader title="Individual Learning Plans" subtitle="Active ILPs and drafts pending SENCO review" />
         </div>
         <div className="px-6 pb-6">
-          <IlpPageView ilps={ilps} studentsWithoutIlp={studentsWithoutIlp} />
+          <IlpPageView ilps={ilps} studentsWithoutIlp={studentsWithoutIlp} userRole={role} />
         </div>
       </div>
     </AppShell>

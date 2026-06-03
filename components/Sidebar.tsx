@@ -65,6 +65,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'SENCO Dashboard', href: '/senco/dashboard',    icon: 'dashboard'      },
     { label: 'Concerns',        href: '/senco/concerns',     icon: 'warning'        },
     { label: 'ILP Records',     href: '/senco/ilp',          icon: 'description'    },
+    { label: 'APDR Cycles',     href: '/senco/apdr',         icon: 'loop'           },
     { label: 'EHCP Plans',      href: '/senco/ehcp',         icon: 'fact_check'     },
     { label: 'ILP Evidence',    href: '/senco/ilp-evidence', icon: 'bar_chart'      },
     { label: 'Early Warning',   href: '/senco/early-warning', icon: 'notifications' },

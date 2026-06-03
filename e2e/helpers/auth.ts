@@ -7,7 +7,7 @@ export async function loginAs(page: Page, user: UserFixture): Promise<void> {
   await page.fill('input[type="password"]', user.password)
   await page.click('button[type="submit"]')
   // Wait for redirect away from login — 30s to handle Vercel cold starts
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 30_000 })
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 50_000 })
 }
 
 export async function logout(page: Page): Promise<void> {

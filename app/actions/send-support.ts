@@ -45,6 +45,7 @@ export type ConcernRow = {
   assignedToName: string | null
   assignedAction: string | null
   assignedAt: Date | null
+  hasActiveIlp: boolean
 }
 
 export type IlpWithTargets = {
@@ -387,11 +388,18 @@ export async function getStudentConcerns(studentId: string): Promise<ConcernRow[
     ...concerns.map(c => c.raisedBy),
   ])]
 
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
-  })
+  const [users, activeIlp] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where: { schoolId, studentId, status: { in: ['active', 'under_review'] } },
+      select: { id: true },
+    }),
+  ])
   const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
+  const hasActiveIlp = !!activeIlp
 
   return concerns.map(c => ({
     id: c.id,
@@ -418,6 +426,7 @@ export async function getStudentConcerns(studentId: string): Promise<ConcernRow[
     assignedToName: (c as any).assignedToName ?? null,
     assignedAction: (c as any).assignedAction ?? null,
     assignedAt: (c as any).assignedAt ?? null,
+    hasActiveIlp,
   }))
 }
 
@@ -442,7 +451,9 @@ export async function getAllConcerns(filter?: {
     ...concerns.map(c => c.raisedBy),
   ])]
 
-  const [users, classes] = await Promise.all([
+  const studentIds = [...new Set(concerns.map(c => c.studentId))]
+
+  const [users, classes, activeIlps] = await Promise.all([
     prisma.user.findMany({
       where: { id: { in: userIds } },
       select: { id: true, firstName: true, lastName: true, avatarUrl: true },
@@ -459,9 +470,14 @@ export async function getAllConcerns(filter?: {
         enrolments: { select: { userId: true } },
       },
     }),
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, studentId: { in: studentIds }, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true },
+    }),
   ])
 
   const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
+  const ilpStudentSet = new Set(activeIlps.map(i => i.studentId))
 
   // Build raiserUserId:studentId → className map
   const classMap = new Map<string, string>()
@@ -498,6 +514,7 @@ export async function getAllConcerns(filter?: {
     assignedToName: (c as any).assignedToName ?? null,
     assignedAction: (c as any).assignedAction ?? null,
     assignedAt: (c as any).assignedAt ?? null,
+    hasActiveIlp: ilpStudentSet.has(c.studentId),
   }))
 }
 
@@ -519,12 +536,20 @@ export async function getFollowUpDueConcerns(): Promise<ConcernRow[]> {
     take: 50,
   })
 
+  const studentIds = [...new Set(concerns.map(c => c.studentId))]
   const userIds = [...new Set([...concerns.map(c => c.studentId), ...concerns.map(c => c.raisedBy)])]
-  const users = await prisma.user.findMany({
-    where: { id: { in: userIds } },
-    select: { id: true, firstName: true, lastName: true, avatarUrl: true },
-  })
+  const [users, activeIlps] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+    }),
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, studentId: { in: studentIds }, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true },
+    }),
+  ])
   const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
+  const ilpStudentSet = new Set(activeIlps.map(i => i.studentId))
 
   return concerns.map(c => ({
     id: c.id,
@@ -550,6 +575,7 @@ export async function getFollowUpDueConcerns(): Promise<ConcernRow[]> {
     assignedToName: (c as any).assignedToName ?? null,
     assignedAction: (c as any).assignedAction ?? null,
     assignedAt: (c as any).assignedAt ?? null,
+    hasActiveIlp: ilpStudentSet.has(c.studentId),
   }))
 }
 
@@ -1679,6 +1705,15 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     select: { id: true, firstName: true, lastName: true, avatarUrl: true },
   })
   const userMap = new Map(users.map(u => [u.id, { name: `${u.firstName} ${u.lastName}`, avatarUrl: u.avatarUrl ?? null }]))
+  const dashboardStudentIds = [...new Set([
+    ...recentConcernsRaw.map(c => c.studentId),
+    ...openConcernsRaw.map(c => c.studentId),
+  ])]
+  const dashboardActiveIlps = await prisma.individualLearningPlan.findMany({
+    where: { schoolId, studentId: { in: dashboardStudentIds }, status: { in: ['active', 'under_review'] } },
+    select: { studentId: true },
+  })
+  const dashboardIlpSet = new Set(dashboardActiveIlps.map(i => i.studentId))
 
   return {
     openConcerns,
@@ -1716,6 +1751,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       assignedAction: (c as any).assignedAction ?? null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       assignedAt: (c as any).assignedAt ?? null,
+      hasActiveIlp: dashboardIlpSet.has(c.studentId),
     })),
     activeFlags: activeFlagsRaw.map(f => ({
       id: f.id,
@@ -1764,6 +1800,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       assignedAction: (c as any).assignedAction ?? null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       assignedAt: (c as any).assignedAt ?? null,
+      hasActiveIlp: dashboardIlpSet.has(c.studentId),
     })),
     upcomingReviews: upcomingIlpsRaw.map(i => ({
       ilpId:       i.id,
@@ -3547,4 +3584,161 @@ export async function getClassIlpSummary(classId: string): Promise<ClassIlpStude
     })
   }
   return result.sort((a, b) => a.studentName.localeCompare(b.studentName))
+}
+
+// ─── generateILPFromConcern ───────────────────────────────────────────────────
+/**
+ * Generate an ILP pre-seeded with context from a specific SEND concern.
+ * SENCO-only. Skips if the student already has an active/under_review ILP.
+ */
+export async function generateILPFromConcern(
+  concernId: string,
+): Promise<{ success: boolean; ilpId?: string; error?: string }> {
+  const user = await requireSencoOnly()
+  const schoolId = user.schoolId
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return { success: false, error: 'ANTHROPIC_API_KEY not configured' }
+
+  const concern = await prisma.sendConcern.findFirst({
+    where: { id: concernId, schoolId },
+  })
+  if (!concern) return { success: false, error: 'Concern not found' }
+
+  const studentId = concern.studentId
+
+  // Skip if an active or under_review ILP already exists
+  const existing = await prisma.individualLearningPlan.findFirst({
+    where: { schoolId, studentId, status: { in: ['active', 'under_review'] } },
+  })
+  if (existing) return { success: false, error: 'An active ILP already exists for this student.' }
+
+  // Rate limit: max 20 AI ILP generations per SENCO per day
+  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0)
+  const todayCount = await prisma.auditLog.count({
+    where: { schoolId, actorId: user.id, action: 'AI_ILP_GENERATED', createdAt: { gte: todayMidnight } },
+  })
+  if (todayCount >= 20) {
+    return { success: false, error: 'Daily AI ILP generation limit reached (20 per day). Try again tomorrow.' }
+  }
+
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId, role: 'STUDENT' },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true },
+  })
+  if (!student) return { success: false, error: 'Student not found' }
+
+  const sendStatus = await prisma.sendStatus.findUnique({
+    where: { studentId },
+    select: { needArea: true },
+  })
+
+  const yearGroup = student.yearGroup ?? 9
+  const ksLabel = yearGroup <= 9 ? 'KS3' : yearGroup <= 11 ? 'KS4 (GCSE)' : 'KS5 (A-Level)'
+  const sendCategory = sendStatus?.needArea
+    ?? concern.category.replace(/_/g, ' ')
+    ?? 'General Learning Support'
+
+  const prompt = `Generate a UK secondary school Individual Learning Plan for this student.
+The ILP should directly address the specific teacher concern raised below.
+
+Student: ${student.firstName} ${student.lastName}
+Year: Year ${yearGroup} (${ksLabel})
+Support category: ${sendCategory}
+
+Teacher concern (${concern.category.replace(/_/g, ' ')}):
+${concern.description}
+${concern.evidenceNotes ? `\nEvidence notes: ${concern.evidenceNotes}` : ''}
+
+Ensure the ILP targets and strategies are directly informed by the concern above.
+Return ONLY valid JSON (no markdown):
+{
+  "likes": "2 sentences about what this student likely enjoys at school",
+  "dislikes": "2 sentences about learning challenges suggested by the concern",
+  "currentStrengths": "2-3 sentences on likely strengths based on Year ${yearGroup} context",
+  "areasOfNeed": "2-3 sentences: specific areas of need drawn directly from the concern",
+  "targets": [
+    {"target": "SMART target directly addressing the concern", "strategy": "specific classroom strategy", "successMeasure": "measurable outcome", "targetDateWeeks": 8},
+    {"target": "SMART secondary target supporting the concern area", "strategy": "specific support strategy", "successMeasure": "measurable outcome", "targetDateWeeks": 12},
+    {"target": "SMART wider wellbeing or engagement target", "strategy": "specific strategy", "successMeasure": "measurable outcome", "targetDateWeeks": 12}
+  ],
+  "strategies": ["strategy 1", "strategy 2", "strategy 3", "strategy 4", "strategy 5"],
+  "resourcesNeeded": ["resource 1", "resource 2", "resource 3"],
+  "successCriteria": "Overall ILP success measure for the term, referencing the concern"
+}`
+
+  try {
+    const client = new Anthropic({ apiKey })
+    let msg
+    try {
+      msg = await client.messages.create({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 1200,
+        system:     'You are a UK SENCO creating Individual Learning Plans. Return ONLY valid JSON, no markdown.',
+        messages:   [{ role: 'user', content: prompt }],
+      })
+    } catch (apiErr) {
+      console.error('[generateILPFromConcern] Anthropic API error:', apiErr)
+      return { success: false, error: 'ILP generation failed — please try again.' }
+    }
+
+    const raw   = (msg.content[0] as { type: string; text: string }).text.trim()
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return { success: false, error: 'AI did not return valid JSON' }
+    const gen = JSON.parse(match[0])
+
+    const thirteenWeeks = new Date(Date.now() + 13 * 7 * 24 * 60 * 60 * 1000)
+
+    const ilp = await prisma.individualLearningPlan.create({
+      data: {
+        schoolId,
+        studentId,
+        createdBy:        user.id,
+        sendCategory,
+        currentStrengths: String(gen.currentStrengths ?? ''),
+        areasOfNeed:      String(gen.areasOfNeed ?? ''),
+        strategies:       Array.isArray(gen.strategies) ? gen.strategies.map(String) : [],
+        successCriteria:  String(gen.successCriteria ?? ''),
+        reviewDate:       thirteenWeeks,
+        autoGenerated:    true,
+        approvedBySenco:  false,
+        likes:            gen.likes ? String(gen.likes) : null,
+        dislikes:         gen.dislikes ? String(gen.dislikes) : null,
+        resourcesNeeded:  Array.isArray(gen.resourcesNeeded) ? gen.resourcesNeeded.map(String) : [],
+        status:           'under_review',
+        targets: {
+          create: (Array.isArray(gen.targets) ? gen.targets : []).slice(0, 3).map((t: Record<string, unknown>) => ({
+            target:         String(t.target ?? ''),
+            strategy:       String(t.strategy ?? ''),
+            successMeasure: String(t.successMeasure ?? ''),
+            targetDate:     new Date(Date.now() + ((Number(t.targetDateWeeks) || 12)) * 7 * 24 * 60 * 60 * 1000),
+          })),
+        },
+      },
+    })
+
+    // Move concern to under_review if it was open
+    if (concern.status === 'open') {
+      await prisma.sendConcern.update({
+        where: { id: concernId },
+        data:  { status: 'under_review' },
+      })
+    }
+
+    revalidatePath('/senco/ilp')
+    revalidatePath('/senco/concerns')
+
+    writeAudit({
+      schoolId,
+      actorId:    user.id,
+      action:     'AI_ILP_GENERATED',
+      targetType: 'Student',
+      targetId:   studentId,
+      metadata:   { sendCategory, yearGroup, source: 'concern', concernId },
+    }).catch(() => { /* non-blocking */ })
+
+    return { success: true, ilpId: ilp.id }
+  } catch (err) {
+    console.error('[generateILPFromConcern] error:', err)
+    return { success: false, error: 'ILP generation failed — please try again.' }
+  }
 }

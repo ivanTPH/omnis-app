@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { SencoRow } from '@/components/ui/SencoRow'
 import type { ConcernRow, ConcernActionItem } from '@/app/actions/send-support'
-import { addConcernAction } from '@/app/actions/send-support'
+import { addConcernAction, generateILPFromConcern } from '@/app/actions/send-support'
 import ConcernReviewModal from './ConcernReviewModal'
 import SencoAlertModal from './SencoAlertModal'
 import StudentContactPanel from '@/components/StudentContactPanel'
@@ -136,6 +136,8 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
   const [localConcerns,      setLocalConcerns]       = useState(concerns)
   const [contactStudentId,   setContactStudentId]    = useState<string | null>(null)
   const [alertTarget,        setAlertTarget]         = useState<{ id: string; name: string } | null>(null)
+  const [generatingIlpFor,   setGeneratingIlpFor]    = useState<string | null>(null)
+  const [ilpDoneFor,         setIlpDoneFor]          = useState<Set<string>>(new Set())
 
   function toggle(id: string) {
     setExpanded(prev => {
@@ -143,6 +145,20 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  async function handleGenerateIlp(concernId: string) {
+    setGeneratingIlpFor(concernId)
+    try {
+      const result = await generateILPFromConcern(concernId)
+      if (result.success) {
+        setIlpDoneFor(prev => new Set([...prev, concernId]))
+        setLocalConcerns(prev => prev.map(c => c.id === concernId ? { ...c, hasActiveIlp: true } : c))
+        onRefresh?.()
+      }
+    } finally {
+      setGeneratingIlpFor(null)
+    }
   }
 
   async function handleAddAction(concernId: string) {
@@ -255,6 +271,25 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                                   <Icon name="notification_important" size="sm" /> Alert
                                 </button>
                               )}
+                              {isSenco && !c.hasActiveIlp && !['closed','no_action'].includes(c.status) && (
+                                ilpDoneFor.has(c.id) ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50">
+                                    <Icon name="check_circle" size="sm" /> ILP created
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleGenerateIlp(c.id)}
+                                    disabled={generatingIlpFor === c.id}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                                    title="Generate ILP from this concern"
+                                  >
+                                    {generatingIlpFor === c.id
+                                      ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
+                                      : <><Icon name="auto_awesome" size="sm" /> Generate ILP</>
+                                    }
+                                  </button>
+                                )
+                              )}
                               {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
                                 <button
                                   onClick={() => setReviewing(c)}
@@ -364,6 +399,25 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                     >
                       <Icon name="notification_important" size="sm" /> Alert
                     </button>
+                  )}
+                  {isSenco && !c.hasActiveIlp && !['closed','no_action'].includes(c.status) && (
+                    ilpDoneFor.has(c.id) ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50">
+                        <Icon name="check_circle" size="sm" /> ILP created
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleGenerateIlp(c.id)}
+                        disabled={generatingIlpFor === c.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                        title="Generate ILP from this concern"
+                      >
+                        {generatingIlpFor === c.id
+                          ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
+                          : <><Icon name="auto_awesome" size="sm" /> Generate ILP</>
+                        }
+                      </button>
+                    )
                   )}
                   {isSenco && c.status !== 'closed' && c.status !== 'no_action' && (
                     <button

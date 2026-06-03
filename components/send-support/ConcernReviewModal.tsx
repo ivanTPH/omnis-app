@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import type { ConcernRow } from '@/app/actions/send-support'
-import { reviewConcern, requestAiAnalysis } from '@/app/actions/send-support'
+import { reviewConcern, requestAiAnalysis, generateILPFromConcern } from '@/app/actions/send-support'
 import { CategoryBadge } from './ConcernList'
 
 const STATUSES = [
@@ -29,6 +29,9 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
   const [reviewNotes,    setReviewNotes]     = useState(concern.reviewNotes ?? '')
   const [aiAnalysis,     setAiAnalysis]      = useState(concern.aiAnalysis ?? '')
   const [loadingAi,      setLoadingAi]       = useState(false)
+  const [generatingIlp,  setGeneratingIlp]   = useState(false)
+  const [ilpGenerated,   setIlpGenerated]    = useState(false)
+  const [ilpError,       setIlpError]        = useState<string | null>(null)
   const [saving,         setSaving]          = useState(false)
   const [error,          setError]           = useState<string | null>(null)
   const [nextReviewDate, setNextReviewDate]  = useState(
@@ -50,6 +53,23 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
       setError('AI analysis failed. Please try again.')
     } finally {
       setLoadingAi(false)
+    }
+  }
+
+  async function handleGenerateIlp() {
+    setGeneratingIlp(true)
+    setIlpError(null)
+    try {
+      const result = await generateILPFromConcern(concern.id)
+      if (result.success) {
+        setIlpGenerated(true)
+      } else {
+        setIlpError(result.error ?? 'Generation failed')
+      }
+    } catch {
+      setIlpError('Generation failed — please try again.')
+    } finally {
+      setGeneratingIlp(false)
     }
   }
 
@@ -129,6 +149,43 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
               <p className="text-xs text-gray-400 italic">No AI analysis yet. Click above to generate one.</p>
             )}
           </div>
+
+          {/* Generate ILP from concern */}
+          {!concern.hasActiveIlp && !['closed', 'no_action'].includes(concern.status) && (
+            <div className="rounded-xl border border-green-200 overflow-hidden">
+              <div className="px-4 py-3 bg-green-50 flex items-center gap-2">
+                <Icon name="description" size="sm" className="text-green-600 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-green-900">Generate ILP from this concern</p>
+                  <p className="text-xs text-green-700 mt-0.5">AI will create a draft ILP with targets tailored to the concern description and evidence above.</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 bg-white">
+                {ilpGenerated ? (
+                  <div className="flex items-center gap-2 text-green-700">
+                    <Icon name="check_circle" size="sm" />
+                    <span className="text-sm font-medium">ILP created and ready for review.</span>
+                    <a href="/senco/ilp" className="ml-auto text-xs text-green-600 hover:underline font-medium">View ILP →</a>
+                  </div>
+                ) : (
+                  <>
+                    {ilpError && <p className="text-xs text-red-600 mb-2">{ilpError}</p>}
+                    <button
+                      type="button"
+                      onClick={handleGenerateIlp}
+                      disabled={generatingIlp}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {generatingIlp
+                        ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating ILP…</>
+                        : <><Icon name="auto_awesome" size="sm" /> Generate ILP</>
+                      }
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Status select */}
           <div>

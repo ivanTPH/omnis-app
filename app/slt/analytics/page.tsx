@@ -390,9 +390,14 @@ export default async function SltAnalyticsPage() {
                   </div>
                 </div>
 
-                <Link href="/send/dashboard" className="mt-3 flex items-center gap-1 text-[11px] text-purple-700 font-medium hover:underline">
-                  SEND Dashboard <Icon name="chevron_right" size="sm" />
-                </Link>
+                <div className="mt-3 flex flex-col gap-1">
+                  <Link href="/slt/send" className="flex items-center gap-1 text-[11px] text-purple-700 font-semibold hover:underline">
+                    SEND Reporting Dashboard <Icon name="chevron_right" size="sm" />
+                  </Link>
+                  <Link href="/send/dashboard" className="flex items-center gap-1 text-[11px] text-purple-500 hover:underline">
+                    SENCO Dashboard <Icon name="chevron_right" size="sm" />
+                  </Link>
+                </div>
               </div>
 
               {/* Integrity */}

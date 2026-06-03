@@ -99,6 +99,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Revision',           href: '/revision-program', icon: 'bookmark'      },
     { label: 'Year Group Plans',   href: '/plans/year-group', icon: 'menu_book'     },
     { label: 'Analytics',          href: '/slt/analytics',    icon: 'bar_chart'     },
+    { label: 'SEND Reporting',     href: '/slt/send',         icon: 'favorite'      },
     { label: 'Population',         href: '/slt/population',   icon: 'group'         },
     { label: 'Audit Log',          href: '/slt/audit',        icon: 'security'      },
     { label: 'AI Generator',       href: '/ai-generator',     icon: 'auto_fix_high' },

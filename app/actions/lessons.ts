@@ -1210,6 +1210,61 @@ export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeri
   }
 }
 
+/** Request in-lesson SEND/cover support — notifies COVER_MANAGER + SENCO. */
+export async function requestLessonSupport(
+  lessonId: string,
+  urgency: 'low' | 'medium' | 'high',
+  details: string,
+): Promise<void> {
+  const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return
+
+  const schoolId   = user.schoolId
+  const teacherName = `${user.firstName} ${user.lastName}`
+
+  const lesson = await prisma.lesson.findFirst({
+    where: { id: lessonId, schoolId },
+    select: { title: true, scheduledAt: true, class: { select: { name: true } } },
+  })
+
+  const className  = lesson?.class?.name ?? 'class'
+  const lessonDate = lesson?.scheduledAt
+    ? new Date(lesson.scheduledAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    : ''
+  const urgencyLabel = urgency.charAt(0).toUpperCase() + urgency.slice(1)
+  const body = `${teacherName} requests ${urgency}-urgency support during "${lesson?.title ?? 'lesson'}" (${className}${lessonDate ? ` · ${lessonDate}` : ''}).${details ? ` Notes: ${details}` : ''}`
+
+  const recipients = await prisma.user.findMany({
+    where: { schoolId, role: { in: ['COVER_MANAGER', 'SENCO'] } },
+    select: { id: true },
+  })
+
+  if (recipients.length > 0) {
+    await prisma.notification.createMany({
+      data: recipients.map(r => ({
+        userId:    r.id,
+        schoolId,
+        type:      'LESSON_SUPPORT_REQUESTED',
+        title:     `${urgencyLabel}-urgency support needed`,
+        body,
+        linkHref:  `/dashboard`,
+        read:      false,
+      })),
+      skipDuplicates: true,
+    })
+  }
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'LESSON_SUPPORT_REQUESTED',
+    targetType: 'Lesson',
+    targetId:   lessonId,
+    metadata:   { urgency, details: details.slice(0, 200) },
+  })
+}
+
 export async function addRosterNote(studentId: string, content: string): Promise<void> {
   try {
     const { schoolId, id: actorId } = await requireAuth()

@@ -2459,6 +2459,126 @@ export async function getAllAPDRCycles(): Promise<APDROverviewRow[]> {
   }))
 }
 
+/** Minimal student list for a class — used by the in-lesson concern picker. */
+export async function getClassStudentsForStrip(
+  classId: string,
+): Promise<{ id: string; name: string; sendStatus: string }[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    include: {
+      user: {
+        select: {
+          id: true, firstName: true, lastName: true,
+          sendStatus: { select: { activeStatus: true } },
+        },
+      },
+    },
+    orderBy: { user: { lastName: 'asc' } },
+  })
+
+  return enrolments.map(e => ({
+    id:         e.user.id,
+    name:       `${e.user.firstName} ${e.user.lastName}`,
+    sendStatus: e.user.sendStatus?.activeStatus ?? 'NONE',
+  }))
+}
+
+/** AI-generated quick classroom adaptations for the class SEND mix. */
+export async function suggestLessonAdaptations(
+  classId: string,
+  lessonTitle: string,
+): Promise<string[]> {
+  const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  if (!allowedRoles.includes(user.role)) return []
+
+  const enrolments = await prisma.enrolment.findMany({
+    where: { classId, class: { schoolId: user.schoolId } },
+    include: {
+      user: {
+        select: {
+          id: true, firstName: true, lastName: true,
+          sendStatus: { select: { activeStatus: true, needArea: true } },
+        },
+      },
+    },
+  })
+
+  const sendEnrolments = enrolments.filter(e => e.user.sendStatus?.activeStatus !== 'NONE')
+  const sendUserIds    = sendEnrolments.map(e => e.user.id)
+
+  // Fetch ILPs separately to avoid nested include issues
+  const ilpMap = new Map<string, string>()
+  if (sendUserIds.length > 0) {
+    const ilps = await prisma.individualLearningPlan.findMany({
+      where: { studentId: { in: sendUserIds }, approvedBySenco: true, status: 'active' },
+      select: { studentId: true, strategies: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    for (const ilp of ilps) {
+      if (!ilpMap.has(ilp.studentId)) ilpMap.set(ilp.studentId, ilp.strategies.join('; '))
+    }
+  }
+
+  const sendStudents = sendEnrolments.map(e => ({
+    name:       `${e.user.firstName} ${e.user.lastName}`,
+    status:     e.user.sendStatus?.activeStatus ?? 'SEN_SUPPORT',
+    needArea:   e.user.sendStatus?.needArea ?? null,
+    strategies: ilpMap.get(e.user.id) ?? '',
+  }))
+
+  if (sendStudents.length === 0) {
+    return [
+      'Use clear visual aids and printed instructions alongside verbal delivery.',
+      'Break tasks into 2–3 steps with brief check-ins between each.',
+      'Circulate during independent work to check for understanding.',
+    ]
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return [
+      `${sendStudents.length} SEND student${sendStudents.length > 1 ? 's' : ''} in class — use differentiated task cards.`,
+      'Allow additional processing time; paired work provides peer support.',
+      'Provide a structured sentence frame or vocabulary list on the desk.',
+    ]
+  }
+
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const client = new Anthropic({ apiKey })
+    const profile = sendStudents.map(s =>
+      `${s.name}: ${s.status}${s.needArea ? `, ${s.needArea}` : ''}${s.strategies ? ` — ${s.strategies}` : ''}`
+    ).join('\n')
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 250,
+      system: 'You are a UK SENCO advising a teacher mid-lesson. Return ONLY a JSON array of exactly 3 strings, no markdown.',
+      messages: [{
+        role: 'user',
+        content: `Lesson: "${lessonTitle}"\nSEND students:\n${profile}\n\nGive 3 whole-class quick adaptations for right now. Each ≤15 words. Return ONLY: ["...", "...", "..."]`,
+      }],
+    })
+    const raw = (msg.content[0] as { text: string }).text.trim()
+    const match = raw.match(/\[[\s\S]*\]/)
+    if (match) {
+      const arr = JSON.parse(match[0]) as unknown[]
+      if (Array.isArray(arr) && arr.length > 0) return (arr as string[]).slice(0, 3)
+    }
+  } catch (err) {
+    console.error('[suggestLessonAdaptations]', err)
+  }
+
+  return [
+    'Seat SEND students near the front, away from distractions.',
+    'Break instructions into maximum 2–3 steps; repeat for those who need it.',
+    'Give a 5-minute warning before any transition using a visual timer.',
+  ]
+}
+
 /** Returns the current user's role — used by client components. */
 export async function getCurrentUserRole(): Promise<string | null> {
   const session = await auth()

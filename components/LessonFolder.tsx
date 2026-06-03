@@ -20,6 +20,7 @@ import UnifiedResourceSearch  from '@/components/UnifiedResourceSearch'
 const ClassRosterTab         = dynamic(() => import('@/components/ClassRosterTab'),          { ssr: false })
 const ClassInsightsTab       = dynamic(() => import('@/components/ClassInsightsTab'),         { ssr: false })
 const ClassSendActionsCard   = dynamic(() => import('@/components/send-support/ClassSendActionsCard'), { ssr: false })
+const InLessonActionStrip    = dynamic(() => import('@/components/send-support/InLessonActionStrip'),   { ssr: false })
 const ClassAnalyticsPanel    = dynamic(() => import('@/components/ClassAnalyticsPanel'),      { ssr: false })
 const ClassBriefingCard      = dynamic(() => import('@/components/ClassBriefingCard'),         { ssr: false })
 const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/HomeworkDetailPanel'),       { ssr: false })
@@ -1792,6 +1793,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               {activeTab === 'Class' && (
                 lesson?.class?.id ? (
                   <div className="divide-y divide-gray-100">
+                    {/* In-lesson action strip — amber, always visible */}
+                    <div className="px-7 pt-5">
+                      <InLessonActionStrip
+                        lessonId={lessonId!}
+                        classId={lesson.class.id}
+                        lessonTitle={lesson.title ?? undefined}
+                      />
+                    </div>
+
                     {/* SEND summary — collapsible */}
                     <SendOverviewDisclosure classId={lesson.class.id} />
 

@@ -4,7 +4,8 @@ import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { Role } from '@prisma/client'
+import { Role, Prisma } from '@prisma/client'
+import { AUDIT_CATEGORIES } from '@/lib/audit-categories'
 import bcrypt from 'bcryptjs'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
@@ -798,20 +799,38 @@ export type AuditLogEntry = {
   actorRole:  string
 }
 
-export async function getSchoolAuditLog(page = 0, pageSize = 50): Promise<{ entries: AuditLogEntry[]; total: number }> {
+
+export async function getSchoolAuditLog(
+  page     = 0,
+  pageSize = 50,
+  category?: string,
+  days?:     number,
+): Promise<{ entries: AuditLogEntry[]; total: number }> {
   const user = await requireAdminOrSlt()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(user.role)) throw new Error('Forbidden')
   const schoolId = user.schoolId as string
 
+  const where: Prisma.AuditLogWhereInput = { schoolId }
+
+  if (category && AUDIT_CATEGORIES[category]) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    where.action = { in: AUDIT_CATEGORIES[category] as any }
+  }
+
+  if (days && days > 0) {
+    const since = new Date(Date.now() - days * 86_400_000)
+    where.createdAt = { gte: since }
+  }
+
   const [entries, total] = await Promise.all([
     prisma.auditLog.findMany({
-      where:   { schoolId },
+      where,
       orderBy: { createdAt: 'desc' },
       skip:    page * pageSize,
       take:    pageSize,
       include: { actor: { select: { firstName: true, lastName: true, role: true } } },
     }),
-    prisma.auditLog.count({ where: { schoolId } }),
+    prisma.auditLog.count({ where }),
   ])
 
   return {

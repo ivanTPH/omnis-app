@@ -54,6 +54,13 @@ export type FlagSummary = {
   byType:      { type: string; count: number }[]
 }
 
+export type TrendPoint = {
+  month:     string        // e.g. "Jan 25"
+  schoolAvg: number | null // 0–9 grade scale
+  sendAvg:   number | null
+  gap:       number | null // sendAvg - schoolAvg (negative = below)
+}
+
 export type SltSendDashboardData = {
   sendTotal:      number
   senSupport:     number
@@ -65,6 +72,7 @@ export type SltSendDashboardData = {
   ilp:            IlpCoverageStats
   needAreas:      NeedAreaRow[]
   flags:          FlagSummary
+  trend:          TrendPoint[]
 }
 
 // ── Main action ───────────────────────────────────────────────────────────────
@@ -226,7 +234,42 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
     })
     .sort((a, b) => b.count - a.count)
 
-  // ── 7. Early warning flags ─────────────────────────────────────────────────
+  // ── 7. Attainment trend — last 6 months, grouped by calendar month ─────────
+  const since6mo   = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+  const trendSubs  = await prisma.submission.findMany({
+    where:  { schoolId, finalScore: { not: null }, submittedAt: { gte: since6mo } },
+    select: { studentId: true, finalScore: true, submittedAt: true },
+  })
+
+  const sendIdSet = new Set(sendIds)
+  const trend: TrendPoint[] = []
+  for (let i = 5; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i,     1)
+    const monthEnd   = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
+    const label = monthStart.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
+
+    const monthSubs     = trendSubs.filter(s => {
+      const d = new Date(s.submittedAt)
+      return d >= monthStart && d < monthEnd
+    })
+    const sendMonthSubs = monthSubs.filter(s => sendIdSet.has(s.studentId))
+
+    const schoolAvg = monthSubs.length
+      ? monthSubs.reduce((a, s) => a + (s.finalScore ?? 0), 0) / monthSubs.length
+      : null
+    const sendAvg = sendMonthSubs.length
+      ? sendMonthSubs.reduce((a, s) => a + (s.finalScore ?? 0), 0) / sendMonthSubs.length
+      : null
+
+    trend.push({
+      month:     label,
+      schoolAvg: schoolAvg != null ? parseFloat(schoolAvg.toFixed(2)) : null,
+      sendAvg:   sendAvg   != null ? parseFloat(sendAvg.toFixed(2))   : null,
+      gap:       schoolAvg != null && sendAvg != null ? parseFloat((sendAvg - schoolAvg).toFixed(2)) : null,
+    })
+  }
+
+  // ── 8. Early warning flags ─────────────────────────────────────────────────
   const activeFlags = await prisma.earlyWarningFlag.findMany({
     where:  { schoolId, isActioned: false, expiresAt: { gt: now } },
     select: { severity: true, flagType: true },
@@ -256,5 +299,6 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
     ilp,
     needAreas,
     flags,
+    trend,
   }
 }

@@ -5,8 +5,9 @@ import Icon from '@/components/ui/Icon'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, Cell,
+  LineChart, Line, ReferenceLine,
 } from 'recharts'
-import type { SltSendDashboardData } from '@/app/actions/slt-send'
+import type { SltSendDashboardData, TrendPoint } from '@/app/actions/slt-send'
 
 type Props = { data: SltSendDashboardData }
 
@@ -39,13 +40,27 @@ const FLAG_LABELS: Record<string, string> = {
   multiple_concerns:   'Multiple concerns',
 }
 
+// Derive gap trend direction from the first and last month that have full data
+function gapTrend(trend: TrendPoint[]): { label: string; icon: string; colour: string } {
+  const withGap = trend.filter(t => t.gap != null)
+  if (withGap.length < 2) return { label: 'Insufficient data', icon: 'remove', colour: 'text-gray-400' }
+  const first = withGap[0].gap!
+  const last  = withGap[withGap.length - 1].gap!
+  const delta = last - first  // more negative = gap widening; closer to 0 or positive = improving
+  if (delta >= 0.3)       return { label: 'Gap narrowing',  icon: 'trending_up',   colour: 'text-green-600' }
+  if (delta <= -0.3)      return { label: 'Gap widening',   icon: 'trending_down', colour: 'text-red-600'   }
+  return                         { label: 'Gap stable',     icon: 'trending_flat', colour: 'text-amber-600' }
+}
+
 export default function SltSendDashboard({ data }: Props) {
   const { sendTotal, senSupport, ehcpCount, schoolAvgScore, sendAvgScore,
-          yearGroupRows, ehcp, ilp, needAreas, flags } = data
+          yearGroupRows, ehcp, ilp, needAreas, flags, trend } = data
 
   const attainmentGap = sendAvgScore != null && schoolAvgScore != null
     ? sendAvgScore - schoolAvgScore
     : null
+
+  const trendStatus = gapTrend(trend)
 
   // Chart data: attainment by year group
   const chartData = yearGroupRows.map(r => ({
@@ -92,6 +107,88 @@ export default function SltSendDashboard({ data }: Props) {
           <p className="text-[10px] text-gray-400 mt-0.5">grades (SEND vs school)</p>
         </div>
       </div>
+
+      {/* ── 3. Attainment trend — 6-month line chart ──────────────────────── */}
+      {trend.some(t => t.schoolAvg != null) && (
+        <div className="bg-white border border-gray-200 rounded-xl p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-[13px] font-semibold text-gray-900">Attainment Gap Trend — last 6 months</h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">Monthly average grade: school-wide vs SEND cohort</p>
+            </div>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border ${
+              trendStatus.colour === 'text-green-600' ? 'bg-green-50 border-green-200' :
+              trendStatus.colour === 'text-red-600'   ? 'bg-red-50 border-red-200'     :
+                                                        'bg-amber-50 border-amber-200'
+            } ${trendStatus.colour}`}>
+              <Icon name={trendStatus.icon} size="sm" />
+              {trendStatus.label}
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={trend} margin={{ top: 4, right: 16, bottom: 0, left: -16 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis domain={[0, 9]} ticks={[1,2,3,4,5,6,7,8,9]} tick={{ fontSize: 11 }} />
+              <Tooltip
+                formatter={(val: unknown) =>
+                  val != null ? gradeLabel(typeof val === 'number' ? val : null) : '—'
+                }
+                contentStyle={{ fontSize: 11, borderRadius: 8 }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <ReferenceLine y={attainmentGap != null && schoolAvgScore != null ? schoolAvgScore : undefined}
+                stroke="transparent" />
+              <Line
+                type="monotone"
+                dataKey="schoolAvg"
+                name="School"
+                stroke="#93c5fd"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#93c5fd' }}
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                dataKey="sendAvg"
+                name="SEND"
+                stroke={
+                  attainmentGap == null ? '#a78bfa' :
+                  attainmentGap >= -0.5 ? '#34d399' :
+                  attainmentGap >= -1.5 ? '#fbbf24' :
+                                          '#f87171'
+                }
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+                connectNulls
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          {/* Gap delta callout */}
+          {trend.filter(t => t.gap != null).length >= 2 && (() => {
+            const withGap  = trend.filter(t => t.gap != null)
+            const firstGap = withGap[0].gap!
+            const lastGap  = withGap[withGap.length - 1].gap!
+            const delta    = lastGap - firstGap
+            return (
+              <p className="text-[11px] text-gray-500 mt-3 text-right">
+                Gap moved from{' '}
+                <span className={`font-semibold ${firstGap >= -0.5 ? 'text-green-600' : firstGap >= -1.5 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {firstGap >= 0 ? '+' : ''}{firstGap.toFixed(1)}
+                </span>
+                {' '}({trend.filter(t => t.gap != null)[0].month}) to{' '}
+                <span className={`font-semibold ${lastGap >= -0.5 ? 'text-green-600' : lastGap >= -1.5 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {lastGap >= 0 ? '+' : ''}{lastGap.toFixed(1)}
+                </span>
+                {' '}({trend.filter(t => t.gap != null)[withGap.length - 1].month}){' '}
+                <span className={delta >= 0 ? 'text-green-600' : 'text-red-600'}>
+                  ({delta >= 0 ? '▲' : '▼'}{Math.abs(delta).toFixed(1)} grades)
+                </span>
+              </p>
+            )
+          })()}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

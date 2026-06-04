@@ -302,3 +302,82 @@ async function upsertFlag(flag: NewFlag, schoolId: string, now: Date): Promise<v
     },
   })
 }
+
+// ─── ILP target review-due notifications ──────────────────────────────────────
+
+/**
+ * Checks for ILP targets whose targetDate is within the next 7 days and
+ * creates a SendNotification for all SENCOs in the school — deduplicated so
+ * only one notification is sent per target within any 7-day window.
+ * Returns the number of new notifications created.
+ */
+export async function checkIlpTargetReviewsDue(schoolId: string): Promise<number> {
+  const now     = new Date()
+  const in7days = new Date(now.getTime() + 7 * 86_400_000)
+
+  // Active targets due within 7 days
+  const dueSoon = await prisma.ilpTarget.findMany({
+    where: {
+      status:     'active',
+      targetDate: { gte: now, lte: in7days },
+      ilp:        { schoolId, status: { in: ['active', 'under_review'] } },
+    },
+    select: {
+      id:         true,
+      target:     true,
+      targetDate: true,
+      ilp:        { select: { studentId: true } },
+    },
+  })
+  if (dueSoon.length === 0) return 0
+
+  // Fetch SENCOs for this school
+  const sencos = await prisma.user.findMany({
+    where:  { schoolId, role: 'SENCO', isActive: true },
+    select: { id: true },
+  })
+  if (sencos.length === 0) return 0
+
+  const since7days = new Date(now.getTime() - 7 * 86_400_000)
+  let created = 0
+
+  for (const t of dueSoon) {
+    const studentId = t.ilp.studentId
+
+    // Fetch student name
+    const student = await prisma.user.findUnique({
+      where:  { id: studentId },
+      select: { firstName: true, lastName: true },
+    })
+    if (!student) continue
+
+    const studentName = `${student.firstName} ${student.lastName}`
+
+    for (const senco of sencos) {
+      // Deduplicate: skip if we already notified this SENCO about this target within 7 days
+      const existing = await prisma.sendNotification.findFirst({
+        where: {
+          recipientId: senco.id,
+          type:        'ilp_target_review_due',
+          createdAt:   { gte: since7days },
+          body:        { contains: t.id },
+        },
+        select: { id: true },
+      })
+      if (existing) continue
+
+      await prisma.sendNotification.create({
+        data: {
+          schoolId,
+          recipientId: senco.id,
+          type:        'ilp_target_review_due',
+          title:       `ILP target review due: ${studentName}`,
+          body:        `Target: "${t.target.slice(0, 120)}" is due ${t.targetDate.toLocaleDateString('en-GB')}. [targetId:${t.id}]`,
+        },
+      })
+      created++
+    }
+  }
+
+  return created
+}

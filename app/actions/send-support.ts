@@ -213,6 +213,7 @@ export type SencoDashboardData = {
   openConcernsList: ConcernRow[]
   upcomingReviews: UpcomingReview[]
   planCoherenceAlerts: import('@/app/actions/agent-insights').PlanCoherenceAlert[]
+  concernsWithoutIlp: ConcernRow[]
 }
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
@@ -589,7 +590,7 @@ export async function reviewConcern(
     assignedToId?: string | null
     assignedAction?: string | null
   },
-): Promise<void> {
+): Promise<{ ilpGenerated: boolean; ilpId?: string }> {
   const user = await requireSencoOnly()
   const schoolId = user.schoolId
 
@@ -702,7 +703,24 @@ export async function reviewConcern(
     })
   }
 
+  // Auto-generate ILP draft when escalating a concern for a student with no active ILP
+  let ilpGenerated = false
+  let ilpId: string | undefined
+  if (status === 'escalated') {
+    const existingIlp = await prisma.individualLearningPlan.findFirst({
+      where: { schoolId, studentId: concern.studentId, status: { in: ['active', 'under_review'] } },
+      select: { id: true },
+    })
+    if (!existingIlp) {
+      const ilpResult = await generateILPFromConcern(concernId)
+      ilpGenerated = ilpResult.success
+      ilpId = ilpResult.ilpId
+    }
+  }
+
   revalidatePath('/senco/concerns')
+  revalidatePath('/senco/ilp')
+  return { ilpGenerated, ilpId }
 }
 
 export async function addConcernAction(
@@ -1100,6 +1118,7 @@ export async function updateIlpTarget(
   targetId: string,
   status: string,
   progressNotes: string,
+  newTargetDate?: Date,
 ): Promise<void> {
   const user = await requireAuth()
   const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
@@ -1111,6 +1130,7 @@ export async function updateIlpTarget(
     select: {
       status: true,
       progressNotes: true,
+      targetDate: true,
       ilpId: true,
       ilp: { select: { approvedBySenco: true } },
     },
@@ -1118,7 +1138,12 @@ export async function updateIlpTarget(
 
   await prisma.ilpTarget.update({
     where: { id: targetId },
-    data: { status, progressNotes, reviewedAt: new Date() },
+    data: {
+      status,
+      progressNotes,
+      reviewedAt: new Date(),
+      ...(status === 'deferred' && newTargetDate ? { targetDate: newTargetDate } : {}),
+    },
   })
 
   // Audit trail — only after SENCO approval
@@ -1145,6 +1170,16 @@ export async function updateIlpTarget(
         previousValue: prevNotes,
         newValue: nextNotes,
         changeType: !prevNotes && nextNotes ? 'ADDED' : !nextNotes ? 'DELETED' : 'EDITED',
+      })
+    }
+
+    if (status === 'deferred' && newTargetDate && current.targetDate) {
+      pending.push({
+        ilpId, userId: user.id, userName, userRole: user.role,
+        fieldChanged: 'Target date (deferred)',
+        previousValue: current.targetDate.toLocaleDateString('en-GB'),
+        newValue: newTargetDate.toLocaleDateString('en-GB'),
+        changeType: 'EDITED',
       })
     }
 
@@ -1830,6 +1865,47 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       daysUntil:   Math.ceil((i.reviewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
     })),
     planCoherenceAlerts,
+    // Students with open/escalated concerns but no active ILP — deduplicated by student
+    concernsWithoutIlp: (() => {
+      const seen = new Set<string>()
+      return [
+        ...openConcernsRaw,
+        ...recentConcernsRaw.filter(c => ['open','under_review','escalated'].includes(c.status)),
+      ]
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .filter(c => {
+          if (dashboardIlpSet.has(c.studentId)) return false
+          if (seen.has(c.studentId)) return false
+          seen.add(c.studentId)
+          return true
+        })
+        .map(c => ({
+          id: c.id,
+          studentId: c.studentId,
+          studentName: userMap.get(c.studentId)?.name ?? 'Unknown',
+          studentAvatarUrl: userMap.get(c.studentId)?.avatarUrl ?? null,
+          raisedBy: c.raisedBy,
+          raiserName: userMap.get(c.raisedBy)?.name ?? 'Unknown',
+          className: null,
+          source: c.source,
+          category: c.category,
+          description: c.description,
+          evidenceNotes: c.evidenceNotes ?? null,
+          status: c.status,
+          aiAnalysis: c.aiAnalysis ?? null,
+          actionItems: [] as ConcernActionItem[],
+          createdAt: c.createdAt,
+          reviewedAt: c.reviewedAt ?? null,
+          reviewNotes: c.reviewNotes ?? null,
+          nextReviewDate: null,
+          followUpRequired: false,
+          assignedToId: null,
+          assignedToName: null,
+          assignedAction: null,
+          assignedAt: null,
+          hasActiveIlp: false,
+        }))
+    })(),
   }
 }
 

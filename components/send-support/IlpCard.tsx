@@ -39,6 +39,8 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
   const [updatingId,       setUpdatingId]       = useState<string | null>(null)
   const [expandedTargetId, setExpandedTargetId] = useState<string | null>(null)
   const [notes,            setNotes]            = useState('')
+  const [deferredDate,     setDeferredDate]     = useState('')
+  const [pendingStatus,    setPendingStatus]    = useState('')
   const [approving,        setApproving]        = useState(false)
   const [approved,         setApproved]         = useState(false)
   const [auditOpen,        setAuditOpen]        = useState(false)
@@ -176,18 +178,25 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
     }
   }
 
-  async function saveTargetUpdate(targetId: string, status: string) {
+  async function saveTargetUpdate(targetId: string) {
     setUpdatingId(targetId)
     try {
-      await updateIlpTarget(targetId, status, notes)
+      const nd = pendingStatus === 'deferred' && deferredDate ? new Date(deferredDate) : undefined
+      await updateIlpTarget(targetId, pendingStatus, notes, nd)
     } finally {
       setUpdatingId(null)
       setExpandedTargetId(null)
       setNotes('')
+      setPendingStatus('')
+      setDeferredDate('')
     }
   }
 
   const reviewSoon = new Date(ilp.reviewDate).getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000
+
+  // All targets resolved — prompt SENCO to start the next APDR cycle
+  const TERMINAL = new Set(['achieved', 'not_achieved', 'deferred'])
+  const allTargetsTerminal = ilp.targets.length > 0 && ilp.targets.every(t => TERMINAL.has(t.status))
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
@@ -602,8 +611,8 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                 {expandedTargetId === t.id && (
                   <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
                     <select
-                      defaultValue={t.status}
-                      onChange={e => saveTargetUpdate(t.id, e.target.value)}
+                      value={pendingStatus || t.status}
+                      onChange={e => setPendingStatus(e.target.value)}
                       disabled={updatingId === t.id}
                       className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs"
                     >
@@ -612,6 +621,18 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                       <option value="not_achieved">Not Achieved</option>
                       <option value="deferred">Deferred</option>
                     </select>
+                    {(pendingStatus || t.status) === 'deferred' && (
+                      <div>
+                        <label className="block text-[10px] font-medium text-gray-500 mb-1">New target date</label>
+                        <input
+                          type="date"
+                          value={deferredDate}
+                          onChange={e => setDeferredDate(e.target.value)}
+                          min={new Date().toISOString().slice(0, 10)}
+                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs"
+                        />
+                      </div>
+                    )}
                     <textarea
                       value={notes}
                       onChange={e => setNotes(e.target.value)}
@@ -619,12 +640,48 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                       rows={2}
                       className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs resize-none"
                     />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => saveTargetUpdate(t.id)}
+                        disabled={updatingId === t.id || !(pendingStatus || t.status)}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                      >
+                        {updatingId === t.id
+                          ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
+                          : <><Icon name="check" size="sm" /> Save review</>
+                        }
+                      </button>
+                      <button
+                        onClick={() => { setExpandedTargetId(null); setPendingStatus(''); setNotes(''); setDeferredDate('') }}
+                        className="px-2.5 py-1 border border-gray-200 rounded-lg text-xs text-gray-500"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ))}
           </div>
         </div>
+
+        {/* Re-plan prompt — shown when all targets are in a terminal state */}
+        {allTargetsTerminal && isSencoTier && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-indigo-800">All targets reviewed</p>
+              <p className="text-xs text-indigo-600 mt-0.5">Ready to start the next APDR cycle with new targets.</p>
+            </div>
+            <button
+              onClick={handleGenerateApdr}
+              disabled={apdrGenerating}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 disabled:opacity-50 shrink-0"
+            >
+              <Icon name={apdrGenerating ? 'refresh' : 'loop'} size="sm" className={apdrGenerating ? 'animate-spin' : ''} />
+              {apdrGenerating ? 'Generating…' : 'Start new APDR cycle'}
+            </button>
+          </div>
+        )}
 
         {/* Strategies */}
         {ilp.strategies.length > 0 && (

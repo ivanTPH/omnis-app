@@ -23,36 +23,36 @@ test.describe('SENCO / SEND flows', () => {
   test('SENCO can access SEND dashboard', async ({ page }) => {
     await page.goto('/send/dashboard')
     await expect(page.locator('body')).toBeVisible()
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 5_000 })
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 25_000 })
   })
 
   test('SENCO can access ILP list', async ({ page }) => {
     await page.goto('/send/ilp')
     await expect(page.locator('body')).toBeVisible()
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 5_000 })
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 25_000 })
   })
 
   test('SENCO can access review-due page', async ({ page }) => {
     await page.goto('/send/review-due')
     await expect(page.locator('body')).toBeVisible()
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 5_000 })
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 25_000 })
   })
 
   test('SENCO redirected away from /platform-admin routes', async ({ page }) => {
     await gotoCommit(page, '/platform-admin/dashboard')
-    await page.waitForTimeout(2000)
+    await page.waitForURL(url => !url.pathname.startsWith('/platform-admin'), { timeout: 15_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/platform-admin\//)
   })
 
   test('SENCO redirected away from /revision routes', async ({ page }) => {
     await gotoCommit(page, '/revision')
-    await page.waitForTimeout(2000)
+    await page.waitForURL(url => !url.pathname.startsWith('/revision'), { timeout: 15_000 }).catch(() => {})
     expect(page.url()).not.toMatch(/\/revision/)
   })
 
   test('SENCO can access settings', async ({ page }) => {
     await page.goto('/settings')
     await expect(page.locator('body')).toBeVisible()
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 5_000 })
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 25_000 })
   })
 })

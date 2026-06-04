@@ -31,10 +31,12 @@ export default async function globalSetup() {
     }
   }
 
-  // Warm the three most-used login paths sequentially so functions are hot
+  // Warm the most-used login paths sequentially so functions are hot
   await warmUser(USERS.teacher.email,     USERS.teacher.password,     'teacher')
-  await warmUser(USERS.schoolAdmin.email, USERS.schoolAdmin.password, 'schoolAdmin')
+  await warmUser(USERS.senco.email,       USERS.senco.password,       'senco')
   await warmUser(USERS.slt.email,         USERS.slt.password,         'slt')
+  await warmUser(USERS.schoolAdmin.email, USERS.schoolAdmin.password, 'schoolAdmin')
+  await warmUser(USERS.student.email,     USERS.student.password,     'student')
 
   await browser.close()
   console.log('[global-setup] warm-up complete')

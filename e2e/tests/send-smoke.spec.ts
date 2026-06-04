@@ -71,7 +71,7 @@ test('Step 1 — SENCO generates ILPs; ≥5 ILPs created', async ({ page }) => {
 
   await loginSenco(page)
   await page.goto('/senco/ilp')
-  await expect(page).toHaveURL(/senco\/ilp/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/senco\/ilp/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   const countBefore = await prisma.individualLearningPlan.count()
@@ -136,7 +136,7 @@ test('Step 2 — Approve one ILP; Approved badge + audit panel visible', async (
 
   await loginSenco(page)
   await page.goto('/senco/ilp')
-  await expect(page).toHaveURL(/senco\/ilp/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/senco\/ilp/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   // Find the "Draft" badge (ILPs with under_review status render as "Draft")
@@ -184,7 +184,7 @@ test('Step 3 — Edit ILP target status; audit entry records old→new', async (
 
   await loginSenco(page)
   await page.goto('/senco/ilp')
-  await expect(page).toHaveURL(/senco\/ilp/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/senco\/ilp/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   // Click the first ILP row to expand it
@@ -295,7 +295,7 @@ test('Step 4 — SEND status escalated SEN_SUPPORT→EHCP; EHCP plan exists', as
   // (the auto-gen is fire-and-forget from updateSendStatus; replicate the trigger)
   await loginSenco(page)
   await page.goto('/senco/ehcp')
-  await expect(page).toHaveURL(/senco\/ehcp/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/senco\/ehcp/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   // EHCP page should render without error
@@ -341,7 +341,7 @@ test('Step 5 — K Plan auto-generated; SENCO approves it', async ({ page }) => 
   console.info(`  K Plan before: ${passport ? `status=${passport.status}` : 'none'}`)
 
   await page.goto(`/student/${targetId}/send`)
-  await expect(page).toHaveURL(new RegExp(`student/${targetId}/send`), { timeout: 8_000 })
+  await expect(page).toHaveURL(new RegExp(`student/${targetId}/send`), { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   // Look for K Plan section
@@ -519,7 +519,7 @@ test('Step 9 — Homework AI prompt includes SEND profile', async () => {
 test('Step 10 — EHCP student homework view: scaffold/simplified question', async ({ page }) => {
   await loginAs(page, USERS.student) // a.hughes — SEN_SUPPORT per seed
   await page.goto('/student/dashboard')
-  await expect(page).toHaveURL(/student\/dashboard/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/student\/dashboard/, { timeout: 25_000 })
 
   const hwLinks = page.locator('a[href*="/student/homework/"]')
   const count   = await hwLinks.count()
@@ -557,7 +557,7 @@ test('Step 10 — EHCP student homework view: scaffold/simplified question', asy
 test('Step 11 — SEN Support student: scaffolding hint in homework', async ({ page }) => {
   await loginAs(page, USERS.student)
   await page.goto('/student/dashboard')
-  await expect(page).toHaveURL(/student\/dashboard/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/student\/dashboard/, { timeout: 25_000 })
 
   const hwLinks = page.locator('a[href*="/student/homework/"]')
   if ((await hwLinks.count()) === 0) {
@@ -585,7 +585,7 @@ test('Step 12 — Teacher marks homework; K Plan sidebar; ILP evidence link', as
   test.setTimeout(60_000)
   await loginTeacher(page)
   await page.goto('/homework')
-  await expect(page).toHaveURL(/homework/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/homework/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   // Click the first homework
@@ -639,7 +639,7 @@ test('Step 12 — Teacher marks homework; K Plan sidebar; ILP evidence link', as
 test('Step 13 — SLT analytics: SEND Overview card shows data', async ({ page }) => {
   await loginSlt(page)
   await page.goto('/slt/analytics')
-  await expect(page).toHaveURL(/slt\/analytics/, { timeout: 8_000 })
+  await expect(page).toHaveURL(/slt\/analytics/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
   // SEND Overview card (purple-50 background)

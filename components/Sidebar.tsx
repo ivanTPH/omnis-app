@@ -57,8 +57,9 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Messages',             href: '/messages',           icon: 'chat'           },
     { label: 'Notifications',        href: '/notifications',      icon: 'notifications'  },
     { divider: true, label: 'Pastoral' },
+    { label: 'Welfare',       href: '/hoy/welfare',        icon: 'favorite'       },
     { label: 'Integrity',     href: '/hoy/integrity',      icon: 'warning'        },
-    { label: 'SEND Concerns', href: '/senco/concerns',     icon: 'favorite'       },
+    { label: 'SEND Concerns', href: '/senco/concerns',     icon: 'report_problem' },
     { label: 'Plans',         href: '/plans',              icon: 'folder'         },
   ],
   SENCO: [

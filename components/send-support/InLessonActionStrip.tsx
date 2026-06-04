@@ -246,16 +246,35 @@ function LogConcernModal({
 
 // ── K Plans Overlay ────────────────────────────────────────────────────────────
 
-function KPlansOverlay({ classId, onClose }: { classId: string; onClose: () => void }) {
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const sendStudents = students.filter(s => s.sendStatus !== 'NONE')
+type PreloadedKPlanEntry = {
+  id:              string
+  name:            string
+  sendStatus:      string
+  iLearnBestWhen?: string | null
+  pleaseHelpMeBy?: string | null
+}
+
+function KPlansOverlay({
+  classId,
+  onClose,
+  preloadedStudents,
+}: {
+  classId: string
+  onClose: () => void
+  preloadedStudents?: PreloadedKPlanEntry[]
+}) {
+  const [apiStudents, setApiStudents] = useState<Student[]>([])
+  const [loading,     setLoading]     = useState(!preloadedStudents)
 
   useEffect(() => {
+    if (preloadedStudents) return
     getClassStudentsForStrip(classId)
-      .then(setStudents)
+      .then(setApiStudents)
       .finally(() => setLoading(false))
-  }, [classId])
+  }, [classId, preloadedStudents])
+
+  const sendStudents: PreloadedKPlanEntry[] = preloadedStudents
+    ?? apiStudents.filter(s => s.sendStatus !== 'NONE').map(s => ({ id: s.id, name: s.name, sendStatus: s.sendStatus }))
 
   return (
     <div className="absolute left-0 right-0 top-full mt-1 z-40 bg-white border border-amber-200 rounded-xl shadow-lg overflow-hidden">
@@ -278,25 +297,45 @@ function KPlansOverlay({ classId, onClose }: { classId: string; onClose: () => v
           No SEND students currently in this class.
         </div>
       ) : (
-        <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+        <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
           {sendStudents.map(s => (
-            <div key={s.id} className="flex items-center justify-between px-4 py-2.5">
-              <div>
-                <span className="text-sm font-medium text-gray-900">{s.name}</span>
-                <span className={`ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                  s.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                }`}>
-                  {s.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
-                </span>
+            <div key={s.id} className="px-4 py-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-900">{s.name}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    s.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {s.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}
+                  </span>
+                </div>
+                <a
+                  href={`/student/${s.id}/send`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800"
+                >
+                  Full record <Icon name="open_in_new" size="sm" />
+                </a>
               </div>
-              <a
-                href={`/student/${s.id}/send`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-              >
-                K Plan <Icon name="open_in_new" size="sm" />
-              </a>
+              {(s.iLearnBestWhen || s.pleaseHelpMeBy) ? (
+                <div className="bg-emerald-50 rounded-lg px-3 py-2 space-y-1">
+                  {s.iLearnBestWhen && (
+                    <p className="text-[11px] text-gray-700">
+                      <span className="font-semibold text-emerald-700">Learns best: </span>
+                      {s.iLearnBestWhen}
+                    </p>
+                  )}
+                  {s.pleaseHelpMeBy && (
+                    <p className="text-[11px] text-gray-700">
+                      <span className="font-semibold text-emerald-700">Help me by: </span>
+                      {s.pleaseHelpMeBy}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-400 italic">No K Plan content yet.</p>
+              )}
             </div>
           ))}
         </div>
@@ -308,11 +347,13 @@ function KPlansOverlay({ classId, onClose }: { classId: string; onClose: () => v
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function InLessonActionStrip({
-  lessonId, classId, lessonTitle,
+  lessonId, classId, lessonTitle, preloadedKPlanStudents,
 }: {
   lessonId: string
   classId: string
   lessonTitle?: string
+  /** Pre-loaded K Plan data from getLessonDetails — avoids extra API call in SEND & Inclusion tab */
+  preloadedKPlanStudents?: PreloadedKPlanEntry[]
 }) {
   const [supportOpen,  setSupportOpen]  = useState(false)
   const [concernOpen,  setConcernOpen]  = useState(false)
@@ -386,7 +427,11 @@ export default function InLessonActionStrip({
 
         {/* K Plans overlay */}
         {kPlansOpen && (
-          <KPlansOverlay classId={classId} onClose={() => setKPlansOpen(false)} />
+          <KPlansOverlay
+            classId={classId}
+            onClose={() => setKPlansOpen(false)}
+            preloadedStudents={preloadedKPlanStudents}
+          />
         )}
 
         {/* AI suggestions panel */}

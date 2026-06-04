@@ -198,7 +198,7 @@ export async function getLessonDetails(lessonId: string) {
 
   const enrolledIds = lesson.class?.enrolments.map(e => e.user.id) ?? []
 
-  const [sendStatuses, plans, snapshots] = enrolledIds.length
+  const [sendStatuses, plans, snapshots, ilpsByStudent, ehcpsByStudent, kPlansRaw] = enrolledIds.length
     ? await Promise.all([
         prisma.sendStatus.findMany({
           where: { studentId: { in: enrolledIds }, NOT: { activeStatus: 'NONE' } },
@@ -219,8 +219,42 @@ export async function getLessonDetails(lessonId: string) {
           where: { id: { in: enrolledIds } },
           select: { id: true, supportSnapshot: true },
         }).catch(() => [] as { id: string; supportSnapshot: string | null }[]),
+        // Active ILP targets per SEND student (SEND & Inclusion tab)
+        prisma.individualLearningPlan.findMany({
+          where: { studentId: { in: enrolledIds }, schoolId, status: 'active' },
+          select: {
+            studentId: true,
+            targets: {
+              where: { status: 'active' },
+              take: 3,
+              select: { id: true, target: true, strategy: true, successMeasure: true, targetDate: true, status: true },
+            },
+          },
+        }).catch(() => [] as { studentId: string; targets: { id: string; target: string; strategy: string; successMeasure: string; targetDate: Date; status: string }[] }[]),
+        // Active EHCP outcomes per EHCP student (SEND & Inclusion tab)
+        prisma.ehcpPlan.findMany({
+          where: { studentId: { in: enrolledIds }, schoolId, status: 'active' },
+          select: {
+            studentId: true,
+            outcomes: {
+              where: { status: 'active' },
+              take: 2,
+              select: { id: true, outcomeText: true, section: true, provisionRequired: true },
+            },
+          },
+        }).catch(() => [] as { studentId: string; outcomes: { id: string; outcomeText: string; section: string; provisionRequired: string | null }[] }[]),
+        // K Plan (student voice) — only show when GDPR consented
+        prisma.kPlan.findMany({
+          where: { studentId: { in: enrolledIds }, schoolId, gdprConsented: true },
+          select: {
+            studentId:              true,
+            iLearnBestWhen:         true,
+            pleaseHelpMeBy:         true,
+            examAccessArrangements: true,
+          },
+        }).catch(() => [] as { studentId: string; iLearnBestWhen: string | null; pleaseHelpMeBy: string | null; examAccessArrangements: string[] }[]),
       ])
-    : [[], [], []]
+    : [[], [], [], [], [], []]
 
   // Merge snapshots onto sendStatuses
   const snapshotMap = new Map((snapshots as { id: string; supportSnapshot: string | null }[]).map(u => [u.id, u.supportSnapshot]))
@@ -233,6 +267,29 @@ export async function getLessonDetails(lessonId: string) {
   const planByStudent = new Map<string, typeof plans[0]>()
   for (const p of plans) {
     if (!planByStudent.has(p.studentId)) planByStudent.set(p.studentId, p)
+  }
+
+  // ILP targets grouped by studentId
+  type IlpTargetRow = { id: string; target: string; strategy: string; successMeasure: string; targetDate: Date; status: string }
+  const ilpTargetsByStudent: Record<string, IlpTargetRow[]> = {}
+  for (const ilp of ilpsByStudent as { studentId: string; targets: IlpTargetRow[] }[]) {
+    if (!ilpTargetsByStudent[ilp.studentId]) ilpTargetsByStudent[ilp.studentId] = []
+    ilpTargetsByStudent[ilp.studentId].push(...ilp.targets)
+  }
+
+  // EHCP outcomes grouped by studentId
+  type EhcpOutcomeRow = { id: string; outcomeText: string; section: string; provisionRequired: string | null }
+  const ehcpOutcomesByStudent: Record<string, EhcpOutcomeRow[]> = {}
+  for (const ehcp of ehcpsByStudent as { studentId: string; outcomes: EhcpOutcomeRow[] }[]) {
+    if (!ehcpOutcomesByStudent[ehcp.studentId]) ehcpOutcomesByStudent[ehcp.studentId] = []
+    ehcpOutcomesByStudent[ehcp.studentId].push(...ehcp.outcomes)
+  }
+
+  // K Plan by studentId (only GDPR-consented records)
+  type KPlanRow = { studentId: string; iLearnBestWhen: string | null; pleaseHelpMeBy: string | null; examAccessArrangements: string[] }
+  const kPlanByStudent: Record<string, KPlanRow> = {}
+  for (const kp of kPlansRaw as KPlanRow[]) {
+    kPlanByStudent[kp.studentId] = kp
   }
 
   const [termAgg, subjectMedian] = lesson.class
@@ -252,6 +309,9 @@ export async function getLessonDetails(lessonId: string) {
     ...lesson,
     sendStatuses: sendStatusesWithSnapshot,
     planByStudent: Object.fromEntries(planByStudent),
+    ilpTargetsByStudent,
+    ehcpOutcomesByStudent,
+    kPlanByStudent,
     termAgg,
     subjectMedian,
   }
@@ -1279,4 +1339,85 @@ export async function addRosterNote(studentId: string, content: string): Promise
   } catch (err) {
     console.error('[addRosterNote] error:', err)
   }
+}
+
+/** AI suggestion: 1–2 bullet adaptations for a specific student in this lesson. */
+export async function suggestStudentLessonAdaptation(
+  studentId: string,
+  lessonId: string,
+): Promise<string[]> {
+  const { schoolId } = await requireAuth()
+
+  const [student, lesson, ilpTargets] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id: studentId, schoolId },
+      select: { firstName: true, lastName: true },
+    }),
+    prisma.lesson.findFirst({
+      where: { id: lessonId, schoolId },
+      select: { title: true, objectives: true, class: { select: { subject: true, yearGroup: true } } },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where: { studentId, schoolId, status: 'active' },
+      select: {
+        areasOfNeed: true,
+        targets: {
+          where: { status: 'active' },
+          take: 3,
+          select: { target: true, strategy: true, successMeasure: true },
+        },
+      },
+    }),
+  ])
+
+  if (!student || !lesson) return []
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return [
+      'Break instructions into 2–3 short steps with a visual checklist.',
+      'Provide sentence starters or key vocabulary on a prompt card.',
+    ]
+  }
+
+  const studentName = `${student.firstName} ${student.lastName}`
+  const targetLines = ilpTargets?.targets.map(t => `- ${t.target} (strategy: ${t.strategy})`).join('\n') ?? 'No active ILP targets on file.'
+  const needAreas = ilpTargets?.areasOfNeed ?? 'Not specified'
+  const subject = lesson.class?.subject ?? 'this subject'
+  const yearGroup = lesson.class?.yearGroup ? `Year ${lesson.class.yearGroup}` : ''
+  const objectives = lesson.objectives?.length ? lesson.objectives.join('; ') : 'Not specified'
+
+  const prompt = `You are a UK secondary school SENCO advising a class teacher.
+Student: ${studentName} (${yearGroup} ${subject})
+Lesson title: ${lesson.title ?? 'untitled'}
+Learning objectives: ${objectives}
+Need areas: ${needAreas}
+Active ILP targets:
+${targetLines}
+
+Give exactly 2 short, practical, classroom-ready adaptation suggestions for this specific student for this lesson. Each suggestion must be one sentence, actionable, and reference the student's specific ILP needs.
+Return JSON only: {"suggestions": ["...", "..."]}`
+
+  try {
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = msg.content[0]?.type === 'text' ? msg.content[0].text : ''
+    const match = text.match(/\{[\s\S]*\}/)
+    if (match) {
+      const parsed = JSON.parse(match[0]) as { suggestions?: string[] }
+      if (Array.isArray(parsed.suggestions)) return parsed.suggestions.slice(0, 2)
+    }
+  } catch (err) {
+    console.error('[suggestStudentLessonAdaptation]', err)
+  }
+
+  return [
+    'Break instructions into 2–3 short steps with a visual checklist.',
+    'Provide sentence starters or key vocabulary on a prompt card.',
+  ]
 }

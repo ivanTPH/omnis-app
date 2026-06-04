@@ -6,9 +6,8 @@ import UITooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives } from '@/app/actions/lessons'
+import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives, suggestStudentLessonAdaptation } from '@/app/actions/lessons'
 import { getTeacherDefaults } from '@/app/actions/analytics'
-import { getClassSendSummary, type ClassSendSummary } from '@/app/actions/send-support'
 import { createHomework } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion, ProposalResult } from '@/lib/homework-helpers'
 import { streamAiRequest } from '@/lib/ai-stream'
@@ -87,7 +86,7 @@ function autoResize(el: HTMLTextAreaElement | null) {
   el.style.height = `${el.scrollHeight}px`
 }
 
-const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Insights'] as const
+const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'SEND & Inclusion', 'Insights'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
 type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number; ilpTargetIds?: string[] }
@@ -124,53 +123,6 @@ interface Props {
   inline?:     boolean
 }
 
-// ── Class SEND Summary card (Overview tab) ────────────────────────────────────
-function ClassSendSummaryCard({ classId }: { classId: string }) {
-  const [summary, setSummary] = useState<ClassSendSummary | null>(null)
-
-  useEffect(() => {
-    getClassSendSummary(classId)
-      .then(setSummary)
-      .catch(() => {})
-  }, [classId])
-
-  if (!summary) return null
-  if (summary.senSupportCount === 0 && summary.ehcpCount === 0) return null
-
-  return (
-    <div className="border border-blue-200 rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border-b border-blue-100">
-        <div className="flex items-center gap-2">
-          <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
-          <span className="text-[12px] font-semibold text-blue-800">Class SEND</span>
-        </div>
-        <Link
-          href="/senco/ilp"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-medium"
-        >
-          <Icon name="open_in_new" size="sm" />
-          Full ILP list
-        </Link>
-      </div>
-      <div className="flex items-center gap-4 px-4 py-3">
-        {summary.senSupportCount > 0 && (
-          <div className="flex items-center gap-1.5">
-            <SendBadge status="SEN_SUPPORT" />
-            <span className="text-[12px] text-gray-700 font-medium">{summary.senSupportCount} student{summary.senSupportCount !== 1 ? 's' : ''}</span>
-          </div>
-        )}
-        {summary.ehcpCount > 0 && (
-          <div className="flex items-center gap-1.5">
-            <SendBadge status="EHCP" />
-            <span className="text-[12px] text-gray-700 font-medium">{summary.ehcpCount} student{summary.ehcpCount !== 1 ? 's' : ''}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 
 // ── SEND Overview disclosure (Class tab) ──────────────────────────────────────
 function SendOverviewDisclosure({ classId }: { classId: string }) {
@@ -263,6 +215,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [teacherClasses,     setTeacherClasses]     = useState<{ id: string; name: string; subject: string; yearGroup: number }[]>([])
   const [analyticsClassId,   setAnalyticsClassId]   = useState<string | null>(null)
   const [analyticsClassesLoaded, setAnalyticsClassesLoaded] = useState(false)
+
+  // SEND & Inclusion tab state
+  const [sendExpandedIds,    setSendExpandedIds]    = useState<Set<string>>(new Set())
+  const [sendSuggestions,    setSendSuggestions]    = useState<Record<string, string[]>>({})
+  const [sendSuggesting,     setSendSuggesting]     = useState<Record<string, boolean>>({})
 
   // Editable overview state
   const [title,           setTitle]           = useState('')
@@ -588,11 +545,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   }
 
   const TAB_ICONS: Record<Tab, React.ReactNode> = {
-    'Overview':  <Icon name="menu_book"  size="sm" />,
-    'Resources': <Icon name="upload"     size="sm" />,
-    'Homework':  <Icon name="assignment" size="sm" />,
-    'Class':     <Icon name="people"     size="sm" />,
-    'Insights':  <Icon name="analytics"  size="sm" />,
+    'Overview':          <Icon name="menu_book"        size="sm" />,
+    'Resources':         <Icon name="upload"           size="sm" />,
+    'Homework':          <Icon name="assignment"       size="sm" />,
+    'Class':             <Icon name="people"           size="sm" />,
+    'SEND & Inclusion':  <Icon name="accessibility_new" size="sm" />,
+    'Insights':          <Icon name="analytics"        size="sm" />,
   }
 
   return (
@@ -1396,9 +1354,23 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   </div>
                   {saving && <p className="text-[11px] text-gray-400">Saving…</p>}
 
-                  {/* Class SEND summary */}
-                  {lesson?.class?.id && (
-                    <ClassSendSummaryCard classId={lesson.class.id} />
+                  {/* Class SEND summary banner — uses already-loaded sendStatuses */}
+                  {lesson?.sendStatuses && lesson.sendStatuses.length > 0 && (
+                    <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
+                      <div className="flex items-center gap-2">
+                        <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
+                        <span className="text-[12px] text-blue-800">
+                          <span className="font-semibold">{lesson.sendStatuses.length} student{lesson.sendStatuses.length !== 1 ? 's' : ''}</span> with SEND needs in this class
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('SEND & Inclusion')}
+                        className="text-[11px] font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        View details <Icon name="chevron_right" size="sm" />
+                      </button>
+                    </div>
                   )}
 
                   {/* Class SEND Actions — K Plan strip */}
@@ -1840,6 +1812,216 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   </div>
                 )
               )}
+
+              {/* ── SEND & Inclusion ── */}
+              {activeTab === 'SEND & Inclusion' && (() => {
+                const sendStudents = lesson?.sendStatuses ?? []
+                const ilpMap  = lesson?.ilpTargetsByStudent  ?? {}
+                const ehcpMap = lesson?.ehcpOutcomesByStudent ?? {}
+                const kPlanMap = lesson?.kPlanByStudent ?? {}
+
+                if (sendStudents.length === 0) {
+                  return (
+                    <div className="p-7">
+                      <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+                        <Icon name="accessibility_new" size="lg" className="mx-auto text-gray-300 mb-2" />
+                        <p className="text-[12px] text-gray-400">No students with SEND needs in this class.</p>
+                      </div>
+                    </div>
+                  )
+                }
+
+                // Build pre-loaded K Plan entries for the action strip (no extra API call)
+                const kPlanStrip = sendStudents.map(ss => ({
+                  id:              ss.studentId,
+                  name:            `${ss.student.firstName} ${ss.student.lastName}`,
+                  sendStatus:      ss.activeStatus,
+                  iLearnBestWhen:  kPlanMap[ss.studentId]?.iLearnBestWhen ?? null,
+                  pleaseHelpMeBy:  kPlanMap[ss.studentId]?.pleaseHelpMeBy ?? null,
+                }))
+
+                return (
+                  <div className="divide-y divide-gray-100">
+                    {/* In-lesson action strip — amber, always visible */}
+                    {lessonId && lesson?.class?.id && (
+                      <div className="px-7 pt-5">
+                        <InLessonActionStrip
+                          lessonId={lessonId}
+                          classId={lesson.class.id}
+                          lessonTitle={lesson.title ?? undefined}
+                          preloadedKPlanStudents={kPlanStrip}
+                        />
+                      </div>
+                    )}
+
+                    {/* Header */}
+                    <div className="px-7 py-4 bg-blue-50/60 border-b border-blue-100 flex items-center gap-2">
+                      <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
+                      <span className="text-[12px] font-semibold text-blue-800">{sendStudents.length} student{sendStudents.length !== 1 ? 's' : ''} with SEND needs</span>
+                      <Link href="/senco/ilp" target="_blank" rel="noopener noreferrer" className="ml-auto flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium">
+                        <Icon name="open_in_new" size="sm" />Full ILP list
+                      </Link>
+                    </div>
+
+                    {/* Per-student rows */}
+                    {sendStudents.map(ss => {
+                      const studentId = ss.studentId
+                      const name = `${ss.student.firstName} ${ss.student.lastName}`
+                      const targets  = ilpMap[studentId]   ?? []
+                      const outcomes = ehcpMap[studentId]  ?? []
+                      const kPlan    = kPlanMap[studentId] ?? null
+                      const isExpanded = sendExpandedIds.has(studentId)
+                      const suggestions = sendSuggestions[studentId]
+                      const isSuggesting = sendSuggesting[studentId] ?? false
+
+                      return (
+                        <div key={studentId} className="px-7 py-4">
+                          {/* Student header row */}
+                          <button
+                            type="button"
+                            onClick={() => setSendExpandedIds(prev => {
+                              const next = new Set(prev)
+                              next.has(studentId) ? next.delete(studentId) : next.add(studentId)
+                              return next
+                            })}
+                            className="flex items-center gap-3 w-full text-left"
+                          >
+                            <Icon name={isExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0" />
+                            <span className="text-[13px] font-medium text-gray-900 flex-1">{name}</span>
+                            <SendBadge status={ss.activeStatus as 'SEN_SUPPORT' | 'EHCP'} size="sm" />
+                            {targets.length > 0 && (
+                              <span className="text-[10px] text-gray-400">{targets.length} ILP target{targets.length !== 1 ? 's' : ''}</span>
+                            )}
+                            {outcomes.length > 0 && (
+                              <span className="text-[10px] text-purple-500">{outcomes.length} EHCP outcome{outcomes.length !== 1 ? 's' : ''}</span>
+                            )}
+                          </button>
+
+                          {/* Expanded detail */}
+                          {isExpanded && (
+                            <div className="mt-4 ml-7 space-y-4">
+                              {/* ILP targets */}
+                              {targets.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-2">Active ILP Targets</p>
+                                  <div className="space-y-2">
+                                    {targets.map(t => (
+                                      <div key={t.id} className="bg-blue-50 rounded-xl p-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <p className="text-[12px] text-gray-800 flex-1">{t.target}</p>
+                                          <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                            t.status === 'achieved' ? 'bg-green-100 text-green-700' :
+                                            t.status === 'deferred' ? 'bg-amber-100 text-amber-700' :
+                                            'bg-blue-100 text-blue-700'
+                                          }`}>{t.status}</span>
+                                        </div>
+                                        {t.strategy && (
+                                          <p className="text-[11px] text-gray-500 mt-1">Strategy: {t.strategy}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* EHCP outcomes */}
+                              {outcomes.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-purple-600 uppercase tracking-wide mb-2">EHCP Outcomes</p>
+                                  <div className="space-y-2">
+                                    {outcomes.map(o => (
+                                      <div key={o.id} className="bg-purple-50 rounded-xl p-3">
+                                        <p className="text-[11px] font-semibold text-purple-700 mb-0.5">Section {o.section}</p>
+                                        <p className="text-[12px] text-gray-800">{o.outcomeText}</p>
+                                        {o.provisionRequired && (
+                                          <p className="text-[11px] text-gray-500 mt-1">Provision: {o.provisionRequired}</p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* K Plan (student voice) — shown only when GDPR consented */}
+                              {kPlan && (kPlan.iLearnBestWhen || kPlan.pleaseHelpMeBy || kPlan.examAccessArrangements.length > 0) && (
+                                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                                  <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wide mb-2 flex items-center gap-1">
+                                    <Icon name="menu_book" size="sm" />K Plan — Learning Passport
+                                  </p>
+                                  {kPlan.iLearnBestWhen && (
+                                    <div className="mb-2">
+                                      <p className="text-[10px] font-medium text-emerald-600 mb-0.5">I learn best when…</p>
+                                      <p className="text-[12px] text-gray-800">{kPlan.iLearnBestWhen}</p>
+                                    </div>
+                                  )}
+                                  {kPlan.pleaseHelpMeBy && (
+                                    <div className="mb-2">
+                                      <p className="text-[10px] font-medium text-emerald-600 mb-0.5">Please help me by…</p>
+                                      <p className="text-[12px] text-gray-800">{kPlan.pleaseHelpMeBy}</p>
+                                    </div>
+                                  )}
+                                  {kPlan.examAccessArrangements.length > 0 && (
+                                    <div>
+                                      <p className="text-[10px] font-medium text-emerald-600 mb-1">Exam access arrangements</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {kPlan.examAccessArrangements.map((a, i) => (
+                                          <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full">{a}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* No SEND detail available */}
+                              {targets.length === 0 && outcomes.length === 0 && !kPlan && (
+                                <p className="text-[12px] text-gray-400 italic">No active ILP targets or EHCP outcomes on file.</p>
+                              )}
+
+                              {/* Suggest adaptation button */}
+                              {lessonId && (
+                                <div>
+                                  <button
+                                    type="button"
+                                    disabled={isSuggesting}
+                                    onClick={async () => {
+                                      setSendSuggesting(prev => ({ ...prev, [studentId]: true }))
+                                      try {
+                                        const result = await suggestStudentLessonAdaptation(studentId, lessonId)
+                                        setSendSuggestions(prev => ({ ...prev, [studentId]: result }))
+                                      } catch {
+                                        // silent
+                                      } finally {
+                                        setSendSuggesting(prev => ({ ...prev, [studentId]: false }))
+                                      }
+                                    }}
+                                    className="flex items-center gap-1.5 text-[12px] font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors"
+                                  >
+                                    {isSuggesting
+                                      ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>
+                                      : <><Icon name="auto_fix_high" size="sm" />Suggest adaptation</>
+                                    }
+                                  </button>
+                                  {suggestions && suggestions.length > 0 && (
+                                    <div className="mt-2 bg-indigo-50 rounded-xl p-3 space-y-1.5">
+                                      {suggestions.map((s, i) => (
+                                        <div key={i} className="flex items-start gap-2">
+                                          <Icon name="check_circle" size="sm" className="text-indigo-500 shrink-0 mt-0.5" />
+                                          <p className="text-[12px] text-indigo-800">{s}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
 
               {/* ── Insights ── */}
               {activeTab === 'Insights' && (() => {

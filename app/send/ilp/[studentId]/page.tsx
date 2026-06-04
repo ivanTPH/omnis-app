@@ -7,9 +7,11 @@ import Icon from '@/components/ui/Icon'
 import { PlanStatus, StrategyAppliesTo } from '@prisma/client'
 import { getIlpEvidenceForStudent, getStudentSubmissionsForEvidencing } from '@/app/actions/homework'
 import { getStudentActiveIlpTargets } from '@/app/actions/send-support'
+import { getKPlan } from '@/app/actions/kplan'
 import { formatRawScore } from '@/lib/gradeUtils'
 import IlpEvidenceTimeline from '@/components/send-support/IlpEvidenceTimeline'
 import IlpEvidenceLinkPanel from '@/components/send-support/IlpEvidenceLinkPanel'
+import KPlanStudentVoiceSection from '@/components/send-support/KPlanStudentVoiceSection'
 
 export default async function StudentIlpPage({ params }: { params: Promise<{ studentId: string }> }) {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
@@ -23,7 +25,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
   })
   if (!student) notFound()
 
-  const [sendStatus, plan, enrolments, ilpEvidence, submissionsForEvidencing, activeIlpTargets] = await Promise.all([
+  const [sendStatus, plan, enrolments, ilpEvidence, submissionsForEvidencing, activeIlpTargets, kplan] = await Promise.all([
     prisma.sendStatus.findUnique({ where: { studentId } }),
     prisma.plan.findFirst({
       where: {
@@ -50,6 +52,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
     getIlpEvidenceForStudent(studentId),
     getStudentSubmissionsForEvidencing(studentId).catch(() => []),
     getStudentActiveIlpTargets(studentId).catch(() => []),
+    getKPlan(studentId).catch(() => null),
   ])
 
   const classIds = enrolments.map(e => e.classId)
@@ -374,6 +377,16 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                     )}
                   </div>
                 </div>
+              )}
+
+              {/* K Plan — Learning Passport */}
+              {['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role) && (
+                <KPlanStudentVoiceSection
+                  kplan={kplan}
+                  studentId={studentId}
+                  studentName={`${student.firstName} ${student.lastName}`}
+                  isSenco={['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)}
+                />
               )}
 
               {/* Misconceptions */}

@@ -196,6 +196,7 @@ enum AuditAction {
   AGENT_RECOMMENDATION_OVERRIDDEN
   AGENT_RECOMMENDATION_DISMISSED
   LESSON_SUPPORT_REQUESTED
+  K_PLAN_UPDATED
 }
 
 enum AgentType {
@@ -316,6 +317,7 @@ model School {
 
   // K Plan (Learning Passport)
   learnerPassports     LearnerPassport[]
+  kPlans               KPlan[]           @relation("SchoolKPlans")
 
   // Performance tracking
   studentBaselines     StudentBaseline[]
@@ -448,6 +450,7 @@ model User {
 
   // K Plan (Learning Passport)
   learnerPassports     LearnerPassport[]      @relation("StudentPassports")
+  kPlan                KPlan?                 @relation("StudentKPlan")
   earlyWarningActioned EarlyWarningFlag[]     @relation("FlagActioner")
 
   // Phase 6 — Adaptive Learning & EHCP
@@ -2172,6 +2175,29 @@ model LearnerPassport {
 
   @@index([schoolId, studentId])
   @@index([schoolId, status])
+}
+
+// ── K Plan (Learning Passport — student voice) ────────────────────────────────
+// Distinct from LearnerPassport (old model). Student-authored, GDPR-gated.
+model KPlan {
+  id                     String   @id @default(cuid())
+  schoolId               String
+  studentId              String   @unique
+  gdprConsented          Boolean  @default(false)
+  iLearnBestWhen         String?
+  pleaseHelpMeBy         String?
+  dontDoThis             String?
+  myStrengths            String[]
+  communicationStyle     String?
+  examAccessArrangements String[]
+  lastUpdatedBy          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  school  School @relation("SchoolKPlans", fields: [schoolId], references: [id])
+  student User   @relation("StudentKPlan", fields: [studentId], references: [id])
+
+  @@index([schoolId])
 }
 
 model SendNotification {

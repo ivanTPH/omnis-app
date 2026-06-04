@@ -30,24 +30,25 @@ export default function SencoDashboard({ data }: Props) {
   }
 
   const kpis = [
-    { label: 'Open Concerns',      value: data.openConcerns,      iconName: 'warning',         color: data.openConcerns > 0 ? 'text-amber-600' : 'text-gray-400' },
-    { label: 'High Severity Flags', value: data.highSeverityFlags, iconName: 'radar',           color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-400' },
-    { label: 'Students with ILP',  value: data.studentsWithIlp,   iconName: 'favorite_border', color: 'text-blue-600' },
-    { label: 'Reviews Due (14d)',   value: data.ilpReviewsDue,     iconName: 'schedule',        color: data.ilpReviewsDue > 0 ? 'text-orange-600' : 'text-gray-400' },
+    { label: 'Open Concerns',       value: data.openConcerns,      iconName: 'warning',         color: data.openConcerns > 0 ? 'text-amber-600' : 'text-gray-400',    href: '/senco/concerns' },
+    { label: 'High Severity Flags', value: data.highSeverityFlags, iconName: 'radar',           color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-400', href: '/senco/early-warning' },
+    { label: 'Students with ILP',   value: data.studentsWithIlp,   iconName: 'favorite_border', color: 'text-blue-600',                                                href: '/senco/ilp' },
+    { label: 'Reviews Due (14d)',    value: data.ilpReviewsDue,     iconName: 'schedule',        color: data.ilpReviewsDue > 0 ? 'text-orange-600' : 'text-gray-400',  href: '/senco/ilp' },
   ]
 
   return (
     <div className="p-6 space-y-6">
-      {/* KPI row */}
+      {/* KPI row — each card links to the relevant section */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {kpis.map(k => (
-          <div key={k.label} className="card-stat">
+          <Link key={k.label} href={k.href} className="card-stat hover:shadow-md hover:border-gray-300 transition-all group">
             <div className="flex items-center gap-2 mb-2">
               <Icon name={k.iconName} size="md" className={k.color} />
               <span className="text-xs text-gray-500 font-medium">{k.label}</span>
+              <Icon name="arrow_forward" size="sm" className="ml-auto text-gray-300 group-hover:text-gray-500 transition-colors" />
             </div>
             <div className={`text-3xl font-bold ${k.color}`}>{k.value}</div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -68,89 +69,70 @@ export default function SencoDashboard({ data }: Props) {
         )}
       </div>
 
-      {/* Open Concerns — action required */}
-      {data.openConcernsList.length > 0 && (
-        <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-amber-100 flex items-center gap-2 bg-amber-50">
-            <Icon name="flag" size="sm" className="text-amber-500" />
-            <h3 className="font-semibold text-amber-900 text-sm">
-              Open Concerns — Action Required
-            </h3>
-            <span className="ml-auto text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
-              {data.openConcernsList.length}
-            </span>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {data.openConcernsList.map(c => (
-              <div key={c.id} className="px-4 py-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-gray-900">{c.studentName}</p>
-                      <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                        {c.category.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Raised by {c.raiserName} · {new Date(c.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                    </p>
-                    <p className="text-sm text-gray-700 mt-1">{c.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Recent concerns */}
-        <div className="bg-white border border-gray-200 rounded-xl">
+        {/* Recent concerns — each row links to the concerns page to review and action */}
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
             <Icon name="warning" size="sm" className="text-amber-500" />
             <h3 className="font-medium text-gray-900 text-sm">Recent Concerns</h3>
+            <Link href="/senco/concerns" className="ml-auto text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-0.5">
+              View all <Icon name="arrow_forward" size="sm" />
+            </Link>
           </div>
           {data.recentConcerns.length === 0 ? (
             <p className="p-4 text-sm text-gray-500">No concerns raised.</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {data.recentConcerns.map(c => (
-                <div key={c.id} className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{c.studentName}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{c.category} · raised by {c.raiserName}</p>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-1">{c.description}</p>
-                    </div>
-                    <ConcernStatusBadge status={c.status} />
+                <Link
+                  key={c.id}
+                  href="/senco/concerns"
+                  className="flex items-start justify-between gap-2 px-4 py-3 hover:bg-amber-50 transition-colors group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-amber-900">{c.studentName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{c.category} · raised by {c.raiserName}</p>
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">{c.description}</p>
                   </div>
-                </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <ConcernStatusBadge status={c.status} />
+                    <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-amber-500 transition-colors" />
+                  </div>
+                </Link>
               ))}
             </div>
           )}
         </div>
 
-        {/* Active flags */}
-        <div className="bg-white border border-gray-200 rounded-xl">
+        {/* Active flags — each row links to early warning page to dismiss/action */}
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
             <Icon name="radar" size="sm" className="text-blue-500" />
             <h3 className="font-medium text-gray-900 text-sm">Active Warning Flags</h3>
+            <Link href="/senco/early-warning" className="ml-auto text-[11px] text-blue-600 hover:text-blue-800 font-medium flex items-center gap-0.5">
+              View all <Icon name="arrow_forward" size="sm" />
+            </Link>
           </div>
           {data.activeFlags.length === 0 ? (
             <p className="p-4 text-sm text-gray-500">No active flags.</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {data.activeFlags.map(f => (
-                <div key={f.id} className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{f.studentName}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{f.flagType.replace(/_/g, ' ')}</p>
-                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">{f.description}</p>
-                    </div>
-                    <SeverityBadge severity={f.severity} />
+                <Link
+                  key={f.id}
+                  href="/senco/early-warning"
+                  className="flex items-start justify-between gap-2 px-4 py-3 hover:bg-blue-50 transition-colors group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-blue-900">{f.studentName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{f.flagType.replace(/_/g, ' ')}</p>
+                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{f.description}</p>
                   </div>
-                </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <SeverityBadge severity={f.severity} />
+                    <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+                  </div>
+                </Link>
               ))}
             </div>
           )}

@@ -35,7 +35,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
   const [teacherNote,       setTeacherNote]       = useState('')
   const [qualityRating,     setQualityRating]     = useState(3)
   const [linking,           setLinking]           = useState(false)
-  const [linked,            setLinked]            = useState<string | null>(null) // last-linked outcomeId for feedback
+  const [linkedCounts,      setLinkedCounts]      = useState<Record<string, number>>({}) // outcomeId → count added this session
 
   // AI Evidence Agent suggestion queue
   const [suggestions,       setSuggestions]       = useState<PendingEvidenceSuggestion[] | null>(null)
@@ -83,11 +83,13 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
     try {
       await linkSubmissionToEhcpOutcome(selectedSubId, evidenceOutcomeId, teacherNote, qualityRating)
       setOutcomes(prev => prev.map(o => o.id === evidenceOutcomeId ? { ...o, evidenceCount: o.evidenceCount + 1 } : o))
-      setLinked(evidenceOutcomeId)
-      setEvidenceOutcomeId(null)
+      setLinkedCounts(prev => ({ ...prev, [evidenceOutcomeId]: (prev[evidenceOutcomeId] ?? 0) + 1 }))
+      // Reset selection so user can immediately pick another submission
       setSelectedSubId(null)
       setTeacherNote('')
-      setTimeout(() => setLinked(null), 3000)
+      setQualityRating(3)
+      // Close picker — user sees the "linked" success strip and can re-open to add more
+      setEvidenceOutcomeId(null)
     } finally {
       setLinking(false)
     }
@@ -196,8 +198,8 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
               </div>
             </div>
 
-            {outcome.status === 'active' && (
-              <div className={`border-t border-gray-100 px-4 py-2 ${outcome.evidenceCount === 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
+            {outcome.status !== 'achieved' && (
+              <div className={`border-t border-gray-100 px-4 py-2 ${outcome.evidenceCount === 0 && outcome.status === 'active' ? 'bg-amber-50' : 'bg-gray-50'}`}>
                 {evidenceOutcomeId === outcome.id ? (
                   <div className="space-y-3 py-1">
                     <p className="text-xs font-semibold text-gray-700">Link homework evidence to this outcome</p>
@@ -250,18 +252,22 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                       <button onClick={() => setEvidenceOutcomeId(null)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
                     </div>
                   </div>
-                ) : linked === outcome.id ? (
-                  <p className="text-xs text-green-700 flex items-center gap-1">
-                    <Icon name="check_circle" size="sm" /> Evidence linked successfully
-                  </p>
                 ) : (
-                  <button
-                    onClick={() => openEvidencePicker(outcome.id)}
-                    className="text-xs text-amber-700 hover:text-amber-900 flex items-center gap-1 font-medium"
-                  >
-                    <Icon name="add" size="sm" />
-                    {outcome.evidenceCount === 0 ? 'Link evidence from homework' : `Add more evidence (${outcome.evidenceCount} linked)`}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => openEvidencePicker(outcome.id)}
+                      className="text-xs text-purple-700 hover:text-purple-900 flex items-center gap-1 font-medium"
+                    >
+                      <Icon name="add_link" size="sm" />
+                      {outcome.evidenceCount === 0 ? 'Link evidence from homework' : `Add more evidence (${outcome.evidenceCount} linked)`}
+                    </button>
+                    {(linkedCounts[outcome.id] ?? 0) > 0 && (
+                      <span className="text-xs text-green-700 flex items-center gap-1">
+                        <Icon name="check_circle" size="sm" />
+                        {linkedCounts[outcome.id]} piece{(linkedCounts[outcome.id] ?? 0) !== 1 ? 's' : ''} linked this session
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             )}

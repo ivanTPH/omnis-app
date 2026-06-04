@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { ConcernRow } from '@/app/actions/send-support'
 import { reviewConcern, requestAiAnalysis, generateILPFromConcern } from '@/app/actions/send-support'
@@ -34,6 +35,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
   const [ilpError,       setIlpError]        = useState<string | null>(null)
   const [saving,         setSaving]          = useState(false)
   const [error,          setError]           = useState<string | null>(null)
+  const [savedWithIlp,   setSavedWithIlp]    = useState(false)
   const [nextReviewDate, setNextReviewDate]  = useState(
     concern.nextReviewDate ? new Date(concern.nextReviewDate).toISOString().split('T')[0] : ''
   )
@@ -82,12 +84,16 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
     setSaving(true)
     setError(null)
     try {
-      await reviewConcern(concern.id, status, reviewNotes, {
+      const result = await reviewConcern(concern.id, status, reviewNotes, {
         nextReviewDate:  isClosing ? null : (nextReviewDate || null),
         assignedToId:    showAssign && assignedToId ? assignedToId : null,
         assignedAction:  showAssign && assignedToId ? assignedAction : null,
       })
-      onClose()
+      if (result.ilpGenerated) {
+        setSavedWithIlp(true)
+      } else {
+        onClose()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save review')
     } finally {
@@ -109,7 +115,27 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {savedWithIlp && (
+          <div className="p-8 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+              <Icon name="check_circle" size="lg" className="text-green-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">Concern saved &amp; ILP auto-generated</p>
+              <p className="text-sm text-gray-500 mt-1">A draft ILP has been created for {concern.studentName} based on this concern. Review and activate it in the ILP records.</p>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/senco/ilp" className="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+                View ILP Records
+              </Link>
+              <button type="button" onClick={onClose} className="px-5 py-2 border border-gray-200 rounded-lg text-sm">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!savedWithIlp && <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Concern details */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-3">
             <div>
@@ -150,8 +176,16 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
             )}
           </div>
 
-          {/* Generate ILP from concern */}
-          {!concern.hasActiveIlp && !['closed', 'no_action'].includes(concern.status) && (
+          {/* Auto-ILP notice when escalating */}
+          {status === 'escalated' && !concern.hasActiveIlp && (
+            <div className="flex items-start gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+              <Icon name="auto_awesome" size="sm" className="text-green-600 shrink-0 mt-0.5" />
+              <p>Saving as <strong>Escalated</strong> will automatically generate a draft ILP for {concern.studentName} using AI.</p>
+            </div>
+          )}
+
+          {/* Generate ILP from concern — shown for non-escalated statuses only */}
+          {!concern.hasActiveIlp && !['closed', 'no_action'].includes(concern.status) && status !== 'escalated' && (
             <div className="rounded-xl border border-green-200 overflow-hidden">
               <div className="px-4 py-3 bg-green-50 flex items-center gap-2">
                 <Icon name="description" size="sm" className="text-green-600 shrink-0" />
@@ -290,7 +324,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
               {saving ? 'Saving…' : 'Save Review'}
             </button>
           </div>
-        </form>
+        </form>}
       </div>
     </div>
   )

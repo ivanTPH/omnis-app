@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { SencoDashboardData } from '@/app/actions/send-support'
-import { triggerEarlyWarningAnalysis } from '@/app/actions/send-support'
+import { triggerEarlyWarningAnalysis, generateILPFromConcern } from '@/app/actions/send-support'
 import { ConcernStatusBadge } from './ConcernList'
 import { SeverityBadge } from './EarlyWarningPanel'
 
@@ -18,6 +18,26 @@ export default function SencoDashboard({ data }: Props) {
   const [reviewsExpanded,  setReviewsExpanded]  = useState(false)
   const [alertsExpanded,   setAlertsExpanded]   = useState(false)
   const [expandedAlert,    setExpandedAlert]    = useState<string | null>(null)
+  const [ilpGenerating,    setIlpGenerating]    = useState<Record<string, boolean>>({})
+  const [ilpDone,          setIlpDone]          = useState<Record<string, boolean>>({})
+  const [ilpError,         setIlpError]         = useState<Record<string, string>>({})
+
+  async function handleGenerateIlp(concernId: string, studentId: string) {
+    setIlpGenerating(p => ({ ...p, [studentId]: true }))
+    setIlpError(p => ({ ...p, [studentId]: '' }))
+    try {
+      const r = await generateILPFromConcern(concernId)
+      if (r.success) {
+        setIlpDone(p => ({ ...p, [studentId]: true }))
+      } else {
+        setIlpError(p => ({ ...p, [studentId]: r.error ?? 'Generation failed' }))
+      }
+    } catch {
+      setIlpError(p => ({ ...p, [studentId]: 'Generation failed — please try again' }))
+    } finally {
+      setIlpGenerating(p => ({ ...p, [studentId]: false }))
+    }
+  }
 
   async function runAnalysis() {
     setRunning(true)
@@ -51,6 +71,49 @@ export default function SencoDashboard({ data }: Props) {
           </Link>
         ))}
       </div>
+
+      {/* Concerns without ILP — action panel */}
+      {data.concernsWithoutIlp.length > 0 && (
+        <div className="bg-white border border-green-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-green-100 flex items-center gap-2 bg-green-50">
+            <Icon name="auto_awesome" size="sm" className="text-green-600" />
+            <h3 className="font-medium text-green-900 text-sm">Students with Concerns — No ILP Yet</h3>
+            <span className="ml-auto text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full font-medium">
+              {data.concernsWithoutIlp.length} student{data.concernsWithoutIlp.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {data.concernsWithoutIlp.map(c => (
+              <div key={c.studentId} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{c.studentName}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{c.category} · {c.description.slice(0, 60)}{c.description.length > 60 ? '…' : ''}</p>
+                  {ilpError[c.studentId] && <p className="text-xs text-red-500 mt-1">{ilpError[c.studentId]}</p>}
+                </div>
+                <div className="shrink-0">
+                  {ilpDone[c.studentId] ? (
+                    <Link href="/senco/ilp" className="flex items-center gap-1 text-xs text-green-700 font-medium hover:underline">
+                      <Icon name="check_circle" size="sm" className="text-green-600" />
+                      ILP created — View
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => handleGenerateIlp(c.id, c.studentId)}
+                      disabled={ilpGenerating[c.studentId]}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {ilpGenerating[c.studentId]
+                        ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>
+                        : <><Icon name="description" size="sm" /> Generate ILP</>
+                      }
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Run analysis button */}
       <div className="flex items-center gap-4">

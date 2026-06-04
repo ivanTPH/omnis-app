@@ -21,6 +21,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Calendar',          href: '/calendar',           icon: 'calendar_today' },
     { label: 'Homework',          href: '/homework',           icon: 'assignment'     },
     { label: 'My Classes',        href: '/classes',            icon: 'groups'         },
+    { label: 'My SEND Students', href: '/send-caseload',      icon: 'support'        },
     { label: 'Year Group Plans',  href: '/plans/year-group',   icon: 'folder_special' },
     { divider: true, label: 'Learning' },
     { label: 'Revision',          href: '/revision-program',   icon: 'menu_book'      },

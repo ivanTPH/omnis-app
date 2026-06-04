@@ -317,7 +317,6 @@ export async function generateResource(
             '',
             'Return ONLY the JSON object — no markdown fences, no explanation.',
           ].filter(Boolean).join('\n')
-          console.log('[resource-gen] PPT prompt trimmed — was over token budget')
         }
 
         // Scale max_tokens with number of SEND adaptations (each adds ~200 tokens of output)
@@ -353,7 +352,6 @@ export async function generateResource(
         const MAX_PROMPT_TOKENS = 900
         if (estimateTokens(userPrompt) > MAX_PROMPT_TOKENS) {
           userPrompt = buildUserPrompt({ ...input, ...validated }, true /* trimSend */)
-          console.log('[resource-gen] Prompt trimmed — was over token budget')
         }
 
         // Scale max_tokens with SEND complexity (each adaptation can expand content)

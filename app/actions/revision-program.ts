@@ -150,7 +150,6 @@ export async function createRevisionProgram(input: {
       })
       periodLessons = recentFallback.reverse()
     }
-    console.log('[createRevisionProgram] Lessons found:', periodLessons.map(l => l.title))
     const recentLesson = periodLessons.length > 0 ? periodLessons[periodLessons.length - 1] : null
 
     // Fetch adaptive learning profiles for all enrolled students

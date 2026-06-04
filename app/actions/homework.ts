@@ -402,18 +402,6 @@ export async function generateHomeworkFromResources(
   const topic         = (lesson as any).topic ?? ''
   const type          = forceType ?? 'SHORT_ANSWER'
 
-  console.log('[generateHomeworkFromResources] START lessonId:', lessonId, '| lesson:', lesson.title, '| resources:', lesson.resources.length, '| type:', type, '| preferredResourceId:', preferredResourceId ?? 'none')
-  if (lesson.resources.length > 0) {
-    const r0 = lesson.resources[0]
-    console.log('[generateHomeworkFromResources] first resource — type:', r0.type, '| label:', r0.label, '| url:', r0.url, '| oakContentId:', (r0 as any).oakContentId ?? 'none')
-    if (preferredResourceId) {
-      const preferred = lesson.resources.find(r => r.id === preferredResourceId)
-      console.log('[generateHomeworkFromResources] preferred resource —', preferred ? `label: ${preferred.label} | oakContentId: ${(preferred as any).oakContentId ?? 'none'}` : 'NOT FOUND in lesson resources')
-    }
-  } else {
-    console.log('[generateHomeworkFromResources] WARNING: lesson has NO resources — will generate from title only')
-  }
-
   // Learning objectives are the primary curriculum context
   const objectivesContext = lesson.objectives.length > 0
     ? lesson.objectives.map((o, i) => `  ${i + 1}. ${o}`).join('\n')
@@ -737,7 +725,6 @@ ${typePrompt}`
     const raw     = (message.content[0] as any).text.trim()
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
 
-    console.log('[generateHomeworkFromResources] RAW AI RESPONSE (first 500):', cleaned.slice(0, 500))
 
     let parsed: any
     try {
@@ -751,22 +738,17 @@ ${typePrompt}`
           (m: string) => m.replace(/\n/g, '\\n').replace(/\r/g, '\\r'),
         )
         parsed = JSON.parse(repaired)
-        console.log('[generateHomeworkFromResources] JSON repaired after literal-newline fix')
       } catch (parseErr) {
         console.error('[generateHomeworkFromResources] JSON parse FAILED (raw first 300):', cleaned.slice(0, 300))
         return noApiKeyFallback(type, lesson.title, subject)
       }
     }
-    console.log('[generateHomeworkFromResources] PARSED KEYS:', Object.keys(parsed))
-    console.log('[generateHomeworkFromResources] questionsJson?.questions length:', parsed.questionsJson?.questions?.length ?? 'MISSING')
-    console.log('[generateHomeworkFromResources] root questions length:', parsed.questions?.length ?? 'MISSING')
 
     // Validate questionsJson for structured types
     const needsQuestions = type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER'
     const minQuestions   = type === 'SHORT_ANSWER' ? 5 : 4
     const hasQuestions   = parsed.questionsJson?.questions && Array.isArray(parsed.questionsJson.questions) && parsed.questionsJson.questions.length >= minQuestions
     if (needsQuestions && !hasQuestions) {
-      console.warn('[generateHomeworkFromResources] questionsJson missing or too short for', type, '— retrying')
       // Retry once with a more directive prompt
       const retryMsg = await client.messages.create({
         model:      'claude-sonnet-4-6',
@@ -790,8 +772,7 @@ ${typePrompt}`
     }
     // Last resort: fall back to stub questions rather than silently returning none
     if ((type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER') && (!questionsJson || !Array.isArray((questionsJson as any).questions) || (questionsJson as any).questions.length === 0)) {
-      console.warn('[generateHomeworkFromResources] USING STUB FALLBACK — questionsJson still empty after retry for type:', type)
-      const fallback = noApiKeyFallback(type, lesson.title, subject)
+        const fallback = noApiKeyFallback(type, lesson.title, subject)
       questionsJson = fallback.questionsJson
     }
 

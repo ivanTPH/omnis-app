@@ -756,6 +756,7 @@ model Submission {
   ehcpEvidence    HomeworkEhcpEvidence[]
 
   @@unique([homeworkId, studentId])
+  @@index([homeworkId])
   @@index([schoolId, studentId])
   @@index([studentId, markedAt])
   @@index([schoolId, studentId, submittedAt])
@@ -2028,6 +2029,7 @@ model SendConcern {
 
   @@index([schoolId, studentId])
   @@index([schoolId, status])
+  @@index([schoolId, raisedBy])
 }
 
 model IndividualLearningPlan {

@@ -80,7 +80,6 @@ export async function generateRevisionTask(input: {
   learningFormatNotes?: string
   additionalContext?:   string   // teacher-pasted source material for topics not covered in lessons
 }): Promise<RevisionTaskContent> {
-  console.log('[generateRevisionTask] lessons:', input.allLessons?.map(l => l.title), 'lessonTitle:', input.lessonTitle, 'weakTopics:', input.weakTopics)
 
   if (!process.env.ANTHROPIC_API_KEY) return fallbackContent(input)
 

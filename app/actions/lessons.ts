@@ -538,6 +538,59 @@ export async function getSchoolResourceLibrary(forLessonId?: string) {
   })
 }
 
+// ── Full resource library (for /resources page) ───────────────────────────────
+
+export type ResourceLibraryItem = {
+  id:         string
+  label:      string
+  type:       string
+  url:        string | null
+  fileKey:    string | null
+  lessonId:   string | null
+  createdBy:  string
+  createdAt:  Date
+  updatedAt:  Date
+  sendScore:  number | null
+  lessonTitle?: string | null
+  subject?:    string | null
+}
+
+export async function getFullResourceLibrary(
+  typeFilter?: string,
+  query?:      string,
+): Promise<ResourceLibraryItem[]> {
+  const { schoolId } = await requireAuth()
+
+  const resources = await prisma.resource.findMany({
+    where: {
+      schoolId,
+      ...(typeFilter ? { type: typeFilter as ResourceType } : {}),
+      ...(query ? { label: { contains: query, mode: 'insensitive' } } : {}),
+    },
+    include: {
+      review:  { select: { sendScore: true } },
+      lesson:  { select: { title: true, class: { select: { subject: true } } } },
+    },
+    orderBy: { updatedAt: 'desc' },
+    take:    200,
+  })
+
+  return resources.map(r => ({
+    id:         r.id,
+    label:      r.label,
+    type:       r.type,
+    url:        r.url ?? null,
+    fileKey:    r.fileKey ?? null,
+    lessonId:   r.lessonId ?? null,
+    createdBy:  r.createdBy,
+    createdAt:  r.createdAt,
+    updatedAt:  r.updatedAt,
+    sendScore:  r.review?.sendScore ?? null,
+    lessonTitle: r.lesson?.title ?? null,
+    subject:    r.lesson?.class?.subject ?? null,
+  }))
+}
+
 // ── Add URL resource with SEND review ────────────────────────────────────────
 
 export async function addUrlResource(

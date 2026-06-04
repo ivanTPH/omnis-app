@@ -40,19 +40,19 @@ A **K Plan** (also called a Learning Passport in some UK authorities) is a one-p
 
 | Step | Feature | Status |
 |---|---|---|
-| 1 | Auto-generate ILPs from SEND concerns | 🟡 Partial — concerns exist, ILP creation is manual |
-| 2 | ILP audit log | 🟡 Partial — AuditLog exists, ILP changes not always logged |
-| 3 | EHCP escalation from ILP | 🟢 Built — EhcpPlan model exists, escalation action exists |
-| 4 | Assess Plan Do Review (APDR) cycle | 🟡 Partial — review dates exist, APDR workflow not complete |
-| 5 | ILP targets feed adaptive homework | 🟡 Partial — ilpTargetIds on Homework, not used in generation |
-| 6 | Homework marks feed ILP evidence | 🟢 Built — IlpHomeworkLink + HomeworkEhcpEvidence exist |
-| 7 | SLT SEND reporting dashboard | 🔴 Not built |
-| 8 | SEND visibility in lesson planning | 🟡 Partial — SEND tab exists in LessonFolder, class-level only |
+| 1 | Auto-generate ILPs from SEND concerns | 🟢 Built — `generateILPFromConcern()` in send-support.ts; Claude Haiku, 3 SMART targets, rate-limited 20/day; auto-triggers on escalation |
+| 2 | ILP audit log | 🟢 Built — `IlpAuditEntry` model + `writeILPAudit()`; collapsible "Show edit history" timeline in IlpCard (lazy-loaded) |
+| 3 | EHCP escalation from ILP | 🟢 Built — EhcpPlan model + escalation action; SendStatus updated to EHCP on escalation |
+| 4 | Assess Plan Do Review (APDR) cycle | 🟢 Built — APDR panel in IlpCard; do-content, write review, complete cycle, generate new cycle; early-warning cron triggers review-due notifications |
+| 5 | ILP targets feed adaptive homework | 🟢 Built — `CLASS SEND PROFILE` block in homework AI prompt; `scaffolding_hint`, `ehcp_adaptation`, `vocab_support` per question; `promptIlpTargetIds` auto-linked |
+| 6 | Homework marks feed ILP evidence | 🟢 Built — IlpHomeworkLink + HomeworkEhcpEvidence; `checkILPEvidenceMatch` fire-and-forget proactive detection; IlpEvidenceEntry timeline on ILP page |
+| 7 | SLT SEND reporting dashboard | 🟢 Built — `/slt/send` page + `getSltSendDashboard()` with 8 data sections; Recharts line + bar charts; EHCP compliance, ILP coverage, early warning sidebars |
+| 8 | SEND visibility in lesson planning | 🟢 Built — SEND & Inclusion tab in LessonFolder with per-student ILP targets, EHCP provisions, K Plan; SEND summary banner on Overview tab |
 | 2A | SEND risk screen on submission | 🟢 Built — Claude Haiku screen fires after submitHomework; stores Submission.sendRiskScore |
 | 2B | SEND flagging to teacher + SENCO | 🟢 Built — SUBMISSION_FLAGGED Notification when sendRiskScore > 60, deduped |
 | 2C | Adaptive profile update after marking | 🟢 Built — sendConcernLevel + lastHomeworkAt on StudentLearningProfile |
-| 9 | K Plan / Learning Passport generation | 🔴 Not built |
-| 10 | In-lesson teacher action strip | 🔴 Not built |
+| 9 | K Plan / Learning Passport generation | 🟢 Built — KPlan model; `generateKPlanDraft()` with GDPR gate; pastel-green card in LessonFolder; SENCO edit form at /senco/ilp/[studentId] |
+| 10 | In-lesson teacher action strip | 🟢 Built — amber action strip in SEND & Inclusion tab; Request support / Log concern / View K Plans / Quick adapt buttons |
 
 ---
 

@@ -110,3 +110,111 @@ export async function getPlanCoherenceAlerts(schoolId: string): Promise<PlanCohe
     return score(b) - score(a)
   })
 }
+
+// ── Pending recommendation review ─────────────────────────────────────────────
+
+export type AgentRecommendation = {
+  id:              string
+  agentType:       string
+  skillId:         string
+  studentId:       string
+  studentName:     string
+  schoolId:        string
+  outputSummary:   string
+  decision:        string
+  confidence:      number
+  standardsApplied: string[]
+  createdAt:       Date
+  reviewOutcome:   string | null
+  reviewedBy:      string | null
+  reviewedAt:      Date | null
+  reviewNote:      string | null
+}
+
+export async function getPendingAgentRecommendations(
+  filter: 'pending' | 'reviewed' | 'all' = 'pending',
+  page = 0,
+  pageSize = 30,
+): Promise<{ items: AgentRecommendation[]; total: number }> {
+  const { schoolId } = await requireAuth()
+
+  const where = {
+    schoolId,
+    ...(filter === 'pending'  ? { reviewOutcome: null }             : {}),
+    ...(filter === 'reviewed' ? { reviewOutcome: { not: null } }    : {}),
+  }
+
+  const [rows, total] = await Promise.all([
+    prisma.agentAuditEntry.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }],
+      skip:  page * pageSize,
+      take:  pageSize,
+      select: {
+        id: true, agentType: true, skillId: true, studentId: true, schoolId: true,
+        outputSummary: true, decision: true, confidence: true,
+        standardsApplied: true, createdAt: true,
+        reviewOutcome: true, reviewedById: true, reviewedAt: true, reviewNote: true,
+      },
+    }),
+    prisma.agentAuditEntry.count({ where }),
+  ])
+
+  if (rows.length === 0) return { items: [], total }
+
+  const studentIds = [...new Set(rows.map(r => r.studentId))]
+  const students   = await prisma.user.findMany({
+    where:  { id: { in: studentIds } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const nameMap = new Map(students.map(s => [s.id, `${s.firstName} ${s.lastName}`]))
+
+  return {
+    total,
+    items: rows.map(r => ({
+      ...r,
+      studentName:      nameMap.get(r.studentId) ?? 'Unknown',
+      standardsApplied: r.standardsApplied as string[],
+      reviewOutcome:    r.reviewOutcome ?? null,
+      reviewedBy:       r.reviewedById ?? null,
+      reviewedAt:       r.reviewedAt ?? null,
+      reviewNote:       r.reviewNote ?? null,
+    })),
+  }
+}
+
+export async function reviewAgentRecommendation(
+  entryId:  string,
+  outcome:  'CONFIRMED' | 'OVERRIDDEN' | 'DISMISSED',
+  note?:    string,
+): Promise<void> {
+  const { id: userId, schoolId } = await requireAuth()
+
+  const entry = await prisma.agentAuditEntry.findFirst({
+    where: { id: entryId, schoolId },
+    select: { id: true, agentType: true, studentId: true },
+  })
+  if (!entry) throw new Error('Recommendation not found')
+
+  await prisma.agentAuditEntry.update({
+    where: { id: entryId },
+    data: {
+      reviewOutcome: outcome,
+      reviewedById:  userId,
+      reviewedAt:    new Date(),
+      reviewNote:    note ?? null,
+    },
+  })
+
+  const { writeAudit } = await import('@/lib/prisma')
+  await writeAudit({
+    schoolId,
+    actorId: userId,
+    action: outcome === 'CONFIRMED'  ? 'AGENT_RECOMMENDATION_CONFIRMED'  as any
+          : outcome === 'OVERRIDDEN' ? 'AGENT_RECOMMENDATION_OVERRIDDEN' as any
+          :                           'AGENT_RECOMMENDATION_DISMISSED'   as any,
+    targetId:   entryId,
+    targetType: 'AgentAuditEntry',
+    metadata:   { agentType: entry.agentType, studentId: entry.studentId },
+  })
+}

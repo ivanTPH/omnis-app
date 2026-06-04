@@ -90,7 +90,7 @@ function autoResize(el: HTMLTextAreaElement | null) {
 const TABS = ['Overview', 'Resources', 'Homework', 'Class', 'Insights'] as const
 export type FolderTab = typeof TABS[number]
 type Tab = FolderTab
-type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number }
+type TypeState = { instructions: string; modelAnswer: string; gradingBands: Record<string, string>; targetWordCount: number; ilpTargetIds?: string[] }
 
 const RESOURCE_TYPE_LABELS: Record<string, string> = {
   PLAN: 'Plan', SLIDES: 'Slides', WORKSHEET: 'Worksheet',
@@ -443,6 +443,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         modelAnswer:     result.modelAnswer,
         gradingBands:    result.gradingBands,
         targetWordCount: result.targetWordCount,
+        ilpTargetIds:    result.ilpTargetIds,
       })
       setAiDecision('ACCEPTED')
       // Populate structured editors
@@ -1971,6 +1972,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   aiDecision:      aiDecision || undefined,
                   setAt:           hwSetDate ? new Date(hwSetDate).toISOString() : new Date().toISOString(),
                   dueAt:           new Date(hwDueDate).toISOString(),
+                  ilpTargetIds:    activeHw.ilpTargetIds,
                 })
                 // Refresh lesson BEFORE switching to Homework tab so lesson.homework is up-to-date
                 // and the auto-generate effect guard (lesson.homework.length > 0) fires correctly

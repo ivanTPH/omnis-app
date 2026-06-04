@@ -352,6 +352,20 @@ export async function createHomework(input: {
     },
   })
 
+  // Auto-link homework to ILP targets that were included in the AI generation prompt
+  if (input.ilpTargetIds && input.ilpTargetIds.length > 0) {
+    await prisma.ilpHomeworkLink.createMany({
+      data: input.ilpTargetIds.map(ilpTargetId => ({
+        ilpTargetId,
+        homeworkId: hw.id,
+        linkedBy:   userId,
+        evidenceNote: 'Auto-linked during AI homework generation',
+      })),
+      skipDuplicates: true,
+    })
+    console.log(`[createHomework] Auto-linked ${input.ilpTargetIds.length} ILP targets to homework ${hw.id}`)
+  }
+
   revalidatePath('/dashboard')
   revalidatePath('/homework')
   return { id: hw.id }
@@ -535,6 +549,7 @@ export async function generateHomeworkFromResources(
 
   // Fetch SEND context for the lesson's class (best-effort — don't fail generation if this errors)
   let sendContextBlock = ''
+  let promptIlpTargetIds: string[] = []
   try {
     if (lesson.classId) {
       const ehcpStudentIdsForOutcomes: string[] = []
@@ -596,12 +611,16 @@ export async function generateHomeworkFromResources(
         )].slice(0, 4)
 
         // Collect ILP targets WITH strategies for the prompt (deduplicated, max 4)
-        const senIlpLines = senStudents
+        const senIlpTargets = senStudents
           .flatMap(s => (ilpByStudent[s.studentId]?.targets ?? []).map(t => ({
+            id:       t.id,
             target:   t.target,
             strategy: t.strategy,
           })))
           .slice(0, 4)
+        // Track target IDs used in the prompt for auto-linking after homework creation
+        promptIlpTargetIds = senIlpTargets.map(t => t.id)
+        const senIlpLines = senIlpTargets
           .map(t => `    • Target: "${t.target}"\n      Strategy: "${t.strategy}"`)
 
         // ILP-level classroom strategies (from the ILP strategies[] array)
@@ -795,6 +814,7 @@ ${typePrompt}`
       targetWordCount:      parsed.targetWordCount ?? (type === 'EXTENDED_WRITING' ? 300 : 0),
       questionsJson,
       basedOnSchemeOfWork:  !!ygPlanContext,
+      ilpTargetIds:         promptIlpTargetIds.length > 0 ? promptIlpTargetIds : undefined,
     }
   } catch (err) {
     console.error('[generateHomeworkFromResources] API call failed:', err)

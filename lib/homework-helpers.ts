@@ -29,6 +29,7 @@ export type ProposalResult = {
   targetWordCount:       number
   questionsJson?:        { questions: MCQQuestion[] | SAQuestion[] }
   basedOnSchemeOfWork?:  boolean
+  ilpTargetIds?:         string[]   // ILP targets included in the AI prompt — auto-linked on save
 }
 
 /** Per-type JSON prompt suffix. */

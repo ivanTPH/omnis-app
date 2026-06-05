@@ -309,13 +309,77 @@ export async function getAvailableStaff(
 }
 
 export async function assignCover(assignmentId: string, coveredBy: string) {
-  await requireAdminOrSlt()
+  const { schoolId } = await requireAdminOrSlt()
+
+  // Fetch assignment + timetable details for the notification body
+  const assignment = await prisma.coverAssignment.findFirst({
+    where: { id: assignmentId, schoolId },
+    select: { timetableEntryId: true },
+  })
+
   const updated = await prisma.coverAssignment.update({
     where: { id: assignmentId },
     data: { coveredBy, status: 'assigned' },
   })
+
+  // Notify the cover supervisor (fire-and-forget — never throws)
+  void notifyCoverSupervisor(schoolId, coveredBy, assignment?.timetableEntryId ?? null)
+
   revalidatePath('/admin/cover')
   return updated
+}
+
+/** Look up timetable entry details, find the matching Omnis User for the
+ *  WondeEmployee, and create a COVER_ASSIGNED notification. */
+async function notifyCoverSupervisor(
+  schoolId:         string,
+  wondeEmployeeId:  string,
+  timetableEntryId: string | null,
+): Promise<void> {
+  try {
+    const [employee, entry] = await Promise.all([
+      prisma.wondeEmployee.findUnique({
+        where:  { id: wondeEmployeeId },
+        select: { firstName: true, lastName: true },
+      }),
+      timetableEntryId
+        ? prisma.wondeTimetableEntry.findUnique({
+            where:   { id: timetableEntryId },
+            include: {
+              period:     { select: { startTime: true, endTime: true } },
+              wondeClass: { select: { name: true, subject: true } },
+            },
+          })
+        : null,
+    ])
+    if (!employee) return
+
+    // Name-match WondeEmployee → Omnis User
+    const coverUser = await prisma.user.findFirst({
+      where:  { schoolId, firstName: employee.firstName, lastName: employee.lastName, isActive: true },
+      select: { id: true },
+    })
+    if (!coverUser) return
+
+    const className = entry?.wondeClass.name ?? 'a class'
+    const subject   = entry?.wondeClass.subject ? ` · ${entry.wondeClass.subject}` : ''
+    const time      = entry
+      ? ` at ${entry.period.startTime.slice(0, 5)}–${entry.period.endTime.slice(0, 5)}`
+      : ''
+
+    await prisma.notification.create({
+      data: {
+        schoolId,
+        userId:   coverUser.id,
+        type:     'COVER_ASSIGNED',
+        title:    'Cover assigned to you',
+        body:     `You have been assigned to cover ${className}${subject}${time}.`,
+        linkHref: '/admin/cover',
+      },
+    })
+  } catch {
+    // Notification failure must never break the cover assignment workflow
+  }
 }
 
 export async function updateAssignmentStatus(assignmentId: string, status: string) {
@@ -446,6 +510,7 @@ export async function autoAssignCover(
   // ── 6. Assign best candidate per slot ─────────────────────────────────────
   let assigned = 0
   let skipped  = 0
+  const notified: { employeeId: string; timetableEntryId: string }[] = []
 
   for (const slot of unassigned) {
     const entry = entryMap.get(slot.timetableEntryId)
@@ -484,8 +549,67 @@ export async function autoAssignCover(
     periodBusy.get(periodId)!.add(best.id)
     coverLoad.set(best.id, (coverLoad.get(best.id) ?? 0) + 1)
 
+    notified.push({ employeeId: best.id, timetableEntryId: slot.timetableEntryId })
     assigned++
   }
+
+  // Batch-notify all newly assigned cover supervisors (fire-and-forget)
+  void (async () => {
+    try {
+      // Name-match WondeEmployees → Omnis Users in one query
+      const employees = await prisma.wondeEmployee.findMany({
+        where:  { id: { in: notified.map(n => n.employeeId) } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+      const empMap = new Map(employees.map(e => [e.id, e]))
+
+      const coverUsers = await prisma.user.findMany({
+        where: {
+          schoolId,
+          isActive: true,
+          OR: employees.map(e => ({ firstName: e.firstName, lastName: e.lastName })),
+        },
+        select: { id: true, firstName: true, lastName: true },
+      })
+      const userByName = new Map(coverUsers.map(u => [`${u.firstName}|${u.lastName}`, u.id]))
+
+      // Build entry detail map
+      const entryIds = notified.map(n => n.timetableEntryId)
+      const entries  = await prisma.wondeTimetableEntry.findMany({
+        where:   { id: { in: entryIds } },
+        include: {
+          period:     { select: { startTime: true, endTime: true } },
+          wondeClass: { select: { name: true, subject: true } },
+        },
+      })
+      const entryDetailMap = new Map(entries.map(e => [e.id, e]))
+
+      const notifData = notified.flatMap(n => {
+        const emp    = empMap.get(n.employeeId)
+        if (!emp) return []
+        const userId = userByName.get(`${emp.firstName}|${emp.lastName}`)
+        if (!userId) return []
+        const entry   = entryDetailMap.get(n.timetableEntryId)
+        const clsName = entry?.wondeClass.name ?? 'a class'
+        const subj    = entry?.wondeClass.subject ? ` · ${entry.wondeClass.subject}` : ''
+        const time    = entry
+          ? ` at ${entry.period.startTime.slice(0, 5)}–${entry.period.endTime.slice(0, 5)}`
+          : ''
+        return [{
+          schoolId,
+          userId,
+          type:     'COVER_ASSIGNED',
+          title:    'Cover assigned to you',
+          body:     `You have been assigned to cover ${clsName}${subj}${time}.`,
+          linkHref: '/admin/cover',
+        }]
+      })
+
+      if (notifData.length > 0) {
+        await prisma.notification.createMany({ data: notifData, skipDuplicates: true })
+      }
+    } catch { /* notification failure never blocks the response */ }
+  })()
 
   revalidatePath('/admin/cover')
   return { assigned, skipped }

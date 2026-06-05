@@ -395,7 +395,7 @@ export async function dismissSencoAlert(notificationId: string): Promise<void> {
   })
 }
 
-// ─── Teacher timetable (Wonde MIS) ────────────────────────────────────────────
+// ─── Teacher timetable — Wonde MIS ────────────────────────────────────────────
 
 export type TeacherTimetableLesson = {
   startTime: string
@@ -403,6 +403,11 @@ export type TeacherTimetableLesson = {
   subject:   string | null
   className: string
   room:      string | null
+}
+
+export type TeacherTimetableDay = {
+  dayOfWeek: number   // 1=Mon … 5=Fri
+  lessons:   TeacherTimetableLesson[]
 }
 
 /** Returns the teacher's timetable for today sourced from Wonde MIS data.
@@ -449,4 +454,49 @@ export async function getTeacherTodayTimetable(): Promise<TeacherTimetableLesson
       room,
     }
   })
+}
+
+/** Returns the teacher's full weekly timetable (all 5 days) from Wonde MIS. */
+export async function getTeacherTimetable(): Promise<TeacherTimetableDay[]> {
+  const { schoolId, firstName, lastName } = await requireAuth()
+
+  const employee = await prisma.wondeEmployee.findFirst({
+    where:  { schoolId, firstName, lastName },
+    select: { id: true },
+  })
+  if (!employee) return []
+
+  const entries = await prisma.wondeTimetableEntry.findMany({
+    where: { schoolId, employeeId: employee.id },
+    include: {
+      wondeClass: { select: { name: true, subject: true } },
+      period:     { select: { startTime: true, endTime: true, dayOfWeek: true } },
+    },
+  })
+
+  const byDay = new Map<number, TeacherTimetableLesson[]>()
+  for (const e of entries) {
+    const day = e.period.dayOfWeek
+    if (!day || day < 1 || day > 5) continue
+    const raw  = e.roomName
+    const room = raw && !/^[A-Z]\d{6,}$/.test(raw) ? raw : null
+    const list = byDay.get(day) ?? []
+    list.push({
+      startTime: e.period.startTime.slice(0, 5),
+      endTime:   e.period.endTime.slice(0, 5),
+      subject:   e.wondeClass.subject,
+      className: e.wondeClass.name,
+      room,
+    })
+    byDay.set(day, list)
+  }
+
+  const result: TeacherTimetableDay[] = []
+  for (let day = 1; day <= 5; day++) {
+    result.push({
+      dayOfWeek: day,
+      lessons: (byDay.get(day) ?? []).sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    })
+  }
+  return result
 }

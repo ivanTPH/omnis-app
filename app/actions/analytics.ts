@@ -478,9 +478,10 @@ export type StudentDetailData = {
   hasSend:    boolean
   sendStatus: string | null   // 'SEN_SUPPORT' | 'EHCP' | null
   classes:    { id: string; name: string; subject: string; yearGroup: number }[]
-  totalAssigned:  number
-  completionRate: number
-  avgScore:       number | null
+  totalAssigned:       number
+  completionRate:      number
+  avgScore:            number | null
+  attendancePercentage: number | null
   subjectRows:  { subject: string; assigned: number; submitted: number; avgScore: number | null }[]
   homeworks:    (HomeworkRow & { class: string })[]
   supportProfile: SupportProfile
@@ -491,7 +492,7 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
 
   const student = await prisma.user.findFirst({
     where:   { id: studentId, schoolId, role: 'STUDENT' },
-    select:  { id: true, firstName: true, lastName: true, email: true, yearGroup: true },
+    select:  { id: true, firstName: true, lastName: true, email: true, yearGroup: true, attendancePercentage: true },
   })
   if (!student) return null
 
@@ -608,6 +609,7 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
     totalAssigned,
     completionRate,
     avgScore,
+    attendancePercentage: student.attendancePercentage ?? null,
     subjectRows,
     homeworks:      hwRows,
     supportProfile,

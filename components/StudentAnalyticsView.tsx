@@ -1192,6 +1192,21 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
                 <span className="text-gray-400 ml-1" title="Running average across all marked homework">(all subjects)</span>
               </span>
             )}
+            {student.attendancePercentage != null && (
+              <span
+                title="Attendance percentage from school MIS (Wonde)"
+                className="text-[11px] text-gray-500 cursor-help"
+              >
+                Attendance:{' '}
+                <span className={`font-semibold ${
+                  student.attendancePercentage >= 95 ? 'text-green-600'
+                  : student.attendancePercentage >= 90 ? 'text-amber-600'
+                  : 'text-rose-600'
+                }`}>
+                  {student.attendancePercentage.toFixed(1)}%
+                </span>
+              </span>
+            )}
           </div>
         </div>
         <Link href={`/students/${student.id}`}

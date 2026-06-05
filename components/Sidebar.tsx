@@ -19,6 +19,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Dashboard',         href: '/dashboard',          icon: 'dashboard'      },
     { divider: true, label: 'Teaching' },
     { label: 'Calendar',          href: '/calendar',           icon: 'calendar_today' },
+    { label: 'My Timetable',      href: '/timetable',          icon: 'event_note'     },
     { label: 'Homework',          href: '/homework',           icon: 'assignment'     },
     { label: 'My Classes',        href: '/classes',            icon: 'groups'         },
     { label: 'My SEND Students', href: '/send-caseload',      icon: 'support'        },
@@ -35,6 +36,7 @@ const navByRole: Record<string, NavItem[]> = {
   HEAD_OF_DEPT: [
     { label: 'Dashboard',            href: '/dashboard',              icon: 'dashboard'       },
     { label: 'Calendar',             href: '/calendar',               icon: 'calendar_today'  },
+    { label: 'My Timetable',         href: '/timetable',              icon: 'event_note'      },
     { label: 'Homework',             href: '/homework',               icon: 'assignment'      },
     { label: 'Revision',             href: '/revision-program',       icon: 'bookmark'        },
     { label: 'Year Group Plans',     href: '/plans/year-group',       icon: 'menu_book'       },
@@ -51,6 +53,7 @@ const navByRole: Record<string, NavItem[]> = {
   HEAD_OF_YEAR: [
     { label: 'Dashboard',            href: '/dashboard',          icon: 'dashboard'      },
     { label: 'Calendar',             href: '/calendar',           icon: 'calendar_today' },
+    { label: 'My Timetable',         href: '/timetable',          icon: 'event_note'     },
     { label: 'Revision',             href: '/revision-program',   icon: 'bookmark'       },
     { label: 'Year Group Plans',     href: '/plans/year-group',   icon: 'menu_book'      },
     { label: 'Classes & Analytics',  href: '/analytics',          icon: 'groups'         },

@@ -11,7 +11,7 @@ export default async function AdminSubjectsPage() {
   if (!ALLOWED.includes(role)) redirect('/dashboard')
 
   const configs = await getSubjectConfigs()
-  const canEdit = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT'].includes(role)
+  const canEdit = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'].includes(role)
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

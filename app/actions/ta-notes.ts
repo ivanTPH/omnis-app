@@ -110,6 +110,16 @@ export async function markTaNoteRead(noteId: string): Promise<void> {
   })
 }
 
+export async function updateTaNote(noteId: string, studentId: string, content: string): Promise<void> {
+  const user = await requireAllowed()
+  const note = await prisma.taNote.findFirst({ where: { id: noteId, schoolId: user.schoolId } })
+  if (!note) throw new Error('Not found')
+  if (note.authorId !== user.id) throw new Error('Forbidden')
+  if (!content.trim()) return
+  await prisma.taNote.update({ where: { id: noteId }, data: { content: content.trim() } })
+  revalidatePath(`/students/${studentId}`)
+}
+
 export async function deleteTaNote(noteId: string, studentId: string): Promise<void> {
   const user = await requireAllowed()
   const note = await prisma.taNote.findFirst({

@@ -91,10 +91,16 @@ function QuickUpload({
     if (!file || !label) return
     startT(async () => {
       const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
-      const extractedText = (ext === 'pptx' || ext === 'ppt')
-        ? await extractPptxText(file) || undefined
-        : undefined
-      await addUploadedResource(lessonId, { label, type: 'SLIDES', fileName: file.name, extractedText })
+      const [extractedText, dataUrl] = await Promise.all([
+        (ext === 'pptx' || ext === 'ppt') ? extractPptxText(file).catch(() => undefined) : Promise.resolve(undefined),
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload  = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error('Failed to read file'))
+          reader.readAsDataURL(file)
+        }),
+      ])
+      await addUploadedResource(lessonId, { label, type: 'SLIDES', fileName: file.name, extractedText, dataUrl })
       onAdded()
       // Extract learning objectives after upload
       setExtracting(true)

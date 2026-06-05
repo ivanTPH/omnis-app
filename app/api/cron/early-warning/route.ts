@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { analyseStudentPatterns, checkIlpTargetReviewsDue } from '@/lib/send/early-warning'
+import { analyseStudentPatterns, checkIlpTargetReviewsDue, checkEhcpReviewsDue } from '@/lib/send/early-warning'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 import { runEvidenceAgentBatch } from '@/lib/agents/evidence-agent'
 import { prisma } from '@/lib/prisma'
@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
 
     let totalFlags = 0
     let totalIlpReviewNotifications = 0
+    let totalEhcpReviewNotifications = 0
     const results: { schoolId: string; name: string; newFlags: number }[] = []
 
     for (const school of schools) {
@@ -54,6 +55,14 @@ export async function GET(request: NextRequest) {
         totalIlpReviewNotifications += n
       } catch (err) {
         console.error(`[early-warning cron] ILP review check error for school ${school.id}:`, err)
+      }
+
+      // Check for EHCP plans with review date within 30 days and notify SENCOs
+      try {
+        const n = await checkEhcpReviewsDue(school.id)
+        totalEhcpReviewNotifications += n
+      } catch (err) {
+        console.error(`[early-warning cron] EHCP review check error for school ${school.id}:`, err)
       }
     }
 
@@ -95,9 +104,9 @@ export async function GET(request: NextRequest) {
     }
 
     const durationMs = Date.now() - startTime
-    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalProfiles} profiles refreshed, ${totalEvidenceStudents} evidence students processed across ${schools.length} schools in ${durationMs}ms`)
+    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalEhcpReviewNotifications} EHCP review notifications, ${totalProfiles} profiles refreshed, ${totalEvidenceStudents} evidence students processed across ${schools.length} schools in ${durationMs}ms`)
 
-    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalProfiles, totalEvidenceStudents, schools: results, durationMs })
+    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications, totalProfiles, totalEvidenceStudents, schools: results, durationMs })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[early-warning cron] FATAL:', err)

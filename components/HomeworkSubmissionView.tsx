@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitHomework } from '@/app/actions/student'
 import Icon from '@/components/ui/Icon'
-import { gradeLabel } from '@/lib/grading'
+import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 import HomeworkTypeRenderer from '@/components/homework/HomeworkTypeRenderer'
 
 type Submission = {
@@ -26,6 +26,8 @@ type HwData = {
   homeworkVariantType?: string | null
   structuredContent?: unknown
   sendStatus?: string
+  classAvgScore?: number | null
+  predictedGrade?: number | null
 }
 
 export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
@@ -84,6 +86,30 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                 {gradeLabel(Number(sub!.grade))}
               </span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Grade context strip — shown when returned and grade data is available */}
+      {isReturned && (sub!.grade || hw.classAvgScore != null || hw.predictedGrade != null) && (
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-center">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Your Grade</p>
+            <p className="text-[18px] font-bold text-gray-900">
+              {sub!.grade ? gradeLabel(Number(sub!.grade)) : '—'}
+            </p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-center">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Class Average</p>
+            <p className="text-[18px] font-bold text-gray-900">
+              {hw.classAvgScore != null ? gradeLabel(percentToGcseGrade(hw.classAvgScore)) : '—'}
+            </p>
+          </div>
+          <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-center">
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Predicted</p>
+            <p className="text-[18px] font-bold text-gray-900">
+              {hw.predictedGrade != null ? gradeLabel(hw.predictedGrade) : '—'}
+            </p>
           </div>
         </div>
       )}

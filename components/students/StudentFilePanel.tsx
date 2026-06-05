@@ -10,10 +10,10 @@ import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc,
   HomeworkHistoryRow, NoteRow, StudentContact,
   LearningPassportDoc, TaNoteRowInline,
-  saveStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
+  saveStudentNote, updateStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
   generateRevisionSuggestions, approveLearningPassport,
 } from '@/app/actions/students'
-import { addTaNote, deleteTaNote } from '@/app/actions/ta-notes'
+import { addTaNote, updateTaNote, deleteTaNote } from '@/app/actions/ta-notes'
 import type { ApdrRow } from '@/app/actions/send-support'
 import {
   updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent,
@@ -925,6 +925,10 @@ function NotesTab({
   const [taText, setTaText] = useState('')
   const [taUrgent, setTaUrgent] = useState(false)
   const [taPending, startTaTransition] = useTransition()
+  const [editNoteId, setEditNoteId] = useState<string | null>(null)
+  const [editNoteText, setEditNoteText] = useState('')
+  const [editTaNoteId, setEditTaNoteId] = useState<string | null>(null)
+  const [editTaNoteText, setEditTaNoteText] = useState('')
 
   function handleAdd() {
     if (!text.trim()) return
@@ -938,6 +942,29 @@ function NotesTab({
     startTransition(async () => {
       await deleteStudentNote(noteId, studentId)
       setLocalNotes(prev => prev.filter(n => n.id !== noteId))
+    })
+  }
+
+  function startEditNote(note: NoteRow) {
+    setEditNoteId(note.id)
+    setEditNoteText(note.content)
+  }
+
+  function handleSaveNoteEdit(noteId: string) {
+    if (!editNoteText.trim()) return
+    startTransition(async () => {
+      await updateStudentNote(noteId, studentId, editNoteText)
+      setLocalNotes(prev => prev.map(n => n.id === noteId ? { ...n, content: editNoteText.trim() } : n))
+      setEditNoteId(null)
+    })
+  }
+
+  function handleSaveTaNoteEdit(noteId: string) {
+    if (!editTaNoteText.trim()) return
+    startTaTransition(async () => {
+      await updateTaNote(noteId, studentId, editTaNoteText)
+      setLocalTaNotes(prev => prev.map(n => n.id === noteId ? { ...n, content: editTaNoteText.trim() } : n))
+      setEditTaNoteId(null)
     })
   }
 
@@ -992,13 +1019,35 @@ function NotesTab({
               <div className="space-y-2">
                 {localNotes.map(n => (
                   <div key={n.id} className="bg-white rounded-xl border border-gray-200 px-5 py-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm text-gray-800 flex-1 whitespace-pre-wrap">{n.content}</p>
-                      <button onClick={() => handleDelete(n.id)} className="text-gray-300 hover:text-red-500 shrink-0">
-                        <Icon name="delete_outline" size="sm" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    {editNoteId === n.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editNoteText}
+                          onChange={e => setEditNoteText(e.target.value)}
+                          rows={3}
+                          className="w-full text-sm border border-blue-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={() => handleSaveNoteEdit(n.id)} disabled={pending} className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">Save</button>
+                          <button onClick={() => setEditNoteId(null)} className="px-3 py-1 text-gray-500 hover:text-gray-700 text-xs">Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm text-gray-800 flex-1 whitespace-pre-wrap">{n.content}</p>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => startEditNote(n)} className="text-gray-300 hover:text-blue-500">
+                              <Icon name="edit" size="sm" />
+                            </button>
+                            <button onClick={() => handleDelete(n.id)} className="text-gray-300 hover:text-red-500">
+                              <Icon name="delete_outline" size="sm" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1016,23 +1065,41 @@ function NotesTab({
           </div>
           {localTaNotes.map(n => (
             <div key={n.id} className={`rounded-xl border px-5 py-4 ${n.isUrgent ? 'bg-amber-50 border-amber-300' : 'bg-white border-gray-200'}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  {n.isUrgent && (
-                    <div className="flex items-center gap-1 mb-1">
-                      <Icon name="priority_high" size="sm" className="text-red-500" />
-                      <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide">Urgent</span>
-                    </div>
-                  )}
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.content}</p>
+              {editTaNoteId === n.id ? (
+                <div className="space-y-2">
+                  <textarea value={editTaNoteText} onChange={e => setEditTaNoteText(e.target.value)} rows={3}
+                    className="w-full text-sm border border-amber-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <div className="flex gap-2">
+                    <button onClick={() => handleSaveTaNoteEdit(n.id)} disabled={taPending} className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">Save</button>
+                    <button onClick={() => setEditTaNoteId(null)} className="px-3 py-1 text-gray-500 hover:text-gray-700 text-xs">Cancel</button>
+                  </div>
                 </div>
-                {(canDeleteTaNote) && (
-                  <button onClick={() => handleDeleteTaNote(n.id)} className="text-gray-300 hover:text-red-500 shrink-0">
-                    <Icon name="delete_outline" size="sm" />
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+              ) : (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      {n.isUrgent && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <Icon name="priority_high" size="sm" className="text-red-500" />
+                          <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide">Urgent</span>
+                        </div>
+                      )}
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.content}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => { setEditTaNoteId(n.id); setEditTaNoteText(n.content) }} className="text-gray-300 hover:text-amber-500">
+                        <Icon name="edit" size="sm" />
+                      </button>
+                      {canDeleteTaNote && (
+                        <button onClick={() => handleDeleteTaNote(n.id)} className="text-gray-300 hover:text-red-500">
+                          <Icon name="delete_outline" size="sm" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </>
+              )}
             </div>
           ))}
         </div>

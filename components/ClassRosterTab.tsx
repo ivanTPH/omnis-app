@@ -68,7 +68,7 @@ export default function ClassRosterTab({
   const {
     rows, loading, error, userRole,
     kPlanMap, ragMap, ehcpTipsMap,
-    detailsCache, ilpCache, ehcpCache, rosterDetailCache, taNoteCache,
+    detailsCache, ilpCache, ehcpCache, rosterDetailCache, taNoteCache, adaptiveProfileCache,
     kPlanFullCache, kPlanChecked, kPlanLoading, kPlanModal, generatingIlp, ilpError,
     newNotes, savingNote, docSlideOver, flagConcernStudent,
     expandedId, expandedTab, selectedIds, searchQuery, sendFilter, contactStudentId,
@@ -253,9 +253,10 @@ export default function ClassRosterTab({
           const ilpData      = ilpCache[row.id]
           const kPlan        = kPlanMap[row.id]
           const ehcpData     = ehcpCache[row.id]
-          const rosterDetail = rosterDetailCache[row.id]
-          const ragStudent   = ragMap[row.id]
-          const studentName  = `${row.firstName} ${row.lastName}`
+          const rosterDetail    = rosterDetailCache[row.id]
+          const ragStudent      = ragMap[row.id]
+          const adaptiveProfile = adaptiveProfileCache[row.id]
+          const studentName     = `${row.firstName} ${row.lastName}`
           const activeTab    = expandedTab[row.id] ?? 'overview'
 
           const ehcpSectionF = ehcpData && ehcpData !== 'loading' && ehcpData.sections?.F
@@ -449,7 +450,9 @@ export default function ClassRosterTab({
                       const hasRagData   = ragStudent && (ragStudent.workingAtScore != null || ragStudent.prediction != null)
                       const hasSendData  = isSend && (row.supportSnapshot || hasAdjustments || (row.hasIlp && (ilpData === 'loading' || (ilpData && ilpData.targets.length > 0))))
                       const hasWondeData = row.attendancePercentage != null || row.behaviourPositive != null || row.hasExclusion === true
-                      if (!hasSendData && !hasRagData && !hasWondeData) {
+                      const hasAdaptiveData = adaptiveProfile && adaptiveProfile !== 'loading' &&
+                        (adaptiveProfile.preferredTypes.length > 0 || adaptiveProfile.developmentAreas.length > 0 || Object.keys(adaptiveProfile.bloomsPerformance).length > 0)
+                      if (!hasSendData && !hasRagData && !hasWondeData && !hasAdaptiveData) {
                         return <p className="text-[12px] text-gray-400 italic">No SEND data or predictions on record.</p>
                       }
                       return (
@@ -554,6 +557,62 @@ export default function ClassRosterTab({
                               </div>
                             </section>
                           )}
+                          {adaptiveProfile === 'loading' ? (
+                            <section>
+                              <p className={SECTION_HEADING}>Adaptive Profile</p>
+                              <div className="flex items-center gap-1.5 text-[11px] text-gray-400"><Icon name="refresh" size="sm" className="animate-spin" /> Loading…</div>
+                            </section>
+                          ) : adaptiveProfile && (adaptiveProfile.preferredTypes.length > 0 || adaptiveProfile.developmentAreas.length > 0 || Object.keys(adaptiveProfile.bloomsPerformance).length > 0) ? (
+                            <section>
+                              <p className={SECTION_HEADING}>Adaptive Profile</p>
+                              <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5 space-y-2">
+                                {adaptiveProfile.profileSummary && (
+                                  <p className="text-[11px] text-indigo-800 italic leading-snug">{adaptiveProfile.profileSummary}</p>
+                                )}
+                                {adaptiveProfile.preferredTypes.length > 0 && (
+                                  <div>
+                                    <p className="text-[9px] font-semibold text-indigo-600 uppercase tracking-wide mb-1">Preferred Question Types</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {adaptiveProfile.preferredTypes.slice(0, 4).map(t => (
+                                        <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-medium">{t.replace(/_/g, ' ')}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {adaptiveProfile.developmentAreas.length > 0 && (
+                                  <div>
+                                    <p className="text-[9px] font-semibold text-amber-600 uppercase tracking-wide mb-1">Weak Topics</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {adaptiveProfile.developmentAreas.slice(0, 3).map(a => (
+                                        <span key={a} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">{a}</span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {Object.keys(adaptiveProfile.bloomsPerformance).length > 0 && (() => {
+                                  const bloomsOrder = ['remember', 'understand', 'apply', 'analyse', 'evaluate', 'create']
+                                  const entries = bloomsOrder.filter(k => adaptiveProfile.bloomsPerformance[k] != null)
+                                  if (entries.length === 0) return null
+                                  return (
+                                    <div>
+                                      <p className="text-[9px] font-semibold text-teal-600 uppercase tracking-wide mb-1">Bloom&apos;s Performance</p>
+                                      <div className="flex flex-wrap gap-1">
+                                        {entries.map(k => {
+                                          const score = adaptiveProfile.bloomsPerformance[k]
+                                          const col = score >= 70 ? 'bg-green-100 text-green-800' : score >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                          return (
+                                            <span key={k} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${col}`}>
+                                              {k.charAt(0).toUpperCase() + k.slice(1)} {Math.round(score)}%
+                                            </span>
+                                          )
+                                        })}
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            </section>
+                          ) : null}
                           {hasWondeData && (
                             <section>
                               <p className={SECTION_HEADING}>MIS Data <span className="text-gray-300 font-normal normal-case tracking-normal ml-1">via Wonde</span></p>

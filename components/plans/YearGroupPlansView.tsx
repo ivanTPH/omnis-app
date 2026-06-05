@@ -404,8 +404,8 @@ export default function YearGroupPlansView({
                                 className="flex items-center gap-1 text-blue-600 hover:underline text-xs"
                                 onClick={e => e.stopPropagation()}
                               >
-                                <Icon name="attach_file" size="sm" />
-                                View attached file
+                                <Icon name="open_in_new" size="sm" />
+                                Open external link
                               </a>
                             )}
                           </div>
@@ -487,16 +487,22 @@ export default function YearGroupPlansView({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  File URL
-                  <span className="text-gray-400 font-normal ml-1">(optional — link to PDF or Google Doc)</span>
+                  External Link
+                  <span className="text-gray-400 font-normal ml-1">(optional — paste a URL to a PDF, Google Doc, or shared drive)</span>
                 </label>
-                <input
-                  type="url"
-                  value={modal.fileUrl}
-                  onChange={e => setModal(m => ({ ...m, fileUrl: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <Icon name="link" size="sm" />
+                  </span>
+                  <input
+                    type="url"
+                    value={modal.fileUrl}
+                    onChange={e => setModal(m => ({ ...m, fileUrl: e.target.value }))}
+                    placeholder="https://docs.google.com/... or https://..."
+                    className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">This is an external URL, not a file upload. Paste a shareable link from Google Drive, OneDrive, Dropbox, or a PDF URL.</p>
               </div>
 
               <label className="flex items-center gap-2.5 cursor-pointer select-none">

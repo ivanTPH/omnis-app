@@ -1336,9 +1336,45 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   )}
                   <div>
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s Response</p>
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[80px]">
-                      {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
-                    </div>
+                    {(() => {
+                      // Try to parse as upload JSON {text, fileName, dataUrl}
+                      try {
+                        const parsed = JSON.parse(selectedSub.content ?? '')
+                        if (parsed && typeof parsed === 'object' && 'dataUrl' in parsed) {
+                          const isImage = (parsed.dataUrl as string).startsWith('data:image/')
+                          const isPdf   = (parsed.dataUrl as string).startsWith('data:application/pdf')
+                          return (
+                            <div className="space-y-2">
+                              {isImage && (
+                                <img src={parsed.dataUrl} alt={parsed.fileName ?? 'Student upload'} className="max-w-full rounded-lg border border-gray-200" />
+                              )}
+                              {isPdf && (
+                                <a href={parsed.dataUrl} download={parsed.fileName ?? 'submission.pdf'} className="inline-flex items-center gap-1.5 text-[12px] text-blue-700 hover:underline font-medium">
+                                  <Icon name="picture_as_pdf" size="sm" />
+                                  {parsed.fileName ?? 'Download PDF'}
+                                </a>
+                              )}
+                              {!isImage && !isPdf && (
+                                <a href={parsed.dataUrl} download={parsed.fileName ?? 'submission'} className="inline-flex items-center gap-1.5 text-[12px] text-blue-700 hover:underline font-medium">
+                                  <Icon name="attach_file" size="sm" />
+                                  {parsed.fileName ?? 'Download file'}
+                                </a>
+                              )}
+                              {parsed.text && (
+                                <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+                                  {parsed.text}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+                      } catch { /* not JSON — render as plain text below */ }
+                      return (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[80px]">
+                          {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               )}

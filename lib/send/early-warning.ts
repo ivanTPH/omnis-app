@@ -381,3 +381,78 @@ export async function checkIlpTargetReviewsDue(schoolId: string): Promise<number
 
   return created
 }
+
+// ─── EHCP annual review-due notifications ────────────────────────────────────
+
+/**
+ * Checks for EHCP plans whose reviewDate is within the next 30 days and
+ * creates a SendNotification for all SENCOs in the school — deduplicated so
+ * only one notification is sent per plan within any 14-day window.
+ * Returns the number of new notifications created.
+ */
+export async function checkEhcpReviewsDue(schoolId: string): Promise<number> {
+  const now      = new Date()
+  const in30days = new Date(now.getTime() + 30 * 86_400_000)
+  const since14  = new Date(now.getTime() - 14 * 86_400_000)
+
+  const dueSoon = await prisma.ehcpPlan.findMany({
+    where: {
+      schoolId,
+      reviewDate: { gte: now, lte: in30days },
+    },
+    select: {
+      id:         true,
+      studentId:  true,
+      reviewDate: true,
+    },
+  })
+  if (dueSoon.length === 0) return 0
+
+  const sencos = await prisma.user.findMany({
+    where:  { schoolId, role: 'SENCO', isActive: true },
+    select: { id: true },
+  })
+  if (sencos.length === 0) return 0
+
+  const studentIds = dueSoon.map(p => p.studentId)
+  const students = await prisma.user.findMany({
+    where:  { id: { in: studentIds } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const studentMap = new Map(students.map(s => [s.id, s]))
+
+  let created = 0
+
+  for (const plan of dueSoon) {
+    const student = studentMap.get(plan.studentId)
+    if (!student) continue
+    const studentName = `${student.firstName} ${student.lastName}`
+    const daysUntil   = Math.ceil((plan.reviewDate.getTime() - now.getTime()) / 86_400_000)
+
+    for (const senco of sencos) {
+      const existing = await prisma.sendNotification.findFirst({
+        where: {
+          recipientId: senco.id,
+          type:        'ehcp_review_due',
+          createdAt:   { gte: since14 },
+          body:        { contains: plan.id },
+        },
+        select: { id: true },
+      })
+      if (existing) continue
+
+      await prisma.sendNotification.create({
+        data: {
+          schoolId,
+          recipientId: senco.id,
+          type:        'ehcp_review_due',
+          title:       `EHCP annual review due: ${studentName}`,
+          body:        `${studentName}'s EHCP annual review is due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''} (${plan.reviewDate.toLocaleDateString('en-GB')}). [planId:${plan.id}]`,
+        },
+      })
+      created++
+    }
+  }
+
+  return created
+}

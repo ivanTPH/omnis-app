@@ -670,6 +670,19 @@ export async function saveStudentNote(studentId: string, content: string): Promi
   revalidatePath(`/students/${studentId}`)
 }
 
+export async function updateStudentNote(noteId: string, studentId: string, content: string): Promise<void> {
+  const user = await requireStaff()
+  const note = await prisma.studentQuickNote.findFirst({
+    where: { id: noteId, schoolId: user.schoolId },
+  })
+  if (!note) throw new Error('Note not found')
+  // Only the author can edit their own notes
+  if (note.authorId !== user.id) throw new Error('Forbidden')
+  if (!content.trim()) return
+  await prisma.studentQuickNote.update({ where: { id: noteId }, data: { content: content.trim() } })
+  revalidatePath(`/students/${studentId}`)
+}
+
 export async function deleteStudentNote(noteId: string, studentId: string): Promise<void> {
   const user = await requireStaff()
   const note = await prisma.studentQuickNote.findFirst({

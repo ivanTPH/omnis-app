@@ -1497,6 +1497,33 @@ export async function saveHomeworkTeacherNote(submissionId: string, note: string
   revalidatePath(`/homework/${sub.homeworkId}`)
 }
 
+export async function updateHomeworkTeacherNote(noteId: string, note: string): Promise<void> {
+  const { schoolId, id: userId } = await requireAuth()
+  const existing = await prisma.teacherPlanNote.findFirst({ where: { id: noteId, schoolId } })
+  if (!existing) throw new Error('Note not found')
+  if (existing.teacherId !== userId) throw new Error('Forbidden')
+  if (!note.trim()) return
+  await prisma.teacherPlanNote.update({ where: { id: noteId }, data: { note: note.trim() } })
+  revalidatePath(`/homework`)
+}
+
+export async function deleteHomeworkTeacherNote(noteId: string): Promise<{ homeworkId: string }> {
+  const { schoolId, id: userId, role } = await requireAuth()
+  const existing = await prisma.teacherPlanNote.findFirst({
+    where: { id: noteId, schoolId },
+    select: { teacherId: true, planId: true },
+  })
+  if (!existing) throw new Error('Note not found')
+  const canDelete = existing.teacherId === userId || ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
+  if (!canDelete) throw new Error('Forbidden')
+  await prisma.teacherPlanNote.delete({ where: { id: noteId } })
+  // planId is submissionId — find the homeworkId from submission
+  const sub = await prisma.submission.findUnique({ where: { id: existing.planId }, select: { homeworkId: true } })
+  const homeworkId = sub?.homeworkId ?? ''
+  if (homeworkId) revalidatePath(`/homework/${homeworkId}`)
+  return { homeworkId }
+}
+
 // ── Link homework to ILP target as evidence ───────────────────────────────────
 
 export async function recordHomeworkAsIlpEvidence(homeworkId: string, ilpTargetId: string): Promise<{ alreadyLinked: boolean }> {

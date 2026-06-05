@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Icon from '@/components/ui/Icon'
 
 type Props = {
@@ -682,6 +682,42 @@ export default function HomeworkTypeRenderer({
     case 'mind_map':
     case 'diagram':
     case 'upload': {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const fileRef = useRef<HTMLInputElement>(null)
+      // Parse the stored value — either a plain text description or JSON {text, fileName, dataUrl}
+      let storedText = value
+      let storedFileName: string | null = null
+      try {
+        const parsed = JSON.parse(value)
+        if (parsed && typeof parsed === 'object' && 'dataUrl' in parsed) {
+          storedText    = parsed.text ?? ''
+          storedFileName = parsed.fileName ?? null
+        }
+      } catch { /* plain text value */ }
+
+      function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const f = e.target.files?.[0]
+        if (!f) return
+        const reader = new FileReader()
+        reader.onload = () => {
+          // Store as JSON so both the file and the text description travel together
+          onChange(JSON.stringify({ text: storedText, fileName: f.name, dataUrl: reader.result as string }))
+        }
+        reader.readAsDataURL(f)
+      }
+
+      function handleTextChange(text: string) {
+        if (storedFileName) {
+          // Re-parse to keep the dataUrl intact
+          try {
+            const parsed = JSON.parse(value)
+            onChange(JSON.stringify({ ...parsed, text }))
+            return
+          } catch { /* fall through */ }
+        }
+        onChange(text)
+      }
+
       return (
         <div className="space-y-3">
           {content?.prompt && (
@@ -689,19 +725,41 @@ export default function HomeworkTypeRenderer({
               {content.prompt}
             </div>
           )}
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center space-y-2">
-            <p className="text-sm text-gray-500">
-              {type === 'mind_map' && 'Draw or photograph your mind map and upload below.'}
-              {type === 'diagram' && 'Draw or photograph your diagram and upload below.'}
-              {type === 'upload' && 'Upload your completed work below.'}
-            </p>
-            <input type="file" className="text-sm" disabled={disabled} />
+          <div
+            className={`border-2 border-dashed rounded-xl p-8 text-center space-y-2 transition-colors ${disabled ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-blue-300 cursor-pointer'}`}
+            onClick={() => !disabled && fileRef.current?.click()}
+          >
+            {storedFileName ? (
+              <>
+                <Icon name="attach_file" size="md" className="text-green-500 mx-auto" />
+                <p className="text-sm font-medium text-green-700">{storedFileName}</p>
+                {!disabled && <p className="text-xs text-gray-400">Click to replace</p>}
+              </>
+            ) : (
+              <>
+                <Icon name="upload" size="md" className="text-gray-400 mx-auto" />
+                <p className="text-sm text-gray-500">
+                  {type === 'mind_map' && 'Photograph your mind map and upload below.'}
+                  {type === 'diagram' && 'Photograph your diagram and upload below.'}
+                  {type === 'upload' && 'Click to upload your completed work.'}
+                </p>
+                {!disabled && <p className="text-xs text-gray-400">JPG, PNG, PDF accepted</p>}
+              </>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,.pdf,.doc,.docx"
+              className="hidden"
+              disabled={disabled}
+              onChange={handleFileChange}
+            />
           </div>
           <div>
             <label className="block text-xs text-gray-500 mb-1">Add a written description (optional)</label>
             <textarea
-              value={value}
-              onChange={e => onChange(e.target.value)}
+              value={storedText}
+              onChange={e => handleTextChange(e.target.value)}
               disabled={disabled}
               rows={3}
               placeholder="Describe your work…"

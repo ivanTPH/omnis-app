@@ -6,6 +6,7 @@ import { prisma }  from '@/lib/prisma'
 import Anthropic   from '@anthropic-ai/sdk'
 import { markDirty } from '@/lib/agents/snapshot'
 import { AgentType } from '@prisma/client'
+import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -266,6 +267,8 @@ export async function markSessionComplete(
 
   // Mark Coach snapshot dirty — new revision session data
   void markDirty(user.id, user.schoolId, [AgentType.COACH]).catch(() => {})
+  // Update adaptive learning profile to reflect revision confidence
+  void computeAndSaveAdaptiveProfile(user.id, user.schoolId).catch(() => {})
 }
 
 export async function skipSession(sessionId: string) {

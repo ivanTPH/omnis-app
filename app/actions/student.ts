@@ -49,14 +49,25 @@ export async function getStudentHomework(homeworkId: string) {
   const submission = hw.submissions[0] ?? null
   const sendStatus = (sendStatusRecord?.activeStatus ?? 'NONE') as string
 
-  // Only reveal model answer once work is returned
+  // Only reveal model answer + grade context once work is returned
   let modelAnswer: string | null = null
+  let classAvgScore: number | null = null
+  let predictedGrade: number | null = null
   if (submission?.status === 'RETURNED') {
-    const full = await prisma.homework.findUnique({
-      where: { id: homeworkId },
-      select: { modelAnswer: true },
-    })
+    const [full, avgResult, profile] = await Promise.all([
+      prisma.homework.findUnique({ where: { id: homeworkId }, select: { modelAnswer: true } }),
+      prisma.submission.aggregate({
+        where: { homeworkId, schoolId, status: 'RETURNED', finalScore: { not: null } },
+        _avg: { finalScore: true },
+      }),
+      prisma.studentLearningProfile.findUnique({
+        where: { studentId: userId },
+        select: { predictedGrade: true },
+      }),
+    ])
     modelAnswer = full?.modelAnswer ?? null
+    classAvgScore = avgResult._avg.finalScore != null ? Math.round(avgResult._avg.finalScore) : null
+    predictedGrade = profile?.predictedGrade ?? null
   }
 
   // Convert questionsJson → structuredContent.
@@ -136,6 +147,8 @@ export async function getStudentHomework(homeworkId: string) {
     submission,
     modelAnswer,
     sendStatus,
+    classAvgScore,
+    predictedGrade,
   }
 }
 

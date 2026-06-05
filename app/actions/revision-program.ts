@@ -5,6 +5,7 @@ import { redirect }     from 'next/navigation'
 import { analyseClassPerformance, type ClassPerformanceAnalysis } from '@/lib/revision/analysis-engine'
 import { generateRevisionTask } from '@/lib/revision/content-generator'
 import type { TestQuestion, TestAnswer, TestResults } from '@/lib/revision/test-engine'
+import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -510,6 +511,8 @@ export async function selfAssessRevisionTask(
         console.error('[selfAssessRevisionTask] progress upsert failed for topic:', topic, progressErr)
       }
     }
+    // Update adaptive learning profile to reflect new confidence data
+    void computeAndSaveAdaptiveProfile(user.id, user.schoolId).catch(() => {})
   } catch (err) {
     console.error('[selfAssessRevisionTask] error:', err)
     throw err

@@ -651,8 +651,8 @@ export async function addUploadedResource(
       lessonId,
       type:          input.type,
       label:         input.label,
-      fileKey:       `stub:${input.fileName}`,
-      url:           input.dataUrl ?? null,
+      fileKey:       `upload:${input.fileName}`,
+      url:           input.dataUrl ?? null,   // base64 dataUrl stored directly — same pattern as avatars
       extractedText: input.extractedText ?? null,
       createdBy:     userId,
     },

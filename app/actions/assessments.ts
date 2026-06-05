@@ -1,6 +1,7 @@
 'use server'
 import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
 
 export type AssessmentRow = {
   id:             string
@@ -73,16 +74,27 @@ export async function addAssessment(data: {
 
 export async function deleteAssessment(id: string): Promise<void> {
   const { schoolId } = await requireAuth()
+  const row = await prisma.assessment.findFirst({ where: { id, schoolId }, select: { studentId: true } })
   await prisma.assessment.deleteMany({ where: { id, schoolId } })
+  if (row) revalidatePath(`/students/${row.studentId}`)
 }
 
 export async function editAssessment(
   id: string,
-  data: { score: number; notes?: string },
+  data: { title?: string; assessmentType?: string; score: number; date?: string; notes?: string },
 ): Promise<void> {
   const { schoolId } = await requireAuth()
+  const row = await prisma.assessment.findFirst({ where: { id, schoolId }, select: { studentId: true } })
+  if (!row) throw new Error('Assessment not found')
   await prisma.assessment.updateMany({
     where: { id, schoolId },
-    data:  { score: data.score, notes: data.notes ?? null },
+    data: {
+      ...(data.title          != null ? { title:          data.title }                : {}),
+      ...(data.assessmentType != null ? { assessmentType: data.assessmentType }       : {}),
+      ...(data.date           != null ? { date:           new Date(data.date) }       : {}),
+      score: data.score,
+      notes: data.notes ?? null,
+    },
   })
+  revalidatePath(`/students/${row.studentId}`)
 }

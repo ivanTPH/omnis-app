@@ -288,10 +288,18 @@ export default function AddResourcePanel({
     setUploadError(null)
     startUploadAdd(async () => {
       try {
+        // Read file as base64 dataUrl so it persists in the DB (same pattern as avatars)
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload  = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error('Failed to read file'))
+          reader.readAsDataURL(uploadFile)
+        })
         const { resourceId, review } = await addUploadedResource(lessonId, {
           label: uploadLabel, type: uploadType,
           fileName: uploadFile.name,
           description: uploadDesc || undefined,
+          dataUrl,
         })
         setUploadResult({ review, resourceId, label: uploadLabel, description: uploadDesc || undefined })
       } catch (err) {

@@ -21,6 +21,7 @@ import { streamAiRequest } from '@/lib/ai-stream'
 import { getStudentEhcp, type EhcpPlanWithOutcomes } from '@/app/actions/ehcp'
 import { getClassRagData, type RagStudent } from '@/app/actions/rag'
 import { getTaNotes, type TaNoteRow } from '@/app/actions/ta-notes'
+import { getStudentLearningProfile, type StudentLearningProfileData } from '@/app/actions/adaptive-learning'
 import type { DocSlideOverDocType } from '@/components/send/DocSlideOver'
 
 export type KPlanSummary = { id: string; sendInformation: string; status: string; teacherActions: string[] }
@@ -40,7 +41,8 @@ export function useClassRosterData(
   const [ilpCache,          setIlpCache]          = useState<Record<string, IlpWithTargets | 'loading' | null>>({})
   const [ehcpCache,         setEhcpCache]         = useState<Record<string, EhcpPlanWithOutcomes | 'loading' | null>>({})
   const [rosterDetailCache, setRosterDetailCache] = useState<Record<string, StudentRosterDetail | 'loading'>>({})
-  const [taNoteCache,       setTaNoteCache]       = useState<Record<string, TaNoteRow[] | 'loading'>>({})
+  const [taNoteCache,           setTaNoteCache]           = useState<Record<string, TaNoteRow[] | 'loading'>>({})
+  const [adaptiveProfileCache,  setAdaptiveProfileCache]  = useState<Record<string, StudentLearningProfileData | 'loading' | null>>({})
 
   const [userRole,       setUserRole]       = useState<string>('TEACHER')
   const [kPlanMap,       setKPlanMap]       = useState<Record<string, KPlanSummary>>({})
@@ -127,6 +129,12 @@ export function useClassRosterData(
       getTaNotes(id)
         .then(notes => setTaNoteCache(c => ({ ...c, [id]: notes })))
         .catch(() => setTaNoteCache(c => ({ ...c, [id]: [] })))
+    }
+    if (!adaptiveProfileCache[id]) {
+      setAdaptiveProfileCache(c => ({ ...c, [id]: 'loading' }))
+      getStudentLearningProfile(id)
+        .then(p => setAdaptiveProfileCache(c => ({ ...c, [id]: p })))
+        .catch(() => setAdaptiveProfileCache(c => ({ ...c, [id]: null })))
     }
   }
 
@@ -219,7 +227,7 @@ export function useClassRosterData(
     // Data
     rows, loading, error, userRole,
     kPlanMap, ragMap, ehcpTipsMap,
-    detailsCache, ilpCache, ehcpCache, rosterDetailCache, taNoteCache,
+    detailsCache, ilpCache, ehcpCache, rosterDetailCache, taNoteCache, adaptiveProfileCache,
     kPlanFullCache, kPlanChecked, kPlanLoading, kPlanModal, generatingIlp, ilpError,
     newNotes, savingNote, docSlideOver, flagConcernStudent,
     expandedId, expandedTab, selectedIds, searchQuery, sendFilter, contactStudentId,

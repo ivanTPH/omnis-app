@@ -91,38 +91,70 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
             <p className="text-[12px] text-gray-400">No available staff for this period.</p>
           ) : (
             <div className="space-y-1.5 max-h-52 overflow-auto">
-              {available.map(s => (
-                <label
-                  key={s.id}
-                  className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-                    selected === s.id
-                      ? 'border-blue-400 bg-blue-50'
-                      : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="coverStaff"
-                    value={s.id}
-                    checked={selected === s.id}
-                    onChange={() => setSelected(s.id)}
-                    className="accent-blue-600"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium text-gray-900">
-                      {s.title ? `${s.title} ` : ''}{s.firstName} {s.lastName}
-                    </p>
-                    {s.subjects.length > 0 && (
-                      <p className="text-[10px] text-gray-400">{s.subjects.slice(0, 3).join(', ')}</p>
-                    )}
-                  </div>
-                  {s.coverLoadToday > 0 && (
-                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">
-                      {s.coverLoadToday} cover{s.coverLoadToday !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </label>
-              ))}
+              {/* Sort: subject-matched staff first, then by cover load */}
+              {[...available]
+                .sort((a, b) => {
+                  const classSubject = assignment.classSubject?.toLowerCase() ?? ''
+                  const aMatch = classSubject
+                    ? a.subjects.some(s => s.toLowerCase() === classSubject)
+                    : false
+                  const bMatch = classSubject
+                    ? b.subjects.some(s => s.toLowerCase() === classSubject)
+                    : false
+                  if (aMatch !== bMatch) return aMatch ? -1 : 1
+                  return a.coverLoadToday - b.coverLoadToday
+                })
+                .map((s, i) => {
+                  const classSubject = assignment.classSubject?.toLowerCase() ?? ''
+                  const isMatch = classSubject
+                    ? s.subjects.some(sub => sub.toLowerCase() === classSubject)
+                    : false
+                  const isBest = i === 0 && (isMatch || s.coverLoadToday === 0)
+                  return (
+                    <label
+                      key={s.id}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                        selected === s.id
+                          ? 'border-blue-400 bg-blue-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="coverStaff"
+                        value={s.id}
+                        checked={selected === s.id}
+                        onChange={() => setSelected(s.id)}
+                        className="accent-blue-600"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-[12px] font-medium text-gray-900">
+                            {s.title ? `${s.title} ` : ''}{s.firstName} {s.lastName}
+                          </p>
+                          {isBest && (
+                            <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                              Best match
+                            </span>
+                          )}
+                          {isMatch && !isBest && (
+                            <span className="text-[9px] font-semibold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
+                              Subject match
+                            </span>
+                          )}
+                        </div>
+                        {s.subjects.length > 0 && (
+                          <p className="text-[10px] text-gray-400">{s.subjects.slice(0, 3).join(', ')}</p>
+                        )}
+                      </div>
+                      {s.coverLoadToday > 0 && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">
+                          {s.coverLoadToday} cover{s.coverLoadToday !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </label>
+                  )
+                })}
             </div>
           )}
 

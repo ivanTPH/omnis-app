@@ -351,6 +351,146 @@ export async function getStaffList(_schoolId?: string) {
   })
 }
 
+// ─── Auto-assign ──────────────────────────────────────────────────────────────
+
+export type AutoAssignResult = {
+  assigned: number
+  skipped:  number   // no available staff found for this slot
+}
+
+/**
+ * Auto-fills all unassigned cover slots for a given date.
+ * Ranking: subject match > fewest covers today. Staff double-booking across
+ * periods is prevented both from DB state and within this batch.
+ */
+export async function autoAssignCover(
+  _schoolId: string,
+  date: Date,
+): Promise<AutoAssignResult> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+  const { start, end } = dayBounds(date)
+
+  // ── 1. Unassigned slots for today ──────────────────────────────────────────
+  const unassigned = await prisma.coverAssignment.findMany({
+    where: {
+      schoolId,
+      status: 'unassigned',
+      absence: { date: { gte: start, lte: end } },
+    },
+    select: { id: true, timetableEntryId: true },
+  })
+  if (unassigned.length === 0) return { assigned: 0, skipped: 0 }
+
+  // ── 2. Timetable entries (period + class) for all slots ────────────────────
+  const entryIds = unassigned.map(u => u.timetableEntryId)
+  const entries  = await prisma.wondeTimetableEntry.findMany({
+    where: { id: { in: entryIds } },
+    include: {
+      period:     { select: { id: true } },
+      wondeClass: { select: { subject: true } },
+    },
+  })
+  const entryMap = new Map(entries.map(e => [e.id, e]))
+
+  // ── 3. Absent staff today ──────────────────────────────────────────────────
+  const todayAbsences = await prisma.staffAbsence.findMany({
+    where: { schoolId, date: { gte: start, lte: end } },
+    select: { staffId: true },
+  })
+  const absentIds = new Set(todayAbsences.map(a => a.staffId))
+
+  // ── 4. Existing assignments today (to prevent double-booking) ─────────────
+  // Build periodId → Set<staffId> of who's already covering each period
+  const existingAssignments = await prisma.coverAssignment.findMany({
+    where: {
+      schoolId,
+      status: { not: 'cancelled' },
+      coveredBy: { not: null },
+      absence: { date: { gte: start, lte: end } },
+    },
+    select: { coveredBy: true, timetableEntryId: true },
+  })
+
+  const coveredEntryIds = existingAssignments.map(c => c.timetableEntryId)
+  const coveredEntries  = coveredEntryIds.length > 0
+    ? await prisma.wondeTimetableEntry.findMany({
+        where:  { id: { in: coveredEntryIds } },
+        select: { id: true, periodId: true },
+      })
+    : []
+  const entryToPeriodId = new Map(coveredEntries.map(e => [e.id, e.periodId]))
+
+  // periodId → Set<staffId> already covering that period
+  const periodBusy = new Map<string, Set<string>>()
+  for (const ca of existingAssignments) {
+    if (!ca.coveredBy) continue
+    const periodId = entryToPeriodId.get(ca.timetableEntryId)
+    if (!periodId) continue
+    if (!periodBusy.has(periodId)) periodBusy.set(periodId, new Set())
+    periodBusy.get(periodId)!.add(ca.coveredBy)
+  }
+
+  // ── 5. All staff with subjects + cover load ────────────────────────────────
+  const allStaff = await prisma.wondeEmployee.findMany({
+    where:  { schoolId },
+    select: { id: true, subjects: true },
+  })
+
+  // cover count per staff member today (from existing assigned/confirmed slots)
+  const coverLoad = new Map<string, number>()
+  for (const ca of existingAssignments) {
+    if (ca.coveredBy) coverLoad.set(ca.coveredBy, (coverLoad.get(ca.coveredBy) ?? 0) + 1)
+  }
+
+  // ── 6. Assign best candidate per slot ─────────────────────────────────────
+  let assigned = 0
+  let skipped  = 0
+
+  for (const slot of unassigned) {
+    const entry = entryMap.get(slot.timetableEntryId)
+    if (!entry) { skipped++; continue }
+
+    const periodId = entry.period.id
+    const subject  = (entry.wondeClass.subject ?? '').toLowerCase()
+    const busy     = periodBusy.get(periodId) ?? new Set()
+
+    // Rank available staff: subject match first, then fewest covers today
+    const candidates = allStaff
+      .filter(s => !absentIds.has(s.id) && !busy.has(s.id))
+      .map(s => {
+        const subs  = Array.isArray(s.subjects)
+          ? (s.subjects as string[]).map((x: string) => x.toLowerCase())
+          : []
+        const match = subject.length > 0 && subs.includes(subject)
+        const load  = coverLoad.get(s.id) ?? 0
+        return { id: s.id, match, load }
+      })
+      .sort((a, b) => {
+        if (a.match !== b.match) return a.match ? -1 : 1
+        return a.load - b.load
+      })
+
+    if (candidates.length === 0) { skipped++; continue }
+
+    const best = candidates[0]
+    await prisma.coverAssignment.update({
+      where: { id: slot.id },
+      data:  { coveredBy: best.id, status: 'assigned' },
+    })
+
+    // Update in-memory state so the next iteration respects this assignment
+    if (!periodBusy.has(periodId)) periodBusy.set(periodId, new Set())
+    periodBusy.get(periodId)!.add(best.id)
+    coverLoad.set(best.id, (coverLoad.get(best.id) ?? 0) + 1)
+
+    assigned++
+  }
+
+  revalidatePath('/admin/cover')
+  return { assigned, skipped }
+}
+
 export async function getCoverHistory(
   _schoolId?: string,
   limit = 30,

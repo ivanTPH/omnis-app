@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
-import type { CoverSummary } from '@/app/actions/cover'
-import { getTodaysCoverSummary } from '@/app/actions/cover'
+import type { CoverSummary, AutoAssignResult } from '@/app/actions/cover'
+import { getTodaysCoverSummary, autoAssignCover } from '@/app/actions/cover'
 import AbsenceList from './AbsenceList'
 import CoverAssignmentGrid from './CoverAssignmentGrid'
 import LogAbsenceModal from './LogAbsenceModal'
@@ -21,11 +21,24 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
   const [summary,           setSummary]           = useState<CoverSummary>(initial)
   const [selectedAbsenceId, setSelectedAbsenceId] = useState<string | null>(null)
   const [showLogModal,      setShowLogModal]       = useState(false)
+  const [autoResult,        setAutoResult]         = useState<AutoAssignResult | null>(null)
+  const [autoFilling,       startAutoFill]         = useTransition()
 
   const refresh = useCallback(async () => {
     const fresh = await getTodaysCoverSummary(schoolId, date)
     setSummary(fresh)
   }, [schoolId, date])
+
+  function handleAutoFill() {
+    setAutoResult(null)
+    startAutoFill(async () => {
+      const result = await autoAssignCover(schoolId, date)
+      await refresh()
+      setAutoResult(result)
+      // clear result banner after 6 seconds
+      setTimeout(() => setAutoResult(null), 6000)
+    })
+  }
 
   function handleAbsenceDeleted(id: string) {
     setSummary(prev => ({
@@ -108,15 +121,46 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
                 </span>
               )}
             </h2>
-            {selectedAbsenceId && (
-              <button
-                onClick={() => setSelectedAbsenceId(null)}
-                className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors"
-              >
-                Show all
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {unassignedCount > 0 && (
+                <button
+                  onClick={handleAutoFill}
+                  disabled={autoFilling}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-60"
+                >
+                  <Icon name={autoFilling ? 'refresh' : 'auto_fix_high'} size="sm" className={autoFilling ? 'animate-spin' : ''} />
+                  {autoFilling ? 'Filling…' : 'Auto-fill'}
+                </button>
+              )}
+              {selectedAbsenceId && (
+                <button
+                  onClick={() => setSelectedAbsenceId(null)}
+                  className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  Show all
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Auto-fill result banner */}
+          {autoResult && (
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium mb-3 ${
+              autoResult.assigned > 0 ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-amber-50 border border-amber-200 text-amber-800'
+            }`}>
+              <Icon name={autoResult.assigned > 0 ? 'check_circle' : 'warning'} size="sm" className="shrink-0" />
+              {autoResult.assigned > 0
+                ? `Auto-filled ${autoResult.assigned} slot${autoResult.assigned !== 1 ? 's' : ''}.`
+                : 'No available staff found for any slot.'
+              }
+              {autoResult.skipped > 0 && (
+                <span className="ml-1 opacity-70">
+                  {autoResult.skipped} slot{autoResult.skipped !== 1 ? 's' : ''} still need manual assignment.
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="flex-1 overflow-auto">
             <CoverAssignmentGrid
               assignments={assignments}

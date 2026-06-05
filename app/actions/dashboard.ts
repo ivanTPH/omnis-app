@@ -394,3 +394,59 @@ export async function dismissSencoAlert(notificationId: string): Promise<void> {
     data:  { read: true },
   })
 }
+
+// ─── Teacher timetable (Wonde MIS) ────────────────────────────────────────────
+
+export type TeacherTimetableLesson = {
+  startTime: string
+  endTime:   string
+  subject:   string | null
+  className: string
+  room:      string | null
+}
+
+/** Returns the teacher's timetable for today sourced from Wonde MIS data.
+ *  Matches the logged-in User to a WondeEmployee by name, then looks up
+ *  WondeTimetableEntry records for today's day of week.
+ *  Returns [] when no Wonde record exists or today is a weekend.
+ */
+export async function getTeacherTodayTimetable(): Promise<TeacherTimetableLesson[]> {
+  const { schoolId, firstName, lastName } = await requireAuth()
+
+  // JS getDay(): 0=Sun, 1=Mon…6=Sat → ISO school day 1–5 (Mon–Fri)
+  const jsDay    = new Date().getDay()
+  const todayNum = jsDay === 0 ? 7 : jsDay  // keep 1-6, let filter below reject 6 & 7
+  if (todayNum < 1 || todayNum > 5) return []
+
+  // Resolve teacher via name match (same bridge as student timetable)
+  const employee = await prisma.wondeEmployee.findFirst({
+    where: { schoolId, firstName, lastName },
+    select: { id: true },
+  })
+  if (!employee) return []
+
+  const entries = await prisma.wondeTimetableEntry.findMany({
+    where: {
+      schoolId,
+      employeeId: employee.id,
+      period: { dayOfWeek: todayNum },
+    },
+    include: {
+      wondeClass: { select: { name: true, subject: true } },
+      period:     { select: { startTime: true, endTime: true } },
+    },
+    orderBy: { period: { startTime: 'asc' } },
+  })
+
+  return entries.map(e => {
+    const raw  = e.roomName
+    const room = raw && !/^[A-Z]\d{6,}$/.test(raw) ? raw : null
+    return {
+      startTime: e.period.startTime.slice(0, 5),
+      endTime:   e.period.endTime.slice(0, 5),
+      subject:   e.wondeClass.subject,
+      className: e.wondeClass.name,
+      room,
+    }
+  })
+}

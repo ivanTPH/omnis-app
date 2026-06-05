@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { getDashboardData, addConcernNote, escalateConcernToStaff, dismissSencoAlert, type DashboardData, type OpenConcern } from '@/app/actions/dashboard'
+import { getDashboardData, addConcernNote, escalateConcernToStaff, dismissSencoAlert, getTeacherTodayTimetable, type DashboardData, type OpenConcern, type TeacherTimetableLesson } from '@/app/actions/dashboard'
 import { CONCERN_SECTIONS } from '@/components/send-support/ConcernList'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -286,6 +286,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
 
 export default function DashboardMorningView({ firstName, role }: { firstName: string; role: string }) {
   const [data,             setData]             = useState<DashboardData | null>(null)
+  const [timetable,        setTimetable]        = useState<TeacherTimetableLesson[]>([])
   const [dismissedAlerts,  setDismissedAlerts]  = useState<Set<string>>(new Set())
   const [,                 startDismiss]        = useTransition()
 
@@ -293,7 +294,10 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
     getDashboardData().then(setData).catch(console.error)
   }
 
-  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load()
+    getTeacherTodayTimetable().then(setTimetable).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleDismissAlert(id: string) {
     setDismissedAlerts(prev => new Set(prev).add(id))
@@ -317,6 +321,39 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
         title={`${greeting}, ${firstName}`}
         subtitle="Here's your day at a glance"
       />
+
+      {/* MIS timetable strip — only shown when Wonde data is available */}
+      {timetable.length > 0 && (
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon name="event_note" size="sm" className="text-gray-400" />
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+              Your timetable today · from school MIS
+            </p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {timetable.map((lesson, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 min-w-[140px] max-w-[180px]"
+              >
+                <p className="text-[11px] font-mono font-medium text-blue-700">
+                  {lesson.startTime}–{lesson.endTime}
+                </p>
+                <p className="text-[12px] font-semibold text-gray-900 leading-tight mt-0.5 truncate">
+                  {lesson.className}
+                </p>
+                {lesson.subject && (
+                  <p className="text-[11px] text-gray-500 leading-tight truncate">{lesson.subject}</p>
+                )}
+                {lesson.room && (
+                  <p className="text-[10px] text-gray-400 mt-0.5 truncate">{lesson.room}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* SENCO alerts banner */}
       {visibleAlerts.length > 0 && (

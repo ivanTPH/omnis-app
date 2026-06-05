@@ -1101,3 +1101,95 @@ export async function generateRevisionSuggestions(
     return 'Unable to generate AI suggestions at this time. Please try again later.'
   }
 }
+
+// ─── Student Timetable (from Wonde MIS) ──────────────────────────────────────
+
+export type TimetableLesson = {
+  periodName: string
+  startTime:  string   // "09:15"
+  endTime:    string   // "10:15"
+  subject:    string
+  className:  string
+  teacher:    string | null
+  room:       string | null  // null when Wonde returns an ID rather than a name
+}
+
+export type TimetableDay = {
+  dayOfWeek: number   // 1=Mon … 5=Fri
+  lessons:   TimetableLesson[]
+}
+
+/** Returns the student's weekly timetable sourced from Wonde MIS data.
+ *  Matches the logged-in User to a WondeStudent by name within the same school,
+ *  then traverses WondeClassStudent → WondeClass → WondeTimetableEntry → WondePeriod.
+ *  Returns an empty array if no Wonde record exists (graceful degradation).
+ */
+export async function getStudentTimetable(): Promise<TimetableDay[]> {
+  const { id: userId, schoolId, firstName, lastName } = await requireAuth()
+  void userId
+
+  // Resolve WondeStudent via name match
+  const wondeStudent = await prisma.wondeStudent.findFirst({
+    where: { schoolId, firstName, lastName },
+    select: { id: true },
+  })
+  if (!wondeStudent) return []
+
+  // Get all classes this student is enrolled in
+  const classStudents = await prisma.wondeClassStudent.findMany({
+    where: { studentId: wondeStudent.id },
+    select: { classId: true },
+  })
+  if (classStudents.length === 0) return []
+
+  const classIds = classStudents.map((cs: { classId: string }) => cs.classId)
+
+  // Get timetable entries for those classes
+  const entries = await prisma.wondeTimetableEntry.findMany({
+    where: { classId: { in: classIds }, schoolId },
+    include: {
+      wondeClass: { select: { name: true, subject: true } },
+      period:     { select: { name: true, startTime: true, endTime: true, dayOfWeek: true } },
+      employee:   { select: { title: true, firstName: true, lastName: true } },
+    },
+  })
+
+  // Group by day of week
+  const byDay = new Map<number, TimetableLesson[]>()
+
+  for (const e of entries) {
+    const day = e.period.dayOfWeek
+    if (!day || day < 1 || day > 5) continue
+
+    const rawRoom = e.roomName
+    // Wonde often returns a numeric ID (e.g. "A1418790635") rather than a room label.
+    // Treat values that look like IDs as unavailable.
+    const room = rawRoom && !/^[A-Z]\d{6,}$/.test(rawRoom) ? rawRoom : null
+
+    const lesson: TimetableLesson = {
+      periodName: e.period.name,
+      startTime:  e.period.startTime.slice(0, 5),  // "09:15:00" → "09:15"
+      endTime:    e.period.endTime.slice(0, 5),
+      subject:    e.wondeClass.subject ?? e.wondeClass.name,
+      className:  e.wondeClass.name,
+      teacher:    e.employee
+        ? `${e.employee.title ? e.employee.title + ' ' : ''}${e.employee.lastName}`
+        : null,
+      room,
+    }
+
+    const list = byDay.get(day) ?? []
+    list.push(lesson)
+    byDay.set(day, list)
+  }
+
+  // Sort lessons within each day by start time and return days 1–5
+  const result: TimetableDay[] = []
+  for (let day = 1; day <= 5; day++) {
+    const lessons = (byDay.get(day) ?? []).sort((a, b) =>
+      a.startTime.localeCompare(b.startTime)
+    )
+    result.push({ dayOfWeek: day, lessons })
+  }
+  return result
+}

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
 import { getUnreadMessageCount } from '@/app/actions/messaging'
-import { getStudentOwnPassport } from '@/app/actions/students'
+import { getStudentOwnPassport, getStudentTimetable } from '@/app/actions/students'
 import StudentMobileDashboard, { type MobileHw, type SubjectProgress } from '@/components/StudentMobileDashboard'
 import AppShell from '@/components/AppShell'
 
@@ -108,6 +108,16 @@ export default async function StudentDashboardPage() {
   let passport = null
   try { passport = await getStudentOwnPassport() } catch {}
 
+  // Today's timetable — ISO weekday 1=Mon…7=Sun
+  let todayLessons: { subject: string; startTime: string; endTime: string; teacher: string | null; room: string | null; className: string }[] = []
+  try {
+    const timetable = await getStudentTimetable()
+    const jsDay = new Date().getDay()  // 0=Sun
+    const isoDay = jsDay === 0 ? 7 : jsDay
+    const today = timetable.find(d => d.dayOfWeek === isoDay)
+    todayLessons = today?.lessons ?? []
+  } catch {}
+
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <StudentMobileDashboard
@@ -120,6 +130,7 @@ export default async function StudentDashboardPage() {
         subjectProgress={subjectProgress}
         unreadCount={unreadCount}
         passport={passport}
+        todayLessons={todayLessons}
       />
     </AppShell>
   )

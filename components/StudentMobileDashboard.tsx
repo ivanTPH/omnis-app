@@ -36,6 +36,15 @@ type Passport = {
   studentVoice:        string | null
 }
 
+type TodayLesson = {
+  subject:   string
+  startTime: string
+  endTime:   string
+  teacher:   string | null
+  room:      string | null
+  className: string
+}
+
 type Props = {
   userId?:         string | null
   firstName:       string
@@ -46,6 +55,7 @@ type Props = {
   subjectProgress: SubjectProgress[]
   unreadCount:     number
   passport?:       Passport | null
+  todayLessons?:   TodayLesson[]
 }
 
 // ── Bottom nav tab keys ────────────────────────────────────────────────────────
@@ -113,6 +123,7 @@ export default function StudentMobileDashboard({
   subjectProgress,
   unreadCount,
   passport,
+  todayLessons = [],
 }: Props) {
   const [tab, setTab] = useState<Tab>('home')
   useMobileMenu()
@@ -166,6 +177,25 @@ export default function StudentMobileDashboard({
             </div>
           ))}
         </div>
+
+        {/* Today's timetable strip */}
+        {todayLessons.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Today&apos;s lessons</h2>
+              <Link href="/student/timetable" className="text-[11px] text-blue-600 font-medium">Full timetable →</Link>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5">
+              {todayLessons.map((l, i) => (
+                <div key={i} className="flex-shrink-0 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5 min-w-[130px]">
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{l.subject}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{l.startTime}–{l.endTime}</p>
+                  {l.teacher && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{l.teacher}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Homework groups */}
         {groups.length === 0 && (

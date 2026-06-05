@@ -125,11 +125,12 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Notifications', href: '/notifications', icon: 'notifications'},
   ],
   STUDENT: [
-    { label: 'Dashboard',        href: '/student/dashboard', icon: 'dashboard'   },
-    { label: 'Homework',         href: '/student/homework',  icon: 'assignment'  },
-    { label: 'Revision Planner', href: '/student/revision',  icon: 'menu_book'   },
-    { label: 'My Grades',        href: '/student/grades',    icon: 'school'      },
-    { label: 'Messages',         href: '/messages',          icon: 'chat'        },
+    { label: 'Dashboard',        href: '/student/dashboard',  icon: 'dashboard'      },
+    { label: 'My Timetable',     href: '/student/timetable',  icon: 'calendar_today' },
+    { label: 'Homework',         href: '/student/homework',   icon: 'assignment'     },
+    { label: 'Revision Planner', href: '/student/revision',   icon: 'menu_book'      },
+    { label: 'My Grades',        href: '/student/grades',     icon: 'school'         },
+    { label: 'Messages',         href: '/messages',           icon: 'chat'           },
   ],
   PLATFORM_ADMIN: [
     { label: 'Dashboard', href: '/platform-admin/dashboard', icon: 'dashboard' },

@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-02. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-05. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-02.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-05.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -19,9 +19,13 @@
 > June 2026: Homework UX fixes — AI stream final-buffer flush, maxDuration 120s, student answer
 > exposure guard, re-generation flow, resizable two-panel drag handles (grip dots + label),
 > duplicate model answer suppression in HomeworkDetailPanel. 110/110 e2e on Vercel (18b4e38).
+> June 2026 Part 2: Agent recommendation review UI (/senco/agent-insights with confirm/override/
+> dismiss), student homework list (/student/homework), resource library (/resources), cover lessons
+> weekly view (/lessons). DB perf: indexes on Submission.homeworkId + SendConcern.raisedBy. 13
+> debug console.logs removed. Wonde timetable permissions enabled — periods + timetable live.
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** 18b4e38 (e2e results — 110/110 Vercel)
+> **Latest commit:** 4041fd1 (agent insights UI, student HW list, resource library, cover lessons)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -195,7 +199,9 @@ tail -f /tmp/omnis-dev.log
 /revision-program/new       Create revision program (4-step wizard)
 /revision-program/[id]      Revision program detail
 /student/dashboard          Student homework dashboard
+/student/homework           Student homework list — filter chips, search, status badges
 /student/homework/[id]      Student homework submission
+/student/grades             Student grade history + sparklines + weak topic detection
 /student/revision           Student revision planner
 /student/revision/[taskId]  Student revision task
 /student/[studentId]/send   Student SEND overlay
@@ -213,6 +219,7 @@ tail -f /tmp/omnis-dev.log
 /senco/early-warning        Early warning flags
 /senco/ehcp                 EHCP plans
 /senco/ilp-evidence         ILP evidence linking
+/senco/agent-insights       Agent recommendation review — confirm/override/dismiss COACH/QUALITY/PLAN_SYNTHESIS outputs
 /hoy/analytics              Head of Year analytics
 /slt/analytics              SLT analytics
 /admin/dashboard            School admin dashboard
@@ -224,6 +231,11 @@ tail -f /tmp/omnis-dev.log
 /admin/staff                Admin staff management
 /admin/students             Admin student management
 /admin/timetable            Admin timetable grid
+/admin/audit                Filterable audit log (SCHOOL_ADMIN)
+/slt/audit                  Filterable audit log (SLT — defaults to SEND category)
+/lessons                    Weekly timetable view (COVER_MANAGER/SCHOOL_ADMIN/SLT) — 5-day grid, absence flags
+/resources                  School resource library — type filter, SEND scores, search
+/ta/notes                   Teaching Assistant notes hub — year/class cascade, student list, urgent flags
 /platform-admin/dashboard   Platform admin stats
 /platform-admin/schools     School list
 /platform-admin/oak-sync    Oak sync status
@@ -237,12 +249,19 @@ tail -f /tmp/omnis-dev.log
 /api/export/revision-timetable PDF export
 /api/cron/oak-sync          Oak delta sync cron (Sun 02:00 UTC)
 /api/cron/early-warning     SEND early warning cron (Mon–Fri 06:00 UTC)
+/api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk
+/api/cron/agent-quality     QUALITY agent nightly batch (03:00 UTC) — Bloom's, SEND adaptation, feedback
+/api/cron/agent-plan-synthesis  PLAN_SYNTHESIS agent nightly (03:30 UTC) — ILP/EHCP/K Plan coherence
 /api/wonde/sync             Wonde full sync — POST, 300s maxDuration, SCHOOL_ADMIN/SLT only
 
 marketing/home, /features, /beta, /investors     ← TODO (not yet built)
-/lessons, /resources, /hoy/integrity             ← not yet built (show not-found)
-/student/grades, /student/homework (list)         ← not yet built
-/admin/audit, /slt/audit                          ← not yet built
+/hoy/integrity                                    ← fully built (integrity signals + pattern cases)
+/student/grades                                   ← fully built (grade history + sparklines)
+/admin/audit, /slt/audit                          ← fully built (filterable audit log)
+/lessons                                          ← fully built (weekly timetable for Cover Manager)
+/resources                                        ← fully built (school resource library)
+/student/homework                                 ← fully built (homework list with filters)
+/senco/agent-insights                             ← fully built (agent recommendation review UI)
 ```
 
 ---
@@ -566,14 +585,8 @@ cover management, platform admin, student photos, revision planner, send scorer.
 - Run locally: `npm run test:e2e`
 - Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`
 
-### Unbuilt routes (stub pages with AppShell — show "coming soon")
-- `/lessons` — `app/lessons/page.tsx` stub (Cover Manager nav)
-- `/hoy/integrity` — `app/hoy/integrity/page.tsx` stub (HOY + SLT nav)
-- `/admin/audit` — `app/admin/audit/page.tsx` stub (Admin nav + dashboard quick link)
-- `/slt/audit` — `app/slt/audit/page.tsx` stub (SLT nav)
-- `/student/grades` — `app/student/grades/page.tsx` stub (Student nav)
-- `/student/homework` — redirects to `/student/dashboard` (list not yet built; individual items exist)
-- `/resources` — not-found (no stub yet)
+### Unbuilt routes (marketing only — all app routes are now functional)
+- `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors` — not yet built
 
 ---
 
@@ -706,3 +719,13 @@ cover management, platform admin, student photos, revision planner, send scorer.
 - Resizable two-panel layout in `HomeworkMarkingView`: left/right panel resized via a 12px grip-dot handle (`cursor-col-resize`, 160–360px range); marking panel height resized via a 20px bar with `drag_handle` icon + "drag to resize" label (`cursor-ns-resize`, 180–700px range).
 - Duplicate model answer fix in `HomeworkDetailPanel`: combined `hw.modelAnswer` block now suppressed when per-question answers are already rendered via `scQuestions`, `qJson`, or `hqRows`.
 - 110/110 e2e passing on Vercel (commit 18b4e38). 3 network flakes on cold start — all pass on retry #1.
+
+**June 2026 Part 2 — Feature Completion + Wonde Timetable ✅ (2026-06-05)**
+- **Agent recommendation UI:** `/senco/agent-insights` — `AgentRecommendationsView` with filter chips (Awaiting/Reviewed/All), confirmation modal, confirm/override/dismiss actions via `reviewAgentRecommendation`, audit-logged. `getPendingAgentRecommendations` server action with pagination.
+- **Student homework list:** `/student/homework` — `StudentHomeworkListView` with STATUS_CHIPS (Overdue/Due soon/Upcoming/Submitted/Graded), search, `daysUntil()` helper, grade pills. Server component deduplicates adapted variants.
+- **Resource library:** `/resources` — `ResourceLibraryView` with type filter chips (PLAN/SLIDES/WORKSHEET/VIDEO/LINK), URL search state sync, SEND score badges (green ≥70 / amber ≥40 / red <40). `getFullResourceLibrary(typeFilter?, query?)` server action added to `lessons.ts`.
+- **Cover lessons view:** `/lessons` — `LessonsWeekView` weekly 5-day grid, search + subject + day filters, week nav, absence-affected cards highlighted amber. Uses `scheduledAt`/`endsAt` (not lessonDate/endTime). `SchoolLesson` type added to `lessons.ts`.
+- **DB indexes:** `@@index([homeworkId])` on Submission, `@@index([schoolId, raisedBy])` on SendConcern — pushed to production DB.
+- **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
+- **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
+- **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.

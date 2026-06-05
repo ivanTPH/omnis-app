@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
@@ -333,7 +334,7 @@ function Step2({
           <Icon name="info" size="sm" className="text-gray-400 shrink-0" />
           <p className="text-xs text-gray-500">
             No approved scheme of work found for this subject and year group.{' '}
-            <a href="/plans/year-group" target="_blank" className="text-blue-600 underline hover:text-blue-800">Add one →</a>
+            <Link href="/plans/year-group" target="_blank" className="text-blue-600 underline hover:text-blue-800">Add one →</Link>
           </p>
         </div>
       )}

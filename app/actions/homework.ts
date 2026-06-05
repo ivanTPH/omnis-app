@@ -363,7 +363,6 @@ export async function createHomework(input: {
       })),
       skipDuplicates: true,
     })
-    console.log(`[createHomework] Auto-linked ${input.ilpTargetIds.length} ILP targets to homework ${hw.id}`)
   }
 
   revalidatePath('/dashboard')

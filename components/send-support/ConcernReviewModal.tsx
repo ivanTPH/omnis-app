@@ -199,7 +199,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
                   <div className="flex items-center gap-2 text-green-700">
                     <Icon name="check_circle" size="sm" />
                     <span className="text-sm font-medium">ILP created and ready for review.</span>
-                    <a href="/senco/ilp" className="ml-auto text-xs text-green-600 hover:underline font-medium">View ILP →</a>
+                    <Link href="/senco/ilp" className="ml-auto text-xs text-green-600 hover:underline font-medium">View ILP →</Link>
                   </div>
                 ) : (
                   <>

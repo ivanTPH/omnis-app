@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import type { EhcpPlanWithOutcomes, SubmissionForEvidence, PendingEvidenceSuggestion } from '@/app/actions/ehcp'
 import {
@@ -35,13 +35,31 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
   const [teacherNote,       setTeacherNote]       = useState('')
   const [qualityRating,     setQualityRating]     = useState(3)
   const [linking,           setLinking]           = useState(false)
+  const [linkError,         setLinkError]         = useState<string | null>(null)
   const [linkedCounts,      setLinkedCounts]      = useState<Record<string, number>>({}) // outcomeId → count added this session
+  const [successFlash,      setSuccessFlash]      = useState<string | null>(null)    // outcomeId that just got evidence linked
 
-  // AI Evidence Agent suggestion queue
+  // Status-change prompt: after linking evidence, suggest updating outcome status
+  const [statusPrompt,      setStatusPrompt]      = useState<{ outcomeId: string; newCount: number } | null>(null)
+
+  // AI Evidence Agent suggestion queue — auto-load on mount
   const [suggestions,       setSuggestions]       = useState<PendingEvidenceSuggestion[] | null>(null)
   const [suggestionsOpen,   setSuggestionsOpen]   = useState(false)
-  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true)
   const [confirmingId,      setConfirmingId]      = useState<string | null>(null)
+
+  // Auto-load suggestions on mount
+  useEffect(() => {
+    getPendingEvidenceSuggestions(plan.studentId)
+      .then(data => {
+        setSuggestions(data)
+        // Expand automatically when there are pending suggestions
+        if (data.length > 0) setSuggestionsOpen(true)
+      })
+      .catch(() => setSuggestions([]))
+      .finally(() => setSuggestionsLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.studentId])
 
   async function handleStatusChange(outcomeId: string, status: string) {
     // Soft guardrail: warn if marking achieved with no evidence
@@ -53,6 +71,8 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
       if (!confirmed) return
     }
     setUpdatingId(outcomeId)
+    // Dismiss the status prompt if the user acts on it
+    if (statusPrompt?.outcomeId === outcomeId) setStatusPrompt(null)
     try {
       await updateEhcpOutcomeStatus(outcomeId, status)
       setOutcomes(prev => prev.map(o => o.id === outcomeId ? { ...o, status } : o))
@@ -66,6 +86,8 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
     setSelectedSubId(null)
     setTeacherNote('')
     setQualityRating(3)
+    setLinkError(null)
+    setSuccessFlash(null)
     if (!submissions) {
       setLoadingSubs(true)
       try {
@@ -80,32 +102,33 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
   async function handleLinkEvidence() {
     if (!evidenceOutcomeId || !selectedSubId) return
     setLinking(true)
+    setLinkError(null)
     try {
-      await linkSubmissionToEhcpOutcome(selectedSubId, evidenceOutcomeId, teacherNote, qualityRating)
-      setOutcomes(prev => prev.map(o => o.id === evidenceOutcomeId ? { ...o, evidenceCount: o.evidenceCount + 1 } : o))
+      const { alreadyLinked } = await linkSubmissionToEhcpOutcome(selectedSubId, evidenceOutcomeId, teacherNote, qualityRating)
+      if (alreadyLinked) {
+        setLinkError('This submission is already confirmed as evidence for this outcome.')
+        return
+      }
+      const newCount = (outcomes.find(o => o.id === evidenceOutcomeId)?.evidenceCount ?? 0) + 1
+      setOutcomes(prev => prev.map(o => o.id === evidenceOutcomeId ? { ...o, evidenceCount: newCount } : o))
       setLinkedCounts(prev => ({ ...prev, [evidenceOutcomeId]: (prev[evidenceOutcomeId] ?? 0) + 1 }))
-      // Reset selection so user can immediately pick another submission
+      // Flash success on the outcome row
+      setSuccessFlash(evidenceOutcomeId)
+      setTimeout(() => setSuccessFlash(null), 4000)
+      // Reset selection so user can immediately pick another submission — keep picker open
       setSelectedSubId(null)
       setTeacherNote('')
       setQualityRating(3)
-      // Close picker — user sees the "linked" success strip and can re-open to add more
-      setEvidenceOutcomeId(null)
+      // Check if adding this evidence should prompt a status update
+      const outcome = outcomes.find(o => o.id === evidenceOutcomeId)
+      if (outcome && (outcome.status === 'not_achieved' || outcome.status === 'active') && newCount >= 1) {
+        setStatusPrompt({ outcomeId: evidenceOutcomeId, newCount })
+      }
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : 'Failed to link evidence. Please try again.')
     } finally {
       setLinking(false)
     }
-  }
-
-  async function handleToggleSuggestions() {
-    if (!suggestionsOpen && suggestions === null) {
-      setSuggestionsLoading(true)
-      try {
-        const data = await getPendingEvidenceSuggestions(plan.studentId)
-        setSuggestions(data)
-      } finally {
-        setSuggestionsLoading(false)
-      }
-    }
-    setSuggestionsOpen(prev => !prev)
   }
 
   async function handleConfirm(evidenceId: string, outcomeId: string) {
@@ -113,7 +136,13 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
     try {
       await confirmEvidenceSuggestion(evidenceId)
       setSuggestions(prev => prev ? prev.filter(s => s.id !== evidenceId) : prev)
-      setOutcomes(prev => prev.map(o => o.id === outcomeId ? { ...o, evidenceCount: o.evidenceCount + 1 } : o))
+      const newCount = (outcomes.find(o => o.id === outcomeId)?.evidenceCount ?? 0) + 1
+      setOutcomes(prev => prev.map(o => o.id === outcomeId ? { ...o, evidenceCount: newCount } : o))
+      // Prompt status update after confirming AI suggestion
+      const outcome = outcomes.find(o => o.id === outcomeId)
+      if (outcome && (outcome.status === 'not_achieved' || outcome.status === 'active')) {
+        setStatusPrompt({ outcomeId, newCount })
+      }
     } finally {
       setConfirmingId(null)
     }
@@ -177,6 +206,12 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                   <span className="text-xs text-gray-400">
                     Due {new Date(outcome.targetDate).toLocaleDateString('en-GB')}
                   </span>
+                  {successFlash === outcome.id && (
+                    <span className="text-xs text-green-700 flex items-center gap-1 font-medium">
+                      <Icon name="check_circle" size="sm" />
+                      Evidence linked
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-gray-900 mb-1">{outcome.outcomeText}</p>
                 <p className="text-xs text-gray-500">{outcome.successCriteria}</p>
@@ -198,11 +233,56 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
               </div>
             </div>
 
+            {/* Status-change prompt banner */}
+            {statusPrompt?.outcomeId === outcome.id && outcome.status !== 'achieved' && (
+              <div className="border-t border-green-200 bg-green-50 px-4 py-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs text-green-800">
+                  <Icon name="auto_awesome" size="sm" className="text-green-600 shrink-0" />
+                  <span>
+                    <span className="font-semibold">{statusPrompt.newCount} piece{statusPrompt.newCount !== 1 ? 's' : ''} of evidence</span>
+                    {' '}linked — should you update the outcome status?
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => handleStatusChange(outcome.id, 'partially_achieved')}
+                    className="text-xs px-2 py-1 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 font-medium transition-colors"
+                  >
+                    Partially achieved
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(outcome.id, 'achieved')}
+                    className="text-xs px-2 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium transition-colors"
+                  >
+                    Mark achieved
+                  </button>
+                  <button
+                    onClick={() => setStatusPrompt(null)}
+                    className="text-xs text-gray-400 hover:text-gray-600 px-1"
+                  >
+                    <Icon name="close" size="sm" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {outcome.status !== 'achieved' && (
               <div className={`border-t border-gray-100 px-4 py-2 ${outcome.evidenceCount === 0 && outcome.status === 'active' ? 'bg-amber-50' : 'bg-gray-50'}`}>
                 {evidenceOutcomeId === outcome.id ? (
                   <div className="space-y-3 py-1">
-                    <p className="text-xs font-semibold text-gray-700">Link homework evidence to this outcome</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-gray-700">Link homework evidence to this outcome</p>
+                      <button onClick={() => setEvidenceOutcomeId(null)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
+                        <Icon name="close" size="sm" />
+                        Close
+                      </button>
+                    </div>
+                    {(linkedCounts[outcome.id] ?? 0) > 0 && (
+                      <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2 py-1.5 rounded-lg">
+                        <Icon name="check_circle" size="sm" />
+                        {linkedCounts[outcome.id]} piece{(linkedCounts[outcome.id] ?? 0) !== 1 ? 's' : ''} linked this session — select another to add more
+                      </div>
+                    )}
                     {loadingSubs ? (
                       <p className="text-xs text-gray-400 animate-pulse">Loading submissions…</p>
                     ) : !submissions || submissions.length === 0 ? (
@@ -212,7 +292,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                         {submissions.map(s => (
                           <button
                             key={s.id}
-                            onClick={() => setSelectedSubId(s.id === selectedSubId ? null : s.id)}
+                            onClick={() => { setSelectedSubId(s.id === selectedSubId ? null : s.id); setLinkError(null) }}
                             className={`w-full text-left text-xs px-2 py-1.5 rounded-lg border transition-colors ${selectedSubId === s.id ? 'border-purple-400 bg-purple-50 text-purple-900' : 'border-gray-200 hover:bg-gray-100 text-gray-700'}`}
                           >
                             <span className="font-medium">{s.homeworkTitle}</span>
@@ -229,7 +309,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                           value={teacherNote}
                           onChange={e => setTeacherNote(e.target.value)}
                           rows={2}
-                          placeholder="Evidence note (optional)…"
+                          placeholder="Evidence note — optional but recommended…"
                           className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
                         />
                         <div className="flex items-center gap-2">
@@ -238,19 +318,25 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                             <button key={r} onClick={() => setQualityRating(r)} className={`text-sm ${r <= qualityRating ? 'text-amber-400' : 'text-gray-300'}`}>★</button>
                           ))}
                         </div>
+                        {linkError && (
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <Icon name="error" size="sm" />
+                            {linkError}
+                          </p>
+                        )}
+                        <button
+                          onClick={handleLinkEvidence}
+                          disabled={linking}
+                          className="flex items-center gap-1 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                          <Icon name="link" size="sm" />
+                          {linking ? 'Linking…' : 'Link evidence'}
+                        </button>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleLinkEvidence}
-                        disabled={!selectedSubId || linking}
-                        className="flex items-center gap-1 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-40 transition-colors"
-                      >
-                        <Icon name="link" size="sm" />
-                        {linking ? 'Linking…' : 'Link evidence'}
-                      </button>
-                      <button onClick={() => setEvidenceOutcomeId(null)} className="text-xs text-gray-500 hover:text-gray-700">Cancel</button>
-                    </div>
+                    {!selectedSubId && submissions && submissions.length > 0 && (
+                      <p className="text-xs text-gray-400">Select a submission above to link it as evidence.</p>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
@@ -261,12 +347,6 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                       <Icon name="add_link" size="sm" />
                       {outcome.evidenceCount === 0 ? 'Link evidence from homework' : `Add more evidence (${outcome.evidenceCount} linked)`}
                     </button>
-                    {(linkedCounts[outcome.id] ?? 0) > 0 && (
-                      <span className="text-xs text-green-700 flex items-center gap-1">
-                        <Icon name="check_circle" size="sm" />
-                        {linkedCounts[outcome.id]} piece{(linkedCounts[outcome.id] ?? 0) !== 1 ? 's' : ''} linked this session
-                      </span>
-                    )}
                   </div>
                 )}
               </div>
@@ -282,19 +362,25 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
         </div>
       )}
 
-      {/* AI Evidence Agent suggestion queue */}
+      {/* AI Evidence Agent suggestion queue — auto-loads on mount */}
       <div className="border border-purple-200 rounded-xl overflow-hidden">
         <button
-          onClick={handleToggleSuggestions}
+          onClick={() => setSuggestionsOpen(prev => !prev)}
           className="w-full flex items-center justify-between px-4 py-3 bg-purple-50 text-sm font-medium text-purple-800 hover:bg-purple-100 transition-colors"
         >
           <div className="flex items-center gap-2">
             <Icon name="auto_awesome" size="sm" className="text-purple-600" />
             <span>AI Evidence Suggestions</span>
+            {suggestionsLoading && (
+              <Icon name="refresh" size="sm" className="text-purple-400 animate-spin" />
+            )}
             {suggestions != null && suggestions.length > 0 && (
               <span className="text-xs bg-purple-600 text-white px-1.5 py-0.5 rounded-full font-semibold">
                 {suggestions.length}
               </span>
+            )}
+            {suggestions != null && suggestions.length === 0 && !suggestionsLoading && (
+              <span className="text-xs text-purple-400">No pending suggestions</span>
             )}
           </div>
           <Icon

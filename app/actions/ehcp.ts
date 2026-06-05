@@ -343,7 +343,7 @@ export async function linkSubmissionToEhcpOutcome(
   outcomeId: string,
   teacherNote: string,
   qualityRating: number,
-): Promise<void> {
+): Promise<{ alreadyLinked: boolean }> {
   const user = await requireSencoOrStaff()
   const schoolId = user.schoolId
 
@@ -351,17 +351,50 @@ export async function linkSubmissionToEhcpOutcome(
   const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
   if (!sub) throw new Error('Submission not found')
 
-  await prisma.homeworkEhcpEvidence.create({
-    data: { outcomeId, submissionId, teacherNote, qualityRating, evidenceDate: new Date() },
+  // Check if this (outcomeId, submissionId) pair already exists to avoid P2002
+  const existing = await prisma.homeworkEhcpEvidence.findUnique({
+    where: { outcomeId_submissionId: { outcomeId, submissionId } },
+    select: { id: true, reviewStatus: true },
   })
 
-  // Increment evidenceCount on outcome
-  await prisma.ehcpOutcome.update({
-    where: { id: outcomeId },
-    data: { evidenceCount: { increment: 1 } },
-  })
+  if (existing) {
+    if (existing.reviewStatus === 'confirmed') {
+      // Already confirmed — silently no-op (evidenceCount already counted in DB)
+      return { alreadyLinked: true }
+    }
+    // Was pending (AI suggestion) or dismissed — confirm it now and count it
+    await prisma.$transaction([
+      prisma.homeworkEhcpEvidence.update({
+        where: { id: existing.id },
+        data: { reviewStatus: 'confirmed', teacherNote, qualityRating, evidenceDate: new Date() },
+      }),
+      prisma.ehcpOutcome.update({
+        where: { id: outcomeId },
+        data: { evidenceCount: { increment: 1 } },
+      }),
+    ])
+  } else {
+    // New evidence link — create as confirmed immediately (manual links are pre-approved)
+    await prisma.$transaction([
+      prisma.homeworkEhcpEvidence.create({
+        data: {
+          outcomeId,
+          submissionId,
+          teacherNote,
+          qualityRating,
+          evidenceDate: new Date(),
+          reviewStatus: 'confirmed',
+        },
+      }),
+      prisma.ehcpOutcome.update({
+        where: { id: outcomeId },
+        data: { evidenceCount: { increment: 1 } },
+      }),
+    ])
+  }
 
   revalidatePath('/senco/ehcp')
+  return { alreadyLinked: false }
 }
 
 export async function updateEhcpOutcomeStatus(

@@ -61,11 +61,24 @@ export default async function globalSetup() {
     [USERS.student.email,     USERS.student.password,     'student'],
     [USERS.hoy.email,         USERS.hoy.password,         'hoy'],
     [USERS.ta.email,          USERS.ta.password,          'ta'],
+    [USERS.hod.email,         USERS.hod.password,         'hod'],
+    [USERS.parent.email,      USERS.parent.password,      'parent'],
   ]
 
-  // Sequential — parallel auth causes Supabase pgbouncer connection storms
+  // First pass — sequential to avoid pgbouncer connection storms.
+  // Teacher + SLT typically warm the auth Lambda so later roles succeed.
+  const failed: Array<[string, string, string]> = []
   for (const [email, password, label] of roles) {
-    await saveAuthState(email, password, label)
+    const ok = await saveAuthState(email, password, label)
+    if (!ok) failed.push([email, password, label])
+  }
+
+  // Retry pass — by now the auth Lambda is warm from the first pass successes
+  if (failed.length > 0) {
+    console.log(`[global-setup] retrying ${failed.length} failed roles...`)
+    for (const [email, password, label] of failed) {
+      await saveAuthState(email, password, `${label} (retry)`, 90_000)
+    }
   }
 
   await browser.close()

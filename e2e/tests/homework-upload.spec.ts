@@ -98,8 +98,6 @@ test.describe('UPLOAD homework type — student view', () => {
     homeworkId = result.homeworkId
   })
 
-  test.afterAll(async () => { await prisma.$disconnect() })
-
   test('student can access upload homework page', async ({ page }) => {
     await loginAs(page, USERS.student)
     await page.goto(`/student/homework/${homeworkId}`)

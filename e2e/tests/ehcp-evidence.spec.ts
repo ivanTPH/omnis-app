@@ -59,7 +59,6 @@ async function ensureEhcpStudent(): Promise<{ studentId: string; ehcpId: string 
 }
 
 test.describe('EHCP plans — access and navigation', () => {
-  test.afterAll(async () => { await prisma.$disconnect() })
 
   test('SENCO can access EHCP plans page', async ({ page }) => {
     await loginAs(page, USERS.senco)
@@ -109,8 +108,6 @@ test.describe('EHCP evidence — student profile EHCP view', () => {
     }
     studentId = result.studentId
   })
-
-  test.afterAll(async () => { await prisma.$disconnect() })
 
   test('SENCO can open student file page for EHCP student', async ({ page }) => {
     if (!studentId) return test.skip()

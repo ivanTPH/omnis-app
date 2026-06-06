@@ -13,6 +13,9 @@ export async function loginAs(page: Page, user: UserFixture): Promise<void> {
         cookies: Array<Record<string, unknown>>
       }
       await page.context().addCookies(state.cookies)
+      // Navigate to root so the middleware fires the role-home redirect.
+      // Tests that do their own page.goto() afterwards will simply re-navigate.
+      await page.goto('/', { waitUntil: 'domcontentloaded' })
       return
     }
   }

@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-05. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-06. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-05.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-06.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -23,9 +23,12 @@
 > dismiss), student homework list (/student/homework), resource library (/resources), cover lessons
 > weekly view (/lessons). DB perf: indexes on Submission.homeworkId + SendConcern.raisedBy. 13
 > debug console.logs removed. Wonde timetable permissions enabled — periods + timetable live.
+> June 2026 Part 3: E2E test suite expanded to 155 tests (23 spec files). Fixed Prisma disconnect
+> bugs, beforeAll try-catch patterns, icon-only button selectors, loginAs 45s timeout (cold-start
+> fail-fast), Homework model schema mismatches (no teacherId; createdBy required). 151/155 passing.
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** 4041fd1 (agent insights UI, student HW list, resource library, cover lessons)
+> **Latest commit:** 045596d (e2e 151/155 — 5 new spec files, auth + schema fixes)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -723,6 +726,25 @@ student notes CRUD, subjects & boards HOY edit-rights regression.
 - Resizable two-panel layout in `HomeworkMarkingView`: left/right panel resized via a 12px grip-dot handle (`cursor-col-resize`, 160–360px range); marking panel height resized via a 20px bar with `drag_handle` icon + "drag to resize" label (`cursor-ns-resize`, 180–700px range).
 - Duplicate model answer fix in `HomeworkDetailPanel`: combined `hw.modelAnswer` block now suppressed when per-question answers are already rendered via `scQuestions`, `qJson`, or `hqRows`.
 - 110/110 e2e passing on Vercel (commit 18b4e38). 3 network flakes on cold start — all pass on retry #1.
+
+**June 2026 Part 3 — E2E Test Suite Expansion ✅ (2026-06-06)**
+- **5 new spec files added** (155 tests total, 23 spec files): `ehcp-evidence.spec.ts` (EHCP plans
+  access + P2002 regression guard), `homework-upload.spec.ts` (UPLOAD type student/teacher views +
+  Year Group Plans "External Link" label), `student-notes-edit.spec.ts` (teacher add/edit/delete
+  notes, TA notes hub, access control), `student-returned-hw.spec.ts` (grade context strip, homework
+  list), `subjects-boards-hoy.spec.ts` (HOD/HOY edit rights regression).
+- **Playwright fixes:** `loginAs` timeout reduced 120s→45s (cold Lambdas fail fast; suite runs in
+  ~18 min instead of 1h+). `beforeAll` DB setup wrapped in try-catch — unhandled throws caused 0ms
+  test failures instead of graceful skips. Removed duplicate `prisma.$disconnect()` calls across
+  describe blocks in same file (block N's afterAll was disconnecting shared client before block N+1's
+  beforeAll). Auth cookie injection: added `page.goto('/')` after `addCookies()` to trigger
+  middleware role redirect.
+- **Selector fixes:** `"add note"` → `"save note"` button text; icon-only edit button found via
+  `locator('button').filter({ has: locator('span', { hasText: /^edit$/ }) })`.
+- **Homework schema fix:** `ensureUploadHomework` was using non-existent `teacherId` field and
+  missing required `createdBy`. Fixed to filter by `classId` and include `createdBy: teacher.id`.
+- **Result:** 151/155 passing on Vercel (exit code 0). 4 gracefully skip (ehcp-evidence block 3
+  requires returned homework in DB — run `npm run db:seed`).
 
 **June 2026 Part 2 — Feature Completion + Wonde Timetable ✅ (2026-06-05)**
 - **Agent recommendation UI:** `/senco/agent-insights` — `AgentRecommendationsView` with filter chips (Awaiting/Reviewed/All), confirmation modal, confirm/override/dismiss actions via `reviewAgentRecommendation`, audit-logged. `getPendingAgentRecommendations` server action with pagination.

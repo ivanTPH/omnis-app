@@ -576,14 +576,16 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**110/110 tests passing** against both localhost and live Vercel deployment (last run: 2026-06-02).
-23 spec files (~150 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+**151/155 tests passing** against Vercel (last run: 2026-06-06). 4 gracefully skip
+(ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
+23 spec files (155 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
 cover management, platform admin, student photos, revision planner, send scorer,
 EHCP evidence (P2002 regression), homework UPLOAD type, student returned HW grade strip,
 student notes CRUD, subjects & boards HOY edit-rights regression.
 - `USERS.hod` (d.brooks), `USERS.hoy` (t.adeyemi), `USERS.ta` (j.taylor) fixtures in users.ts
-- 3 known network flakes on Vercel cold starts — all pass on retry #1, not regressions
+- loginAs timeout: 45s fail-fast (cold Lambdas fail quickly; warm Lambdas respond in 5-15s)
+- 0 flakes when global-setup saves auth state; retries handle remaining cold starts
 - Run locally: `npm run test:e2e`
 - Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`
 

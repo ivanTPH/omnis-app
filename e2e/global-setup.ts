@@ -1,40 +1,55 @@
 import { chromium } from '@playwright/test'
 import { USERS } from './fixtures/users'
+import * as fs from 'fs'
+import * as path from 'path'
 
 /**
- * Pre-warm the Vercel deployment before the test suite runs.
- * Logs in as all test roles so the auth + route handlers are hot.
- * Only runs when PLAYWRIGHT_BASE_URL is set (i.e. against Vercel, not localhost).
+ * Saves NextAuth JWT cookies for each test role to e2e/.auth/{slug}.json.
+ * loginAs() injects these cookies directly, eliminating per-test form login
+ * and Vercel Lambda cold-start pressure on the auth endpoint.
  *
- * Key constraint: total warmup must finish in < 3 minutes so that the
- * warmed Lambda instances are still hot when tests begin (Vercel evicts
- * idle lambdas after ~5 minutes). Per-user first-pass timeout is 25s —
- * fast enough for a cold start (typically 3–8s) without burning the
- * warmth window on repeated 120s timeouts. Failed roles get a 60s retry.
+ * Only runs when PLAYWRIGHT_BASE_URL is set (i.e. against Vercel, not localhost).
  */
+
+const AUTH_DIR = path.join(__dirname, '.auth')
+
+/** Derive the auth state file path from an email address. */
+export function authStateFile(email: string): string {
+  const slug = email.split('@')[0].replace(/\./g, '_')
+  return path.join(AUTH_DIR, `${slug}.json`)
+}
+
 export default async function globalSetup() {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL
   if (!baseURL) return
 
-  console.log('[global-setup] Warming Vercel deployment at', baseURL)
+  console.log('[global-setup] Saving auth state for Vercel deployment at', baseURL)
+  fs.mkdirSync(AUTH_DIR, { recursive: true })
 
   const browser = await chromium.launch()
 
-  async function warmUser(email: string, password: string, label: string, timeoutMs = 25_000): Promise<boolean> {
-    const page = await browser.newPage()
+  async function saveAuthState(
+    email: string,
+    password: string,
+    label: string,
+    timeoutMs = 60_000,
+  ): Promise<boolean> {
+    const context = await browser.newContext()
+    const page = await context.newPage()
     try {
       await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: timeoutMs })
       await page.fill('input[type="email"]', email)
       await page.fill('input[type="password"]', password)
       await page.click('button[type="submit"]')
       await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: timeoutMs })
-      console.log(`[global-setup] warmed: ${label}`)
+      await context.storageState({ path: authStateFile(email) })
+      console.log(`[global-setup] saved auth: ${label}`)
       return true
     } catch (err) {
-      console.warn(`[global-setup] warm failed for ${label}:`, (err as Error).message.slice(0, 80))
+      console.warn(`[global-setup] auth failed for ${label}:`, (err as Error).message.slice(0, 80))
       return false
     } finally {
-      await page.close()
+      await context.close()
     }
   }
 
@@ -48,20 +63,11 @@ export default async function globalSetup() {
     [USERS.ta.email,          USERS.ta.password,          'ta'],
   ]
 
-  // Warm all roles in parallel — caps total warmup at ~25s regardless of role count.
-  // Sequential warmup (old approach) took up to 175s+ causing first-warmed Lambdas to go cold.
-  const results = await Promise.all(
-    roles.map(([email, password, label]) => warmUser(email, password, label))
-  )
-
-  // Retry only the failures, still in parallel, with a longer timeout
-  const failed = roles.filter((_, i) => !results[i])
-  if (failed.length > 0) {
-    await Promise.all(
-      failed.map(([email, password, label]) => warmUser(email, password, `${label} (retry)`, 45_000))
-    )
+  // Sequential — parallel auth causes Supabase pgbouncer connection storms
+  for (const [email, password, label] of roles) {
+    await saveAuthState(email, password, label)
   }
 
   await browser.close()
-  console.log('[global-setup] warm-up complete')
+  console.log('[global-setup] auth state saved')
 }

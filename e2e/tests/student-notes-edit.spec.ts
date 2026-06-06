@@ -43,8 +43,6 @@ test.describe('Student notes — add / edit / delete', () => {
     studentId = id
   })
 
-  test.afterAll(async () => { await prisma.$disconnect() })
-
   test('student file page loads without error', async ({ page }) => {
     await loginAs(page, USERS.teacher)
     await page.goto(`/students/${studentId}`)
@@ -85,7 +83,7 @@ test.describe('Student notes — add / edit / delete', () => {
     await noteInput.fill(noteText)
 
     // Submit the note
-    const addBtn = page.getByRole('button', { name: /add note/i }).first()
+    const addBtn = page.getByRole('button', { name: /save note/i }).first()
     await expect(addBtn).toBeVisible({ timeout: 5_000 })
     await addBtn.click()
 
@@ -118,9 +116,9 @@ test.describe('Student notes — add / edit / delete', () => {
     await expect(notesTab).toBeVisible({ timeout: 10_000 })
     await notesTab.click()
 
-    // There should be at least one edit (pencil) button on a note row
-    // edit buttons typically use aria-label "Edit note" or an icon button
-    const editBtn = page.locator('button[title*="Edit"], button[aria-label*="edit"], button[aria-label*="Edit"]').first()
+    // There should be at least one edit (pencil) button on a note row.
+    // The button has no title/aria-label — it contains a Material Icon <span> with text "edit".
+    const editBtn = page.locator('button').filter({ has: page.locator('span', { hasText: /^edit$/ }) }).first()
     await expect(editBtn).toBeVisible({ timeout: 10_000 })
   })
 

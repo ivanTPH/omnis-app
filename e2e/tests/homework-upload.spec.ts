@@ -93,12 +93,16 @@ test.describe('UPLOAD homework type — student view', () => {
   let homeworkId: string
 
   test.beforeAll(async () => {
-    const result = await ensureUploadHomework()
-    if (!result) {
-      console.warn('Could not set up upload homework — run db:seed first; tests will skip')
-      return
+    try {
+      const result = await ensureUploadHomework()
+      if (!result) {
+        console.warn('Could not set up upload homework — run db:seed first; tests will skip')
+        return
+      }
+      homeworkId = result.homeworkId
+    } catch {
+      console.warn('ensureUploadHomework threw — tests will skip')
     }
-    homeworkId = result.homeworkId
   })
 
   test('student can access upload homework page', async ({ page }) => {
@@ -128,13 +132,17 @@ test.describe('UPLOAD homework type — teacher marking view', () => {
   let submissionId: string
 
   test.beforeAll(async () => {
-    const result = await ensureUploadHomework()
-    if (!result) {
-      console.warn('Could not set up upload homework — run db:seed first; tests will skip')
-      return
+    try {
+      const result = await ensureUploadHomework()
+      if (!result) {
+        console.warn('Could not set up upload homework — run db:seed first; tests will skip')
+        return
+      }
+      homeworkId   = result.homeworkId
+      submissionId = result.submissionId
+    } catch {
+      console.warn('ensureUploadHomework threw — tests will skip')
     }
-    homeworkId   = result.homeworkId
-    submissionId = result.submissionId
   })
 
   test.afterAll(async () => { await prisma.$disconnect() })

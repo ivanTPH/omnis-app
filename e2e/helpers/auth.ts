@@ -24,8 +24,9 @@ export async function loginAs(page: Page, user: UserFixture): Promise<void> {
   await page.fill('input[type="email"]', user.email)
   await page.fill('input[type="password"]', user.password)
   await page.click('button[type="submit"]')
-  // 120s — Vercel cold-start with Prisma schema generation can take 60-90s
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 120_000 })
+  // 45s — fail fast so Playwright can retry; the Lambda warms up during the retry gap.
+  // Warm Lambdas respond in 5-15s; cold ones will be warmer by the next attempt.
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 45_000 })
 }
 
 export async function logout(page: Page): Promise<void> {

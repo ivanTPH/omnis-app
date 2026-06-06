@@ -63,6 +63,22 @@ export const USERS = {
     lastName: 'Brooks',
     school: 'Omnis Demo School',
   },
+  hoy: {
+    email: 't.adeyemi@omnisdemo.school',
+    password: 'Demo1234!',
+    role: 'HEAD_OF_YEAR',
+    firstName: 'T',
+    lastName: 'Adeyemi',
+    school: 'Omnis Demo School',
+  },
+  ta: {
+    email: 'j.taylor@omnisdemo.school',
+    password: 'Demo1234!',
+    role: 'TEACHING_ASSISTANT',
+    firstName: 'J',
+    lastName: 'Taylor',
+    school: 'Omnis Demo School',
+  },
 } as const
 
 export type UserKey = keyof typeof USERS

@@ -24,7 +24,8 @@ export async function loginAs(page: Page, user: UserFixture): Promise<void> {
   await page.fill('input[type="email"]', user.email)
   await page.fill('input[type="password"]', user.password)
   await page.click('button[type="submit"]')
-  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 50_000 })
+  // 120s — Vercel cold-start with Prisma schema generation can take 60-90s
+  await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 120_000 })
 }
 
 export async function logout(page: Page): Promise<void> {

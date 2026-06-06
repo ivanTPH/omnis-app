@@ -40,23 +40,22 @@ async function ensureUploadHomework(): Promise<{ homeworkId: string; submissionI
   })
   if (!classTeacher) return null
 
-  // Find or create an UPLOAD homework
+  // Find or create an UPLOAD homework (Homework has no teacherId — filter by classId)
   let hw = await prisma.homework.findFirst({
-    where:  { schoolId: school.id, teacherId: teacher.id, type: 'UPLOAD', status: 'PUBLISHED' },
+    where:  { schoolId: school.id, classId: classTeacher.classId, type: 'UPLOAD', status: 'PUBLISHED' },
     select: { id: true },
   })
   if (!hw) {
     hw = await prisma.homework.create({
       data: {
         schoolId:     school.id,
-        teacherId:    teacher.id,
         classId:      classTeacher.classId,
         title:        'E2E Upload Homework',
         instructions: 'Upload a file for this e2e test.',
         type:         'UPLOAD',
         homeworkVariantType: 'upload',
         status:       'PUBLISHED',
-        setAt:        new Date(),
+        createdBy:    teacher.id,
         dueAt:        new Date(Date.now() + 7 * 86_400_000),
         gradingBands: { '9': 'Excellent', '7': 'Good', '5': 'Satisfactory', '3': 'Needs improvement' },
       },

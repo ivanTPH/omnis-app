@@ -48,16 +48,18 @@ export default async function globalSetup() {
     [USERS.ta.email,          USERS.ta.password,          'ta'],
   ]
 
-  // First pass — all roles with short timeout
-  const failed: Array<[string, string, string]> = []
-  for (const [email, password, label] of roles) {
-    const ok = await warmUser(email, password, label)
-    if (!ok) failed.push([email, password, label])
-  }
+  // Warm all roles in parallel — caps total warmup at ~25s regardless of role count.
+  // Sequential warmup (old approach) took up to 175s+ causing first-warmed Lambdas to go cold.
+  const results = await Promise.all(
+    roles.map(([email, password, label]) => warmUser(email, password, label))
+  )
 
-  // Retry pass — give cold-start stragglers a second chance
-  for (const [email, password, label] of failed) {
-    await warmUser(email, password, `${label} (retry)`, 60_000)
+  // Retry only the failures, still in parallel, with a longer timeout
+  const failed = roles.filter((_, i) => !results[i])
+  if (failed.length > 0) {
+    await Promise.all(
+      failed.map(([email, password, label]) => warmUser(email, password, `${label} (retry)`, 45_000))
+    )
   }
 
   await browser.close()

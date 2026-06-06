@@ -577,10 +577,12 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 
 ### E2E tests
 **110/110 tests passing** against both localhost and live Vercel deployment (last run: 2026-06-02).
-18 spec files covering: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+23 spec files (~150 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
-cover management, platform admin, student photos, revision planner, send scorer.
-- HOD fixture added to `e2e/fixtures/users.ts` as `USERS.hod` (d.brooks@omnisdemo.school)
+cover management, platform admin, student photos, revision planner, send scorer,
+EHCP evidence (P2002 regression), homework UPLOAD type, student returned HW grade strip,
+student notes CRUD, subjects & boards HOY edit-rights regression.
+- `USERS.hod` (d.brooks), `USERS.hoy` (t.adeyemi), `USERS.ta` (j.taylor) fixtures in users.ts
 - 3 known network flakes on Vercel cold starts — all pass on retry #1, not regressions
 - Run locally: `npm run test:e2e`
 - Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`

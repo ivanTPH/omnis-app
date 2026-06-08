@@ -1,7 +1,36 @@
 import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
+import { unstable_cache } from 'next/cache'
 import AppShell from '@/components/AppShell'
 import HomeworkFilterView from '@/components/HomeworkFilterView'
+
+const fetchHomeworkPageData = unstable_cache(
+  async (schoolId: string, userId: string, isTeacher: boolean) => {
+    const homework = await prisma.homework.findMany({
+      where: {
+        schoolId,
+        ...(isTeacher ? { class: { teachers: { some: { userId } } } } : {}),
+      },
+      include: {
+        class:       { select: { name: true, subject: true, yearGroup: true } },
+        lesson:      { select: { id: true, title: true } },
+        submissions: { select: { id: true, status: true, finalScore: true } },
+      },
+      orderBy: { dueAt: 'asc' },
+    })
+    const classIds = [...new Set(homework.map(h => h.classId).filter(Boolean))] as string[]
+    const enrolmentCounts = classIds.length
+      ? await prisma.enrolment.groupBy({
+          by:    ['classId'],
+          where: { classId: { in: classIds } },
+          _count: { classId: true },
+        })
+      : []
+    return { homework, enrolmentCounts }
+  },
+  ['homework-page'],
+  { revalidate: 60 },
+)
 
 export default async function HomeworkPage() {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
@@ -10,26 +39,8 @@ export default async function HomeworkPage() {
   // All other staff roles (HOD, HOY, SENCO, SLT, SCHOOL_ADMIN) see the full school.
   const isTeacher = role === 'TEACHER' || role === 'COVER_MANAGER'
 
-  const homework = await prisma.homework.findMany({
-    where: {
-      schoolId,
-      ...(isTeacher ? { class: { teachers: { some: { userId } } } } : {}),
-    },
-    include: {
-      class:       { select: { name: true, subject: true, yearGroup: true } },
-      lesson:      { select: { id: true, title: true } },
-      submissions: { select: { id: true, status: true, finalScore: true } },
-    },
-    orderBy: { dueAt: 'asc' },
-  })
+  const { homework, enrolmentCounts } = await fetchHomeworkPageData(schoolId, userId, isTeacher)
 
-  // Enrolment counts per class (for submission rate denominator)
-  const classIds = [...new Set(homework.map(h => h.classId).filter(Boolean))] as string[]
-  const enrolmentCounts = await prisma.enrolment.groupBy({
-    by:    ['classId'],
-    where: { classId: { in: classIds } },
-    _count: { classId: true },
-  })
   const countByClass = Object.fromEntries(
     enrolmentCounts.map(e => [e.classId, e._count.classId]),
   )

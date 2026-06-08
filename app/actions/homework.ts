@@ -2,7 +2,7 @@
 import { auth }            from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit, writeILPAudit } from '@/lib/prisma'
-import { revalidatePath }  from 'next/cache'
+import { revalidatePath, unstable_cache }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
@@ -14,18 +14,24 @@ import { AgentType }            from '@prisma/client'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
+const fetchHomeworkList = unstable_cache(
+  async (schoolId: string, userId: string) =>
+    prisma.homework.findMany({
+      where: { schoolId, class: { teachers: { some: { userId } } } },
+      include: {
+        class:       { select: { name: true, subject: true, yearGroup: true } },
+        lesson:      { select: { id: true, title: true } },
+        submissions: { select: { id: true, status: true, finalScore: true } },
+      },
+      orderBy: { dueAt: 'asc' },
+    }),
+  ['homework-list'],
+  { revalidate: 60 },
+)
+
 export async function getHomeworkList() {
   const { schoolId, id: userId } = await requireAuth()
-
-  return prisma.homework.findMany({
-    where: { schoolId, class: { teachers: { some: { userId } } } },
-    include: {
-      class:       { select: { name: true, subject: true, yearGroup: true } },
-      lesson:      { select: { id: true, title: true } },
-      submissions: { select: { id: true, status: true, finalScore: true } },
-    },
-    orderBy: { dueAt: 'asc' },
-  })
+  return fetchHomeworkList(schoolId, userId)
 }
 
 export async function getHomeworkForMarking(homeworkId: string) {
@@ -53,26 +59,36 @@ export async function getHomeworkForMarking(homeworkId: string) {
   })
   if (!hw) return null
 
-  const enrolledIds  = hw.class?.enrolments.map(e => e.user.id) ?? []
-  const sendStatuses = enrolledIds.length
-    ? await prisma.sendStatus.findMany({
-        where:  { studentId: { in: enrolledIds }, NOT: { activeStatus: 'NONE' } },
-        select: { studentId: true, activeStatus: true, needArea: true },
-      })
-    : []
+  const enrolledIds = hw.class?.enrolments.map(e => e.user.id) ?? []
+  const subIds      = hw.submissions.map(s => s.id)
 
-  const sendByStudent = Object.fromEntries(sendStatuses.map(s => [s.studentId, s]))
+  // Run independent lookups in parallel
+  const [sendStatuses, kPlans, rawNotes] = await Promise.all([
+    enrolledIds.length
+      ? prisma.sendStatus.findMany({
+          where:  { studentId: { in: enrolledIds }, NOT: { activeStatus: 'NONE' } },
+          select: { studentId: true, activeStatus: true, needArea: true },
+        })
+      : Promise.resolve([] as { studentId: string; activeStatus: string; needArea: string | null }[]),
+    enrolledIds.length
+      ? prisma.learnerPassport.findMany({
+          where:  { studentId: { in: enrolledIds }, schoolId, status: 'APPROVED' },
+          select: { studentId: true, teacherActions: true },
+        })
+      : Promise.resolve([] as { studentId: string; teacherActions: any }[]),
+    subIds.length
+      ? prisma.teacherPlanNote.findMany({
+          where: { planType: 'homework_submission', planId: { in: subIds }, schoolId },
+          select: { id: true, planId: true, note: true, createdAt: true, teacher: { select: { firstName: true, lastName: true } } },
+          orderBy: { createdAt: 'asc' as const },
+        })
+      : Promise.resolve([] as Array<{ id: string; planId: string; note: string; createdAt: Date; teacher: { firstName: string; lastName: string } }>),
+  ])
 
-  // K Plan teacher actions for each enrolled student (APPROVED only)
-  const kPlans = enrolledIds.length
-    ? await prisma.learnerPassport.findMany({
-        where:  { studentId: { in: enrolledIds }, schoolId, status: 'APPROVED' },
-        select: { studentId: true, teacherActions: true },
-      })
-    : []
+  const sendByStudent  = Object.fromEntries(sendStatuses.map(s => [s.studentId, s]))
   const kPlanByStudent = Object.fromEntries(kPlans.map(p => [p.studentId, { teacherActions: p.teacherActions }]))
 
-  // Active ILP goals for SEND students — use new IndividualLearningPlan model (Phase 2.2)
+  // ILP goals require SEND student IDs — sequential dependency on sendStatuses
   const sendStudentIds = sendStatuses.map(s => s.studentId)
   const ilpRaw: any[] = sendStudentIds.length
     ? await prisma.individualLearningPlan.findMany({
@@ -102,15 +118,6 @@ export async function getHomeworkForMarking(homeworkId: string) {
       },
     ]))
 
-  // Teacher notes for each submission
-  const subIds = hw.submissions.map(s => s.id)
-  const rawNotes: Array<{ id: string; planId: string; note: string; createdAt: Date; teacher: { firstName: string; lastName: string } }> = subIds.length
-    ? await prisma.teacherPlanNote.findMany({
-        where: { planType: 'homework_submission', planId: { in: subIds }, schoolId },
-        select: { id: true, planId: true, note: true, createdAt: true, teacher: { select: { firstName: true, lastName: true } } },
-        orderBy: { createdAt: 'asc' as const },
-      })
-    : []
   const notesBySubmission: Record<string, Array<{ id: string; note: string; createdAt: Date; teacherName: string }>> = {}
   for (const n of rawNotes) {
     if (!notesBySubmission[n.planId]) notesBySubmission[n.planId] = []

@@ -2,7 +2,7 @@
 
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { revalidatePath, revalidateTag } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Role, Prisma } from '@prisma/client'
 import { AUDIT_CATEGORIES } from '@/lib/audit-categories'
@@ -32,23 +32,30 @@ const STAFF_ROLES: Role[] = [
   'SENCO', 'SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER', 'TEACHING_ASSISTANT',
 ]
 
+const fetchAdminDashboardData = unstable_cache(
+  async (schoolId: string): Promise<AdminDashboardData> => {
+    const [studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount] =
+      await Promise.all([
+        prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } }),
+        prisma.user.count({ where: { schoolId, role: { in: STAFF_ROLES }, isActive: true } }),
+        prisma.schoolClass.count({ where: { schoolId } }),
+        prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
+        prisma.submission.count({ where: { schoolId, status: 'SUBMITTED' } }),
+        prisma.plan.count({
+          where: { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
+        }),
+      ])
+    return { studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount }
+  },
+  ['admin-dashboard-stats'],
+  { revalidate: 60 },
+)
+
 export async function getAdminDashboardData(_schoolId?: string): Promise<AdminDashboardData> {
   // Security: always use session schoolId — never trust client-provided schoolId
   const user = await requireAdminOrSlt()
   const schoolId = user.schoolId as string
-
-  const [studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount] =
-    await Promise.all([
-      prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } }),
-      prisma.user.count({ where: { schoolId, role: { in: STAFF_ROLES }, isActive: true } }),
-      prisma.schoolClass.count({ where: { schoolId } }),
-      prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
-      prisma.submission.count({ where: { schoolId, status: 'SUBMITTED' } }),
-      prisma.plan.count({
-        where: { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
-      }),
-    ])
-  return { studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount }
+  return fetchAdminDashboardData(schoolId)
 }
 
 // ─── Staff ────────────────────────────────────────────────────────────────────

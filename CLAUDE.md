@@ -37,7 +37,7 @@
 > /marketing/investors. Shared sticky-nav layout, contact forms → ivanyardley@me.com via Resend
 > (/api/contact/beta + /api/contact/investors). Middleware updated to exclude /marketing/* from auth.
 >
-> **Latest commit:** 0bc1197 (feat: marketing pages — home, features, beta, investors)
+> **Latest commit:** a02a820 (docs: CLAUDE.md update — marketing pages complete). E2E: 151/155 passing, 0 flakes, 4 intentional skips.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -594,7 +594,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**150/155 tests passing** against Vercel (last run: 2026-06-08). 1 network flake (send-smoke step 4 — `net::ERR_CONNECTION_RESET` on cold Lambda, passes on retry). 4 gracefully skip
+**151/155 tests passing** against Vercel (last run: 2026-06-08). 0 flakes. 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
 23 spec files (155 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,

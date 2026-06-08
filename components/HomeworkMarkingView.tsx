@@ -1083,7 +1083,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       <div className="flex-1 flex overflow-hidden">
 
         {/* Main marking content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 overflow-auto min-h-0">
           {!selectedSub || !selectedStudent || !form ? (
             /* ── No student selected — show homework questions preview ── */
             <div className="max-w-2xl mx-auto px-8 py-6 space-y-5">
@@ -1519,21 +1520,141 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 </div>
               )}
 
-              {/* ── Sticky marking panel ────────────────────────────────────── */}
-              <div
-                className="sticky bottom-0 bg-white rounded-xl border border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] overflow-hidden"
-                style={{ height: markPanelHeight }}
-              >
-                {/* Drag handle — pull up/down to resize */}
-                <div
-                  className="h-5 cursor-ns-resize flex items-center justify-center gap-1 bg-gray-50 hover:bg-blue-50 border-b border-gray-200 hover:border-blue-200 transition-colors select-none group"
-                  onMouseDown={startPanelDrag}
-                  title="Drag to resize marking panel"
-                >
-                  <Icon name="drag_handle" size="sm" className="text-gray-400 group-hover:text-blue-500 transition-colors" />
-                  <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors font-medium">drag to resize</span>
+              {/* ── Teacher Notes ─── */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                  <Icon name="sticky_note_2" size="sm" className="text-gray-400" />
+                  <p className="text-[12px] font-semibold text-gray-700">Teacher Notes</p>
+                  <span className="text-[10px] text-gray-400 ml-auto">Internal only — students never see these</span>
                 </div>
-                <div className="overflow-y-auto" style={{ height: 'calc(100% - 20px)' }}>
+                <div className="px-4 py-4 space-y-3">
+                  {/* Existing notes */}
+                  {selectedNotes.length > 0 && (
+                    <div className="space-y-2">
+                      {selectedNotes.map(n => (
+                        <div key={n.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2.5">
+                          <p className="text-[12px] text-gray-800 leading-relaxed whitespace-pre-wrap">{n.note}</p>
+                          <p className="text-[10px] text-gray-400 mt-1.5">
+                            {n.teacherName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Add note */}
+                  <div className="flex gap-2">
+                    <textarea
+                      rows={2}
+                      value={newNote}
+                      onChange={e => setNewNote(e.target.value)}
+                      placeholder="Add a private note about this submission…"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-[12px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                    <button
+                      onClick={handleAddNote}
+                      disabled={noteSaving || !newNote.trim()}
+                      className="flex items-center gap-1 self-end bg-gray-700 hover:bg-gray-800 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-medium transition-colors"
+                    >
+                      {noteSaving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="add" size="sm" />}
+                      Add
+                    </button>
+                  </div>
+                  {noteError && <p className="text-[11px] text-rose-600">{noteError}</p>}
+                </div>
+              </div>
+
+              {/* ILP Evidence prompt — non-blocking banner */}
+              {ilpPromptData && !ilpSaved && (
+                <div className="border border-blue-200 bg-blue-50 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-blue-800">This student has an active ILP</p>
+                    <p className="text-[11px] text-blue-600 mt-0.5">Record this homework as ILP evidence?</p>
+                  </div>
+                  <button
+                    onClick={handleOpenIlpModal}
+                    className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors"
+                  >
+                    Yes{ilpCountdown !== null ? ` (${ilpCountdown}s)` : ''}
+                  </button>
+                  <button
+                    onClick={() => { setIlpPromptData(null); setIlpCountdown(null) }}
+                    className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
+                  >
+                    <Icon name="close" size="sm" />
+                  </button>
+                </div>
+              )}
+              {ilpSaved && (
+                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
+                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
+                    <Icon name="check_circle" size="sm" /> ILP evidence recorded
+                  </p>
+                </div>
+              )}
+
+              {/* Grade-drop recommendation banner */}
+              {gradeDrop && !passportAdded && (
+                <div className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <Icon name="trending_down" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-amber-900">
+                        Grade drop detected — {gradeDrop.studentName}
+                      </p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        Grade {gradeDrop.previousGrade} → Grade {gradeDrop.newGrade} (↓{gradeDrop.drop}). Add a strategy to their Learning Passport?
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          await addPassportRecommendation(gradeDrop.studentId, gradeDrop.suggestion)
+                          setPassportAdded(true)
+                        }}
+                        className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
+                      >
+                        <Icon name="add" size="sm" />
+                        Add to Passport
+                      </button>
+                      <button
+                        onClick={() => setGradeDrop(null)}
+                        className="text-amber-400 hover:text-amber-600 transition-colors"
+                      >
+                        <Icon name="close" size="sm" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {passportAdded && gradeDrop && (
+                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
+                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
+                    <Icon name="check_circle" size="sm" />
+                    Strategy added to {gradeDrop.studentName}&apos;s Learning Passport
+                  </p>
+                </div>
+              )}
+
+            </div>
+          )}
+          </div>
+
+          {/* ── Marking panel — always visible at bottom, drag handle to resize ── */}
+          {selectedSub && selectedStudent && form && (
+            <div
+              className="shrink-0 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.07)] overflow-hidden"
+              style={{ height: markPanelHeight }}
+            >
+              {/* Drag handle — pull up to expand */}
+              <div
+                className="h-5 cursor-ns-resize flex items-center justify-center gap-1 bg-gray-50 hover:bg-blue-50 border-b border-gray-200 hover:border-blue-200 transition-colors select-none group"
+                onMouseDown={startPanelDrag}
+                title="Drag to resize marking panel"
+              >
+                <Icon name="drag_handle" size="sm" className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors font-medium">drag to resize</span>
+              </div>
+              <div className="overflow-y-auto" style={{ height: 'calc(100% - 20px)' }}>
               {/* marking form — teacher only */}
               {canGrade ? (
               <div className="border-0 overflow-hidden">
@@ -1697,124 +1818,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 </div>
               </div>
               )}
-                </div>
               </div>
-
-              {/* ── Teacher Notes ─── */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <Icon name="sticky_note_2" size="sm" className="text-gray-400" />
-                  <p className="text-[12px] font-semibold text-gray-700">Teacher Notes</p>
-                  <span className="text-[10px] text-gray-400 ml-auto">Internal only — students never see these</span>
-                </div>
-                <div className="px-4 py-4 space-y-3">
-                  {/* Existing notes */}
-                  {selectedNotes.length > 0 && (
-                    <div className="space-y-2">
-                      {selectedNotes.map(n => (
-                        <div key={n.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2.5">
-                          <p className="text-[12px] text-gray-800 leading-relaxed whitespace-pre-wrap">{n.note}</p>
-                          <p className="text-[10px] text-gray-400 mt-1.5">
-                            {n.teacherName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Add note */}
-                  <div className="flex gap-2">
-                    <textarea
-                      rows={2}
-                      value={newNote}
-                      onChange={e => setNewNote(e.target.value)}
-                      placeholder="Add a private note about this submission…"
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-[12px] text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                    />
-                    <button
-                      onClick={handleAddNote}
-                      disabled={noteSaving || !newNote.trim()}
-                      className="flex items-center gap-1 self-end bg-gray-700 hover:bg-gray-800 disabled:opacity-40 text-white px-3 py-2 rounded-lg text-[12px] font-medium transition-colors"
-                    >
-                      {noteSaving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="add" size="sm" />}
-                      Add
-                    </button>
-                  </div>
-                  {noteError && <p className="text-[11px] text-rose-600">{noteError}</p>}
-                </div>
-              </div>
-
-              {/* ILP Evidence prompt — non-blocking banner */}
-              {ilpPromptData && !ilpSaved && (
-                <div className="border border-blue-200 bg-blue-50 rounded-xl px-4 py-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-semibold text-blue-800">This student has an active ILP</p>
-                    <p className="text-[11px] text-blue-600 mt-0.5">Record this homework as ILP evidence?</p>
-                  </div>
-                  <button
-                    onClick={handleOpenIlpModal}
-                    className="shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors"
-                  >
-                    Yes{ilpCountdown !== null ? ` (${ilpCountdown}s)` : ''}
-                  </button>
-                  <button
-                    onClick={() => { setIlpPromptData(null); setIlpCountdown(null) }}
-                    className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
-                  >
-                    <Icon name="close" size="sm" />
-                  </button>
-                </div>
-              )}
-              {ilpSaved && (
-                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
-                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
-                    <Icon name="check_circle" size="sm" /> ILP evidence recorded
-                  </p>
-                </div>
-              )}
-
-              {/* Grade-drop recommendation banner */}
-              {gradeDrop && !passportAdded && (
-                <div className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
-                  <div className="flex items-start gap-3">
-                    <Icon name="trending_down" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-amber-900">
-                        Grade drop detected — {gradeDrop.studentName}
-                      </p>
-                      <p className="text-[11px] text-amber-700 mt-0.5">
-                        Grade {gradeDrop.previousGrade} → Grade {gradeDrop.newGrade} (↓{gradeDrop.drop}). Add a strategy to their Learning Passport?
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={async () => {
-                          await addPassportRecommendation(gradeDrop.studentId, gradeDrop.suggestion)
-                          setPassportAdded(true)
-                        }}
-                        className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
-                      >
-                        <Icon name="add" size="sm" />
-                        Add to Passport
-                      </button>
-                      <button
-                        onClick={() => setGradeDrop(null)}
-                        className="text-amber-400 hover:text-amber-600 transition-colors"
-                      >
-                        <Icon name="close" size="sm" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {passportAdded && gradeDrop && (
-                <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
-                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
-                    <Icon name="check_circle" size="sm" />
-                    Strategy added to {gradeDrop.studentName}&apos;s Learning Passport
-                  </p>
-                </div>
-              )}
-
             </div>
           )}
         </div>

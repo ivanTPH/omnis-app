@@ -107,6 +107,44 @@ export default async function SltAnalyticsPage() {
     return agg.completionRate < mJson.completionRate - 0.05 || agg.avgScore < mJson.avgScore - 0.3
   })
 
+  // ── National benchmarks (2023/24 GCSE approximate national averages, 0–9 scale) ──
+  // Source: JCQ national results 2024 — converted to 0–9 GCSE grade scale
+  // (grade 5 standard pass ≈ 5.0; national avg Grade 4–5 range ≈ 4.5–5.2)
+  const NATIONAL_AVG: Record<string, number> = {
+    English:              5.1,
+    'English Language':   5.1,
+    'English Literature': 5.0,
+    Mathematics:          4.9,
+    Maths:                4.9,
+    Science:              5.0,
+    Biology:              5.8,
+    Chemistry:            5.9,
+    Physics:              5.8,
+    History:              5.2,
+    Geography:            5.1,
+    'Religious Education': 5.0,
+    'Modern Foreign Languages': 4.7,
+    'Spanish':            4.8,
+    'French':             4.7,
+    'German':             4.9,
+    Computing:            4.6,
+    Art:                  5.5,
+    Music:                5.6,
+    Drama:                5.4,
+    'Physical Education': 5.3,
+    Business:             4.8,
+    Economics:            5.7,
+  }
+  // For each subject in school, compute delta vs national avg
+  const benchmarkRows = Array.from(bySubject.entries()).map(([subject, classes]) => {
+    const subAggs = classes.map(c => aggByClass.get(c.id)).filter(Boolean) as typeof allAggs
+    const schoolSubAvg = subAggs.length
+      ? subAggs.reduce((s, a) => s + a.avgScore, 0) / subAggs.length
+      : null
+    const natAvg = NATIONAL_AVG[subject] ?? null
+    return { subject, schoolSubAvg, natAvg, delta: schoolSubAvg != null && natAvg != null ? schoolSubAvg - natAvg : null }
+  }).filter(r => r.delta !== null).sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))
+
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <main className="flex-1 overflow-auto bg-gray-50">
@@ -399,6 +437,33 @@ export default async function SltAnalyticsPage() {
                   </Link>
                 </div>
               </div>
+
+              {/* National benchmark */}
+              {benchmarkRows.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon name="public" size="sm" className="text-indigo-500" />
+                    <h3 className="text-[13px] font-semibold text-gray-900">vs National Average</h3>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mb-3">2024 JCQ national GCSE averages</p>
+                  <div className="space-y-2">
+                    {benchmarkRows.map(r => (
+                      <div key={r.subject} className="flex items-center gap-2">
+                        <span className="text-[11px] text-gray-600 flex-1 truncate">{r.subject}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {r.delta! >= 0
+                            ? <Icon name="trending_up"   size="sm" className="text-green-500" />
+                            : <Icon name="trending_down" size="sm" className="text-rose-500"  />}
+                          <span className={`text-[11px] font-bold ${r.delta! >= 0 ? 'text-green-700' : 'text-rose-700'}`}>
+                            {r.delta! >= 0 ? '+' : ''}{r.delta!.toFixed(1)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-3 italic">Positive = above national avg for that subject</p>
+                </div>
+              )}
 
               {/* Integrity */}
               <div className="bg-white border border-gray-200 rounded-xl p-5">

@@ -311,23 +311,38 @@ Submission: "${content.slice(0, 800)}"`,
 // ── Grade history ─────────────────────────────────────────────────────────────
 
 export type GradeHistorySubmission = {
-  homeworkId:  string
-  title:       string
-  subject:     string
-  className:   string
-  dueAt:       string
-  markedAt:    string
-  finalScore:  number
-  maxScore:    number
-  pct:         number          // 0-100
-  gcseGrade:   number          // 1-9
-  feedback:    string | null
+  homeworkId:   string
+  title:        string
+  subject:      string
+  className:    string
+  dueAt:        string
+  markedAt:     string
+  finalScore:   number
+  maxScore:     number
+  pct:          number          // 0-100
+  gcseGrade:    number          // 1-9
+  feedback:     string | null
+  homeworkType: string | null   // MCQ_QUIZ | SHORT_ANSWER | EXTENDED_WRITING | UPLOAD | MIXED
 }
 
 export type TopicWeakness = {
   topic:      string   // derived from homework title keywords
   avgGrade:   number   // GCSE 1-9
   count:      number
+}
+
+export type TopicSummary = {
+  topic:    string
+  avgGrade: number   // GCSE 1-9
+  count:    number
+  isWeak:   boolean
+}
+
+export type FormatBreakdown = {
+  type:     string   // MCQ_QUIZ | SHORT_ANSWER | EXTENDED_WRITING | UPLOAD | MIXED
+  label:    string
+  avgGrade: number
+  count:    number
 }
 
 export type AdaptiveProfileSummary = {
@@ -345,6 +360,8 @@ export type SubjectGradeSummary = {
   submissions:      GradeHistorySubmission[]
   predictedGrade:   number | null // GCSE 1-9 from TeacherPrediction or StudentBaseline
   weakTopics:       TopicWeakness[]   // topics with grade < subject avg
+  allTopics:        TopicSummary[]    // all topics (for heatmap)
+  formatBreakdown:  FormatBreakdown[] // avg grade per homework type
   adaptiveProfile?: AdaptiveProfileSummary
 }
 
@@ -373,7 +390,7 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
         id: true, finalScore: true, feedback: true, markedAt: true,
         homework: {
           select: {
-            id: true, title: true, dueAt: true, gradingBands: true,
+            id: true, title: true, dueAt: true, gradingBands: true, type: true,
             class: { select: { name: true, subject: true } },
           },
         },
@@ -414,17 +431,18 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
     const pct    = Math.min(100, Math.round(((sub.finalScore ?? 0) / max) * 100))
     const grade  = percentToGcseGrade(pct)
     const entry: GradeHistorySubmission = {
-      homeworkId: hw.id,
-      title:      hw.title,
-      subject:    subj,
-      className:  hw.class.name,
-      dueAt:      hw.dueAt.toISOString(),
-      markedAt:   sub.markedAt?.toISOString() ?? hw.dueAt.toISOString(),
-      finalScore: sub.finalScore ?? 0,
-      maxScore:   max,
+      homeworkId:   hw.id,
+      title:        hw.title,
+      subject:      subj,
+      className:    hw.class.name,
+      dueAt:        hw.dueAt.toISOString(),
+      markedAt:     sub.markedAt?.toISOString() ?? hw.dueAt.toISOString(),
+      finalScore:   sub.finalScore ?? 0,
+      maxScore:     max,
       pct,
-      gcseGrade:  grade,
-      feedback:   sub.feedback ?? null,
+      gcseGrade:    grade,
+      feedback:     sub.feedback ?? null,
+      homeworkType: hw.type ?? null,
     }
     if (!bySubject.has(subj)) bySubject.set(subj, [])
     bySubject.get(subj)!.push(entry)
@@ -446,24 +464,51 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
     const predScore  = predMap.get(subject) ?? baselineMap.get(subject) ?? null
     const predicted  = predScore != null ? percentToGcseGrade(predScore) : null
 
-    // Detect weak topics: group by title keywords, find those below avg
-    // Use the first 4 words of the homework title as a "topic" identifier
+    // Detect topics: group by title keywords (first 4 words)
     const topicMap = new Map<string, number[]>()
     for (const sub of subs) {
       const topic = sub.title.split(/\s+/).slice(0, 4).join(' ')
       if (!topicMap.has(topic)) topicMap.set(topic, [])
       topicMap.get(topic)!.push(sub.gcseGrade)
     }
+    const allTopics: TopicSummary[] = []
     const weakTopics: TopicWeakness[] = []
     for (const [topic, grades] of topicMap.entries()) {
       const topicAvg = Math.round(grades.reduce((a, b) => a + b, 0) / grades.length)
-      if (topicAvg < avgGrade || topicAvg <= 4) {
-        weakTopics.push({ topic, avgGrade: topicAvg, count: grades.length })
-      }
+      const isWeak = topicAvg < avgGrade || topicAvg <= 4
+      allTopics.push({ topic, avgGrade: topicAvg, count: grades.length, isWeak })
+      if (isWeak) weakTopics.push({ topic, avgGrade: topicAvg, count: grades.length })
     }
+    allTopics.sort((a, b) => a.avgGrade - b.avgGrade)
     weakTopics.sort((a, b) => a.avgGrade - b.avgGrade)
 
-    result.push({ subject, avgGrade, submissions: subs, predictedGrade: predicted, weakTopics, adaptiveProfile })
+    // Format breakdown: group by homework type
+    const FORMAT_LABELS: Record<string, string> = {
+      MCQ_QUIZ:         'Quiz (MCQ)',
+      SHORT_ANSWER:     'Short Answer',
+      EXTENDED_WRITING: 'Extended Writing',
+      UPLOAD:           'Upload',
+      MIXED:            'Mixed',
+    }
+    const fmtMap = new Map<string, number[]>()
+    for (const sub of subs) {
+      const t = sub.homeworkType ?? 'SHORT_ANSWER'
+      if (!fmtMap.has(t)) fmtMap.set(t, [])
+      fmtMap.get(t)!.push(sub.gcseGrade)
+    }
+    const formatBreakdown: FormatBreakdown[] = []
+    for (const [type, grades] of fmtMap.entries()) {
+      if (grades.length === 0) continue
+      formatBreakdown.push({
+        type,
+        label:    FORMAT_LABELS[type] ?? type,
+        avgGrade: Math.round(grades.reduce((a, b) => a + b, 0) / grades.length),
+        count:    grades.length,
+      })
+    }
+    formatBreakdown.sort((a, b) => b.avgGrade - a.avgGrade)
+
+    result.push({ subject, avgGrade, submissions: subs, predictedGrade: predicted, weakTopics, allTopics, formatBreakdown, adaptiveProfile })
   }
 
   return result.sort((a, b) => a.subject.localeCompare(b.subject))

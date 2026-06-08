@@ -8,10 +8,11 @@ import { TableSkeleton } from '@/components/ui/skeletons'
 import { formatRawScore } from '@/lib/gradeUtils'
 import {
   StudentFileData, KPlanDoc, IlpDoc, EhcpDoc,
-  HomeworkHistoryRow, NoteRow, StudentContact,
+  HomeworkHistoryRow, NoteRow, StudentContact, ParentContactLogEntry,
   LearningPassportDoc, TaNoteRowInline,
   saveStudentNote, updateStudentNote, deleteStudentNote, requestKPlanAmendment, applyKPlanEdit,
   generateRevisionSuggestions, approveLearningPassport,
+  addParentContactEntry, deleteParentContactEntry,
 } from '@/app/actions/students'
 import { addTaNote, updateTaNote, deleteTaNote } from '@/app/actions/ta-notes'
 import type { ApdrRow } from '@/app/actions/send-support'
@@ -1148,9 +1149,56 @@ function NotesTab({
 
 // ── Contacts Tab ──────────────────────────────────────────────────────────────
 
-function ContactsTab({ student, parentContacts }: { student: StudentFileData['student']; parentContacts: StudentContact[] }) {
+const METHOD_LABELS: Record<string, string> = {
+  PHONE: 'Phone', EMAIL: 'Email', MEETING: 'Meeting', LETTER: 'Letter', OTHER: 'Other',
+}
+const METHOD_ICONS: Record<string, string> = {
+  PHONE: 'phone', EMAIL: 'email', MEETING: 'groups', LETTER: 'mail', OTHER: 'chat',
+}
+
+function ContactsTab({
+  student, parentContacts, contactLog,
+}: {
+  student: StudentFileData['student']
+  parentContacts: StudentContact[]
+  contactLog: ParentContactLogEntry[]
+}) {
+  const [showForm, setShowForm]         = useState(false)
+  const [date, setDate]                 = useState(new Date().toISOString().slice(0, 10))
+  const [method, setMethod]             = useState<'PHONE' | 'EMAIL' | 'MEETING' | 'LETTER' | 'OTHER'>('PHONE')
+  const [summary, setSummary]           = useState('')
+  const [outcome, setOutcome]           = useState('')
+  const [entries, setEntries]           = useState<ParentContactLogEntry[]>(contactLog)
+  const [saving, setSaving]             = useState(false)
+  const [err, setErr]                   = useState<string | null>(null)
+  const [, startTransition]             = useTransition()
+
+  async function handleAdd() {
+    if (!summary.trim()) { setErr('Summary is required'); return }
+    setSaving(true); setErr(null)
+    const res = await addParentContactEntry({
+      studentId: student.id, contactDate: date, method, summary, outcome: outcome || undefined,
+    })
+    setSaving(false)
+    if ('error' in res) { setErr(res.error); return }
+    // Optimistic update
+    setEntries(prev => [{
+      id: Date.now().toString(), contactDate: new Date(date).toISOString(),
+      method, summary, outcome: outcome || null, authorName: 'You', authorRole: '', createdAt: new Date().toISOString(),
+    }, ...prev])
+    setSummary(''); setOutcome(''); setShowForm(false)
+  }
+
+  function handleDelete(id: string) {
+    startTransition(async () => {
+      await deleteParentContactEntry(id)
+      setEntries(prev => prev.filter(e => e.id !== id))
+    })
+  }
+
   return (
     <div className="space-y-4">
+      {/* Student contact row */}
       <SectionCard title="Student">
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
@@ -1172,6 +1220,7 @@ function ContactsTab({ student, parentContacts }: { student: StudentFileData['st
         </div>
       </SectionCard>
 
+      {/* Parent / carer contacts */}
       <SectionCard title="Parent / Carer contacts">
         {parentContacts.length === 0
           ? <p className="text-sm text-gray-400">No parent/carer contacts linked.</p>
@@ -1205,6 +1254,98 @@ function ContactsTab({ student, parentContacts }: { student: StudentFileData['st
             </div>
           )
         }
+      </SectionCard>
+
+      {/* Communication log */}
+      <SectionCard title="Communication Log">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-[11px] text-gray-400">{entries.length} entr{entries.length === 1 ? 'y' : 'ies'} recorded</p>
+          {!showForm && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
+            >
+              <Icon name="add" size="sm" /> Log contact
+            </button>
+          )}
+        </div>
+
+        {showForm && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 space-y-3">
+            <p className="text-[12px] font-semibold text-blue-800">New communication entry</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Date</label>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                  className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Method</label>
+                <select value={method} onChange={e => setMethod(e.target.value as typeof method)}
+                  className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300">
+                  {Object.entries(METHOD_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Summary *</label>
+              <textarea rows={2} value={summary} onChange={e => setSummary(e.target.value)} placeholder="What was discussed…"
+                className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Outcome (optional)</label>
+              <input type="text" value={outcome} onChange={e => setOutcome(e.target.value)} placeholder="e.g. Parent will follow up, meeting arranged…"
+                className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            </div>
+            {err && <p className="text-[11px] text-red-600">{err}</p>}
+            <div className="flex items-center gap-2">
+              <button onClick={handleAdd} disabled={saving}
+                className="px-3 py-1.5 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                {saving ? 'Saving…' : 'Save entry'}
+              </button>
+              <button onClick={() => { setShowForm(false); setErr(null) }}
+                className="px-3 py-1.5 text-gray-500 text-[12px] hover:text-gray-700">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {entries.length === 0 ? (
+          <p className="text-[12px] text-gray-400 italic">No communication entries yet. Log a call, email, or meeting above.</p>
+        ) : (
+          <div className="space-y-2">
+            {entries.map(e => (
+              <div key={e.id} className="flex items-start gap-3 bg-gray-50 rounded-xl px-3 py-3">
+                <div className="w-7 h-7 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0">
+                  <Icon name={METHOD_ICONS[e.method] ?? 'chat'} size="sm" className="text-gray-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <span className="text-[11px] font-semibold text-gray-700">
+                      {new Date(e.contactDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                      {METHOD_LABELS[e.method] ?? e.method}
+                    </span>
+                    <span className="text-[10px] text-gray-400">{e.authorName}</span>
+                  </div>
+                  <p className="text-[12px] text-gray-800">{e.summary}</p>
+                  {e.outcome && (
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      <span className="font-medium">Outcome:</span> {e.outcome}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => handleDelete(e.id)}
+                  className="text-gray-300 hover:text-red-400 shrink-0 transition-colors"
+                  aria-label="Delete entry">
+                  <Icon name="close" size="sm" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </SectionCard>
     </div>
   )
@@ -2055,7 +2196,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
 
       {/* ── Tab: Contact ── */}
       {activeTab === 'Contact' && (
-        <ContactsTab student={student} parentContacts={data.parentContacts} />
+        <ContactsTab student={student} parentContacts={data.parentContacts} contactLog={data.contactLog} />
       )}
     </div>
   )

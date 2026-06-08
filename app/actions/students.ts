@@ -125,6 +125,17 @@ export type NoteRow = {
   createdAt: string
 }
 
+export type ParentContactLogEntry = {
+  id:          string
+  contactDate: string   // ISO
+  method:      string
+  summary:     string
+  outcome:     string | null
+  authorName:  string
+  authorRole:  string
+  createdAt:   string
+}
+
 export type StudentSearchResult = {
   id: string
   firstName: string
@@ -220,6 +231,7 @@ export type StudentFileData = {
   notes: NoteRow[]
   taNotes: TaNoteRowInline[]
   parentContacts: StudentContact[]
+  contactLog: ParentContactLogEntry[]
   wondeAttendance: WondeAttendanceSummary | null
   agentInsights: import('@/app/actions/agent-insights').AgentInsights | null
 }
@@ -258,6 +270,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     wondeContacts,
     apdrCyclesRaw,
     taNoteRaws,
+    contactLogRaws,
   ] = await Promise.all([
     prisma.sendStatus.findFirst({ where: { studentId } }),
 
@@ -335,6 +348,12 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       where: { studentId, schoolId },
       include: { author: { select: { firstName: true, lastName: true, role: true } } },
       orderBy: { createdAt: 'desc' },
+    }),
+
+    prisma.parentContactEntry.findMany({
+      where: { studentId, schoolId },
+      include: { author: { select: { firstName: true, lastName: true, role: true } } },
+      orderBy: { contactDate: 'desc' },
     }),
   ])
 
@@ -579,6 +598,16 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     notes: noteRows,
     taNotes: taNoteRowsMapped,
     parentContacts,
+    contactLog: contactLogRaws.map(e => ({
+      id:          e.id,
+      contactDate: e.contactDate.toISOString(),
+      method:      e.method,
+      summary:     e.summary,
+      outcome:     e.outcome ?? null,
+      authorName:  `${e.author.firstName} ${e.author.lastName}`,
+      authorRole:  e.author.role,
+      createdAt:   e.createdAt.toISOString(),
+    })),
     wondeAttendance: wondeAtt ? {
       possibleSessions:     wondeAtt.possibleSessions,
       presentSessions:      wondeAtt.presentSessions,
@@ -1205,4 +1234,75 @@ export async function getStudentTimetable(): Promise<TimetableDay[]> {
     result.push({ dayOfWeek: day, lessons })
   }
   return result
+}
+
+// ── Parent contact log ────────────────────────────────────────────────────────
+
+export type AddContactEntryInput = {
+  studentId:   string
+  contactDate: string   // ISO date string
+  method:      'PHONE' | 'EMAIL' | 'MEETING' | 'LETTER' | 'OTHER'
+  summary:     string
+  outcome?:    string
+}
+
+export async function addParentContactEntry(
+  input: AddContactEntryInput,
+): Promise<{ success: true } | { error: string }> {
+  const user = await requireStaff()
+  const { schoolId, id: authorId } = user
+
+  // Verify student belongs to this school
+  const student = await prisma.user.findFirst({
+    where: { id: input.studentId, schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) return { error: 'Student not found' }
+
+  await prisma.parentContactEntry.create({
+    data: {
+      schoolId,
+      studentId:   input.studentId,
+      authorId,
+      contactDate: new Date(input.contactDate),
+      method:      input.method,
+      summary:     input.summary.trim(),
+      outcome:     input.outcome?.trim() || null,
+    },
+  })
+
+  const { writeAudit } = await import('@/lib/prisma')
+  await writeAudit({
+    schoolId,
+    actorId:    authorId,
+    action:     'PARENT_CONTACT_LOGGED',
+    targetType: 'User',
+    targetId:   input.studentId,
+    metadata:   { method: input.method, contactDate: input.contactDate },
+  })
+
+  revalidatePath(`/students/${input.studentId}`)
+  return { success: true }
+}
+
+export async function deleteParentContactEntry(
+  entryId: string,
+): Promise<{ success: true } | { error: string }> {
+  const user = await requireStaff()
+  const { schoolId, id: actorId, role } = user
+
+  const entry = await prisma.parentContactEntry.findFirst({
+    where: { id: entryId, schoolId },
+    select: { id: true, studentId: true, authorId: true },
+  })
+  if (!entry) return { error: 'Entry not found' }
+
+  // Only the author or SENCO/SCHOOL_ADMIN/SLT can delete
+  const canDelete = entry.authorId === actorId ||
+    ['SENCO', 'SCHOOL_ADMIN', 'SLT'].includes(role)
+  if (!canDelete) return { error: 'You do not have permission to delete this entry' }
+
+  await prisma.parentContactEntry.delete({ where: { id: entryId } })
+  revalidatePath(`/students/${entry.studentId}`)
+  return { success: true }
 }

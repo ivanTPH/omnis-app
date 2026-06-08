@@ -191,12 +191,21 @@ enum AuditAction {
   AI_ILP_GENERATED
   TA_NOTE_ADDED
   TA_NOTE_DELETED
+  PARENT_CONTACT_LOGGED
   AGENT_RUN_COMPLETED
   AGENT_RECOMMENDATION_CONFIRMED
   AGENT_RECOMMENDATION_OVERRIDDEN
   AGENT_RECOMMENDATION_DISMISSED
   LESSON_SUPPORT_REQUESTED
   K_PLAN_UPDATED
+}
+
+enum ContactMethod {
+  PHONE
+  EMAIL
+  MEETING
+  LETTER
+  OTHER
 }
 
 enum AgentType {
@@ -314,6 +323,9 @@ model School {
 
   // APDR cycles
   apdrCycles           AssessPlanDoReview[]
+
+  // Parent contact log
+  parentContactEntries ParentContactEntry[]
 
   // K Plan (Learning Passport)
   learnerPassports     LearnerPassport[]
@@ -476,6 +488,10 @@ model User {
   // TA notes
   taNotes            TaNote[]            @relation("TaNoteStudent")
   authoredTaNotes    TaNote[]            @relation("TaNoteAuthor")
+
+  // Parent contact log
+  contactLogEntries  ParentContactEntry[] @relation("ContactLogStudent")
+  contactLogAuthored ParentContactEntry[] @relation("ContactLogAuthor")
 
   // Year group plans
   createdYgPlans     YearGroupPlan[]     @relation("YgPlanCreator")
@@ -2769,4 +2785,26 @@ model AgentSnapshot {
   @@unique([studentId, agentType])
   @@index([schoolId, agentType])
   @@index([dirtyAt, nextReviewAt])   // cron query: dirty or overdue
+}
+
+// ─── Parent contact log ───────────────────────────────────────────────────────
+
+model ParentContactEntry {
+  id          String        @id @default(cuid())
+  schoolId    String
+  studentId   String
+  authorId    String
+  contactDate DateTime
+  method      ContactMethod
+  summary     String
+  outcome     String?
+
+  createdAt   DateTime @default(now())
+
+  school  School @relation(fields: [schoolId], references: [id])
+  student User   @relation("ContactLogStudent", fields: [studentId], references: [id])
+  author  User   @relation("ContactLogAuthor",  fields: [authorId],  references: [id])
+
+  @@index([studentId])
+  @@index([schoolId])
 }

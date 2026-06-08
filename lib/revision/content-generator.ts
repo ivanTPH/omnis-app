@@ -126,11 +126,26 @@ export async function generateRevisionTask(input: {
     ? `\nTeacher-provided source material for topics not in class lessons:\n${input.additionalContext}`
     : ''
 
+  // GCSE exam component weighting hints — helps AI prioritise high-value skill areas
+  const GCSE_WEIGHT_HINTS: Record<string, string> = {
+    'English': 'AQA GCSE English: reading (40%) + writing (40%) + spoken language (20%). Prioritise extended analytical writing and inference questions.',
+    'English Language': 'AQA GCSE English Language: reading (50%) + writing (50%). Emphasise inference, language analysis and descriptive/narrative writing.',
+    'English Literature': 'AQA GCSE English Literature: prose (40%) + poetry (30%) + unseen poetry (30%). Prioritise quotation-supported analysis and comparison.',
+    'Mathematics': 'AQA GCSE Maths: Number (25%), Algebra (30%), Ratio/proportion (20%), Geometry/measures (15%), Statistics/probability (10%). Weight algebra and problem-solving heavily.',
+    'Science': 'Combined Science GCSE: Biology (33%), Chemistry (33%), Physics (33%). Include required practicals and mathematical skills.',
+    'Biology': 'AQA GCSE Biology: Cell Biology, Organisation, Infection, Bioenergetics, Homeostasis, Inheritance (equal weighting 16% each approx). Include 10% maths skills.',
+    'Chemistry': 'AQA GCSE Chemistry: Atomic structure, Bonding, Quantitative, Chemical changes, Energy, Rate and equilibrium, Organic, Analysis (approx 12% each). Include 20% maths.',
+    'Physics': 'AQA GCSE Physics: Energy, Electricity, Particle model, Atomic, Forces, Waves, Magnetism, Space (approx 12% each). Include 30% mathematical/quantitative questions.',
+    'History': 'AQA GCSE History: Source analysis (30%) and extended writing/essay (70%). Prioritise causation, significance and change/continuity judgement questions.',
+    'Geography': 'AQA GCSE Geography: Physical geography (35%), Human geography (35%), Fieldwork/pre-release (30%). Include data/map interpretation.',
+  }
+  const gcseWeightNote = GCSE_WEIGHT_HINTS[input.subject] ?? ''
+
   const userPrompt = `You are a UK secondary school teacher creating a structured revision task for ${input.studentName}.
 
 ${topicLine}
 Subject: ${input.subject} (Year ${input.yearGroup})
-${multiLesson ? lessonsBlock : `Learning objectives:\n${objList}`}
+${gcseWeightNote ? `GCSE exam weighting guidance: ${gcseWeightNote}\n` : ''}${multiLesson ? lessonsBlock : `Learning objectives:\n${objList}`}
 ${weakNote ? `\n${weakNote}` : ''}
 ${sendNote ? `\n${sendNote}` : ''}
 ${profileNote ? `\nAdaptive learning profile: ${profileNote}` : ''}

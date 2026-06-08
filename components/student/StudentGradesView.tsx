@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { gradeLabel, gradePillClass } from '@/lib/grading'
-import type { SubjectGradeSummary, GradeHistorySubmission, TopicWeakness } from '@/app/actions/student'
+import type { SubjectGradeSummary, GradeHistorySubmission, TopicWeakness, TopicSummary, FormatBreakdown } from '@/app/actions/student'
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 
@@ -88,6 +88,92 @@ function WeakTopicList({ topics, avgGrade }: { topics: TopicWeakness[]; avgGrade
       >
         <Icon name="auto_stories" size="sm" />Add these to your revision planner
       </Link>
+    </div>
+  )
+}
+
+// ── Topic heatmap ─────────────────────────────────────────────────────────────
+
+function TopicHeatmap({ topics }: { topics: TopicSummary[] }) {
+  if (topics.length === 0) return null
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+        <Icon name="grid_view" size="sm" />Topic performance
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {topics.map(t => {
+          const bg =
+            t.avgGrade >= 7 ? 'bg-green-100 text-green-800 border-green-200' :
+            t.avgGrade >= 5 ? 'bg-blue-100 text-blue-800 border-blue-200' :
+            t.avgGrade >= 4 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                              'bg-red-100 text-red-800 border-red-200'
+          return (
+            <span key={t.topic} title={`${t.count} piece${t.count !== 1 ? 's' : ''}, avg grade ${t.avgGrade}`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] ${bg}`}>
+              <span className="font-bold">{t.avgGrade}</span>
+              <span className="max-w-[120px] truncate">{t.topic}</span>
+              {t.isWeak && <Icon name="arrow_downward" size="sm" />}
+            </span>
+          )
+        })}
+      </div>
+      <div className="flex items-center gap-3 mt-2 flex-wrap">
+        {[
+          { label: 'Grade 7–9', bg: 'bg-green-200', color: 'text-green-700' },
+          { label: 'Grade 5–6', bg: 'bg-blue-200',  color: 'text-blue-700'  },
+          { label: 'Grade 4',   bg: 'bg-amber-200', color: 'text-amber-700' },
+          { label: 'Grade 1–3', bg: 'bg-red-200',   color: 'text-red-700'   },
+        ].map(l => (
+          <span key={l.label} className="flex items-center gap-1 text-[10px]">
+            <span className={`w-3 h-3 rounded ${l.bg} shrink-0`} />
+            <span className={l.color}>{l.label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Format breakdown ──────────────────────────────────────────────────────────
+
+function FormatBreakdownPanel({ breakdown }: { breakdown: FormatBreakdown[] }) {
+  if (breakdown.length <= 1) return null
+  const best = breakdown[0]
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+        <Icon name="bar_chart" size="sm" />Performance by format
+      </p>
+      <div className="space-y-1.5">
+        {breakdown.map(f => (
+          <div key={f.type} className="flex items-center gap-2">
+            <span className="text-[11px] text-gray-600 w-36 shrink-0">{f.label}</span>
+            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${
+                  f.avgGrade >= 7 ? 'bg-green-400' :
+                  f.avgGrade >= 5 ? 'bg-blue-400'  :
+                  f.avgGrade >= 4 ? 'bg-amber-400' : 'bg-red-400'
+                }`}
+                style={{ width: `${(f.avgGrade / 9) * 100}%` }}
+              />
+            </div>
+            <span className={`text-[11px] font-bold w-8 text-right ${
+              f.avgGrade >= 7 ? 'text-green-700' :
+              f.avgGrade >= 5 ? 'text-blue-700'  :
+              f.avgGrade >= 4 ? 'text-amber-700' : 'text-red-700'
+            }`}>{gradeLabel(f.avgGrade)}</span>
+            <span className="text-[10px] text-gray-400 w-12 text-right">{f.count} piece{f.count !== 1 ? 's' : ''}</span>
+          </div>
+        ))}
+      </div>
+      {best && (
+        <p className="text-[11px] text-emerald-700 mt-2 flex items-center gap-1">
+          <Icon name="auto_fix_high" size="sm" />
+          You perform best on <strong className="mx-0.5">{best.label}</strong> tasks
+        </p>
+      )}
     </div>
   )
 }
@@ -253,10 +339,18 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
             </div>
           )}
 
+          {/* Topic heatmap — all topics */}
+          {summary.allTopics.length > 0 && (
+            <TopicHeatmap topics={summary.allTopics} />
+          )}
+
           {/* Weak topics */}
           {summary.weakTopics.length > 0 && (
             <WeakTopicList topics={summary.weakTopics} avgGrade={summary.avgGrade} />
           )}
+
+          {/* Format breakdown */}
+          <FormatBreakdownPanel breakdown={summary.formatBreakdown} />
 
           {/* Homework list */}
           <div>

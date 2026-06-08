@@ -327,6 +327,9 @@ model School {
   // Parent contact log
   parentContactEntries ParentContactEntry[]
 
+  // Auth tokens
+  staffInvitations StaffInvitation[]
+
   // K Plan (Learning Passport)
   learnerPassports     LearnerPassport[]
   kPlans               KPlan[]           @relation("SchoolKPlans")
@@ -492,6 +495,10 @@ model User {
   // Parent contact log
   contactLogEntries  ParentContactEntry[] @relation("ContactLogStudent")
   contactLogAuthored ParentContactEntry[] @relation("ContactLogAuthor")
+
+  // Auth tokens
+  passwordResetTokens PasswordResetToken[]
+  sentInvitations     StaffInvitation[]    @relation("SentInvitations")
 
   // Year group plans
   createdYgPlans     YearGroupPlan[]     @relation("YgPlanCreator")
@@ -2785,6 +2792,40 @@ model AgentSnapshot {
   @@unique([studentId, agentType])
   @@index([schoolId, agentType])
   @@index([dirtyAt, nextReviewAt])   // cron query: dirty or overdue
+}
+
+// ─── Auth tokens ─────────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StaffInvitation {
+  id          String   @id @default(cuid())
+  schoolId    String
+  email       String
+  role        String
+  firstName   String
+  lastName    String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  invitedById String
+  createdAt   DateTime @default(now())
+
+  school    School @relation(fields: [schoolId], references: [id])
+  invitedBy User   @relation("SentInvitations", fields: [invitedById], references: [id])
+
+  @@index([schoolId])
 }
 
 // ─── Parent contact log ───────────────────────────────────────────────────────

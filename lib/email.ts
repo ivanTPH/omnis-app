@@ -72,6 +72,49 @@ export async function sendHomeworkReturnedEmail(params: {
   )
 }
 
+/** Password reset link email. */
+export async function sendPasswordResetEmail(params: {
+  to: string
+  firstName: string
+  resetUrl: string
+}): Promise<void> {
+  const { to, firstName, resetUrl } = params
+  await send(
+    to,
+    'Reset your Omnis password',
+    `
+    <p>Hi ${firstName},</p>
+    <p>We received a request to reset your Omnis password. Click the link below to choose a new password. The link expires in 1 hour.</p>
+    <p><a href="${resetUrl}" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Reset password</a></p>
+    <p>If you didn't request this, you can safely ignore this email. Your password won't change.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
+/** Staff invitation email sent by school admin. */
+export async function sendStaffInvitationEmail(params: {
+  to: string
+  firstName: string
+  invitedBy: string
+  schoolName: string
+  role: string
+  acceptUrl: string
+}): Promise<void> {
+  const { to, firstName, invitedBy, schoolName, role, acceptUrl } = params
+  await send(
+    to,
+    `You've been invited to join ${schoolName} on Omnis`,
+    `
+    <p>Hi ${firstName},</p>
+    <p>${invitedBy} has invited you to join <strong>${schoolName}</strong> on Omnis as <strong>${role}</strong>.</p>
+    <p>Click below to set up your account. The link expires in 7 days.</p>
+    <p><a href="${acceptUrl}" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Accept invitation</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
 /** SENCO notification when a new SEND concern is raised for a student. */
 export async function sendConcernRaisedEmail(params: {
   to: string

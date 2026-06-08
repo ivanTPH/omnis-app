@@ -379,6 +379,109 @@ function DeleteModal({
   )
 }
 
+// ─── Invite staff modal ────────────────────────────────────────────────────────
+
+function InviteModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm]     = useState({ firstName: '', lastName: '', email: '', role: 'TEACHER' })
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [error, setError]   = useState<string | null>(null)
+
+  function set(k: keyof typeof form, v: string) { setForm(f => ({ ...f, [k]: v })) }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setStatus('sending')
+    const res = await fetch('/api/staff/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    if (res.ok) {
+      setStatus('sent')
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? 'Something went wrong.')
+      setStatus('error')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <p className="text-[15px] font-semibold text-gray-900">Invite staff member</p>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <Icon name="close" size="md" />
+          </button>
+        </div>
+        {status === 'sent' ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+            <div className="w-12 h-12 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center mb-4">
+              <Icon name="mark_email_read" size="lg" className="text-green-600" />
+            </div>
+            <p className="text-[15px] font-semibold text-gray-900 mb-1">Invitation sent</p>
+            <p className="text-[13px] text-gray-500 mb-6">
+              {form.firstName} will receive an email with a link to set up their account.
+            </p>
+            <button onClick={onClose} className="px-6 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition">
+              Done
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+            <div className="flex-1 px-6 py-5 space-y-4 overflow-y-auto">
+              <p className="text-[13px] text-gray-500">
+                An invitation email will be sent with a link to set up their account. They choose their own password — no temporary credentials needed.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] font-medium text-gray-600 mb-1">First name</label>
+                  <input required value={form.firstName} onChange={e => set('firstName', e.target.value)}
+                    className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-medium text-gray-600 mb-1">Last name</label>
+                  <input required value={form.lastName} onChange={e => set('lastName', e.target.value)}
+                    className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-gray-600 mb-1">School email</label>
+                <input required type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                  placeholder="name@school.ac.uk"
+                  className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
+              </div>
+              <div>
+                <label className="block text-[12px] font-medium text-gray-600 mb-1">Role</label>
+                <select required value={form.role} onChange={e => set('role', e.target.value)}
+                  className="w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
+                  {STAFF_ROLE_OPTIONS.map(r => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}
+                </select>
+              </div>
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-[13px] text-red-700">{error}</div>
+              )}
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <button type="button" onClick={onClose}
+                className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition">
+                Cancel
+              </button>
+              <button type="submit" disabled={status === 'sending'}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
+                {status === 'sending' && <Icon name="refresh" size="sm" className="animate-spin" />}
+                Send invitation
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffMember[] }) {
@@ -387,6 +490,7 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
   const [sortAsc, setSortAsc]         = useState(true)
   const [filter, setFilter]           = useState('')
   const [addOpen, setAddOpen]         = useState(false)
+  const [inviteOpen, setInviteOpen]   = useState(false)
   const [editTarget, setEditTarget]   = useState<StaffMember | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null)
   const [toggling, setToggling]       = useState<string | null>(null)
@@ -474,13 +578,22 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
         title="Staff"
         subtitle={`${activeCount} active · ${staffList.length} total`}
         action={
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition"
-          >
-            <Icon name="add" size="sm" />
-            Add staff member
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setInviteOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-700 text-[13px] font-semibold rounded-lg hover:bg-gray-50 transition"
+            >
+              <Icon name="mail" size="sm" />
+              Invite by email
+            </button>
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition"
+            >
+              <Icon name="add" size="sm" />
+              Add staff member
+            </button>
+          </div>
         }
       />
 
@@ -627,6 +740,9 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
           </table>
         </div>
       </div>
+
+      {/* Invite modal */}
+      {inviteOpen && <InviteModal onClose={() => setInviteOpen(false)} />}
 
       {/* Add slide-over */}
       {addOpen && (

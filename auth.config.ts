@@ -51,11 +51,20 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request }: { auth: Session | null; request: Request }) {
       const user = auth?.user
-      if (!user) return false  // unauthenticated → redirect to /login
+      if (!user) {
+        const req      = request as unknown as NextRequest
+        const pathname = req.nextUrl?.pathname ?? '/'
+        if (pathname === '/') {
+          const url = req.nextUrl.clone()
+          url.pathname = '/marketing/home'
+          return NextResponse.redirect(url)
+        }
+        return false  // unauthenticated → redirect to /login
+      }
 
       // Next.js middleware always provides NextRequest; nextUrl is safe to access.
       const req      = request as unknown as NextRequest
-      const pathname = req.nextUrl?.pathname ?? '/'
+      const pathname = req.nextUrl?.pathname ?? '/dashboard'
       const role     = user.role as string
 
       // Check role-based route restrictions

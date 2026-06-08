@@ -53,6 +53,9 @@ export default function LoginPage() {
             <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition">
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+            <p className="text-center text-sm text-gray-500">
+              <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
+            </p>
           </form>
         </div>
         {SHOW_DEMO && (

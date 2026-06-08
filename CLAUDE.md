@@ -33,7 +33,11 @@
 > 150/155 e2e passing on Vercel (1 network flake, 4 intentional skips).
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** 5357fc2 (feature gaps GAP-007/008/009/013/014 — contact log, grade analytics, SLT benchmarks)
+> June 2026 Part 5: Marketing pages — /marketing/home, /marketing/features, /marketing/beta,
+> /marketing/investors. Shared sticky-nav layout, contact forms → ivanyardley@me.com via Resend
+> (/api/contact/beta + /api/contact/investors). Middleware updated to exclude /marketing/* from auth.
+>
+> **Latest commit:** 0bc1197 (feat: marketing pages — home, features, beta, investors)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -262,7 +266,10 @@ tail -f /tmp/omnis-dev.log
 /api/cron/agent-plan-synthesis  PLAN_SYNTHESIS agent nightly (03:30 UTC) — ILP/EHCP/K Plan coherence
 /api/wonde/sync             Wonde full sync — POST, 300s maxDuration, SCHOOL_ADMIN/SLT only
 
-marketing/home, /features, /beta, /investors     ← TODO (not yet built)
+/marketing/home                                   ← fully built (hero, feature grid, role cards, CTAs)
+/marketing/features                               ← fully built (6 sections, 35 features)
+/marketing/beta                                   ← fully built (school application form, Resend)
+/marketing/investors                              ← fully built (market pitch, investor contact form)
 /hoy/integrity                                    ← fully built (integrity signals + pattern cases)
 /student/grades                                   ← fully built (grade history + sparklines)
 /admin/audit, /slt/audit                          ← fully built (filterable audit log)
@@ -576,10 +583,11 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 ### Trial readiness (see `TRIAL_READINESS_PLAN.md`)
 - Read `TRIAL_READINESS_PLAN.md` in the project root before starting any session — it is the authoritative list of what must be done before the school trial.
 
-### Marketing pages (not started)
-- 4 public Next.js routes: `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors`
-- Contact forms → `ivanyardley@me.com` via `resend` package
-- API routes: `app/api/contact/beta/route.ts`, `app/api/contact/investors/route.ts`
+### Marketing pages ✅ COMPLETE (2026-06-08, commit 0bc1197)
+- `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors` — all built
+- Shared layout: `app/marketing/layout.tsx` — sticky nav + footer, `OmnisLogo`, role-based links
+- Contact forms post to `/api/contact/beta` and `/api/contact/investors` — email to `ivanyardley@me.com` via Resend
+- Middleware excludes `/marketing/*` from auth (added `marketing` to matcher negation)
 
 ### Wonde timetable sync (pending Wonde permissions)
 - Needs `periods.read` and `lessons.read` enabled in Wonde dashboard.
@@ -599,8 +607,8 @@ student notes CRUD, subjects & boards HOY edit-rights regression.
 - Run locally: `npm run test:e2e`
 - Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`
 
-### Unbuilt routes (marketing only — all app routes are now functional)
-- `/marketing/home`, `/marketing/features`, `/marketing/beta`, `/marketing/investors` — not yet built
+### Unbuilt routes
+All routes are now functional. No unbuilt routes remain.
 
 ---
 
@@ -762,6 +770,12 @@ student notes CRUD, subjects & boards HOY edit-rights regression.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Part 5 — Marketing Pages ✅ (2026-06-08)**
+- **4 public routes:** `/marketing/home` (hero, feature grid, role cards), `/marketing/features` (6 sections, 35 features), `/marketing/beta` (school application form), `/marketing/investors` (market pitch + contact form).
+- **Shared layout:** `app/marketing/layout.tsx` — sticky nav with `OmnisLogo`, links to all 4 pages, "Sign in" CTA, and footer.
+- **Contact API routes:** `app/api/contact/beta/route.ts` + `app/api/contact/investors/route.ts` — POST JSON, send formatted HTML email to `ivanyardley@me.com` via Resend. No-op gracefully without `RESEND_API_KEY`.
+- **Middleware:** `marketing` added to matcher negation — all `/marketing/*` routes are public (no auth required).
 
 **June 2026 Part 4 — Feature Gap Sprint ✅ (2026-06-08)**
 - **GAP-007 (Parent contact log):** New `ParentContactEntry` Prisma model (`ContactMethod` enum: PHONE/EMAIL/MEETING/LETTER/OTHER; `PARENT_CONTACT_LOGGED` AuditAction). `addParentContactEntry` + `deleteParentContactEntry` server actions in `app/actions/students.ts`. Interactive `ContactsTab` in `StudentFilePanel` — add-entry form (date, method, summary, outcome), optimistic UI, delete per entry, chronological log with method icons.

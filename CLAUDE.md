@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-06. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-08. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-06.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-08.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -26,9 +26,14 @@
 > June 2026 Part 3: E2E test suite expanded to 155 tests (23 spec files). Fixed Prisma disconnect
 > bugs, beforeAll try-catch patterns, icon-only button selectors, loginAs 45s timeout (cold-start
 > fail-fast), Homework model schema mismatches (no teacherId; createdBy required). 151/155 passing.
+> June 2026 Part 4: Feature gap sprint (BUGS.md GAP-007/008/009/013/014) — parent contact log
+> (ParentContactEntry model + addParentContactEntry/deleteParentContactEntry actions, interactive
+> ContactsTab in StudentFilePanel), topic heatmap + format breakdown in StudentGradesView, national
+> GCSE benchmark comparison in SLT analytics, GCSE exam weighting hints in revision AI prompt.
+> 150/155 e2e passing on Vercel (1 network flake, 4 intentional skips).
 >
 > **Deployment:** https://omnis-app-ten.vercel.app
-> **Latest commit:** 045596d (e2e 151/155 — 5 new spec files, auth + schema fixes)
+> **Latest commit:** 5357fc2 (feature gaps GAP-007/008/009/013/014 — contact log, grade analytics, SLT benchmarks)
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -291,6 +296,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `messaging.ts` | getMyThreads, getThread, createThread, sendMessage, getUnreadMessageCount, getContactList |
 | `accessibility.ts` | getAccessibilitySettings, saveAccessibilitySettings |
 | `student.ts` | getStudentHomework, submitHomework |
+| `students.ts` | getStudentFile, addParentContactEntry, deleteParentContactEntry |
 | `parent.ts` | sendParentMessage |
 | `wonde.ts` | testWondeConnection, triggerWondeSync (legacy — now prefer /api/wonde/sync), getWondeConfig, getWondeSyncLogs, getWondeCounts |
 | `admin.ts` | School admin actions |
@@ -393,7 +399,8 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 | `SendStatusValue` | NONE, SEN_SUPPORT, EHCP |
 | `ILPStatus` | DRAFT, ACTIVE, UNDER_REVIEW, ARCHIVED |
 | `LessonType` | NORMAL, COVER, INTERVENTION, CLUB |
-| `AuditAction` | HOMEWORK_CREATED, SUBMISSION_GRADED, GRADE_OVERRIDDEN, ILP_CREATED, SEND_STATUS_CHANGED, LESSON_PUBLISHED, WONDE_SYNC_COMPLETED, RESOURCE_UPLOADED, USER_SETTINGS_CHANGED, … |
+| `AuditAction` | HOMEWORK_CREATED, SUBMISSION_GRADED, GRADE_OVERRIDDEN, ILP_CREATED, SEND_STATUS_CHANGED, LESSON_PUBLISHED, WONDE_SYNC_COMPLETED, RESOURCE_UPLOADED, USER_SETTINGS_CHANGED, TA_NOTE_ADDED, TA_NOTE_DELETED, PARENT_CONTACT_LOGGED, … |
+| `ContactMethod` | PHONE, EMAIL, MEETING, LETTER, OTHER |
 
 ### ILPTarget.status valid values
 `"active"` | `"achieved"` | `"not_achieved"` | `"deferred"` — **NOT** `"in_progress"` (this caused multiple production crashes)
@@ -401,7 +408,7 @@ marketing/home, /features, /beta, /investors     ← TODO (not yet built)
 ### Model Groups
 
 - **Tenant:** `School`, `TermDate`
-- **Users/Classes:** `User`, `SchoolClass`, `ClassTeacher`, `Enrolment`, `ParentChildLink`
+- **Users/Classes:** `User`, `SchoolClass`, `ClassTeacher`, `Enrolment`, `ParentChildLink`, `ParentContactEntry`
 - **Lessons/Resources:** `Lesson`, `Resource`, `ResourceReview`, `OakContentCache`
 - **Homework:** `Homework`, `HomeworkQuestion`, `Submission`, `SubmissionAttempt`, `SubmissionAttemptAnswer`
 - **Integrity:** `SubmissionIntegritySignal`, `IntegrityReviewLog`, `IntegrityPatternCase`
@@ -579,7 +586,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**151/155 tests passing** against Vercel (last run: 2026-06-06). 4 gracefully skip
+**150/155 tests passing** against Vercel (last run: 2026-06-08). 1 network flake (send-smoke step 4 — `net::ERR_CONNECTION_RESET` on cold Lambda, passes on retry). 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
 23 spec files (155 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
@@ -755,3 +762,11 @@ student notes CRUD, subjects & boards HOY edit-rights regression.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Part 4 — Feature Gap Sprint ✅ (2026-06-08)**
+- **GAP-007 (Parent contact log):** New `ParentContactEntry` Prisma model (`ContactMethod` enum: PHONE/EMAIL/MEETING/LETTER/OTHER; `PARENT_CONTACT_LOGGED` AuditAction). `addParentContactEntry` + `deleteParentContactEntry` server actions in `app/actions/students.ts`. Interactive `ContactsTab` in `StudentFilePanel` — add-entry form (date, method, summary, outcome), optimistic UI, delete per entry, chronological log with method icons.
+- **GAP-009 (Topic heatmap + format breakdown):** `TopicHeatmap` component in `StudentGradesView` — colour-coded topic chips (green 7–9, blue 5–6, amber 4, red 1–3) with legend. `FormatBreakdownPanel` — bar chart of avg grade per homework format with "best format" insight. Both added to `SubjectCard` expanded view.
+- **GAP-013 (National GCSE benchmark):** `NATIONAL_AVG` record in `app/slt/analytics/page.tsx` (2024 JCQ national averages per subject, 0–9 scale). "vs National Average" sidebar card in SLT analytics showing trending arrows + delta per subject.
+- **GAP-008 (GCSE exam weighting hints):** `GCSE_WEIGHT_HINTS` record in `lib/revision/content-generator.ts`. Exam component weighting injected into `generateRevisionTask` AI prompt to bias content towards high-value paper components.
+- **GAP-014 (Schema):** `prisma db push` applied — `ParentContactEntry` table live in production DB.
+- **E2E:** 150/155 passing on Vercel (1 network flake on `/senco/ehcp`, 4 intentional skips).

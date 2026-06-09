@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-08. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-09. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-08.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-09.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -41,8 +41,14 @@
 > /marketing/home for unauthenticated users). PasswordResetToken + StaffInvitation Prisma models
 > pushed to production. AdminStaffTable "Invite by email" modal. lib/email.ts extended with
 > sendPasswordResetEmail + sendStaffInvitationEmail. login page "Forgot your password?" link.
+> June 2026 Part 7: Year rollover cron (0 1 1 9 *, Y7→Y12 increment + Y13 deactivation) + manual
+> trigger with dry-run preview (YearRolloverPanel). Wonde auto-provisioning of student/parent User
+> accounts (gated on School.emailDomain). /admin/users unified management page (UserManagementTable,
+> filter chips, deactivate/reactivate/resend). 5 new email triggers: new homework → students, grade
+> below target → parents, ILP/EHCP review-due cron (0 7 * * 1-5). Schema: User.activatedAt,
+> School.emailDomain, AuditAction YEAR_ROLLOVER/USER_PROVISIONED/WELCOME_EMAIL_SENT.
 >
-> **Latest commit:** 9f20498 (test: e2e password reset + staff invitation — 23 new tests). E2E: 171 passed, 4 skipped, 0 hard failures. Exit 0.
+> **Latest commit:** dadc70d (feat: year rollover, Wonde provisioning, user management, email notifications). E2E: 174 passed, 4 skipped, 0 failures. Exit 0.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -599,7 +605,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**171/178 tests passing** against Vercel (last run: 2026-06-08). 0 hard failures. 4 gracefully skip
+**174/178 tests passing** against Vercel (last run: 2026-06-09). 0 hard failures. 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
 24 spec files (178 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
@@ -776,6 +782,16 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Part 7 — Year Rollover, Wonde Provisioning, User Management, Email Notifications ✅ (2026-06-09)**
+- **Year rollover cron:** `/api/cron/year-rollover` (schedule `0 1 1 9 *`) — `$executeRaw` increments yearGroup for Y7–Y12, sets `isActive=false` for Y13 leavers, writes `YEAR_ROLLOVER` audit entry.
+- **Manual trigger:** `POST /api/admin/trigger-year-rollover` with `{ dryRun: true }` preview (returns counts without applying). `YearRolloverPanel` component on `/admin/dashboard` — idle → preview → confirm → done state machine.
+- **Wonde auto-provisioning:** After each sync, creates `User` accounts for unprovisioned students/parents (gated on `School.emailDomain`). Student email: `firstname.lastname@students.{emailDomain}`. Parent email from `WondeContact.email`. Sends welcome email with 7-day activation link. Writes `USER_PROVISIONED` + `WELCOME_EMAIL_SENT` audit entries per-record. Best-effort with per-record try/catch.
+- **`/admin/users`:** Unified user management page. `getSchoolAllUsers`, `deactivateUser`, `reactivateUser`, `resendWelcomeEmail` server actions in `app/actions/admin.ts`. `UserManagementTable` — filter chips (All/Students/Parents/Staff/Pending), search, status badges (Active/Pending/Inactive), activated date, per-row actions. "All Users" in SCHOOL_ADMIN sidebar + admin dashboard quick links.
+- **5 new email functions** in `lib/email.ts`: `sendWelcomeAccountEmail`, `sendIlpReviewDueEmail`, `sendEhcpReviewDueEmail`, `sendNewHomeworkEmail`, `sendGradeBelowTargetEmail`.
+- **Email triggers:** New homework published → enrolled students notified (`createHomework`). Grade 2+ below predicted → parent notified (`markSubmission`). ILP ≤7 days + EHCP ≤30 days → SENCO emailed by `/api/cron/review-due` (schedule `0 7 * * 1-5`).
+- **Schema:** `User.activatedAt DateTime?` (set fire-and-forget in `lib/auth.ts` on first login). `School.emailDomain String?`. `AuditAction`: `YEAR_ROLLOVER`, `USER_PROVISIONED`, `WELCOME_EMAIL_SENT`. All pushed to production DB.
+- **E2E:** 174 passed, 4 skipped, 0 failures. Exit 0.
 
 **June 2026 Part 6 — Password Reset + Staff Invitation + Root Redirect ✅ (2026-06-08)**
 - **Password reset flow:** `app/forgot-password/page.tsx` (email entry, always-200 response to prevent enumeration) + `app/reset-password/page.tsx` (new password form, Suspense + useSearchParams). API routes: `app/api/auth/forgot-password/route.ts` (1h token) + `app/api/auth/reset-password/route.ts` (bcrypt + $transaction). "Forgot your password?" link added to login page.

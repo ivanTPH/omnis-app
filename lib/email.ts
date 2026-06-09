@@ -115,6 +115,125 @@ export async function sendStaffInvitationEmail(params: {
   )
 }
 
+/** Welcome email for a newly provisioned student or parent account. */
+export async function sendWelcomeAccountEmail(params: {
+  to: string
+  firstName: string
+  role: 'student' | 'parent'
+  schoolName: string
+  activateUrl: string
+}): Promise<void> {
+  const { to, firstName, role, schoolName, activateUrl } = params
+  const roleLabel = role === 'parent' ? 'parent/carer' : 'student'
+  await send(
+    to,
+    `Your ${schoolName} Omnis account is ready`,
+    `
+    <p>Hi ${firstName},</p>
+    <p>Your ${roleLabel} account on <strong>${schoolName}</strong>'s Omnis learning platform has been created.</p>
+    <p>Click below to activate your account and set a password. The link expires in 7 days.</p>
+    <p><a href="${activateUrl}" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Activate my account</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform — ${schoolName}</p>
+    `,
+  )
+}
+
+/** SENCO reminder when an ILP review is due within 7 days. */
+export async function sendIlpReviewDueEmail(params: {
+  to: string
+  sencoFirstName: string
+  studentName: string
+  reviewDueAt: Date
+  ilpUrl: string
+}): Promise<void> {
+  const { to, sencoFirstName, studentName, reviewDueAt, ilpUrl } = params
+  const dueStr = reviewDueAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  await send(
+    to,
+    `ILP review due soon: ${studentName}`,
+    `
+    <p>Hi ${sencoFirstName},</p>
+    <p>A reminder that the ILP review for <strong>${studentName}</strong> is due on <strong>${dueStr}</strong>.</p>
+    <p><a href="${ilpUrl}" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">View ILP</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
+/** SENCO reminder when an EHCP annual review is due within 30 days. */
+export async function sendEhcpReviewDueEmail(params: {
+  to: string
+  sencoFirstName: string
+  studentName: string
+  reviewDueAt: Date
+  ehcpUrl: string
+}): Promise<void> {
+  const { to, sencoFirstName, studentName, reviewDueAt, ehcpUrl } = params
+  const dueStr = reviewDueAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  await send(
+    to,
+    `EHCP annual review due: ${studentName}`,
+    `
+    <p>Hi ${sencoFirstName},</p>
+    <p>The EHCP annual review for <strong>${studentName}</strong> is due on <strong>${dueStr}</strong>. Please ensure this is scheduled in good time.</p>
+    <p><a href="${ehcpUrl}" style="background:#7c3aed;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">View EHCP plan</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
+/** Notification to a student when new homework is published. */
+export async function sendNewHomeworkEmail(params: {
+  to: string
+  studentFirstName: string
+  homeworkTitle: string
+  subject: string
+  dueAt: Date | null
+  homeworkUrl: string
+}): Promise<void> {
+  const { to, studentFirstName, homeworkTitle, subject, dueAt, homeworkUrl } = params
+  const dueStr = dueAt
+    ? `Due: <strong>${dueAt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}</strong>`
+    : 'No due date set'
+  await send(
+    to,
+    `New homework: ${homeworkTitle}`,
+    `
+    <p>Hi ${studentFirstName},</p>
+    <p>New <strong>${subject}</strong> homework has been set: <strong>${homeworkTitle}</strong></p>
+    <p>${dueStr}</p>
+    <p><a href="${homeworkUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Start homework</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
+/** Notification to a parent when their child's grade is significantly below target. */
+export async function sendGradeBelowTargetEmail(params: {
+  to: string
+  parentFirstName: string
+  studentName: string
+  subject: string
+  achievedGrade: string
+  targetGrade: string
+  teacherName: string
+  homeworkUrl: string
+}): Promise<void> {
+  const { to, parentFirstName, studentName, subject, achievedGrade, targetGrade, teacherName, homeworkUrl } = params
+  await send(
+    to,
+    `Progress update for ${studentName} — ${subject}`,
+    `
+    <p>Hi ${parentFirstName},</p>
+    <p>We wanted to keep you informed about ${studentName}'s recent <strong>${subject}</strong> homework.</p>
+    <p>Target grade: <strong>${targetGrade}</strong> &nbsp;|&nbsp; Achieved: <strong>${achievedGrade}</strong></p>
+    <p>${teacherName} has provided feedback. You can view the full result below.</p>
+    <p><a href="${homeworkUrl}" style="background:#dc2626;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">View result & feedback</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
 /** SENCO notification when a new SEND concern is raised for a student. */
 export async function sendConcernRaisedEmail(params: {
   to: string

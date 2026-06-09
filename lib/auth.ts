@@ -34,6 +34,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!user || !user.isActive) return null
         if (!await bcrypt.compare(password, user.passwordHash)) return null
 
+        // Set activatedAt on first ever login (fire-and-forget)
+        if (!user.activatedAt) {
+          void prisma.user.update({ where: { id: user.id }, data: { activatedAt: new Date() } })
+        }
+
         return {
           id: user.id,
           email: user.email,

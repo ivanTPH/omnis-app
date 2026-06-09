@@ -18,7 +18,10 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
-import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
+import { prisma, writeAudit } from '@/lib/prisma'
+import { sendWelcomeAccountEmail } from '@/lib/email'
 import {
   fetchWondeSchool,
   fetchWondeEmployees,
@@ -47,10 +50,11 @@ export interface WondeSyncResult {
   attendance:  { upserted: number }
   behaviours:  { upserted: number }
   exclusions:  { upserted: number }
-  assessments: { upserted: number }
-  baselines:   { upserted: number }
-  errors:      string[]
-  durationMs:  number
+  assessments:  { upserted: number }
+  baselines:    { upserted: number }
+  provisioned:  { students: number; parents: number }
+  errors:       string[]
+  durationMs:   number
 }
 
 function parseWondeDate(d: { date: string } | null | undefined): Date | null {
@@ -94,10 +98,11 @@ export async function runWondeSync(
     attendance:  { upserted: 0 },
     behaviours:  { upserted: 0 },
     exclusions:  { upserted: 0 },
-    assessments: { upserted: 0 },
-    baselines:   { upserted: 0 },
+    assessments:  { upserted: 0 },
+    baselines:    { upserted: 0 },
+    provisioned:  { students: 0, parents: 0 },
     errors,
-    durationMs:  0,
+    durationMs:   0,
   }
 
   const now = new Date()
@@ -912,6 +917,164 @@ export async function runWondeSync(
     })
   } catch (err) {
     errors.push(`Baselines: ${String(err)}`)
+  }
+
+  // ── Provisioning: create User accounts for new students + parents ───────────
+  try {
+    const school = await prisma.school.findUnique({
+      where:  { id: omnisSchoolId },
+      select: { id: true, name: true, emailDomain: true },
+    })
+    const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+
+    if (school) {
+      // ── Students ──────────────────────────────────────────────────────────
+      const wondeStudents = await prisma.wondeStudent.findMany({
+        where:  { schoolId: omnisSchoolId, isLeaver: false },
+        select: { id: true, firstName: true, lastName: true, yearGroup: true },
+      })
+
+      // Build set of existing student emails in this school
+      const existingStudentEmails = new Set(
+        (await prisma.user.findMany({
+          where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+          select: { email: true },
+        })).map(u => u.email)
+      )
+
+      for (const ws of wondeStudents) {
+        if (!school.emailDomain) break // can't generate emails without domain
+
+        const base  = `${ws.firstName.toLowerCase().replace(/\s+/g, '')}.${ws.lastName.toLowerCase().replace(/\s+/g, '')}`
+        let   email = `${base}@students.${school.emailDomain}`
+        // Deduplicate if collision
+        let   suffix = 1
+        while (existingStudentEmails.has(email)) {
+          email = `${base}${suffix}@students.${school.emailDomain}`
+          suffix++
+        }
+        existingStudentEmails.add(email)
+
+        try {
+          const existing = await prisma.user.findFirst({ where: { email } })
+          if (existing) continue
+
+          const placeholder = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
+          const newUser = await prisma.user.create({
+            data: {
+              email,
+              firstName:    ws.firstName,
+              lastName:     ws.lastName,
+              role:         'STUDENT',
+              passwordHash: placeholder,
+              schoolId:     omnisSchoolId,
+              yearGroup:    ws.yearGroup,
+            },
+          })
+
+          const raw  = crypto.randomBytes(32).toString('hex')
+          const hash = crypto.createHash('sha256').update(raw).digest('hex')
+          await prisma.passwordResetToken.create({
+            data: {
+              userId:    newUser.id,
+              tokenHash: hash,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            },
+          })
+
+          await sendWelcomeAccountEmail({
+            to:          email,
+            firstName:   ws.firstName,
+            role:        'student',
+            schoolName:  school.name,
+            activateUrl: `${baseUrl}/reset-password?token=${raw}`,
+          })
+
+          await writeAudit({
+            schoolId:   omnisSchoolId,
+            actorId:    'wonde-sync',
+            action:     'USER_PROVISIONED',
+            targetType: 'user',
+            targetId:   newUser.id,
+            metadata:   { role: 'STUDENT', source: 'wonde' },
+          })
+
+          result.provisioned.students++
+        } catch {
+          // Best-effort — don't fail entire sync for one student
+        }
+      }
+
+      // ── Parents (from WondeContact with email + parentalResponsibility) ──
+      const contacts = await prisma.wondeContact.findMany({
+        where:  { schoolId: omnisSchoolId, parentalResponsibility: true, email: { not: null } },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      })
+
+      const existingParentEmails = new Set(
+        (await prisma.user.findMany({
+          where:  { schoolId: omnisSchoolId, role: 'PARENT' },
+          select: { email: true },
+        })).map(u => u.email)
+      )
+
+      for (const c of contacts) {
+        if (!c.email) continue
+        const email = c.email.trim().toLowerCase()
+        if (existingParentEmails.has(email)) continue
+
+        try {
+          const existing = await prisma.user.findFirst({ where: { email } })
+          if (existing) continue
+
+          const placeholder = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
+          const newUser = await prisma.user.create({
+            data: {
+              email,
+              firstName:    c.firstName,
+              lastName:     c.lastName,
+              role:         'PARENT',
+              passwordHash: placeholder,
+              schoolId:     omnisSchoolId,
+            },
+          })
+          existingParentEmails.add(email)
+
+          const raw  = crypto.randomBytes(32).toString('hex')
+          const hash = crypto.createHash('sha256').update(raw).digest('hex')
+          await prisma.passwordResetToken.create({
+            data: {
+              userId:    newUser.id,
+              tokenHash: hash,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            },
+          })
+
+          await sendWelcomeAccountEmail({
+            to:          email,
+            firstName:   c.firstName,
+            role:        'parent',
+            schoolName:  school.name,
+            activateUrl: `${baseUrl}/reset-password?token=${raw}`,
+          })
+
+          await writeAudit({
+            schoolId:   omnisSchoolId,
+            actorId:    'wonde-sync',
+            action:     'USER_PROVISIONED',
+            targetType: 'user',
+            targetId:   newUser.id,
+            metadata:   { role: 'PARENT', source: 'wonde' },
+          })
+
+          result.provisioned.parents++
+        } catch {
+          // Best-effort — don't fail entire sync for one contact
+        }
+      }
+    }
+  } catch (err) {
+    errors.push(`Provisioning: ${String(err)}`)
   }
 
   result.durationMs = Date.now() - startedAt

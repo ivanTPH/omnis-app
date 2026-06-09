@@ -4,9 +4,11 @@ import Link from 'next/link'
 import AppShell from '@/components/AppShell'
 import { getAdminDashboardData, type AdminDashboardData } from '@/app/actions/admin'
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
+import YearRolloverPanel from '@/components/admin/YearRolloverPanel'
 import Icon from '@/components/ui/Icon'
 
 const QUICK_LINKS = [
+  { label: 'All Users',         href: '/admin/users',     iconName: 'manage_accounts', desc: 'Users, roles & activation'   },
   { label: 'Staff',             href: '/admin/staff',     iconName: 'how_to_reg',    desc: 'View all staff members'      },
   { label: 'Students',          href: '/admin/students',  iconName: 'people',        desc: 'Browse students by year'     },
   { label: 'Classes',           href: '/admin/classes',   iconName: 'menu_book',     desc: 'Classes & assignments'       },
@@ -48,6 +50,11 @@ export default async function AdminDashboardPage() {
           {/* Stats */}
           <div className="mb-8">
             <AdminDashboardStats data={data} />
+          </div>
+
+          {/* Year rollover */}
+          <div className="mb-8">
+            <YearRolloverPanel />
           </div>
 
           {/* Quick links */}

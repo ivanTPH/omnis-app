@@ -87,6 +87,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Subjects & Boards', href: '/admin/subjects',  icon: 'school'           },
     { label: 'Revision',         href: '/revision-program', icon: 'bookmark'        },
     { label: 'Year Group Plans', href: '/plans/year-group', icon: 'menu_book'       },
+    { label: 'All Users',        href: '/admin/users',      icon: 'supervisor_account' },
     { label: 'Staff',            href: '/admin/staff',      icon: 'manage_accounts' },
     { label: 'Students',         href: '/admin/students',   icon: 'people'          },
     { label: 'Classes',          href: '/admin/classes',    icon: 'school'          },

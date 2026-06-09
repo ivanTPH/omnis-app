@@ -198,6 +198,9 @@ enum AuditAction {
   AGENT_RECOMMENDATION_DISMISSED
   LESSON_SUPPORT_REQUESTED
   K_PLAN_UPDATED
+  YEAR_ROLLOVER
+  USER_PROVISIONED
+  WELCOME_EMAIL_SENT
 }
 
 enum ContactMethod {
@@ -260,6 +263,7 @@ model School {
   extStartHour Int @default(7)
   extEndHour   Int @default(19)
 
+  emailDomain String?           // e.g. "oakfield.sch.uk" — used to auto-generate student emails from Wonde
   allowAggregatedContribution Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -400,6 +404,7 @@ model User {
   tutorGroup   String?              // Form/tutor group — synced from Wonde
   dateOfBirth  DateTime?            // DOB — synced from Wonde
   isActive     Boolean  @default(true)
+  activatedAt  DateTime?                    // Set on first login — null means never logged in
   createdAt    DateTime @default(now())
   avatarUrl            String?
   supportSnapshot      String?          // 1–2 sentence plain-English SEND summary for teachers

@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { Role, Prisma } from '@prisma/client'
 import { AUDIT_CATEGORIES } from '@/lib/audit-categories'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -960,4 +961,91 @@ export async function applySubjectConfigToAllClasses(input: {
   revalidatePath('/classes')
   revalidatePath('/admin/classes')
   return { ok: true, updated: result.count }
+}
+
+// ─── Unified user management ──────────────────────────────────────────────────
+
+export type ManagedUser = {
+  id:          string
+  firstName:   string
+  lastName:    string
+  email:       string
+  role:        string
+  yearGroup:   number | null
+  isActive:    boolean
+  activatedAt: Date | null
+  createdAt:   Date
+}
+
+export type UserFilter = 'all' | 'students' | 'parents' | 'staff' | 'pending'
+
+export async function getSchoolAllUsers(filter: UserFilter = 'all'): Promise<ManagedUser[]> {
+  const { schoolId } = await requireAdminOrSlt()
+
+  const roleFilter: Role[] | undefined =
+    filter === 'students' ? ['STUDENT'] :
+    filter === 'parents'  ? ['PARENT']  :
+    filter === 'staff'    ? STAFF_ROLES :
+    undefined
+
+  const users = await prisma.user.findMany({
+    where: {
+      schoolId,
+      ...(roleFilter ? { role: { in: roleFilter } } : {}),
+      ...(filter === 'pending' ? { activatedAt: null, isActive: true } : {}),
+    },
+    select: {
+      id: true, firstName: true, lastName: true, email: true,
+      role: true, yearGroup: true, isActive: true, activatedAt: true, createdAt: true,
+    },
+    orderBy: [{ role: 'asc' }, { lastName: 'asc' }, { firstName: 'asc' }],
+    take: 500,
+  })
+
+  return users
+}
+
+export async function deactivateUser(userId: string): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const target = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, role: true } })
+  if (!target) throw new Error('User not found')
+
+  await prisma.user.update({ where: { id: userId }, data: { isActive: false } })
+  await writeAudit({ schoolId, actorId, action: 'USER_DEACTIVATED', targetType: 'user', targetId: userId, metadata: { role: target.role } })
+  revalidatePath('/admin/users')
+}
+
+export async function reactivateUser(userId: string): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const target = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, role: true } })
+  if (!target) throw new Error('User not found')
+
+  await prisma.user.update({ where: { id: userId }, data: { isActive: true } })
+  await writeAudit({ schoolId, actorId, action: 'USER_ROLE_CHANGED', targetType: 'user', targetId: userId, metadata: { reactivated: true } })
+  revalidatePath('/admin/users')
+}
+
+export async function resendWelcomeEmail(userId: string): Promise<void> {
+  const { schoolId } = await requireAdminOrSlt()
+  const user   = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, email: true, firstName: true, role: true, school: { select: { name: true } } } })
+  if (!user) throw new Error('User not found')
+
+  // Invalidate previous tokens
+  await prisma.passwordResetToken.updateMany({ where: { userId, used: false }, data: { used: true } })
+
+  const raw  = crypto.randomBytes(32).toString('hex')
+  const hash = crypto.createHash('sha256').update(raw).digest('hex')
+  await prisma.passwordResetToken.create({
+    data: { userId, tokenHash: hash, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+  })
+
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  const { sendWelcomeAccountEmail } = await import('@/lib/email')
+  await sendWelcomeAccountEmail({
+    to:          user.email,
+    firstName:   user.firstName,
+    role:        user.role === 'PARENT' ? 'parent' : 'student',
+    schoolName:  user.school.name,
+    activateUrl: `${baseUrl}/reset-password?token=${raw}`,
+  })
 }

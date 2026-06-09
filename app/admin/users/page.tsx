@@ -1,0 +1,37 @@
+import { requireAuth } from '@/lib/session'
+import { redirect }    from 'next/navigation'
+import AppShell        from '@/components/AppShell'
+import { getSchoolAllUsers } from '@/app/actions/admin'
+import UserManagementTable   from '@/components/admin/UserManagementTable'
+import PageHeader            from '@/components/ui/PageHeader'
+
+export default async function AdminUsersPage() {
+  const { role, firstName, lastName, schoolName } = await requireAuth()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
+
+  const users = await getSchoolAllUsers('all')
+
+  const counts = {
+    all:      users.length,
+    students: users.filter(u => u.role === 'STUDENT').length,
+    parents:  users.filter(u => u.role === 'PARENT').length,
+    staff:    users.filter(u => !['STUDENT', 'PARENT'].includes(u.role)).length,
+    pending:  users.filter(u => !u.activatedAt && u.isActive).length,
+  }
+
+  return (
+    <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
+      <main className="flex-1 overflow-auto bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
+          <PageHeader
+            title="User Management"
+            subtitle={`${schoolName} — all accounts, roles and activation status`}
+            backHref="/admin/dashboard"
+            backLabel="Admin"
+          />
+          <UserManagementTable users={users} counts={counts} />
+        </div>
+      </main>
+    </AppShell>
+  )
+}

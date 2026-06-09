@@ -8,7 +8,7 @@ import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
 import { checkILPEvidenceMatch, checkEhcpEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
-import { sendHomeworkReminderEmail } from '@/lib/email'
+import { sendHomeworkReminderEmail, sendNewHomeworkEmail, sendGradeBelowTargetEmail } from '@/lib/email'
 import { markDirty }            from '@/lib/agents/snapshot'
 import { AgentType }            from '@prisma/client'
 
@@ -371,6 +371,33 @@ export async function createHomework(input: {
       skipDuplicates: true,
     })
   }
+
+  // Fire-and-forget: notify enrolled students of new homework
+  void (async () => {
+    try {
+      const cls = await prisma.schoolClass.findUnique({
+        where:  { id: input.classId },
+        select: { subject: true, yearGroup: true },
+      })
+      const enrolments = await prisma.enrolment.findMany({
+        where:  { classId: input.classId },
+        include: { user: { select: { email: true, firstName: true } } },
+      })
+      const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+      await Promise.allSettled(
+        enrolments.map(e =>
+          sendNewHomeworkEmail({
+            to:            e.user.email,
+            studentFirstName: e.user.firstName,
+            homeworkTitle: input.title,
+            subject:       cls?.subject ?? 'Homework',
+            dueAt:         input.dueAt ? new Date(input.dueAt) : null,
+            homeworkUrl:   `${baseUrl}/student/homework/${hw.id}`,
+          })
+        )
+      )
+    } catch { /* best-effort */ }
+  })()
 
   revalidatePath('/dashboard')
   revalidatePath('/homework')
@@ -1378,6 +1405,58 @@ export async function markSubmission(submissionId: string, data: {
 
   // Mark Coach + Quality + Evidence agent snapshots dirty — new marked submission = new data
   void markDirty(sub.studentId, schoolId, [AgentType.COACH, AgentType.QUALITY, AgentType.EVIDENCE]).catch(() => {})
+
+  // Fire-and-forget: notify parent if grade is 2+ below predicted
+  void (async () => {
+    try {
+      const achievedGcse = percentToGcseGrade(data.teacherScore)
+      const student = await prisma.user.findUnique({
+        where:  { id: sub.studentId },
+        select: {
+          firstName: true, lastName: true,
+          parentLinks: {
+            include: { parent: { select: { email: true, firstName: true } } },
+          },
+        },
+      })
+      const hw = await prisma.homework.findUnique({
+        where:  { id: sub.homeworkId },
+        select: {
+          title: true, createdBy: true,
+          class: { select: { subject: true } },
+        },
+      })
+      const teacher = hw?.createdBy
+        ? await prisma.user.findUnique({ where: { id: hw.createdBy }, select: { firstName: true, lastName: true } })
+        : null
+      // Get student's predicted grade from learning profile
+      const profile = await prisma.studentLearningProfile.findFirst({
+        where:  { studentId: sub.studentId, schoolId },
+        select: { predictedGrade: true },
+      })
+      const predicted = profile?.predictedGrade ?? null
+      if (student && hw && predicted != null && achievedGcse <= predicted - 2) {
+        const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+        const teacherName = teacher
+          ? `${teacher.firstName} ${teacher.lastName}`
+          : 'Your teacher'
+        await Promise.allSettled(
+          student.parentLinks.map(link =>
+            sendGradeBelowTargetEmail({
+              to:            link.parent.email,
+              parentFirstName: link.parent.firstName,
+              studentName:   `${student.firstName} ${student.lastName}`,
+              subject:       hw.class?.subject ?? 'Homework',
+              achievedGrade: `Grade ${achievedGcse}`,
+              targetGrade:   `Grade ${predicted}`,
+              teacherName,
+              homeworkUrl:   `${baseUrl}/parent/progress`,
+            })
+          )
+        )
+      }
+    } catch { /* best-effort */ }
+  })()
 
   return { ilpData, gradeDrop }
 }

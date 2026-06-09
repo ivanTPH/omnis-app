@@ -36,8 +36,13 @@
 > June 2026 Part 5: Marketing pages — /marketing/home, /marketing/features, /marketing/beta,
 > /marketing/investors. Shared sticky-nav layout, contact forms → ivanyardley@me.com via Resend
 > (/api/contact/beta + /api/contact/investors). Middleware updated to exclude /marketing/* from auth.
+> June 2026 Part 6: Password reset flow (/forgot-password + /reset-password), staff invitation
+> system (/accept-invite + /api/staff/invite + /api/staff/accept-invite), root redirect (/ →
+> /marketing/home for unauthenticated users). PasswordResetToken + StaffInvitation Prisma models
+> pushed to production. AdminStaffTable "Invite by email" modal. lib/email.ts extended with
+> sendPasswordResetEmail + sendStaffInvitationEmail. login page "Forgot your password?" link.
 >
-> **Latest commit:** a02a820 (docs: CLAUDE.md update — marketing pages complete). E2E: 151/155 passing, 0 flakes, 4 intentional skips.
+> **Latest commit:** 9f20498 (test: e2e password reset + staff invitation — 23 new tests). E2E: 171 passed, 4 skipped, 0 hard failures. Exit 0.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -594,13 +599,14 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**151/155 tests passing** against Vercel (last run: 2026-06-08). 0 flakes. 4 gracefully skip
+**171/178 tests passing** against Vercel (last run: 2026-06-08). 0 hard failures. 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
-23 spec files (155 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+24 spec files (178 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
 cover management, platform admin, student photos, revision planner, send scorer,
 EHCP evidence (P2002 regression), homework UPLOAD type, student returned HW grade strip,
-student notes CRUD, subjects & boards HOY edit-rights regression.
+student notes CRUD, subjects & boards HOY edit-rights regression,
+password reset + staff invitation (23 tests — DB-backed token flows, admin UI, anti-enumeration).
 - `USERS.hod` (d.brooks), `USERS.hoy` (t.adeyemi), `USERS.ta` (j.taylor) fixtures in users.ts
 - loginAs timeout: 45s fail-fast (cold Lambdas fail quickly; warm Lambdas respond in 5-15s)
 - 0 flakes when global-setup saves auth state; retries handle remaining cold starts
@@ -770,6 +776,15 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Part 6 — Password Reset + Staff Invitation + Root Redirect ✅ (2026-06-08)**
+- **Password reset flow:** `app/forgot-password/page.tsx` (email entry, always-200 response to prevent enumeration) + `app/reset-password/page.tsx` (new password form, Suspense + useSearchParams). API routes: `app/api/auth/forgot-password/route.ts` (1h token) + `app/api/auth/reset-password/route.ts` (bcrypt + $transaction). "Forgot your password?" link added to login page.
+- **Staff invitation system:** `app/api/staff/invite/route.ts` (SCHOOL_ADMIN/SLT only — creates 7-day token, sends email, invalidates prior pending invites) + `app/api/staff/accept-invite/route.ts` (GET: validate token; POST: create User + mark invite used). `app/accept-invite/page.tsx` (account setup form). "Invite by email" modal added to `AdminStaffTable` with firstName/lastName/email/role fields.
+- **Root redirect:** Unauthenticated requests to `/` now redirect to `/marketing/home` (via `auth.config.ts` authorized callback).
+- **Prisma schema:** `PasswordResetToken` + `StaffInvitation` models added, pushed to production DB.
+- **lib/email.ts:** `sendPasswordResetEmail` + `sendStaffInvitationEmail` added.
+- **Middleware:** `forgot-password|reset-password|accept-invite` added to public matcher exclusions.
+- **E2E:** 148 passed, 4 skipped, 3 network flakes (all retry-pass), 0 hard failures. Exit 0.
 
 **June 2026 Part 5 — Marketing Pages ✅ (2026-06-08)**
 - **4 public routes:** `/marketing/home` (hero, feature grid, role cards), `/marketing/features` (6 sections, 35 features), `/marketing/beta` (school application form), `/marketing/investors` (market pitch + contact form).

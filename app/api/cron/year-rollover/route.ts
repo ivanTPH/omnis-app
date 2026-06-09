@@ -27,11 +27,10 @@ async function runRolloverForSchool(schoolId: string): Promise<{ promoted: numbe
 
   // Promote Year 7–12 students
   if (toPromote.length > 0) {
-    await prisma.$executeRaw`
-      UPDATE "User"
-      SET "yearGroup" = "yearGroup" + 1
-      WHERE id = ANY(${toPromote.map(s => s.id)})
-    `
+    await prisma.user.updateMany({
+      where: { id: { in: toPromote.map(s => s.id) } },
+      data:  { yearGroup: { increment: 1 } },
+    })
   }
 
   // Deactivate Year 13 leavers

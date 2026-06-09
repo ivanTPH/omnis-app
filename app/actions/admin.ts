@@ -1049,3 +1049,103 @@ export async function resendWelcomeEmail(userId: string): Promise<void> {
     activateUrl: `${baseUrl}/reset-password?token=${raw}`,
   })
 }
+
+// ─── Item 5: Role + class assignment ─────────────────────────────────────────
+
+export async function changeUserRole(userId: string, newRole: string): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const target = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, role: true } })
+  if (!target) throw new Error('User not found')
+
+  await prisma.user.update({ where: { id: userId }, data: { role: newRole as Role } })
+  await writeAudit({ schoolId, actorId, action: 'USER_ROLE_CHANGED', targetType: 'user', targetId: userId, metadata: { from: target.role, to: newRole } })
+  revalidatePath('/admin/users')
+}
+
+export async function updateStudentYearGroup(userId: string, yearGroup: number | null): Promise<void> {
+  const { schoolId } = await requireAdminOrSlt()
+  await prisma.user.updateMany({ where: { id: userId, schoolId, role: 'STUDENT' }, data: { yearGroup } })
+  revalidatePath('/admin/users')
+}
+
+export type ClassOption = { id: string; name: string; subject: string; yearGroup: number }
+
+export async function getSchoolClasses(): Promise<ClassOption[]> {
+  const { schoolId } = await requireAdminOrSlt()
+  return prisma.schoolClass.findMany({
+    where: { schoolId },
+    select: { id: true, name: true, subject: true, yearGroup: true },
+    orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }, { name: 'asc' }],
+  })
+}
+
+export async function getUserClasses(userId: string): Promise<string[]> {
+  const { schoolId } = await requireAdminOrSlt()
+  // Verify user belongs to this school
+  const user = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true } })
+  if (!user) return []
+  const rows = await prisma.classTeacher.findMany({ where: { userId }, select: { classId: true } })
+  return rows.map(r => r.classId)
+}
+
+export async function setTeacherClasses(teacherId: string, classIds: string[]): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const target = await prisma.user.findFirst({ where: { id: teacherId, schoolId }, select: { id: true } })
+  if (!target) throw new Error('User not found')
+
+  await prisma.$transaction([
+    prisma.classTeacher.deleteMany({ where: { userId: teacherId } }),
+    ...(classIds.length > 0
+      ? [prisma.classTeacher.createMany({
+          data: classIds.map(classId => ({ userId: teacherId, classId })),
+          skipDuplicates: true,
+        })]
+      : []
+    ),
+  ])
+  await writeAudit({ schoolId, actorId, action: 'USER_CLASS_ASSIGNED', targetType: 'user', targetId: teacherId, metadata: { classIds } })
+  revalidatePath('/admin/users')
+}
+
+// ─── Item 6: School onboarding ────────────────────────────────────────────────
+
+export type SchoolSettings = {
+  id:          string
+  name:        string
+  phase:       string
+  urn:         string
+  emailDomain: string
+  onboardedAt: Date | null
+}
+
+export async function getSchoolSettings(): Promise<SchoolSettings> {
+  const { schoolId } = await requireAdminOrSlt()
+  const s = await prisma.school.findUniqueOrThrow({
+    where: { id: schoolId as string },
+    select: { id: true, name: true, phase: true, urn: true, emailDomain: true, onboardedAt: true },
+  })
+  return { id: s.id, name: s.name, phase: s.phase ?? '', urn: s.urn ?? '', emailDomain: s.emailDomain ?? '', onboardedAt: s.onboardedAt }
+}
+
+export async function saveSchoolSettings(data: Partial<Omit<SchoolSettings, 'id' | 'onboardedAt'>>): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  await prisma.school.update({
+    where: { id: schoolId as string },
+    data: {
+      ...(data.name        != null ? { name: data.name }               : {}),
+      ...(data.phase       != null ? { phase: data.phase || null }      : {}),
+      ...(data.urn         != null ? { urn: data.urn || null }          : {}),
+      ...(data.emailDomain != null ? { emailDomain: data.emailDomain || null } : {}),
+    },
+  })
+  await writeAudit({ schoolId: schoolId as string, actorId, action: 'SCHOOL_SETTINGS_UPDATED', targetType: 'school', targetId: schoolId as string, metadata: data })
+  revalidatePath('/admin/dashboard')
+  revalidatePath('/admin/onboarding')
+}
+
+export async function completeOnboarding(): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  await prisma.school.update({ where: { id: schoolId as string }, data: { onboardedAt: new Date() } })
+  await writeAudit({ schoolId: schoolId as string, actorId, action: 'SCHOOL_ONBOARDED', targetType: 'school', targetId: schoolId as string })
+  revalidatePath('/admin/dashboard')
+}

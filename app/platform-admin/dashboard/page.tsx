@@ -1,19 +1,21 @@
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import { getPlatformStats, getPlatformUsageStats, getAuditLog } from '@/app/actions/platform-admin'
+import { getPlatformStats, getPlatformUsageStats, getAuditLog, getSchoolHealthData } from '@/app/actions/platform-admin'
 import PlatformDashboardStats from '@/components/platform-admin/PlatformDashboardStats'
 import PlatformUsageChart from '@/components/platform-admin/PlatformUsageChart'
 import PlatformAuditLogTable from '@/components/platform-admin/PlatformAuditLogTable'
+import PlatformSchoolHealthTable from '@/components/platform-admin/PlatformSchoolHealthTable'
 
 export default async function PlatformDashboardPage() {
   const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PLATFORM_ADMIN') redirect('/dashboard')
 
-  const [stats, usageStats, auditLog] = await Promise.all([
+  const [stats, usageStats, auditLog, healthRows] = await Promise.all([
     getPlatformStats(),
     getPlatformUsageStats(),
     getAuditLog(50),
+    getSchoolHealthData(),
   ])
 
   return (
@@ -26,6 +28,7 @@ export default async function PlatformDashboardPage() {
           </div>
           <PlatformDashboardStats data={stats} />
           <PlatformUsageChart data={usageStats} />
+          <PlatformSchoolHealthTable rows={healthRows} />
           <PlatformAuditLogTable logs={auditLog} />
         </div>
       </main>

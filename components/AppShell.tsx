@@ -10,6 +10,7 @@ import { MobileMenuContext } from '@/lib/mobileMenuContext'
 import { ToastContainer } from '@/components/ui/Toast'
 import GuideChatButton from '@/components/help/GuideChatButton'
 import OnboardingChecklist from '@/components/help/OnboardingChecklist'
+import GlobalSearch from '@/components/GlobalSearch'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
 const STAFF_ROLES = new Set(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'])
@@ -130,6 +131,7 @@ export default function AppShell({
       <ToastContainer />
       <GuideChatButton />
       <OnboardingChecklist role={role} />
+      {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
     </TeacherProfileContext.Provider>
     </MobileMenuContext.Provider>
   )

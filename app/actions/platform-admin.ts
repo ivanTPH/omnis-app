@@ -134,6 +134,65 @@ export async function getSchoolList(): Promise<SchoolRow[]> {
   }))
 }
 
+// ─── School health ────────────────────────────────────────────────────────────
+
+export type SchoolHealthRow = {
+  id:           string
+  name:         string
+  isActive:     boolean
+  studentCount: number
+  staffCount:   number
+  lastSync:     Date | null
+  onboardedAt:  Date | null
+  openIssues:   number   // unresolved SEND concerns flagged in the last 30 days
+}
+
+export async function getSchoolHealthData(): Promise<SchoolHealthRow[]> {
+  await requirePlatformAdmin()
+
+  const schools = await prisma.school.findMany({
+    orderBy: { name: 'asc' },
+    include: {
+      _count: {
+        select: { users: { where: { role: 'STUDENT', isActive: true } } },
+      },
+      wondeSyncLogs: {
+        orderBy: { startedAt: 'desc' },
+        take: 1,
+        select: { startedAt: true },
+      },
+    },
+  })
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000)
+
+  const [staffCounts, issueCounts] = await Promise.all([
+    Promise.all(
+      schools.map(s =>
+        prisma.user.count({ where: { schoolId: s.id, role: { notIn: ['STUDENT', 'PARENT'] }, isActive: true } })
+      )
+    ),
+    Promise.all(
+      schools.map(s =>
+        prisma.sendConcern.count({ where: { schoolId: s.id, createdAt: { gte: thirtyDaysAgo } } })
+      )
+    ),
+  ])
+
+  return schools.map((s, i) => ({
+    id:           s.id,
+    name:         s.name,
+    isActive:     s.isActive,
+    studentCount: s._count.users,
+    staffCount:   staffCounts[i],
+    lastSync:     s.wondeSyncLogs[0]?.startedAt ?? null,
+    onboardedAt:  s.onboardedAt,
+    openIssues:   issueCounts[i],
+  }))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function createSchool(data: {
   name: string
   urn: string

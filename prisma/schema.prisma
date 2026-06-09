@@ -23,6 +23,7 @@ enum Role {
   STUDENT
   PARENT
   PLATFORM_ADMIN
+  ACADEMY_ADMIN
 }
 
 enum YearGroupPlanStatus {
@@ -196,6 +197,9 @@ enum AuditAction {
   AGENT_RECOMMENDATION_CONFIRMED
   AGENT_RECOMMENDATION_OVERRIDDEN
   AGENT_RECOMMENDATION_DISMISSED
+  SCHOOL_ONBOARDED
+  SCHOOL_SETTINGS_UPDATED
+  USER_CLASS_ASSIGNED
   LESSON_SUPPORT_REQUESTED
   K_PLAN_UPDATED
   YEAR_ROLLOVER
@@ -265,6 +269,9 @@ model School {
 
   emailDomain String?           // e.g. "oakfield.sch.uk" — used to auto-generate student emails from Wonde
   allowAggregatedContribution Boolean @default(false)
+
+  schoolGroupId String?
+  schoolGroup   SchoolGroup? @relation(fields: [schoolGroupId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -359,6 +366,17 @@ model School {
 
   // Subject-level exam board defaults
   subjectConfigs       SubjectConfig[]
+}
+
+// ─── Academy / MAT grouping ───────────────────────────────────────────────────
+
+model SchoolGroup {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schools   School[]
 }
 
 // ─── Subject-level exam board config ─────────────────────────────────────────

@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
-import { getAdminDashboardData, type AdminDashboardData } from '@/app/actions/admin'
+import { getAdminDashboardData, getSchoolSettings, type AdminDashboardData } from '@/app/actions/admin'
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import YearRolloverPanel from '@/components/admin/YearRolloverPanel'
 import Icon from '@/components/ui/Icon'
@@ -26,13 +26,12 @@ export default async function AdminDashboardPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
-  let data: AdminDashboardData
-  try {
-    data = await getAdminDashboardData(schoolId)
-  } catch (err) {
-    console.error('[AdminDashboard] getAdminDashboardData failed:', err)
-    data = { studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, pendingHomework: 0, activeIlpCount: 0 }
-  }
+  const [data, settings] = await Promise.all([
+    getAdminDashboardData(schoolId).catch(() =>
+      ({ studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, pendingHomework: 0, activeIlpCount: 0 }) as AdminDashboardData
+    ),
+    getSchoolSettings().catch(() => null),
+  ])
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
@@ -46,6 +45,25 @@ export default async function AdminDashboardPage() {
               School-wide overview — {schoolName}
             </p>
           </div>
+
+          {/* Onboarding banner */}
+          {settings && !settings.onboardedAt && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+              <Icon name="info" size="md" className="text-amber-600 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-amber-900">Complete your school setup</p>
+                <p className="text-[12px] text-amber-700 mt-0.5">
+                  Finish the onboarding checklist to configure your school profile, invite staff, and connect your MIS.
+                </p>
+              </div>
+              <Link
+                href="/admin/onboarding"
+                className="shrink-0 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[12px] font-medium rounded-lg transition"
+              >
+                Start setup
+              </Link>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="mb-8">

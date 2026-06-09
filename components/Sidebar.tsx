@@ -137,9 +137,15 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Messages',         href: '/messages',           icon: 'chat'           },
   ],
   PLATFORM_ADMIN: [
-    { label: 'Dashboard', href: '/platform-admin/dashboard', icon: 'dashboard' },
-    { label: 'Schools',   href: '/platform-admin/schools',   icon: 'business'  },
-    { label: 'Oak Sync',  href: '/platform-admin/oak-sync',  icon: 'sync'      },
+    { label: 'Dashboard',        href: '/platform-admin/dashboard', icon: 'dashboard'      },
+    { label: 'Academy Overview', href: '/academy/dashboard',        icon: 'account_balance' },
+    { label: 'Schools',          href: '/platform-admin/schools',   icon: 'business'       },
+    { label: 'Oak Sync',         href: '/platform-admin/oak-sync',  icon: 'sync'           },
+  ],
+  ACADEMY_ADMIN: [
+    { label: 'Academy Dashboard', href: '/academy/dashboard',        icon: 'account_balance' },
+    { label: 'Schools',           href: '/platform-admin/schools',   icon: 'business'        },
+    { label: 'Platform Stats',    href: '/platform-admin/dashboard', icon: 'bar_chart'       },
   ],
   PARENT: [
     { label: 'Dashboard',        href: '/parent/dashboard', icon: 'dashboard'      },

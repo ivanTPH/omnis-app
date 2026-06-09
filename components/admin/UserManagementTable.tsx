@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
+import { useState, useTransition, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
-import { deactivateUser, reactivateUser, resendWelcomeEmail } from '@/app/actions/admin'
-import type { ManagedUser, UserFilter } from '@/app/actions/admin'
+import {
+  deactivateUser, reactivateUser, resendWelcomeEmail,
+  changeUserRole, updateStudentYearGroup, getSchoolClasses, getUserClasses, setTeacherClasses,
+} from '@/app/actions/admin'
+import type { ManagedUser, UserFilter, ClassOption } from '@/app/actions/admin'
 
 const ROLE_LABEL: Record<string, string> = {
   STUDENT:           'Student',
@@ -18,6 +21,179 @@ const ROLE_LABEL: Record<string, string> = {
   COVER_MANAGER:     'Cover Manager',
   TEACHING_ASSISTANT:'Teaching Assistant',
   PLATFORM_ADMIN:    'Platform Admin',
+  ACADEMY_ADMIN:     'Academy Admin',
+}
+
+const ASSIGNABLE_ROLES = [
+  'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO',
+  'SLT', 'COVER_MANAGER', 'SCHOOL_ADMIN', 'TEACHING_ASSISTANT',
+  'STUDENT', 'PARENT',
+]
+
+const CLASS_ROLES = new Set(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'COVER_MANAGER', 'TEACHING_ASSISTANT'])
+
+// ─── Edit User Modal ──────────────────────────────────────────────────────────
+
+function EditUserModal({
+  user,
+  onClose,
+  onSaved,
+}: {
+  user: ManagedUser
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [role,       setRole]       = useState(user.role)
+  const [yearGroup,  setYearGroup]  = useState<string>(user.yearGroup?.toString() ?? '')
+  const [classes,    setClasses]    = useState<ClassOption[]>([])
+  const [selectedCls, setSelectedCls] = useState<Set<string>>(new Set())
+  const [pending,    startT]        = useTransition()
+  const [error,      setError]      = useState<string | null>(null)
+
+  useEffect(() => {
+    if (CLASS_ROLES.has(user.role)) {
+      Promise.all([getSchoolClasses(), getUserClasses(user.id)]).then(([cls, userCls]) => {
+        setClasses(cls)
+        setSelectedCls(new Set(userCls))
+      }).catch(() => {})
+    }
+  }, [user.id, user.role])
+
+  function toggleClass(id: string) {
+    setSelectedCls(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleSave() {
+    setError(null)
+    startT(async () => {
+      try {
+        const tasks: Promise<void>[] = []
+        if (role !== user.role) tasks.push(changeUserRole(user.id, role))
+        if (user.role === 'STUDENT') {
+          const yg = yearGroup.trim() ? parseInt(yearGroup) : null
+          tasks.push(updateStudentYearGroup(user.id, yg))
+        }
+        if (CLASS_ROLES.has(role)) {
+          tasks.push(setTeacherClasses(user.id, [...selectedCls]))
+        }
+        await Promise.all(tasks)
+        onSaved()
+      } catch (e) {
+        setError(String(e))
+      }
+    })
+  }
+
+  // Group classes by year group for the UI
+  const classByYear = classes.reduce<Record<number, ClassOption[]>>((acc, c) => {
+    if (!acc[c.yearGroup]) acc[c.yearGroup] = []
+    acc[c.yearGroup].push(c)
+    return acc
+  }, {})
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-[15px] font-bold text-gray-900">
+            Edit — {user.firstName} {user.lastName}
+          </h2>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 transition">
+            <Icon name="close" size="sm" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Role */}
+          <div>
+            <label className="block text-[12px] font-medium text-gray-700 mb-1">Role</label>
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {ASSIGNABLE_ROLES.map(r => (
+                <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Year group (students only) */}
+          {(role === 'STUDENT' || user.role === 'STUDENT') && (
+            <div>
+              <label className="block text-[12px] font-medium text-gray-700 mb-1">Year group</label>
+              <select
+                value={yearGroup}
+                onChange={e => setYearGroup(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Not set</option>
+                {[7,8,9,10,11,12,13].map(y => (
+                  <option key={y} value={y}>Year {y}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Class assignment (staff roles) */}
+          {CLASS_ROLES.has(role) && classes.length > 0 && (
+            <div>
+              <label className="block text-[12px] font-medium text-gray-700 mb-2">
+                Class assignments
+                <span className="ml-1 text-gray-400 font-normal">({selectedCls.size} selected)</span>
+              </label>
+              <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                {Object.entries(classByYear).sort(([a],[b]) => Number(a)-Number(b)).map(([yr, cls]) => (
+                  <div key={yr}>
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide bg-gray-50">
+                      Year {yr}
+                    </p>
+                    {cls.map(c => (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-blue-50 cursor-pointer transition"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCls.has(c.id)}
+                          onChange={() => toggleClass(c.id)}
+                          className="accent-blue-600"
+                        />
+                        <span className="text-[12px] text-gray-800">{c.name}</span>
+                        <span className="text-[11px] text-gray-400 ml-auto">{c.subject}</span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-[12px] text-red-600">{error}</p>}
+        </div>
+
+        <div className="flex gap-3 px-6 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 border border-gray-200 rounded-lg text-[13px] text-gray-600 hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={pending}
+            className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-[13px] font-medium transition"
+          >
+            {pending ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const ROLE_COLOUR: Record<string, string> = {
@@ -55,6 +231,7 @@ export default function UserManagementTable({ users, counts }: Props) {
   const [query,   setQuery]       = useState('')
   const [pending, startTransition]= useTransition()
   const [toast,   setToast]       = useState<string | null>(null)
+  const [editing, setEditing]     = useState<ManagedUser | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -103,6 +280,15 @@ export default function UserManagementTable({ users, counts }: Props) {
 
   return (
     <div className="space-y-4">
+
+      {/* Edit modal */}
+      {editing && (
+        <EditUserModal
+          user={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); router.refresh(); showToast('User updated') }}
+        />
+      )}
 
       {/* Toast */}
       {toast && (
@@ -202,6 +388,14 @@ export default function UserManagementTable({ users, counts }: Props) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
+                      {/* Edit */}
+                      <button
+                        onClick={() => setEditing(u)}
+                        title="Edit user"
+                        className="p-1 rounded hover:bg-blue-50 text-blue-400 transition"
+                      >
+                        <Icon name="edit" size="sm" />
+                      </button>
                       {/* Resend welcome — only for pending/unactivated users */}
                       {!u.activatedAt && u.isActive && ['STUDENT','PARENT'].includes(u.role) && (
                         <button

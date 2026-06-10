@@ -5,9 +5,18 @@ import { getSchoolAllUsers } from '@/app/actions/admin'
 import UserManagementTable   from '@/components/admin/UserManagementTable'
 import PageHeader            from '@/components/ui/PageHeader'
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>
+}) {
   const { role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
+
+  const { filter: filterParam } = await searchParams
+  const initialFilter = ['all','students','parents','staff','pending'].includes(filterParam ?? '')
+    ? (filterParam as 'all' | 'students' | 'parents' | 'staff' | 'pending')
+    : 'all'
 
   const users = await getSchoolAllUsers('all')
 
@@ -29,7 +38,7 @@ export default async function AdminUsersPage() {
             backHref="/admin/dashboard"
             backLabel="Admin"
           />
-          <UserManagementTable users={users} counts={counts} />
+          <UserManagementTable users={users} counts={counts} initialFilter={initialFilter} />
         </div>
       </main>
     </AppShell>

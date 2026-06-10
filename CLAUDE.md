@@ -47,8 +47,19 @@
 > filter chips, deactivate/reactivate/resend). 5 new email triggers: new homework → students, grade
 > below target → parents, ILP/EHCP review-due cron (0 7 * * 1-5). Schema: User.activatedAt,
 > School.emailDomain, AuditAction YEAR_ROLLOVER/USER_PROVISIONED/WELCOME_EMAIL_SENT.
+> June 2026 Part 8: Role/class assignment UI (EditUserModal in UserManagementTable — role dropdown,
+> year group, class checkboxes via setTeacherClasses). School onboarding wizard (/admin/onboarding,
+> 4-step: profile → invite staff → connect MIS → complete; amber banner on admin dashboard when
+> !onboardedAt). Global search Cmd+K palette (GlobalSearch.tsx — debounced, grouped results,
+> keyboard nav, integrated in AppShell for non-student/parent/TA roles). ACADEMY_ADMIN role +
+> /academy/dashboard + SchoolGroup model for MAT/trust grouping. PlatformSchoolHealthTable on
+> platform admin dashboard. New server actions: changeUserRole, updateStudentYearGroup,
+> getSchoolClasses, getUserClasses, setTeacherClasses, saveSchoolSettings, completeOnboarding,
+> getAcademyStats, getAcademySchools, getSchoolHealthData. Schema: SchoolGroup model,
+> School.schoolGroupId, ACADEMY_ADMIN in Role enum, SCHOOL_ONBOARDED/SCHOOL_SETTINGS_UPDATED/
+> USER_CLASS_ASSIGNED in AuditAction enum.
 >
-> **Latest commit:** dadc70d (feat: year rollover, Wonde provisioning, user management, email notifications). E2E: 174 passed, 4 skipped, 0 failures. Exit 0.
+> **Latest commit:** 0c67da3 (feat: items 5-8 — role/class assignment, onboarding, global search, academy dashboard). E2E: 174 passed, 4 skipped, 0 failures. Exit 0.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -245,7 +256,9 @@ tail -f /tmp/omnis-dev.log
 /senco/agent-insights       Agent recommendation review — confirm/override/dismiss COACH/QUALITY/PLAN_SYNTHESIS outputs
 /hoy/analytics              Head of Year analytics
 /slt/analytics              SLT analytics
-/admin/dashboard            School admin dashboard
+/admin/dashboard            School admin dashboard (amber onboarding banner when !onboardedAt)
+/admin/onboarding           School onboarding wizard — 4-step: profile → invite staff → connect MIS → complete
+/admin/users                Unified user management — UserManagementTable with EditUserModal (role, year group, class assignment)
 /admin/wonde                Wonde MIS sync panel
 /admin/gdpr                 GDPR consent management
 /admin/cover                Cover management (redirect)
@@ -259,9 +272,10 @@ tail -f /tmp/omnis-dev.log
 /lessons                    Weekly timetable view (COVER_MANAGER/SCHOOL_ADMIN/SLT) — 5-day grid, absence flags
 /resources                  School resource library — type filter, SEND scores, search
 /ta/notes                   Teaching Assistant notes hub — year/class cascade, student list, urgent flags
-/platform-admin/dashboard   Platform admin stats
+/platform-admin/dashboard   Platform admin stats (includes PlatformSchoolHealthTable — sync age, open issues, onboarding)
 /platform-admin/schools     School list
 /platform-admin/oak-sync    Oak sync status
+/academy/dashboard          MAT/trust cross-school dashboard — stats + per-school health (ACADEMY_ADMIN/PLATFORM_ADMIN)
 /revision                   Student revision (redirect to /student/revision)
 
 /api/auth/[...nextauth]     NextAuth endpoints
@@ -310,14 +324,16 @@ tail -f /tmp/omnis-dev.log
 | `revision.ts` | getMyExams, addExam, getMyRevisionSessions, generateRevisionPlan, saveRevisionPlan, markSessionComplete |
 | `revision-program.ts` | 8 actions — createRevisionProgram, getRevisionPrograms, getRevisionProgramDetail, generateRevisionTasks, getStudentRevisionTasks, completeRevisionTask, updateTaskConfidence, getRevisionAnalytics. Rate limit: 3 programs/class/week |
 | `cover.ts` | getTodaysCoverSummary, logAbsence, getAvailableStaff, assignCover, getCoverHistory |
-| `platform-admin.ts` | getPlatformStats, getSchoolList, createSchool, getFeatureFlags, setFeatureFlag, getAuditLog |
+| `platform-admin.ts` | getPlatformStats, getSchoolList, createSchool, getFeatureFlags, setFeatureFlag, getAuditLog, getSchoolHealthData |
 | `messaging.ts` | getMyThreads, getThread, createThread, sendMessage, getUnreadMessageCount, getContactList |
 | `accessibility.ts` | getAccessibilitySettings, saveAccessibilitySettings |
 | `student.ts` | getStudentHomework, submitHomework |
 | `students.ts` | getStudentFile, addParentContactEntry, deleteParentContactEntry |
 | `parent.ts` | sendParentMessage |
 | `wonde.ts` | testWondeConnection, triggerWondeSync (legacy — now prefer /api/wonde/sync), getWondeConfig, getWondeSyncLogs, getWondeCounts |
-| `admin.ts` | School admin actions |
+| `admin.ts` | getAdminDashboardData, getSchoolSettings, saveSchoolSettings, completeOnboarding, getManagedUsers, changeUserRole, updateStudentYearGroup, toggleUserActive, getSchoolClasses, getUserClasses, setTeacherClasses + year rollover actions |
+| `academy.ts` | getAcademyStats, getAcademySchools (ACADEMY_ADMIN/PLATFORM_ADMIN only) |
+| `search.ts` | globalSearch(query) — students/staff/homework/resources scoped by schoolId; excludes STUDENT/PARENT roles |
 | `ai-generator.ts` | AI resource generation |
 
 ---
@@ -336,6 +352,12 @@ tail -f /tmp/omnis-dev.log
 | `ClassRosterTab.tsx` | Student roster with SEND badges, expand for recent homework scores |
 | `ClassInsightsTab.tsx` | Class performance insights |
 | `admin/WondeSyncPanel.tsx` | MIS sync — uses fetch('/api/wonde/sync') not server action (avoids Vercel 10s timeout) |
+| `admin/UserManagementTable.tsx` | Unified user management — filter chips (all/staff/students/inactive), EditUserModal (role dropdown, year group, class checkboxes via setTeacherClasses), deactivate/reactivate/resend invite |
+| `admin/OnboardingWizard.tsx` | 4-step school onboarding — profile (name/phase/URN/emailDomain), invite staff (repeating rows → /api/staff/invite), connect MIS (Wonde link or skip), complete (calls completeOnboarding then redirect) |
+| `academy/AcademyDashboardStats.tsx` | 6-stat grid: schools, students, staff, homework, ILPs, EHCPs |
+| `academy/AcademySchoolsTable.tsx` | Per-school table: sync health (amber if >14 days stale), onboarding status, phase |
+| `platform-admin/PlatformSchoolHealthTable.tsx` | Per-school health on platform dashboard: sync age, open SEND issues (last 30 days), onboarding state |
+| `GlobalSearch.tsx` | Cmd+K/Ctrl+K command palette — debounced 250ms, grouped results (student/staff/homework/resource), ↑↓ arrow nav + Enter + Escape; rendered in AppShell for non-student/parent/TA roles |
 | `HomeworkFilterView.tsx` | Homework list + filter chips + router.refresh() after create |
 | `HomeworkMarkingView.tsx` | Two-panel marking — student list left (filter chips, SEND badges, grade pills), submission right (Q&A cards, model answer, rubric, per-question scores, SEND sidebar with ILP goals, teacher notes). `canGrade` prop: teachers get full marking; SENCO/SLT/SCHOOL_ADMIN get read-only view. |
 | `ui/Icon.tsx` | Shared Google Material Icons wrapper — props: `name` (icon string), `size` ('sm'=16px/'md'=20px/'lg'=24px), `color`, `className`. Use for all icons throughout the app. Do NOT use lucide-react. |
@@ -440,7 +462,7 @@ tail -f /tmp/omnis-dev.log
 - **Revision Program (teacher-created):** `RevisionProgram`, `RevisionTask`, `RevisionProgress`, `RevisionAnalyticsCache`
 - **Cover:** `StaffAbsence`, `CoverAssignment`
 - **GDPR:** `ConsentPurpose`, `ConsentRecord`, `DataSubjectRequest`
-- **Platform:** `SchoolFeatureFlag`, `PlatformAuditLog`, `GeneratedResource`
+- **Platform:** `SchoolFeatureFlag`, `PlatformAuditLog`, `GeneratedResource`, `SchoolGroup`
 - **Wonde MIS (12 tables):** `WondeSchool`, `WondeStudent`, `WondeEmployee`, `WondeClass`, `WondeGroup`, `WondePeriod`, `WondeTimetableEntry`, `WondeAssessmentResult`, `WondeContact`, `WondeClassStudent`, `WondeDeletion`, `WondeSyncLog`
 - **Oak sync:** `OakSubject`, `OakUnit`, `OakLesson`, `OakSyncLog`
 
@@ -459,7 +481,9 @@ tail -f /tmp/omnis-dev.log
 | COVER_MANAGER | Dashboard, Cover, Messages |
 | STUDENT | Dashboard, Homework, Revision Planner, My Grades, Messages |
 | PARENT | Dashboard, Progress, Consent, Messages |
-| PLATFORM_ADMIN | Dashboard, Schools, Oak Sync |
+| TEACHING_ASSISTANT | Student Notes, Messages, Notifications |
+| ACADEMY_ADMIN | Academy Dashboard, Schools, Platform Stats |
+| PLATFORM_ADMIN | Dashboard, Schools, Oak Sync, Academy Overview |
 
 Settings + avatar chip at sidebar bottom for all roles.
 
@@ -473,7 +497,7 @@ Route-level `error.tsx` files exist for: `dashboard`, `analytics`, `homework`,
 `classes`, `messages`, `notifications`, `parent`, `plans`, `platform-admin`,
 `revision`, `revision-program`, `send`, `send-scorer`, `senco`, `settings`,
 `slt`, `ai-generator`, `student/revision`, `student/revision/[taskId]`,
-`revision-program/[programId]`, `admin/dashboard`, `hoy`.
+`revision-program/[programId]`, `admin/dashboard`, `hoy`, `academy`, `ta`.
 
 **All route error boundaries are now present.**
 
@@ -605,7 +629,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**174/178 tests passing** against Vercel (last run: 2026-06-09). 0 hard failures. 4 gracefully skip
+**174/178 tests passing** against Vercel (last run: 2026-06-09, commit 0c67da3). 0 hard failures. 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
 24 spec files (178 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
@@ -782,6 +806,20 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Part 8 — Role/Class Assignment, Onboarding Wizard, Global Search, Academy Dashboard ✅ (2026-06-09)**
+- **EditUserModal in UserManagementTable:** Role dropdown (all valid roles), year group input for students, class assignment checkboxes grouped by year group (via `getSchoolClasses` + `getUserClasses` + `setTeacherClasses`). `changeUserRole` writes `USER_ROLE_CHANGED` audit. `USER_CLASS_ASSIGNED` AuditAction added.
+- **School onboarding wizard:** `/admin/onboarding` — 4-step `OnboardingWizard`: Step 0 school profile (name/phase/URN/emailDomain → `saveSchoolSettings`), Step 1 invite staff (repeating rows → `/api/staff/invite`), Step 2 connect MIS (Wonde link or skip), Step 3 complete (`completeOnboarding` → sets `onboardedAt` → redirect to dashboard). Amber banner on `/admin/dashboard` when `!settings.onboardedAt`.
+- **Global search Cmd+K:** `GlobalSearch.tsx` — keyboard shortcut `Cmd+K`/`Ctrl+K`, 250ms debounce calling `globalSearch` server action, results grouped by type (students/staff/homework/resources), ↑↓ arrow nav + Enter to navigate + Escape to close. Rendered in `AppShell` for non-student/parent/TA roles.
+- **ACADEMY_ADMIN role + academy dashboard:** `ACADEMY_ADMIN` added to Role enum. `/academy/dashboard` shows `AcademyDashboardStats` (6-stat grid) + `AcademySchoolsTable` (per-school: sync health, onboarding status, phase). `auth.config.ts` routes ACADEMY_ADMIN → `/academy/dashboard`. Sidebar nav for ACADEMY_ADMIN added.
+- **SchoolGroup model:** `SchoolGroup { id, name, createdAt, updatedAt, schools School[] }` — enables MAT/trust grouping. `School.schoolGroupId String?` optional FK.
+- **PlatformSchoolHealthTable:** Added to platform admin dashboard — per-school sync age, open SEND issues (last 30 days via `sendConcern` count), onboarding state.
+- **New server actions in `admin.ts`:** `changeUserRole`, `updateStudentYearGroup`, `getSchoolClasses` (ClassOption[]), `getUserClasses` (classId[]), `setTeacherClasses` ($transaction delete+createMany), `getSchoolSettings`, `saveSchoolSettings` (`SCHOOL_SETTINGS_UPDATED` audit), `completeOnboarding` (`SCHOOL_ONBOARDED` audit). Exported types: `ClassOption`, `SchoolSettings`.
+- **`app/actions/search.ts`:** `globalSearch(query)` — scoped by schoolId, returns 6 students + 4 staff + 5 homework + 4 resources. Students/parents blocked. Resource uses `label` field (not `name`).
+- **`app/actions/academy.ts`:** `getAcademyStats`, `getAcademySchools` — ACADEMY_ADMIN + PLATFORM_ADMIN only.
+- **Schema pushed to production DB:** ACADEMY_ADMIN in Role, SchoolGroup model, School.schoolGroupId, SCHOOL_ONBOARDED/SCHOOL_SETTINGS_UPDATED/USER_CLASS_ASSIGNED in AuditAction.
+- **ESLint fix:** `require('crypto')` in `admin.ts` replaced with ES `import crypto from 'crypto'`.
+- **Year rollover cron bug fix:** `$executeRaw` with `ANY(${array})` doesn't bind JS arrays correctly → replaced with `prisma.user.updateMany({ data: { yearGroup: { increment: 1 } } })`.
 
 **June 2026 Part 7 — Year Rollover, Wonde Provisioning, User Management, Email Notifications ✅ (2026-06-09)**
 - **Year rollover cron:** `/api/cron/year-rollover` (schedule `0 1 1 9 *`) — `$executeRaw` increments yearGroup for Y7–Y12, sets `isActive=false` for Y13 leavers, writes `YEAR_ROLLOVER` audit entry.

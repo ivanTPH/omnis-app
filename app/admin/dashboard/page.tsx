@@ -2,9 +2,10 @@ import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
-import { getAdminDashboardData, getSchoolSettings, type AdminDashboardData } from '@/app/actions/admin'
+import { getAdminDashboardData, getSchoolSettings, getActivationBreakdown, type AdminDashboardData } from '@/app/actions/admin'
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import YearRolloverPanel from '@/components/admin/YearRolloverPanel'
+import ActivationPanel from '@/components/admin/ActivationPanel'
 import Icon from '@/components/ui/Icon'
 
 const QUICK_LINKS = [
@@ -26,11 +27,12 @@ export default async function AdminDashboardPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
-  const [data, settings] = await Promise.all([
+  const [data, settings, activationBreakdown] = await Promise.all([
     getAdminDashboardData(schoolId).catch(() =>
-      ({ studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, pendingHomework: 0, activeIlpCount: 0 }) as AdminDashboardData
+      ({ studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, pendingHomework: 0, activeIlpCount: 0, pendingActivation: 0 }) as AdminDashboardData
     ),
     getSchoolSettings().catch(() => null),
+    getActivationBreakdown().catch(() => []),
   ])
 
   return (
@@ -69,6 +71,17 @@ export default async function AdminDashboardPage() {
           <div className="mb-8">
             <AdminDashboardStats data={data} />
           </div>
+
+          {/* Activation panel */}
+          {data.pendingActivation > 0 && (
+            <div className="mb-8">
+              <ActivationPanel
+                breakdown={activationBreakdown}
+                total={data.studentCount}
+                pending={data.pendingActivation}
+              />
+            </div>
+          )}
 
           {/* Year rollover */}
           <div className="mb-8">

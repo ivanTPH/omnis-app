@@ -20,12 +20,13 @@ async function requireAdminOrSlt() {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export type AdminDashboardData = {
-  studentCount:    number
-  staffCount:      number
-  classCount:      number
-  sendCount:       number
-  pendingHomework: number
-  activeIlpCount:  number
+  studentCount:      number
+  staffCount:        number
+  classCount:        number
+  sendCount:         number
+  pendingHomework:   number
+  activeIlpCount:    number
+  pendingActivation: number
 }
 
 const STAFF_ROLES: Role[] = [
@@ -35,7 +36,7 @@ const STAFF_ROLES: Role[] = [
 
 const fetchAdminDashboardData = unstable_cache(
   async (schoolId: string): Promise<AdminDashboardData> => {
-    const [studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount] =
+    const [studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount, pendingActivation] =
       await Promise.all([
         prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } }),
         prisma.user.count({ where: { schoolId, role: { in: STAFF_ROLES }, isActive: true } }),
@@ -45,8 +46,9 @@ const fetchAdminDashboardData = unstable_cache(
         prisma.plan.count({
           where: { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
         }),
+        prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true, activatedAt: null } }),
       ])
-    return { studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount }
+    return { studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount, pendingActivation }
   },
   ['admin-dashboard-stats'],
   { revalidate: 60 },
@@ -1148,4 +1150,164 @@ export async function completeOnboarding(): Promise<void> {
   await prisma.school.update({ where: { id: schoolId as string }, data: { onboardedAt: new Date() } })
   await writeAudit({ schoolId: schoolId as string, actorId, action: 'SCHOOL_ONBOARDED', targetType: 'school', targetId: schoolId as string })
   revalidatePath('/admin/dashboard')
+}
+
+// ─── Student enrolments (class assignment) ────────────────────────────────────
+
+export async function getStudentEnrolments(userId: string): Promise<string[]> {
+  const { schoolId } = await requireAdminOrSlt()
+  const rows = await prisma.enrolment.findMany({
+    where: { userId, class: { schoolId } },
+    select: { classId: true },
+  })
+  return rows.map(r => r.classId)
+}
+
+export async function setStudentEnrolments(studentId: string, classIds: string[]): Promise<void> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Student not found')
+
+  await prisma.$transaction([
+    prisma.enrolment.deleteMany({ where: { userId: studentId } }),
+    ...(classIds.length > 0 ? [prisma.enrolment.createMany({
+      data: classIds.map(classId => ({ classId, userId: studentId })),
+      skipDuplicates: true,
+    })] : []),
+  ])
+
+  await writeAudit({
+    schoolId: schoolId as string, actorId, action: 'USER_CLASS_ASSIGNED',
+    targetType: 'user', targetId: studentId, metadata: { classIds },
+  })
+  revalidatePath('/admin/users')
+}
+
+// ─── Activation breakdown (for dashboard widget) ──────────────────────────────
+
+export type ActivationByYear = { yearGroup: number | null; pending: number; total: number }[]
+
+export async function getActivationBreakdown(): Promise<ActivationByYear> {
+  const { schoolId } = await requireAdminOrSlt()
+  const students = await prisma.user.findMany({
+    where: { schoolId, role: 'STUDENT', isActive: true },
+    select: { yearGroup: true, activatedAt: true },
+  })
+
+  const map = new Map<number | null, { pending: number; total: number }>()
+  for (const s of students) {
+    const yg = s.yearGroup
+    if (!map.has(yg)) map.set(yg, { pending: 0, total: 0 })
+    const entry = map.get(yg)!
+    entry.total++
+    if (!s.activatedAt) entry.pending++
+  }
+
+  return [...map.entries()]
+    .sort(([a], [b]) => (a ?? 99) - (b ?? 99))
+    .map(([yearGroup, counts]) => ({ yearGroup, ...counts }))
+    .filter(r => r.pending > 0)
+}
+
+// ─── CSV student import ────────────────────────────────────────────────────────
+
+export type ImportStudentRow = {
+  firstName: string
+  lastName:  string
+  yearGroup: number | null
+  className: string | null
+  email:     string
+}
+
+export type ImportResult = {
+  created: number
+  skipped: number
+  errors:  string[]
+}
+
+export async function importStudents(rows: ImportStudentRow[]): Promise<ImportResult> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId as string },
+    select: { id: true, name: true },
+  })
+  if (!school) throw new Error('School not found')
+
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
+  const result: ImportResult = { created: 0, skipped: 0, errors: [] }
+
+  for (const row of rows) {
+    try {
+      const email = row.email.toLowerCase().trim()
+      if (!email || !email.includes('@')) {
+        result.errors.push(`${row.firstName} ${row.lastName}: invalid email "${row.email}"`)
+        continue
+      }
+
+      const existing = await prisma.user.findFirst({ where: { email } })
+      if (existing) { result.skipped++; continue }
+
+      const placeholder = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
+      const newUser = await prisma.user.create({
+        data: {
+          email,
+          firstName:    row.firstName.trim(),
+          lastName:     row.lastName.trim(),
+          role:         'STUDENT',
+          passwordHash: placeholder,
+          schoolId:     schoolId as string,
+          yearGroup:    row.yearGroup,
+        },
+      })
+
+      // Enrol in class if provided
+      if (row.className) {
+        const cls = await prisma.schoolClass.findFirst({
+          where: { schoolId: schoolId as string, name: { equals: row.className.trim(), mode: 'insensitive' } },
+          select: { id: true },
+        })
+        if (cls) {
+          await prisma.enrolment.upsert({
+            where: { classId_userId: { classId: cls.id, userId: newUser.id } },
+            update: {},
+            create: { classId: cls.id, userId: newUser.id },
+          })
+        }
+      }
+
+      // Create 7-day activation token
+      const raw  = crypto.randomBytes(32).toString('hex')
+      const hash = crypto.createHash('sha256').update(raw).digest('hex')
+      await prisma.passwordResetToken.create({
+        data: { userId: newUser.id, tokenHash: hash, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      })
+
+      const { sendWelcomeAccountEmail } = await import('@/lib/email')
+      await sendWelcomeAccountEmail({
+        to:          email,
+        firstName:   row.firstName.trim(),
+        role:        'student',
+        schoolName:  school.name,
+        activateUrl: `${baseUrl}/reset-password?token=${raw}`,
+      })
+
+      await writeAudit({
+        schoolId: schoolId as string, actorId, action: 'USER_PROVISIONED',
+        targetType: 'user', targetId: newUser.id,
+        metadata: { role: 'STUDENT', source: 'csv-import' },
+      })
+
+      result.created++
+    } catch (err) {
+      result.errors.push(`${row.firstName} ${row.lastName}: ${String(err)}`)
+    }
+  }
+
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/dashboard')
+  return result
 }

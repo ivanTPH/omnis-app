@@ -5,9 +5,12 @@ import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import {
   deactivateUser, reactivateUser, resendWelcomeEmail,
-  changeUserRole, updateStudentYearGroup, getSchoolClasses, getUserClasses, setTeacherClasses,
+  changeUserRole, updateStudentYearGroup,
+  getSchoolClasses, getUserClasses, setTeacherClasses,
+  getStudentEnrolments, setStudentEnrolments,
 } from '@/app/actions/admin'
 import type { ManagedUser, UserFilter, ClassOption } from '@/app/actions/admin'
+import StudentImportModal from '@/components/admin/StudentImportModal'
 
 const ROLE_LABEL: Record<string, string> = {
   STUDENT:           'Student',
@@ -56,6 +59,11 @@ function EditUserModal({
         setClasses(cls)
         setSelectedCls(new Set(userCls))
       }).catch(() => {})
+    } else if (user.role === 'STUDENT') {
+      Promise.all([getSchoolClasses(), getStudentEnrolments(user.id)]).then(([cls, enrCls]) => {
+        setClasses(cls)
+        setSelectedCls(new Set(enrCls))
+      }).catch(() => {})
     }
   }, [user.id, user.role])
 
@@ -79,6 +87,8 @@ function EditUserModal({
         }
         if (CLASS_ROLES.has(role)) {
           tasks.push(setTeacherClasses(user.id, [...selectedCls]))
+        } else if (role === 'STUDENT' || user.role === 'STUDENT') {
+          tasks.push(setStudentEnrolments(user.id, [...selectedCls]))
         }
         await Promise.all(tasks)
         onSaved()
@@ -136,6 +146,40 @@ function EditUserModal({
                   <option key={y} value={y}>Year {y}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {/* Class enrolment (students) */}
+          {(role === 'STUDENT' || user.role === 'STUDENT') && classes.length > 0 && (
+            <div>
+              <label className="block text-[12px] font-medium text-gray-700 mb-2">
+                Class enrolments
+                <span className="ml-1 text-gray-400 font-normal">({selectedCls.size} selected)</span>
+              </label>
+              <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                {Object.entries(classByYear).sort(([a],[b]) => Number(a)-Number(b)).map(([yr, cls]) => (
+                  <div key={yr}>
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide bg-gray-50">
+                      Year {yr}
+                    </p>
+                    {cls.map(c => (
+                      <label
+                        key={c.id}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-blue-50 cursor-pointer transition"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCls.has(c.id)}
+                          onChange={() => toggleClass(c.id)}
+                          className="accent-blue-600"
+                        />
+                        <span className="text-[12px] text-gray-800">{c.name}</span>
+                        <span className="text-[11px] text-gray-400 ml-auto">{c.subject}</span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -221,17 +265,19 @@ const CHIPS: { key: FilterKey; label: string }[] = [
 ]
 
 type Props = {
-  users:  ManagedUser[]
-  counts: Record<FilterKey, number>
+  users:         ManagedUser[]
+  counts:        Record<FilterKey, number>
+  initialFilter?: FilterKey
 }
 
-export default function UserManagementTable({ users, counts }: Props) {
+export default function UserManagementTable({ users, counts, initialFilter = 'all' }: Props) {
   const router                    = useRouter()
-  const [filter,  setFilter]      = useState<FilterKey>('all')
+  const [filter,  setFilter]      = useState<FilterKey>(initialFilter)
   const [query,   setQuery]       = useState('')
   const [pending, startTransition]= useTransition()
   const [toast,   setToast]       = useState<string | null>(null)
   const [editing, setEditing]     = useState<ManagedUser | null>(null)
+  const [importing, setImporting] = useState(false)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -281,6 +327,14 @@ export default function UserManagementTable({ users, counts }: Props) {
   return (
     <div className="space-y-4">
 
+      {/* Import modal */}
+      {importing && (
+        <StudentImportModal
+          onClose={() => setImporting(false)}
+          onImported={count => { setImporting(false); router.refresh(); showToast(`${count} student${count !== 1 ? 's' : ''} imported`) }}
+        />
+      )}
+
       {/* Edit modal */}
       {editing && (
         <EditUserModal
@@ -296,6 +350,17 @@ export default function UserManagementTable({ users, counts }: Props) {
           {toast}
         </div>
       )}
+
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <button
+          onClick={() => setImporting(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium rounded-lg transition"
+        >
+          <Icon name="upload_file" size="sm" />
+          Import students (CSV)
+        </button>
+      </div>
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-2">

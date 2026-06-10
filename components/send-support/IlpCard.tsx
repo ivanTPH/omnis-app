@@ -93,7 +93,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
   function handleCompleteApdrReview() {
     if (!ilp.activeApdrCycle) return
     startCompleteApdrTransition(async () => {
-      await completeAPDRReview(ilp.activeApdrCycle!.id, apdrReviewDraft)
+      await completeAPDRReview(ilp.activeApdrCycle!.id, apdrReviewDraft, '', '')
       setApdrReviewOpen(false)
     })
   }

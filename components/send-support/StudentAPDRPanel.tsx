@@ -97,7 +97,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
     if (!reviewMode) return
     setCompleting(true)
     try {
-      await completeAPDRReview(reviewMode, reviewText)
+      await completeAPDRReview(reviewMode, reviewText, '', '')
       // Reload cycles to show new cycle
       const updated = await getStudentAPDRCycles(studentId)
       setCycles(updated)

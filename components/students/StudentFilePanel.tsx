@@ -17,7 +17,7 @@ import {
 import { addTaNote, updateTaNote, deleteTaNote } from '@/app/actions/ta-notes'
 import type { ApdrRow } from '@/app/actions/send-support'
 import {
-  updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent,
+  updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent, getAPDRDoEvidence,
 } from '@/app/actions/send-support'
 import {
   getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
@@ -1356,7 +1356,7 @@ function ContactsTab({
 type ApdrSection = 'assessContent' | 'planContent' | 'doContent' | 'reviewContent'
 
 function ApdrSectionEditor({
-  label, value, apdrId, section, canEdit, placeholder,
+  label, value, apdrId, section, canEdit, placeholder, onAutoPopulate,
 }: {
   label: string
   value: string
@@ -1364,11 +1364,13 @@ function ApdrSectionEditor({
   section: ApdrSection
   canEdit: boolean
   placeholder?: string
+  onAutoPopulate?: () => Promise<string>
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const [saved, setSaved] = useState(false)
   const [pending, startTransition] = useTransition()
+  const [populating, startPopulateTransition] = useTransition()
 
   function handleSave() {
     startTransition(async () => {
@@ -1378,25 +1380,46 @@ function ApdrSectionEditor({
     })
   }
 
+  function handleAutoPopulate() {
+    if (!onAutoPopulate) return
+    startPopulateTransition(async () => {
+      const text = await onAutoPopulate()
+      if (text) setDraft(prev => prev ? `${prev}\n\n${text}` : text)
+      setEditing(true)
+    })
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-        {canEdit && !editing && (
-          <button
-            onClick={() => { setDraft(value); setEditing(true) }}
-            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-          >
-            <Icon name="edit" size="sm" />Edit
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && onAutoPopulate && !editing && (
+            <button
+              onClick={handleAutoPopulate}
+              disabled={populating}
+              className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 disabled:opacity-50"
+            >
+              <Icon name={populating ? 'refresh' : 'auto_awesome'} size="sm" className={populating ? 'animate-spin' : ''} />
+              {populating ? 'Pulling…' : 'Pull evidence'}
+            </button>
+          )}
+          {canEdit && !editing && (
+            <button
+              onClick={() => { setDraft(value); setEditing(true) }}
+              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+            >
+              <Icon name="edit" size="sm" />Edit
+            </button>
+          )}
+        </div>
       </div>
       {editing ? (
         <div className="space-y-2">
           <textarea
             value={draft}
             onChange={e => setDraft(e.target.value)}
-            rows={5}
+            rows={6}
             placeholder={placeholder}
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -1418,6 +1441,23 @@ function ApdrSectionEditor({
   )
 }
 
+const OUTCOME_OPTIONS = [
+  { value: 'GOOD_PROGRESS',    label: 'Making Good Progress',    color: 'text-green-700 bg-green-50 border-green-200'  },
+  { value: 'SOME_PROGRESS',    label: 'Making Some Progress',    color: 'text-blue-700 bg-blue-50 border-blue-200'    },
+  { value: 'INSUFFICIENT',     label: 'Insufficient Progress',   color: 'text-amber-700 bg-amber-50 border-amber-200' },
+  { value: 'NO_PROGRESS',      label: 'No Progress Made',        color: 'text-red-700 bg-red-50 border-red-200'       },
+] as const
+
+function OutcomeRatingBadge({ rating }: { rating: string }) {
+  const opt = OUTCOME_OPTIONS.find(o => o.value === rating)
+  if (!opt) return null
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded border text-xs font-medium ${opt.color}`}>
+      {opt.label}
+    </span>
+  )
+}
+
 function ApdrCycleCard({
   cycle, isSenco, isTA, studentId: _studentId,
 }: {
@@ -1427,11 +1467,13 @@ function ApdrCycleCard({
   studentId: string
 }) {
   const [showReviewForm, setShowReviewForm] = useState(false)
-  const [reviewDraft, setReviewDraft] = useState(cycle.reviewContent ?? '')
+  const [reviewDraft,     setReviewDraft]    = useState(cycle.reviewContent ?? '')
+  const [outcomeDraft,    setOutcomeDraft]   = useState(cycle.outcomeRating ?? '')
+  const [parentDraft,     setParentDraft]    = useState(cycle.parentComments ?? '')
   const [completing, startCompleteTransition] = useTransition()
   const [approving, startApproveTransition] = useTransition()
   const [approved, setApproved] = useState(cycle.approvedBySenco)
-  const isActive  = cycle.status === 'ACTIVE'
+  const isActive   = cycle.status === 'ACTIVE'
   const isComplete = cycle.status === 'COMPLETED'
 
   function handleApprove() {
@@ -1443,7 +1485,7 @@ function ApdrCycleCard({
 
   function handleCompleteReview() {
     startCompleteTransition(async () => {
-      await completeAPDRReview(cycle.id, reviewDraft)
+      await completeAPDRReview(cycle.id, reviewDraft, outcomeDraft, parentDraft)
       setShowReviewForm(false)
     })
   }
@@ -1495,6 +1537,7 @@ function ApdrCycleCard({
           section="doContent"
           canEdit={(isSenco || isTA) && isActive}
           placeholder="Add observations during this cycle — what is working, what needs adjustment."
+          onAutoPopulate={isSenco && isActive ? () => getAPDRDoEvidence(cycle.id) : undefined}
         />
         {(isSenco || cycle.reviewContent) && (
           <ApdrSectionEditor
@@ -1505,6 +1548,19 @@ function ApdrCycleCard({
             canEdit={isSenco && isActive}
             placeholder="End-of-cycle review: impact on progress, next steps."
           />
+        )}
+
+        {isComplete && cycle.outcomeRating && (
+          <div className="space-y-2 border-t border-gray-100 pt-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Outcome</p>
+            <OutcomeRatingBadge rating={cycle.outcomeRating} />
+            {cycle.parentComments && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-2 mb-1">Parent / carer comments</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{cycle.parentComments}</p>
+              </div>
+            )}
+          </div>
         )}
 
         {isSenco && isActive && !approved && (
@@ -1528,19 +1584,65 @@ function ApdrCycleCard({
         )}
 
         {isSenco && isActive && showReviewForm && (
-          <div className="space-y-3 border-t border-gray-100 pt-4">
-            <p className="text-sm font-medium text-gray-700">Review notes (saved on completion)</p>
-            <textarea
-              value={reviewDraft}
-              onChange={e => setReviewDraft(e.target.value)}
-              rows={4}
-              placeholder="Summarise impact of this cycle and recommendations for next cycle…"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="space-y-4 border-t border-gray-100 pt-4">
+            <p className="text-sm font-semibold text-gray-700">Complete cycle review</p>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Progress outcome <span className="text-red-500">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {OUTCOME_OPTIONS.map(opt => (
+                  <label
+                    key={opt.value}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm font-medium transition-colors ${
+                      outcomeDraft === opt.value ? opt.color : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="outcomeRating"
+                      value={opt.value}
+                      checked={outcomeDraft === opt.value}
+                      onChange={() => setOutcomeDraft(opt.value)}
+                      className="sr-only"
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Review summary
+              </label>
+              <textarea
+                value={reviewDraft}
+                onChange={e => setReviewDraft(e.target.value)}
+                rows={4}
+                placeholder="Summarise impact of this cycle and recommendations for next cycle…"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                Parent / carer comments (optional)
+              </label>
+              <textarea
+                value={parentDraft}
+                onChange={e => setParentDraft(e.target.value)}
+                rows={2}
+                placeholder="Record any feedback from the parent or carer meeting…"
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             <div className="flex gap-2">
               <button
                 onClick={handleCompleteReview}
-                disabled={completing}
+                disabled={completing || !outcomeDraft}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
               >
                 <Icon name="done_all" size="sm" />
@@ -1552,9 +1654,19 @@ function ApdrCycleCard({
         )}
 
         {isComplete && (
-          <p className="text-xs text-gray-400 flex items-center gap-1">
-            <Icon name="check" size="sm" />Cycle completed
-          </p>
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <Icon name="check" size="sm" />Cycle completed {new Date(cycle.updatedAt).toLocaleDateString('en-GB')}
+            </p>
+            <a
+              href={`/api/export/apdr/${cycle.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600"
+            >
+              <Icon name="picture_as_pdf" size="sm" />Export PDF
+            </a>
+          </div>
         )}
       </div>
     </div>

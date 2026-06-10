@@ -121,6 +121,8 @@ export type ApdrRow = {
   approvedBySenco: boolean
   approvedAt: Date | null
   approvedBy: string | null
+  outcomeRating: string
+  parentComments: string
   createdAt: Date
   updatedAt: Date
 }
@@ -1053,7 +1055,8 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
           planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
           status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
           approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
-          approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+          approvedBy: c.approvedBy, outcomeRating: c.outcomeRating, parentComments: c.parentComments,
+          createdAt: c.createdAt, updatedAt: c.updatedAt,
         }
       })(),
     }
@@ -2342,7 +2345,8 @@ export async function generateAPDRForStudent(
   try {
     const user = await requireSenco()
     await generateAPDRInternal(studentId, user.id, user.schoolId)
-    revalidatePath(`/student/${studentId}/send`)
+    revalidatePath(`/students/${studentId}`)
+    revalidatePath('/senco/apdr')
     return { success: true }
   } catch (err) {
     return { success: false, error: String(err).slice(0, 200) }
@@ -2420,6 +2424,8 @@ export async function updateAPDRSection(
 export async function completeAPDRReview(
   apdrId: string,
   reviewContent: string,
+  outcomeRating: string,
+  parentComments: string,
 ): Promise<void> {
   const user = await requireSenco()
   const schoolId = user.schoolId
@@ -2432,7 +2438,7 @@ export async function completeAPDRReview(
 
   await prisma.assessPlanDoReview.update({
     where: { id: apdrId },
-    data:  { status: 'COMPLETED', reviewContent },
+    data:  { status: 'COMPLETED', reviewContent, outcomeRating, parentComments },
   })
 
   if (apdr.approvedBySenco && (apdr.reviewContent ?? '') !== reviewContent) {
@@ -2457,7 +2463,65 @@ export async function completeAPDRReview(
     console.error('[completeAPDRReview] generateLearnerPassportInternal failed:', err)
   )
 
-  revalidatePath(`/student/${apdr.studentId}/send`)
+  revalidatePath(`/students/${apdr.studentId}`)
+  revalidatePath('/senco/apdr')
+}
+
+/** Pull ILP evidence entries + TA notes since cycle start — for auto-populating the Do section. */
+export async function getAPDRDoEvidence(apdrId: string): Promise<string> {
+  const user = await requireAuth()
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)) return ''
+
+  const apdr = await prisma.assessPlanDoReview.findFirst({
+    where:  { id: apdrId, schoolId: user.schoolId },
+    select: { studentId: true, createdAt: true },
+  })
+  if (!apdr) return ''
+
+  const [evidenceEntries, taNotes] = await Promise.all([
+    prisma.ilpEvidenceEntry.findMany({
+      where: {
+        studentId: apdr.studentId,
+        schoolId:  user.schoolId,
+        createdAt: { gte: apdr.createdAt },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+    }),
+    prisma.taNote.findMany({
+      where: {
+        studentId: apdr.studentId,
+        schoolId:  user.schoolId,
+        createdAt: { gte: apdr.createdAt },
+      },
+      include: { author: { select: { firstName: true, lastName: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    }),
+  ])
+
+  const lines: string[] = []
+
+  if (evidenceEntries.length > 0) {
+    lines.push('=== Homework evidence ===')
+    for (const e of evidenceEntries) {
+      const date  = new Date(e.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      const label = e.evidenceType === 'PROGRESS' ? '✓ Progress' : e.evidenceType === 'CONCERN' ? '⚠ Concern' : 'Observed'
+      lines.push(`${date} — ${e.homeworkTitle}${e.subject ? ` (${e.subject})` : ''}: ${label}${e.aiSummary ? ` — ${e.aiSummary}` : ''}`)
+    }
+  }
+
+  if (taNotes.length > 0) {
+    if (lines.length > 0) lines.push('')
+    lines.push('=== TA observations ===')
+    for (const n of taNotes) {
+      const date   = new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      const author = `${n.author.firstName} ${n.author.lastName}`
+      lines.push(`${date} (${author}${n.isUrgent ? ' — URGENT' : ''}): ${n.content}`)
+    }
+  }
+
+  return lines.join('\n')
 }
 
 /** Fetch all APDR cycles for a student — newest first. */
@@ -2477,7 +2541,8 @@ export async function getStudentAPDRCycles(studentId: string): Promise<ApdrRow[]
     planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
     status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
     approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
-    approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+    approvedBy: c.approvedBy, outcomeRating: c.outcomeRating, parentComments: c.parentComments,
+    createdAt: c.createdAt, updatedAt: c.updatedAt,
   }))
 }
 
@@ -2528,7 +2593,8 @@ export async function getAllAPDRCycles(): Promise<APDROverviewRow[]> {
     planContent: c.planContent, doContent: c.doContent, reviewContent: c.reviewContent,
     status: c.status, reviewDate: c.reviewDate, createdBy: c.createdBy,
     approvedBySenco: c.approvedBySenco, approvedAt: c.approvedAt,
-    approvedBy: c.approvedBy, createdAt: c.createdAt, updatedAt: c.updatedAt,
+    approvedBy: c.approvedBy, outcomeRating: c.outcomeRating, parentComments: c.parentComments,
+    createdAt: c.createdAt, updatedAt: c.updatedAt,
     studentName: `${c.student.firstName} ${c.student.lastName}`,
     yearGroup: c.student.yearGroup,
     sendCategory: c.student.sendStatus?.needArea ?? 'SEND',

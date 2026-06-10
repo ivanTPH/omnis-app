@@ -38,6 +38,7 @@ export const BASE_CSS = `
   .card-blue { border-left: 3pt solid #2563eb; background: #eff6ff; }
   .card-green { border-left: 3pt solid #16a34a; background: #f0fdf4; }
   .card-amber { border-left: 3pt solid #d97706; background: #fffbeb; }
+  .card-red   { border-left: 3pt solid #dc2626; background: #fef2f2; }
   .meta { font-size: 9pt; color: #6b7280; }
   .page-break { page-break-after: always; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }

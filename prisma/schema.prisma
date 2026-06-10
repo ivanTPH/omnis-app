@@ -2197,6 +2197,8 @@ model AssessPlanDoReview {
   approvedBySenco Boolean  @default(false)
   approvedAt      DateTime?
   approvedBy      String?  // userId of approving SENCO
+  outcomeRating   String   @default("")  // "GOOD_PROGRESS" | "SOME_PROGRESS" | "INSUFFICIENT" | "NO_PROGRESS" | ""
+  parentComments  String   @default("")  // parent/carer feedback recorded at review
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

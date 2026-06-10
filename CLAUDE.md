@@ -75,7 +75,15 @@
 > × student count, core/option badges). Book icon per student row in AdminStudentTable. Subject
 > chips in StudentFilePanel header. "Subject Options" in SCHOOL_ADMIN sidebar. Seed refreshed.
 >
-> **Latest commit:** 1daf86a (feat(sprint-b): student subject options). E2E: 174 passed, 4 skipped, 0 failures.
+> June 2026 Sprint C: Dashboard appropriateness audit — Academy Admin sidebar broken links fixed
+> (/platform-admin/* replaced with /academy/schools, /academy/send, /academy/reports). Academy
+> stats: 'Published HW' → 'Open Concerns' + 'Onboarded Schools'. AcademySchoolsTable: SEND
+> register, ILPs, EHCPs, open concerns columns added; classCount removed. 3 new academy pages:
+> /academy/schools (full table), /academy/send (trust SEND breakdown + per-school %), /academy/
+> reports (compliance: onboarding status, MIS sync health, SEND figures). Admin dashboard:
+> 'Awaiting Marking' stat removed (teacher-level); replaced with 'Open Concerns'.
+>
+> **Latest commit:** 43a2521 (fix: appropriate management info per dashboard level). E2E: running.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -292,7 +300,10 @@ tail -f /tmp/omnis-dev.log
 /platform-admin/dashboard   Platform admin stats (includes PlatformSchoolHealthTable — sync age, open issues, onboarding)
 /platform-admin/schools     School list
 /platform-admin/oak-sync    Oak sync status
-/academy/dashboard          MAT/trust cross-school dashboard — stats + per-school health (ACADEMY_ADMIN/PLATFORM_ADMIN)
+/academy/dashboard          MAT/trust cross-school dashboard — 7-stat grid + schools table with SEND columns (ACADEMY_ADMIN/PLATFORM_ADMIN)
+/academy/schools            Full schools table with SEND/ILP/EHCP/concerns per school (ACADEMY_ADMIN/PLATFORM_ADMIN)
+/academy/send               Trust-wide SEND overview — per-school breakdown, % on register, totals (ACADEMY_ADMIN/PLATFORM_ADMIN)
+/academy/reports            Trust compliance report — onboarding, MIS sync health, SEND summary (ACADEMY_ADMIN/PLATFORM_ADMIN)
 /revision                   Student revision (redirect to /student/revision)
 
 /api/auth/[...nextauth]     NextAuth endpoints
@@ -501,7 +512,7 @@ tail -f /tmp/omnis-dev.log
 | STUDENT | Dashboard, Homework, Revision Planner, My Grades, Messages |
 | PARENT | Dashboard, Progress, Consent, Messages |
 | TEACHING_ASSISTANT | Student Notes, Messages, Notifications |
-| ACADEMY_ADMIN | Academy Dashboard, Schools, Platform Stats |
+| ACADEMY_ADMIN | Academy Dashboard, Schools (/academy/schools), SEND Overview (/academy/send), Reports (/academy/reports) |
 | PLATFORM_ADMIN | Dashboard, Schools, Oak Sync, Academy Overview |
 
 Settings + avatar chip at sidebar bottom for all roles.
@@ -825,6 +836,16 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Sprint C — Dashboard Appropriateness Audit ✅ (2026-06-10)**
+- **ACADEMY_ADMIN sidebar fixed:** Links to `/platform-admin/schools` and `/platform-admin/dashboard` were broken (PLATFORM_ADMIN only). Replaced with `/academy/schools`, `/academy/send`, `/academy/reports` — all scoped to ACADEMY_ADMIN + PLATFORM_ADMIN.
+- **Academy stats** (`AcademyStats` type + `getAcademyStats`): Removed `totalHomework` (irrelevant at MAT level). Added `onboardedSchools` (compliance) and `openConcerns` (trust-wide open/under_review/escalated SendConcerns). Stats shown: Schools · Onboarded · Students · Staff · Active ILPs · EHCP Plans · Open Concerns.
+- **`AcademySchoolsTable`**: Removed classCount column. Added: SEND register count, ILPs, EHCPs, open concerns per school (all from parallel queries in `getAcademySchools`). Open concerns shown with amber icon. SEND values coloured purple/amber/rose.
+- **`getAcademySchools`** extended: fetches `ilpCounts`, `ehcpCounts`, `sendStudentCounts` per school in parallel. `AcademySchoolRow` type adds `activeIlps`, `ehcps`, `openConcerns`, `sendStudents`.
+- **`/academy/schools`**: Full-page schools table. Accessible by ACADEMY_ADMIN + PLATFORM_ADMIN.
+- **`/academy/send`**: Trust-wide SEND overview — 4 headline stat cards, per-school table showing students/SEND/SEND%/ILPs/EHCPs/open concerns, trust totals row. SEND% ≥20% highlighted amber.
+- **`/academy/reports`**: Compliance report — Setup (onboarded schools, MIS sync health), SEND (ILPs/EHCPs/open concerns with RAG status dots), Scale (students/staff/schools). PDF export placeholder.
+- **Admin dashboard `AdminDashboardData`**: Removed `pendingHomework` (teacher-level detail). Added `openConcerns` (school-wide SEND concern count). `AdminDashboardStats` updated to match.
 
 **June 2026 Sprint B — Student Subject Options (GCSE/A-Level Choices) ✅ (2026-06-10)**
 - **`StudentSubject` model:** `id, studentId, schoolId, subject, yearGroup, isCore, level, assignedClassId, @@unique([studentId,subject])`. `assignedClassId` FK → `SchoolClass` (specific set/group). Pushed to production DB. Back-relation `SchoolClass.subjectEnrolments`.

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import StudentAvatar from '@/components/StudentAvatar'
+import StudentOptionsModal from '@/components/admin/StudentOptionsModal'
 import type { StudentRow } from '@/app/actions/admin'
 import {
   createStudent,
@@ -284,6 +285,7 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
   const [editTarget, setEditTarget]     = useState<StudentRow | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<StudentRow | null>(null)
   const [toggling, setToggling]         = useState<string | null>(null)
+  const [optionsTarget, setOptionsTarget] = useState<StudentRow | null>(null)
   const [toast, setToast]               = useState<Toast | null>(null)
 
   function showToast(message: string, type: Toast['type'] = 'success') {
@@ -426,6 +428,10 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setOptionsTarget(s)}
+                        className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition" title="Subject options">
+                        <Icon name="menu_book" size="sm" />
+                      </button>
                       <button onClick={() => setEditTarget(s)}
                         className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition" title="Edit">
                         <Icon name="edit" size="sm" />
@@ -464,6 +470,15 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
       {addOpen && <StudentSlideOver mode="add" onClose={() => setAddOpen(false)} onSaved={handleAdded} />}
       {editTarget && <StudentSlideOver mode="edit" student={editTarget} onClose={() => setEditTarget(null)} onSaved={handleEdited} />}
       {deleteTarget && <DeleteModal student={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={() => handleDeleted(deleteTarget.id)} />}
+      {optionsTarget && (
+        <StudentOptionsModal
+          studentId={optionsTarget.id}
+          studentName={`${optionsTarget.firstName} ${optionsTarget.lastName}`}
+          yearGroup={optionsTarget.yearGroup ?? null}
+          onClose={() => setOptionsTarget(null)}
+          onSaved={() => showToast(`Subject options saved for ${optionsTarget.firstName}`)}
+        />
+      )}
     </>
   )
 }

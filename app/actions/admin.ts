@@ -1311,3 +1311,148 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
   revalidatePath('/admin/dashboard')
   return result
 }
+
+// ─── Student subject options ──────────────────────────────────────────────────
+
+export type StudentSubjectRow = {
+  id:             string
+  subject:        string
+  yearGroup:      number
+  isCore:         boolean
+  level:          string | null
+  assignedClassId: string | null
+  assignedClassName: string | null
+}
+
+export async function getStudentSubjects(studentId: string): Promise<StudentSubjectRow[]> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Verify the student belongs to this school
+  const student = await prisma.user.findFirst({ where: { id: studentId, schoolId } })
+  if (!student) return []
+
+  const rows = await prisma.studentSubject.findMany({
+    where: { studentId, schoolId },
+    include: { assignedClass: { select: { id: true, name: true } } },
+    orderBy: [{ isCore: 'desc' }, { subject: 'asc' }],
+  })
+
+  return rows.map(r => ({
+    id:               r.id,
+    subject:          r.subject,
+    yearGroup:        r.yearGroup,
+    isCore:           r.isCore,
+    level:            r.level,
+    assignedClassId:  r.assignedClassId,
+    assignedClassName: r.assignedClass?.name ?? null,
+  }))
+}
+
+export type SetSubjectInput = {
+  subject:         string
+  isCore:          boolean
+  level:           string | null
+  assignedClassId: string | null
+}
+
+export async function setStudentSubjects(
+  studentId: string,
+  subjects: SetSubjectInput[],
+): Promise<{ success: boolean; error?: string }> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  const student = await prisma.user.findFirst({ where: { id: studentId, schoolId, role: 'STUDENT' } })
+  if (!student) return { success: false, error: 'Student not found' }
+
+  const yearGroup = student.yearGroup ?? 10
+
+  await prisma.$transaction(async (tx) => {
+    await tx.studentSubject.deleteMany({ where: { studentId, schoolId } })
+    if (subjects.length > 0) {
+      await tx.studentSubject.createMany({
+        data: subjects.map(s => ({
+          studentId,
+          schoolId,
+          subject:         s.subject,
+          yearGroup,
+          isCore:          s.isCore,
+          level:           s.level,
+          assignedClassId: s.assignedClassId || null,
+        })),
+      })
+    }
+  })
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'USER_SETTINGS_CHANGED',
+    targetType: 'User',
+    targetId:   studentId,
+    metadata:   { change: 'subject-options', subjectCount: subjects.length },
+  })
+
+  revalidatePath('/admin/students')
+  return { success: true }
+}
+
+export type SubjectClassOption = {
+  id:        string
+  name:      string
+  yearGroup: number
+  subject:   string
+}
+
+export async function getClassesForSubject(subject: string, yearGroup: number): Promise<SubjectClassOption[]> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  const classes = await prisma.schoolClass.findMany({
+    where:   { schoolId, subject, yearGroup },
+    select:  { id: true, name: true, yearGroup: true, subject: true },
+    orderBy: { name: 'asc' },
+  })
+  return classes
+}
+
+// Year-group overview: how many students have each subject selected
+export type OptionsOverviewRow = {
+  subject:      string
+  isCore:       boolean
+  studentCount: number
+  classCount:   number
+}
+
+export async function getOptionsOverview(yearGroup: number): Promise<OptionsOverviewRow[]> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  const rows = await prisma.studentSubject.groupBy({
+    by:     ['subject', 'isCore'],
+    where:  { schoolId, yearGroup },
+    _count: { studentId: true },
+  })
+
+  // Get distinct class counts per subject
+  const classGroups = await prisma.studentSubject.groupBy({
+    by:     ['subject', 'assignedClassId'],
+    where:  { schoolId, yearGroup, assignedClassId: { not: null } },
+  })
+  const classCounts = new Map<string, Set<string>>()
+  for (const r of classGroups) {
+    if (!classCounts.has(r.subject)) classCounts.set(r.subject, new Set())
+    if (r.assignedClassId) classCounts.get(r.subject)!.add(r.assignedClassId)
+  }
+
+  return rows.map(r => ({
+    subject:      r.subject,
+    isCore:       r.isCore,
+    studentCount: r._count.studentId,
+    classCount:   classCounts.get(r.subject)?.size ?? 0,
+  })).sort((a, b) => {
+    if (a.isCore !== b.isCore) return a.isCore ? -1 : 1
+    return a.subject.localeCompare(b.subject)
+  })
+}

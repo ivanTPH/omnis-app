@@ -1917,6 +1917,19 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
               <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
             )}
           </div>
+          {data.subjects.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {data.subjects.map(s => (
+                <span key={s.subject} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                  s.isCore
+                    ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                    : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {s.subject}{s.level ? ` (${s.level})` : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

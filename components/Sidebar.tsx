@@ -90,6 +90,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'All Users',        href: '/admin/users',      icon: 'supervisor_account' },
     { label: 'Staff',            href: '/admin/staff',      icon: 'manage_accounts' },
     { label: 'Students',         href: '/admin/students',   icon: 'people'          },
+    { label: 'Subject Options',  href: '/admin/options',    icon: 'menu_book'       },
     { label: 'Classes',          href: '/admin/classes',    icon: 'school'          },
     { label: 'Timetable',        href: '/admin/timetable',  icon: 'schedule'        },
     { label: 'Calendar',         href: '/admin/calendar',   icon: 'calendar_today'  },

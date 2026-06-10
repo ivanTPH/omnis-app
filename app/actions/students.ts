@@ -234,6 +234,7 @@ export type StudentFileData = {
   contactLog: ParentContactLogEntry[]
   wondeAttendance: WondeAttendanceSummary | null
   agentInsights: import('@/app/actions/agent-insights').AgentInsights | null
+  subjects: { subject: string; isCore: boolean; level: string | null }[]
 }
 
 // ── Main fetch ───────────────────────────────────────────────────────────────
@@ -356,6 +357,12 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       orderBy: { contactDate: 'desc' },
     }),
   ])
+
+  const subjectOptions = await prisma.studentSubject.findMany({
+    where:   { studentId, schoolId },
+    select:  { subject: true, isCore: true, level: true },
+    orderBy: [{ isCore: 'desc' }, { subject: 'asc' }],
+  })
 
   // ── Classes + homework ─────────────────────────────────────────────────────
   const classIds = enrolments.map(e => e.class.id)
@@ -615,6 +622,7 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       unauthorisedAbsences: wondeAtt.unauthorisedAbsences,
     } : null,
     agentInsights: await getAgentInsights(studentId).catch(() => null),
+    subjects: subjectOptions,
   }
 }
 

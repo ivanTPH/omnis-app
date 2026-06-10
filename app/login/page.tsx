@@ -5,16 +5,21 @@ import OmnisLogo from '@/components/ui/OmnisLogo'
 
 const SHOW_DEMO = process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === 'true'
 
-const demos = [
-  { role: 'Teacher', email: 'j.patel@omnisdemo.school' },
-  { role: 'SENCo', email: 'r.morris@omnisdemo.school' },
-  { role: 'Head of Year', email: 't.adeyemi@omnisdemo.school' },
-  { role: 'Student (Alex)', email: 'a.hughes@students.omnisdemo.school' },
-  { role: 'Student (Mia)', email: 'm.johnson@students.omnisdemo.school' },
-  { role: 'Parent', email: 'l.hughes@parents.omnisdemo.school' },
-  { role: 'Admin', email: 'admin@omnisdemo.school' },
-  { role: 'Head of Dept', email: 'd.brooks@omnisdemo.school' },
-  { role: 'Teaching Assistant', email: 'j.taylor@omnisdemo.school' },
+const SCHOOL_DEMOS = [
+  { role: 'Teacher',           email: 'j.patel@omnisdemo.school'           },
+  { role: 'SENCo',             email: 'r.morris@omnisdemo.school'           },
+  { role: 'Head of Year',      email: 't.adeyemi@omnisdemo.school'          },
+  { role: 'Head of Dept',      email: 'd.brooks@omnisdemo.school'           },
+  { role: 'SLT',               email: 'c.roberts@omnisdemo.school'          },
+  { role: 'School Admin',      email: 'admin@omnisdemo.school'              },
+  { role: 'Teaching Assistant',email: 'j.taylor@omnisdemo.school'           },
+  { role: 'Student',           email: 'a.hughes@students.omnisdemo.school'  },
+  { role: 'Parent',            email: 'l.hughes@parents.omnisdemo.school'   },
+]
+
+const PLATFORM_DEMOS = [
+  { role: 'Academy Admin',     email: 'academy@omnis.edu'   },
+  { role: 'Platform Admin',    email: 'platform@omnis.edu'  },
 ]
 
 export default function LoginPage() {
@@ -59,17 +64,34 @@ export default function LoginPage() {
           </form>
         </div>
         {SHOW_DEMO && (
-          <div className="bg-white/10 backdrop-blur rounded-2xl p-5">
-            <p className="text-blue-100 text-sm font-medium mb-3">🎓 Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>
-            <div className="grid grid-cols-2 gap-2">
-              {demos.map(d => (
-                <button key={d.email} onClick={() => { setEmail(d.email); setPassword('Demo1234!') }} className="text-left bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition">
-                  <div className="text-white text-xs font-medium">{d.role}</div>
-                  <div className="text-blue-200 text-xs truncate">{d.email.split('@')[0]}</div>
-                </button>
-              ))}
+          <div className="bg-white/10 backdrop-blur rounded-2xl p-5 space-y-4">
+            <p className="text-blue-100 text-sm font-medium">Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>
+
+            <div>
+              <p className="text-blue-300 text-[11px] font-semibold uppercase tracking-wide mb-2">Omnis Demo School</p>
+              <div className="grid grid-cols-2 gap-2">
+                {SCHOOL_DEMOS.map(d => (
+                  <button key={d.email} onClick={() => { setEmail(d.email); setPassword('Demo1234!') }} className="text-left bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition">
+                    <div className="text-white text-xs font-medium">{d.role}</div>
+                    <div className="text-blue-200 text-xs truncate">{d.email.split('@')[0]}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-blue-300 text-xs mt-3">Click any account to fill in, then click Sign in</p>
+
+            <div>
+              <p className="text-blue-300 text-[11px] font-semibold uppercase tracking-wide mb-2">Platform &amp; Academy</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PLATFORM_DEMOS.map(d => (
+                  <button key={d.email} onClick={() => { setEmail(d.email); setPassword('Demo1234!') }} className="text-left bg-white/10 hover:bg-white/20 rounded-lg px-3 py-2 transition">
+                    <div className="text-white text-xs font-medium">{d.role}</div>
+                    <div className="text-blue-200 text-xs truncate">{d.email}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-blue-300 text-xs">Click any account to fill in, then Sign in</p>
           </div>
         )}
       </div>

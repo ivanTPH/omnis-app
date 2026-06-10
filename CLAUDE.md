@@ -58,8 +58,16 @@
 > getAcademyStats, getAcademySchools, getSchoolHealthData. Schema: SchoolGroup model,
 > School.schoolGroupId, ACADEMY_ADMIN in Role enum, SCHOOL_ONBOARDED/SCHOOL_SETTINGS_UPDATED/
 > USER_CLASS_ASSIGNED in AuditAction enum.
+> June 2026 Sprint A: Student account activation — CSV import modal (/admin/users "Import
+> students" button, client-side CSV parser, preview table, importStudents() server action,
+> sends 7-day activation emails, optional class enrolment by name). ActivationPanel on admin
+> dashboard (amber widget, per-year-group breakdown, progress bar, "View all" → /admin/users
+> ?filter=pending). pendingActivation stat added to AdminDashboardStats. EditUserModal extended
+> to show class enrolment checkboxes for STUDENT role (setStudentEnrolments — Enrolment records,
+> separate from ClassTeacher). getStudentEnrolments + setStudentEnrolments server actions.
+> /admin/users accepts ?filter=pending URL param.
 >
-> **Latest commit:** 0c67da3 (feat: items 5-8 — role/class assignment, onboarding, global search, academy dashboard). E2E: 174 passed, 4 skipped, 0 failures. Exit 0.
+> **Latest commit:** c4e5a69 (feat: sprint A — student CSV import, activation tracking, student class enrolment). E2E: pending (running).
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -331,7 +339,7 @@ tail -f /tmp/omnis-dev.log
 | `students.ts` | getStudentFile, addParentContactEntry, deleteParentContactEntry |
 | `parent.ts` | sendParentMessage |
 | `wonde.ts` | testWondeConnection, triggerWondeSync (legacy — now prefer /api/wonde/sync), getWondeConfig, getWondeSyncLogs, getWondeCounts |
-| `admin.ts` | getAdminDashboardData, getSchoolSettings, saveSchoolSettings, completeOnboarding, getManagedUsers, changeUserRole, updateStudentYearGroup, toggleUserActive, getSchoolClasses, getUserClasses, setTeacherClasses + year rollover actions |
+| `admin.ts` | getAdminDashboardData, getSchoolSettings, saveSchoolSettings, completeOnboarding, getManagedUsers, changeUserRole, updateStudentYearGroup, toggleUserActive, getSchoolClasses, getUserClasses, setTeacherClasses, getStudentEnrolments, setStudentEnrolments, getActivationBreakdown, importStudents + year rollover actions |
 | `academy.ts` | getAcademyStats, getAcademySchools (ACADEMY_ADMIN/PLATFORM_ADMIN only) |
 | `search.ts` | globalSearch(query) — students/staff/homework/resources scoped by schoolId; excludes STUDENT/PARENT roles |
 | `ai-generator.ts` | AI resource generation |
@@ -358,6 +366,8 @@ tail -f /tmp/omnis-dev.log
 | `academy/AcademySchoolsTable.tsx` | Per-school table: sync health (amber if >14 days stale), onboarding status, phase |
 | `platform-admin/PlatformSchoolHealthTable.tsx` | Per-school health on platform dashboard: sync age, open SEND issues (last 30 days), onboarding state |
 | `GlobalSearch.tsx` | Cmd+K/Ctrl+K command palette — debounced 250ms, grouped results (student/staff/homework/resource), ↑↓ arrow nav + Enter + Escape; rendered in AppShell for non-student/parent/TA roles |
+| `admin/StudentImportModal.tsx` | CSV upload modal — client-side parser (no deps), preview table, calls importStudents(), shows created/skipped/errors summary |
+| `admin/ActivationPanel.tsx` | Amber dashboard widget — pending activation count, per-year-group breakdown, progress bar; hidden when all students activated |
 | `HomeworkFilterView.tsx` | Homework list + filter chips + router.refresh() after create |
 | `HomeworkMarkingView.tsx` | Two-panel marking — student list left (filter chips, SEND badges, grade pills), submission right (Q&A cards, model answer, rubric, per-question scores, SEND sidebar with ILP goals, teacher notes). `canGrade` prop: teachers get full marking; SENCO/SLT/SCHOOL_ADMIN get read-only view. |
 | `ui/Icon.tsx` | Shared Google Material Icons wrapper — props: `name` (icon string), `size` ('sm'=16px/'md'=20px/'lg'=24px), `color`, `className`. Use for all icons throughout the app. Do NOT use lucide-react. |
@@ -629,7 +639,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**174/178 tests passing** against Vercel (last run: 2026-06-09, commit 0c67da3). 0 hard failures. 4 gracefully skip
+**174/178 tests passing** against Vercel (last run: 2026-06-09, commit 0c67da3 — Sprint A run pending). 0 hard failures. 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
 24 spec files (178 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
@@ -806,6 +816,13 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Sprint A — Student CSV Import, Activation Tracking, Student Class Enrolment ✅ (2026-06-10)**
+- **CSV student import:** `StudentImportModal` at `/admin/users` — "Import students (CSV)" button, client-side parser (no extra deps), supports `firstName,lastName,email,yearGroup,class` columns, preview table, calls `importStudents()` server action. Creates `User` accounts, sends 7-day activation emails, optionally enrols students in class by name match, writes `USER_PROVISIONED` audit. Skips existing emails silently.
+- **Activation dashboard widget:** `ActivationPanel` on `/admin/dashboard` — amber panel with per-year-group breakdown, progress bar, "View all" link → `/admin/users?filter=pending`. Auto-hidden when all students activated. `pendingActivation` stat added to `AdminDashboardStats` (7th stat card).
+- **Student class enrolment in EditUserModal:** Clicking pencil on a student row now shows class enrolment checkboxes (same grouped-by-year UI as staff). Saves via `setStudentEnrolments()` which manages `Enrolment` records. New server actions: `getStudentEnrolments(userId)`, `setStudentEnrolments(userId, classIds[])`, `getActivationBreakdown()`.
+- **`/admin/users` URL param:** `?filter=pending` pre-selects the Pending activation chip. `initialFilter` prop added to `UserManagementTable`.
+- **`AdminDashboardData`** now includes `pendingActivation: number`.
 
 **June 2026 Part 8 — Role/Class Assignment, Onboarding Wizard, Global Search, Academy Dashboard ✅ (2026-06-09)**
 - **EditUserModal in UserManagementTable:** Role dropdown (all valid roles), year group input for students, class assignment checkboxes grouped by year group (via `getSchoolClasses` + `getUserClasses` + `setTeacherClasses`). `changeUserRole` writes `USER_ROLE_CHANGED` audit. `USER_CLASS_ASSIGNED` AuditAction added.

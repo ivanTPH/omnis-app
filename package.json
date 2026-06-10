@@ -16,6 +16,7 @@
     "oak:delta": "tsx --env-file=.env.local scripts/oak-delta-sync.ts",
     "wonde:seed": "tsx --env-file=.env.local prisma/seed-wonde.ts",
     "platform:seed": "tsx --env-file=.env.local prisma/seed-platform.ts",
+    "academy:seed": "tsx --env-file=.env.local prisma/seed-academy.ts",
     "send:seed": "tsx --env-file=.env.local prisma/seed-send.ts",
     "messages:seed": "tsx --env-file=.env.local prisma/seed-messages.ts",
     "ta:seed": "tsx --env-file=.env.local prisma/seed-ta-notes.ts",

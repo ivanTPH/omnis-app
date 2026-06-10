@@ -65,9 +65,17 @@
 > ?filter=pending). pendingActivation stat added to AdminDashboardStats. EditUserModal extended
 > to show class enrolment checkboxes for STUDENT role (setStudentEnrolments — Enrolment records,
 > separate from ClassTeacher). getStudentEnrolments + setStudentEnrolments server actions.
-> /admin/users accepts ?filter=pending URL param.
+> /admin/users accepts ?filter=pending URL param. Academy seed (4 synthetic schools + SchoolGroup
+> + ACADEMY_ADMIN user). Login page split into School Demos + Platform/Academy demo sections.
+> June 2026 Sprint B: Student subject options (GCSE/A-level choices) — StudentSubject model
+> (studentId, subject, isCore, level, assignedClassId, @@unique[studentId,subject]). Server
+> actions: getStudentSubjects, setStudentSubjects, getClassesForSubject, getOptionsOverview.
+> StudentOptionsModal: core subjects pre-ticked/locked, option subject checkboxes, per-subject
+> level + class-within-subject dropdowns. /admin/options overview page (year-group tabs, subject
+> × student count, core/option badges). Book icon per student row in AdminStudentTable. Subject
+> chips in StudentFilePanel header. "Subject Options" in SCHOOL_ADMIN sidebar. Seed refreshed.
 >
-> **Latest commit:** c4e5a69 (feat: sprint A — student CSV import, activation tracking, student class enrolment). E2E: pending (running).
+> **Latest commit:** 1daf86a (feat(sprint-b): student subject options). E2E: 174 passed, 4 skipped, 0 failures.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -274,6 +282,7 @@ tail -f /tmp/omnis-dev.log
 /admin/classes              Admin class management
 /admin/staff                Admin staff management
 /admin/students             Admin student management
+/admin/options              Subject options overview — year-group tabs, subject × student count (SCHOOL_ADMIN/SLT)
 /admin/timetable            Admin timetable grid
 /admin/audit                Filterable audit log (SCHOOL_ADMIN)
 /slt/audit                  Filterable audit log (SLT — defaults to SEND category)
@@ -816,6 +825,16 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Sprint B — Student Subject Options (GCSE/A-Level Choices) ✅ (2026-06-10)**
+- **`StudentSubject` model:** `id, studentId, schoolId, subject, yearGroup, isCore, level, assignedClassId, @@unique([studentId,subject])`. `assignedClassId` FK → `SchoolClass` (specific set/group). Pushed to production DB. Back-relation `SchoolClass.subjectEnrolments`.
+- **Server actions in `admin.ts`:** `getStudentSubjects(studentId)` → `StudentSubjectRow[]`, `setStudentSubjects(studentId, subjects[])` (delete+createMany, audit), `getClassesForSubject(subject, yearGroup)` → `SubjectClassOption[]`, `getOptionsOverview(yearGroup)` → `OptionsOverviewRow[]` (grouped stats).
+- **`StudentOptionsModal`:** Opens from book icon on student row. Core subjects (English/Maths/Science) pre-ticked and locked. Option subjects toggled on/off. Each selected subject has level dropdown (GCSE/A-Level/BTEC/Other) + class-within-subject dropdown (populated from real SchoolClass records). Saves via `setStudentSubjects`.
+- **`/admin/options` page:** Year-group tabs (Y7–Y13), table showing subject × student count × classes assigned, core/option badges. "Subject Options" added to SCHOOL_ADMIN sidebar.
+- **`AdminStudentTable`:** Book icon per row opens `StudentOptionsModal`. `optionsTarget` state added.
+- **`StudentFilePanel` header:** Subject chips below year/form (blue border = core, grey = option); shows level e.g. `History (GCSE)`. Powered by `StudentFileData.subjects` field fetched in `getStudentFile`.
+- **Seed refreshed:** `npm run db:seed` re-run — all lesson/homework dates stamped to current week.
+- **E2E:** 174 passed, 4 skipped, 0 failures (commit 1daf86a).
 
 **June 2026 Sprint A — Student CSV Import, Activation Tracking, Student Class Enrolment ✅ (2026-06-10)**
 - **CSV student import:** `StudentImportModal` at `/admin/users` — "Import students (CSV)" button, client-side parser (no extra deps), supports `firstName,lastName,email,yearGroup,class` columns, preview table, calls `importStudents()` server action. Creates `User` accounts, sends 7-day activation emails, optionally enrols students in class by name match, writes `USER_PROVISIONED` audit. Skips existing emails silently.

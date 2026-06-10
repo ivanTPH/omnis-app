@@ -29,7 +29,7 @@ export default async function AdminDashboardPage() {
 
   const [data, settings, activationBreakdown] = await Promise.all([
     getAdminDashboardData(schoolId).catch(() =>
-      ({ studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, pendingHomework: 0, activeIlpCount: 0, pendingActivation: 0 }) as AdminDashboardData
+      ({ studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, activeIlpCount: 0, openConcerns: 0, pendingActivation: 0 }) as AdminDashboardData
     ),
     getSchoolSettings().catch(() => null),
     getActivationBreakdown().catch(() => []),

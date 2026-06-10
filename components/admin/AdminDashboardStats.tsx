@@ -2,13 +2,13 @@ import Icon from '@/components/ui/Icon'
 import type { AdminDashboardData } from '@/app/actions/admin'
 
 const STATS = [
-  { key: 'studentCount',      label: 'Students',            iconName: 'people',        colour: 'text-blue-600'   },
-  { key: 'staffCount',        label: 'Staff',                iconName: 'how_to_reg',    colour: 'text-green-600'  },
-  { key: 'classCount',        label: 'Classes',              iconName: 'menu_book',     colour: 'text-gray-900'   },
-  { key: 'sendCount',         label: 'On SEND Register',     iconName: 'favorite',      colour: 'text-purple-600' },
-  { key: 'pendingHomework',   label: 'Awaiting Marking',     iconName: 'assignment',    colour: 'text-amber-600'  },
-  { key: 'activeIlpCount',    label: 'Active Plans',         iconName: 'description',   colour: 'text-teal-600'   },
-  { key: 'pendingActivation', label: 'Not yet logged in',    iconName: 'schedule',      colour: 'text-amber-500'  },
+  { key: 'studentCount',      label: 'Students',            iconName: 'people',          colour: 'text-blue-600'   },
+  { key: 'staffCount',        label: 'Staff',                iconName: 'how_to_reg',      colour: 'text-green-600'  },
+  { key: 'classCount',        label: 'Classes',              iconName: 'menu_book',       colour: 'text-gray-900'   },
+  { key: 'sendCount',         label: 'On SEND Register',     iconName: 'favorite',        colour: 'text-purple-600' },
+  { key: 'activeIlpCount',    label: 'Active Plans',         iconName: 'description',     colour: 'text-teal-600'   },
+  { key: 'openConcerns',      label: 'Open Concerns',        iconName: 'report_problem',  colour: 'text-orange-600' },
+  { key: 'pendingActivation', label: 'Not yet logged in',    iconName: 'schedule',        colour: 'text-amber-500'  },
 ] as const
 
 export default function AdminDashboardStats({ data }: { data: AdminDashboardData }) {

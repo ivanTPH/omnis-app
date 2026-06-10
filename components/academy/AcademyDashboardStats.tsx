@@ -16,13 +16,14 @@ function StatCard({ label, value, colour, icon }: CardProps) {
 
 export default function AcademyDashboardStats({ stats }: { stats: AcademyStats }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-      <StatCard label="Schools"       value={stats.totalSchools}    colour="text-gray-900"   icon="business"     />
-      <StatCard label="Students"      value={stats.totalStudents}   colour="text-blue-600"   icon="people"       />
-      <StatCard label="Staff"         value={stats.totalStaff}      colour="text-purple-600" icon="badge"        />
-      <StatCard label="Published HW"  value={stats.totalHomework}   colour="text-green-600"  icon="assignment"   />
-      <StatCard label="Active ILPs"   value={stats.totalActiveIlps} colour="text-amber-600"  icon="description"  />
-      <StatCard label="EHCP Plans"    value={stats.totalEhcps}      colour="text-rose-600"   icon="fact_check"   />
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-3">
+      <StatCard label="Schools"          value={stats.totalSchools}     colour="text-gray-900"   icon="business"          />
+      <StatCard label="Onboarded"        value={stats.onboardedSchools} colour="text-green-600"  icon="check_circle"      />
+      <StatCard label="Students"         value={stats.totalStudents}    colour="text-blue-600"   icon="people"            />
+      <StatCard label="Staff"            value={stats.totalStaff}       colour="text-purple-600" icon="badge"             />
+      <StatCard label="Active ILPs"      value={stats.totalActiveIlps}  colour="text-amber-600"  icon="description"       />
+      <StatCard label="EHCP Plans"       value={stats.totalEhcps}       colour="text-rose-600"   icon="fact_check"        />
+      <StatCard label="Open Concerns"    value={stats.openConcerns}     colour="text-orange-600" icon="report_problem"    />
     </div>
   )
 }

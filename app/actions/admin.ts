@@ -24,8 +24,8 @@ export type AdminDashboardData = {
   staffCount:        number
   classCount:        number
   sendCount:         number
-  pendingHomework:   number
   activeIlpCount:    number
+  openConcerns:      number
   pendingActivation: number
 }
 
@@ -36,19 +36,19 @@ const STAFF_ROLES: Role[] = [
 
 const fetchAdminDashboardData = unstable_cache(
   async (schoolId: string): Promise<AdminDashboardData> => {
-    const [studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount, pendingActivation] =
+    const [studentCount, staffCount, classCount, sendCount, activeIlpCount, openConcerns, pendingActivation] =
       await Promise.all([
         prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } }),
         prisma.user.count({ where: { schoolId, role: { in: STAFF_ROLES }, isActive: true } }),
         prisma.schoolClass.count({ where: { schoolId } }),
         prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
-        prisma.submission.count({ where: { schoolId, status: 'SUBMITTED' } }),
         prisma.plan.count({
           where: { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
         }),
+        prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } }),
         prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true, activatedAt: null } }),
       ])
-    return { studentCount, staffCount, classCount, sendCount, pendingHomework, activeIlpCount, pendingActivation }
+    return { studentCount, staffCount, classCount, sendCount, activeIlpCount, openConcerns, pendingActivation }
   },
   ['admin-dashboard-stats'],
   { revalidate: 60 },

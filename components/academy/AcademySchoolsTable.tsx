@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { AcademySchoolRow } from '@/app/actions/academy'
 
@@ -39,10 +38,12 @@ export default function AcademySchoolsTable({ schools }: { schools: AcademySchoo
               <th className="text-left px-4 py-3 font-semibold text-gray-500">Phase</th>
               <th className="text-right px-4 py-3 font-semibold text-gray-500">Students</th>
               <th className="text-right px-4 py-3 font-semibold text-gray-500">Staff</th>
-              <th className="text-right px-4 py-3 font-semibold text-gray-500">Classes</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-500">Last MIS Sync</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-500">Onboarded</th>
-              <th className="px-4 py-3" />
+              <th className="text-right px-4 py-3 font-semibold text-gray-500">SEND</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-500">ILPs</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-500">EHCPs</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-500">Open Concerns</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-500">MIS Sync</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-500">Setup</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -63,8 +64,30 @@ export default function AcademySchoolsTable({ schools }: { schools: AcademySchoo
                 <td className="px-4 py-3 text-right text-gray-700 font-medium">
                   {s.staffCount.toLocaleString()}
                 </td>
-                <td className="px-4 py-3 text-right text-gray-700 font-medium">
-                  {s.classCount.toLocaleString()}
+                <td className="px-4 py-3 text-right">
+                  <span className={s.sendStudents > 0 ? 'text-purple-700 font-medium' : 'text-gray-400'}>
+                    {s.sendStudents > 0 ? s.sendStudents.toLocaleString() : '—'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <span className={s.activeIlps > 0 ? 'text-amber-700 font-medium' : 'text-gray-400'}>
+                    {s.activeIlps > 0 ? s.activeIlps : '—'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <span className={s.ehcps > 0 ? 'text-rose-700 font-medium' : 'text-gray-400'}>
+                    {s.ehcps > 0 ? s.ehcps : '—'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {s.openConcerns > 0 ? (
+                    <span className="inline-flex items-center gap-1 text-orange-600 font-medium">
+                      <Icon name="report_problem" size="sm" />
+                      {s.openConcerns}
+                    </span>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 text-[11px] ${
@@ -88,14 +111,6 @@ export default function AcademySchoolsTable({ schools }: { schools: AcademySchoo
                       Pending
                     </span>
                   )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Link
-                    href={`/platform-admin/schools`}
-                    className="text-[11px] text-blue-600 hover:underline"
-                  >
-                    View
-                  </Link>
                 </td>
               </tr>
             ))}

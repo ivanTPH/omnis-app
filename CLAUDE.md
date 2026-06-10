@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-09. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-10. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-09.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-10.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -82,8 +82,14 @@
 > /academy/schools (full table), /academy/send (trust SEND breakdown + per-school %), /academy/
 > reports (compliance: onboarding status, MIS sync health, SEND figures). Admin dashboard:
 > 'Awaiting Marking' stat removed (teacher-level); replaced with 'Open Concerns'.
+> June 2026 Sprint D: APDR enhancements — structured Review form (4-option outcome rating radio
+> cards + parent/carer comments textarea), Do section "Pull evidence" auto-populate (aggregates
+> IlpEvidenceEntry + TaNote records since cycle start via getAPDRDoEvidence action), PDF export
+> route (/api/export/apdr/[apdrId] — Puppeteer, SENCO/SLT/HOY/SCHOOL_ADMIN), OutcomeRatingBadge
+> on completed cycles, revalidatePath fixed to /students/[id] + /senco/apdr. Schema: outcomeRating
+> + parentComments fields on AssessPlanDoReview, pushed to production DB.
 >
-> **Latest commit:** 43a2521 (fix: appropriate management info per dashboard level). E2E: running.
+> **Latest commit:** 0920022 (feat(apdr): structured Review form, Do auto-populate, PDF export). E2E: 174/178 pass, 4 intentional skips.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -312,6 +318,7 @@ tail -f /tmp/omnis-dev.log
 /api/export/homework/[id]     PDF export
 /api/export/homework-summary  PDF export
 /api/export/revision-timetable PDF export
+/api/export/apdr/[apdrId]     PDF export (SENCO/SLT/HOY/SCHOOL_ADMIN)
 /api/cron/oak-sync          Oak delta sync cron (Sun 02:00 UTC)
 /api/cron/early-warning     SEND early warning cron (Mon–Fri 06:00 UTC)
 /api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk
@@ -345,7 +352,7 @@ tail -f /tmp/omnis-dev.log
 | `settings.ts` | getMySettings, getMyAvatarUrl, saveProfile, saveProfessionalPrefs, savePrivacySettings, saveSharingSettings, changePassword |
 | `oak.ts` | getOakSubjects, searchOakLessons, getOakLesson, addOakLessonToLesson |
 | `send-scorer.ts` | getOrCreateSendScore, forceRescoreLesson, searchLessonsWithScores |
-| `send-support.ts` | 25 SEND/concern/ILP/notification actions |
+| `send-support.ts` | 26 SEND/concern/ILP/notification actions — incl. `getAPDRDoEvidence(apdrId)` (auto-populates APDR Do section from ILP evidence + TA notes) |
 | `ehcp.ts` | createEhcpPlan, getStudentEhcp, linkHomeworkToIlpTarget, linkSubmissionToEhcpOutcome, generateIlpProgressReport, generateEhcpAnnualReview |
 | `adaptive-learning.ts` | getStudentLearningProfile, updateLearningProfile, suggestSpacedRepetition, suggestNextHomework, getAdaptiveHomeworkSuggestions |
 | `gdpr.ts` | getPurposes, createPurpose, getConsentMatrix, exportConsentCsv, getDataSubjectRequests, recordConsent |
@@ -836,6 +843,17 @@ All routes are now functional. No unbuilt routes remain.
 - **13 debug console.logs removed** from homework.ts, revision-program.ts, ai-generator.ts, content-generator.ts.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
+
+**June 2026 Sprint D — APDR Production-Quality Enhancements ✅ (2026-06-10)**
+- **Schema:** Added `outcomeRating String @default("")` and `parentComments String @default("")` to `AssessPlanDoReview` — pushed to production DB.
+- **`completeAPDRReview` action updated:** Signature extended to `(apdrId, reviewContent, outcomeRating, parentComments)`. Saves both new fields. `revalidatePath` fixed to `/students/${id}` (plural) + `/senco/apdr` (was wrong path).
+- **`generateAPDRForStudent` revalidatePath fixed:** Same two paths.
+- **`getAPDRDoEvidence(apdrId)` new action:** Requires SENCO/SLT/SCHOOL_ADMIN. Fetches `IlpEvidenceEntry` records + `TaNote` records since cycle `createdAt` for the student; returns formatted multi-section text for auto-populating the Do field.
+- **`ApdrSectionEditor` enhanced:** Optional `onAutoPopulate?: () => Promise<string>` prop — renders a "Pull evidence" button (purple) that calls the action, prepends result to draft, and enters edit mode.
+- **Structured Review form in `ApdrCycleCard`:** 4-option outcome rating radio cards (GOOD_PROGRESS/SOME_PROGRESS/INSUFFICIENT/NO_PROGRESS with colour coding) + review textarea + parent/carer comments textarea. Complete button gated on outcome selection.
+- **`OutcomeRatingBadge`:** Colour-coded badge shown on completed cycles. Parent comments block shown when present.
+- **PDF export:** `lib/pdf/apdr-template.ts` — `apdrPdf(ApdrPdfData)` generates A4 HTML with APDR sections, outcome badge, parent comments, SENCO approval status. `templates.ts` extended with `.card-red` CSS class. Route `/api/export/apdr/[apdrId]` (GET, maxDuration 60, SENCO/SLT/HOY/SCHOOL_ADMIN). "Export PDF" link on completed cycles in `StudentFilePanel`.
+- **Type safety:** `ApdrRow` type in `send-support.ts` extended with `outcomeRating` and `parentComments`. All `ApdrRow` mappers in `getStudentAPDRCycles`, `getAllAPDRCycles`, and `getAllIlps.activeApdrCycle` updated.
 
 **June 2026 Sprint C — Dashboard Appropriateness Audit ✅ (2026-06-10)**
 - **ACADEMY_ADMIN sidebar fixed:** Links to `/platform-admin/schools` and `/platform-admin/dashboard` were broken (PLATFORM_ADMIN only). Replaced with `/academy/schools`, `/academy/send`, `/academy/reports` — all scoped to ACADEMY_ADMIN + PLATFORM_ADMIN.

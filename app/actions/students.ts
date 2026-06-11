@@ -284,14 +284,16 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     }),
 
+    // IndividualLearningPlan.status is a plain String with lowercase values ('active'/'under_review')
     prisma.individualLearningPlan.findFirst({
-      where: { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+      where: { studentId, schoolId, status: { in: ['active', 'under_review'] } },
       include: { targets: { orderBy: { targetDate: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     }),
 
+    // EhcpPlan.status is also a plain String with lowercase values
     prisma.ehcpPlan.findFirst({
-      where: { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+      where: { studentId, schoolId, status: { in: ['active', 'under_review'] } },
       include: { outcomes: { orderBy: { targetDate: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     }),

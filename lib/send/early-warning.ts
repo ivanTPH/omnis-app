@@ -93,7 +93,7 @@ async function analyseStudent(
     }
   }
 
-  // ─── B) Score decline ─────────────────────────────────────────────────────
+  // ─── B) Score decline (cross-subject) ────────────────────────────────────
   const gradedRecent = recent4w.filter(s => s.finalScore !== null && s.finalScore !== undefined)
   const gradedPrior  = prior4w.filter(s => s.finalScore !== null && s.finalScore !== undefined)
 
@@ -103,12 +103,17 @@ async function analyseStudent(
     const decline   = avgPrior - avgRecent
 
     if (avgPrior > 0 && (decline / avgPrior) > 0.2) {
+      // Include the contributing subjects so staff don't misread this as subject-specific
+      const subjectsInvolved = [...new Set(gradedRecent.map(s => (s.homework as any).class?.subject).filter(Boolean) as string[])]
+      const subjectClause = subjectsInvolved.length > 0
+        ? ` across ${subjectsInvolved.join(', ')}`
+        : ' across all subjects'
       flags.push({
         studentId,
         flagType: 'score_decline',
         severity: decline / avgPrior > 0.35 ? 'high' : 'medium',
-        description: `Average score declined from ${Math.round(avgPrior)}% to ${Math.round(avgRecent)}% over the last 4 weeks.`,
-        dataPoints: { avgRecent, avgPrior, declinePercent: Math.round((decline / avgPrior) * 100) },
+        description: `Average score declined from ${Math.round(avgPrior)}% to ${Math.round(avgRecent)}%${subjectClause} over the last 4 weeks.`,
+        dataPoints: { avgRecent, avgPrior, declinePercent: Math.round((decline / avgPrior) * 100), subjects: subjectsInvolved },
       })
     }
   }

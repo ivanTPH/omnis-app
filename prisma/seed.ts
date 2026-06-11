@@ -2675,17 +2675,24 @@ async function main() {
     ],
   }
 
-  // Enrol each year group's pool in all subject classes for their year
+  // Enrol each year group's pool in the new Section E classes ONLY.
+  // The existing demo classes (9E/En1, 9M/Ma2 etc.) already have correct student
+  // memberships from the classKeys defined on each User above — adding the broad
+  // pool to those classes caused cross-contamination between named SEND students
+  // (e.g. Sophia Ahmed / Tyler Cooper appearing in each other's subject classes).
   let enrolCount = 0
   for (const [ygStr, emails] of Object.entries(yearGroupStudentPools)) {
     const yg = Number(ygStr)
-    const allClassIds = [
-      ...(existingClassIdsByYear[yg] ?? []),
-      ...(newClassIdsByYear[yg] ?? []),
-    ]
+    // Only enrol pool students in the extra Section E classes, not the existing
+    // demo subject classes that have their own specific student assignments.
+    const poolClassIds = [...(newClassIdsByYear[yg] ?? [])]
+    if (poolClassIds.length === 0) {
+      console.log(`  ✓ Y${yg}: no new classes to enrol pool into — skipping`)
+      continue
+    }
     for (const email of emails) {
       const u = await prisma.user.findUniqueOrThrow({ where: { email } })
-      for (const classId of allClassIds) {
+      for (const classId of poolClassIds) {
         await prisma.enrolment.upsert({
           where:  { classId_userId: { classId, userId: u.id } },
           update: {},
@@ -2694,9 +2701,9 @@ async function main() {
         enrolCount++
       }
     }
-    console.log(`  ✓ Y${yg}: ${emails.length} students × ${allClassIds.length} classes`)
+    console.log(`  ✓ Y${yg}: ${emails.length} students × ${poolClassIds.length} new classes`)
   }
-  console.log(`  ✓ ${enrolCount} total enrolments across all year groups & subjects`)
+  console.log(`  ✓ ${enrolCount} pool enrolments across new Section E classes`)
 
   // ── User Settings (demo data for 3 test users) ─────────────────────────────
   const settingsSeed = [

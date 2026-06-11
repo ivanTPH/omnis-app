@@ -502,8 +502,9 @@ export async function getStudentDetail(studentId: string): Promise<StudentDetail
       include: { class: { select: { id: true, name: true, subject: true, yearGroup: true } } },
     }),
     prisma.sendStatus.findFirst({ where: { studentId } }),
+    // IndividualLearningPlan.status is a plain String with lowercase values ('active'/'under_review')
     prisma.individualLearningPlan.findFirst({
-      where:   { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
       select:  {
         id: true, sendCategory: true, areasOfNeed: true,
         targets: {

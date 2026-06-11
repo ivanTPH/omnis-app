@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-10. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-11. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-10.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-11.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -88,8 +88,19 @@
 > route (/api/export/apdr/[apdrId] — Puppeteer, SENCO/SLT/HOY/SCHOOL_ADMIN), OutcomeRatingBadge
 > on completed cycles, revalidatePath fixed to /students/[id] + /senco/apdr. Schema: outcomeRating
 > + parentComments fields on AssessPlanDoReview, pushed to production DB.
+> June 2026 Sprint E: HOY dashboard (/hoy/dashboard — greeting, KPI cards, attendance panel,
+> SEND concerns, homework pulse, quick links, print button). Academic integrity workflow
+> (/hoy/integrity — signals table, pattern cases, review modal). CSV export on admin tables +
+> student record PDF + analytics print. HOY pastoral welfare hub (/hoy/welfare).
+> Attendance overview (/admin/attendance — KPI distribution cards, year-group breakdown table
+> with RAG bars, students-below-90% list with SEND badges, CSV export, print; accessible to
+> SCHOOL_ADMIN/SLT/HOY). Academy reports PDF export (/api/export/academy-report — Puppeteer,
+> lib/pdf/academy-report-template.ts; compliance/SEND/scale/per-school table). NotificationsView
+> filter chips (All/Unread/Concerns/Early Warning/ILP Reviews/Homework/Messages). Sidebar:
+> Attendance link for SCHOOL_ADMIN + SLT; Welfare link for HEAD_OF_YEAR.
+> E2E: hoy-dashboard.spec.ts added (access control + page content).
 >
-> **Latest commit:** 0920022 (feat(apdr): structured Review form, Do auto-populate, PDF export). E2E: 174/178 pass, 4 intentional skips.
+> **Latest commit:** 5cc90bc (feat: attendance overview, academy PDF export, notification filters, HOY welfare). E2E: 174/178 pass, 4 intentional skips.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -285,7 +296,11 @@ tail -f /tmp/omnis-dev.log
 /senco/ilp-evidence         ILP evidence linking
 /senco/agent-insights       Agent recommendation review — confirm/override/dismiss COACH/QUALITY/PLAN_SYNTHESIS outputs
 /hoy/analytics              Head of Year analytics
+/hoy/dashboard              HOY pastoral dashboard — greeting, KPI cards, attendance panel, SEND concerns, homework pulse, print
+/hoy/integrity              Academic integrity workflow — signals, pattern cases, review modal (HEAD_OF_YEAR/SLT/SCHOOL_ADMIN)
+/hoy/welfare                Pastoral welfare hub — SEND flags, concerns, attendance signals (HEAD_OF_YEAR/SLT/SCHOOL_ADMIN)
 /slt/analytics              SLT analytics
+/admin/attendance           School-wide attendance overview — KPI cards, year-group breakdown, students below 90%, CSV export (SCHOOL_ADMIN/SLT/HOY)
 /admin/dashboard            School admin dashboard (amber onboarding banner when !onboardedAt)
 /admin/onboarding           School onboarding wizard — 4-step: profile → invite staff → connect MIS → complete
 /admin/users                Unified user management — UserManagementTable with EditUserModal (role, year group, class assignment)
@@ -319,6 +334,7 @@ tail -f /tmp/omnis-dev.log
 /api/export/homework-summary  PDF export
 /api/export/revision-timetable PDF export
 /api/export/apdr/[apdrId]     PDF export (SENCO/SLT/HOY/SCHOOL_ADMIN)
+/api/export/academy-report    Trust compliance report PDF (ACADEMY_ADMIN/PLATFORM_ADMIN)
 /api/cron/oak-sync          Oak delta sync cron (Sun 02:00 UTC)
 /api/cron/early-warning     SEND early warning cron (Mon–Fri 06:00 UTC)
 /api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk
@@ -330,7 +346,10 @@ tail -f /tmp/omnis-dev.log
 /marketing/features                               ← fully built (6 sections, 35 features)
 /marketing/beta                                   ← fully built (school application form, Resend)
 /marketing/investors                              ← fully built (market pitch, investor contact form)
+/hoy/dashboard                                    ← fully built (pastoral KPI dashboard)
 /hoy/integrity                                    ← fully built (integrity signals + pattern cases)
+/hoy/welfare                                      ← fully built (pastoral welfare hub)
+/admin/attendance                                 ← fully built (school-wide attendance overview + CSV export)
 /student/grades                                   ← fully built (grade history + sparklines)
 /admin/audit, /slt/audit                          ← fully built (filterable audit log)
 /lessons                                          ← fully built (weekly timetable for Cover Manager)
@@ -368,6 +387,7 @@ tail -f /tmp/omnis-dev.log
 | `wonde.ts` | testWondeConnection, triggerWondeSync (legacy — now prefer /api/wonde/sync), getWondeConfig, getWondeSyncLogs, getWondeCounts |
 | `admin.ts` | getAdminDashboardData, getSchoolSettings, saveSchoolSettings, completeOnboarding, getManagedUsers, changeUserRole, updateStudentYearGroup, toggleUserActive, getSchoolClasses, getUserClasses, setTeacherClasses, getStudentEnrolments, setStudentEnrolments, getActivationBreakdown, importStudents + year rollover actions |
 | `academy.ts` | getAcademyStats, getAcademySchools (ACADEMY_ADMIN/PLATFORM_ADMIN only) |
+| `hoy-welfare.ts` | getHoyWelfareData — SEND flags, open concerns, attendance signals for HOY pastoral welfare hub |
 | `search.ts` | globalSearch(query) — students/staff/homework/resources scoped by schoolId; excludes STUDENT/PARENT roles |
 | `ai-generator.ts` | AI resource generation |
 
@@ -395,6 +415,8 @@ tail -f /tmp/omnis-dev.log
 | `GlobalSearch.tsx` | Cmd+K/Ctrl+K command palette — debounced 250ms, grouped results (student/staff/homework/resource), ↑↓ arrow nav + Enter + Escape; rendered in AppShell for non-student/parent/TA roles |
 | `admin/StudentImportModal.tsx` | CSV upload modal — client-side parser (no deps), preview table, calls importStudents(), shows created/skipped/errors summary |
 | `admin/ActivationPanel.tsx` | Amber dashboard widget — pending activation count, per-year-group breakdown, progress bar; hidden when all students activated |
+| `admin/AttendanceExportButton.tsx` | Client CSV export button for attendance page — maps students to firstName/lastName/year/form/SEND/attendance% columns |
+| `hoy/HoyWelfarePanel.tsx` | Pastoral welfare panel for /hoy/welfare — SEND flags, open concerns, attendance signals |
 | `HomeworkFilterView.tsx` | Homework list + filter chips + router.refresh() after create |
 | `HomeworkMarkingView.tsx` | Two-panel marking — student list left (filter chips, SEND badges, grade pills), submission right (Q&A cards, model answer, rubric, per-question scores, SEND sidebar with ILP goals, teacher notes). `canGrade` prop: teachers get full marking; SENCO/SLT/SCHOOL_ADMIN get read-only view. |
 | `ui/Icon.tsx` | Shared Google Material Icons wrapper — props: `name` (icon string), `size` ('sm'=16px/'md'=20px/'lg'=24px), `color`, `className`. Use for all icons throughout the app. Do NOT use lucide-react. |
@@ -453,7 +475,7 @@ tail -f /tmp/omnis-dev.log
 | `lib/send/concern-analyser.ts` | Claude AI concern pattern analysis |
 | `lib/curriculum.ts` | Curriculum helpers |
 | `lib/pdf/generator.ts` | Puppeteer PDF generation |
-| `lib/pdf/lesson-plan-template.ts` / `homework-template.ts` / `revision-timetable-template.ts` / `homework-summary-template.ts` | PDF HTML templates |
+| `lib/pdf/lesson-plan-template.ts` / `homework-template.ts` / `revision-timetable-template.ts` / `homework-summary-template.ts` / `academy-report-template.ts` / `apdr-template.ts` | PDF HTML templates |
 | `lib/wonde-client.ts` | Typed Wonde API client — paginated fetch for all entity types. Interfaces: WondePeriod (day/day_number fields), WondeTimetableEntry (period/employee as flat strings), WondeContact (relationship as nested object) |
 | `lib/wonde-sync.ts` | Full sync engine — upserts employees, students, contacts, groups, classes, periods, timetable. Inner try/catch per student contact so one bad record doesn't abort all |
 | `lib/oak-delta-sync.ts` | Oak delta sync logic |
@@ -511,10 +533,10 @@ tail -f /tmp/omnis-dev.log
 |---|---|
 | TEACHER | Calendar, Homework, My Classes (/classes — roster + plans), Revision, Adaptive Learning, AI Generator, Messages |
 | HEAD_OF_DEPT | Calendar, Homework, Classes, Analytics, Adaptive Learning, AI Generator, Messages |
-| HEAD_OF_YEAR | Calendar, Analytics, Student Analytics, SEND Concerns, Messages |
+| HEAD_OF_YEAR | Calendar, Dashboard (/hoy/dashboard), Analytics, Student Analytics, Year Group Plans, Welfare (/hoy/welfare), Integrity (/hoy/integrity), SEND Concerns, ILP Records, Messages |
 | SENCO | SEND Dashboard, Concerns, ILP, Early Warning, EHCP Plans, ILP Evidence, Analytics, Resource Scorer, AI Generator, Messages |
-| SCHOOL_ADMIN | Dashboard, MIS Sync, Users, Audit Log, Analytics, Cover, GDPR, Messages |
-| SLT | Dashboard, Analytics, Audit Log, Cover, GDPR, Messages |
+| SCHOOL_ADMIN | Dashboard, MIS Sync, Users, Audit Log, Analytics, Attendance (/admin/attendance), Cover, GDPR, Messages |
+| SLT | Dashboard, Analytics, Attendance (/admin/attendance), Audit Log, Cover, GDPR, Messages |
 | COVER_MANAGER | Dashboard, Cover, Messages |
 | STUDENT | Dashboard, Homework, Revision Planner, My Grades, Messages |
 | PARENT | Dashboard, Progress, Consent, Messages |
@@ -844,6 +866,16 @@ All routes are now functional. No unbuilt routes remain.
 - **SENCO sidebar:** "AI Insights" nav item added pointing to `/senco/agent-insights`. "Resource Library" added to TEACHER nav.
 - **Wonde timetable:** `periods.read` + `lessons.read` permissions now enabled in Wonde dashboard. Existing sync code (steps 6–7) will populate `WondePeriod` + `WondeTimetableEntry` tables on next full sync from `/admin/wonde`.
 
+**June 2026 Sprint E — HOY Dashboard, Attendance Overview, Academy PDF, Notification Filters ✅ (2026-06-11)**
+- **HOY dashboard** (`/hoy/dashboard`): greeting (morning/afternoon/evening), 4 KPI cards (students/open concerns/reviews due/low attendance), quick-action links (Year Analytics, Integrity), attendance panel (students below 95%), SEND concerns panel, homework pulse section, print button. Accessible to HEAD_OF_YEAR/SLT/SCHOOL_ADMIN. HEAD_OF_YEAR routed here on login.
+- **Academic integrity workflow** (`/hoy/integrity`): integrity signals table, pattern cases, review modal. Accessible to HEAD_OF_YEAR/SLT/SCHOOL_ADMIN.
+- **HOY welfare hub** (`/hoy/welfare`): pastoral welfare page using `getHoyWelfareData` action + `HoyWelfarePanel` component. Accessible to HEAD_OF_YEAR/SLT/SCHOOL_ADMIN.
+- **Attendance overview** (`/admin/attendance`): 5 KPI cards (school avg + distribution), year-group breakdown table with RAG bars + <90%/<85% counts, students-below-90% table with SEND badges + student links, CSV export (`AttendanceExportButton`), print support. Accessible to SCHOOL_ADMIN/SLT/HOY. Shows "Run MIS sync" prompt when no attendance data.
+- **Academy reports PDF export**: `/api/export/academy-report` (GET, maxDuration 60, ACADEMY_ADMIN/PLATFORM_ADMIN). `lib/pdf/academy-report-template.ts` generates A4 HTML — compliance rows, SEND summary, scale, per-school table (students/SEND/ILPs/EHCPs/concerns/onboarded/last sync). "Export PDF" + PrintButton added to `/academy/reports` PageHeader.
+- **Notification filter chips**: `NotificationsView` now has 7 filter chips (All/Unread/Concerns/Early Warning/ILP Reviews/Homework/Messages). Chips hidden if type has 0 items. Empty state respects active filter label.
+- **Sidebar additions**: Attendance link added for SCHOOL_ADMIN + SLT; Welfare link added under Pastoral section for HEAD_OF_YEAR.
+- **E2E**: `hoy-dashboard.spec.ts` — 15 tests covering access control (HOY/SLT/admin can access; teacher/student/SENCO cannot) + page content (KPI cards, greeting, quick links, attendance panel, SEND concerns, homework pulse, print button, sidebar link).
+
 **June 2026 Sprint D — APDR Production-Quality Enhancements ✅ (2026-06-10)**
 - **Schema:** Added `outcomeRating String @default("")` and `parentComments String @default("")` to `AssessPlanDoReview` — pushed to production DB.
 - **`completeAPDRReview` action updated:** Signature extended to `(apdrId, reviewContent, outcomeRating, parentComments)`. Saves both new fields. `revalidatePath` fixed to `/students/${id}` (plural) + `/senco/apdr` (was wrong path).
@@ -862,7 +894,7 @@ All routes are now functional. No unbuilt routes remain.
 - **`getAcademySchools`** extended: fetches `ilpCounts`, `ehcpCounts`, `sendStudentCounts` per school in parallel. `AcademySchoolRow` type adds `activeIlps`, `ehcps`, `openConcerns`, `sendStudents`.
 - **`/academy/schools`**: Full-page schools table. Accessible by ACADEMY_ADMIN + PLATFORM_ADMIN.
 - **`/academy/send`**: Trust-wide SEND overview — 4 headline stat cards, per-school table showing students/SEND/SEND%/ILPs/EHCPs/open concerns, trust totals row. SEND% ≥20% highlighted amber.
-- **`/academy/reports`**: Compliance report — Setup (onboarded schools, MIS sync health), SEND (ILPs/EHCPs/open concerns with RAG status dots), Scale (students/staff/schools). PDF export placeholder.
+- **`/academy/reports`**: Compliance report — Setup (onboarded schools, MIS sync health), SEND (ILPs/EHCPs/open concerns with RAG status dots), Scale (students/staff/schools). PDF export + print buttons (added Sprint E).
 - **Admin dashboard `AdminDashboardData`**: Removed `pendingHomework` (teacher-level detail). Added `openConcerns` (school-wide SEND concern count). `AdminDashboardStats` updated to match.
 
 **June 2026 Sprint B — Student Subject Options (GCSE/A-Level Choices) ✅ (2026-06-10)**

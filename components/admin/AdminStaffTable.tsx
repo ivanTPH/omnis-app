@@ -10,6 +10,7 @@ import {
   toggleStaffActive,
   deleteStaffMember,
 } from '@/app/actions/admin'
+import { toCSV, downloadCSV } from '@/lib/csv'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -579,6 +580,19 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
         subtitle={`${activeCount} active · ${staffList.length} total`}
         action={
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const csv = toCSV(
+                  ['First Name', 'Last Name', 'Email', 'Role', 'Department', 'Year Groups', 'Classes', 'Active'],
+                  filteredSorted.map(s => [s.firstName, s.lastName, s.email, ROLE_LABEL[s.role] ?? s.role, s.department ?? '', (s.yearGroups ?? []).join('; '), s.classCount, s.isActive ? 'Yes' : 'No']),
+                )
+                downloadCSV(`staff-${new Date().toISOString().slice(0,10)}.csv`, csv)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-[13px] font-medium rounded-lg hover:bg-gray-50 transition"
+            >
+              <Icon name="download" size="sm" />
+              Export CSV
+            </button>
             <button
               onClick={() => setInviteOpen(true)}
               className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-700 text-[13px] font-semibold rounded-lg hover:bg-gray-50 transition"

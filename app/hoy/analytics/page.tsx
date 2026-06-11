@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import Icon from '@/components/ui/Icon'
 import { formatAvgGrade } from '@/lib/gradeUtils'
+import PrintButton from '@/components/ui/PrintButton'
 
 function termLabel(id: string) {
   return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -157,6 +158,9 @@ export default async function HoyAnalyticsPage() {
       <main className="flex-1 overflow-auto bg-gray-50">
         <div className="max-w-5xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
+          {/* Print styles */}
+          <style>{`@media print{nav,aside,[data-sidebar],.print\\:hidden{display:none!important}body{background:#fff}}`}</style>
+
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -165,11 +169,14 @@ export default async function HoyAnalyticsPage() {
                 {myYearGroup ? `Year ${myYearGroup}` : 'All year groups'}
               </p>
             </div>
-            {currentTerm && (
-              <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
-                {termLabel(currentTerm)}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {currentTerm && (
+                <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
+                  {termLabel(currentTerm)}
+                </span>
+              )}
+              <PrintButton />
+            </div>
           </div>
 
           {/* KPI row */}

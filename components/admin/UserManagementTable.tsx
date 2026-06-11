@@ -11,6 +11,7 @@ import {
 } from '@/app/actions/admin'
 import type { ManagedUser, UserFilter, ClassOption } from '@/app/actions/admin'
 import StudentImportModal from '@/components/admin/StudentImportModal'
+import { toCSV, downloadCSV } from '@/lib/csv'
 
 const ROLE_LABEL: Record<string, string> = {
   STUDENT:           'Student',
@@ -359,6 +360,26 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
         >
           <Icon name="upload_file" size="sm" />
           Import students (CSV)
+        </button>
+        <button
+          onClick={() => {
+            const csv = toCSV(
+              ['First Name', 'Last Name', 'Email', 'Role', 'Year Group', 'Active', 'Activated', 'Created'],
+              filtered.map(u => [
+                u.firstName, u.lastName, u.email,
+                ROLE_LABEL[u.role] ?? u.role,
+                u.yearGroup ?? '',
+                u.isActive ? 'Yes' : 'No',
+                u.activatedAt ? new Date(u.activatedAt).toLocaleDateString('en-GB') : 'Pending',
+                new Date(u.createdAt).toLocaleDateString('en-GB'),
+              ]),
+            )
+            downloadCSV(`users-${filter}-${new Date().toISOString().slice(0,10)}.csv`, csv)
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-[13px] font-medium rounded-lg hover:bg-gray-50 transition"
+        >
+          <Icon name="download" size="sm" />
+          Export CSV
         </button>
       </div>
 

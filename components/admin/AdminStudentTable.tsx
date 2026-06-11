@@ -13,6 +13,7 @@ import {
   toggleStudentActive,
   deleteStudent,
 } from '@/app/actions/admin'
+import { toCSV, downloadCSV } from '@/lib/csv'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -349,13 +350,28 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
         title="Students"
         subtitle={`${activeCount} active · ${students.length} total`}
         action={
-          <button
-            onClick={() => setAddOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition"
-          >
-            <Icon name="add" size="sm" />
-            Add student
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const csv = toCSV(
+                  ['First Name', 'Last Name', 'Email', 'Year Group', 'Tutor Group', 'Class', 'SEND', 'Active'],
+                  filtered.map(s => [s.firstName, s.lastName, s.email, s.yearGroup, s.tutorGroup ?? '', s.className, s.hasSend ? 'Yes' : 'No', s.isActive ? 'Yes' : 'No']),
+                )
+                downloadCSV(`students-${new Date().toISOString().slice(0,10)}.csv`, csv)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-[13px] font-medium rounded-lg hover:bg-gray-50 transition"
+            >
+              <Icon name="download" size="sm" />
+              Export CSV
+            </button>
+            <button
+              onClick={() => setAddOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-[13px] font-semibold rounded-lg hover:bg-blue-700 transition"
+            >
+              <Icon name="add" size="sm" />
+              Add student
+            </button>
+          </div>
         }
       />
 

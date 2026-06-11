@@ -4,6 +4,8 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { requireAuth } from '@/lib/session'
 import { getAcademySchools, getAcademyStats } from '@/app/actions/academy'
 import Icon from '@/components/ui/Icon'
+import Link from 'next/link'
+import PrintButton from '@/components/ui/PrintButton'
 
 export default async function AcademyReportsPage() {
   const { role, firstName, lastName, schoolName } = await requireAuth()
@@ -26,6 +28,20 @@ export default async function AcademyReportsPage() {
             subtitle={`Summary as of ${now}`}
             backHref="/academy/dashboard"
             backLabel="Academy Dashboard"
+            action={
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/api/export/academy-report"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 text-gray-700 text-[13px] font-medium rounded-lg hover:bg-gray-50 transition"
+                >
+                  <Icon name="picture_as_pdf" size="sm" />
+                  Export PDF
+                </Link>
+                <PrintButton />
+              </div>
+            }
           />
 
           {/* Compliance summary */}
@@ -82,7 +98,7 @@ export default async function AcademyReportsPage() {
           </section>
 
           <p className="text-[11px] text-gray-400 text-center">
-            Data is live from the Omnis platform. Exported as PDF coming soon.
+            Data is live from the Omnis platform.
           </p>
         </div>
       </main>

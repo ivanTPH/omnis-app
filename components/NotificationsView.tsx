@@ -38,14 +38,25 @@ function typeBadge(type: string) {
   )
 }
 
+const FILTER_CHIPS = [
+  { key: 'all',      label: 'All' },
+  { key: 'unread',   label: 'Unread' },
+  { key: 'CONCERN_RAISED',     label: 'Concerns' },
+  { key: 'EARLY_WARNING',      label: 'Early Warning' },
+  { key: 'ILP_REVIEW_DUE',     label: 'ILP Reviews' },
+  { key: 'HOMEWORK_REMINDER',  label: 'Homework' },
+  { key: 'NEW_MESSAGE',        label: 'Messages' },
+]
+
 export default function NotificationsView({
   notifications: initial,
 }: {
   notifications: PlatformNotificationRow[]
 }) {
-  const [items, setItems]   = useState(initial)
-  const [isPending, start]  = useTransition()
-  const router              = useRouter()
+  const [items, setItems]       = useState(initial)
+  const [isPending, start]      = useTransition()
+  const [filterKey, setFilter]  = useState('all')
+  const router                  = useRouter()
 
   // State for EARLY_WARNING intervention log (per notification id)
   const [interventionOpen,  setInterventionOpen]  = useState<Record<string, boolean>>({})
@@ -65,7 +76,12 @@ export default function NotificationsView({
     finally { setInterventionSaving(prev => ({ ...prev, [notifId]: false })) }
   }
 
-  const unreadCount = items.filter(n => !n.read).length
+  const unreadCount  = items.filter(n => !n.read).length
+  const visibleItems = items.filter(n => {
+    if (filterKey === 'unread') return !n.read
+    if (filterKey === 'all')    return true
+    return n.type === filterKey
+  })
 
   function handleRead(id: string) {
     setItems(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
@@ -98,17 +114,45 @@ export default function NotificationsView({
         ) : undefined}
       />
 
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {FILTER_CHIPS.map(c => {
+          const count = c.key === 'all'    ? items.length
+                      : c.key === 'unread' ? unreadCount
+                      : items.filter(n => n.type === c.key).length
+          if (c.key !== 'all' && c.key !== 'unread' && count === 0) return null
+          return (
+            <button
+              key={c.key}
+              onClick={() => setFilter(c.key)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium border transition ${
+                filterKey === c.key
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-200'
+              }`}
+            >
+              {c.label}
+              {count > 0 && (
+                <span className={`text-[10px] font-bold ${filterKey === c.key ? 'text-blue-100' : 'text-gray-400'}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
       {/* list */}
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <EmptyState
           icon="notifications_none"
-          title="You're all caught up"
-          description="No new notifications right now"
+          title={filterKey === 'unread' ? 'All caught up' : 'No notifications'}
+          description={filterKey === 'unread' ? 'No unread notifications' : 'Nothing in this category'}
           size="md"
         />
       ) : (
         <div className="space-y-2">
-          {items.map(n => (
+          {visibleItems.map(n => (
             <div
               key={n.id}
               className={`rounded-xl border px-4 py-3.5 transition-colors ${

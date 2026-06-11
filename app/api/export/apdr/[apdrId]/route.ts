@@ -1,18 +1,26 @@
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/session'
+import { auth }        from '@/lib/auth'
+import type { AuthUser } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { generatePdf } from '@/lib/pdf/generator'
 import { apdrPdf }     from '@/lib/pdf/apdr-template'
+
+const ALLOWED_ROLES = ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR']
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ apdrId: string }> },
 ) {
-  const user = await requireAuth()
-  const allowedRoles = ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR']
-  if (!allowedRoles.includes(user.role)) {
+  // Use auth() directly so unauthenticated API requests get 401, not a redirect.
+  // (requireAuth() calls redirect('/login') which Playwright follows → 200.)
+  const session = await auth()
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const user = session.user as AuthUser
+  if (!ALLOWED_ROLES.includes(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

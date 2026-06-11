@@ -63,12 +63,13 @@ test.describe('Sprint C — admin dashboard after audit', () => {
   test('admin dashboard loads without crash', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/dashboard')
-    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    // Wait for a stable RSC element — avoids false failures when streaming
+    // delivers the HTML shell before server queries complete (cold Lambda).
+    await expect(page.locator('h1')).toContainText('Admin Dashboard', { timeout: 15_000 })
 
     const body = await page.locator('body').innerText({ timeout: 10_000 })
     expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(100)
   })
 
   test('admin dashboard shows Open Concerns stat (not Awaiting Marking)', async ({ page }) => {

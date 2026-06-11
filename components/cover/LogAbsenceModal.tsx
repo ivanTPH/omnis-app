@@ -22,16 +22,23 @@ type Props = {
 }
 
 export default function LogAbsenceModal({ schoolId, date, staffList, onClose, onLogged }: Props) {
-  const [staffId,  setStaffId]  = useState('')
-  const [reason,   setReason]   = useState('illness')
-  const [notes,    setNotes]    = useState('')
-  const [search,   setSearch]   = useState('')
-  const [error,    setError]    = useState('')
-  const [pending,  start]       = useTransition()
+  const [staffId,    setStaffId]    = useState('')
+  const [coveredBy,  setCoveredBy]  = useState('')
+  const [reason,     setReason]     = useState('illness')
+  const [notes,      setNotes]      = useState('')
+  const [search,     setSearch]     = useState('')
+  const [coverSearch,setCoverSearch]= useState('')
+  const [error,      setError]      = useState('')
+  const [pending,    start]         = useTransition()
 
   const filtered = staffList.filter(s => {
     const full = `${s.firstName} ${s.lastName}`.toLowerCase()
     return full.includes(search.toLowerCase())
+  })
+
+  const coverFiltered = staffList.filter(s => {
+    const full = `${s.firstName} ${s.lastName}`.toLowerCase()
+    return full.includes(coverSearch.toLowerCase()) && s.id !== staffId
   })
 
   function handleSubmit(e: React.FormEvent) {
@@ -39,7 +46,13 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
     if (!staffId) { setError('Please select a staff member.'); return }
     setError('')
     start(async () => {
-      await logAbsence(schoolId, { staffId, date, reason, notes: notes || undefined })
+      await logAbsence(schoolId, {
+        staffId,
+        date,
+        reason,
+        notes:     notes || undefined,
+        coveredBy: coveredBy || undefined,
+      })
       onLogged()
       onClose()
     })
@@ -119,6 +132,51 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
             >
               {REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
+          </div>
+
+          {/* Cover teacher */}
+          <div>
+            <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+              Cover Teacher <span className="font-normal text-gray-300 normal-case">(optional — assigns all lessons immediately)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Search cover teacher…"
+              value={coverSearch}
+              onChange={e => setCoverSearch(e.target.value)}
+              className="w-full px-3 py-2 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-1.5"
+            />
+            <div className="max-h-32 overflow-auto border border-gray-200 rounded-lg">
+              <label className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors border-b border-gray-100 ${
+                coveredBy === '' ? 'bg-blue-50' : 'hover:bg-gray-50'
+              }`}>
+                <input
+                  type="radio" name="coveredBy" value=""
+                  checked={coveredBy === ''}
+                  onChange={() => setCoveredBy('')}
+                  className="accent-blue-600"
+                />
+                <span className="text-[12px] text-gray-400 italic">None — assign cover later</span>
+              </label>
+              {coverFiltered.map(s => (
+                <label
+                  key={s.id}
+                  className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors border-b border-gray-100 last:border-0 ${
+                    coveredBy === s.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio" name="coveredBy" value={s.id}
+                    checked={coveredBy === s.id}
+                    onChange={() => setCoveredBy(s.id)}
+                    className="accent-blue-600"
+                  />
+                  <span className="text-[12px] text-gray-800">
+                    {s.title ? `${s.title} ` : ''}{s.firstName} {s.lastName}
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Notes */}

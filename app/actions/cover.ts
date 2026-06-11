@@ -85,10 +85,11 @@ function dayBounds(date: Date) {
 const VALID_REASONS = ['illness', 'personal_leave', 'training', 'compassionate', 'unauthorised', 'other'] as const
 
 const LogAbsenceSchema = z.object({
-  staffId: z.string().min(1, 'Staff ID required'),
-  date:    z.date(),
-  reason:  z.enum(VALID_REASONS, { error: 'Invalid absence reason' }),
-  notes:   z.string().max(500, 'Notes must not exceed 500 characters').optional(),
+  staffId:   z.string().min(1, 'Staff ID required'),
+  date:      z.date(),
+  reason:    z.enum(VALID_REASONS, { error: 'Invalid absence reason' }),
+  notes:     z.string().max(500, 'Notes must not exceed 500 characters').optional(),
+  coveredBy: z.string().optional(),   // WondeEmployee.id — pre-assigns all slots on creation
 })
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -190,7 +191,7 @@ export async function getTodaysCoverSummary(
 
 export async function logAbsence(
   _schoolId: string,
-  data: { staffId: string; date: Date; reason: string; notes?: string },
+  data: { staffId: string; date: Date; reason: string; notes?: string; coveredBy?: string },
 ) {
   // Security: always use session schoolId — never trust client-provided schoolId
   const user = await requireAdminOrSlt()
@@ -223,14 +224,16 @@ export async function logAbsence(
     },
   })
 
-  // Create unassigned cover for each lesson
+  // Create cover slots for each lesson; pre-assign if coveredBy provided
+  const coverTeacher = validated.coveredBy ?? null
   if (entries.length > 0) {
     await prisma.coverAssignment.createMany({
       data: entries.map(e => ({
         schoolId,
-        absenceId: absence.id,
+        absenceId:        absence.id,
         timetableEntryId: e.id,
-        status: 'unassigned',
+        coveredBy:        coverTeacher,
+        status:           coverTeacher ? 'assigned' : 'unassigned',
       })),
     })
   }

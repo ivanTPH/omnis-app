@@ -1,14 +1,17 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
-import type { StaffMember } from '@/app/actions/admin'
+import type { StaffMember, ClassOption } from '@/app/actions/admin'
 import {
   createStaffMember,
   updateStaffMember,
   toggleStaffActive,
   deleteStaffMember,
+  getSchoolClasses,
+  getUserClasses,
+  setTeacherClasses,
 } from '@/app/actions/admin'
 import { toCSV, downloadCSV } from '@/lib/csv'
 
@@ -104,11 +107,30 @@ function StaffSlideOver({
   onClose: () => void
   onSaved: (s: StaffMember) => void
 }) {
-  const [form, setForm]       = useState<FormState>(mode === 'edit' && staff ? formFromStaff(staff) : blankForm())
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState<string | null>(null)
-  const [copied, setCopied]   = useState(false)
-  const passwordRef           = useRef<HTMLInputElement>(null)
+  const [form, setForm]               = useState<FormState>(mode === 'edit' && staff ? formFromStaff(staff) : blankForm())
+  const [saving, setSaving]           = useState(false)
+  const [error, setError]             = useState<string | null>(null)
+  const [copied, setCopied]           = useState(false)
+  const passwordRef                   = useRef<HTMLInputElement>(null)
+  const [allClasses, setAllClasses]   = useState<ClassOption[]>([])
+  const [assignedIds, setAssignedIds] = useState<string[]>([])
+  const [classesLoaded, setClassesLoaded] = useState(false)
+
+  // Load class assignments when editing
+  useEffect(() => {
+    if (mode !== 'edit' || !staff) return
+    Promise.all([getSchoolClasses(), getUserClasses(staff.id)]).then(([all, assigned]) => {
+      setAllClasses(all)
+      setAssignedIds(assigned)
+      setClassesLoaded(true)
+    }).catch(() => setClassesLoaded(true))
+  }, [mode, staff])
+
+  function toggleClass(classId: string) {
+    setAssignedIds(prev =>
+      prev.includes(classId) ? prev.filter(id => id !== classId) : [...prev, classId]
+    )
+  }
 
   function set(k: keyof FormState, v: string) {
     setForm(f => ({ ...f, [k]: v }))
@@ -156,7 +178,15 @@ function StaffSlideOver({
         department: form.department || undefined,
       })
       if (res.error) { setError(res.error); setSaving(false); return }
-      onSaved({ ...staff!, ...form, department: form.department || null })
+      // Save class assignments
+      if (classesLoaded) {
+        await setTeacherClasses(staff!.id, assignedIds)
+      }
+      const newYearGroups = allClasses
+        .filter(c => assignedIds.includes(c.id))
+        .map(c => c.yearGroup)
+        .filter((y): y is number => y != null)
+      onSaved({ ...staff!, ...form, department: form.department || null, yearGroups: [...new Set(newYearGroups)] })
     }
   }
 
@@ -244,6 +274,42 @@ function StaffSlideOver({
                 </label>
               </div>
             </div>
+
+            {/* Class / Year Group assignment (edit only) */}
+            {mode === 'edit' && (
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Class &amp; Year Group Assignment</p>
+                {!classesLoaded ? (
+                  <p className="text-[12px] text-gray-400">Loading classes…</p>
+                ) : allClasses.length === 0 ? (
+                  <p className="text-[12px] text-gray-400">No classes found. Add classes first.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {Array.from(new Set(allClasses.map(c => c.yearGroup).filter((y): y is number => y != null))).sort((a, b) => a - b).map(yr => {
+                      const classes = allClasses.filter(c => c.yearGroup === yr)
+                      return (
+                        <div key={yr}>
+                          <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Year {yr}</p>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {classes.map(c => (
+                              <label key={c.id} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={assignedIds.includes(c.id)}
+                                  onChange={() => toggleClass(c.id)}
+                                  className="accent-blue-600 w-3.5 h-3.5"
+                                />
+                                <span className="text-[12px] text-gray-700 truncate">{c.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Temporary password (add only) */}
             {mode === 'add' && (

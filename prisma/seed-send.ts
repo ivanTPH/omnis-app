@@ -102,13 +102,14 @@ async function main() {
   // Remaining SendNotifications for these students (non-concern ones)
   await prisma.sendNotification.deleteMany({ where: { schoolId: school.id, recipientId: { in: [senco.id, teacher.id, ...(hoy ? [hoy.id] : [])] } } })
 
-  // K Plans (Plan model) and APDR cycles — clean up any AI-generated records that
-  // may contain cross-contaminated student names from live demo sessions.
+  // K Plans, LearnerPassports, and APDR cycles — clean up AI-generated records
+  // that may contain cross-contaminated student names from live demo sessions.
   await prisma.assessPlanDoReview.deleteMany({ where: { studentId: { in: studentIds } } })
   await prisma.planTarget.deleteMany({ where: { plan: { studentId: { in: studentIds } } } })
   await prisma.planStrategy.deleteMany({ where: { plan: { studentId: { in: studentIds } } } })
   await prisma.planReviewCycle.deleteMany({ where: { plan: { studentId: { in: studentIds } } } })
   await prisma.plan.deleteMany({ where: { studentId: { in: studentIds } } })
+  await prisma.learnerPassport.deleteMany({ where: { studentId: { in: studentIds } } })
 
   // Also wipe any stale SEND data for ALL school students to clear legacy seed artefacts
   // (previous runs may have targeted different students outside this list)
@@ -318,6 +319,75 @@ async function main() {
       },
     },
   }) : null
+
+  // ── 2b. LearnerPassports (K Plans) ────────────────────────────────────────
+  await prisma.learnerPassport.create({
+    data: {
+      schoolId: school.id,
+      studentId: s1.id,
+      ilpId: ilp1.id,
+      sendInformation: `${s1.firstName} ${s1.lastName} (Year 9) has Specific Learning Difficulties (Dyslexia) affecting phonological processing, reading fluency and written output speed. Verbal comprehension and reasoning are strong — ${s1.firstName} contributes well orally and shows good understanding in discussion. Extended written tasks require structured scaffolding and additional processing time. Anxiety around timed assessments can further reduce written output. ${s1.firstName} benefits from a predictable, low-pressure classroom environment with clear step-by-step instructions.`,
+      teacherActions: [
+        'Provide a writing frame or 4-box paragraph planner for all extended tasks',
+        'Allow 25% extra time on any timed written assessment',
+        'Pre-teach key subject vocabulary before lessons involving new content',
+        'Provide printed notes or slides in advance — do not require copying from the board',
+        `Seat ${s1.firstName} away from high-distraction areas (doors, windows, noisy groups)`,
+        'Break multi-step instructions into numbered single steps — check understanding at each stage',
+        'Use coloured overlays or dyslexia-friendly font (Arial 12pt+) on printed materials',
+      ],
+      studentCommitments: [
+        'Use the writing frame before starting any extended answer',
+        'Ask for vocabulary support rather than guessing',
+        'Use the quiet reading time before assessments to settle and plan',
+      ],
+      additionalSupportStrategies: [
+        'Access to a word processor with spellcheck for extended written work',
+        '1:1 reading support with TA — 15 minutes twice weekly',
+        'Reading Recovery programme — 3× per week',
+      ],
+      equipmentRequired: ['Coloured overlay (yellow)', 'Writing frame template', 'Printed slides'],
+      reviewDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: 'APPROVED',
+      approvedBy: senco.id,
+      approvedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+    },
+  })
+
+  if (s2) {
+    await prisma.learnerPassport.create({
+      data: {
+        schoolId: school.id,
+        studentId: s2.id,
+        ilpId: ilp2?.id,
+        sendInformation: `${s2.firstName} ${s2.lastName} (Year 9) has Social, Emotional and Mental Health (SEMH) needs significantly affecting school attendance, classroom participation and independent work. ${s2.firstName} experiences anxiety that can present as physical complaints (headaches, stomach aches) before school or before high-pressure tasks. Emotional regulation under stress is an identified area of need. When settled and supported, ${s2.firstName} engages well with creative tasks and demonstrates genuine ability. A consistent, low-pressure routine and trusted adult relationships are key to ${s2.firstName}'s engagement.`,
+        teacherActions: [
+          `Provide advance notice of any changes to routine — minimum 24 hours where possible`,
+          `Do not cold-call ${s2.firstName}; use a thumbs-up signal to indicate readiness`,
+          'Offer flexible start to high-pressure lessons — allow early arrival to settle',
+          'Use an emotion check-in card at the start of the lesson',
+          `Safe space protocol: ${s2.firstName} can leave to the Learning Support room without permission during anxiety episodes using the exit card`,
+          'Break extended tasks into shorter, timed segments with clear stopping points',
+          'Weekly pastoral check-in with form tutor — Monday morning, 10 minutes',
+        ],
+        studentCommitments: [
+          'Use the exit card protocol rather than becoming distressed in class',
+          'Attend at least one homework club session per week for academic catch-up',
+          'Check in with form tutor on Monday mornings',
+        ],
+        additionalSupportStrategies: [
+          '4-session emotional regulation programme with SENCO',
+          'Phased re-integration after any absence lasting more than 2 consecutive days',
+          'Flexible homework deadlines — 48-hour extension without penalty',
+        ],
+        equipmentRequired: ['Emotion check-in card', 'Exit card', 'Coping strategies card'],
+        reviewDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000),
+        status: 'APPROVED',
+        approvedBy: senco.id,
+        approvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+    })
+  }
 
   // Ensure SendStatus exists for s1 and s2 (required for SEND dashboard + APDR seed)
   await prisma.sendStatus.upsert({

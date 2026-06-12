@@ -75,8 +75,8 @@ test.describe('Sprint C — admin dashboard after audit', () => {
   test('admin dashboard shows Open Concerns stat (not Awaiting Marking)', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/dashboard')
-    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await expect(page.locator('h1')).toContainText('Admin Dashboard', { timeout: 15_000 })
 
     const body = await page.locator('body').innerText({ timeout: 10_000 })
     // Sprint C removed 'Awaiting Marking' from admin dashboard; added 'Open Concerns'

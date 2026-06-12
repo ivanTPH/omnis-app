@@ -235,6 +235,9 @@ async function main() {
       reviewDate: reviewDate1,
       status: 'active',
       parentConsent: true,
+      approvedBySenco: true,
+      approvedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+      approvedBy: senco.id,
       targets: {
         create: [
           {
@@ -284,6 +287,9 @@ async function main() {
       reviewDate: reviewDate2,
       status: 'active',
       parentConsent: false,
+      approvedBySenco: true,
+      approvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      approvedBy: senco.id,
       targets: {
         create: [
           {
@@ -312,6 +318,18 @@ async function main() {
       },
     },
   }) : null
+
+  // Ensure SendStatus exists for s1 and s2 (required for SEND dashboard + APDR seed)
+  await prisma.sendStatus.upsert({
+    where: { studentId: s1.id },
+    update: { activeStatus: 'SEN_SUPPORT', needArea: 'Specific Learning Difficulty (SpLD) — Dyslexia' },
+    create: { studentId: s1.id, activeStatus: 'SEN_SUPPORT', needArea: 'Specific Learning Difficulty (SpLD) — Dyslexia' },
+  })
+  await prisma.sendStatus.upsert({
+    where: { studentId: s2.id },
+    update: { activeStatus: 'SEN_SUPPORT', needArea: 'Social, Emotional and Mental Health (SEMH)' },
+    create: { studentId: s2.id, activeStatus: 'SEN_SUPPORT', needArea: 'Social, Emotional and Mental Health (SEMH)' },
+  })
 
   console.log(`  Created ${[ilp1, ilp2].filter(Boolean).length} ILPs with targets`)
 

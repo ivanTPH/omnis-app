@@ -118,19 +118,19 @@ test.describe('Sprint A — admin dashboard activation widget', () => {
   test('admin dashboard loads without error', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/dashboard')
-    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    // Wait for RSC to finish streaming — avoids 13-char "Redirecting..." on cold Lambda
+    await expect(page.locator('h1')).toContainText('Admin Dashboard', { timeout: 15_000 })
 
     const body = await page.locator('body').innerText({ timeout: 10_000 })
     expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(100)
   })
 
   test('admin dashboard shows user management link', async ({ page }) => {
     await loginAs(page, USERS.schoolAdmin)
     await page.goto('/admin/dashboard')
-    await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await expect(page.locator('h1')).toContainText('Admin Dashboard', { timeout: 15_000 })
 
     // Should have "All Users" or "Users" quick-link
     const body = await page.locator('body').innerText({ timeout: 10_000 })

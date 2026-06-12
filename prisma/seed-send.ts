@@ -33,29 +33,24 @@ async function main() {
   }
   console.log(`Found school: ${school.name} (${school.id})`)
 
-  const senco = await prisma.user.findFirst({
-    where: { schoolId: school.id, role: 'SENCO' },
-  })
-  const teacher = await prisma.user.findFirst({
-    where: { schoolId: school.id, role: 'TEACHER' },
-  })
-  const hoy = await prisma.user.findFirst({
-    where: { schoolId: school.id, role: 'HEAD_OF_YEAR' },
-  })
+  // Use deterministic named lookups — never rely on alphabetical/random ordering
+  const senco  = await prisma.user.findUniqueOrThrow({ where: { email: 'r.morris@omnisdemo.school' } })
+  const teacher = await prisma.user.findUniqueOrThrow({ where: { email: 'j.patel@omnisdemo.school' } })
+  const hoy    = await prisma.user.findFirst({ where: { email: 't.adeyemi@omnisdemo.school' } })
 
-  // Get 4 students
-  const students = await prisma.user.findMany({
-    where: { schoolId: school.id, role: 'STUDENT' },
-    take: 4,
-    orderBy: { lastName: 'asc' },
-  })
+  // All 4 students are from j.patel's Year 9 English class (9E/En1)
+  // so concerns raised by j.patel will appear on HIS teacher dashboard
+  const s1 = await prisma.user.findUnique({ where: { email: 's.ahmed@students.omnisdemo.school' } })   // Sophia Ahmed  — SpLD
+  const s2 = await prisma.user.findUnique({ where: { email: 't.cooper@students.omnisdemo.school' } })  // Tyler Cooper  — SEMH
+  const s3 = await prisma.user.findUnique({ where: { email: 'f.jenkins@students.omnisdemo.school' } }) // Freya Jenkins — SLCN concern
+  const s4 = await prisma.user.findUnique({ where: { email: 'r.sharma@students.omnisdemo.school' } })  // Rajan Sharma  — behaviour
 
-  if (!senco || !teacher || students.length < 2) {
-    console.error('Required demo users not found. Run npm run db:seed first.')
+  if (!s1 || !s2) {
+    console.error('Required demo students not found. Run npm run db:seed first.')
     process.exit(1)
   }
 
-  const [s1, s2, s3, s4] = students
+  const students = [s1, s2, s3, s4].filter(Boolean) as typeof s1[]
   console.log(`SENCO: ${senco.firstName} ${senco.lastName}`)
   console.log(`Teacher: ${teacher.firstName} ${teacher.lastName}`)
   console.log(`Students: ${students.map(s => `${s.firstName} ${s.lastName}`).join(', ')}`)
@@ -63,7 +58,7 @@ async function main() {
   // ── 0. Cleanup — delete existing seed data for these students ──────────────
   console.log('\n0. Cleaning up existing SEND seed data...')
 
-  const studentIds = students.map(s => s.id)
+  const studentIds = students.map((s) => s.id)
 
   // EHCP: HomeworkEhcpEvidence → EhcpOutcome → EhcpPlan
   const existingOutcomes = await prisma.ehcpOutcome.findMany({
@@ -106,6 +101,20 @@ async function main() {
   await prisma.sendReviewLog.deleteMany({ where: { studentId: { in: studentIds } } })
   // Remaining SendNotifications for these students (non-concern ones)
   await prisma.sendNotification.deleteMany({ where: { schoolId: school.id, recipientId: { in: [senco.id, teacher.id, ...(hoy ? [hoy.id] : [])] } } })
+
+  // K Plans (Plan model) and APDR cycles — clean up any AI-generated records that
+  // may contain cross-contaminated student names from live demo sessions.
+  await prisma.assessPlanDoReview.deleteMany({ where: { studentId: { in: studentIds } } })
+  await prisma.planTarget.deleteMany({ where: { plan: { studentId: { in: studentIds } } } })
+  await prisma.planStrategy.deleteMany({ where: { plan: { studentId: { in: studentIds } } } })
+  await prisma.planReviewCycle.deleteMany({ where: { plan: { studentId: { in: studentIds } } } })
+  await prisma.plan.deleteMany({ where: { studentId: { in: studentIds } } })
+
+  // Also wipe any stale SEND data for ALL school students to clear legacy seed artefacts
+  // (previous runs may have targeted different students outside this list)
+  await prisma.sendConcern.deleteMany({ where: { schoolId: school.id } })
+  await prisma.earlyWarningFlag.deleteMany({ where: { schoolId: school.id } })
+  await prisma.sendReviewLog.deleteMany({ where: { schoolId: school.id } })
 
   console.log('  Cleanup complete')
 
@@ -233,7 +242,7 @@ async function main() {
             strategy: 'Daily 15-minute reading sessions using decodable texts at instructional level. Reading partner in English lessons. Weekly 1:1 with teaching assistant.',
             successMeasure: 'Standardised reading assessment score ≥85% at 6-week review',
             targetDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
-            status: 'in_progress',
+            status: 'active',
             progressNotes: 'Good engagement with TA sessions. Accuracy improving on structured texts.',
           },
           {
@@ -241,14 +250,14 @@ async function main() {
             strategy: 'Homework diary with simplified written instructions. Parent briefed on strategies. Homework club access Tuesdays and Thursdays.',
             successMeasure: 'Homework submitted on time for 8 of 10 consecutive tasks; teacher quality rating ≥60%',
             targetDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
-            status: 'in_progress',
+            status: 'active',
           },
           {
             target: 'Reduce assessment anxiety — student self-rates anxiety ≤2/5 before written tasks',
             strategy: 'Pre-assessment relaxation routine taught by SENCO. Quiet start to assessments with 5-minute reading time. Reassurance check-in with form tutor before major assessments.',
             successMeasure: 'Self-reported anxiety rating ≤2 on 5-point scale for 3 consecutive assessments',
             targetDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
-            status: 'not_started',
+            status: 'deferred',
           },
         ],
       },
@@ -282,7 +291,7 @@ async function main() {
             strategy: 'Daily attendance call if absent. Phased re-integration after any absence >2 days. Reduced timetable option available if needed. EWO involvement as planned.',
             successMeasure: '≥90% attendance measured over any rolling 4-week period within the review cycle',
             targetDate: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000),
-            status: 'in_progress',
+            status: 'active',
             progressNotes: 'Attendance improved from 60% to 72% over the past 2 weeks. Phased start agreed.',
           },
           {
@@ -290,14 +299,14 @@ async function main() {
             strategy: 'Agreed signal system with all teachers. Regular low-key check-ins during lessons. Scheduled breaks built into longer sessions.',
             successMeasure: 'Exit card used ≤2 times per week on average over a 3-week period',
             targetDate: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
-            status: 'not_started',
+            status: 'deferred',
           },
           {
             target: 'Develop and use 3 personal regulation strategies independently',
             strategy: 'SENCO to run 4-session emotional regulation programme (individually). Strategies agreed and put on a personal coping card.',
             successMeasure: 'Student can name and demonstrate 3 regulation strategies; reports using them independently on at least 5 occasions',
             targetDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
-            status: 'not_started',
+            status: 'deferred',
           },
         ],
       },
@@ -632,7 +641,7 @@ async function main() {
             successCriteria: 'Student can name and use strategies from personal coping card; pastoral log evidence.',
             targetDate: new Date(Date.now() + 56 * 24 * 60 * 60 * 1000),
             provisionRequired: 'SENCO 4-session emotional regulation programme. Coping card produced.',
-            status: 'not_started',
+            status: 'deferred',
             evidenceCount: 0,
           },
           {

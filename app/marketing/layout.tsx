@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import OmnisLogo from '@/components/ui/OmnisLogo'
+import CookieConsent from '@/components/marketing/CookieConsent'
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -24,6 +25,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       {children}
 
+      <CookieConsent />
+
       {/* Footer */}
       <footer className="border-t border-gray-100 mt-24">
         <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
@@ -35,6 +38,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <Link href="/marketing/features" className="hover:text-gray-900 transition-colors">Features</Link>
             <Link href="/marketing/beta" className="hover:text-gray-900 transition-colors">Beta access</Link>
             <Link href="/marketing/investors" className="hover:text-gray-900 transition-colors">Investors</Link>
+            <Link href="/marketing/privacy" className="hover:text-gray-900 transition-colors">Privacy</Link>
+            <Link href="/marketing/terms" className="hover:text-gray-900 transition-colors">Terms</Link>
             <Link href="/login" className="hover:text-gray-900 transition-colors">Sign in</Link>
           </nav>
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Omnis Education Ltd.</p>

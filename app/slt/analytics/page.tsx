@@ -166,6 +166,14 @@ export default async function SltAnalyticsPage() {
                   {termLabel(currentTerm)}
                 </span>
               )}
+              <Link
+                href="/api/export/slt-summary"
+                target="_blank"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+              >
+                <Icon name="picture_as_pdf" size="sm" />
+                Export Summary PDF
+              </Link>
               <PrintButton />
             </div>
           </div>

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
-import { markSubmission, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
+import { markSubmission, bulkReturnSubmissions, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
@@ -263,6 +263,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     s.status !== 'RETURNED'
   ).length
 
+  const markedCount = pupils.filter(p => p.submission?.status === 'MARKED').length
+
   // ── state ─────────────────────────────────────────────────────────────────
   const [pupilFilter,     setPupilFilter]     = useState<PupilFilter>('all')
   const [selectedId,      setSelectedId]      = useState<string | null>(
@@ -309,6 +311,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // Per-student adaptive suggestions (fetched lazily on selection)
   const [adaptiveSugg, setAdaptiveSugg] = useState<Record<string, AdaptiveHomeworkSuggestions>>({})
   const [adaptiveSuggLoading, setAdaptiveSuggLoading] = useState(false)
+  // Bulk return
+  const [bulkReturning, setBulkReturning] = useState(false)
+  const [bulkReturnedCount, setBulkReturnedCount] = useState<number | null>(null)
   // Resizable marking panel (vertical drag)
   const [markPanelHeight, setMarkPanelHeight] = useState(300)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
@@ -541,6 +546,21 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         setRemindingId(null)
       }
     })
+  }
+
+  async function handleBulkReturn() {
+    if (!canGrade || markedCount === 0) return
+    setBulkReturning(true)
+    try {
+      const { count } = await bulkReturnSubmissions(hw.id)
+      setBulkReturnedCount(count)
+      router.refresh()
+      setTimeout(() => setBulkReturnedCount(null), 3000)
+    } catch {
+      // silently fail — teacher can return individually
+    } finally {
+      setBulkReturning(false)
+    }
   }
 
   async function handleAddNote() {
@@ -1037,6 +1057,30 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         {needsReviewCount > 0 && (
           <div className="px-3 py-2 border-b border-amber-100 bg-amber-50">
             <p className="text-[10px] text-amber-600 font-medium">⚡ {needsReviewCount} awaiting AI review</p>
+          </div>
+        )}
+
+        {canGrade && markedCount > 0 && (
+          <div className="px-3 py-2 border-b border-green-100 bg-green-50 flex items-center justify-between">
+            {bulkReturnedCount != null ? (
+              <p className="text-[10px] text-green-700 font-medium flex items-center gap-1">
+                <Icon name="check_circle" size="sm" /> {bulkReturnedCount} returned
+              </p>
+            ) : (
+              <>
+                <p className="text-[10px] text-green-700 font-medium">{markedCount} graded, awaiting return</p>
+                <button
+                  onClick={handleBulkReturn}
+                  disabled={bulkReturning}
+                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50"
+                >
+                  {bulkReturning
+                    ? <Icon name="refresh" size="sm" className="animate-spin" />
+                    : <Icon name="send" size="sm" />}
+                  Return all
+                </button>
+              </>
+            )}
           </div>
         )}
 

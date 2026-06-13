@@ -1217,6 +1217,21 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
   return { score, maxScore, feedback }
 }
 
+// ── Bulk return ───────────────────────────────────────────────────────────────
+
+export async function bulkReturnSubmissions(homeworkId: string): Promise<{ count: number }> {
+  const { schoolId, role } = await requireAuth()
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) throw new Error('Only teaching staff can return homework')
+
+  const result = await prisma.submission.updateMany({
+    where: { homeworkId, schoolId, status: 'MARKED' },
+    data:  { status: 'RETURNED' },
+  })
+
+  revalidatePath(`/homework/${homeworkId}`)
+  return { count: result.count }
+}
+
 // ── Mark submission ───────────────────────────────────────────────────────────
 
 export async function markSubmission(submissionId: string, data: {

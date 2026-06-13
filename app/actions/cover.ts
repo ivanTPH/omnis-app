@@ -245,6 +245,42 @@ export async function logAbsence(
   void start; void end
 }
 
+export async function logAbsenceRange(
+  _schoolId: string,
+  data: { staffId: string; startDate: Date; endDate: Date; reason: string; notes?: string; coveredBy?: string },
+): Promise<{ count: number }> {
+  // Security: always use session schoolId
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Enumerate weekdays (Mon–Fri) between startDate and endDate inclusive
+  const days: Date[] = []
+  const cur = new Date(data.startDate)
+  cur.setHours(12, 0, 0, 0)
+  const end = new Date(data.endDate)
+  end.setHours(23, 59, 59, 0)
+  while (cur <= end) {
+    const dow = cur.getDay()
+    if (dow !== 0 && dow !== 6) days.push(new Date(cur))
+    cur.setDate(cur.getDate() + 1)
+  }
+
+  if (days.length === 0) return { count: 0 }
+
+  for (const day of days) {
+    await logAbsence(schoolId, {
+      staffId:   data.staffId,
+      date:      day,
+      reason:    data.reason,
+      notes:     data.notes,
+      coveredBy: data.coveredBy,
+    })
+  }
+
+  revalidatePath('/admin/cover')
+  return { count: days.length }
+}
+
 export async function getAvailableStaff(
   _schoolId: string,
   date: Date,

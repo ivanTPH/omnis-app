@@ -2,14 +2,19 @@
 
 import { useState, useTransition } from 'react'
 import Icon from '@/components/ui/Icon'
-import { logAbsence } from '@/app/actions/cover'
+import { logAbsence, logAbsenceRange } from '@/app/actions/cover'
 
 const REASONS = [
-  { value: 'illness',  label: 'Illness'  },
-  { value: 'training', label: 'Training' },
-  { value: 'personal', label: 'Personal' },
-  { value: 'other',    label: 'Other'    },
+  { value: 'illness',       label: 'Illness'       },
+  { value: 'training',      label: 'Training'      },
+  { value: 'personal_leave',label: 'Personal leave' },
+  { value: 'compassionate', label: 'Compassionate'  },
+  { value: 'other',         label: 'Other'         },
 ]
+
+function toInputDate(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
 
 type StaffMember = { id: string; firstName: string; lastName: string; title: string | null }
 
@@ -22,14 +27,18 @@ type Props = {
 }
 
 export default function LogAbsenceModal({ schoolId, date, staffList, onClose, onLogged }: Props) {
-  const [staffId,    setStaffId]    = useState('')
-  const [coveredBy,  setCoveredBy]  = useState('')
-  const [reason,     setReason]     = useState('illness')
-  const [notes,      setNotes]      = useState('')
-  const [search,     setSearch]     = useState('')
-  const [coverSearch,setCoverSearch]= useState('')
-  const [error,      setError]      = useState('')
-  const [pending,    start]         = useTransition()
+  const [staffId,     setStaffId]     = useState('')
+  const [coveredBy,   setCoveredBy]   = useState('')
+  const [reason,      setReason]      = useState('illness')
+  const [notes,       setNotes]       = useState('')
+  const [search,      setSearch]      = useState('')
+  const [coverSearch, setCoverSearch] = useState('')
+  const [startDate,   setStartDate]   = useState(toInputDate(date))
+  const [endDate,     setEndDate]     = useState(toInputDate(date))
+  const [error,       setError]       = useState('')
+  const [pending,     start]          = useTransition()
+
+  const isRange = startDate !== endDate
 
   const filtered = staffList.filter(s => {
     const full = `${s.firstName} ${s.lastName}`.toLowerCase()
@@ -44,15 +53,28 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!staffId) { setError('Please select a staff member.'); return }
+    if (!startDate || !endDate) { setError('Please select a date range.'); return }
+    if (startDate > endDate) { setError('End date must be on or after start date.'); return }
     setError('')
     start(async () => {
-      await logAbsence(schoolId, {
-        staffId,
-        date,
-        reason,
-        notes:     notes || undefined,
-        coveredBy: coveredBy || undefined,
-      })
+      if (isRange) {
+        await logAbsenceRange(schoolId, {
+          staffId,
+          startDate: new Date(startDate),
+          endDate:   new Date(endDate),
+          reason,
+          notes:     notes || undefined,
+          coveredBy: coveredBy || undefined,
+        })
+      } else {
+        await logAbsence(schoolId, {
+          staffId,
+          date:      new Date(startDate),
+          reason,
+          notes:     notes || undefined,
+          coveredBy: coveredBy || undefined,
+        })
+      }
       onLogged()
       onClose()
     })
@@ -110,15 +132,41 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
             </div>
           </div>
 
-          {/* Date (read-only — uses the dashboard's selected date) */}
-          <div>
-            <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-              Date
-            </label>
-            <p className="text-[12px] text-gray-700 px-3 py-2 border border-gray-200 rounded-lg bg-gray-50">
-              {date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
+          {/* Date range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+                From
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => {
+                  setStartDate(e.target.value)
+                  if (e.target.value > endDate) setEndDate(e.target.value)
+                }}
+                className="w-full px-3 py-2 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
+                To <span className="font-normal text-gray-300 normal-case">(multi-day)</span>
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 text-[12px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+            </div>
           </div>
+          {isRange && (
+            <p className="text-[11px] text-blue-600 flex items-center gap-1 -mt-1">
+              <Icon name="info" size="sm" />
+              Weekdays only — weekends will be skipped automatically.
+            </p>
+          )}
 
           {/* Reason */}
           <div>
@@ -208,7 +256,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
               disabled={pending}
               className="px-4 py-2 text-[12px] font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
             >
-              {pending ? 'Logging…' : 'Log Absence'}
+              {pending ? 'Logging…' : isRange ? 'Log Absence (Range)' : 'Log Absence'}
             </button>
           </div>
         </form>

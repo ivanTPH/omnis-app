@@ -262,6 +262,123 @@ export async function updateDsrStatus(
   revalidatePath('/admin/gdpr')
 }
 
+export async function exportStudentData(dsrId: string): Promise<Record<string, unknown>> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId!
+
+  const dsr = await prisma.dataSubjectRequest.findFirst({
+    where: { id: dsrId, schoolId, requestType: { in: ['access', 'portability'] } },
+  })
+  if (!dsr) throw new Error('Request not found or not an access/portability request')
+  if (!dsr.studentId) throw new Error('No student linked to this request')
+
+  const studentId = dsr.studentId
+
+  const [
+    student,
+    submissions,
+    ilp,
+    sendStatus,
+    consentRecords,
+    taNotes,
+    revisionSessions,
+    messages,
+  ] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id: studentId, schoolId },
+      select: {
+        firstName: true, lastName: true, email: true, yearGroup: true,
+        tutorGroup: true, attendancePercentage: true, createdAt: true,
+      },
+    }),
+    prisma.submission.findMany({
+      where: { studentId, schoolId },
+      select: {
+        submittedAt: true, status: true, finalScore: true, grade: true,
+        feedback: true, markedAt: true,
+        homework: { select: { title: true, dueAt: true, type: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where: { studentId, schoolId },
+      select: {
+        status: true, createdAt: true, updatedAt: true,
+        targets: { select: { target: true, status: true } },
+      },
+    }),
+    prisma.sendStatus.findFirst({
+      where: { studentId: studentId },
+      select: { activeStatus: true, needArea: true, updatedAt: true },
+    }),
+    prisma.consentRecord.findMany({
+      where: { studentId },
+      select: {
+        decision: true, method: true, recordedAt: true,
+        purpose: { select: { title: true, slug: true } },
+      },
+      orderBy: { recordedAt: 'desc' },
+    }),
+    prisma.taNote.findMany({
+      where: { studentId },
+      select: { content: true, createdAt: true, isUrgent: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.revisionSession.findMany({
+      where: { studentId },
+      select: { topic: true, subject: true, scheduledAt: true, status: true, confidence: true },
+      orderBy: { scheduledAt: 'desc' },
+    }),
+    prisma.msgMessage.findMany({
+      where: { senderId: studentId },
+      select: { body: true, sentAt: true },
+      orderBy: { sentAt: 'desc' },
+      take: 100,
+    }),
+  ])
+
+  // Mark DSR as completed
+  await prisma.dataSubjectRequest.update({
+    where: { id: dsrId },
+    data: {
+      status:    'completed',
+      resolvedAt: new Date(),
+      notes: `Data export fulfilled by ${user.firstName} ${user.lastName} on ${new Date().toLocaleDateString('en-GB')}.`,
+    },
+  })
+  revalidatePath('/admin/gdpr')
+
+  return {
+    exportedAt:   new Date().toISOString(),
+    requestType:  dsr.requestType,
+    student:      student ?? null,
+    submissions:  submissions.map(s => ({
+      homework:     s.homework.title,
+      dueAt:        s.homework.dueAt,
+      type:         s.homework.type,
+      submittedAt:  s.submittedAt,
+      status:       s.status,
+      grade:        s.grade,
+      score:        s.finalScore,
+      feedback:     s.feedback,
+      markedAt:     s.markedAt,
+    })),
+    ilp:          ilp ?? null,
+    sendStatus:   sendStatus ?? null,
+    consentRecords: consentRecords.map(c => ({
+      purpose:   c.purpose.title,
+      slug:      c.purpose.slug,
+      decision:  c.decision,
+      method:    c.method,
+      recordedAt: c.recordedAt,
+    })),
+    taNotes:      taNotes,
+    revisionSessions: revisionSessions,
+    messagesSent: messages.map(m => ({ body: m.body, sentAt: m.sentAt })),
+    notice:       'SEND records (ILP targets, EHCP provisions) are retained under DfE 7-year statutory obligation and are not included in portability exports.',
+  }
+}
+
 // ─── Parent: Consent Portal ───────────────────────────────────────────────────
 
 export async function getMyChildrenConsents(

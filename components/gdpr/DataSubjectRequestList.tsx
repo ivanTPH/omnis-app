@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { DsrRow, StudentOption } from '@/app/actions/gdpr'
 import { updateDsrStatus } from '@/app/actions/gdpr'
@@ -120,15 +121,28 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
                     {d.resolvedAt ? new Date(d.resolvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </td>
                   <td className="px-3 py-3">
-                    {d.requestType === 'erasure' && d.status !== 'completed' && d.studentId && (
-                      <button
-                        onClick={() => openErasure(d)}
-                        className="flex items-center gap-1 text-[11px] font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 px-2 py-1 rounded-md transition-colors"
-                      >
-                        <Icon name="delete_forever" size="sm" />
-                        Execute
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {d.requestType === 'erasure' && d.status !== 'completed' && d.studentId && (
+                        <button
+                          onClick={() => openErasure(d)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 px-2 py-1 rounded-md transition-colors"
+                        >
+                          <Icon name="delete_forever" size="sm" />
+                          Execute
+                        </button>
+                      )}
+                      {['access', 'portability'].includes(d.requestType) && d.studentId && d.status !== 'completed' && (
+                        <Link
+                          href={`/api/export/gdpr-data/${d.id}`}
+                          target="_blank"
+                          className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 px-2 py-1 rounded-md transition-colors"
+                          title="Download student data as JSON — marks request completed"
+                        >
+                          <Icon name="download" size="sm" />
+                          Export
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

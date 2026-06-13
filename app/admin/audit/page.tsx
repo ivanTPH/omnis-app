@@ -95,9 +95,18 @@ export default async function AdminAuditPage({
             <h1 className="text-page-title">Audit Log</h1>
             <p className="text-[13px] text-gray-400 mt-0.5">{total.toLocaleString()} event{total !== 1 ? 's' : ''} recorded</p>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-gray-400">
-            <Icon name="lock" size="sm" />
-            Immutable — read only
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/api/export/audit-log${category || days ? `?${new URLSearchParams({ ...(category ? { category } : {}), ...(days ? { days: String(days) } : {}) })}` : ''}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+            >
+              <Icon name="download" size="sm" />
+              Export CSV
+            </Link>
+            <span className="flex items-center gap-1 text-[11px] text-gray-400">
+              <Icon name="lock" size="sm" />
+              Immutable — read only
+            </span>
           </div>
         </div>
 

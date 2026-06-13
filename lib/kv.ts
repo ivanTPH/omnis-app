@@ -27,3 +27,29 @@ export async function checkLoginRatelimit(identifier: string): Promise<{ success
   const result = await loginRatelimiter.limit(identifier)
   return { success: result.success, remaining: result.remaining }
 }
+
+/**
+ * Contact form rate limit: 5 submissions per hour per IP.
+ */
+const contactRatelimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '1 h'), prefix: 'rl:contact' })
+  : null
+
+export async function checkContactRateLimit(identifier: string): Promise<{ success: boolean }> {
+  if (!contactRatelimiter) return { success: true }
+  const result = await contactRatelimiter.limit(identifier)
+  return { success: result.success }
+}
+
+/**
+ * AI generation rate limit: 30 requests per hour per user.
+ */
+const aiRatelimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(30, '1 h'), prefix: 'rl:ai' })
+  : null
+
+export async function checkAiRateLimit(identifier: string): Promise<{ success: boolean }> {
+  if (!aiRatelimiter) return { success: true }
+  const result = await aiRatelimiter.limit(identifier)
+  return { success: result.success }
+}

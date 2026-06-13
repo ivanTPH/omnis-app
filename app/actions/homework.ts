@@ -11,6 +11,7 @@ import { percentToGcseGrade }   from '@/lib/grading'
 import { sendHomeworkReminderEmail, sendNewHomeworkEmail, sendGradeBelowTargetEmail } from '@/lib/email'
 import { markDirty }            from '@/lib/agents/snapshot'
 import { AgentType }            from '@prisma/client'
+import { checkAiRateLimit }     from '@/lib/kv'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -1051,7 +1052,9 @@ export async function generateHomeworkContent(input: {
   durationMins: number
   additionalContext?: string
 }): Promise<GeneratedHomeworkContent> {
-  await requireAuth()
+  const user = await requireAuth()
+  const { success } = await checkAiRateLimit(user.id)
+  if (!success) throw new Error('AI generation rate limit reached — please wait an hour before generating more homework.')
 
   const qualification = input.yearGroup <= 9 ? 'KS3' : input.yearGroup <= 11 ? 'GCSE' : 'A-Level'
 

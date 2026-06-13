@@ -60,6 +60,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
+  const [genElapsed, setGenElapsed] = useState(0)
   const [objectives, setObjectives] = useState<ObjectiveEntry[]>([])
   const [sowTopics, setSowTopics] = useState<string[]>([])
   const [sowExpanded, setSowExpanded] = useState(false)
@@ -128,7 +129,9 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
 
   async function handleGenerate() {
     if (!extraction) return
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setGenElapsed(0)
+    const startedAt = Date.now()
+    const timer = setInterval(() => setGenElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000)
     try {
       const cls = selectedLesson?.class ?? classes.find(c => c.id === selectedClassId)
       const editedObjectives = objectives.length > 0
@@ -153,8 +156,17 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
       setEditedTitle(gen.title)
       setEditedInstructions(gen.instructions)
       setStep(4)
-    } catch (e) { setError((e as Error).message) }
-    finally { setLoading(false) }
+    } catch (e) {
+      const msg = (e as Error).message ?? ''
+      if (msg.toLowerCase().includes('rate limit')) {
+        setError(msg)
+      } else if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('network') || msg.includes('fetch failed')) {
+        setError('Generation timed out — the AI took too long to respond. Try simplifying your learning objectives or click Retry.')
+      } else {
+        setError('Content generation failed. Please try again — if this persists, reduce the number of learning objectives.')
+      }
+    }
+    finally { clearInterval(timer); setLoading(false) }
   }
 
   async function handlePublish() {
@@ -574,11 +586,26 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   disabled={loading}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                 >
-                  <Icon name="auto_awesome" size="sm" />
-                  {loading ? 'Generating…' : 'Generate content'}
+                  <Icon name={loading ? 'refresh' : 'auto_awesome'} size="sm" className={loading ? 'animate-spin' : ''} />
+                  {loading
+                    ? genElapsed < 10 ? 'Generating…'
+                    : genElapsed < 30 ? `Generating… (${genElapsed}s)`
+                    : genElapsed < 60 ? `Still working… (${genElapsed}s)`
+                    : `This is taking a while… (${genElapsed}s)`
+                    : 'Generate content'}
                 </button>
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                  <Icon name="error_outline" size="sm" color="text-red-500" className="mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-red-700">{error}</p>
+                    <button onClick={handleGenerate} className="mt-1 text-xs text-red-600 hover:text-red-800 underline">
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

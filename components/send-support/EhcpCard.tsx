@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
-import type { EhcpPlanWithOutcomes, EhcpSections, EhcpAuditEntryRow } from '@/app/actions/ehcp'
+import type { EhcpPlanWithOutcomes, EhcpSections, EhcpAuditEntryRow, EhcpAnnualReviewRow } from '@/app/actions/ehcp'
 import { approveGeneratedEhcp, updateEhcpSection, getEhcpAuditLog } from '@/app/actions/ehcp'
 import EhcpOutcomeTracker from '@/components/homework/EhcpOutcomeTracker'
+import EhcpAnnualReviewModal from './EhcpAnnualReviewModal'
 
 const SECTION_KEYS = ['A','B','C','D','E','F','G','H1','H2','I','J','K'] as const
 const SECTION_LABELS: Record<string, string> = {
@@ -27,23 +28,40 @@ const ROLE_LABELS: Record<string, string> = {
   HEAD_OF_YEAR: 'HoY', SLT: 'SLT', SCHOOL_ADMIN: 'Admin',
 }
 
+const PROGRESS_LABELS: Record<string, string> = {
+  GOOD_PROGRESS: 'Good Progress',
+  SOME_PROGRESS: 'Some Progress',
+  INSUFFICIENT:  'Insufficient Progress',
+  NO_PROGRESS:   'No Progress Made',
+}
+
+const PROGRESS_COLOURS: Record<string, string> = {
+  GOOD_PROGRESS: 'bg-green-100 text-green-800',
+  SOME_PROGRESS: 'bg-blue-100 text-blue-800',
+  INSUFFICIENT:  'bg-amber-100 text-amber-800',
+  NO_PROGRESS:   'bg-red-100 text-red-800',
+}
+
 type Props = {
   plan: EhcpPlanWithOutcomes
   isSenco: boolean
 }
 
 export default function EhcpCard({ plan, isSenco }: Props) {
-  const [approved,       setApproved]       = useState(plan.approvedBySenco)
-  const [approving,      setApproving]      = useState(false)
-  const [reviewNote,     setReviewNote]     = useState('')
-  const [sectionsOpen,   setSectionsOpen]   = useState(false)
-  const [editingSection, setEditingSection] = useState<string | null>(null)
-  const [editValue,      setEditValue]      = useState('')
-  const [saving,         setSaving]         = useState(false)
-  const [sections,       setSections]       = useState<EhcpSections | null>(plan.sections)
-  const [auditOpen,      setAuditOpen]      = useState(false)
-  const [auditEntries,   setAuditEntries]   = useState<EhcpAuditEntryRow[] | null>(null)
-  const [auditLoading,   setAuditLoading]   = useState(false)
+  const [approved,            setApproved]            = useState(plan.approvedBySenco)
+  const [approving,           setApproving]           = useState(false)
+  const [reviewNote,          setReviewNote]          = useState('')
+  const [sectionsOpen,        setSectionsOpen]        = useState(false)
+  const [editingSection,      setEditingSection]      = useState<string | null>(null)
+  const [editValue,           setEditValue]           = useState('')
+  const [saving,              setSaving]              = useState(false)
+  const [sections,            setSections]            = useState<EhcpSections | null>(plan.sections)
+  const [auditOpen,           setAuditOpen]           = useState(false)
+  const [auditEntries,        setAuditEntries]        = useState<EhcpAuditEntryRow[] | null>(null)
+  const [auditLoading,        setAuditLoading]        = useState(false)
+  const [showAnnualReview,    setShowAnnualReview]    = useState(false)
+  const [annualReviews,       setAnnualReviews]       = useState<EhcpAnnualReviewRow[]>(plan.annualReviews ?? [])
+  const [reviewHistoryOpen,   setReviewHistoryOpen]   = useState(false)
 
   async function handleApprove() {
     setApproving(true)
@@ -88,6 +106,7 @@ export default function EhcpCard({ plan, isSenco }: Props) {
   const isUnderReview = !approved
 
   return (
+    <>
     <div className="space-y-4">
       {/* Pending approval banner (auto-generated or manual) */}
       {isUnderReview && isSenco && (
@@ -204,6 +223,120 @@ export default function EhcpCard({ plan, isSenco }: Props) {
         </div>
       )}
 
+      {/* Annual review — available once approved */}
+      {approved && isSenco && (
+        <div className="border border-purple-100 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-purple-50">
+            <div className="flex items-center gap-2">
+              <Icon name="rate_review" size="sm" className="text-purple-600" />
+              <span className="text-[12px] font-semibold text-purple-900">Annual Reviews</span>
+              {annualReviews.length > 0 && (
+                <span className="text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-bold">
+                  {annualReviews.length}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {annualReviews.length > 0 && (
+                <button
+                  onClick={() => setReviewHistoryOpen(p => !p)}
+                  className="text-[11px] text-purple-600 hover:text-purple-800 font-medium"
+                >
+                  {reviewHistoryOpen ? 'Hide history' : 'View history'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowAnnualReview(true)}
+                className="flex items-center gap-1 text-[11px] font-semibold bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                <Icon name="add" size="sm" /> Conduct Review
+              </button>
+            </div>
+          </div>
+
+          {reviewHistoryOpen && annualReviews.length > 0 && (
+            <div className="divide-y divide-gray-100">
+              {annualReviews.map(r => (
+                <div key={r.id} className="px-4 py-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-semibold text-gray-900">
+                        {new Date(r.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      {r.progressRating && (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${PROGRESS_COLOURS[r.progressRating] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {PROGRESS_LABELS[r.progressRating] ?? r.progressRating}
+                        </span>
+                      )}
+                      {r.amendmentsNeeded && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                          Amendments needed
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a
+                        href={`/api/export/ehcp-review/${r.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 font-medium"
+                      >
+                        <Icon name="picture_as_pdf" size="sm" /> PDF
+                      </a>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-600 line-clamp-2">{r.summary}</p>
+                  <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                    <span>Reviewed by {r.reviewerName}</span>
+                    <span>Next review: {new Date(r.newReviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                    {r.laNotified && <span className="text-green-600">LA notified</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {annualReviews.length === 0 && (
+            <p className="px-4 py-3 text-[12px] text-gray-400">No annual reviews recorded yet.</p>
+          )}
+        </div>
+      )}
+
+      {/* Annual review — read-only history for non-SENCO staff */}
+      {approved && !isSenco && annualReviews.length > 0 && (
+        <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <button
+            onClick={() => setReviewHistoryOpen(p => !p)}
+            className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <span className="flex items-center gap-2">
+              <Icon name="rate_review" size="sm" className="text-purple-500" />
+              Annual Reviews ({annualReviews.length})
+            </span>
+            <Icon name="chevron_right" size="sm" className={`transition-transform ${reviewHistoryOpen ? 'rotate-90' : ''}`} />
+          </button>
+          {reviewHistoryOpen && (
+            <div className="border-t border-gray-100 divide-y divide-gray-100">
+              {annualReviews.map(r => (
+                <div key={r.id} className="px-4 py-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-semibold text-gray-900">
+                      {new Date(r.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                    {r.progressRating && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${PROGRESS_COLOURS[r.progressRating] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {PROGRESS_LABELS[r.progressRating] ?? r.progressRating}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-600 line-clamp-2">{r.summary}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Audit trail — only after approval */}
       {approved && (
         <div className="border-t border-gray-100 pt-3">
@@ -255,5 +388,19 @@ export default function EhcpCard({ plan, isSenco }: Props) {
         </div>
       )}
     </div>
+
+    {showAnnualReview && (
+      <EhcpAnnualReviewModal
+        ehcpId={plan.id}
+        studentName={plan.studentName}
+        onClose={() => setShowAnnualReview(false)}
+        onCompleted={review => {
+          setAnnualReviews(prev => [review, ...prev])
+          setReviewHistoryOpen(true)
+          setShowAnnualReview(false)
+        }}
+      />
+    )}
+    </>
   )
 }

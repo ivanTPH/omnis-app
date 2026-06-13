@@ -331,6 +331,7 @@ model School {
   learningSequences    LearningSequence[]
   studentProfiles      StudentLearningProfile[]
   ehcpPlans            EhcpPlan[]
+  ehcpAnnualReviews    EhcpAnnualReview[] @relation("SchoolEhcpAnnualReviews")
   msgThreads           MsgThread[]
 
   // APDR cycles
@@ -510,6 +511,7 @@ model User {
   studentIlps          IndividualLearningPlan[] @relation("StudentIlps")
   ilpAuditEntries      IlpAuditEntry[]
   ehcpAuditEntries     EhcpAuditEntry[]
+  ehcpReviews          EhcpAnnualReview[] @relation("EhcpReviewedBy")
 
   // APDR
   studentApdr          AssessPlanDoReview[]     @relation("StudentApdr")
@@ -2427,9 +2429,32 @@ model EhcpPlan {
   student      User            @relation("StudentEhcps", fields: [studentId], references: [id])
   creator      User            @relation("EhcpCreator", fields: [createdBy], references: [id])
   outcomes     EhcpOutcome[]
-  auditEntries EhcpAuditEntry[]
+  auditEntries  EhcpAuditEntry[]
+  annualReviews EhcpAnnualReview[]
 
   @@index([schoolId, studentId])
+}
+
+model EhcpAnnualReview {
+  id               String   @id @default(cuid())
+  ehcpId           String
+  schoolId         String
+  reviewDate       DateTime // date the review meeting took place
+  reviewedBy       String   // User.id of SENCO who completed it
+  summary          String   // SENCO review narrative
+  progressRating   String   @default("") // GOOD_PROGRESS | SOME_PROGRESS | INSUFFICIENT | NO_PROGRESS
+  parentComments   String   @default("")
+  amendmentsNeeded Boolean  @default(false)
+  newReviewDate    DateTime // next annual review date set at this meeting
+  laNotified       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  ehcp     EhcpPlan @relation(fields: [ehcpId], references: [id], onDelete: Cascade)
+  school   School   @relation("SchoolEhcpAnnualReviews", fields: [schoolId], references: [id])
+  reviewer User     @relation("EhcpReviewedBy", fields: [reviewedBy], references: [id])
+
+  @@index([ehcpId])
+  @@index([schoolId])
 }
 
 model EhcpAuditEntry {

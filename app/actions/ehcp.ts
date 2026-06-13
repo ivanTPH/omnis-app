@@ -68,6 +68,7 @@ export type EhcpPlanWithOutcomes = {
   ilpId: string | null
   sections: EhcpSections | null
   createdAt: Date
+  annualReviews: EhcpAnnualReviewRow[]
   outcomes: {
     id: string
     section: string
@@ -78,6 +79,20 @@ export type EhcpPlanWithOutcomes = {
     status: string
     evidenceCount: number
   }[]
+}
+
+export type EhcpAnnualReviewRow = {
+  id: string
+  ehcpId: string
+  reviewDate: Date
+  reviewerName: string
+  summary: string
+  progressRating: string
+  parentComments: string
+  amendmentsNeeded: boolean
+  newReviewDate: Date
+  laNotified: boolean
+  createdAt: Date
 }
 
 export type StudentWithoutEhcp = {
@@ -190,7 +205,13 @@ export async function getStudentEhcp(studentId: string): Promise<EhcpPlanWithOut
 
   const plan = await prisma.ehcpPlan.findFirst({
     where: { schoolId, studentId, status: { in: ['active', 'under_review'] } },
-    include: { outcomes: { orderBy: [{ section: 'asc' }, { targetDate: 'asc' }] } },
+    include: {
+      outcomes: { orderBy: [{ section: 'asc' }, { targetDate: 'asc' }] },
+      annualReviews: {
+        include: { reviewer: { select: { firstName: true, lastName: true } } },
+        orderBy: { reviewDate: 'desc' },
+      },
+    },
     orderBy: { planDate: 'desc' },
   })
   if (!plan) return null
@@ -216,6 +237,19 @@ export async function getStudentEhcp(studentId: string): Promise<EhcpPlanWithOut
     ilpId: plan.ilpId,
     sections: plan.sections as EhcpSections | null,
     createdAt: plan.createdAt,
+    annualReviews: (plan as any).annualReviews?.map((r: any) => ({
+      id: r.id,
+      ehcpId: r.ehcpId,
+      reviewDate: r.reviewDate,
+      reviewerName: `${r.reviewer.firstName} ${r.reviewer.lastName}`,
+      summary: r.summary,
+      progressRating: r.progressRating,
+      parentComments: r.parentComments,
+      amendmentsNeeded: r.amendmentsNeeded,
+      newReviewDate: r.newReviewDate,
+      laNotified: r.laNotified,
+      createdAt: r.createdAt,
+    })) ?? [],
     outcomes: plan.outcomes.map(o => ({
       id: o.id,
       section: o.section,
@@ -235,7 +269,13 @@ export async function getAllEhcpPlans(): Promise<EhcpPlanWithOutcomes[]> {
 
   const plans = await prisma.ehcpPlan.findMany({
     where: { schoolId, status: { not: 'ceased' } },
-    include: { outcomes: { orderBy: [{ section: 'asc' }] } },
+    include: {
+      outcomes: { orderBy: [{ section: 'asc' }] },
+      annualReviews: {
+        include: { reviewer: { select: { firstName: true, lastName: true } } },
+        orderBy: { reviewDate: 'desc' },
+      },
+    },
     orderBy: { reviewDate: 'asc' },
   })
 
@@ -264,6 +304,19 @@ export async function getAllEhcpPlans(): Promise<EhcpPlanWithOutcomes[]> {
     ilpId: p.ilpId,
     sections: p.sections as EhcpSections | null,
     createdAt: p.createdAt,
+    annualReviews: (p as any).annualReviews?.map((r: any) => ({
+      id: r.id,
+      ehcpId: r.ehcpId,
+      reviewDate: r.reviewDate,
+      reviewerName: `${r.reviewer.firstName} ${r.reviewer.lastName}`,
+      summary: r.summary,
+      progressRating: r.progressRating,
+      parentComments: r.parentComments,
+      amendmentsNeeded: r.amendmentsNeeded,
+      newReviewDate: r.newReviewDate,
+      laNotified: r.laNotified,
+      createdAt: r.createdAt,
+    })) ?? [],
     outcomes: p.outcomes.map(o => ({
       id: o.id,
       section: o.section,
@@ -662,6 +715,110 @@ Write a formal annual review covering: (1) Overview of the year, (2) Review of e
   } catch {
     return AI_DISCLAIMER + `Unable to generate AI review at this time.\n\n${outcomesSummary}`
   }
+}
+
+// ─── Annual Review workflow ───────────────────────────────────────────────────
+
+export async function conductAnnualReview(
+  ehcpId: string,
+  data: {
+    reviewDate: Date
+    summary: string
+    progressRating: string
+    parentComments: string
+    amendmentsNeeded: boolean
+    newReviewDate: Date
+    laNotified: boolean
+  },
+): Promise<EhcpAnnualReviewRow> {
+  const user = await requireSenco()
+  const schoolId = user.schoolId
+
+  const plan = await prisma.ehcpPlan.findFirst({
+    where: { id: ehcpId, schoolId, approvedBySenco: true },
+    select: { id: true, studentId: true },
+  })
+  if (!plan) throw new Error('EHCP plan not found or not yet approved')
+
+  const [review] = await prisma.$transaction([
+    prisma.ehcpAnnualReview.create({
+      data: {
+        ehcpId,
+        schoolId,
+        reviewedBy: user.id,
+        reviewDate: data.reviewDate,
+        summary: data.summary,
+        progressRating: data.progressRating,
+        parentComments: data.parentComments,
+        amendmentsNeeded: data.amendmentsNeeded,
+        newReviewDate: data.newReviewDate,
+        laNotified: data.laNotified,
+      },
+    }),
+    prisma.ehcpPlan.update({
+      where: { id: ehcpId },
+      data: { reviewDate: data.newReviewDate, status: 'active' },
+    }),
+  ])
+
+  // Audit trail
+  await writeEHCPAudit({
+    ehcpId,
+    userId: user.id,
+    userName: `${user.firstName} ${user.lastName}`,
+    userRole: user.role,
+    fieldChanged: 'reviewDate',
+    previousValue: '',
+    newValue: data.newReviewDate.toISOString(),
+    changeType: 'EDITED',
+  })
+
+  revalidatePath('/senco/ehcp')
+  revalidatePath(`/students/${plan.studentId}`)
+
+  const reviewer = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { firstName: true, lastName: true },
+  })
+
+  return {
+    id: review.id,
+    ehcpId: review.ehcpId,
+    reviewDate: review.reviewDate,
+    reviewerName: reviewer ? `${reviewer.firstName} ${reviewer.lastName}` : 'Unknown',
+    summary: review.summary,
+    progressRating: review.progressRating,
+    parentComments: review.parentComments,
+    amendmentsNeeded: review.amendmentsNeeded,
+    newReviewDate: review.newReviewDate,
+    laNotified: review.laNotified,
+    createdAt: review.createdAt,
+  }
+}
+
+export async function getEhcpAnnualReviews(ehcpId: string): Promise<EhcpAnnualReviewRow[]> {
+  const user = await requireSencoOrStaff()
+  const schoolId = user.schoolId
+
+  const reviews = await prisma.ehcpAnnualReview.findMany({
+    where: { ehcpId, schoolId },
+    include: { reviewer: { select: { firstName: true, lastName: true } } },
+    orderBy: { reviewDate: 'desc' },
+  })
+
+  return reviews.map(r => ({
+    id: r.id,
+    ehcpId: r.ehcpId,
+    reviewDate: r.reviewDate,
+    reviewerName: `${r.reviewer.firstName} ${r.reviewer.lastName}`,
+    summary: r.summary,
+    progressRating: r.progressRating,
+    parentComments: r.parentComments,
+    amendmentsNeeded: r.amendmentsNeeded,
+    newReviewDate: r.newReviewDate,
+    laNotified: r.laNotified,
+    createdAt: r.createdAt,
+  }))
 }
 
 // ─── Auto-generation from ILP escalation ─────────────────────────────────────

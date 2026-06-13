@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { markPlatformNotificationRead, markAllPlatformNotificationsRead } from '@/app/actions/messaging'
+import { markPlatformNotificationRead, markAllPlatformNotificationsRead, dismissNotification, clearReadNotifications } from '@/app/actions/messaging'
 import { logTeacherIntervention } from '@/app/actions/send-support'
 import type { PlatformNotificationRow } from '@/app/actions/messaging'
 
@@ -99,19 +99,48 @@ export default function NotificationsView({
     })
   }
 
+  function handleDismiss(id: string) {
+    setItems(prev => prev.filter(n => n.id !== id))
+    start(async () => {
+      await dismissNotification(id)
+      router.refresh()
+    })
+  }
+
+  function handleClearRead() {
+    setItems(prev => prev.filter(n => !n.read))
+    start(async () => {
+      await clearReadNotifications()
+      router.refresh()
+    })
+  }
+
+  const readCount = items.filter(n => n.read).length
+
   return (
     <div className="flex-1 overflow-auto px-6 py-6 max-w-2xl mx-auto w-full">
 
       <PageHeader
         title="Notifications"
         subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
-        action={unreadCount > 0 ? (
-          <button onClick={handleMarkAll} disabled={isPending}
-            className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors disabled:opacity-40">
-            {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
-            Mark all read
-          </button>
-        ) : undefined}
+        action={
+          <div className="flex items-center gap-2">
+            {readCount > 0 && (
+              <button onClick={handleClearRead} disabled={isPending}
+                className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-600 font-medium transition-colors disabled:opacity-40">
+                <Icon name="delete_sweep" size="sm" />
+                Clear read
+              </button>
+            )}
+            {unreadCount > 0 && (
+              <button onClick={handleMarkAll} disabled={isPending}
+                className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors disabled:opacity-40">
+                {isPending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
+                Mark all read
+              </button>
+            )}
+          </div>
+        }
       />
 
       {/* Filter chips */}
@@ -200,6 +229,13 @@ export default function NotificationsView({
                       Mark read
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDismiss(n.id)}
+                    className="text-gray-300 hover:text-gray-500 transition-colors"
+                    title="Dismiss"
+                  >
+                    <Icon name="close" size="sm" />
+                  </button>
                 </div>
               </div>
 

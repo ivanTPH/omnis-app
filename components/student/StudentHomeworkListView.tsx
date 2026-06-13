@@ -6,6 +6,95 @@ import Icon                  from '@/components/ui/Icon'
 import { gradePillClass, gradeLabel } from '@/lib/grading'
 import type { MobileHw }     from '@/components/StudentMobileDashboard'
 
+// ── Calendar helpers ──────────────────────────────────────────────────────────
+
+function startOfWeek(d: Date): Date {
+  const day = d.getDay() // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day // Monday-based
+  const monday = new Date(d)
+  monday.setHours(0, 0, 0, 0)
+  monday.setDate(d.getDate() + diff)
+  return monday
+}
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d)
+  r.setDate(r.getDate() + n)
+  return r
+}
+
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+function CalendarView({ homework }: { homework: MobileHw[] }) {
+  const [weekOffset, setWeekOffset] = useState(0)
+  const weekStart = startOfWeek(addDays(new Date(), weekOffset * 7))
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+
+  const byDay = useMemo(() => {
+    const map = new Map<string, MobileHw[]>()
+    for (const hw of homework) {
+      const key = new Date(hw.dueAt).toDateString()
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(hw)
+    }
+    return map
+  }, [homework])
+
+  const weekLabel = `${weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${addDays(weekStart, 6).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+
+  return (
+    <div>
+      {/* Week nav */}
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setWeekOffset(w => w - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+          <Icon name="chevron_left" size="md" />
+        </button>
+        <span className="text-[13px] font-semibold text-gray-700">{weekLabel}</span>
+        <button onClick={() => setWeekOffset(w => w + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+          <Icon name="chevron_right" size="md" />
+        </button>
+      </div>
+
+      {/* Day columns */}
+      <div className="grid grid-cols-7 gap-1.5">
+        {days.map((day, i) => {
+          const isToday    = day.toDateString() === new Date().toDateString()
+          const dayHw      = byDay.get(day.toDateString()) ?? []
+          return (
+            <div key={i} className="min-h-[100px]">
+              <div className={`text-center mb-1.5 px-1 py-1 rounded-lg text-[10px] font-semibold ${
+                isToday ? 'bg-blue-600 text-white' : 'text-gray-400'
+              }`}>
+                <div>{DAY_LABELS[i]}</div>
+                <div className={`text-[12px] font-bold ${isToday ? 'text-white' : 'text-gray-700'}`}>
+                  {day.getDate()}
+                </div>
+              </div>
+              <div className="space-y-1">
+                {dayHw.map(hw => (
+                  <Link
+                    key={hw.id}
+                    href={`/student/homework/${hw.id}`}
+                    className={`block px-1.5 py-1 rounded text-[9px] font-medium leading-tight hover:opacity-80 transition ${STATUS_STYLES[hw.status] ?? 'bg-gray-100 text-gray-600'}`}
+                    title={hw.title}
+                  >
+                    <div className="truncate">{hw.subject}</div>
+                    <div className="truncate opacity-80">{hw.title}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {byDay.size === 0 && (
+        <p className="text-center text-[13px] text-gray-400 py-6">No homework due this week.</p>
+      )}
+    </div>
+  )
+}
+
 const STATUS_CHIPS = [
   { key: undefined,    label: 'All' },
   { key: 'overdue',   label: 'Overdue' },
@@ -50,7 +139,8 @@ export default function StudentHomeworkListView({
   const [activeStatus, setActiveStatus] = useState<string | undefined>(
     initialStatus && initialStatus !== 'all' ? initialStatus : undefined
   )
-  const [search, setSearch] = useState('')
+  const [search, setSearch]   = useState('')
+  const [view, setView]       = useState<'list' | 'calendar'>('list')
 
   const filtered = useMemo(() => {
     let items = homework
@@ -72,10 +162,34 @@ export default function StudentHomeworkListView({
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-page-title">My Homework</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">{homework.length} piece{homework.length !== 1 ? 's' : ''} assigned</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-page-title">My Homework</h1>
+          <p className="text-[13px] text-gray-400 mt-0.5">{homework.length} piece{homework.length !== 1 ? 's' : ''} assigned</p>
+        </div>
+        <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-0.5 bg-white">
+          <button
+            onClick={() => setView('list')}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${view === 'list' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+          >
+            <Icon name="list" size="sm" />
+            List
+          </button>
+          <button
+            onClick={() => setView('calendar')}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${view === 'calendar' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+          >
+            <Icon name="calendar_month" size="sm" />
+            Calendar
+          </button>
+        </div>
       </div>
+
+      {/* Calendar view */}
+      {view === 'calendar' && <CalendarView homework={homework} />}
+
+      {/* List view controls (hidden in calendar mode) */}
+      {view === 'list' && <>
 
       {/* Search */}
       <div className="relative mb-4">
@@ -149,6 +263,7 @@ export default function StudentHomeworkListView({
           ))}
         </div>
       )}
+      </>}
     </div>
   )
 }

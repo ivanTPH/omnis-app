@@ -11,6 +11,8 @@ import { ToastContainer } from '@/components/ui/Toast'
 import GuideChatButton from '@/components/help/GuideChatButton'
 import OnboardingChecklist from '@/components/help/OnboardingChecklist'
 import GlobalSearch from '@/components/GlobalSearch'
+import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
+import Link from 'next/link'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
 const STAFF_ROLES = new Set(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'])
@@ -118,6 +120,13 @@ export default function AppShell({
                 <Icon name="menu" size="md" />
               </button>
               <OmnisLogo variant="sidebar" />
+              <div className="flex-1" />
+              <Link href="/notifications" className="relative p-1.5 text-gray-400 hover:text-gray-600">
+                <Icon name="notifications" size="md" />
+                <span className="absolute top-0.5 right-0.5">
+                  <NotificationUnreadBadge />
+                </span>
+              </Link>
             </div>
           )}
 

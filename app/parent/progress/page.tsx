@@ -5,6 +5,7 @@ import AppShell from '@/components/AppShell'
 import { PlanStatus } from '@prisma/client'
 import Icon from '@/components/ui/Icon'
 import { formatRawScore } from '@/lib/gradeUtils'
+import Link from 'next/link'
 
 export default async function ParentProgressPage() {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
@@ -101,12 +102,56 @@ export default async function ParentProgressPage() {
             <div key={child.id} className="mb-10">
 
               {/* Child header */}
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                   <span className="text-blue-700 font-bold text-[13px]">{child.firstName[0]}{child.lastName[0]}</span>
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900">{child.firstName} {child.lastName}</h2>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-[15px] font-bold text-gray-900">{child.firstName} {child.lastName}</h2>
+                </div>
+                <Link
+                  href={`/api/export/student-progress/${child.id}`}
+                  target="_blank"
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                >
+                  <Icon name="picture_as_pdf" size="sm" />
+                  Progress Report
+                </Link>
               </div>
+
+              {/* Attendance bar */}
+              {child.attendancePercentage != null && (
+                <div className="mb-6 bg-white border border-gray-200 rounded-xl px-5 py-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[13px] font-semibold text-gray-800">Attendance</span>
+                    <span className={`text-[14px] font-bold ${
+                      child.attendancePercentage >= 95 ? 'text-green-600' :
+                      child.attendancePercentage >= 90 ? 'text-amber-600' : 'text-rose-600'
+                    }`}>{child.attendancePercentage}%</span>
+                  </div>
+                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden relative">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        child.attendancePercentage >= 95 ? 'bg-green-500' :
+                        child.attendancePercentage >= 90 ? 'bg-amber-400' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${Math.min(100, child.attendancePercentage)}%` }}
+                    />
+                    {/* 95% target marker */}
+                    <div className="absolute top-0 bottom-0 w-px bg-gray-400" style={{ left: '95%' }} />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-gray-400">
+                      {child.attendancePercentage >= 95
+                        ? 'Excellent — above the 95% target'
+                        : child.attendancePercentage >= 90
+                        ? `${(95 - child.attendancePercentage).toFixed(0)}% below the 95% target`
+                        : 'Persistent absence — please contact school'}
+                    </span>
+                    <span className="text-[10px] text-gray-400">Target: 95%</span>
+                  </div>
+                </div>
+              )}
 
               {byClass.length === 0 && (
                 <div className="text-center py-10 border border-dashed border-gray-200 rounded-2xl text-gray-400">

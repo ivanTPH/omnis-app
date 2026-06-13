@@ -433,6 +433,20 @@ export async function markAllPlatformNotificationsRead(): Promise<void> {
   })
 }
 
+export async function dismissNotification(id: string): Promise<void> {
+  const user = await requireAuth()
+  await prisma.notification.deleteMany({
+    where: { id, userId: user.id },
+  })
+}
+
+export async function clearReadNotifications(): Promise<void> {
+  const user = await requireAuth()
+  await prisma.notification.deleteMany({
+    where: { userId: user.id, read: true },
+  })
+}
+
 // ── Admin / SLT parent message monitoring ─────────────────────────────────────
 
 export type ParentThreadSummary = {

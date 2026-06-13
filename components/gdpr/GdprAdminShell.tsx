@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { ConsentPurposeData, ConsentMatrixStudent, DsrRow } from '@/app/actions/gdpr'
+import type { ConsentPurposeData, ConsentMatrixStudent, DsrRow, StudentOption } from '@/app/actions/gdpr'
 import ConsentPurposeList from './ConsentPurposeList'
 import ConsentMatrix from './ConsentMatrix'
 import DataSubjectRequestList from './DataSubjectRequestList'
@@ -14,6 +14,7 @@ type Props = {
   matrixPurposes: ConsentPurposeData[]
   students: ConsentMatrixStudent[]
   dsrs: DsrRow[]
+  studentOptions: StudentOption[]
 }
 
 const TABS: { id: Tab; label: string }[] = [
@@ -22,7 +23,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'dsr',      label: 'Data Subject Requests' },
 ]
 
-export default function GdprAdminShell({ schoolId, purposes, matrixPurposes, students, dsrs }: Props) {
+export default function GdprAdminShell({ schoolId, purposes, matrixPurposes, students, dsrs, studentOptions }: Props) {
   const [tab, setTab] = useState<Tab>('purposes')
 
   return (
@@ -51,7 +52,7 @@ export default function GdprAdminShell({ schoolId, purposes, matrixPurposes, stu
         <ConsentMatrix purposes={matrixPurposes} students={students} schoolId={schoolId} />
       )}
       {tab === 'dsr' && (
-        <DataSubjectRequestList dsrs={dsrs} />
+        <DataSubjectRequestList dsrs={dsrs} students={studentOptions} />
       )}
     </div>
   )

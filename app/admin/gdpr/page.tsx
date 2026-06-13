@@ -1,17 +1,18 @@
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import { getPurposes, getConsentMatrix, getDataSubjectRequests } from '@/app/actions/gdpr'
+import { getPurposes, getConsentMatrix, getDataSubjectRequests, getStudentsForDsr } from '@/app/actions/gdpr'
 import GdprAdminShell from '@/components/gdpr/GdprAdminShell'
 
 export default async function AdminGdprPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
-  const [purposes, matrix, dsrs] = await Promise.all([
+  const [purposes, matrix, dsrs, studentOptions] = await Promise.all([
     getPurposes(schoolId),
     getConsentMatrix(schoolId),
     getDataSubjectRequests(schoolId),
+    getStudentsForDsr(),
   ])
 
   return (
@@ -30,6 +31,7 @@ export default async function AdminGdprPage() {
             matrixPurposes={matrix.purposes}
             students={matrix.students}
             dsrs={dsrs}
+            studentOptions={studentOptions}
           />
         </div>
       </main>

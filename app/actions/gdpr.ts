@@ -2,7 +2,7 @@
 
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -37,6 +37,14 @@ export type DsrRow = {
   notes: string | null
   submittedAt: Date
   resolvedAt: Date | null
+}
+
+export type StudentOption = {
+  id: string
+  firstName: string
+  lastName: string
+  yearGroup: number | null
+  email: string
 }
 
 export type ChildConsentData = {
@@ -345,4 +353,162 @@ export async function recordConsent(
     },
   })
   revalidatePath('/parent/consent')
+}
+
+// ─── Article 17 — Data Subject Requests (submit + erasure) ───────────────────
+
+export async function getStudentsForDsr(): Promise<StudentOption[]> {
+  const user = await requireAdminOrSlt()
+  return prisma.user.findMany({
+    where: { schoolId: user.schoolId!, role: 'STUDENT' },
+    select: { id: true, firstName: true, lastName: true, yearGroup: true, email: true },
+    orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+  })
+}
+
+export async function submitDataSubjectRequest(
+  studentId: string | null,
+  requestType: string,
+  notes: string,
+): Promise<void> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId!
+
+  if (studentId) {
+    const student = await prisma.user.findFirst({ where: { id: studentId, schoolId } })
+    if (!student) throw new Error('Student not found in this school')
+  }
+
+  await prisma.dataSubjectRequest.create({
+    data: { schoolId, requestType, studentId: studentId ?? null, submittedBy: user.id, status: 'pending', notes: notes || null },
+  })
+  revalidatePath('/admin/gdpr')
+}
+
+export async function executeErasure(dsrId: string): Promise<{ studentName: string }> {
+  const user = await requireAdminOrSlt()
+  if (user.role !== 'SCHOOL_ADMIN') throw new Error('Only SCHOOL_ADMIN can execute erasure')
+  const schoolId = user.schoolId!
+
+  const dsr = await prisma.dataSubjectRequest.findFirst({
+    where: { id: dsrId, schoolId, requestType: 'erasure' },
+  })
+  if (!dsr) throw new Error('Request not found')
+  if (!dsr.studentId) throw new Error('No student linked to this erasure request')
+  if (dsr.status === 'completed') throw new Error('Erasure has already been executed')
+
+  const studentId = dsr.studentId
+
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId },
+    select: { firstName: true, lastName: true },
+  })
+  if (!student) throw new Error('Student not found in this school')
+  const studentName = `${student.firstName} ${student.lastName}`
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Submission chain — leaf to root
+    const submissions = await tx.submission.findMany({ where: { studentId }, select: { id: true } })
+    const submissionIds = submissions.map(s => s.id)
+
+    if (submissionIds.length > 0) {
+      const attempts = await tx.submissionAttempt.findMany({
+        where: { submissionId: { in: submissionIds } },
+        select: { id: true },
+      })
+      const attemptIds = attempts.map(a => a.id)
+      if (attemptIds.length > 0) {
+        await tx.submissionIntegritySignal.deleteMany({ where: { attemptId: { in: attemptIds } } })
+        await tx.submissionAttemptAnswer.deleteMany({ where: { attemptId: { in: attemptIds } } })
+        await tx.submissionAttempt.deleteMany({ where: { id: { in: attemptIds } } })
+      }
+      await tx.ilpEvidenceEntry.deleteMany({ where: { submissionId: { in: submissionIds } } })
+      await tx.submission.deleteMany({ where: { id: { in: submissionIds } } })
+    }
+
+    // 2. SEND & pastoral data
+    await tx.taNote.deleteMany({ where: { studentId } })
+    await tx.parentContactEntry.deleteMany({ where: { studentId } })
+    await tx.sendConcern.deleteMany({ where: { studentId } })
+    await tx.earlyWarningFlag.deleteMany({ where: { studentId } })
+    await tx.sendNotification.deleteMany({ where: { recipientId: studentId } })
+    await tx.notification.deleteMany({ where: { userId: studentId } })
+
+    // 3. Learning profile & agent data
+    await tx.studentLearningProfile.deleteMany({ where: { studentId } })
+    await tx.agentSnapshot.deleteMany({ where: { studentId } })
+    await tx.studentQuickNote.deleteMany({ where: { studentId } })
+    await tx.studentBaseline.deleteMany({ where: { studentId } })
+
+    // 4. Revision data
+    await tx.revisionConfidence.deleteMany({ where: { studentId } })
+    await tx.revisionSession.deleteMany({ where: { studentId } })
+    await tx.revisionExam.deleteMany({ where: { studentId } })
+    await tx.revisionProgress.deleteMany({ where: { studentId } })
+
+    // 5. Messaging
+    await tx.msgMessage.deleteMany({ where: { senderId: studentId } })
+    await tx.msgParticipant.deleteMany({ where: { userId: studentId } })
+
+    // 6. Enrolment & relationships
+    await tx.enrolment.deleteMany({ where: { userId: studentId } })
+    await tx.studentSubject.deleteMany({ where: { studentId } })
+    await tx.parentStudentLink.deleteMany({ where: { studentId } })
+    await tx.parentChildLink.deleteMany({ where: { childId: studentId } })
+
+    // 7. Auth & settings
+    await tx.consentRecord.deleteMany({ where: { studentId } })
+    await tx.passwordResetToken.deleteMany({ where: { userId: studentId } })
+    await tx.userSettings.deleteMany({ where: { userId: studentId } })
+    await tx.userAccessibilitySettings.deleteMany({ where: { userId: studentId } })
+
+    // 8. K Plan / Learning Passport
+    await tx.kPlan.deleteMany({ where: { studentId } })
+    await tx.learnerPassport.deleteMany({ where: { studentId } })
+
+    // NOTE: IndividualLearningPlan, EhcpPlan, AssessPlanDoReview, SendStatus, and
+    // AuditLog are intentionally retained under DfE 7-year retention obligation.
+
+    // 9. Anonymise User PII — keep row for audit trail integrity
+    await tx.user.update({
+      where: { id: studentId },
+      data: {
+        firstName: '[Deleted',
+        lastName: 'User]',
+        email: `erased-${studentId}@erased.local`,
+        passwordHash: '',
+        avatarUrl: null,
+        dateOfBirth: null,
+        tutorGroup: null,
+        supportSnapshot: null,
+        attendancePercentage: null,
+        behaviourPositive: null,
+        behaviourNegative: null,
+        hasExclusion: null,
+        isFsm: null,
+        isEal: null,
+        ethnicGroup: null,
+        department: null,
+        isActive: false,
+      },
+    })
+
+    // 10. Mark DSR complete
+    await tx.dataSubjectRequest.update({
+      where: { id: dsrId },
+      data: {
+        status: 'completed',
+        resolvedAt: new Date(),
+        notes: `Erasure executed by ${user.firstName} ${user.lastName} on ${new Date().toLocaleDateString('en-GB')}. PII anonymised; SEND records retained per DfE 7-year obligation.`,
+      },
+    })
+  }, { timeout: 30_000 })
+
+  // Audit (best-effort, outside transaction)
+  try {
+    await writeAudit({ schoolId, actorId: user.id, action: 'USER_DATA_ERASED', targetType: 'user', targetId: studentId })
+  } catch { /* non-fatal */ }
+
+  revalidatePath('/admin/gdpr')
+  return { studentName }
 }

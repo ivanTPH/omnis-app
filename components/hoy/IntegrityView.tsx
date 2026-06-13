@@ -5,6 +5,7 @@ import Icon from '@/components/ui/Icon'
 import {
   reviewIntegritySignal,
   closePatternCase,
+  escalatePatternCase,
   updatePatternCaseStatus,
 } from '@/app/actions/integrity'
 
@@ -29,15 +30,20 @@ export type SignalRow = {
 }
 
 export type PatternCaseRow = {
-  id:           string
-  studentId:    string
-  studentName:  string
-  status:       string
-  triggerCount: number
-  subjectCount: number
-  openedAt:     string
-  closedAt?:    string | null
-  notes?:       string | null
+  id:               string
+  studentId:        string
+  studentName:      string
+  status:           string
+  triggerCount:     number
+  subjectCount:     number
+  openedAt:         string
+  closedAt?:        string | null
+  notes?:           string | null
+  escalatedAt?:     string | null
+  escalatedByName?: string | null
+  escalatedNotes?:  string | null
+  outcomeCategory?: string | null
+  closedByName?:    string | null
 }
 
 const RISK_CHIP: Record<string, string> = {
@@ -49,6 +55,7 @@ const RISK_CHIP: Record<string, string> = {
 const CASE_STATUS_STYLE: Record<string, string> = {
   OPEN:              'bg-rose-100 text-rose-700',
   UNDER_REVIEW:      'bg-amber-100 text-amber-700',
+  ESCALATED:         'bg-purple-100 text-purple-700',
   CLOSED_NO_ACTION:  'bg-gray-100 text-gray-500',
   CLOSED_ACTIONED:   'bg-green-100 text-green-700',
 }
@@ -56,9 +63,21 @@ const CASE_STATUS_STYLE: Record<string, string> = {
 const CASE_STATUS_LABEL: Record<string, string> = {
   OPEN:              'Open',
   UNDER_REVIEW:      'Under Review',
+  ESCALATED:         'Escalated to SLT',
   CLOSED_NO_ACTION:  'Closed — No Action',
   CLOSED_ACTIONED:   'Closed — Actioned',
 }
+
+const OUTCOME_CATEGORIES = [
+  'Verbal warning',
+  'Written warning',
+  'Parent contacted',
+  'Detention',
+  'Referred to SLT',
+  'Academic penalty',
+  'No further action',
+  'Other',
+]
 
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -192,15 +211,26 @@ function SignalTableRow({ signal, onDone }: { signal: SignalRow; onDone: () => v
 
 // ── Pattern case row ─────────────────────────────────────────────────────────
 
-function PatternCaseTableRow({ c, onDone }: { c: PatternCaseRow; onDone: () => void }) {
-  const [open, setOpen]         = useState(false)
-  const [notes, setNotes]       = useState(c.notes ?? '')
-  const [isPending, startTrans] = useTransition()
-  const isClosed = c.status.startsWith('CLOSED')
+function PatternCaseTableRow({ c, role, onDone }: { c: PatternCaseRow; role: string; onDone: () => void }) {
+  const [open, setOpen]                 = useState(false)
+  const [notes, setNotes]               = useState(c.notes ?? '')
+  const [escalateNotes, setEscalateNotes] = useState('')
+  const [outcomeCategory, setOutcomeCategory] = useState(c.outcomeCategory ?? '')
+  const [isPending, startTrans]         = useTransition()
+  const isClosed    = c.status.startsWith('CLOSED')
+  const isEscalated = c.status === 'ESCALATED'
 
   function close(outcome: 'CLOSED_NO_ACTION' | 'CLOSED_ACTIONED') {
     startTrans(async () => {
-      await closePatternCase(c.id, outcome, notes || undefined)
+      await closePatternCase(c.id, outcome, notes || undefined, outcomeCategory || undefined)
+      setOpen(false)
+      onDone()
+    })
+  }
+
+  function escalate() {
+    startTrans(async () => {
+      await escalatePatternCase(c.id, escalateNotes || undefined)
       setOpen(false)
       onDone()
     })
@@ -240,11 +270,34 @@ function PatternCaseTableRow({ c, onDone }: { c: PatternCaseRow; onDone: () => v
       </tr>
       {open && (
         <tr className="bg-amber-50">
-          <td colSpan={5} className="px-4 py-3">
+          <td colSpan={5} className="px-4 py-3 space-y-3">
+
+            {/* Escalation provenance */}
+            {c.escalatedByName && (
+              <div className="flex items-start gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                <Icon name="arrow_upward" size="sm" className="text-purple-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-purple-700">
+                  Escalated to SLT by <strong>{c.escalatedByName}</strong>
+                  {c.escalatedAt ? ` · ${relativeTime(c.escalatedAt)}` : ''}
+                  {c.escalatedNotes ? ` · "${c.escalatedNotes}"` : ''}
+                </p>
+              </div>
+            )}
+
+            {/* Closure info */}
+            {isClosed && c.closedByName && (
+              <p className="text-[11px] text-gray-500">
+                Closed by <strong>{c.closedByName}</strong>
+                {c.closedAt ? ` · ${relativeTime(c.closedAt)}` : ''}
+                {c.outcomeCategory ? ` · Outcome: ${c.outcomeCategory}` : ''}
+              </p>
+            )}
+
             <div className="flex flex-wrap items-end gap-3">
-              {!isClosed && (
+              {/* Notes input */}
+              {!isClosed && !isEscalated && (
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-[11px] font-medium text-gray-500 mb-1">Notes</label>
+                  <label className="block text-[11px] font-medium text-gray-500 mb-1">Case notes</label>
                   <input
                     type="text"
                     value={notes}
@@ -254,8 +307,40 @@ function PatternCaseTableRow({ c, onDone }: { c: PatternCaseRow; onDone: () => v
                   />
                 </div>
               )}
+
+              {/* Outcome category for closing */}
+              {!isClosed && !isEscalated && (
+                <div className="min-w-[180px]">
+                  <label className="block text-[11px] font-medium text-gray-500 mb-1">Outcome category</label>
+                  <select
+                    value={outcomeCategory}
+                    onChange={e => setOutcomeCategory(e.target.value)}
+                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  >
+                    <option value="">Select outcome…</option>
+                    {OUTCOME_CATEGORIES.map(o => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* HOY escalation notes */}
+              {!isClosed && !isEscalated && role === 'HEAD_OF_YEAR' && (
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-[11px] font-medium text-gray-500 mb-1">Escalation notes (optional)</label>
+                  <input
+                    type="text"
+                    value={escalateNotes}
+                    onChange={e => setEscalateNotes(e.target.value)}
+                    placeholder="Reason for escalating to SLT…"
+                    className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300"
+                  />
+                </div>
+              )}
+
               <div className="flex gap-2 flex-wrap">
-                {!isClosed && c.status !== 'UNDER_REVIEW' && (
+                {!isClosed && !isEscalated && c.status !== 'UNDER_REVIEW' && (
                   <button
                     disabled={isPending}
                     onClick={e => { e.stopPropagation(); markUnderReview() }}
@@ -265,7 +350,17 @@ function PatternCaseTableRow({ c, onDone }: { c: PatternCaseRow; onDone: () => v
                     Mark Under Review
                   </button>
                 )}
-                {!isClosed && (
+                {!isClosed && !isEscalated && role === 'HEAD_OF_YEAR' && (
+                  <button
+                    disabled={isPending}
+                    onClick={e => { e.stopPropagation(); escalate() }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-[11px] font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                  >
+                    <Icon name="arrow_upward" size="sm" />
+                    Escalate to SLT
+                  </button>
+                )}
+                {!isClosed && !isEscalated && (
                   <>
                     <button
                       disabled={isPending}
@@ -285,7 +380,7 @@ function PatternCaseTableRow({ c, onDone }: { c: PatternCaseRow; onDone: () => v
                     </button>
                   </>
                 )}
-                {isClosed && (
+                {(isClosed || isEscalated) && (
                   <button
                     disabled={isPending}
                     onClick={e => { e.stopPropagation(); reopen() }}
@@ -302,7 +397,7 @@ function PatternCaseTableRow({ c, onDone }: { c: PatternCaseRow; onDone: () => v
                   Cancel
                 </button>
               </div>
-              {c.notes && (
+              {c.notes && !isClosed && (
                 <p className="w-full text-[11px] text-gray-500 mt-1">Existing notes: &quot;{c.notes}&quot;</p>
               )}
             </div>
@@ -322,10 +417,12 @@ export default function IntegrityView({
   signals,
   patternCases,
   yearGroup,
+  role,
 }: {
   signals:      SignalRow[]
   patternCases: PatternCaseRow[]
   yearGroup:    number | null
+  role:         string
 }) {
   const [filter, setFilter]           = useState<Filter>('ALL')
   const [caseFilter, setCaseFilter]   = useState<CaseFilter>('OPEN')
@@ -336,14 +433,16 @@ export default function IntegrityView({
     ? signals
     : signals.filter(s => s.riskLevel === filter)
 
+  const isActive = (c: PatternCaseRow) => !c.status.startsWith('CLOSED')
+
   const visibleCases = caseFilter === 'OPEN'
-    ? patternCases.filter(c => !c.status.startsWith('CLOSED'))
+    ? patternCases.filter(isActive)
     : patternCases
 
   const highCount   = signals.filter(s => s.riskLevel === 'HIGH').length
   const medCount    = signals.filter(s => s.riskLevel === 'MEDIUM').length
   const lowCount    = signals.filter(s => s.riskLevel === 'LOW').length
-  const openCases   = patternCases.filter(c => !c.status.startsWith('CLOSED')).length
+  const openCases   = patternCases.filter(isActive).length
   const reviewedCount = signals.filter(s => s.reviewLogs.length > 0).length
 
   function onDone() { setTick(t => t + 1) }
@@ -486,7 +585,7 @@ export default function IntegrityView({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {visibleCases.map(c => (
-                  <PatternCaseTableRow key={c.id + tick} c={c} onDone={onDone} />
+                  <PatternCaseTableRow key={c.id + tick} c={c} role={role} onDone={onDone} />
                 ))}
               </tbody>
             </table>

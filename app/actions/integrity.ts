@@ -52,6 +52,7 @@ export async function closePatternCase(
   caseId: string,
   outcome: 'CLOSED_NO_ACTION' | 'CLOSED_ACTIONED',
   notes?: string,
+  outcomeCategory?: string,
 ): Promise<void> {
   const user = await requireAuth(ALLOWED as unknown as string[])
 
@@ -64,12 +65,74 @@ export async function closePatternCase(
   await prisma.integrityPatternCase.update({
     where: { id: caseId },
     data: {
-      status:   outcome,
-      closedAt: new Date(),
-      closedBy: user.id,
-      notes:    notes ?? null,
+      status:          outcome,
+      closedAt:        new Date(),
+      closedBy:        user.id,
+      notes:           notes ?? null,
+      outcomeCategory: outcomeCategory ?? null,
     },
   })
+
+  revalidatePath('/hoy/integrity')
+}
+
+export async function escalatePatternCase(
+  caseId: string,
+  notes?: string,
+): Promise<void> {
+  const user = await requireAuth(ALLOWED as unknown as string[])
+
+  const existing = await prisma.integrityPatternCase.findFirst({
+    where: { id: caseId, schoolId: user.schoolId },
+  })
+  if (!existing) return
+
+  await prisma.integrityPatternCase.update({
+    where: { id: caseId },
+    data: {
+      status:         'ESCALATED',
+      escalatedBy:    user.id,
+      escalatedAt:    new Date(),
+      escalatedNotes: notes ?? null,
+    },
+  })
+
+  await writeAudit({
+    schoolId:   user.schoolId,
+    actorId:    user.id,
+    action:     'INTEGRITY_CASE_ESCALATED',
+    targetId:   caseId,
+    targetType: 'IntegrityPatternCase',
+    metadata:   { notes: notes ?? null },
+  })
+
+  // Notify all SLT users
+  const sltUsers = await prisma.user.findMany({
+    where: { schoolId: user.schoolId, role: 'SLT', isActive: true },
+    select: { id: true },
+  })
+
+  // Resolve the student name
+  const student = await prisma.user.findUnique({
+    where: { id: existing.studentId },
+    select: { firstName: true, lastName: true },
+  })
+  const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+  const escalatedBy = `${user.firstName} ${user.lastName}`
+
+  if (sltUsers.length > 0) {
+    await prisma.notification.createMany({
+      data: sltUsers.map(slt => ({
+        schoolId: user.schoolId,
+        userId:   slt.id,
+        type:     'CONCERN_RAISED',
+        title:    'Integrity case escalated to SLT',
+        body:     `${escalatedBy} has escalated an academic integrity case for ${studentName} to SLT for review.${notes ? ` Note: ${notes}` : ''}`,
+        linkHref: '/hoy/integrity',
+      })),
+      skipDuplicates: true,
+    })
+  }
 
   revalidatePath('/hoy/integrity')
 }

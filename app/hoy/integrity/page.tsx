@@ -92,18 +92,34 @@ export default async function HoyIntegrityPage() {
     })),
   }))
 
+  // Resolve names for closedBy and escalatedBy on pattern cases
+  const extraUserIds = [
+    ...rawCases.map(c => c.closedBy).filter(Boolean) as string[],
+    ...rawCases.map(c => c.escalatedBy).filter(Boolean) as string[],
+  ]
+  const extraUsers = extraUserIds.length > 0 ? await prisma.user.findMany({
+    where: { id: { in: [...new Set(extraUserIds)] } },
+    select: { id: true, firstName: true, lastName: true },
+  }) : []
+  const userNameMap = new Map(extraUsers.map(u => [u.id, `${u.firstName} ${u.lastName}`]))
+
   const patternCases: PatternCaseRow[] = rawCases.map(c => {
     const st = studentMap.get(c.studentId)
     return {
-      id:           c.id,
-      studentId:    c.studentId,
-      studentName:  st ? `${st.firstName} ${st.lastName}` : '—',
-      status:       c.status,
-      triggerCount: c.triggerCount,
-      subjectCount: c.subjectCount,
-      openedAt:     c.openedAt.toISOString(),
-      closedAt:     c.closedAt?.toISOString() ?? null,
-      notes:        c.notes,
+      id:               c.id,
+      studentId:        c.studentId,
+      studentName:      st ? `${st.firstName} ${st.lastName}` : '—',
+      status:           c.status,
+      triggerCount:     c.triggerCount,
+      subjectCount:     c.subjectCount,
+      openedAt:         c.openedAt.toISOString(),
+      closedAt:         c.closedAt?.toISOString() ?? null,
+      notes:            c.notes,
+      escalatedAt:      c.escalatedAt?.toISOString() ?? null,
+      escalatedByName:  c.escalatedBy ? (userNameMap.get(c.escalatedBy) ?? null) : null,
+      escalatedNotes:   c.escalatedNotes ?? null,
+      outcomeCategory:  c.outcomeCategory ?? null,
+      closedByName:     c.closedBy ? (userNameMap.get(c.closedBy) ?? null) : null,
     }
   })
 
@@ -113,6 +129,7 @@ export default async function HoyIntegrityPage() {
         signals={signals}
         patternCases={patternCases}
         yearGroup={myYearGroup}
+        role={role}
       />
     </AppShell>
   )

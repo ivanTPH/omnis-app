@@ -1117,6 +1117,103 @@ export async function getStudentsWithSendButNoIlp(): Promise<StudentWithoutIlp[]
   }))
 }
 
+// ── SEND Register export ─────────────────────────────────────────────────────
+
+export type SendRegisterRow = {
+  studentId:        string
+  studentName:      string
+  yearGroup:        number | null
+  className:        string | null
+  sendStatus:       string
+  needArea:         string | null
+  sendCategory:     string | null
+  ilpStatus:        string | null
+  ilpReviewDate:    string | null
+  activeTargetCount: number
+  ehcpStatus:       string | null
+  ehcpReviewDate:   string | null
+  openConcernCount: number
+}
+
+export async function getSendRegisterData(): Promise<SendRegisterRow[]> {
+  const user = await requireAuth()
+  const { role, schoolId } = user
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role)) {
+    throw new Error('Forbidden')
+  }
+
+  const sendStatuses = await prisma.sendStatus.findMany({
+    where: { student: { schoolId, isActive: true }, activeStatus: { not: 'NONE' } },
+    select: { studentId: true, activeStatus: true, needArea: true },
+  })
+  const studentIds = sendStatuses.map(s => s.studentId)
+  if (studentIds.length === 0) return []
+
+  const [students, enrolments, ilps, ehcps, concerns] = await Promise.all([
+    prisma.user.findMany({
+      where: { id: { in: studentIds }, schoolId },
+      select: { id: true, firstName: true, lastName: true, yearGroup: true },
+      orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+    }),
+    prisma.enrolment.findMany({
+      where: { userId: { in: studentIds } },
+      select: { userId: true, class: { select: { name: true } } },
+    }),
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, studentId: { in: studentIds }, status: { not: 'archived' } },
+      include: { targets: { where: { status: 'active' }, select: { id: true } } },
+      orderBy: { updatedAt: 'desc' },
+    }),
+    prisma.ehcpPlan.findMany({
+      where: { schoolId, studentId: { in: studentIds } },
+      select: { studentId: true, status: true, reviewDate: true },
+    }),
+    prisma.sendConcern.findMany({
+      where: { schoolId, studentId: { in: studentIds }, status: { in: ['open', 'under_review'] } },
+      select: { studentId: true },
+    }),
+  ])
+
+  const sendMap = new Map(sendStatuses.map(s => [s.studentId, s]))
+  const classMap = new Map<string, string>()
+  for (const e of enrolments) {
+    if (!classMap.has(e.userId)) classMap.set(e.userId, e.class.name)
+  }
+  const ilpMap = new Map<string, typeof ilps[0]>()
+  for (const ilp of ilps) {
+    if (!ilpMap.has(ilp.studentId)) ilpMap.set(ilp.studentId, ilp)
+  }
+  const ehcpMap = new Map<string, typeof ehcps[0]>()
+  for (const e of ehcps) {
+    if (!ehcpMap.has(e.studentId)) ehcpMap.set(e.studentId, e)
+  }
+  const concernCountMap = new Map<string, number>()
+  for (const c of concerns) {
+    concernCountMap.set(c.studentId, (concernCountMap.get(c.studentId) ?? 0) + 1)
+  }
+
+  return students.map(s => {
+    const send = sendMap.get(s.id)
+    const ilp  = ilpMap.get(s.id)
+    const ehcp = ehcpMap.get(s.id)
+    return {
+      studentId:         s.id,
+      studentName:       `${s.firstName} ${s.lastName}`,
+      yearGroup:         s.yearGroup,
+      className:         classMap.get(s.id) ?? null,
+      sendStatus:        send?.activeStatus ?? 'SEN_SUPPORT',
+      needArea:          send?.needArea ?? null,
+      sendCategory:      ilp?.sendCategory ?? null,
+      ilpStatus:         ilp?.status ?? null,
+      ilpReviewDate:     ilp?.reviewDate?.toISOString() ?? null,
+      activeTargetCount: ilp?.targets?.length ?? 0,
+      ehcpStatus:        ehcp?.status ?? null,
+      ehcpReviewDate:    ehcp?.reviewDate?.toISOString() ?? null,
+      openConcernCount:  concernCountMap.get(s.id) ?? 0,
+    }
+  })
+}
+
 export async function updateIlpTarget(
   targetId: string,
   status: string,

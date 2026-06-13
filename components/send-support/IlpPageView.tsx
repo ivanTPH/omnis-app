@@ -513,6 +513,16 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
             </button>
           )}
           <div className="flex-1" />
+          <a
+            href="/api/export/send-register"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg text-[12px] font-medium hover:bg-gray-50 transition"
+            title="Export SEND register as PDF"
+          >
+            <Icon name="picture_as_pdf" size="sm" />
+            Export Register
+          </a>
           <button
             onClick={handleGenerateIlps}
             disabled={genState.phase === 'loading'}

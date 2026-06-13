@@ -2023,16 +2023,28 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-page-title leading-tight">{studentName}</h1>
-            <a
-              href={`/api/export/student/${student.id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="shrink-0 flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-              title="Export full student record as PDF"
-            >
-              <Icon name="picture_as_pdf" size="sm" />
-              Export
-            </a>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <a
+                href={`/api/export/student-progress/${student.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                title="Export parent-facing progress report as PDF"
+              >
+                <Icon name="picture_as_pdf" size="sm" />
+                Progress PDF
+              </a>
+              <a
+                href={`/api/export/student/${student.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                title="Export full staff student record as PDF"
+              >
+                <Icon name="description" size="sm" />
+                Full Record
+              </a>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
             {student.yearGroup && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}

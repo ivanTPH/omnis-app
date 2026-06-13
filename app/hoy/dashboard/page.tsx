@@ -241,8 +241,9 @@ export default async function HoyDashboardPage() {
   }
 
   // ── KPI derivations ──────────────────────────────────────────────────────────
-  const reviewsDueCount = ilpReviewsDue.length + ehcpReviewsDue.length + apdrDue.length
+  const reviewsDueCount    = ilpReviewsDue.length + ehcpReviewsDue.length + apdrDue.length
   const lowAttendanceCount = yearStudents.filter(s => s.attendancePercentage != null && s.attendancePercentage < 90).length
+  const hasAttendanceData  = yearStudents.some(s => s.attendancePercentage != null)
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -300,7 +301,16 @@ export default async function HoyDashboardPage() {
                   : undefined
               }
             >
-              {attendanceAlerts.length === 0 ? (
+              {!hasAttendanceData ? (
+                <div className="px-5 py-8 text-center">
+                  <Icon name="sync" size="md" className="text-gray-300 mx-auto mb-2" />
+                  <p className="text-[13px] text-gray-500 font-medium">No attendance data yet</p>
+                  <p className="text-[12px] text-gray-400 mt-1">Attendance is synced from your MIS via Wonde.</p>
+                  <Link href="/admin/wonde" className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:underline mt-2">
+                    <Icon name="sync" size="sm" /> Run MIS sync
+                  </Link>
+                </div>
+              ) : attendanceAlerts.length === 0 ? (
                 <div className="px-5 py-8 text-center">
                   <Icon name="check_circle" size="md" className="text-green-400 mx-auto mb-2" />
                   <p className="text-[13px] text-gray-400">No students below 90% attendance</p>

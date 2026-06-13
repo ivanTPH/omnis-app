@@ -222,6 +222,7 @@ export default function UnifiedRevisionView({
   activeTasks:       RevTask[]
   completedTasks:    RevTask[]
 }) {
+  const coldStart = initialExams.length === 0 && activeTasks.length === 0
   const [tab, setTab] = useState<Tab>(activeTasks.length > 0 ? 'tasks' : 'planner')
 
   const studyGuides = activeTasks.filter(t => t.program.mode === 'study_guide')
@@ -257,6 +258,44 @@ export default function UnifiedRevisionView({
             </p>
           </div>
         </div>
+
+        {/* Cold-start welcome card */}
+        {coldStart && (
+          <div className="mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                <Icon name="auto_stories" size="lg" className="text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-[16px] font-bold text-blue-900 mb-1">Get started with revision</h2>
+                <p className="text-[13px] text-blue-700 mb-4 leading-relaxed">
+                  Add your upcoming exams to build a personalised revision plan. Your teacher may also assign revision tasks here.
+                </p>
+                <div className="grid sm:grid-cols-3 gap-3 mb-4">
+                  {[
+                    { icon: 'add_circle', title: 'Add your exams', desc: 'Enter each subject and date' },
+                    { icon: 'event_note', title: 'Get a plan', desc: 'AI builds a revision timetable' },
+                    { icon: 'check_circle', title: 'Track progress', desc: 'Mark sessions as complete' },
+                  ].map(step => (
+                    <div key={step.title} className="bg-white/60 border border-blue-100 rounded-xl px-3 py-2.5 flex items-center gap-2.5">
+                      <Icon name={step.icon} size="sm" className="text-blue-500 shrink-0" />
+                      <div>
+                        <p className="text-[12px] font-semibold text-blue-900">{step.title}</p>
+                        <p className="text-[11px] text-blue-500">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setTab('planner')}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
+                >
+                  <Icon name="add" size="sm" /> Add your first exam
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Urgency banner */}
         {dueThisWeek > 0 && (

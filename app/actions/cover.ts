@@ -30,6 +30,7 @@ export type AssignmentWithDetails = {
   coverName: string | null
   status: string
   notes: string | null
+  periodId: string | null
   periodName: string
   periodStart: string
   periodEnd: string
@@ -167,6 +168,7 @@ export async function getTodaysCoverSummary(
       coverName: cover ? `${cover.firstName} ${cover.lastName}` : null,
       status: c.status,
       notes: c.notes,
+      periodId: entry?.period.id ?? null,
       periodName: entry?.period.name ?? '',
       periodStart: entry?.period.startTime ?? '',
       periodEnd: entry?.period.endTime ?? '',
@@ -314,11 +316,52 @@ export async function getAvailableStaff(
 export async function assignCover(assignmentId: string, coveredBy: string) {
   const { schoolId } = await requireAdminOrSlt()
 
-  // Fetch assignment + timetable details for the notification body
+  // Fetch assignment + timetable details for conflict check + notification body
   const assignment = await prisma.coverAssignment.findFirst({
     where: { id: assignmentId, schoolId },
-    select: { timetableEntryId: true },
+    select: {
+      timetableEntryId: true,
+      absence: { select: { date: true } },
+    },
   })
+  if (!assignment) throw new Error('Assignment not found')
+
+  // ── Conflict check ────────────────────────────────────────────────────────
+  // Look up the period for this timetable entry, then check whether the
+  // chosen staff member is already covering another lesson in that same period.
+  const timetableEntry = await prisma.wondeTimetableEntry.findUnique({
+    where: { id: assignment.timetableEntryId },
+    select: { periodId: true },
+  })
+  if (timetableEntry?.periodId) {
+    const { start, end } = dayBounds(assignment.absence.date)
+    // Find all timetable entry IDs in the same period
+    const samePeriodEntries = await prisma.wondeTimetableEntry.findMany({
+      where: { schoolId, periodId: timetableEntry.periodId },
+      select: { id: true },
+    })
+    const samePeriodEntryIds = samePeriodEntries.map(e => e.id)
+    // Check if coveredBy is already assigned to any of those entries today
+    const conflict = await prisma.coverAssignment.findFirst({
+      where: {
+        id: { not: assignmentId },   // exclude the slot we're currently assigning
+        schoolId,
+        coveredBy,
+        status: { not: 'cancelled' },
+        timetableEntryId: { in: samePeriodEntryIds },
+        absence: { date: { gte: start, lte: end } },
+      },
+      select: { timetableEntryId: true },
+    })
+    if (conflict) {
+      const conflictEntry = await prisma.wondeTimetableEntry.findUnique({
+        where: { id: conflict.timetableEntryId },
+        select: { wondeClass: { select: { name: true } } },
+      })
+      const conflictClass = conflictEntry?.wondeClass?.name ?? 'another class'
+      throw new Error(`This staff member is already covering ${conflictClass} during this period.`)
+    }
+  }
 
   const updated = await prisma.coverAssignment.update({
     where: { id: assignmentId },

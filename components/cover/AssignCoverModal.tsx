@@ -20,27 +20,32 @@ type Props = {
 }
 
 export default function AssignCoverModal({ assignment, schoolId, date, onClose, onUpdated }: Props) {
-  const [available, setAvailable]     = useState<AvailableStaffMember[]>([])
-  const [selected,  setSelected]      = useState(assignment.coveredBy ?? '')
-  const [notes,     setNotes]         = useState(assignment.notes ?? '')
-  const [loading,   setLoading]       = useState(true)
-  const [pending,   start]            = useTransition()
+  const [available,      setAvailable]      = useState<AvailableStaffMember[]>([])
+  const [selected,       setSelected]       = useState(assignment.coveredBy ?? '')
+  const [notes,          setNotes]          = useState(assignment.notes ?? '')
+  const [loading,        setLoading]        = useState(true)
+  const [pending,        start]             = useTransition()
+  const [conflictError,  setConflictError]  = useState<string | null>(null)
 
   useEffect(() => {
-    // We pass timetableEntryId as periodId proxy — action uses it to find period
-    // But getAvailableStaff needs a periodId. We'll use the timetableEntryId as-is
-    // and pass empty string to fall back gracefully (the action handles empty periodId)
-    getAvailableStaff(schoolId, date, assignment.timetableEntryId)
+    // Use the period ID (not timetable entry ID) so the availability check
+    // correctly filters out staff already covering another lesson in this period
+    getAvailableStaff(schoolId, date, assignment.periodId ?? assignment.timetableEntryId)
       .then(setAvailable)
       .finally(() => setLoading(false))
-  }, [schoolId, date, assignment.timetableEntryId])
+  }, [schoolId, date, assignment.periodId, assignment.timetableEntryId])
 
   function handleAssign() {
     if (!selected) return
+    setConflictError(null)
     start(async () => {
-      await assignCover(assignment.id, selected)
-      onUpdated()
-      onClose()
+      try {
+        await assignCover(assignment.id, selected)
+        onUpdated()
+        onClose()
+      } catch (err) {
+        setConflictError(err instanceof Error ? err.message : 'Failed to assign cover')
+      }
     })
   }
 
@@ -188,6 +193,14 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Conflict error */}
+        {conflictError && (
+          <div className="mx-5 mb-3 flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2.5">
+            <Icon name="error" size="sm" className="text-rose-600 shrink-0 mt-0.5" />
+            <p className="text-[12px] text-rose-800 font-medium">{conflictError}</p>
           </div>
         )}
 

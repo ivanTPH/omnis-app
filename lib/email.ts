@@ -288,6 +288,63 @@ export async function sendNewMessageEmail(params: {
   )
 }
 
+/** Weekly digest email sent to a teacher with their homework queue and class stats. */
+export async function sendTeacherDigestEmail(params: {
+  to: string
+  teacherFirstName: string
+  ungradedCount: number
+  dueThisWeek: Array<{ title: string; className: string; dueAt: Date | null }>
+  classStats: Array<{ className: string; submitted: number; enrolled: number }>
+  baseUrl: string
+}): Promise<void> {
+  const { to, teacherFirstName, ungradedCount, dueThisWeek, classStats, baseUrl } = params
+
+  const dueRows = dueThisWeek.map(hw => {
+    const dueStr = hw.dueAt
+      ? hw.dueAt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+      : 'TBC'
+    return `<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${hw.title}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">${hw.className}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">${dueStr}</td></tr>`
+  }).join('')
+
+  const statsRows = classStats.map(cs => {
+    const pct = cs.enrolled > 0 ? Math.round(cs.submitted / cs.enrolled * 100) : 0
+    const color = pct >= 80 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626'
+    return `<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${cs.className}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:center;">${cs.submitted}/${cs.enrolled}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:center;font-weight:700;color:${color};">${pct}%</td></tr>`
+  }).join('')
+
+  await send(
+    to,
+    `Your weekly Omnis digest — ${ungradedCount} submission${ungradedCount !== 1 ? 's' : ''} to mark`,
+    `
+    <p>Hi ${teacherFirstName},</p>
+    <p>Here's your weekly summary for <strong>${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>.</p>
+
+    <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:4px;margin:16px 0;">
+      <p style="margin:0;font-size:16px;font-weight:700;color:#1d4ed8;">${ungradedCount} submission${ungradedCount !== 1 ? 's' : ''} awaiting marking</p>
+    </div>
+
+    ${dueThisWeek.length > 0 ? `
+    <h3 style="font-size:13px;font-weight:700;color:#374151;margin:20px 0 8px;">Due this week</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Homework</th><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Class</th><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Due</th></tr></thead>
+      <tbody>${dueRows}</tbody>
+    </table>
+    ` : ''}
+
+    ${classStats.length > 0 ? `
+    <h3 style="font-size:13px;font-weight:700;color:#374151;margin:20px 0 8px;">Submission rates</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Class</th><th style="padding:6px 8px;text-align:center;font-weight:600;color:#374151;">Submitted</th><th style="padding:6px 8px;text-align:center;font-weight:600;color:#374151;">Rate</th></tr></thead>
+      <tbody>${statsRows}</tbody>
+    </table>
+    ` : ''}
+
+    <p style="margin-top:20px;"><a href="${baseUrl}/homework" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">Go to Homework</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · Weekly digest sent every Monday</p>
+    `,
+  )
+}
+
 /** SENCO notification when a new SEND concern is raised for a student. */
 export async function sendConcernRaisedEmail(params: {
   to: string

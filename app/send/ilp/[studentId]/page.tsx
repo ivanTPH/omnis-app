@@ -122,7 +122,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
             <Link href="/send/ilp" className="mt-1 p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0">
               <Icon name="chevron_left" size="sm" />
             </Link>
-            <div className="flex-1">
+            <div className="flex-1 flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                   <span className="text-blue-700 font-bold text-[13px]">{student.firstName[0]}{student.lastName[0]}</span>
@@ -148,6 +148,15 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   </div>
                 </div>
               </div>
+              {['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(role) && (
+                <Link
+                  href={`/api/export/ilp-report/${studentId}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors shrink-0"
+                >
+                  <Icon name="download" size="sm" />
+                  ILP Report PDF
+                </Link>
+              )}
             </div>
           </div>
 

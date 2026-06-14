@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
-import { markSubmission, bulkReturnSubmissions, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
+import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
@@ -314,6 +314,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // Bulk return
   const [bulkReturning, setBulkReturning] = useState(false)
   const [bulkReturnedCount, setBulkReturnedCount] = useState<number | null>(null)
+  // Bulk remind missing
+  const [bulkReminding, setBulkReminding] = useState(false)
+  const [bulkRemindedCount, setBulkRemindedCount] = useState<number | null>(null)
   // Resizable marking panel (vertical drag)
   const [markPanelHeight, setMarkPanelHeight] = useState(300)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
@@ -560,6 +563,20 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       // silently fail — teacher can return individually
     } finally {
       setBulkReturning(false)
+    }
+  }
+
+  async function handleBulkRemind() {
+    if (missingCount === 0) return
+    setBulkReminding(true)
+    try {
+      const { count } = await bulkRemindMissing(hw.id)
+      setBulkRemindedCount(count)
+      setTimeout(() => setBulkRemindedCount(null), 4000)
+    } catch {
+      // best-effort
+    } finally {
+      setBulkReminding(false)
     }
   }
 
@@ -1057,6 +1074,30 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         {needsReviewCount > 0 && (
           <div className="px-3 py-2 border-b border-amber-100 bg-amber-50">
             <p className="text-[10px] text-amber-600 font-medium">⚡ {needsReviewCount} awaiting AI review</p>
+          </div>
+        )}
+
+        {missingCount > 0 && (
+          <div className="px-3 py-2 border-b border-red-100 bg-red-50 flex items-center justify-between">
+            {bulkRemindedCount != null ? (
+              <p className="text-[10px] text-red-700 font-medium flex items-center gap-1">
+                <Icon name="check_circle" size="sm" /> {bulkRemindedCount} reminder{bulkRemindedCount !== 1 ? 's' : ''} sent
+              </p>
+            ) : (
+              <>
+                <p className="text-[10px] text-red-600 font-medium">{missingCount} student{missingCount !== 1 ? 's' : ''} haven&apos;t submitted</p>
+                <button
+                  onClick={handleBulkRemind}
+                  disabled={bulkReminding}
+                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50"
+                >
+                  {bulkReminding
+                    ? <Icon name="refresh" size="sm" className="animate-spin" />
+                    : <Icon name="notifications" size="sm" />}
+                  Remind all
+                </button>
+              </>
+            )}
           </div>
         )}
 

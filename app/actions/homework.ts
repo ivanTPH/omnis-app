@@ -1571,6 +1571,66 @@ export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
   return { queued, alreadyMarked }
 }
 
+/** Send homework reminder notifications to ALL students who have not yet submitted. */
+export async function bulkRemindMissing(homeworkId: string): Promise<{ count: number }> {
+  const { schoolId } = await requireAuth()
+
+  const hw = await prisma.homework.findFirst({
+    where:  { id: homeworkId, schoolId },
+    select: { title: true, dueAt: true, classId: true },
+  })
+  if (!hw) throw new Error('Homework not found')
+
+  // Find enrolled students who have NOT submitted
+  const [enrolments, submissions] = await Promise.all([
+    prisma.enrolment.findMany({
+      where:   { classId: hw.classId },
+      select:  { userId: true, user: { select: { email: true, firstName: true } } },
+    }),
+    prisma.submission.findMany({
+      where:   { homeworkId, schoolId },
+      select:  { studentId: true },
+    }),
+  ])
+
+  const submittedIds = new Set(submissions.map(s => s.studentId))
+  const missing = enrolments.filter(e => !submittedIds.has(e.userId))
+  if (missing.length === 0) return { count: 0 }
+
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
+  const dueStr = hw.dueAt
+    ? `This homework is due ${new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}.`
+    : 'Please submit your homework when ready.'
+
+  await prisma.notification.createMany({
+    data: missing.map(e => ({
+      schoolId,
+      userId:   e.userId,
+      type:     'HOMEWORK_SET',
+      title:    `Reminder: "${hw.title}" is due`,
+      body:     `${dueStr} Please submit when ready.`,
+      linkHref: `/student/homework/${homeworkId}`,
+    })),
+    skipDuplicates: false,
+  })
+
+  await Promise.allSettled(
+    missing
+      .filter(e => e.user.email)
+      .map(e =>
+        sendHomeworkReminderEmail({
+          to:               e.user.email,
+          studentFirstName: e.user.firstName,
+          homeworkTitle:    hw.title,
+          dueAt:            hw.dueAt,
+          homeworkUrl:      `${baseUrl}/student/homework/${homeworkId}`,
+        })
+      )
+  )
+
+  return { count: missing.length }
+}
+
 /** Send a homework reminder notification (in-app + email) to a student who hasn't submitted. */
 export async function resendHomeworkReminder(homeworkId: string, studentId: string): Promise<{ ok: true }> {
   const { schoolId } = await requireAuth()

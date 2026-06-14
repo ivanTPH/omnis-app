@@ -1,7 +1,8 @@
 'use server'
-import { auth }           from '@/lib/auth'
-import { prisma }         from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { auth }                  from '@/lib/auth'
+import { prisma }                from '@/lib/prisma'
+import { revalidatePath }        from 'next/cache'
+import { sendNewMessageEmail }   from '@/lib/email'
 
 function requireAuth() {
   return auth().then(s => {
@@ -270,7 +271,11 @@ export async function sendMessage(threadId: string, body: string): Promise<Messa
   // Notify other participants
   const otherParticipants = await prisma.msgParticipant.findMany({
     where: { threadId, userId: { not: user.id } },
-    select: { userId: true, thread: { select: { subject: true, schoolId: true } } },
+    select: {
+      userId: true,
+      thread: { select: { subject: true, schoolId: true } },
+      user:   { select: { firstName: true, role: true, email: true } },
+    },
   })
   if (otherParticipants.length > 0) {
     const { subject, schoolId } = otherParticipants[0].thread
@@ -285,6 +290,22 @@ export async function sendMessage(threadId: string, body: string): Promise<Messa
       })),
       skipDuplicates: true,
     })
+
+    // Email parent participants (fire-and-forget)
+    const senderName = `${(message as any).sender.firstName} ${(message as any).sender.lastName}`
+    const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
+    for (const p of otherParticipants) {
+      if (p.user.role === 'PARENT' && p.user.email) {
+        sendNewMessageEmail({
+          to:                 p.user.email,
+          recipientFirstName: p.user.firstName,
+          senderName,
+          threadSubject:      subject,
+          bodyPreview:        body.slice(0, 200),
+          threadUrl:          `${baseUrl}/messages?threadId=${threadId}`,
+        }).catch(() => { /* best-effort */ })
+      }
+    }
   }
 
   revalidatePath('/messages')

@@ -234,6 +234,30 @@ export async function sendGradeBelowTargetEmail(params: {
   )
 }
 
+/** Email notification to a parent (or other recipient) when they receive a new message. */
+export async function sendNewMessageEmail(params: {
+  to: string
+  recipientFirstName: string
+  senderName: string
+  threadSubject: string
+  bodyPreview: string
+  threadUrl: string
+}): Promise<void> {
+  const { to, recipientFirstName, senderName, threadSubject, bodyPreview, threadUrl } = params
+
+  await send(
+    to,
+    `New message from ${senderName}: ${threadSubject}`,
+    `
+    <p>Hi ${recipientFirstName},</p>
+    <p>You have a new message from <strong>${senderName}</strong> in the thread <em>${threadSubject}</em>:</p>
+    <blockquote style="border-left:4px solid #e5e7eb;padding:8px 16px;color:#374151;margin:12px 0;">${bodyPreview}</blockquote>
+    <p><a href="${threadUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">View message</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
 /** SENCO notification when a new SEND concern is raised for a student. */
 export async function sendConcernRaisedEmail(params: {
   to: string

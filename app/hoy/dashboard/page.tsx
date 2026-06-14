@@ -267,6 +267,15 @@ export default async function HoyDashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-2 print:hidden">
+              {myYearGroup && (
+                <Link
+                  href={`/api/export/year-report/${myYearGroup}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+                >
+                  <Icon name="picture_as_pdf" size="sm" />
+                  Year Report PDF
+                </Link>
+              )}
               <PrintButton label="Print" />
             </div>
           </div>

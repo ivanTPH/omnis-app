@@ -234,6 +234,36 @@ export async function sendGradeBelowTargetEmail(params: {
   )
 }
 
+/** Notification to a parent when new homework is published for their child. */
+export async function sendParentHomeworkNotificationEmail(params: {
+  to: string
+  parentFirstName: string
+  studentName: string
+  homeworkTitle: string
+  subject: string
+  dueAt: Date | null
+  homeworkUrl: string
+}): Promise<void> {
+  const { to, parentFirstName, studentName, homeworkTitle, subject, dueAt, homeworkUrl } = params
+  const due = dueAt
+    ? dueAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+    : 'No due date set'
+
+  await send(
+    to,
+    `New homework set for ${studentName}: ${homeworkTitle}`,
+    `
+    <p>Hi ${parentFirstName},</p>
+    <p>New <strong>${subject}</strong> homework has been set for <strong>${studentName}</strong>:</p>
+    <p style="font-size:16px;font-weight:bold;color:#1d4ed8;">${homeworkTitle}</p>
+    <p><strong>Due:</strong> ${due}</p>
+    <p style="color:#6b7280;font-size:13px;">Your child can access this on their Omnis student dashboard.</p>
+    <p><a href="${homeworkUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">View homework</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
 /** Email notification to a parent (or other recipient) when they receive a new message. */
 export async function sendNewMessageEmail(params: {
   to: string

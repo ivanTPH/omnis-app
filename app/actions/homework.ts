@@ -8,7 +8,7 @@ import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
 import { checkILPEvidenceMatch, checkEhcpEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
-import { sendHomeworkReminderEmail, sendNewHomeworkEmail, sendGradeBelowTargetEmail } from '@/lib/email'
+import { sendHomeworkReminderEmail, sendNewHomeworkEmail, sendGradeBelowTargetEmail, sendParentHomeworkNotificationEmail } from '@/lib/email'
 import { markDirty }            from '@/lib/agents/snapshot'
 import { AgentType }            from '@prisma/client'
 import { checkAiRateLimit }     from '@/lib/kv'
@@ -373,7 +373,7 @@ export async function createHomework(input: {
     })
   }
 
-  // Fire-and-forget: notify enrolled students of new homework
+  // Fire-and-forget: notify enrolled students + parents of new homework
   void (async () => {
     try {
       const cls = await prisma.schoolClass.findUnique({
@@ -382,21 +382,51 @@ export async function createHomework(input: {
       })
       const enrolments = await prisma.enrolment.findMany({
         where:  { classId: input.classId },
-        include: { user: { select: { email: true, firstName: true } } },
+        include: {
+          user: {
+            select: {
+              id: true, email: true, firstName: true, lastName: true,
+              childLinks: {
+                select: {
+                  parent: { select: { email: true, firstName: true } },
+                },
+              },
+            },
+          },
+        },
       })
       const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-      await Promise.allSettled(
-        enrolments.map(e =>
+      const homeworkUrl = `${baseUrl}/student/homework/${hw.id}`
+      const subject = cls?.subject ?? 'Homework'
+      const dueAt = input.dueAt ? new Date(input.dueAt) : null
+
+      await Promise.allSettled([
+        // Students
+        ...enrolments.map(e =>
           sendNewHomeworkEmail({
-            to:            e.user.email,
+            to:               e.user.email,
             studentFirstName: e.user.firstName,
-            homeworkTitle: input.title,
-            subject:       cls?.subject ?? 'Homework',
-            dueAt:         input.dueAt ? new Date(input.dueAt) : null,
-            homeworkUrl:   `${baseUrl}/student/homework/${hw.id}`,
+            homeworkTitle:    input.title,
+            subject,
+            dueAt,
+            homeworkUrl,
           })
-        )
-      )
+        ),
+        // Parents
+        ...enrolments.flatMap(e =>
+          e.user.childLinks.map(link =>
+            sendParentHomeworkNotificationEmail({
+              to:              link.parent.email,
+              parentFirstName: link.parent.firstName,
+              studentName:     `${e.user.firstName} ${e.user.lastName}`,
+              homeworkTitle:   input.title,
+              subject,
+              dueAt,
+              homeworkUrl,
+            })
+          )
+        ),
+      ])
     } catch { /* best-effort */ }
   })()
 

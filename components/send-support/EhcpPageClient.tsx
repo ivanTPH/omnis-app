@@ -248,9 +248,19 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
                 <EhcpCard plan={plan} isSenco={isSenco} />
                 <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
                   <span>{plan.outcomes.filter(o => o.evidenceCount > 0).length} of {plan.outcomes.length} outcomes have evidence</span>
-                  <Link href={`/student/${plan.studentId}/send`} className="text-purple-600 hover:underline">
-                    View student SEND record →
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={`/api/export/ehcp-plan/${plan.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-purple-600 hover:text-purple-800 font-medium"
+                    >
+                      <Icon name="picture_as_pdf" size="sm" /> Export Plan PDF
+                    </a>
+                    <Link href={`/student/${plan.studentId}/send`} className="text-purple-600 hover:underline">
+                      View student SEND record →
+                    </Link>
+                  </div>
                 </div>
               </SencoRow>
             )

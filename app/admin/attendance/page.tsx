@@ -232,7 +232,8 @@ export default async function AttendancePage() {
                           <th className="text-left px-4 py-2.5 text-gray-500 font-medium">Year</th>
                           <th className="text-left px-4 py-2.5 text-gray-500 font-medium">Form</th>
                           <th className="text-left px-4 py-2.5 text-gray-500 font-medium">SEND</th>
-                          <th className="text-right px-5 py-2.5 text-gray-500 font-medium">Attendance</th>
+                          <th className="text-right px-4 py-2.5 text-gray-500 font-medium">Attendance</th>
+                          <th className="px-4 py-2.5"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -255,8 +256,17 @@ export default async function AttendancePage() {
                                   }`}>{send === 'EHCP' ? 'EHCP' : 'SEN'}</span>
                                 )}
                               </td>
-                              <td className="px-5 py-2.5 text-right">
+                              <td className="px-4 py-2.5 text-right">
                                 <span className={`font-bold text-[13px] ${pctColour(pct)}`}>{pct.toFixed(1)}%</span>
+                              </td>
+                              <td className="px-4 py-2.5 print:hidden">
+                                <Link
+                                  href={`/api/export/attendance-letter/${s.id}`}
+                                  className="flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-blue-600 border border-gray-200 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors whitespace-nowrap"
+                                >
+                                  <Icon name="mail" size="sm" />
+                                  Letter
+                                </Link>
                               </td>
                             </tr>
                           )

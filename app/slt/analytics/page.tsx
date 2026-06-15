@@ -167,6 +167,13 @@ export default async function SltAnalyticsPage() {
                 </span>
               )}
               <Link
+                href="/api/export/staff-workload"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Staff Workload CSV
+              </Link>
+              <Link
                 href="/api/export/cohort-progress"
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
               >

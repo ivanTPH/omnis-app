@@ -345,6 +345,59 @@ export async function sendTeacherDigestEmail(params: {
   )
 }
 
+/** Weekly digest for parents: child's overdue and upcoming homework. */
+export async function sendParentHwDigestEmail(params: {
+  to: string
+  parentFirstName: string
+  childName: string
+  overdueItems: Array<{ title: string; className: string; dueAt: Date | null }>
+  dueThisWeek:  Array<{ title: string; className: string; dueAt: Date | null }>
+  baseUrl: string
+}): Promise<void> {
+  const { to, parentFirstName, childName, overdueItems, dueThisWeek, baseUrl } = params
+
+  if (overdueItems.length === 0 && dueThisWeek.length === 0) return
+
+  const fmtDate = (d: Date | null) =>
+    d ? new Date(d).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : 'TBC'
+
+  const overdueRows = overdueItems.map(hw =>
+    `<tr><td style="padding:6px 8px;border-bottom:1px solid #fee2e2;color:#dc2626;font-weight:600;">${hw.title}</td><td style="padding:6px 8px;border-bottom:1px solid #fee2e2;color:#6b7280;">${hw.className}</td><td style="padding:6px 8px;border-bottom:1px solid #fee2e2;color:#dc2626;">${fmtDate(hw.dueAt)}</td></tr>`
+  ).join('')
+
+  const dueRows = dueThisWeek.map(hw =>
+    `<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${hw.title}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">${hw.className}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">${fmtDate(hw.dueAt)}</td></tr>`
+  ).join('')
+
+  await send(
+    to,
+    `${childName}'s homework summary — ${overdueItems.length > 0 ? `${overdueItems.length} overdue` : `${dueThisWeek.length} due this week`}`,
+    `
+    <p>Hi ${parentFirstName},</p>
+    <p>Here is a summary of <strong>${childName}</strong>'s homework this week.</p>
+
+    ${overdueItems.length > 0 ? `
+    <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:12px 16px;border-radius:4px;margin:16px 0;">
+      <p style="margin:0;font-size:14px;font-weight:700;color:#dc2626;">${overdueItems.length} overdue homework item${overdueItems.length !== 1 ? 's' : ''}</p>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+      <thead><tr style="background:#fef2f2;"><th style="padding:6px 8px;text-align:left;font-weight:600;color:#991b1b;">Homework</th><th style="padding:6px 8px;text-align:left;font-weight:600;color:#991b1b;">Class</th><th style="padding:6px 8px;text-align:left;font-weight:600;color:#991b1b;">Was Due</th></tr></thead>
+      <tbody>${overdueRows}</tbody>
+    </table>` : ''}
+
+    ${dueThisWeek.length > 0 ? `
+    <h3 style="font-size:13px;font-weight:700;color:#374151;margin:20px 0 8px;">Due this week</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+      <thead><tr style="background:#f3f4f6;"><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Homework</th><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Class</th><th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Due</th></tr></thead>
+      <tbody>${dueRows}</tbody>
+    </table>` : ''}
+
+    <p><a href="${baseUrl}/parent/dashboard" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">View ${childName}'s progress</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · Weekly homework digest sent every Monday</p>
+    `,
+  )
+}
+
 /** SENCO notification when a new SEND concern is raised for a student. */
 export async function sendConcernRaisedEmail(params: {
   to: string

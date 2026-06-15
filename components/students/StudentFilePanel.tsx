@@ -2055,6 +2055,16 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
                 Revision PDF
               </a>
               <a
+                href={`/api/export/intervention-log/${student.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-50 transition"
+                title="Export full intervention log as PDF"
+              >
+                <Icon name="timeline" size="sm" />
+                Intervention Log
+              </a>
+              <a
                 href={`/api/export/student/${student.id}`}
                 target="_blank"
                 rel="noreferrer"

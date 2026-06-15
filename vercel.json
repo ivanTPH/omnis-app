@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/slt-briefing",
       "schedule": "0 7 * * 5"
+    },
+    {
+      "path": "/api/cron/parent-activation",
+      "schedule": "0 8 * * 1"
     }
   ]
 }

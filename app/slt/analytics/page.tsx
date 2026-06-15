@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon'
 import PrintButton from '@/components/ui/PrintButton'
 import { PlanStatus } from '@prisma/client'
 import { formatAvgGrade } from '@/lib/gradeUtils'
+import SubjectPerformanceDropdown from '@/components/slt/SubjectPerformanceDropdown'
 
 function termLabel(id: string) {
   return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -136,6 +137,8 @@ export default async function SltAnalyticsPage() {
     Business:             4.8,
     Economics:            5.7,
   }
+  const distinctSubjects = [...new Set(allClasses.map(c => c.subject).filter(Boolean))].sort()
+
   // For each subject in school, compute delta vs national avg
   const benchmarkRows = Array.from(bySubject.entries()).map(([subject, classes]) => {
     const subAggs = classes.map(c => aggByClass.get(c.id)).filter(Boolean) as typeof allAggs
@@ -166,6 +169,7 @@ export default async function SltAnalyticsPage() {
                   {termLabel(currentTerm)}
                 </span>
               )}
+              <SubjectPerformanceDropdown subjects={distinctSubjects} />
               <Link
                 href="/api/export/staff-workload"
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"

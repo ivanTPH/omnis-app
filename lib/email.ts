@@ -628,3 +628,46 @@ export async function sendConcernRaisedEmail(params: {
     `,
   )
 }
+
+/** Weekly parent activation reminder — sent to SCHOOL_ADMIN each Monday. */
+export async function sendParentActivationReminderEmail(params: {
+  to: string
+  adminFirstName: string
+  schoolName: string
+  unactivatedCount: number
+  parents: { name: string; email: string }[]
+}): Promise<void> {
+  const { to, adminFirstName, schoolName, unactivatedCount, parents } = params
+
+  const sample  = parents.slice(0, 10)
+  const overflow = unactivatedCount - sample.length
+
+  const rows = sample.map(p =>
+    `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb">${p.name}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280">${p.email}</td>
+    </tr>`
+  ).join('')
+
+  const moreRow = overflow > 0
+    ? `<tr><td colspan="2" style="padding:6px 8px;color:#6b7280;font-style:italic">… and ${overflow} more</td></tr>`
+    : ''
+
+  await send(
+    to,
+    `${unactivatedCount} parent account${unactivatedCount !== 1 ? 's' : ''} not yet activated — ${schoolName}`,
+    `
+    <p>Hi ${adminFirstName},</p>
+    <p>This is your weekly reminder: <strong>${unactivatedCount} parent account${unactivatedCount !== 1 ? 's' : ''}</strong> at <strong>${schoolName}</strong> have not yet logged in to Omnis.</p>
+    <table style="border-collapse:collapse;width:100%;max-width:480px;margin:16px 0">
+      <thead><tr>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Parent</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Email</th>
+      </tr></thead>
+      <tbody>${rows}${moreRow}</tbody>
+    </table>
+    <p>You can resend activation emails from the <strong>User Management</strong> page.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}

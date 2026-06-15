@@ -142,6 +142,7 @@ enum MessageSenderType {
 enum IntegrityCaseStatus {
   OPEN
   UNDER_REVIEW
+  ESCALATED
   CLOSED_NO_ACTION
   CLOSED_ACTIONED
 }
@@ -206,6 +207,9 @@ enum AuditAction {
   USER_PROVISIONED
   WELCOME_EMAIL_SENT
   USER_DATA_ERASED
+  INTEGRITY_CASE_ESCALATED
+  BEHAVIOUR_RECORDED
+  BEHAVIOUR_DELETED
 }
 
 enum ContactMethod {
@@ -339,6 +343,9 @@ model School {
 
   // Parent contact log
   parentContactEntries ParentContactEntry[]
+
+  // Behaviour records
+  behaviourRecords BehaviourRecord[]
 
   // Auth tokens
   staffInvitations StaffInvitation[]
@@ -551,6 +558,10 @@ model User {
   // Parent contact log
   contactLogEntries  ParentContactEntry[] @relation("ContactLogStudent")
   contactLogAuthored ParentContactEntry[] @relation("ContactLogAuthor")
+
+  // Behaviour records
+  behaviourRecords         BehaviourRecord[] @relation("BehaviourStudent")
+  behaviourRecordsAuthored BehaviourRecord[] @relation("BehaviourAuthor")
 
   // Auth tokens
   passwordResetTokens PasswordResetToken[]
@@ -931,16 +942,22 @@ model IntegrityReviewLog {
 }
 
 model IntegrityPatternCase {
-  id           String              @id @default(cuid())
-  schoolId     String
-  studentId    String
-  status       IntegrityCaseStatus @default(OPEN)
-  triggerCount Int                 @default(0)
-  subjectCount Int                 @default(0)
-  openedAt     DateTime            @default(now())
-  closedAt     DateTime?
-  closedBy     String?
-  notes        String?
+  id              String              @id @default(cuid())
+  schoolId        String
+  studentId       String
+  status          IntegrityCaseStatus @default(OPEN)
+  triggerCount    Int                 @default(0)
+  subjectCount    Int                 @default(0)
+  openedAt        DateTime            @default(now())
+  closedAt        DateTime?
+  closedBy        String?
+  notes           String?
+  // Escalation fields
+  escalatedBy     String?
+  escalatedAt     DateTime?
+  escalatedNotes  String?
+  // Close outcome
+  outcomeCategory String?             // PARENT_CONTACTED | ZERO_AWARDED | MEETING_ARRANGED | REFERRED_DISCIPLINE | NO_FURTHER_ACTION
 
   @@index([schoolId, studentId])
 }
@@ -2933,4 +2950,26 @@ model ParentContactEntry {
 
   @@index([studentId])
   @@index([schoolId])
+}
+
+// ─── Behaviour records ────────────────────────────────────────────────────────
+
+model BehaviourRecord {
+  id          String   @id @default(cuid())
+  schoolId    String
+  studentId   String
+  authorId    String
+  type        String   // 'positive' | 'negative' | 'neutral'
+  category    String   // 'academic' | 'conduct' | 'attendance' | 'communication' | 'other'
+  description String
+  points      Int      @default(0)
+  recordDate  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  school  School @relation(fields: [schoolId], references: [id])
+  student User   @relation("BehaviourStudent", fields: [studentId], references: [id])
+  author  User   @relation("BehaviourAuthor",  fields: [authorId],  references: [id])
+
+  @@index([schoolId, studentId])
+  @@index([schoolId, recordDate])
 }

@@ -20,6 +20,10 @@ import {
   updateAPDRSection, approveAPDR, completeAPDRReview, generateAPDRForStudent, getAPDRDoEvidence,
 } from '@/app/actions/send-support'
 import {
+  addBehaviourRecord, deleteBehaviourRecord, getStudentBehaviourRecords,
+  type BehaviourRecordRow,
+} from '@/app/actions/behaviour'
+import {
   getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
   type AssessmentRow,
 } from '@/app/actions/assessments'
@@ -28,8 +32,8 @@ import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 import { getSubmissionReadOnly, type SubmissionReadOnly } from '@/app/actions/homework'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact'
-const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact']
+type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour'
+const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour']
 const TAB_ICONS: Record<Tab, string> = {
   Overview:    'person',
   Plans:       'description',
@@ -38,6 +42,7 @@ const TAB_ICONS: Record<Tab, string> = {
   Assessments: 'fact_check',
   Notes:       'note_alt',
   Contact:     'contacts',
+  Behaviour:   'emoji_events',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -2008,6 +2013,47 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
   const { student } = data
   const studentName = `${student.firstName} ${student.lastName}`
 
+  // Behaviour tab state
+  const [bhvRecords, setBhvRecords]   = useState<BehaviourRecordRow[]>([])
+  const [bhvLoaded, setBhvLoaded]     = useState(false)
+  const [bhvLoading, setBhvLoading]   = useState(false)
+  const [bhvType, setBhvType]         = useState<'positive' | 'negative' | 'neutral'>('positive')
+  const [bhvCategory, setBhvCategory] = useState('conduct')
+  const [bhvDesc, setBhvDesc]         = useState('')
+  const [bhvPoints, setBhvPoints]     = useState(1)
+  const [bhvDate, setBhvDate]         = useState(() => new Date().toISOString().slice(0, 10))
+  const [bhvSaving, setBhvSaving]     = useState(false)
+
+  useEffect(() => {
+    if (activeTab === 'Behaviour' && !bhvLoaded) {
+      setBhvLoading(true)
+      getStudentBehaviourRecords(student.id)
+        .then(r => { setBhvRecords(r); setBhvLoaded(true) })
+        .finally(() => setBhvLoading(false))
+    }
+  }, [activeTab, bhvLoaded, student.id])
+
+  async function handleAddBhv(e: React.FormEvent) {
+    e.preventDefault()
+    if (!bhvDesc.trim()) return
+    setBhvSaving(true)
+    const res = await addBehaviourRecord({
+      studentId: student.id, type: bhvType, category: bhvCategory,
+      description: bhvDesc.trim(), points: bhvPoints, recordDate: bhvDate,
+    })
+    if (res.ok) {
+      const updated = await getStudentBehaviourRecords(student.id)
+      setBhvRecords(updated)
+      setBhvDesc('')
+    }
+    setBhvSaving(false)
+  }
+
+  async function handleDeleteBhv(id: string) {
+    const res = await deleteBehaviourRecord(id)
+    if (res.ok) setBhvRecords(prev => prev.filter(r => r.id !== id))
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       {/* Compact header — just name + avatar */}
@@ -2376,6 +2422,130 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
       {/* ── Tab: Contact ── */}
       {activeTab === 'Contact' && (
         <ContactsTab student={student} parentContacts={data.parentContacts} contactLog={data.contactLog} />
+      )}
+
+      {/* ── Tab: Behaviour ── */}
+      {activeTab === 'Behaviour' && (
+        <div className="space-y-4">
+          {/* Wonde aggregate summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center">
+              <p className="text-[22px] font-bold text-emerald-700">{student.behaviourPositive ?? '—'}</p>
+              <p className="text-[11px] text-emerald-600 mt-0.5">Positive (MIS)</p>
+            </div>
+            <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 text-center">
+              <p className="text-[22px] font-bold text-rose-700">{student.behaviourNegative ?? '—'}</p>
+              <p className="text-[11px] text-rose-600 mt-0.5">Negative (MIS)</p>
+            </div>
+            <div className={`${student.hasExclusion ? 'bg-rose-100 border-rose-200' : 'bg-gray-50 border-gray-100'} border rounded-xl p-4 text-center`}>
+              <p className={`text-[22px] font-bold ${student.hasExclusion ? 'text-rose-700' : 'text-gray-400'}`}>
+                {student.hasExclusion == null ? '—' : student.hasExclusion ? 'Yes' : 'No'}
+              </p>
+              <p className={`text-[11px] mt-0.5 ${student.hasExclusion ? 'text-rose-600' : 'text-gray-400'}`}>Exclusion (MIS)</p>
+            </div>
+          </div>
+
+          {/* Add record form */}
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <h4 className="text-[12px] font-semibold text-gray-700 mb-3">Log a record</h4>
+            <form onSubmit={handleAddBhv} className="space-y-3">
+              <div className="flex gap-2">
+                {(['positive', 'negative', 'neutral'] as const).map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setBhvType(t)}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
+                      bhvType === t
+                        ? t === 'positive' ? 'bg-emerald-600 text-white' : t === 'negative' ? 'bg-rose-600 text-white' : 'bg-gray-600 text-white'
+                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={bhvCategory}
+                  onChange={e => setBhvCategory(e.target.value)}
+                  className="text-[11px] px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                >
+                  {['academic', 'conduct', 'attendance', 'communication', 'other'].map(c => (
+                    <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-1.5">
+                  <label className="text-[10px] text-gray-500 shrink-0">Pts</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={bhvPoints}
+                    onChange={e => setBhvPoints(parseInt(e.target.value, 10) || 0)}
+                    className="w-full text-[11px] px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  />
+                </div>
+              </div>
+              <input
+                type="date"
+                value={bhvDate}
+                onChange={e => setBhvDate(e.target.value)}
+                className="w-full text-[11px] px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+              <textarea
+                value={bhvDesc}
+                onChange={e => setBhvDesc(e.target.value)}
+                placeholder="Description…"
+                rows={2}
+                className="w-full text-[11px] px-2 py-1.5 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+              />
+              <button
+                type="submit"
+                disabled={bhvSaving || !bhvDesc.trim()}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-semibold rounded-lg transition-colors"
+              >
+                {bhvSaving ? 'Saving…' : 'Add record'}
+              </button>
+            </form>
+          </div>
+
+          {/* Record history */}
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50">
+              <h4 className="text-[12px] font-semibold text-gray-700">
+                Manual records ({bhvRecords.length})
+              </h4>
+            </div>
+            {bhvLoading ? (
+              <div className="px-4 py-6 text-center text-[12px] text-gray-400">Loading…</div>
+            ) : bhvRecords.length === 0 ? (
+              <div className="px-4 py-6 text-center text-[12px] text-gray-400">No manual records yet.</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {bhvRecords.map(r => (
+                  <div key={r.id} className="px-4 py-3 flex items-start gap-3">
+                    <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${r.type === 'positive' ? 'bg-emerald-500' : r.type === 'negative' ? 'bg-rose-500' : 'bg-gray-400'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] text-gray-800">{r.description}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {new Date(r.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {' · '}{r.category}{r.points ? ` · ${r.points}pts` : ''}
+                        {' · '}{r.authorName}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteBhv(r.id)}
+                      className="shrink-0 text-gray-300 hover:text-rose-500 transition-colors"
+                    >
+                      <Icon name="delete" size="sm" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

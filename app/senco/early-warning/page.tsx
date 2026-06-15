@@ -21,7 +21,19 @@ export default async function EarlyWarningPage() {
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex flex-col h-full overflow-auto">
         <div className="px-6 pt-6 bg-white shrink-0">
-          <PageHeader title="Early Warning System" subtitle="AI-detected patterns — review and action" />
+          <PageHeader
+            title="Early Warning System"
+            subtitle="AI-detected patterns — review and action"
+            action={
+              <Link
+                href="/api/export/early-warning-report"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="picture_as_pdf" size="sm" />
+                Export PDF
+              </Link>
+            }
+          />
         </div>
         {ilpConcerns.length > 0 && (
           <div className="px-6 pb-2">

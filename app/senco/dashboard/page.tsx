@@ -36,6 +36,13 @@ export default async function SencoDashboardPage() {
                   <Icon name="download" size="sm" />
                   APDR CSV
                 </Link>
+                <Link
+                  href="/api/export/ta-notes"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+                >
+                  <Icon name="download" size="sm" />
+                  TA Notes CSV
+                </Link>
               </div>
             }
           />

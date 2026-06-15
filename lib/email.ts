@@ -288,6 +288,71 @@ export async function sendNewMessageEmail(params: {
   )
 }
 
+/** Monthly platform engagement digest for SLT/SCHOOL_ADMIN. */
+export async function sendEngagementDigestEmail(params: {
+  to: string
+  recipientFirstName: string
+  schoolName: string
+  activeStudents: number
+  totalStudents: number
+  submissionRate: number        // 0–100
+  avgGrade: number | null       // 0–9
+  pendingMark: number
+  openConcerns: number
+  newFlags: number              // early warning flags created this month
+  dashboardUrl: string
+}): Promise<void> {
+  const {
+    to, recipientFirstName, schoolName, activeStudents, totalStudents,
+    submissionRate, avgGrade, pendingMark, openConcerns, newFlags, dashboardUrl,
+  } = params
+
+  const month = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+  const compColor = submissionRate >= 80 ? '#16a34a' : submissionRate >= 60 ? '#d97706' : '#dc2626'
+  const gradeStr  = avgGrade != null ? avgGrade.toFixed(1) : '—'
+  const GCSE: Record<number, string> = { 9:'A**',8:'A*',7:'A',6:'B',5:'C+',4:'C',3:'D',2:'E',1:'F' }
+  const gradeLetter = avgGrade != null ? (GCSE[Math.round(avgGrade)] ?? '') : ''
+
+  await send(
+    to,
+    `Platform Engagement Digest — ${schoolName} — ${month}`,
+    `
+    <p>Hi ${recipientFirstName},</p>
+    <p>Here is the monthly platform engagement summary for <strong>${schoolName}</strong> (${month}).</p>
+
+    <table style="border-collapse:collapse;width:100%;max-width:480px;margin:16px 0;font-size:13px;">
+      <tr style="background:#f3f4f6;">
+        <td style="padding:8px 12px;font-weight:600;color:#374151;">Active Students (submitted work)</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:#2563eb;">${activeStudents} / ${totalStudents}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:600;color:#374151;">Avg Submission Rate</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:${compColor};">${submissionRate.toFixed(0)}%</td>
+      </tr>
+      <tr style="background:#f3f4f6;">
+        <td style="padding:8px 12px;font-weight:600;color:#374151;">School Avg Grade</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:#374151;">${gradeStr}${gradeLetter ? ` (${gradeLetter})` : ''}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:600;color:#374151;">Submissions Awaiting Marking</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:${pendingMark > 20 ? '#d97706' : '#374151'};">${pendingMark}</td>
+      </tr>
+      <tr style="background:#f3f4f6;">
+        <td style="padding:8px 12px;font-weight:600;color:#374151;">Open SEND Concerns</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:${openConcerns > 5 ? '#dc2626' : '#374151'};">${openConcerns}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:600;color:#374151;">New Early Warning Flags (this month)</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:${newFlags > 10 ? '#dc2626' : '#374151'};">${newFlags}</td>
+      </tr>
+    </table>
+
+    <p style="margin-top:20px;"><a href="${dashboardUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">View Analytics Dashboard</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · Monthly engagement digest</p>
+    `,
+  )
+}
+
 /** Overdue marking alert — submissions awaiting marking for 5+ days. */
 export async function sendOverdueMarkingEmail(params: {
   to: string

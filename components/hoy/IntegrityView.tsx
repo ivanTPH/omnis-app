@@ -466,6 +466,13 @@ export default function IntegrityView({
               {yearGroup ? `Year ${yearGroup} · ` : ''}Submission integrity signals collected automatically during homework
             </p>
           </div>
+          <a
+            href="/api/export/integrity-report"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+          >
+            <Icon name="download" size="sm" />
+            Export PDF
+          </a>
         </div>
       </div>
 

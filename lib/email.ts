@@ -398,6 +398,60 @@ export async function sendParentHwDigestEmail(params: {
   )
 }
 
+/** Monthly SEND summary email to SENCO — open concerns, ILPs due, EHCPs due. */
+export async function sendSendMonthlySummaryEmail(params: {
+  to: string
+  sencoFirstName: string
+  schoolName: string
+  openConcerns: number
+  ilpsUnderReview: number
+  ehcpsDue30: number
+  topStudents: { name: string; concerns: number }[]
+  dashboardUrl: string
+}): Promise<void> {
+  const { to, sencoFirstName, schoolName, openConcerns, ilpsUnderReview, ehcpsDue30, topStudents, dashboardUrl } = params
+
+  const studentRows = topStudents.length > 0
+    ? topStudents.map(s =>
+        `<tr><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;">${s.name}</td><td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right;color:#dc2626;font-weight:600;">${s.concerns}</td></tr>`
+      ).join('')
+    : '<tr><td colspan="2" style="padding:8px;color:#9ca3af;text-align:center;">No open concerns</td></tr>'
+
+  await send(
+    to,
+    `SEND Monthly Summary — ${schoolName}`,
+    `
+    <p>Hi ${sencoFirstName},</p>
+    <p>Here is your SEND summary for <strong>${schoolName}</strong>.</p>
+    <table style="border-collapse:collapse;width:100%;max-width:400px;margin:16px 0;">
+      <tr>
+        <td style="padding:10px 14px;background:#fef3c7;border-radius:8px 8px 0 0;font-weight:600;color:#92400e;">Open Concerns</td>
+        <td style="padding:10px 14px;background:#fef3c7;border-radius:8px 8px 0 0;text-align:right;font-weight:700;color:#dc2626;">${openConcerns}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;background:#eff6ff;font-weight:600;color:#1d4ed8;">ILPs Under Review</td>
+        <td style="padding:10px 14px;background:#eff6ff;text-align:right;font-weight:700;color:#1d4ed8;">${ilpsUnderReview}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;background:#f0fdf4;border-radius:0 0 8px 8px;font-weight:600;color:#166534;">EHCPs Due (30 days)</td>
+        <td style="padding:10px 14px;background:#f0fdf4;border-radius:0 0 8px 8px;text-align:right;font-weight:700;color:#166534;">${ehcpsDue30}</td>
+      </tr>
+    </table>
+    ${topStudents.length > 0 ? `
+    <p style="font-weight:600;margin-top:20px;">Students with most open concerns:</p>
+    <table style="border-collapse:collapse;width:100%;max-width:400px;">
+      <thead><tr>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">Student</th>
+        <th style="padding:6px 8px;text-align:right;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb;">Concerns</th>
+      </tr></thead>
+      <tbody>${studentRows}</tbody>
+    </table>` : ''}
+    <p style="margin-top:20px;"><a href="${dashboardUrl}" style="background:#9333ea;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">View SEND Dashboard</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
 /** SENCO notification when a new SEND concern is raised for a student. */
 export async function sendConcernRaisedEmail(params: {
   to: string

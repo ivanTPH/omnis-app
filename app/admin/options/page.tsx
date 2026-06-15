@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
+import Icon from '@/components/ui/Icon'
 import { requireAuth } from '@/lib/session'
 import { getOptionsOverview } from '@/app/actions/admin'
 
@@ -29,6 +31,15 @@ export default async function OptionsPage({
           subtitle="Overview of student subject selections by year group"
           backHref="/admin/students"
           backLabel="Students"
+          action={
+            <Link
+              href={`/api/export/options-summary?yearGroup=${year}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+            >
+              <Icon name="download" size="sm" />
+              Export PDF
+            </Link>
+          }
         />
 
         {/* Year tabs */}

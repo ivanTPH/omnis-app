@@ -103,6 +103,12 @@ export default function LessonsWeekView({
           >
             <Icon name="chevron_right" size="sm" />
           </Link>
+          <a
+            href="/api/export/cover-stats?days=30"
+            className="px-3 py-1.5 text-[12px] font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition text-gray-600 flex items-center gap-1.5"
+          >
+            <Icon name="download" size="sm" />Cover Stats CSV
+          </a>
           <Link
             href="/admin/cover"
             className="inline-flex items-center gap-1.5 ml-2 px-3 py-1.5 text-[12px] font-medium bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition"

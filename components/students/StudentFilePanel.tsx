@@ -2035,6 +2035,16 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
                 Progress PDF
               </a>
               <a
+                href={`/api/export/report-card/${student.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-purple-600 border border-purple-200 rounded-lg hover:bg-purple-50 transition"
+                title="Export student report card as PDF"
+              >
+                <Icon name="badge" size="sm" />
+                Report Card
+              </a>
+              <a
                 href={`/api/export/student/${student.id}`}
                 target="_blank"
                 rel="noreferrer"

@@ -25,13 +25,22 @@ export default async function ConcernsPage() {
             title="SEND Concerns"
             subtitle="All concerns raised across the school"
             action={
-              <Link
-                href="/api/export/send-caseload"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
-              >
-                <Icon name="download" size="sm" />
-                SEND Caseload CSV
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/api/export/concerns-report"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+                >
+                  <Icon name="picture_as_pdf" size="sm" />
+                  Concerns PDF
+                </Link>
+                <Link
+                  href="/api/export/send-caseload"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+                >
+                  <Icon name="download" size="sm" />
+                  SEND Caseload CSV
+                </Link>
+              </div>
             }
           />
         </div>

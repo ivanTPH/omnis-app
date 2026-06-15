@@ -88,6 +88,29 @@ export default async function AdminDashboardPage() {
             <YearRolloverPanel />
           </div>
 
+          {/* Exports */}
+          <div className="mb-8">
+            <h2 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-4">
+              Exports
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/api/export/parent-engagement"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Parent Engagement CSV
+              </Link>
+              <Link
+                href="/api/export/cohort-progress"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Cohort Progress CSV
+              </Link>
+            </div>
+          </div>
+
           {/* Quick links */}
           <div>
             <h2 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-4">

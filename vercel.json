@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/engagement-digest",
       "schedule": "30 8 1 * *"
+    },
+    {
+      "path": "/api/cron/slt-briefing",
+      "schedule": "0 7 * * 5"
     }
   ]
 }

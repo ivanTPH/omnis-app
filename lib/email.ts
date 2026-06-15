@@ -288,6 +288,54 @@ export async function sendNewMessageEmail(params: {
   )
 }
 
+/** Weekly SLT briefing email — sent every Friday with week highlights. */
+export async function sendSltBriefingEmail(params: {
+  to: string
+  recipientFirstName: string
+  schoolName: string
+  weekLabel: string
+  newConcerns: number
+  pendingMark: number
+  ehcpReviewsDue14: number
+  highFlags: number
+  newIntegritySignals: number
+  dashboardUrl: string
+}): Promise<void> {
+  const {
+    to, recipientFirstName, schoolName, weekLabel,
+    newConcerns, pendingMark, ehcpReviewsDue14,
+    highFlags, newIntegritySignals, dashboardUrl,
+  } = params
+
+  const row = (label: string, value: number, alertGte?: number) => {
+    const color = alertGte != null && value >= alertGte ? '#dc2626' : '#374151'
+    return `<tr>
+      <td style="padding:8px 12px;font-weight:600;color:#374151;border-bottom:1px solid #f3f4f6;">${label}</td>
+      <td style="padding:8px 12px;text-align:right;font-weight:700;color:${color};border-bottom:1px solid #f3f4f6;">${value}</td>
+    </tr>`
+  }
+
+  await send(
+    to,
+    `Weekly SLT Briefing — ${schoolName} — ${weekLabel}`,
+    `
+    <p>Hi ${recipientFirstName},</p>
+    <p>Here are this week's highlights for <strong>${schoolName}</strong>.</p>
+
+    <table style="border-collapse:collapse;width:100%;max-width:440px;margin:16px 0;font-size:13px;">
+      ${row('New SEND Concerns (this week)', newConcerns, 5)}
+      ${row('Submissions Awaiting Marking', pendingMark, 30)}
+      ${row('EHCPs Due for Review (14 days)', ehcpReviewsDue14, 1)}
+      ${row('High-Severity Early Warning Flags', highFlags, 3)}
+      ${row('New Integrity Signals (this week)', newIntegritySignals, 5)}
+    </table>
+
+    <p style="margin-top:20px;"><a href="${dashboardUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">View Analytics</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · Weekly SLT briefing sent every Friday</p>
+    `,
+  )
+}
+
 /** Monthly platform engagement digest for SLT/SCHOOL_ADMIN. */
 export async function sendEngagementDigestEmail(params: {
   to: string

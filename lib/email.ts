@@ -288,6 +288,47 @@ export async function sendNewMessageEmail(params: {
   )
 }
 
+/** Overdue marking alert — submissions awaiting marking for 5+ days. */
+export async function sendOverdueMarkingEmail(params: {
+  to: string
+  teacherFirstName: string
+  items: Array<{ homeworkTitle: string; className: string; studentName: string; daysPending: number }>
+  markingUrl: string
+}): Promise<void> {
+  const { to, teacherFirstName, items, markingUrl } = params
+
+  const rows = items.map(i =>
+    `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;font-weight:600;">${i.studentName}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">${i.homeworkTitle}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280;">${i.className}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:700;color:${i.daysPending >= 10 ? '#dc2626' : '#d97706'};">${i.daysPending}d</td>
+    </tr>`
+  ).join('')
+
+  await send(
+    to,
+    `Marking overdue — ${items.length} submission${items.length !== 1 ? 's' : ''} waiting`,
+    `
+    <p>Hi ${teacherFirstName},</p>
+    <p>The following submissions have been waiting for marking for <strong>5 or more days</strong>. Students are waiting for feedback.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
+      <thead>
+        <tr style="background:#f3f4f6;">
+          <th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Student</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Homework</th>
+          <th style="padding:6px 8px;text-align:left;font-weight:600;color:#374151;">Class</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:600;color:#374151;">Waiting</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="margin-top:20px;"><a href="${markingUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">Go to Marking</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · Overdue marking alert sent every Wednesday</p>
+    `,
+  )
+}
+
 /** Weekly digest email sent to a teacher with their homework queue and class stats. */
 export async function sendTeacherDigestEmail(params: {
   to: string

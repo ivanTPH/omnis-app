@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -186,6 +187,13 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                         {sendCount > 0 && (
                           <span className="text-amber-600">{sendCount} with SEND</span>
                         )}
+                        <Link
+                          href={`/api/export/homework-tracker?classId=${cls.id}`}
+                          className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-gray-500 hover:text-gray-700 transition-colors"
+                        >
+                          <Icon name="download" size="sm" />
+                          Homework Tracker CSV
+                        </Link>
                       </div>
                     </>
                   )}

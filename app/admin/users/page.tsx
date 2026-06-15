@@ -1,6 +1,8 @@
 import { requireAuth } from '@/lib/session'
 import { redirect }    from 'next/navigation'
 import AppShell        from '@/components/AppShell'
+import Link             from 'next/link'
+import Icon             from '@/components/ui/Icon'
 import { getSchoolAllUsers } from '@/app/actions/admin'
 import UserManagementTable   from '@/components/admin/UserManagementTable'
 import PageHeader            from '@/components/ui/PageHeader'
@@ -37,6 +39,15 @@ export default async function AdminUsersPage({
             subtitle={`${schoolName} — all accounts, roles and activation status`}
             backHref="/admin/dashboard"
             backLabel="Admin"
+            action={
+              <Link
+                href="/api/export/data-quality"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Data Quality CSV
+              </Link>
+            }
           />
           <UserManagementTable users={users} counts={counts} initialFilter={initialFilter} />
         </div>

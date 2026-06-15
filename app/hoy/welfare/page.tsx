@@ -32,9 +32,18 @@ export default async function HoyWelfarePage() {
                 {data.yearGroup ? ` — Year ${data.yearGroup}` : ''} · {data.totalStudents} students
               </p>
             </div>
-            <div className="flex items-center gap-2 text-[11px] font-semibold px-3 py-1.5 bg-rose-50 text-rose-700 rounded-full border border-rose-100">
-              <Icon name="favorite" size="sm" />
-              Pastoral overview
+            <div className="flex items-center gap-2">
+              <Link
+                href="/api/export/welfare-report"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Export PDF
+              </Link>
+              <div className="flex items-center gap-2 text-[11px] font-semibold px-3 py-1.5 bg-rose-50 text-rose-700 rounded-full border border-rose-100">
+                <Icon name="favorite" size="sm" />
+                Pastoral overview
+              </div>
             </div>
           </div>
 

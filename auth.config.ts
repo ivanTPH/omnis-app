@@ -16,6 +16,7 @@ function getRoleHome(role: string): string {
     case 'ACADEMY_ADMIN':      return '/academy/dashboard'
     case 'TEACHING_ASSISTANT': return '/ta/notes'
     case 'HEAD_OF_YEAR':       return '/hoy/dashboard'
+    case 'HEAD_OF_DEPT':       return '/hod/dashboard'
     default:                   return '/dashboard'
   }
 }
@@ -37,6 +38,7 @@ const ROLE_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/senco',          roles: ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'] },
   { prefix: '/send',           roles: ['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'] },
   { prefix: '/hoy',            roles: ['HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN'] },
+  { prefix: '/hod',            roles: ['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN'] },
   { prefix: '/slt',            roles: ['SLT', 'SCHOOL_ADMIN', 'PLATFORM_ADMIN'] },
   { prefix: '/plans/year-group',   roles: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'TEACHING_ASSISTANT'] },
   { prefix: '/student/dashboard',  roles: ['STUDENT'] },

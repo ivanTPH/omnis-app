@@ -100,7 +100,22 @@
 > Attendance link for SCHOOL_ADMIN + SLT; Welfare link for HEAD_OF_YEAR.
 > E2E: hoy-dashboard.spec.ts added (access control + page content).
 >
-> **Latest commit:** 5cc90bc (feat: attendance overview, academy PDF export, notification filters, HOY welfare). E2E: 174/178 pass, 4 intentional skips.
+> June 2026 Blocks 29–31: Detention + Exclusion management — Detention model (type/reason/scheduledAt/
+> durationMins/location/status/parentNotified) + Exclusion model (type/reason/startDate/endDate/
+> daysCount/status/reintegrationPlan/parentContacted). AuditAction: DETENTION_LOGGED/RESOLVED +
+> EXCLUSION_LOGGED/RESOLVED. app/actions/detentions.ts (logDetention, resolveDetention, deleteDetention,
+> getDetentionRegister, getStudentDetentions). app/actions/exclusions.ts (logExclusion, resolveExclusion,
+> getExclusionLog, getStudentExclusions). /hoy/detentions: register with Today/Upcoming/Missed/Completed
+> sections, year filter, Log modal, resolve + parent email notify. /hoy/exclusions: active/recent log,
+> KPI cards, Log modal, inline reintegration plan form on return. lib/email.ts: sendDetentionNotificationEmail.
+> StudentFilePanel Behaviour tab: detention + exclusion history sections. Sidebar: Detentions + Exclusions
+> for HOY/SCHOOL_ADMIN/SLT. /api/export/detention-register (HOY/SLT/SCHOOL_ADMIN/HOD, 90d CSV).
+> /api/export/exclusion-log (HOY/SLT/SCHOOL_ADMIN/HOD/SENCO, 365d CSV with SEND status). getBehaviourTrends()
+> added to behaviour.ts — ISO week buckets, 8-week window. BehaviourTrendChart (Recharts BarChart, positive/
+> negative/neutral bars). /hoy/behaviour: now shows trend chart + Behaviour/Detentions CSV export buttons.
+> HOY dashboard quick links updated: Detentions + Exclusions. E2E: hoy-behaviour-detentions.spec.ts (30 tests).
+>
+> **Latest commit:** e7838ba (feat: block 31 — behaviour trend chart, CSV exports, HOY dashboard detention/exclusion quick links). E2E: 35 spec files, ~208 tests.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -296,7 +311,10 @@ tail -f /tmp/omnis-dev.log
 /senco/ilp-evidence         ILP evidence linking
 /senco/agent-insights       Agent recommendation review — confirm/override/dismiss COACH/QUALITY/PLAN_SYNTHESIS outputs
 /hoy/analytics              Head of Year analytics
+/hoy/behaviour              Behaviour overview — KPI cards, weekly trend chart, student table, year filter, CSV exports (HOY/SLT/SCHOOL_ADMIN/HOD)
 /hoy/dashboard              HOY pastoral dashboard — greeting, KPI cards, attendance panel, SEND concerns, homework pulse, print
+/hoy/detentions             Detention register — Today/Upcoming/Missed/Completed, Log modal, resolve + parent notify (HOY/SLT/SCHOOL_ADMIN)
+/hoy/exclusions             Exclusion log — active/recent, KPI cards, Log modal, reintegration plan (HOY/SLT/SCHOOL_ADMIN)
 /hoy/integrity              Academic integrity workflow — signals, pattern cases, review modal (HEAD_OF_YEAR/SLT/SCHOOL_ADMIN)
 /hoy/welfare                Pastoral welfare hub — SEND flags, concerns, attendance signals (HEAD_OF_YEAR/SLT/SCHOOL_ADMIN)
 /slt/analytics              SLT analytics
@@ -329,12 +347,15 @@ tail -f /tmp/omnis-dev.log
 
 /api/auth/[...nextauth]     NextAuth endpoints
 /api/settings/avatar        Avatar upload (POST — JPG/PNG, max 5MB, base64 in DB)
-/api/export/lesson-plan/[id]  PDF export
-/api/export/homework/[id]     PDF export
-/api/export/homework-summary  PDF export
-/api/export/revision-timetable PDF export
-/api/export/apdr/[apdrId]     PDF export (SENCO/SLT/HOY/SCHOOL_ADMIN)
-/api/export/academy-report    Trust compliance report PDF (ACADEMY_ADMIN/PLATFORM_ADMIN)
+/api/export/lesson-plan/[id]     PDF export
+/api/export/homework/[id]        PDF export
+/api/export/homework-summary     PDF export
+/api/export/revision-timetable   PDF export
+/api/export/apdr/[apdrId]        PDF export (SENCO/SLT/HOY/SCHOOL_ADMIN)
+/api/export/academy-report       Trust compliance report PDF (ACADEMY_ADMIN/PLATFORM_ADMIN)
+/api/export/behaviour-summary    Behaviour CSV — all students with positive/negative/exclusion counts (HOY/SLT/SCHOOL_ADMIN/HOD)
+/api/export/detention-register   Detention register CSV — 90d default, yearGroup filter (HOY/SLT/SCHOOL_ADMIN/HOD)
+/api/export/exclusion-log        Exclusion log CSV — 365d default, yearGroup filter, includes SEND status (HOY/SLT/SCHOOL_ADMIN/HOD/SENCO)
 /api/cron/oak-sync          Oak delta sync cron (Sun 02:00 UTC)
 /api/cron/early-warning     SEND early warning cron (Mon–Fri 06:00 UTC)
 /api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk
@@ -346,7 +367,10 @@ tail -f /tmp/omnis-dev.log
 /marketing/features                               ← fully built (6 sections, 35 features)
 /marketing/beta                                   ← fully built (school application form, Resend)
 /marketing/investors                              ← fully built (market pitch, investor contact form)
+/hoy/behaviour                                    ← fully built (KPI cards, weekly trend chart, student table, CSV exports)
 /hoy/dashboard                                    ← fully built (pastoral KPI dashboard)
+/hoy/detentions                                   ← fully built (detention register, log modal, resolve, parent notify)
+/hoy/exclusions                                   ← fully built (exclusion log, KPI cards, log modal, reintegration plan)
 /hoy/integrity                                    ← fully built (integrity signals + pattern cases)
 /hoy/welfare                                      ← fully built (pastoral welfare hub)
 /admin/attendance                                 ← fully built (school-wide attendance overview + CSV export)
@@ -388,6 +412,9 @@ tail -f /tmp/omnis-dev.log
 | `admin.ts` | getAdminDashboardData, getSchoolSettings, saveSchoolSettings, completeOnboarding, getManagedUsers, changeUserRole, updateStudentYearGroup, toggleUserActive, getSchoolClasses, getUserClasses, setTeacherClasses, getStudentEnrolments, setStudentEnrolments, getActivationBreakdown, importStudents + year rollover actions |
 | `academy.ts` | getAcademyStats, getAcademySchools (ACADEMY_ADMIN/PLATFORM_ADMIN only) |
 | `hoy-welfare.ts` | getHoyWelfareData — SEND flags, open concerns, attendance signals for HOY pastoral welfare hub |
+| `behaviour.ts` | addBehaviourRecord, deleteBehaviourRecord, getStudentBehaviourRecords, getChildBehaviourSummary, getBehaviourOverview(yearGroup?), getBehaviourTrends(weeks=8) |
+| `detentions.ts` | logDetention, resolveDetention, deleteDetention, getDetentionRegister(yearGroup?), getStudentDetentions(studentId) |
+| `exclusions.ts` | logExclusion, resolveExclusion, getExclusionLog(yearGroup?), getStudentExclusions(studentId) |
 | `search.ts` | globalSearch(query) — students/staff/homework/resources scoped by schoolId; excludes STUDENT/PARENT roles |
 | `ai-generator.ts` | AI resource generation |
 
@@ -453,7 +480,10 @@ tail -f /tmp/omnis-dev.log
 | `homework/EhcpOutcomeTracker.tsx` | EHCP outcome progress |
 | `analytics/AdaptiveAnalyticsDashboard.tsx` | Bloom's + adaptive charts |
 | `ExportPdfButton.tsx` | PDF download button |
-| `students/StudentFilePanel.tsx` | Student file panel — Homework tab: SENCO/SLT/SCHOOL_ADMIN get clickable `<button>` rows opening a read-only slide-over (student answer, grade, feedback, model answer, ILP targets); teachers keep `<a href>` links to the marking view. Slide-over caches fetched data in `detailCache` per session. |
+| `students/StudentFilePanel.tsx` | Student file panel — Homework tab: SENCO/SLT/SCHOOL_ADMIN get clickable `<button>` rows opening a read-only slide-over (student answer, grade, feedback, model answer, ILP targets); teachers keep `<a href>` links to the marking view. Slide-over caches fetched data in `detailCache` per session. Behaviour tab: behaviour records, detentions, exclusions. |
+| `behaviour/BehaviourTrendChart.tsx` | Recharts BarChart — positive/negative/neutral weekly bars. Accepts `data: BehaviourTrendWeek[]`. Used on /hoy/behaviour. |
+| `hoy/DetentionView.tsx` | Client component for /hoy/detentions — sections (Today/Upcoming/Missed/Completed), Log modal, resolve/cancel/delete actions, year filter |
+| `hoy/ExclusionView.tsx` | Client component for /hoy/exclusions — active/recent sections, KPI cards, Log modal, inline reintegration plan form |
 
 ---
 
@@ -464,7 +494,7 @@ tail -f /tmp/omnis-dev.log
 | `lib/auth.ts` | NextAuth full config — Credentials provider, bcrypt, Prisma adapter, JWT callbacks |
 | `auth.config.ts` | Edge-safe auth config — middleware role routing only, no Prisma/bcrypt |
 | `lib/session.ts` | `requireAuth(allowedRoles?, fallback?)` — typed session helper for server pages/actions. Replaces `session.user as any` pattern. Returns `AuthUser` (`id, schoolId, schoolName, role, firstName, lastName`). |
-| `lib/email.ts` | Resend transactional email — `sendHomeworkReminderEmail`, `sendHomeworkReturnedEmail`, `sendConcernRaisedEmail`. No-ops when `RESEND_API_KEY` absent. Never throws (catches internally). |
+| `lib/email.ts` | Resend transactional email — `sendHomeworkReminderEmail`, `sendHomeworkReturnedEmail`, `sendConcernRaisedEmail`, `sendDetentionNotificationEmail`. No-ops when `RESEND_API_KEY` absent. Never throws (catches internally). |
 | `lib/prisma.ts` | Prisma singleton + `writeAudit()` helper. Extended with AuditLog immutability guard (`$extends`). All models fully typed — **never use `(prisma as any)`**. |
 | `lib/grading.ts` | `percentToGcseGrade()`, `suggestGrade()`, `normalizeScoreForForm()`, `formatScore()`, `gradeLabel()`, `gradePillClass()`, `GCSE_LETTERS` |
 | `lib/gradeUtils.ts` | Display helpers built on grading.ts: `formatGrade()`, `formatRawScore()`, `scoreToGcseGrade()`, `formatAvgGrade()` (returns `{ main, sub }` for analytics avg display) |
@@ -498,7 +528,7 @@ tail -f /tmp/omnis-dev.log
 | `SendStatusValue` | NONE, SEN_SUPPORT, EHCP |
 | `ILPStatus` | DRAFT, ACTIVE, UNDER_REVIEW, ARCHIVED |
 | `LessonType` | NORMAL, COVER, INTERVENTION, CLUB |
-| `AuditAction` | HOMEWORK_CREATED, SUBMISSION_GRADED, GRADE_OVERRIDDEN, ILP_CREATED, SEND_STATUS_CHANGED, LESSON_PUBLISHED, WONDE_SYNC_COMPLETED, RESOURCE_UPLOADED, USER_SETTINGS_CHANGED, TA_NOTE_ADDED, TA_NOTE_DELETED, PARENT_CONTACT_LOGGED, … |
+| `AuditAction` | HOMEWORK_CREATED, SUBMISSION_GRADED, GRADE_OVERRIDDEN, ILP_CREATED, SEND_STATUS_CHANGED, LESSON_PUBLISHED, WONDE_SYNC_COMPLETED, RESOURCE_UPLOADED, USER_SETTINGS_CHANGED, TA_NOTE_ADDED, TA_NOTE_DELETED, PARENT_CONTACT_LOGGED, BEHAVIOUR_RECORDED, BEHAVIOUR_DELETED, DETENTION_LOGGED, DETENTION_RESOLVED, EXCLUSION_LOGGED, EXCLUSION_RESOLVED, … |
 | `ContactMethod` | PHONE, EMAIL, MEETING, LETTER, OTHER |
 
 ### ILPTarget.status valid values
@@ -519,6 +549,7 @@ tail -f /tmp/omnis-dev.log
 - **System:** `Notification`, `AuditLog`, `UserSettings`, `UserAccessibilitySettings`
 - **Revision (student):** `RevisionExam`, `RevisionSession`, `RevisionConfidence`
 - **Revision Program (teacher-created):** `RevisionProgram`, `RevisionTask`, `RevisionProgress`, `RevisionAnalyticsCache`
+- **Behaviour:** `BehaviourRecord`, `Detention`, `Exclusion`
 - **Cover:** `StaffAbsence`, `CoverAssignment`
 - **GDPR:** `ConsentPurpose`, `ConsentRecord`, `DataSubjectRequest`
 - **Platform:** `SchoolFeatureFlag`, `PlatformAuditLog`, `GeneratedResource`, `SchoolGroup`
@@ -533,10 +564,10 @@ tail -f /tmp/omnis-dev.log
 |---|---|
 | TEACHER | Calendar, Homework, My Classes (/classes — roster + plans), Revision, Adaptive Learning, AI Generator, Messages |
 | HEAD_OF_DEPT | Calendar, Homework, Classes, Analytics, Adaptive Learning, AI Generator, Messages |
-| HEAD_OF_YEAR | Calendar, Dashboard (/hoy/dashboard), Analytics, Student Analytics, Year Group Plans, Welfare (/hoy/welfare), Integrity (/hoy/integrity), SEND Concerns, ILP Records, Messages |
+| HEAD_OF_YEAR | Calendar, Dashboard (/hoy/dashboard), Analytics, Student Analytics, Year Group Plans, Behaviour (/hoy/behaviour), Detentions (/hoy/detentions), Exclusions (/hoy/exclusions), Welfare (/hoy/welfare), Integrity (/hoy/integrity), SEND Concerns, ILP Records, Messages |
 | SENCO | SEND Dashboard, Concerns, ILP, Early Warning, EHCP Plans, ILP Evidence, Analytics, Resource Scorer, AI Generator, Messages |
-| SCHOOL_ADMIN | Dashboard, MIS Sync, Users, Audit Log, Analytics, Attendance (/admin/attendance), Cover, GDPR, Messages |
-| SLT | Dashboard, Analytics, Attendance (/admin/attendance), Audit Log, Cover, GDPR, Messages |
+| SCHOOL_ADMIN | Dashboard, MIS Sync, Users, Audit Log, Analytics, Attendance (/admin/attendance), Behaviour (/hoy/behaviour), Detentions (/hoy/detentions), Exclusions (/hoy/exclusions), Cover, GDPR, Messages |
+| SLT | Dashboard, Analytics, Attendance (/admin/attendance), Audit Log, Behaviour (/hoy/behaviour), Detentions (/hoy/detentions), Exclusions (/hoy/exclusions), Cover, GDPR, Messages |
 | COVER_MANAGER | Dashboard, Cover, Messages |
 | STUDENT | Dashboard, Homework, Revision Planner, My Grades, Messages |
 | PARENT | Dashboard, Progress, Consent, Messages |
@@ -688,14 +719,15 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**174/178 tests passing** against Vercel (last run: 2026-06-09, commit 0c67da3 — Sprint A run pending). 0 hard failures. 4 gracefully skip
+**~208 tests across 35 spec files.** Last full Vercel run: 174/178 pass (2026-06-09). 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
-24 spec files (178 tests): auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+35 spec files: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
 cover management, platform admin, student photos, revision planner, send scorer,
 EHCP evidence (P2002 regression), homework UPLOAD type, student returned HW grade strip,
 student notes CRUD, subjects & boards HOY edit-rights regression,
-password reset + staff invitation (23 tests — DB-backed token flows, admin UI, anti-enumeration).
+password reset + staff invitation (23 tests), sprint-a/b/c/d/e, hoy-dashboard, hoy-integrity,
+sprint-e-attendance-welfare, hoy-behaviour-detentions (blocks 29-31, 30 tests).
 - `USERS.hod` (d.brooks), `USERS.hoy` (t.adeyemi), `USERS.ta` (j.taylor) fixtures in users.ts
 - loginAs timeout: 45s fail-fast (cold Lambdas fail quickly; warm Lambdas respond in 5-15s)
 - 0 flakes when global-setup saves auth state; retries handle remaining cold starts

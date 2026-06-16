@@ -881,3 +881,43 @@ export async function sendCoverAssignmentEmail(params: {
     `,
   )
 }
+
+/** Notifies a parent their child has a detention scheduled. */
+export async function sendDetentionNotificationEmail(params: {
+  to:           string
+  parentName:   string
+  studentName:  string
+  type:         string
+  reason:       string
+  scheduledAt:  Date
+  durationMins: number
+  location:     string | null
+  schoolName:   string
+}): Promise<void> {
+  const { to, parentName, studentName, type, reason, scheduledAt, durationMins, location, schoolName } = params
+  const typeLabel: Record<string, string> = {
+    lunchtime:    'Lunchtime detention',
+    after_school: 'After-school detention',
+    morning:      'Morning detention',
+    isolation:    'Isolation',
+  }
+  const dateStr = scheduledAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const timeStr = scheduledAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const detType = typeLabel[type] ?? type.replace('_', ' ')
+  await send(
+    to,
+    `${detType} notification for ${escName(studentName)} — ${schoolName}`,
+    `
+    <p>Dear ${escName(parentName)},</p>
+    <p>We are writing to let you know that <strong>${escName(studentName)}</strong> has been assigned a <strong>${escName(detType)}</strong>.</p>
+    <table style="border-collapse:collapse;margin:16px 0;width:100%;max-width:400px">
+      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-size:13px">Date</td><td style="padding:4px 0;font-size:13px;font-weight:600">${dateStr}</td></tr>
+      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-size:13px">Time</td><td style="padding:4px 0;font-size:13px;font-weight:600">${timeStr} (${durationMins} min)</td></tr>
+      ${location ? `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-size:13px">Location</td><td style="padding:4px 0;font-size:13px;font-weight:600">${escName(location)}</td></tr>` : ''}
+      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-size:13px">Reason</td><td style="padding:4px 0;font-size:13px">${escName(reason)}</td></tr>
+    </table>
+    <p style="color:#6b7280;font-size:13px">If you have any questions, please contact the school directly.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · ${escName(schoolName)}</p>
+    `,
+  )
+}

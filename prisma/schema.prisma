@@ -210,6 +210,10 @@ enum AuditAction {
   INTEGRITY_CASE_ESCALATED
   BEHAVIOUR_RECORDED
   BEHAVIOUR_DELETED
+  DETENTION_LOGGED
+  DETENTION_RESOLVED
+  EXCLUSION_LOGGED
+  EXCLUSION_RESOLVED
 }
 
 enum ContactMethod {
@@ -346,6 +350,10 @@ model School {
 
   // Behaviour records
   behaviourRecords BehaviourRecord[]
+
+  // Detentions & exclusions
+  detentions       Detention[]
+  exclusions       Exclusion[]
 
   // Auth tokens
   staffInvitations StaffInvitation[]
@@ -562,6 +570,12 @@ model User {
   // Behaviour records
   behaviourRecords         BehaviourRecord[] @relation("BehaviourStudent")
   behaviourRecordsAuthored BehaviourRecord[] @relation("BehaviourAuthor")
+
+  // Detentions & exclusions
+  detentions               Detention[]       @relation("DetentionStudent")
+  detentionsAuthored       Detention[]       @relation("DetentionAuthor")
+  exclusions               Exclusion[]       @relation("ExclusionStudent")
+  exclusionsAuthored       Exclusion[]       @relation("ExclusionAuthor")
 
   // Auth tokens
   passwordResetTokens PasswordResetToken[]
@@ -2972,4 +2986,57 @@ model BehaviourRecord {
 
   @@index([schoolId, studentId])
   @@index([schoolId, recordDate])
+}
+
+// ─── Detention register ───────────────────────────────────────────────────────
+
+model Detention {
+  id              String   @id @default(cuid())
+  schoolId        String
+  studentId       String
+  authorId        String
+  type            String   // 'lunchtime' | 'after_school' | 'morning' | 'isolation'
+  reason          String
+  scheduledAt     DateTime
+  durationMins    Int      @default(30)
+  location        String?
+  status          String   @default("scheduled")  // 'scheduled' | 'attended' | 'missed' | 'cancelled'
+  parentNotified  Boolean  @default(false)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school  School @relation(fields: [schoolId], references: [id])
+  student User   @relation("DetentionStudent", fields: [studentId], references: [id])
+  author  User   @relation("DetentionAuthor",  fields: [authorId],  references: [id])
+
+  @@index([schoolId, scheduledAt])
+  @@index([schoolId, studentId])
+}
+
+// ─── Exclusion log ────────────────────────────────────────────────────────────
+
+model Exclusion {
+  id                 String    @id @default(cuid())
+  schoolId           String
+  studentId          String
+  authorId           String
+  type               String    // 'internal' | 'fixed_term' | 'permanent'
+  reason             String
+  startDate          DateTime
+  endDate            DateTime?
+  daysCount          Float     @default(0)
+  status             String    @default("active")  // 'active' | 'returned' | 'appealed' | 'overturned'
+  reintegrationPlan  String?
+  parentContacted    Boolean   @default(false)
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  school  School @relation(fields: [schoolId], references: [id])
+  student User   @relation("ExclusionStudent", fields: [studentId], references: [id])
+  author  User   @relation("ExclusionAuthor",  fields: [authorId],  references: [id])
+
+  @@index([schoolId, startDate])
+  @@index([schoolId, studentId])
 }

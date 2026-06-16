@@ -23,6 +23,8 @@ import {
   addBehaviourRecord, deleteBehaviourRecord, getStudentBehaviourRecords,
   type BehaviourRecordRow,
 } from '@/app/actions/behaviour'
+import { getStudentDetentions, type DetentionRow } from '@/app/actions/detentions'
+import { getStudentExclusions, type ExclusionRow } from '@/app/actions/exclusions'
 import {
   getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
   type AssessmentRow,
@@ -2024,12 +2026,20 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
   const [bhvDate, setBhvDate]         = useState(() => new Date().toISOString().slice(0, 10))
   const [bhvSaving, setBhvSaving]     = useState(false)
 
+  // Detention & exclusion state (loaded with behaviour tab)
+  const [detentions, setDetentions]   = useState<DetentionRow[]>([])
+  const [exclusions, setExclusions]   = useState<ExclusionRow[]>([])
+
   useEffect(() => {
     if (activeTab === 'Behaviour' && !bhvLoaded) {
       setBhvLoading(true)
-      getStudentBehaviourRecords(student.id)
-        .then(r => { setBhvRecords(r); setBhvLoaded(true) })
-        .finally(() => setBhvLoading(false))
+      Promise.all([
+        getStudentBehaviourRecords(student.id),
+        getStudentDetentions(student.id),
+        getStudentExclusions(student.id),
+      ]).then(([bhv, det, excl]) => {
+        setBhvRecords(bhv); setDetentions(det); setExclusions(excl); setBhvLoaded(true)
+      }).finally(() => setBhvLoading(false))
     }
   }, [activeTab, bhvLoaded, student.id])
 
@@ -2545,6 +2555,70 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
               </div>
             )}
           </div>
+
+          {/* Detentions */}
+          {detentions.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                <Icon name="timer" size="sm" className="text-amber-500" />
+                <h4 className="text-[12px] font-semibold text-gray-700">Detentions ({detentions.length})</h4>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {detentions.map(d => {
+                  const STATUS_DOT: Record<string, string> = { scheduled: 'bg-blue-500', attended: 'bg-emerald-500', missed: 'bg-rose-500', cancelled: 'bg-gray-300' }
+                  return (
+                    <div key={d.id} className="px-4 py-2.5 flex items-start gap-3">
+                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[d.status] ?? 'bg-gray-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] text-gray-800">{d.reason}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          {d.type.replace('_', ' ')} · {new Date(d.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {d.durationMins}min
+                          {d.location ? ` · ${d.location}` : ''} · {d.status}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Exclusions */}
+          {exclusions.length > 0 && (
+            <div className="bg-white border border-rose-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-rose-100 bg-rose-50/50 flex items-center gap-2">
+                <Icon name="block" size="sm" className="text-rose-500" />
+                <h4 className="text-[12px] font-semibold text-rose-800">Exclusions ({exclusions.length})</h4>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {exclusions.map(e => (
+                  <div key={e.id} className="px-4 py-2.5">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] text-gray-800">{e.reason}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">
+                          {e.type.replace('_', ' ')} · {new Date(e.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {e.daysCount > 0 ? ` · ${e.daysCount} day${e.daysCount !== 1 ? 's' : ''}` : ''}
+                          {' · '}{e.status}
+                        </p>
+                      </div>
+                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        e.status === 'active' ? 'bg-rose-100 text-rose-700' :
+                        e.status === 'returned' ? 'bg-emerald-100 text-emerald-700' :
+                        'bg-amber-100 text-amber-700'
+                      }`}>
+                        {e.status}
+                      </span>
+                    </div>
+                    {e.reintegrationPlan && (
+                      <p className="mt-1 text-[10px] text-gray-500 italic">{e.reintegrationPlan}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>

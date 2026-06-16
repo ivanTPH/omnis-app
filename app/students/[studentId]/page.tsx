@@ -4,10 +4,11 @@ import { getStudentFile } from '@/app/actions/students'
 import StudentFilePanel from '@/components/students/StudentFilePanel'
 import AppShell from '@/components/AppShell'
 
-export default async function StudentFilePage({ params }: { params: { studentId: string } }) {
+export default async function StudentFilePage({ params }: { params: Promise<{ studentId: string }> }) {
   const { role, firstName, lastName, schoolName } = await requireAuth(['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN'])
 
-  const data = await getStudentFile(params.studentId)
+  const { studentId } = await params
+  const data = await getStudentFile(studentId)
   if (!data) redirect('/dashboard')
 
   return (

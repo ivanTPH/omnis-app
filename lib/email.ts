@@ -801,3 +801,53 @@ export async function sendStaleConcernAlertEmail(params: {
     `,
   )
 }
+
+/** Weekly parent summary: recent homework grades + attendance for their child. */
+export async function sendWeeklyParentSummaryEmail(params: {
+  to: string
+  parentFirstName: string
+  childName: string
+  schoolName: string
+  attendancePct: number | null
+  recentGrades: { title: string; subject: string; grade: string }[]
+  overdueCount:  number
+}): Promise<void> {
+  const { to, parentFirstName, childName, schoolName, attendancePct, recentGrades, overdueCount } = params
+
+  const gradesHtml = recentGrades.length > 0
+    ? `<table style="border-collapse:collapse;width:100%;max-width:500px;margin:12px 0">
+        <thead><tr>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Assignment</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Subject</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;color:#6b7280;border-bottom:1.5px solid #e5e7eb">Grade</th>
+        </tr></thead>
+        <tbody>${recentGrades.map(g => `<tr>
+          <td style="padding:5px 8px;border-bottom:1px solid #f3f4f6">${escName(g.title)}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid #f3f4f6;color:#6b7280">${escName(g.subject)}</td>
+          <td style="padding:5px 8px;border-bottom:1px solid #f3f4f6;font-weight:700">${g.grade}</td>
+        </tr>`).join('')}</tbody>
+      </table>`
+    : '<p style="color:#9ca3af;font-size:12px">No graded homework returned this week.</p>'
+
+  const attendHtml = attendancePct != null
+    ? `<p>Attendance: <strong style="color:${attendancePct < 90 ? '#dc2626' : attendancePct < 95 ? '#d97706' : '#16a34a'}">${attendancePct.toFixed(1)}%</strong>${attendancePct < 90 ? ' — please contact school to discuss' : ''}</p>`
+    : ''
+
+  const overdueHtml = overdueCount > 0
+    ? `<p style="color:#dc2626;font-weight:600">⚠ ${overdueCount} overdue homework item${overdueCount !== 1 ? 's' : ''} — please remind your child to submit.</p>`
+    : ''
+
+  await send(
+    to,
+    `${childName}'s weekly school summary — ${schoolName}`,
+    `
+    <p>Hi ${parentFirstName},</p>
+    <p>Here's your weekly summary for <strong>${escName(childName)}</strong> at <strong>${escName(schoolName)}</strong>.</p>
+    <h3 style="margin:16px 0 4px;font-size:14px;color:#1e3a5f">Recent homework grades</h3>
+    ${gradesHtml}
+    ${overdueHtml}
+    ${attendHtml}
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · <a href="#" style="color:#9ca3af">Unsubscribe</a></p>
+    `,
+  )
+}

@@ -4247,3 +4247,197 @@ export async function bulkUpdateIlpTargets(
 
   return { ok: true, updated }
 }
+
+// ── Admin SEND Overview ────────────────────────────────────────────────────────
+
+export type AdminSendYearRow = {
+  yearGroup:     number
+  students:      number
+  sendStudents:  number
+  sendPct:       number
+  activeIlps:    number
+  ehcps:         number
+  openConcerns:  number
+}
+
+export type AdminSendOverview = {
+  totalStudents:  number
+  sendStudents:   number
+  activeIlps:     number
+  ehcps:          number
+  openConcerns:   number
+  ilpsUnderReview: number
+  ehcpsDue30d:    number
+  byYear:         AdminSendYearRow[]
+  concernsByCategory: { category: string; count: number }[]
+}
+
+export async function getAdminSendOverview(): Promise<AdminSendOverview> {
+  const user = await requireAuth()
+  if (!['SCHOOL_ADMIN', 'SLT', 'SENCO'].includes(user.role)) redirect('/dashboard')
+  const { schoolId } = user
+
+  const now     = new Date()
+  const in30d   = new Date(now.getTime() + 30 * 86_400_000)
+
+  const [
+    allStudents,
+    sendRecords,
+    ilps,
+    ehcps,
+    concerns,
+  ] = await Promise.all([
+    prisma.user.findMany({
+      where:  { schoolId, role: 'STUDENT', isActive: true },
+      select: { id: true, yearGroup: true },
+    }),
+    prisma.sendStatus.findMany({
+      where:  { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
+      select: { studentId: true },
+    }),
+    prisma.individualLearningPlan.findMany({
+      where:  { schoolId, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true, status: true, student: { select: { yearGroup: true } } },
+    }),
+    prisma.ehcpPlan.findMany({
+      where:  { schoolId, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true, reviewDate: true, student: { select: { yearGroup: true } } },
+    }),
+    prisma.sendConcern.findMany({
+      where:  { schoolId, status: { notIn: ['closed', 'no_action'] } },
+      select: { studentId: true, category: true, student: { select: { yearGroup: true } } },
+    }),
+  ])
+
+  const sendSet   = new Set(sendRecords.map(s => s.studentId))
+  const ehcpDue30 = ehcps.filter(e => e.reviewDate && new Date(e.reviewDate) <= in30d).length
+
+  // Group by year
+  const yearGroups = [...new Set(allStudents.map(s => s.yearGroup).filter(Boolean) as number[])].sort((a, b) => a - b)
+  const studentsByYear = new Map<number, string[]>()
+  for (const s of allStudents) {
+    if (!s.yearGroup) continue
+    if (!studentsByYear.has(s.yearGroup)) studentsByYear.set(s.yearGroup, [])
+    studentsByYear.get(s.yearGroup)!.push(s.id)
+  }
+
+  const byYear: AdminSendYearRow[] = yearGroups.map(yg => {
+    const ids     = studentsByYear.get(yg) ?? []
+    const idSet   = new Set(ids)
+    const sendN   = ids.filter(id => sendSet.has(id)).length
+    const ilpN    = ilps.filter(i => i.student.yearGroup === yg).length
+    const ehcpN   = ehcps.filter(e => e.student.yearGroup === yg).length
+    const concernN = concerns.filter(c => c.student.yearGroup === yg).length
+    return {
+      yearGroup:    yg,
+      students:     idSet.size,
+      sendStudents: sendN,
+      sendPct:      idSet.size > 0 ? Math.round((sendN / idSet.size) * 100) : 0,
+      activeIlps:   ilpN,
+      ehcps:        ehcpN,
+      openConcerns: concernN,
+    }
+  })
+
+  const catCounts = new Map<string, number>()
+  for (const c of concerns) {
+    catCounts.set(c.category, (catCounts.get(c.category) ?? 0) + 1)
+  }
+  const concernsByCategory = [...catCounts.entries()]
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count)
+
+  return {
+    totalStudents:   allStudents.length,
+    sendStudents:    sendSet.size,
+    activeIlps:      ilps.length,
+    ehcps:           ehcps.length,
+    openConcerns:    concerns.length,
+    ilpsUnderReview: ilps.filter(i => i.status === 'under_review').length,
+    ehcpsDue30d:     ehcpDue30,
+    byYear,
+    concernsByCategory,
+  }
+}
+
+// ── SENCO Interventions Hub ────────────────────────────────────────────────────
+
+export type InterventionRow = {
+  studentId:    string
+  studentName:  string
+  yearGroup:    number | null
+  sendStatus:   string | null
+  hasKPlan:     boolean
+  kPlanStatus:  string | null
+  kPlanReviewDate: string | null
+  hasIlp:       boolean
+  ilpTargetCount: number
+  openConcerns: number
+  ehcpDue:      string | null
+}
+
+export async function getSencoInterventions(): Promise<InterventionRow[]> {
+  const user = await requireSenco()
+  const { schoolId } = user
+
+  const now = new Date()
+
+  const [sendRecords, kPlans, ilps, concerns, ehcps] = await Promise.all([
+    prisma.sendStatus.findMany({
+      where:  { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
+      select: { studentId: true, activeStatus: true, student: { select: { firstName: true, lastName: true, yearGroup: true } } },
+    }),
+    prisma.learnerPassport.findMany({
+      where:  { schoolId },
+      select: { studentId: true, status: true, reviewDate: true },
+    }),
+    prisma.individualLearningPlan.findMany({
+      where:  { schoolId, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true, targets: { where: { status: 'active' }, select: { id: true } } },
+    }),
+    prisma.sendConcern.findMany({
+      where:  { schoolId, status: { notIn: ['closed', 'no_action'] } },
+      select: { studentId: true },
+    }),
+    prisma.ehcpPlan.findMany({
+      where:  { schoolId, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true, reviewDate: true },
+    }),
+  ])
+
+  const kPlanMap    = new Map(kPlans.map(k => [k.studentId, k]))
+  const ilpMap      = new Map(ilps.map(i => [i.studentId, i]))
+  const ehcpMap     = new Map(ehcps.map(e => [e.studentId, e]))
+  const concernMap  = new Map<string, number>()
+  for (const c of concerns) {
+    concernMap.set(c.studentId, (concernMap.get(c.studentId) ?? 0) + 1)
+  }
+
+  return sendRecords.map(sr => {
+    const kp = kPlanMap.get(sr.studentId)
+    const ilp = ilpMap.get(sr.studentId)
+    const ehcp = ehcpMap.get(sr.studentId)
+    const ehcpReviewDate = ehcp?.reviewDate ? new Date(ehcp.reviewDate) : null
+    return {
+      studentId:       sr.studentId,
+      studentName:     `${sr.student.firstName} ${sr.student.lastName}`,
+      yearGroup:       sr.student.yearGroup,
+      sendStatus:      sr.activeStatus,
+      hasKPlan:        !!kp,
+      kPlanStatus:     kp?.status ?? null,
+      kPlanReviewDate: kp?.reviewDate ? new Date(kp.reviewDate).toISOString() : null,
+      hasIlp:          !!ilp,
+      ilpTargetCount:  ilp?.targets.length ?? 0,
+      openConcerns:    concernMap.get(sr.studentId) ?? 0,
+      ehcpDue:         ehcpReviewDate && ehcpReviewDate <= new Date(now.getTime() + 30 * 86_400_000)
+                         ? ehcpReviewDate.toISOString()
+                         : null,
+    }
+  }).sort((a, b) => {
+    // Urgent first: EHCP due + multiple concerns
+    const urgA = (a.ehcpDue ? 2 : 0) + (a.openConcerns >= 2 ? 1 : 0)
+    const urgB = (b.ehcpDue ? 2 : 0) + (b.openConcerns >= 2 ? 1 : 0)
+    if (urgA !== urgB) return urgB - urgA
+    return (a.yearGroup ?? 99) - (b.yearGroup ?? 99)
+  })
+}

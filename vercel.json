@@ -67,6 +67,10 @@
     {
       "path": "/api/cron/concern-stale",
       "schedule": "0 9 * * 3"
+    },
+    {
+      "path": "/api/cron/weekly-parent-summary",
+      "schedule": "30 7 * * 4"
     }
   ]
 }

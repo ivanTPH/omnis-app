@@ -269,3 +269,51 @@ export async function getBehaviourOverview(yearGroup?: number): Promise<Behaviou
       return bScore - aScore
     })
 }
+
+// ── Weekly trend data ─────────────────────────────────────────────────────────
+
+export type BehaviourTrendWeek = {
+  week:     string   // "Mon DD Mmm"
+  positive: number
+  negative: number
+  neutral:  number
+}
+
+export async function getBehaviourTrends(weeks = 8): Promise<BehaviourTrendWeek[]> {
+  const user = await requireAuth()
+  if (!VIEW_ROLES.includes(user.role)) redirect('/dashboard')
+
+  const since = new Date(Date.now() - weeks * 7 * 86_400_000)
+
+  const records = await prisma.behaviourRecord.findMany({
+    where:   { schoolId: user.schoolId, recordDate: { gte: since } },
+    select:  { type: true, recordDate: true },
+    orderBy: { recordDate: 'asc' },
+  })
+
+  // Build week buckets (Mon–Sun)
+  const buckets = new Map<string, { week: string; positive: number; negative: number; neutral: number }>()
+
+  for (const r of records) {
+    const d   = new Date(r.recordDate)
+    const dow = d.getDay() // 0=Sun
+    const mon = new Date(d)
+    mon.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1))
+    mon.setHours(0, 0, 0, 0)
+    const key = mon.toISOString()
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        week: mon.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+        positive: 0, negative: 0, neutral: 0,
+      })
+    }
+    const b = buckets.get(key)!
+    if (r.type === 'positive') b.positive++
+    else if (r.type === 'negative') b.negative++
+    else b.neutral++
+  }
+
+  return Array.from(buckets.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([, v]) => v)
+}

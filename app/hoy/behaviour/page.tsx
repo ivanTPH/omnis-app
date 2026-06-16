@@ -1,9 +1,10 @@
-import { requireAuth }          from '@/lib/session'
-import { redirect }             from 'next/navigation'
-import AppShell                 from '@/components/AppShell'
-import Link                     from 'next/link'
-import Icon                     from '@/components/ui/Icon'
-import { getBehaviourOverview } from '@/app/actions/behaviour'
+import { requireAuth }                          from '@/lib/session'
+import { redirect }                             from 'next/navigation'
+import AppShell                                  from '@/components/AppShell'
+import Link                                      from 'next/link'
+import Icon                                      from '@/components/ui/Icon'
+import { getBehaviourOverview, getBehaviourTrends } from '@/app/actions/behaviour'
+import BehaviourTrendChart                       from '@/components/behaviour/BehaviourTrendChart'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,10 @@ export default async function HoyBehaviourPage({
   const { year } = await searchParams
   const yearGroup = year ? parseInt(year, 10) : undefined
 
-  const rows = await getBehaviourOverview(yearGroup)
+  const [rows, trends] = await Promise.all([
+    getBehaviourOverview(yearGroup),
+    getBehaviourTrends(8),
+  ])
 
   const withExclusion  = rows.filter(r => r.hasExclusion).length
   const withNegative   = rows.filter(r => (r.wondeNegative ?? 0) + r.manualNegative > 0).length
@@ -47,11 +51,18 @@ export default async function HoyBehaviourPage({
             </div>
             <div className="flex items-center gap-2">
               <Link
-                href="/api/export/behaviour-summary"
+                href={`/api/export/behaviour-summary${yearGroup ? `?yearGroup=${yearGroup}` : ''}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
               >
                 <Icon name="download" size="sm" />
-                Export CSV
+                Behaviour CSV
+              </Link>
+              <Link
+                href={`/api/export/detention-register${yearGroup ? `?yearGroup=${yearGroup}` : ''}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Detentions CSV
               </Link>
             </div>
           </div>
@@ -59,10 +70,10 @@ export default async function HoyBehaviourPage({
           {/* KPI cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             {[
-              { label: 'Students',       value: rows.length,    color: 'text-gray-900' },
-              { label: 'With exclusion', value: withExclusion,  color: withExclusion > 0 ? 'text-rose-600' : 'text-gray-300' },
-              { label: 'Negative records', value: withNegative, color: withNegative > 0 ? 'text-amber-600' : 'text-gray-300' },
-              { label: 'Positive records', value: withPositive, color: 'text-emerald-600' },
+              { label: 'Students',         value: rows.length,    color: 'text-gray-900' },
+              { label: 'With exclusion',   value: withExclusion,  color: withExclusion > 0 ? 'text-rose-600' : 'text-gray-300' },
+              { label: 'Negative records', value: withNegative,   color: withNegative > 0 ? 'text-amber-600' : 'text-gray-300' },
+              { label: 'Positive records', value: withPositive,   color: 'text-emerald-600' },
             ].map(k => (
               <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
                 <p className={`text-[24px] font-bold ${k.color}`}>{k.value}</p>
@@ -70,6 +81,14 @@ export default async function HoyBehaviourPage({
               </div>
             ))}
           </div>
+
+          {/* Trend chart */}
+          {trends.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+              <h2 className="text-[13px] font-semibold text-gray-800 mb-4">Weekly Trend (8 weeks)</h2>
+              <BehaviourTrendChart data={trends} />
+            </div>
+          )}
 
           {/* Year group filter */}
           <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -104,8 +123,8 @@ export default async function HoyBehaviourPage({
                     <th className="text-left px-4 py-2.5 font-semibold text-gray-500">Student</th>
                     <th className="text-center px-4 py-2.5 font-semibold text-gray-500">Year</th>
                     <th className="text-center px-4 py-2.5 font-semibold text-gray-500">SEND</th>
-                    <th className="text-center px-4 py-2.5 font-semibold text-gray-500 text-emerald-700">+ Positive</th>
-                    <th className="text-center px-4 py-2.5 font-semibold text-gray-500 text-rose-700">− Negative</th>
+                    <th className="text-center px-4 py-2.5 font-semibold text-emerald-700">+ Positive</th>
+                    <th className="text-center px-4 py-2.5 font-semibold text-rose-700">− Negative</th>
                     <th className="text-center px-4 py-2.5 font-semibold text-gray-500">Exclusion</th>
                     <th className="text-center px-4 py-2.5 font-semibold text-gray-500">Manual</th>
                     <th className="px-4 py-2.5" />

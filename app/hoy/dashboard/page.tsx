@@ -291,10 +291,10 @@ export default async function HoyDashboardPage() {
 
           {/* Quick actions */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <QuickLink href="/hoy/analytics"  icon="bar_chart"       label="Year Analytics"  desc="Performance & at-risk" />
-            <QuickLink href="/hoy/integrity"  icon="verified_user"   label="Integrity"       desc="Flagged submissions" />
-            <QuickLink href="/senco/concerns" icon="report_problem"  label="SEND Concerns"   desc="Open & escalated" />
-            <QuickLink href="/senco/ilp"      icon="description"     label="ILP Records"     desc="Individual learning plans" />
+            <QuickLink href="/hoy/analytics"    icon="bar_chart"      label="Year Analytics"  desc="Performance & at-risk" />
+            <QuickLink href="/hoy/integrity"    icon="verified_user"  label="Integrity"       desc="Flagged submissions" />
+            <QuickLink href="/hoy/detentions"   icon="timer"          label="Detentions"      desc="Register & resolve" />
+            <QuickLink href="/hoy/exclusions"   icon="block"          label="Exclusions"      desc="Active & reintegration" />
           </div>
 
           {/* Two-column: Attendance + Concerns */}

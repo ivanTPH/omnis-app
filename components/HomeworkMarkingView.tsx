@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
-import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
+import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, bulkApproveAiMarks, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
@@ -317,6 +317,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   // Bulk remind missing
   const [bulkReminding, setBulkReminding] = useState(false)
   const [bulkRemindedCount, setBulkRemindedCount] = useState<number | null>(null)
+  // Bulk approve AI
+  const [bulkApproving, setBulkApproving] = useState(false)
+  const [bulkApprovedCount, setBulkApprovedCount] = useState<number | null>(null)
   // Resizable marking panel (vertical drag)
   const [markPanelHeight, setMarkPanelHeight] = useState(300)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
@@ -1119,6 +1122,39 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     ? <Icon name="refresh" size="sm" className="animate-spin" />
                     : <Icon name="send" size="sm" />}
                   Return all
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {canGrade && needsReviewCount > 0 && (
+          <div className="px-3 py-2 border-b border-purple-100 bg-purple-50 flex items-center justify-between">
+            {bulkApprovedCount != null ? (
+              <p className="text-[10px] text-purple-700 font-medium flex items-center gap-1">
+                <Icon name="check_circle" size="sm" /> {bulkApprovedCount} AI mark{bulkApprovedCount !== 1 ? 's' : ''} approved
+              </p>
+            ) : (
+              <>
+                <p className="text-[10px] text-purple-700 font-medium">{needsReviewCount} AI mark{needsReviewCount !== 1 ? 's' : ''} awaiting review</p>
+                <button
+                  onClick={async () => {
+                    setBulkApproving(true)
+                    try {
+                      const r = await bulkApproveAiMarks(hw.id)
+                      setBulkApprovedCount(r.approved)
+                      router.refresh()
+                    } finally {
+                      setBulkApproving(false)
+                    }
+                  }}
+                  disabled={bulkApproving}
+                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50"
+                >
+                  {bulkApproving
+                    ? <Icon name="refresh" size="sm" className="animate-spin" />
+                    : <Icon name="auto_fix_high" size="sm" />}
+                  Approve all AI
                 </button>
               </>
             )}

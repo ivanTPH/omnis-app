@@ -1456,3 +1456,71 @@ export async function getOptionsOverview(yearGroup: number): Promise<OptionsOver
     return a.subject.localeCompare(b.subject)
   })
 }
+
+// ── Parent engagement overview ────────────────────────────────────────────────
+
+export type ParentEngagementRow = {
+  id:            string
+  firstName:     string
+  lastName:      string
+  email:         string
+  lastLogin:     Date | null
+  activatedAt:   Date | null
+  messageCount:  number
+  consentCount:  number
+  childCount:    number
+  childNames:    string[]
+}
+
+export async function getParentEngagementData(): Promise<ParentEngagementRow[]> {
+  const u = await requireAuth()
+  if (!['SCHOOL_ADMIN', 'SLT'].includes(u.role)) redirect('/dashboard')
+  const { schoolId } = u
+
+  const parents = await prisma.user.findMany({
+    where:   { schoolId, role: 'PARENT', isActive: true },
+    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    select: {
+      id: true, firstName: true, lastName: true, email: true,
+      activatedAt: true,
+      childLinks: {
+        select: { child: { select: { firstName: true, lastName: true } } },
+      },
+    },
+  })
+
+  if (parents.length === 0) return []
+
+  const parentIds = parents.map(p => p.id)
+
+  // Message counts per parent (as participant)
+  const msgParticipants = await prisma.msgParticipant.findMany({
+    where:  { userId: { in: parentIds } },
+    select: { userId: true, thread: { select: { messages: { select: { id: true } } } } },
+  })
+  const msgCountMap = new Map<string, number>()
+  for (const mp of msgParticipants) {
+    msgCountMap.set(mp.userId, (msgCountMap.get(mp.userId) ?? 0) + mp.thread.messages.length)
+  }
+
+  // Consent records per parent
+  const consents = await prisma.consentRecord.groupBy({
+    by:    ['responderId'],
+    where: { responderId: { in: parentIds }, decision: 'GRANTED' },
+    _count: { id: true },
+  })
+  const consentMap = new Map(consents.map(c => [c.responderId, c._count.id]))
+
+  return parents.map(p => ({
+    id:           p.id,
+    firstName:    p.firstName,
+    lastName:     p.lastName,
+    email:        p.email,
+    lastLogin:    null,   // User model has no lastLogin; activatedAt is best proxy
+    activatedAt:  p.activatedAt,
+    messageCount: msgCountMap.get(p.id) ?? 0,
+    consentCount: consentMap.get(p.id) ?? 0,
+    childCount:   p.childLinks.length,
+    childNames:   p.childLinks.map(l => `${l.child.firstName} ${l.child.lastName}`),
+  }))
+}

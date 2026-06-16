@@ -340,3 +340,99 @@ export async function getHodCurriculumData(): Promise<HodCurriculumData> {
 
   return { department: resolvedDept, subjects: subjects.sort(), units, totalUsed, totalOak }
 }
+
+// ── Per-class student breakdown ───────────────────────────────────────────────
+
+export type HodStudentRow = {
+  id:            string
+  firstName:     string
+  lastName:      string
+  avgScore:      number | null   // 0–9 scale, from last 5 submissions
+  lateCount:     number          // submissions after dueAt
+  sendStatus:    string | null
+}
+
+export type HodClassDetail = {
+  classId:    string
+  className:  string
+  subject:    string
+  yearGroup:  number
+  students:   HodStudentRow[]
+}
+
+export async function getHodClassDetail(classId: string): Promise<HodClassDetail | null> {
+  const { schoolId, role } = await requireAuth()
+  if (!HOD_ALLOWED.includes(role)) redirect('/dashboard')
+
+  const cls = await prisma.schoolClass.findFirst({
+    where:  { id: classId, schoolId },
+    select: { id: true, name: true, subject: true, yearGroup: true },
+  })
+  if (!cls) return null
+
+  const enrolments = await prisma.enrolment.findMany({
+    where:  { classId, user: { schoolId, role: 'STUDENT', isActive: true } },
+    select: { user: { select: { id: true, firstName: true, lastName: true } } },
+    orderBy: [{ user: { lastName: 'asc' } }],
+  })
+
+  const studentIds = enrolments.map(e => e.user.id)
+  if (studentIds.length === 0) {
+    return { classId, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup, students: [] }
+  }
+
+  // Last 5 submissions per student for this class
+  const submissions = await prisma.submission.findMany({
+    where: {
+      studentId: { in: studentIds },
+      homework:  { classId, status: 'CLOSED' },
+      status:    'RETURNED',
+    },
+    select: {
+      studentId: true,
+      finalScore: true,
+      teacherScore: true,
+      submittedAt: true,
+      homework: { select: { dueAt: true } },
+    },
+    orderBy: { submittedAt: 'desc' },
+  })
+
+  // Group last 5 per student; compute avg + late count
+  const subsByStudent = new Map<string, typeof submissions>()
+  for (const s of submissions) {
+    if (!subsByStudent.has(s.studentId)) subsByStudent.set(s.studentId, [])
+    const arr = subsByStudent.get(s.studentId)!
+    if (arr.length < 5) arr.push(s)
+  }
+
+  // SEND statuses
+  const sendRecords = await prisma.sendStatus.findMany({
+    where:  { studentId: { in: studentIds } },
+    select: { studentId: true, activeStatus: true },
+  })
+  const sendMap = new Map(sendRecords.map(s => [s.studentId, s.activeStatus]))
+
+  const students: HodStudentRow[] = enrolments.map(e => {
+    const u    = e.user
+    const subs = subsByStudent.get(u.id) ?? []
+    const scores = subs
+      .map(s => s.finalScore ?? s.teacherScore)
+      .filter((v): v is number => v != null)
+    const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null
+    const lateCount = subs.filter(s =>
+      s.submittedAt && s.homework.dueAt && new Date(s.submittedAt) > new Date(s.homework.dueAt)
+    ).length
+    const ss = sendMap.get(u.id)
+    return {
+      id:         u.id,
+      firstName:  u.firstName,
+      lastName:   u.lastName,
+      avgScore:   avgScore != null ? Math.round(avgScore * 10) / 10 : null,
+      lateCount,
+      sendStatus: (ss && ss !== 'NONE') ? ss : null,
+    }
+  })
+
+  return { classId, className: cls.name, subject: cls.subject, yearGroup: cls.yearGroup, students }
+}

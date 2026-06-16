@@ -4376,6 +4376,97 @@ export type InterventionRow = {
   ehcpDue:      string | null
 }
 
+// ── SENCO pending actions widget ───────────────────────────────────────────────
+
+export type SencoPendingItem = {
+  id:          string
+  label:       string
+  studentName: string
+  studentId:   string
+  href:        string
+  daysOld:     number
+}
+
+export type SencoPendingActions = {
+  ilpsPendingApproval: SencoPendingItem[]
+  staleConcerns:       SencoPendingItem[]
+  apdrsOverdue:        SencoPendingItem[]
+}
+
+export async function getSencoPendingActions(): Promise<SencoPendingActions> {
+  const user = await requireSenco()
+  const { schoolId } = user
+  const now    = new Date()
+  const ago14  = new Date(now.getTime() - 14 * 86_400_000)
+
+  const [ilps, concerns, apdrs] = await Promise.all([
+    prisma.individualLearningPlan.findMany({
+      where:  { schoolId, approvedBySenco: false, status: 'active' },
+      select: {
+        id:        true,
+        createdAt: true,
+        student:   { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+    }),
+    prisma.sendConcern.findMany({
+      where:  { schoolId, reviewedAt: null, createdAt: { lte: ago14 }, status: { notIn: ['closed', 'no_action'] } },
+      select: {
+        id:        true,
+        createdAt: true,
+        category:  true,
+        student:   { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+    }),
+    prisma.assessPlanDoReview.findMany({
+      where:  {
+        schoolId,
+        status:     'ACTIVE',
+        reviewDate: { lte: now },
+      },
+      select: {
+        id:         true,
+        reviewDate: true,
+        studentId:  true,
+        student:    { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { reviewDate: 'asc' },
+      take: 20,
+    }),
+  ])
+
+  const msInDay = 86_400_000
+  return {
+    ilpsPendingApproval: ilps.map(i => ({
+      id:          i.id,
+      label:       'ILP awaiting approval',
+      studentName: `${i.student.firstName} ${i.student.lastName}`,
+      studentId:   i.student.id,
+      href:        `/senco/ilp`,
+      daysOld:     Math.floor((now.getTime() - i.createdAt.getTime()) / msInDay),
+    })),
+    staleConcerns: concerns.map(c => ({
+      id:          c.id,
+      label:       `${c.category.replace(/_/g, ' ')} concern not reviewed`,
+      studentName: `${c.student.firstName} ${c.student.lastName}`,
+      studentId:   c.student.id,
+      href:        `/senco/concerns`,
+      daysOld:     Math.floor((now.getTime() - c.createdAt.getTime()) / msInDay),
+    })),
+    apdrsOverdue: apdrs.map(a => ({
+      id:          a.id,
+      label:       'APDR review overdue',
+      studentName: `${a.student.firstName} ${a.student.lastName}`,
+      studentId:   a.student.id,
+      href:        `/senco/apdr`,
+      daysOld:     Math.floor((now.getTime() - new Date(a.reviewDate).getTime()) / msInDay),
+    })),
+  }
+}
+
 export async function getSencoInterventions(): Promise<InterventionRow[]> {
   const user = await requireSenco()
   const { schoolId } = user

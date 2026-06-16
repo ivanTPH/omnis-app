@@ -2385,3 +2385,80 @@ export async function getSubmissionReadOnly(
     modelAnswer:  sub.homework.modelAnswer ?? null,
   }
 }
+
+// ── Bulk approve AI marks ─────────────────────────────────────────────────────
+
+export async function bulkApproveAiMarks(
+  homeworkId: string,
+): Promise<{ approved: number }> {
+  const { schoolId, role } = await requireAuth()
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) throw new Error('Only teaching staff can approve marks')
+
+  // Fetch AI-marked submissions awaiting teacher review
+  const hw = await prisma.homework.findFirst({
+    where:  { id: homeworkId, schoolId },
+    select: { title: true },
+  })
+  if (!hw) throw new Error('Homework not found')
+
+  const subs = await prisma.submission.findMany({
+    where: {
+      homeworkId,
+      autoScore:       { not: null },
+      teacherReviewed: false,
+      status:          { not: 'RETURNED' },
+    },
+    select: {
+      id:        true,
+      studentId: true,
+      autoScore: true,
+    },
+  })
+
+  if (subs.length === 0) return { approved: 0 }
+
+  // Bulk update: set finalScore = autoScore, status = RETURNED
+  await prisma.$transaction(
+    subs.map(s =>
+      prisma.submission.update({
+        where: { id: s.id },
+        data: {
+          finalScore:      s.autoScore,
+          status:          'RETURNED',
+          markedAt:        new Date(),
+          teacherReviewed: true,
+        },
+      })
+    )
+  )
+
+  // Fire-and-forget return emails
+  void (async () => {
+    try {
+      const { sendHomeworkReturnedEmail } = await import('@/lib/email')
+      const { percentToGcseGrade, gradeLabel } = await import('@/lib/grading')
+      const studentIds = subs.map(s => s.studentId)
+      const students = await prisma.user.findMany({
+        where:  { id: { in: studentIds } },
+        select: { id: true, email: true, firstName: true, settings: { select: { allowEmailNotifications: true } } },
+      })
+      const studentMap = new Map(students.map(s => [s.id, s]))
+      for (const s of subs) {
+        const stu = studentMap.get(s.studentId)
+        if (!stu || stu.settings?.allowEmailNotifications === false) continue
+        const pct   = s.autoScore! > 9 ? s.autoScore! : s.autoScore! * 100 / 9
+        const grade = gradeLabel(percentToGcseGrade(pct))
+        void sendHomeworkReturnedEmail({
+          to:               stu.email,
+          studentFirstName: stu.firstName,
+          homeworkTitle:    hw.title,
+          grade,
+          feedbackUrl:      `${process.env.NEXTAUTH_URL ?? ''}/student/homework/${homeworkId}`,
+        })
+      }
+    } catch { /* never block */ }
+  })()
+
+  revalidatePath(`/homework/${homeworkId}`)
+  return { approved: subs.length }
+}

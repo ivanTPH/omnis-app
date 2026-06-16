@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/session'
 import { redirect, notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import HomeworkSubmissionView from '@/components/HomeworkSubmissionView'
+import TopicConfidencePanel from '@/components/homework/TopicConfidencePanel'
 import { getStudentHomework } from '@/app/actions/student'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
@@ -71,6 +72,14 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
         {/* Submission panel */}
         <div className="flex-1 min-h-0 overflow-auto">
           <HomeworkSubmissionView hw={hw} />
+          {isReturned && (
+            <div className="px-4 sm:px-6 pb-6">
+              <TopicConfidencePanel
+                homeworkId={hw.id}
+                topic={hw.title}
+              />
+            </div>
+          )}
         </div>
 
       </div>

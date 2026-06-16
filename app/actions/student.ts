@@ -607,3 +607,55 @@ export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
 
   return result.sort((a, b) => a.subject.localeCompare(b.subject))
 }
+
+// ── Topic self-assessment ─────────────────────────────────────────────────────
+
+export async function saveTopicConfidence(
+  homeworkId: string,
+  confidence:  number,   // 1–5
+): Promise<{ success: true } | { error: string }> {
+  const { id: studentId, role } = await requireAuth()
+  if (role !== 'STUDENT') return { error: 'Forbidden' }
+  if (confidence < 1 || confidence > 5) return { error: 'Confidence must be 1–5' }
+
+  // Get the homework to extract subject + title (used as topic)
+  const hw = await prisma.homework.findFirst({
+    where:  { id: homeworkId },
+    select: {
+      title: true,
+      class: { select: { subject: true } },
+      submissions: {
+        where:  { studentId },
+        select: { status: true },
+        take:   1,
+      },
+    },
+  })
+  if (!hw) return { error: 'Homework not found' }
+
+  // Only allow self-assessment on returned work
+  if (hw.submissions[0]?.status !== 'RETURNED') return { error: 'Homework not yet returned' }
+
+  const subject = hw.class?.subject ?? 'General'
+  const topic   = hw.title
+
+  // Upsert: one row per (studentId, subject, topic)
+  const existing = await prisma.revisionConfidence.findFirst({
+    where:  { studentId, subject, topic },
+    select: { id: true },
+  })
+
+  if (existing) {
+    await prisma.revisionConfidence.update({
+      where: { id: existing.id },
+      data:  { confidence, assessedAt: new Date() },
+    })
+  } else {
+    await prisma.revisionConfidence.create({
+      data: { studentId, subject, topic, confidence },
+    })
+  }
+
+  revalidatePath(`/student/homework/${homeworkId}`)
+  return { success: true }
+}

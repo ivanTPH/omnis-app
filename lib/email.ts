@@ -839,7 +839,7 @@ export async function sendWeeklyParentSummaryEmail(params: {
 
   await send(
     to,
-    `${childName}'s weekly school summary — ${schoolName}`,
+    `${escName(childName)}'s weekly school summary — ${escName(schoolName)}`,
     `
     <p>Hi ${parentFirstName},</p>
     <p>Here's your weekly summary for <strong>${escName(childName)}</strong> at <strong>${escName(schoolName)}</strong>.</p>
@@ -848,6 +848,36 @@ export async function sendWeeklyParentSummaryEmail(params: {
     ${overdueHtml}
     ${attendHtml}
     <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · <a href="#" style="color:#9ca3af">Unsubscribe</a></p>
+    `,
+  )
+}
+
+/** Notifies a staff member they have been assigned cover. */
+export async function sendCoverAssignmentEmail(params: {
+  to:               string
+  firstName:        string
+  className:        string
+  subject:          string | null
+  date:             Date
+  periodStart:      string   // e.g. "09:00"
+  periodEnd:        string
+  absentTeacher:    string
+  coverDashboardUrl: string
+}): Promise<void> {
+  const { to, firstName, className, subject, date, periodStart, periodEnd, absentTeacher, coverDashboardUrl } = params
+  const dateStr = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const subjectStr = subject ? ` (${subject})` : ''
+  const timeStr = `${periodStart.slice(0, 5)}–${periodEnd.slice(0, 5)}`
+
+  await send(
+    to,
+    `Cover assigned: ${className} on ${dateStr}`,
+    `
+    <p>Hi ${escName(firstName)},</p>
+    <p>You have been assigned to cover <strong>${escName(className)}${subjectStr}</strong> on <strong>${dateStr}</strong> at <strong>${timeStr}</strong>.</p>
+    <p style="color:#6b7280;font-size:13px;">Covering for: ${escName(absentTeacher)}</p>
+    <p><a href="${coverDashboardUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">View cover details</a></p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
     `,
   )
 }

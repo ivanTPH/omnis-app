@@ -459,6 +459,38 @@ async function notifyCoverSupervisor(
         linkHref: '/admin/cover',
       },
     })
+
+    // Email notification (fire-and-forget inside the outer try/catch)
+    const coverEmp = await prisma.wondeEmployee.findUnique({
+      where:  { id: wondeEmployeeId },
+      select: { firstName: true },
+    })
+    if (coverEmp) {
+      const absent = entry
+        ? await prisma.wondeEmployee.findFirst({
+            where:  { schoolId, id: { not: wondeEmployeeId } },
+            select: { firstName: true, lastName: true },
+          })
+        : null
+      const { sendCoverAssignmentEmail } = await import('@/lib/email')
+      const coverUser2 = await prisma.user.findFirst({
+        where:  { schoolId, firstName: coverEmp.firstName, isActive: true },
+        select: { email: true },
+      })
+      if (coverUser2 && entry) {
+        void sendCoverAssignmentEmail({
+          to:                coverUser2.email,
+          firstName:         coverEmp.firstName,
+          className:         entry.wondeClass.name,
+          subject:           entry.wondeClass.subject ?? null,
+          date:              new Date(),
+          periodStart:       entry.period.startTime,
+          periodEnd:         entry.period.endTime,
+          absentTeacher:     absent ? `${absent.firstName} ${absent.lastName}` : 'a colleague',
+          coverDashboardUrl: `${process.env.NEXTAUTH_URL ?? ''}/admin/cover`,
+        })
+      }
+    }
   } catch {
     // Notification failure must never break the cover assignment workflow
   }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
-import type { SencoDashboardData } from '@/app/actions/send-support'
-import { triggerEarlyWarningAnalysis, generateILPFromConcern } from '@/app/actions/send-support'
+import type { SencoDashboardData, SencoPendingActions } from '@/app/actions/send-support'
+import { triggerEarlyWarningAnalysis, generateILPFromConcern, getSencoPendingActions } from '@/app/actions/send-support'
 import { ConcernStatusBadge } from './ConcernList'
 import { SeverityBadge } from './EarlyWarningPanel'
 
@@ -13,7 +13,13 @@ type Props = { data: SencoDashboardData }
 const COLLAPSED_COUNT = 5
 
 export default function SencoDashboard({ data }: Props) {
+  const [pending,          setPending]          = useState<SencoPendingActions | null>(null)
   const [running,          setRunning]          = useState(false)
+
+  useEffect(() => {
+    getSencoPendingActions().then(setPending).catch(() => {})
+  }, [])
+
   const [result,           setResult]           = useState<{ flagsCreated: number } | null>(null)
   const [reviewsExpanded,  setReviewsExpanded]  = useState(false)
   const [alertsExpanded,   setAlertsExpanded]   = useState(false)
@@ -71,6 +77,50 @@ export default function SencoDashboard({ data }: Props) {
           </Link>
         ))}
       </div>
+
+      {/* Pending actions widget */}
+      {pending && (() => {
+        const items = [
+          ...pending.ilpsPendingApproval,
+          ...pending.staleConcerns,
+          ...pending.apdrsOverdue,
+        ]
+        if (items.length === 0) return null
+        return (
+          <div className="bg-white border border-amber-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-amber-100 flex items-center gap-2 bg-amber-50">
+              <Icon name="pending_actions" size="sm" className="text-amber-600" />
+              <h3 className="font-medium text-amber-900 text-sm">Pending Actions</h3>
+              <span className="ml-auto text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                {items.length} item{items.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {items.slice(0, 8).map(item => (
+                <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-medium text-gray-800 truncate">
+                      {item.studentName} — <span className="text-gray-500">{item.label}</span>
+                    </p>
+                    <p className="text-[10px] text-gray-400">{item.daysOld}d old</p>
+                  </div>
+                  <Link
+                    href={item.href}
+                    className="text-[11px] font-semibold text-amber-700 hover:underline shrink-0"
+                  >
+                    Review
+                  </Link>
+                </div>
+              ))}
+              {items.length > 8 && (
+                <p className="px-4 py-2 text-[11px] text-gray-400">
+                  + {items.length - 8} more items
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Concerns without ILP — action panel */}
       {data.concernsWithoutIlp.length > 0 && (

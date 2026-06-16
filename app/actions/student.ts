@@ -308,6 +308,100 @@ Submission: "${content.slice(0, 800)}"`,
   }
 }
 
+// ── Student SEND support profile (own view) ───────────────────────────────────
+
+export type StudentSupportProfile = {
+  sendStatus:      'NONE' | 'SEN_SUPPORT' | 'EHCP'
+  needArea:        string | null
+  supportSnapshot: string | null
+  ilp: {
+    id:           string
+    areasOfNeed: string
+    targets:      { id: string; target: string; strategy: string; status: string; targetDate: string }[]
+  } | null
+  ehcp: {
+    id:            string
+    localAuthority: string
+    reviewDate:    string
+    outcomes:      { id: string; outcomeText: string; status: string; section: string }[]
+  } | null
+  sencoName: string | null
+}
+
+export async function getStudentSupportProfile(): Promise<StudentSupportProfile> {
+  const { schoolId, id: userId, role } = await requireAuth()
+  if (role !== 'STUDENT') throw new Error('Forbidden')
+
+  const [sendStatus, ilp, ehcp, senco, userRecord] = await Promise.all([
+    prisma.sendStatus.findUnique({
+      where:  { studentId: userId },
+      select: { activeStatus: true, needArea: true },
+    }),
+    prisma.individualLearningPlan.findFirst({
+      where:   { studentId: userId, schoolId, approvedBySenco: true, status: { not: 'archived' } },
+      orderBy: { updatedAt: 'desc' },
+      select:  {
+        id: true, areasOfNeed: true,
+        targets: {
+          where:  { status: { in: ['active', 'deferred'] } },
+          select: { id: true, target: true, strategy: true, status: true, targetDate: true },
+          orderBy: { targetDate: 'asc' },
+        },
+      },
+    }),
+    prisma.ehcpPlan.findFirst({
+      where:   { studentId: userId, schoolId, status: 'active', approvedBySenco: true },
+      orderBy: { createdAt: 'desc' },
+      select:  {
+        id: true, localAuthority: true, reviewDate: true,
+        outcomes: {
+          where:  { status: { in: ['active', 'partially_achieved'] } },
+          select: { id: true, outcomeText: true, status: true, section: true },
+          orderBy: { section: 'asc' },
+          take: 10,
+        },
+      },
+    }),
+    prisma.user.findFirst({
+      where:  { schoolId, role: 'SENCO', isActive: true },
+      select: { firstName: true, lastName: true },
+    }),
+    prisma.user.findUnique({
+      where:  { id: userId },
+      select: { supportSnapshot: true },
+    }),
+  ])
+
+  return {
+    sendStatus:      (sendStatus?.activeStatus ?? 'NONE') as 'NONE' | 'SEN_SUPPORT' | 'EHCP',
+    needArea:        sendStatus?.needArea ?? null,
+    supportSnapshot: userRecord?.supportSnapshot ?? null,
+    ilp: ilp ? {
+      id:           ilp.id,
+      areasOfNeed: ilp.areasOfNeed,
+      targets:      ilp.targets.map(t => ({
+        id:         t.id,
+        target:     t.target,
+        strategy:   t.strategy,
+        status:     t.status,
+        targetDate: t.targetDate.toISOString(),
+      })),
+    } : null,
+    ehcp: ehcp ? {
+      id:             ehcp.id,
+      localAuthority: ehcp.localAuthority,
+      reviewDate:     ehcp.reviewDate.toISOString(),
+      outcomes:       ehcp.outcomes.map(o => ({
+        id:          o.id,
+        outcomeText: o.outcomeText,
+        status:      o.status,
+        section:     o.section,
+      })),
+    } : null,
+    sencoName: senco ? `${senco.firstName} ${senco.lastName}` : null,
+  }
+}
+
 // ── Grade history ─────────────────────────────────────────────────────────────
 
 export type GradeHistorySubmission = {

@@ -306,3 +306,85 @@ export async function getHoyWelfareData(): Promise<HoyWelfareData> {
     ilpReviews,
   }
 }
+
+// ── Absence hub ───────────────────────────────────────────────────────────────
+
+export type AbsenceStudent = {
+  id:                  string
+  name:                string
+  yearGroup:           number | null
+  attendancePct:       number | null
+  sendStatus:          string | null
+  openConcerns:        number
+  hasExclusion:        boolean | null
+}
+
+export type AbsenceSummary = {
+  yearGroup:     number | undefined
+  totalStudents: number
+  below85:       number
+  below90:       number
+  below95:       number
+  avgAttendance: number | null
+  students:      AbsenceStudent[]
+}
+
+const HOY_ROLES = ['HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+
+export async function getAbsenceSummary(yearGroup?: number): Promise<AbsenceSummary> {
+  const user = await requireAuth()
+  if (!HOY_ROLES.includes(user.role)) redirect('/dashboard')
+
+  const yearFilter = yearGroup ? { yearGroup } : {}
+
+  const students = await prisma.user.findMany({
+    where:  { schoolId: user.schoolId, role: 'STUDENT', isActive: true, ...yearFilter },
+    select: {
+      id: true, firstName: true, lastName: true, yearGroup: true,
+      attendancePercentage: true, hasExclusion: true,
+    },
+    orderBy: { attendancePercentage: 'asc' },
+  })
+
+  const studentIds = students.map(s => s.id)
+
+  const [sendStatuses, concernCounts] = await Promise.all([
+    prisma.sendStatus.findMany({
+      where:  { studentId: { in: studentIds }, NOT: { activeStatus: 'NONE' } },
+      select: { studentId: true, activeStatus: true },
+    }),
+    prisma.sendConcern.groupBy({
+      by:    ['studentId'],
+      where: { schoolId: user.schoolId, studentId: { in: studentIds }, status: { notIn: ['closed', 'no_action'] } },
+      _count: { id: true },
+    }),
+  ])
+
+  const sendMap    = new Map(sendStatuses.map(s => [s.studentId, s.activeStatus]))
+  const concernMap = new Map(concernCounts.map(c => [c.studentId, c._count.id]))
+
+  const rows: AbsenceStudent[] = students.map(s => ({
+    id:            s.id,
+    name:          `${s.firstName} ${s.lastName}`,
+    yearGroup:     s.yearGroup,
+    attendancePct: s.attendancePercentage,
+    sendStatus:    sendMap.get(s.id) ?? null,
+    openConcerns:  concernMap.get(s.id) ?? 0,
+    hasExclusion:  s.hasExclusion,
+  }))
+
+  const withPct  = rows.filter(s => s.attendancePct != null)
+  const avgAttendance = withPct.length > 0
+    ? Math.round(withPct.reduce((sum, s) => sum + s.attendancePct!, 0) / withPct.length * 10) / 10
+    : null
+
+  return {
+    yearGroup,
+    totalStudents: students.length,
+    below85:       rows.filter(s => s.attendancePct != null && s.attendancePct < 85).length,
+    below90:       rows.filter(s => s.attendancePct != null && s.attendancePct < 90).length,
+    below95:       rows.filter(s => s.attendancePct != null && s.attendancePct < 95).length,
+    avgAttendance,
+    students:      rows,
+  }
+}

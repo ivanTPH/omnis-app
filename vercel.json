@@ -59,6 +59,14 @@
     {
       "path": "/api/cron/apdr-review",
       "schedule": "30 8 * * 1"
+    },
+    {
+      "path": "/api/cron/low-attendance",
+      "schedule": "0 8 * * 1"
+    },
+    {
+      "path": "/api/cron/concern-stale",
+      "schedule": "0 9 * * 3"
     }
   ]
 }

@@ -66,6 +66,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Year Analytics',       href: '/hoy/analytics',      icon: 'bar_chart'      },
     { divider: true, label: 'Pastoral' },
     { label: 'Welfare',              href: '/hoy/welfare',        icon: 'favorite'       },
+    { label: 'Absence Hub',          href: '/hoy/absence',        icon: 'event_busy'     },
     { label: 'Behaviour',            href: '/hoy/behaviour',      icon: 'emoji_events'   },
     { label: 'Integrity',            href: '/hoy/integrity',      icon: 'verified_user'  },
     { label: 'SEND Concerns',        href: '/senco/concerns',     icon: 'report_problem' },
@@ -148,6 +149,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Homework',         href: '/student/homework',   icon: 'assignment'     },
     { label: 'Revision Planner', href: '/student/revision',   icon: 'menu_book'      },
     { label: 'My Grades',        href: '/student/grades',     icon: 'school'         },
+    { label: 'My Support',       href: '/student/support',    icon: 'support'        },
     { label: 'Messages',         href: '/messages',           icon: 'chat'           },
   ],
   PLATFORM_ADMIN: [

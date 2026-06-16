@@ -711,3 +711,93 @@ export async function sendApdrReviewReminderEmail(params: {
     `,
   )
 }
+
+/** Weekly low-attendance alert emailed to HOY / SCHOOL_ADMIN. */
+export async function sendLowAttendanceAlertEmail(params: {
+  to: string
+  recipientFirstName: string
+  schoolName: string
+  yearGroup?: number
+  students: { name: string; yearGroup: number | null; attendancePct: number; sendStatus: string | null }[]
+}): Promise<void> {
+  const { to, recipientFirstName, schoolName, yearGroup, students } = params
+
+  const rows = students.map(s => {
+    const pct = s.attendancePct.toFixed(1)
+    const color = s.attendancePct < 85 ? '#dc2626' : '#d97706'
+    return `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb">${escName(s.name)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280">${s.yearGroup ? `Year ${s.yearGroup}` : '—'}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:${color};font-weight:700">${pct}%</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280">${s.sendStatus ? s.sendStatus.replace('_', ' ') : '—'}</td>
+    </tr>`
+  }).join('')
+
+  const scope = yearGroup ? `Year ${yearGroup}` : 'your school'
+
+  await send(
+    to,
+    `Low attendance alert — ${students.length} student${students.length !== 1 ? 's' : ''} below 90% — ${schoolName}`,
+    `
+    <p>Hi ${recipientFirstName},</p>
+    <p>The following students in <strong>${scope}</strong> at <strong>${schoolName}</strong> have attendance below 90%:</p>
+    <table style="border-collapse:collapse;width:100%;max-width:560px;margin:16px 0">
+      <thead><tr>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Student</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Year</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Attendance</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">SEND</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p>Review full attendance data in Omnis — <strong>Admin → Attendance</strong> or <strong>HOY → Absence Hub</strong>.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
+function escName(s: string) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+/** Weekly stale-concern alert emailed to SENCO — concerns with no update in 30+ days. */
+export async function sendStaleConcernAlertEmail(params: {
+  to: string
+  sencoFirstName: string
+  schoolName: string
+  concerns: { studentName: string; yearGroup: number | null; category: string; daysOpen: number; raiserName: string }[]
+}): Promise<void> {
+  const { to, sencoFirstName, schoolName, concerns } = params
+
+  const rows = concerns.map(c => {
+    const color = c.daysOpen >= 60 ? '#dc2626' : '#d97706'
+    return `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb">${escName(c.studentName)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280">${c.yearGroup ? `Year ${c.yearGroup}` : '—'}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb">${c.category}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:${color};font-weight:600">${c.daysOpen}d</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280">${escName(c.raiserName)}</td>
+    </tr>`
+  }).join('')
+
+  await send(
+    to,
+    `Stale SEND concerns — ${concerns.length} concern${concerns.length !== 1 ? 's' : ''} with no update — ${schoolName}`,
+    `
+    <p>Hi ${sencoFirstName},</p>
+    <p>The following SEND concerns at <strong>${schoolName}</strong> have had no update in 30 or more days:</p>
+    <table style="border-collapse:collapse;width:100%;max-width:600px;margin:16px 0">
+      <thead><tr>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Student</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Year</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Category</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Days open</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Raised by</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p>Please review and update or close these concerns in Omnis — <strong>SENCO → Concerns</strong>.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}

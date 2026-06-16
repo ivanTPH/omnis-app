@@ -4153,3 +4153,97 @@ Return ONLY valid JSON (no markdown):
     return { success: false, error: 'ILP generation failed — please try again.' }
   }
 }
+
+// ── SENCO bulk ILP target review ───────────────────────────────────────────────
+
+export type BulkIlpTargetRow = {
+  targetId:    string
+  ilpId:       string
+  studentId:   string
+  studentName: string
+  yearGroup:   number | null
+  target:      string
+  strategy:    string
+  status:      string
+  targetDate:  string
+}
+
+export async function getBulkIlpTargets(): Promise<BulkIlpTargetRow[]> {
+  const user = await requireSenco()
+  const { schoolId } = user
+
+  const ilps = await prisma.individualLearningPlan.findMany({
+    where: { schoolId, approvedBySenco: true, status: { not: 'archived' } },
+    select: {
+      id: true,
+      studentId: true,
+      student: { select: { firstName: true, lastName: true, yearGroup: true } },
+      targets: {
+        where:  { status: { not: 'not_achieved' } },
+        select: { id: true, target: true, strategy: true, status: true, targetDate: true },
+      },
+    },
+    orderBy: [{ student: { yearGroup: 'asc' } }, { student: { lastName: 'asc' } }],
+  })
+
+  const rows: BulkIlpTargetRow[] = []
+  for (const ilp of ilps) {
+    for (const t of ilp.targets) {
+      rows.push({
+        targetId:    t.id,
+        ilpId:       ilp.id,
+        studentId:   ilp.studentId,
+        studentName: `${ilp.student.firstName} ${ilp.student.lastName}`,
+        yearGroup:   ilp.student.yearGroup,
+        target:      t.target,
+        strategy:    t.strategy,
+        status:      t.status,
+        targetDate:  t.targetDate.toISOString(),
+      })
+    }
+  }
+  return rows
+}
+
+export async function bulkUpdateIlpTargets(
+  updates: { targetId: string; status: string }[]
+): Promise<{ ok: boolean; updated: number }> {
+  const user = await requireSenco()
+  const { schoolId } = user
+
+  const VALID = new Set(['active', 'achieved', 'not_achieved', 'deferred'])
+  const valid = updates.filter(u => VALID.has(u.status))
+  if (valid.length === 0) return { ok: true, updated: 0 }
+
+  // Confirm targets belong to this school via ILP → school
+  const targetIds = valid.map(u => u.targetId)
+  const owned = await prisma.ilpTarget.findMany({
+    where: { id: { in: targetIds }, ilp: { schoolId } },
+    select: { id: true },
+  })
+  const ownedSet = new Set(owned.map(t => t.id))
+
+  let updated = 0
+  await prisma.$transaction(
+    valid
+      .filter(u => ownedSet.has(u.targetId))
+      .map(u => {
+        updated++
+        return prisma.ilpTarget.update({
+          where: { id: u.targetId },
+          data:  { status: u.status, reviewedAt: new Date() },
+        })
+      })
+  )
+
+  await writeAudit({
+    schoolId,
+    actorId:    user.id,
+    action:     'ILP_REVIEWED',
+    targetType: 'IlpTarget',
+    targetId:   schoolId,
+    metadata:   { count: updated, action: 'bulk_status_update' },
+  })
+
+  return { ok: true, updated }
+}

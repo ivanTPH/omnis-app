@@ -14,6 +14,7 @@ export type HodClassRow = {
   studentCount:   number
   sendCount:      number
   teacherNames:   string[]
+  teacherIds:     string[]
   avgScore:       number | null   // 0–9 GCSE scale
   completionRate: number | null   // 0–1
   ungradedCount:  number
@@ -195,6 +196,7 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
       studentCount:   stuSet.size,
       sendCount,
       teacherNames,
+      teacherIds:     cls.teachers.map(t => t.user.id),
       avgScore,
       completionRate: comp,
       ungradedCount:  ungradedByClass.get(cls.id) ?? 0,

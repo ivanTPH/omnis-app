@@ -671,3 +671,43 @@ export async function sendParentActivationReminderEmail(params: {
     `,
   )
 }
+
+export async function sendApdrReviewReminderEmail(params: {
+  to: string
+  sencoFirstName: string
+  schoolName: string
+  reviewsDue: { studentName: string; yearGroup: number | null; reviewDate: string; daysUntil: number }[]
+}): Promise<void> {
+  const { to, sencoFirstName, schoolName, reviewsDue } = params
+
+  const rows = reviewsDue.map(r => {
+    const urgent = r.daysUntil <= 7
+    const dateStr = new Date(r.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    return `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb">${r.studentName}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280">${r.yearGroup ? `Year ${r.yearGroup}` : '—'}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:${urgent ? '#dc2626' : '#d97706'};font-weight:600">${dateStr}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;color:${urgent ? '#dc2626' : '#d97706'}">${r.daysUntil <= 0 ? 'Overdue' : `${r.daysUntil}d`}</td>
+    </tr>`
+  }).join('')
+
+  await send(
+    to,
+    `APDR review reminder — ${reviewsDue.length} cycle${reviewsDue.length !== 1 ? 's' : ''} due — ${schoolName}`,
+    `
+    <p>Hi ${sencoFirstName},</p>
+    <p>You have <strong>${reviewsDue.length} APDR cycle${reviewsDue.length !== 1 ? 's' : ''}</strong> with a review date in the next 14 days at <strong>${schoolName}</strong>.</p>
+    <table style="border-collapse:collapse;width:100%;max-width:560px;margin:16px 0">
+      <thead><tr>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Student</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Year</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Review date</th>
+        <th style="padding:6px 8px;text-align:left;font-size:12px;color:#6b7280;border-bottom:2px solid #e5e7eb">Due in</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p>Open each cycle in Omnis to complete the Review section and set the outcome rating.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}

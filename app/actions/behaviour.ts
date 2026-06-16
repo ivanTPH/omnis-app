@@ -138,6 +138,65 @@ export async function getStudentBehaviourRecords(studentId: string): Promise<Beh
   }))
 }
 
+// ── Parent view of child behaviour ────────────────────────────────────────────
+
+export type ChildBehaviourSummary = {
+  studentId:      string
+  studentName:    string
+  yearGroup:      number | null
+  wondePositive:  number | null
+  wondeNegative:  number | null
+  hasExclusion:   boolean | null
+  records:        BehaviourRecordRow[]
+}
+
+export async function getChildBehaviourSummary(): Promise<ChildBehaviourSummary[]> {
+  const user = await requireAuth()
+  if (user.role !== 'PARENT') redirect('/dashboard')
+
+  const links = await prisma.parentStudentLink.findMany({
+    where:  { parentId: user.id },
+    select: { child: { select: {
+      id: true, firstName: true, lastName: true, yearGroup: true,
+      behaviourPositive: true, behaviourNegative: true, hasExclusion: true,
+    }}},
+  })
+
+  const result: ChildBehaviourSummary[] = await Promise.all(
+    links.map(async ({ child }) => {
+      const records = await prisma.behaviourRecord.findMany({
+        where:   { studentId: child.id, schoolId: user.schoolId },
+        select:  {
+          id: true, type: true, category: true, description: true,
+          points: true, recordDate: true,
+          author: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { recordDate: 'desc' },
+        take:    50,
+      })
+      return {
+        studentId:     child.id,
+        studentName:   `${child.firstName} ${child.lastName}`,
+        yearGroup:     child.yearGroup,
+        wondePositive: child.behaviourPositive,
+        wondeNegative: child.behaviourNegative,
+        hasExclusion:  child.hasExclusion,
+        records:       records.map(r => ({
+          id:          r.id,
+          type:        r.type,
+          category:    r.category,
+          description: r.description,
+          points:      r.points,
+          recordDate:  r.recordDate.toISOString(),
+          authorName:  `${r.author.firstName} ${r.author.lastName}`,
+        })),
+      }
+    })
+  )
+
+  return result
+}
+
 // ── School-wide overview ──────────────────────────────────────────────────────
 
 export type BehaviourOverviewRow = {

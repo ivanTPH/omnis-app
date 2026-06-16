@@ -36,6 +36,7 @@ const navByRole: Record<string, NavItem[]> = {
   HEAD_OF_DEPT: [
     { label: 'Dashboard',            href: '/hod/dashboard',          icon: 'dashboard'       },
     { divider: true, label: 'Department' },
+    { label: 'Staff Overview',       href: '/hod/staff',              icon: 'people'          },
     { label: 'Curriculum Map',       href: '/hod/curriculum',         icon: 'map'             },
     { label: 'Classes & Analytics',  href: '/analytics',              icon: 'groups'          },
     { label: 'Subjects & Boards',    href: '/admin/subjects',         icon: 'school'          },
@@ -162,10 +163,11 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Reports',           href: '/academy/reports',   icon: 'summarize'       },
   ],
   PARENT: [
-    { label: 'Dashboard',        href: '/parent/dashboard', icon: 'dashboard'      },
-    { label: 'Progress',         href: '/parent/progress',  icon: 'bar_chart'      },
-    { label: 'Messages',         href: '/parent/messages',  icon: 'chat'           },
-    { label: 'Consent Settings', href: '/parent/consent',   icon: 'verified_user'  },
+    { label: 'Dashboard',        href: '/parent/dashboard',  icon: 'dashboard'      },
+    { label: 'Progress',         href: '/parent/progress',   icon: 'bar_chart'      },
+    { label: 'Behaviour',        href: '/parent/behaviour',  icon: 'emoji_events'   },
+    { label: 'Messages',         href: '/parent/messages',   icon: 'chat'           },
+    { label: 'Consent Settings', href: '/parent/consent',    icon: 'verified_user'  },
   ],
   TEACHING_ASSISTANT: [
     { label: 'Student Notes', href: '/ta/notes',       icon: 'add_comment'    },

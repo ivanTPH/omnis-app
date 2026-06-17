@@ -3,7 +3,12 @@
 import { useState, useTransition } from 'react'
 import { useRouter }               from 'next/navigation'
 import Icon                        from '@/components/ui/Icon'
-import { type CommunicationRow, sendCommunication } from '@/app/actions/communications'
+import {
+  type CommunicationRow,
+  type CommunicationRecipientRow,
+  sendCommunication,
+  getCommunicationRecipients,
+} from '@/app/actions/communications'
 
 const TARGET_OPTIONS = [
   { value: 'ALL_PARENTS', label: 'All parents',     yearGroup: undefined },
@@ -27,9 +32,31 @@ function dateStr(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
 function CommCard({ comm }: { comm: CommunicationRow }) {
-  const [expanded, setExpanded] = useState(false)
-  const readPct = comm.sentCount > 0 ? Math.round((comm.readCount / comm.sentCount) * 100) : 0
+  const [expanded, setExpanded]             = useState(false)
+  const [showRecipients, setShowRecipients] = useState(false)
+  const [recipients, setRecipients]         = useState<CommunicationRecipientRow[] | null>(null)
+  const [loadingR, setLoadingR]             = useState(false)
+
+  const readPct    = comm.sentCount > 0 ? Math.round((comm.readCount / comm.sentCount) * 100) : 0
+  const unreadCount = comm.sentCount - comm.readCount
+
+  const handleShowRecipients = async () => {
+    if (recipients === null) {
+      setLoadingR(true)
+      const data = await getCommunicationRecipients(comm.id)
+      setRecipients(data)
+      setLoadingR(false)
+    }
+    setShowRecipients(v => !v)
+  }
+
+  const unread = recipients?.filter(r => r.readAt === null) ?? []
+  const read   = recipients?.filter(r => r.readAt !== null) ?? []
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -52,14 +79,78 @@ function CommCard({ comm }: { comm: CommunicationRow }) {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100 pt-3">
+        <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{comm.body}</p>
-          <div className="mt-3 flex items-center gap-3">
+
+          {/* Read-rate bar */}
+          <div className="flex items-center gap-3">
             <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${readPct}%` }} />
             </div>
             <span className="text-xs text-gray-500 shrink-0">{comm.readCount} / {comm.sentCount} read</span>
           </div>
+
+          {/* Who hasn't read toggle */}
+          {comm.sentCount > 0 && (
+            <button
+              onClick={handleShowRecipients}
+              className="flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              {loadingR
+                ? <Icon name="refresh" size="sm" className="animate-spin" />
+                : <Icon name={showRecipients ? 'expand_less' : 'people'} size="sm" />
+              }
+              {showRecipients
+                ? 'Hide recipients'
+                : `View recipients${unreadCount > 0 ? ` (${unreadCount} haven't read)` : ''}`
+              }
+            </button>
+          )}
+
+          {showRecipients && recipients !== null && (
+            <div className="border border-gray-100 rounded-lg overflow-hidden text-[11px]">
+              {unread.length > 0 && (
+                <div>
+                  <div className="bg-amber-50 px-3 py-1.5 flex items-center gap-1.5 border-b border-gray-100">
+                    <Icon name="schedule" size="sm" className="text-amber-500" />
+                    <span className="font-semibold text-amber-700">Not yet read ({unread.length})</span>
+                  </div>
+                  <ul className="divide-y divide-gray-50">
+                    {unread.slice(0, 15).map(r => (
+                      <li key={r.parentId} className="px-3 py-1.5 flex items-center gap-2 bg-white">
+                        <Icon name="person" size="sm" className="text-gray-300 shrink-0" />
+                        <span className="font-medium text-gray-700">{r.parentName}</span>
+                        <span className="text-gray-400 truncate">{r.email}</span>
+                      </li>
+                    ))}
+                    {unread.length > 15 && (
+                      <li className="px-3 py-1.5 text-gray-400 bg-white">+ {unread.length - 15} more</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              {read.length > 0 && (
+                <div>
+                  <div className="bg-emerald-50 px-3 py-1.5 flex items-center gap-1.5 border-t border-gray-100">
+                    <Icon name="check_circle" size="sm" className="text-emerald-500" />
+                    <span className="font-semibold text-emerald-700">Read ({read.length})</span>
+                  </div>
+                  <ul className="divide-y divide-gray-50">
+                    {read.slice(0, 10).map(r => (
+                      <li key={r.parentId} className="px-3 py-1.5 flex items-center gap-2 bg-white">
+                        <Icon name="done_all" size="sm" className="text-emerald-400 shrink-0" />
+                        <span className="font-medium text-gray-700">{r.parentName}</span>
+                        <span className="text-gray-400 ml-auto shrink-0">{shortDate(r.readAt!)}</span>
+                      </li>
+                    ))}
+                    {read.length > 10 && (
+                      <li className="px-3 py-1.5 text-gray-400 bg-white">+ {read.length - 10} more</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

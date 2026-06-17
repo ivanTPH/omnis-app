@@ -201,3 +201,38 @@ export async function getUnreadCommunicationsCount(): Promise<number> {
     where: { parentId: user.id, readAt: null },
   })
 }
+
+// ── Per-communication recipient list (staff view) ──────────────────────────────
+
+export type CommunicationRecipientRow = {
+  parentId:   string
+  parentName: string
+  email:      string
+  readAt:     string | null
+}
+
+export async function getCommunicationRecipients(
+  communicationId: string,
+): Promise<CommunicationRecipientRow[]> {
+  const user = await requireAuth()
+  if (!ADMIN_ROLES.includes(user.role)) return []
+
+  const receipts = await prisma.communicationReceipt.findMany({
+    where: {
+      communicationId,
+      communication: { schoolId: user.schoolId },
+    },
+    select: {
+      readAt: true,
+      parent: { select: { id: true, firstName: true, lastName: true, email: true } },
+    },
+    orderBy: { readAt: 'asc' },
+  })
+
+  return receipts.map(r => ({
+    parentId:   r.parent.id,
+    parentName: `${r.parent.firstName} ${r.parent.lastName}`,
+    email:      r.parent.email,
+    readAt:     r.readAt?.toISOString() ?? null,
+  }))
+}

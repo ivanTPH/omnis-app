@@ -182,13 +182,24 @@ export default function SafeguardingView({ log }: { log: SafeguardingLog }) {
           <h1 className="text-2xl font-bold text-gray-900">Safeguarding Log</h1>
           <p className="text-sm text-gray-500 mt-0.5">Confidential — authorised staff only</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700"
-        >
-          <Icon name="add_alert" size="sm" />
-          Log concern
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="/api/export/safeguarding-log"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Icon name="picture_as_pdf" size="sm" />
+            Export PDF
+          </a>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-medium hover:bg-rose-700"
+          >
+            <Icon name="add_alert" size="sm" />
+            Log concern
+          </button>
+        </div>
       </div>
 
       {/* KPI cards */}

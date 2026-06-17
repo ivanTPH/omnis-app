@@ -25,6 +25,7 @@ import {
 } from '@/app/actions/behaviour'
 import { getStudentDetentions, type DetentionRow } from '@/app/actions/detentions'
 import { getStudentExclusions, type ExclusionRow } from '@/app/actions/exclusions'
+import { getStudentSafeguardingRecords, type SafeguardingRow } from '@/app/actions/safeguarding'
 import {
   getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
   type AssessmentRow,
@@ -34,17 +35,18 @@ import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 import { getSubmissionReadOnly, type SubmissionReadOnly } from '@/app/actions/homework'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour'
-const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour']
+type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour' | 'Safeguarding'
+const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour', 'Safeguarding']
 const TAB_ICONS: Record<Tab, string> = {
-  Overview:    'person',
-  Plans:       'description',
-  APDR:        'loop',
-  Homework:    'assignment',
-  Assessments: 'fact_check',
-  Notes:       'note_alt',
-  Contact:     'contacts',
-  Behaviour:   'emoji_events',
+  Overview:      'person',
+  Plans:         'description',
+  APDR:          'loop',
+  Homework:      'assignment',
+  Assessments:   'fact_check',
+  Notes:         'note_alt',
+  Contact:       'contacts',
+  Behaviour:     'emoji_events',
+  Safeguarding:  'shield',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -2030,6 +2032,20 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
   const [detentions, setDetentions]   = useState<DetentionRow[]>([])
   const [exclusions, setExclusions]   = useState<ExclusionRow[]>([])
 
+  // Safeguarding tab state
+  const [sfgRecords, setSfgRecords]   = useState<SafeguardingRow[]>([])
+  const [sfgLoaded, setSfgLoaded]     = useState(false)
+  const [sfgLoading, setSfgLoading]   = useState(false)
+
+  useEffect(() => {
+    if (activeTab === 'Safeguarding' && !sfgLoaded) {
+      setSfgLoading(true)
+      getStudentSafeguardingRecords(student.id).then(r => {
+        setSfgRecords(r); setSfgLoaded(true)
+      }).finally(() => setSfgLoading(false))
+    }
+  }, [activeTab, sfgLoaded, student.id])
+
   useEffect(() => {
     if (activeTab === 'Behaviour' && !bhvLoaded) {
       setBhvLoading(true)
@@ -2619,6 +2635,74 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
             </div>
           )}
 
+        </div>
+      )}
+
+      {/* ── Tab: Safeguarding ── */}
+      {activeTab === 'Safeguarding' && (
+        <div className="p-4 space-y-3">
+          <p className="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-center gap-2">
+            <Icon name="lock" size="sm" className="shrink-0" />
+            Confidential — visible to authorised staff only. Not shared with parents or students.
+          </p>
+
+          {sfgLoading && (
+            <div className="space-y-2">
+              {[1,2].map(n => <div key={n} className="h-14 bg-gray-100 rounded-lg animate-pulse" />)}
+            </div>
+          )}
+
+          {!sfgLoading && sfgRecords.length === 0 && (
+            <div className="text-center py-10 text-gray-400">
+              <Icon name="shield" size="lg" className="mx-auto mb-2 opacity-40" />
+              <p className="text-xs">No safeguarding records</p>
+            </div>
+          )}
+
+          {sfgRecords.map(r => {
+            const priorityColour: Record<string, string> = {
+              low: 'bg-gray-100 text-gray-600', medium: 'bg-amber-100 text-amber-700',
+              high: 'bg-orange-100 text-orange-700', critical: 'bg-rose-100 text-rose-700',
+            }
+            const statusColour: Record<string, string> = {
+              open: 'bg-blue-100 text-blue-700', referred: 'bg-purple-100 text-purple-700',
+              monitoring: 'bg-amber-100 text-amber-700', closed: 'bg-green-100 text-green-700',
+            }
+            return (
+              <div key={r.id} className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+                <div className="flex items-start gap-2 flex-wrap">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${priorityColour[r.priority] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {r.priority}
+                  </span>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusColour[r.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {r.status}
+                  </span>
+                  {r.referredToDSL && (
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">DSL referred</span>
+                  )}
+                </div>
+                <p className="text-[12px] font-medium text-gray-800 mt-1">{r.category}</p>
+                <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-2">{r.description}</p>
+                {r.dslNotes && (
+                  <p className="text-[10px] text-purple-700 mt-1 italic">DSL: {r.dslNotes}</p>
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Logged by {r.authorName} · {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {r.resolvedAt && ` · Resolved ${new Date(r.resolvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+                </p>
+              </div>
+            )
+          })}
+
+          <div className="pt-2">
+            <a
+              href="/hoy/safeguarding"
+              className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+            >
+              <Icon name="open_in_new" size="sm" />
+              View full safeguarding log
+            </a>
+          </div>
         </div>
       )}
     </div>

@@ -921,3 +921,28 @@ export async function sendDetentionNotificationEmail(params: {
     `,
   )
 }
+
+/** School-to-parent communication email (letters home). */
+export async function sendSchoolCommunicationEmail(params: {
+  to:         string
+  parentName: string
+  subject:    string
+  body:       string
+  schoolName: string
+}): Promise<void> {
+  const { to, parentName, subject, body, schoolName } = params
+  const bodyHtml = body
+    .split('\n')
+    .map(line => `<p style="margin:0 0 8px">${line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</p>`)
+    .join('')
+  await send(
+    to,
+    `${subject} — ${schoolName}`,
+    `
+    <p>Dear ${escName(parentName)},</p>
+    <div style="background:#f9fafb;border-left:3px solid #6366f1;padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0">${bodyHtml}</div>
+    <p style="color:#6b7280;font-size:13px">If you have any questions please contact the school directly.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform · ${escName(schoolName)}</p>
+    `,
+  )
+}

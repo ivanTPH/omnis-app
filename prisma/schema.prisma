@@ -214,6 +214,9 @@ enum AuditAction {
   DETENTION_RESOLVED
   EXCLUSION_LOGGED
   EXCLUSION_RESOLVED
+  SAFEGUARDING_LOGGED
+  SAFEGUARDING_REFERRED
+  COMMUNICATION_SENT
 }
 
 enum ContactMethod {
@@ -354,6 +357,12 @@ model School {
   // Detentions & exclusions
   detentions       Detention[]
   exclusions       Exclusion[]
+
+  // Safeguarding
+  safeguardingRecords  SafeguardingRecord[]
+
+  // School communications
+  schoolCommunications SchoolCommunication[]
 
   // Auth tokens
   staffInvitations StaffInvitation[]
@@ -576,6 +585,14 @@ model User {
   detentionsAuthored       Detention[]       @relation("DetentionAuthor")
   exclusions               Exclusion[]       @relation("ExclusionStudent")
   exclusionsAuthored       Exclusion[]       @relation("ExclusionAuthor")
+
+  // Safeguarding
+  safeguardingRecords          SafeguardingRecord[] @relation("SafeguardingStudent")
+  safeguardingRecordsAuthored  SafeguardingRecord[] @relation("SafeguardingAuthor")
+
+  // School communications
+  schoolCommunicationsAuthored SchoolCommunication[]
+  communicationReceipts        CommunicationReceipt[]
 
   // Auth tokens
   passwordResetTokens PasswordResetToken[]
@@ -3039,4 +3056,64 @@ model Exclusion {
 
   @@index([schoolId, startDate])
   @@index([schoolId, studentId])
+}
+
+// ─── Safeguarding referral log ────────────────────────────────────────────────
+
+model SafeguardingRecord {
+  id          String    @id @default(cuid())
+  schoolId    String
+  studentId   String
+  authorId    String
+  category    String    // 'welfare' | 'child_protection' | 'bullying' | 'self_harm' | 'domestic' | 'other'
+  priority    String    @default("medium")  // 'low' | 'medium' | 'high' | 'critical'
+  description String
+  referredToDSL Boolean @default(false)
+  dslNotes    String?
+  status      String    @default("open")   // 'open' | 'referred' | 'monitoring' | 'closed'
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  school  School @relation(fields: [schoolId], references: [id])
+  student User   @relation("SafeguardingStudent", fields: [studentId], references: [id])
+  author  User   @relation("SafeguardingAuthor",  fields: [authorId],  references: [id])
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, studentId])
+}
+
+// ─── School communications (letters home) ────────────────────────────────────
+
+model SchoolCommunication {
+  id             String   @id @default(cuid())
+  schoolId       String
+  authorId       String
+  title          String
+  body           String
+  recipientScope String   // 'ALL_PARENTS' | 'YEAR_GROUP' | 'CLASS'
+  yearGroup      Int?
+  classId        String?
+  sentAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  school    School @relation(fields: [schoolId],  references: [id])
+  author    User   @relation(fields: [authorId],   references: [id])
+  receipts  CommunicationReceipt[]
+
+  @@index([schoolId, sentAt])
+}
+
+model CommunicationReceipt {
+  id              String   @id @default(cuid())
+  communicationId String
+  parentId        String
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  communication SchoolCommunication @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  parent        User                @relation(fields: [parentId],        references: [id])
+
+  @@unique([communicationId, parentId])
+  @@index([parentId])
 }

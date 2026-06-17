@@ -2347,6 +2347,40 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
               </div>
             </SectionCard>
           )}
+          {/* Export actions */}
+          {['HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SENCO'].includes(role) && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <a
+                href={`/api/export/report-card/${student.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                <Icon name="picture_as_pdf" size="sm" />
+                Report card PDF
+              </a>
+              {student.attendancePercentage != null && student.attendancePercentage < 90 && (
+                <a
+                  href={`/api/export/attendance-letter/${student.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                >
+                  <Icon name="mail" size="sm" />
+                  Attendance letter
+                </a>
+              )}
+              <a
+                href={`/api/export/student/${student.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Icon name="download" size="sm" />
+                Full student record
+              </a>
+            </div>
+          )}
         </div>
       )}
 

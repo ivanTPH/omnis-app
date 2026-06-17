@@ -105,6 +105,7 @@ export default async function HoyAbsencePage() {
                     <th className="text-left px-4 py-2.5 font-semibold text-gray-500 hidden sm:table-cell">SEND</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-gray-500 hidden md:table-cell">Open concerns</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-gray-500 w-40">Attendance</th>
+                    <th className="text-left px-4 py-2.5 font-semibold text-gray-500 hidden lg:table-cell">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -126,6 +127,26 @@ export default async function HoyAbsencePage() {
                       </td>
                       <td className="px-4 py-2.5 w-40">
                         <RagBar pct={s.attendancePct} />
+                      </td>
+                      <td className="px-4 py-2.5 hidden lg:table-cell">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/api/export/attendance-letter/${s.id}`}
+                            target="_blank"
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors"
+                          >
+                            <Icon name="mail" size="sm" />
+                            Letter
+                          </Link>
+                          <Link
+                            href={`/api/export/report-card/${s.id}`}
+                            target="_blank"
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded hover:bg-indigo-100 transition-colors"
+                          >
+                            <Icon name="picture_as_pdf" size="sm" />
+                            Report
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

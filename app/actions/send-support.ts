@@ -7,6 +7,8 @@ import { prisma, writeAudit, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
+import { markDirty } from '@/lib/agents/snapshot'
+import { AgentType } from '@prisma/client'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getPlanCoherenceAlerts } from '@/app/actions/agent-insights'
@@ -906,6 +908,9 @@ export async function createIlp(data: {
   }
 
   revalidatePath('/senco/ilp')
+
+  // Mark PLAN_SYNTHESIS dirty — new ILP changes plan coherence picture
+  void markDirty(validated.studentId, schoolId, [AgentType.PLAN_SYNTHESIS]).catch(() => {})
 }
 
 export async function getStudentIlp(studentId: string): Promise<IlpWithTargets | null> {
@@ -1232,7 +1237,7 @@ export async function updateIlpTarget(
       progressNotes: true,
       targetDate: true,
       ilpId: true,
-      ilp: { select: { approvedBySenco: true } },
+      ilp: { select: { approvedBySenco: true, studentId: true, schoolId: true } },
     },
   })
 
@@ -1289,6 +1294,11 @@ export async function updateIlpTarget(
   }
 
   revalidatePath('/senco/ilp')
+
+  // Mark plan-synthesis dirty so coherence is re-checked after target update
+  if (current?.ilp.studentId && current.ilp.schoolId) {
+    void markDirty(current.ilp.studentId, current.ilp.schoolId, [AgentType.PLAN_SYNTHESIS]).catch(() => {})
+  }
 }
 
 /** Edit main ILP fields while still in under_review (draft) state — no audit needed. */
@@ -1555,6 +1565,9 @@ export async function updateSendStatus(
 
   revalidatePath('/senco/concerns')
   revalidatePath('/senco/ehcp')
+
+  // Mark PLAN_SYNTHESIS dirty — SEND status change affects plan coherence
+  void markDirty(studentId, schoolId, [AgentType.PLAN_SYNTHESIS]).catch(() => {})
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

@@ -331,7 +331,7 @@ export default async function HoyDashboardPage() {
                     const colour = pct < 80 ? 'text-red-600 font-bold' : 'text-amber-600 font-semibold'
                     return (
                       <li key={s.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50">
-                        <Link href={`/students/${s.id}`} className="text-[13px] font-medium text-gray-800 hover:text-blue-600 transition">
+                        <Link href={`/students/${s.id}?tab=Pastoral`} className="text-[13px] font-medium text-gray-800 hover:text-emerald-700 transition">
                           {s.firstName} {s.lastName}
                           {s.yearGroup && <span className="ml-1.5 text-[11px] text-gray-400">Yr {s.yearGroup}</span>}
                         </Link>
@@ -363,7 +363,7 @@ export default async function HoyDashboardPage() {
                   {openConcerns.map(c => (
                     <li key={c.id} className="px-5 py-3">
                       <div className="flex items-start justify-between gap-2">
-                        <Link href={`/students/${c.student.id}`} className="text-[13px] font-medium text-gray-800 hover:text-blue-600 transition">
+                        <Link href={`/students/${c.student.id}?tab=Pastoral`} className="text-[13px] font-medium text-gray-800 hover:text-emerald-700 transition">
                           {c.student.firstName} {c.student.lastName}
                         </Link>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLOUR[c.status] ?? 'bg-gray-100 text-gray-500'}`}>

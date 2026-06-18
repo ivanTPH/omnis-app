@@ -140,9 +140,9 @@ export default function HoyWelfarePanel({ data }: Props) {
 
                 {/* Link to student file */}
                 <Link
-                  href={`/students/${a.studentId}`}
-                  className="shrink-0 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
-                  title="View student file"
+                  href={`/students/${a.studentId}?tab=Pastoral`}
+                  className="shrink-0 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-emerald-600 transition-colors"
+                  title="Open pastoral notes"
                 >
                   <Icon name="open_in_new" size="sm" />
                 </Link>

@@ -112,7 +112,12 @@ export default async function HoyAbsencePage() {
                   {flagged.map(s => (
                     <tr key={s.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-2.5">
-                        <p className="font-medium text-gray-900">{s.name}</p>
+                        <Link
+                          href={`/students/${s.id}?tab=Pastoral`}
+                          className="font-medium text-gray-900 hover:text-indigo-700 hover:underline"
+                        >
+                          {s.name}
+                        </Link>
                         {s.yearGroup && <p className="text-[10px] text-gray-400">Year {s.yearGroup}</p>}
                       </td>
                       <td className="px-4 py-2.5 hidden sm:table-cell">
@@ -145,6 +150,13 @@ export default async function HoyAbsencePage() {
                           >
                             <Icon name="picture_as_pdf" size="sm" />
                             Report
+                          </Link>
+                          <Link
+                            href={`/students/${s.id}?tab=Pastoral`}
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded hover:bg-emerald-100 transition-colors"
+                          >
+                            <Icon name="eco" size="sm" />
+                            Pastoral
                           </Link>
                         </div>
                       </td>

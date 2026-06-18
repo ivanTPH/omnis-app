@@ -210,6 +210,8 @@ enum AuditAction {
   INTEGRITY_CASE_ESCALATED
   BEHAVIOUR_RECORDED
   BEHAVIOUR_DELETED
+  PASTORAL_NOTE_ADDED
+  PASTORAL_NOTE_DELETED
   DETENTION_LOGGED
   DETENTION_RESOLVED
   EXCLUSION_LOGGED
@@ -385,6 +387,9 @@ model School {
 
   // TA notes
   taNotes              TaNote[]
+
+  // Pastoral notes
+  pastoralNotes        PastoralNote[]
 
   // Agent snapshots + audit (AI coach / quality / plan-synthesis)
   agentSnapshots       AgentSnapshot[]   @relation("AgentSnapshots")
@@ -589,6 +594,10 @@ model User {
   // Safeguarding
   safeguardingRecords          SafeguardingRecord[] @relation("SafeguardingStudent")
   safeguardingRecordsAuthored  SafeguardingRecord[] @relation("SafeguardingAuthor")
+
+  // Pastoral notes
+  pastoralNotes          PastoralNote[] @relation("PastoralNoteStudent")
+  authoredPastoralNotes  PastoralNote[] @relation("PastoralNoteAuthor")
 
   // School communications
   schoolCommunicationsAuthored SchoolCommunication[]
@@ -3116,4 +3125,23 @@ model CommunicationReceipt {
 
   @@unique([communicationId, parentId])
   @@index([parentId])
+}
+
+// ─── Pastoral Notes (HOY welfare log) ────────────────────────────────────────
+
+model PastoralNote {
+  id         String   @id @default(cuid())
+  school     School   @relation(fields: [schoolId], references: [id])
+  schoolId   String
+  student    User     @relation("PastoralNoteStudent", fields: [studentId], references: [id])
+  studentId  String
+  author     User     @relation("PastoralNoteAuthor", fields: [authorId], references: [id])
+  authorId   String
+  content    String
+  category   String   @default("welfare")   // 'welfare' | 'academic' | 'attendance' | 'behaviour' | 'family' | 'medical' | 'other'
+  visibility String   @default("STAFF")     // 'STAFF' | 'SENCO_VISIBLE'
+  createdAt  DateTime @default(now())
+
+  @@index([studentId, schoolId])
+  @@index([schoolId])
 }

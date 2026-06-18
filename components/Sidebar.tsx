@@ -137,6 +137,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Analytics',          href: '/slt/analytics',          icon: 'bar_chart'     },
     { label: 'Teacher Analytics',  href: '/analytics/teacher',      icon: 'person_search' },
     { label: 'Dept Analytics',     href: '/analytics/department',   icon: 'domain'        },
+    { label: 'Staff Overview',     href: '/slt/staff',              icon: 'people'        },
     { label: 'Attendance',         href: '/admin/attendance',       icon: 'directions_run'},
     { label: 'SEND Reporting',     href: '/slt/send',               icon: 'favorite'      },
     { label: 'Population',         href: '/slt/population',   icon: 'group'         },

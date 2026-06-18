@@ -412,3 +412,143 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
     },
   }
 }
+
+// ── School-wide staff overview (for SLT /slt/staff) ──────────────────────────
+
+export type StaffOverviewRow = {
+  id:             string
+  name:           string
+  email:          string
+  department:     string
+  classCount:     number
+  studentCount:   number
+  sendCount:      number
+  avgGrade:       number | null   // 0–9 scale
+  submissionRate: number          // 0–1
+  homeworkSet30d: number
+  turnaroundDays: number | null
+}
+
+export async function getStaffOverview(): Promise<StaffOverviewRow[]> {
+  const { schoolId, role } = await requireAuth()
+  if (!['SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
+
+  // All class-teacher links with class info
+  const classTeachers = await prisma.classTeacher.findMany({
+    where:  { class: { schoolId } },
+    select: {
+      userId: true,
+      user:   { select: { id: true, firstName: true, lastName: true, email: true } },
+      class:  { select: { id: true, department: true } },
+    },
+  })
+
+  // Build teacher → classId map
+  const teacherMap = new Map<string, {
+    name: string; email: string; department: string; classIds: string[]
+  }>()
+  for (const ct of classTeachers) {
+    if (!teacherMap.has(ct.userId)) {
+      teacherMap.set(ct.userId, { name: `${ct.user.firstName} ${ct.user.lastName}`, email: ct.user.email, department: ct.class.department, classIds: [] })
+    }
+    teacherMap.get(ct.userId)!.classIds.push(ct.class.id)
+  }
+
+  const allClassIds = [...new Set(classTeachers.map(ct => ct.class.id))]
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+  // Parallel data fetches
+  const [enrolments, sendStatuses, latestAggs, submissions, homework30d] = await Promise.all([
+    prisma.enrolment.findMany({ where: { classId: { in: allClassIds } }, select: { classId: true, userId: true } }),
+    prisma.sendStatus.findMany({
+      where:  { activeStatus: { not: 'NONE' }, student: { schoolId } },
+      select: { studentId: true },
+    }),
+    prisma.classPerformanceAggregate.findMany({
+      where:   { classId: { in: allClassIds } },
+      orderBy: { updatedAt: 'desc' },
+      select:  { classId: true, avgScore: true, completionRate: true },
+    }),
+    prisma.submission.findMany({
+      where:   { homework: { classId: { in: allClassIds } }, markedAt: { not: null } },
+      select:  { submittedAt: true, markedAt: true, homework: { select: { classId: true } } },
+    }),
+    prisma.homework.findMany({
+      where:   { classId: { in: allClassIds }, createdAt: { gte: thirtyDaysAgo } },
+      select:  { classId: true },
+    }),
+  ])
+
+  // Build lookup maps
+  const sendUserIds     = new Set(sendStatuses.map(s => s.studentId))
+  const enrolByClass    = new Map<string, string[]>()
+  for (const e of enrolments) {
+    if (!enrolByClass.has(e.classId)) enrolByClass.set(e.classId, [])
+    enrolByClass.get(e.classId)!.push(e.userId)
+  }
+
+  // Latest agg per class
+  const latestAggMap = new Map<string, { avgScore: number; completionRate: number }>()
+  for (const agg of latestAggs) {
+    if (!latestAggMap.has(agg.classId)) latestAggMap.set(agg.classId, { avgScore: agg.avgScore, completionRate: agg.completionRate })
+  }
+
+  const hw30ByClass  = new Map<string, number>()
+  for (const hw of homework30d) {
+    hw30ByClass.set(hw.classId, (hw30ByClass.get(hw.classId) ?? 0) + 1)
+  }
+
+  // Turnaround per class (0-90 day filter)
+  const turnaroundByClass = new Map<string, number[]>()
+  for (const s of submissions) {
+    const classId = s.homework.classId
+    if (!s.markedAt) continue
+    const days = (s.markedAt.getTime() - s.submittedAt.getTime()) / (1000 * 60 * 60 * 24)
+    if (days < 0 || days > 90) continue
+    if (!turnaroundByClass.has(classId)) turnaroundByClass.set(classId, [])
+    turnaroundByClass.get(classId)!.push(days)
+  }
+
+  const rows: StaffOverviewRow[] = []
+
+  for (const [teacherId, t] of teacherMap.entries()) {
+    const classIds = t.classIds
+
+    let studentCount = 0; const studentIds = new Set<string>()
+    let hw30 = 0
+    const grades: number[] = []; const rates: number[] = []; const turnaround: number[] = []
+
+    for (const classId of classIds) {
+      const members = enrolByClass.get(classId) ?? []
+      members.forEach(uid => studentIds.add(uid))
+
+      const agg = latestAggMap.get(classId)
+      if (agg) {
+        if (agg.avgScore != null) grades.push(agg.avgScore)
+        rates.push(agg.completionRate)
+      }
+      hw30 += hw30ByClass.get(classId) ?? 0
+      const ta = turnaroundByClass.get(classId) ?? []
+      turnaround.push(...ta)
+    }
+    studentCount = studentIds.size
+    const sendCount = [...studentIds].filter(uid => sendUserIds.has(uid)).length
+
+    rows.push({
+      id:             teacherId,
+      name:           t.name,
+      email:          t.email,
+      department:     t.department,
+      classCount:     classIds.length,
+      studentCount,
+      sendCount,
+      avgGrade:       grades.length > 0 ? Math.round(grades.reduce((a, b) => a + b, 0) / grades.length * 10) / 10 : null,
+      submissionRate: rates.length > 0 ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length * 1000) / 1000 : 0,
+      homeworkSet30d: hw30,
+      turnaroundDays: turnaround.length > 0 ? Math.round(turnaround.reduce((a, b) => a + b, 0) / turnaround.length * 10) / 10 : null,
+    })
+  }
+
+  return rows.sort((a, b) => a.name.localeCompare(b.name))
+}

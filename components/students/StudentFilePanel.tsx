@@ -26,6 +26,7 @@ import {
 import { getStudentDetentions, type DetentionRow } from '@/app/actions/detentions'
 import { getStudentExclusions, type ExclusionRow } from '@/app/actions/exclusions'
 import { getStudentSafeguardingRecords, type SafeguardingRow } from '@/app/actions/safeguarding'
+import { getPastoralNotes, addPastoralNote, deletePastoralNote, type PastoralNoteRow } from '@/app/actions/pastoral'
 import {
   getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
   type AssessmentRow,
@@ -35,8 +36,8 @@ import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 import { getSubmissionReadOnly, type SubmissionReadOnly } from '@/app/actions/homework'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour' | 'Safeguarding'
-const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour', 'Safeguarding']
+type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour' | 'Safeguarding' | 'Pastoral'
+const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour', 'Safeguarding', 'Pastoral']
 const TAB_ICONS: Record<Tab, string> = {
   Overview:      'person',
   Plans:         'description',
@@ -47,6 +48,7 @@ const TAB_ICONS: Record<Tab, string> = {
   Contact:       'contacts',
   Behaviour:     'emoji_events',
   Safeguarding:  'shield',
+  Pastoral:      'eco',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -2002,6 +2004,180 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
   )
 }
 
+
+// ── Pastoral Notes Tab ─────────────────────────────────────────────────────────
+
+const PASTORAL_CATEGORIES = ['welfare', 'academic', 'attendance', 'behaviour', 'family', 'medical', 'other']
+const CATEGORY_LABEL: Record<string, string> = {
+  welfare: 'Welfare', academic: 'Academic', attendance: 'Attendance',
+  behaviour: 'Behaviour', family: 'Family', medical: 'Medical', other: 'Other',
+}
+const CATEGORY_COLOUR: Record<string, string> = {
+  welfare:    'bg-emerald-100 text-emerald-700',
+  academic:   'bg-blue-100 text-blue-700',
+  attendance: 'bg-amber-100 text-amber-700',
+  behaviour:  'bg-orange-100 text-orange-700',
+  family:     'bg-purple-100 text-purple-700',
+  medical:    'bg-rose-100 text-rose-700',
+  other:      'bg-gray-100 text-gray-600',
+}
+
+function PastoralNotesTab({
+  studentId, notes, loading, role, onAdded, onDeleted,
+}: {
+  studentId: string
+  notes:     PastoralNoteRow[]
+  loading:   boolean
+  role:      string
+  onAdded:   (n: PastoralNoteRow) => void
+  onDeleted: (id: string) => void
+}) {
+  const PASTORAL_ALLOWED = ['HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+  const canWrite = PASTORAL_ALLOWED.includes(role)
+
+  const [text, setText]           = useState('')
+  const [category, setCategory]   = useState('welfare')
+  const [visibility, setVisibility] = useState('STAFF')
+  const [saving, setSaving]       = useState(false)
+  const [error, setError]         = useState<string | null>(null)
+  const [deleting, startDelete]   = useTransition()
+
+  async function handleAdd() {
+    if (!text.trim()) return
+    setSaving(true); setError(null)
+    const res = await addPastoralNote(studentId, text.trim(), category, visibility)
+    setSaving(false)
+    if (!res.ok) { setError(res.error); return }
+    // Optimistic — server will generate a real id on next load; use temp id
+    onAdded({
+      id: `tmp-${Date.now()}`, content: text.trim(), category, visibility,
+      authorName: 'You', createdAt: new Date().toISOString(), isOwn: true,
+    })
+    setText('')
+  }
+
+  function handleDelete(id: string) {
+    startDelete(async () => {
+      const res = await deletePastoralNote(id, studentId)
+      if (res.ok) onDeleted(id)
+    })
+  }
+
+  if (!canWrite) {
+    return (
+      <div className="p-6 text-center text-gray-400 text-sm">
+        <Icon name="eco" size="lg" className="mx-auto mb-2 opacity-30" />
+        <p>Pastoral notes are not available for your role.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-3 py-2 text-xs flex items-center gap-2">
+        <Icon name="eco" size="sm" className="shrink-0" />
+        Pastoral welfare notes — visible to HOY, SENCO, SLT and school admin only.
+      </div>
+
+      {/* Add form */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+          <h3 className="font-semibold text-sm text-gray-800">Log pastoral note</h3>
+        </div>
+        <div className="px-4 py-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-gray-600 block mb-1">Category</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                {PASTORAL_CATEGORIES.map(c => (
+                  <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 block mb-1">Visibility</label>
+              <select
+                value={visibility}
+                onChange={e => setVisibility(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="STAFF">All HOY/SLT/Admin staff</option>
+                <option value="SENCO_VISIBLE">Also visible to SENCO</option>
+              </select>
+            </div>
+          </div>
+
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            rows={3}
+            placeholder="Describe the pastoral concern or observation…"
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+
+          {error && <p className="text-xs text-rose-600">{error}</p>}
+
+          <button
+            onClick={handleAdd}
+            disabled={saving || !text.trim()}
+            className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save note'}
+          </button>
+        </div>
+      </div>
+
+      {/* Notes list */}
+      {loading && (
+        <div className="space-y-2">
+          {[1,2].map(n => <div key={n} className="h-16 bg-gray-100 rounded-lg animate-pulse" />)}
+        </div>
+      )}
+
+      {!loading && notes.length === 0 && (
+        <div className="text-center py-8 text-gray-400">
+          <Icon name="eco" size="lg" className="mx-auto mb-2 opacity-30" />
+          <p className="text-xs">No pastoral notes yet.</p>
+        </div>
+      )}
+
+      {notes.map(n => (
+        <div key={n.id} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${CATEGORY_COLOUR[n.category] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {CATEGORY_LABEL[n.category] ?? n.category}
+                </span>
+                {n.visibility === 'SENCO_VISIBLE' && (
+                  <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">SENCO visible</span>
+                )}
+              </div>
+              <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.content}</p>
+              <p className="text-xs text-gray-400">
+                {n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            </div>
+            {(n.isOwn || ['SLT', 'SCHOOL_ADMIN'].includes(role)) && (
+              <button
+                onClick={() => handleDelete(n.id)}
+                disabled={deleting}
+                className="text-gray-300 hover:text-rose-500 shrink-0"
+              >
+                <Icon name="delete_outline" size="sm" />
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
@@ -2037,6 +2213,11 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
   const [sfgLoaded, setSfgLoaded]     = useState(false)
   const [sfgLoading, setSfgLoading]   = useState(false)
 
+  // Pastoral notes tab state
+  const [pastoralNotes, setPastoralNotes]     = useState<PastoralNoteRow[]>([])
+  const [pastoralLoaded, setPastoralLoaded]   = useState(false)
+  const [pastoralLoading, setPastoralLoading] = useState(false)
+
   useEffect(() => {
     if (activeTab === 'Safeguarding' && !sfgLoaded) {
       setSfgLoading(true)
@@ -2045,6 +2226,15 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
       }).finally(() => setSfgLoading(false))
     }
   }, [activeTab, sfgLoaded, student.id])
+
+  useEffect(() => {
+    if (activeTab === 'Pastoral' && !pastoralLoaded) {
+      setPastoralLoading(true)
+      getPastoralNotes(student.id).then(r => {
+        setPastoralNotes(r); setPastoralLoaded(true)
+      }).finally(() => setPastoralLoading(false))
+    }
+  }, [activeTab, pastoralLoaded, student.id])
 
   useEffect(() => {
     if (activeTab === 'Behaviour' && !bhvLoaded) {
@@ -2738,6 +2928,18 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
             </a>
           </div>
         </div>
+      )}
+
+      {/* ── Tab: Pastoral ── */}
+      {activeTab === 'Pastoral' && (
+        <PastoralNotesTab
+          studentId={student.id}
+          notes={pastoralNotes}
+          loading={pastoralLoading}
+          role={role}
+          onAdded={note => setPastoralNotes(prev => [note, ...prev])}
+          onDeleted={id => setPastoralNotes(prev => prev.filter(n => n.id !== id))}
+        />
       )}
     </div>
   )

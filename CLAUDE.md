@@ -1,8 +1,8 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-11. Authoritative reference for Claude sessions.
+> Last updated: 2026-06-18. Authoritative reference for Claude sessions.
 >
-> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-11.**
+> **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
 > Live teacher feedback incorporated (May 2026 sprint): Year Group Plans, TA Notes, homework depth,
 > lesson visibility fixes, design consistency, No Plan filter, Generate ILP button.
@@ -115,7 +115,38 @@
 > negative/neutral bars). /hoy/behaviour: now shows trend chart + Behaviour/Detentions CSV export buttons.
 > HOY dashboard quick links updated: Detentions + Exclusions. E2E: hoy-behaviour-detentions.spec.ts (30 tests).
 >
-> **Latest commit:** e7838ba (feat: block 31 — behaviour trend chart, CSV exports, HOY dashboard detention/exclusion quick links). E2E: 35 spec files, ~208 tests.
+> June 2026 Blocks 32–38: Safeguarding + Communications — SafeguardingRecord model
+> (priority/status/referredToDSL/dslNotes/resolvedAt), SafeguardingView client component
+> (/hoy/safeguarding — KPI cards, section tabs, log modal, DSL notes edit), logSafeguardingRecord +
+> updateSafeguardingRecord + getStudentSafeguardingRecords actions. SchoolCommunication +
+> CommunicationReceipt models. /admin/communications (compose modal, recipient scope, read-receipt
+> "who hasn't read" panel), /parent/communications inbox. StudentFilePanel Safeguarding tab (lazy).
+> Attendance letter auto-log (GET /api/export/attendance-letter/[studentId] creates ParentContactEntry
+> LETTER + PARENT_CONTACT_LOGGED audit). StudentFilePanel Overview export strip for HOY/SLT/SCHOOL_ADMIN/
+> SENCO. /hoy/absence Actions column: Letter + Report PDF links. Safeguarding PDF export
+> (/api/export/safeguarding-log — Puppeteer, HOY/SENCO/SLT/SCHOOL_ADMIN). getCommunicationRecipients
+> action returns read/unread per-parent. E2E: safeguarding.spec.ts + communications.spec.ts.
+>
+> June 2026 Blocks 39–42: Staff Analytics + Pastoral Notes — app/actions/analytics-staff.ts:
+> getTeacherList, getTeacherAnalytics, getDepartmentAnalytics (per-class avg grades, submission rates,
+> turnaround days, Bloom's coverage). /analytics/teacher (HOD/SLT/admin) — KPI cards, class table,
+> Bloom's panel. /analytics/department — 5 KPI cards, teacher comparison table, Bloom's bar chart.
+> TeacherSelector + DepartmentSelector client components. HOD + SLT sidebar links added.
+> PastoralNote model (category/visibility, PASTORAL_NOTE_ADDED/DELETED AuditAction). addPastoralNote/
+> deletePastoralNote/getPastoralNotes actions. PastoralNotesTab in StudentFilePanel (eco icon,
+> lazy-loaded, HOY/SENCO/SLT/SCHOOL_ADMIN only). getStaffOverview() bulk action. /slt/staff page —
+> school-wide teacher comparison table with grade pills, submission bars, turnaround, CSV export,
+> drill-through to /analytics/teacher. SLT sidebar Staff Overview link.
+>
+> June 2026 Blocks 43–45: E2E expansion + Pastoral deep-links — staff-analytics.spec.ts (28 tests:
+> /analytics/teacher, /analytics/department, /slt/staff access + content). pastoral-timetable.spec.ts
+> (14 tests: Pastoral Notes tab visibility + form, /student/timetable access + content, staff overview
+> drill-through). /hoy/absence student names now deep-link to /students/[id]?tab=Pastoral; Actions
+> column gets green Pastoral button alongside Letter + Report. HOY dashboard attendance-alert and
+> SEND concern student names also deep-link to Pastoral tab. HoyWelfarePanel open-in-new icon
+> updated to eco + emerald, deep-links to Pastoral tab.
+>
+> **Latest commit:** 1e9ffa2 (feat: blocks 32–45 — safeguarding, communications, attendance letter, absence hub, analytics pages, pastoral notes, SLT staff overview, E2E expansion). E2E: 37 spec files, ~260 tests.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -318,6 +349,7 @@ tail -f /tmp/omnis-dev.log
 /hoy/integrity              Academic integrity workflow — signals, pattern cases, review modal (HEAD_OF_YEAR/SLT/SCHOOL_ADMIN)
 /hoy/welfare                Pastoral welfare hub — SEND flags, concerns, attendance signals (HEAD_OF_YEAR/SLT/SCHOOL_ADMIN)
 /slt/analytics              SLT analytics
+/slt/staff                  School-wide staff performance — teacher comparison table, grade pills, submission bars, CSV export, drill-through (SLT/SCHOOL_ADMIN)
 /admin/attendance           School-wide attendance overview — KPI cards, year-group breakdown, students below 90%, CSV export (SCHOOL_ADMIN/SLT/HOY)
 /admin/dashboard            School admin dashboard (amber onboarding banner when !onboardedAt)
 /admin/onboarding           School onboarding wizard — 4-step: profile → invite staff → connect MIS → complete
@@ -367,6 +399,7 @@ tail -f /tmp/omnis-dev.log
 /marketing/features                               ← fully built (6 sections, 35 features)
 /marketing/beta                                   ← fully built (school application form, Resend)
 /marketing/investors                              ← fully built (market pitch, investor contact form)
+/hoy/absence                                      ← fully built (absence hub, flagged students, pastoral deep-links, attendance letter/report actions)
 /hoy/behaviour                                    ← fully built (KPI cards, weekly trend chart, student table, CSV exports)
 /hoy/dashboard                                    ← fully built (pastoral KPI dashboard)
 /hoy/detentions                                   ← fully built (detention register, log modal, resolve, parent notify)
@@ -719,9 +752,9 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**~208 tests across 35 spec files.** Last full Vercel run: 174/178 pass (2026-06-09). 4 gracefully skip
+**~260 tests across 37 spec files.** Last full Vercel run: 174/178 pass (2026-06-09). 4 gracefully skip
 (ehcp-evidence block 3 — require returned homework in DB; run `npm run db:seed` to populate).
-35 spec files: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+37 spec files: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
 adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
 cover management, platform admin, student photos, revision planner, send scorer,
 EHCP evidence (P2002 regression), homework UPLOAD type, student returned HW grade strip,

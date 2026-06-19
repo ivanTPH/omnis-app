@@ -31,7 +31,7 @@
     "humanities:seed": "tsx --env-file=.env.local prisma/seed-humanities.ts",
     "send:backfill-snapshots": "tsx --env-file=.env.local scripts/backfill-send-snapshots.ts",
     "demo:reset": "tsx --env-file=.env.local scripts/demo-reset.ts",
-    "demo:seed": "npx prisma db seed",
+    "demo:seed": "tsx --env-file=.env.local prisma/seed-demo.ts",
     "prepare": "husky"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 'use server'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { revalidatePath, unstable_cache } from 'next/cache'
+import { revalidatePath } from 'next/cache'
 
 export type TodayLesson = {
   id: string
@@ -255,19 +255,9 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
 }
 
 // Cache keyed by (userId, schoolId, dateKey) — busts at midnight and on revalidatePath('/dashboard')
-const getCachedDashboardData = unstable_cache(
-  fetchDashboardData,
-  ['dashboard-data'],
-  { revalidate: 60, tags: ['teacher-dashboard'] },
-)
-
 export async function getDashboardData(): Promise<DashboardData> {
   const { id: userId, schoolId } = await requireAuth()
-
-  // Use local-time day start as the date key — cache busts automatically at midnight
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
-
-  return getCachedDashboardData(userId, schoolId, todayStart.toISOString())
+  return fetchDashboardData(userId, schoolId, '')
 }
 
 // ─── Concern actions (for raising teacher from dashboard) ─────────────────────

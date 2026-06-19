@@ -211,9 +211,28 @@ export default function ClassRosterTab({
         </div>
       )}
       {sendFilter === 'NO_PASSPORT' && (
-        <div className="mb-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-xl flex items-center gap-2 text-[12px] text-violet-800">
-          <Icon name="info" size="sm" className="text-violet-500 shrink-0" />
-          Students without a Learning Passport. Select students and click <strong>Generate Passports</strong>.
+        <div className="mb-2 px-3 py-2 bg-violet-50 border border-violet-200 rounded-xl flex items-start gap-2 text-[12px] text-violet-800">
+          <Icon name="info" size="sm" className="text-violet-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            Students without a Learning Passport.
+            {showCheckboxes && filteredRows.length > 0 && (
+              <>
+                {' '}
+                {!allFilteredSel ? (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds(prev => [...new Set([...prev, ...filteredIds])])}
+                    className="font-semibold underline hover:text-violet-900"
+                  >
+                    Select all {filteredRows.length}
+                  </button>
+                ) : (
+                  <span className="font-semibold text-violet-700">All selected</span>
+                )}
+                {' '}then click <strong>Generate Passports</strong> above.
+              </>
+            )}
+          </div>
         </div>
       )}
 
@@ -760,7 +779,7 @@ export default function ClassRosterTab({
                             </section>
                           )}
                           {isSend && (
-                            <a href={`/student/${row.id}/send`} target="_blank" rel="noopener noreferrer"
+                            <a href={`/student/${row.id}/send`}
                               className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
                               View full SEND plan <Icon name="chevron_right" size="sm" />
                             </a>

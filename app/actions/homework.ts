@@ -2,7 +2,7 @@
 import { auth }            from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit, writeILPAudit } from '@/lib/prisma'
-import { revalidatePath, unstable_cache }  from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
 import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
@@ -1450,6 +1450,7 @@ export async function markSubmission(submissionId: string, data: {
   revalidatePath(`/homework/${sub.homeworkId}/mark/${submissionId}`)
   revalidatePath('/dashboard')
   revalidatePath('/', 'layout')
+  revalidateTag('teacher-dashboard', 'default')
 
   // Mark Coach + Quality + Evidence agent snapshots dirty — new marked submission = new data
   void markDirty(sub.studentId, schoolId, [AgentType.COACH, AgentType.QUALITY, AgentType.EVIDENCE]).catch(() => {})

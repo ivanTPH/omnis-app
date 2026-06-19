@@ -102,13 +102,12 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         _count: {
           select: {
             submissions: {
-              where: { status: { in: ['SUBMITTED', 'UNDER_REVIEW'] } },
+              where: { status: { notIn: ['RETURNED'] } },
             },
           },
         },
       },
       orderBy: { dueAt: 'asc' },
-      take: 5,
     }),
 
     // Submissions received today for this teacher's homework
@@ -259,7 +258,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
 const getCachedDashboardData = unstable_cache(
   fetchDashboardData,
   ['dashboard-data'],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ['teacher-dashboard'] },
 )
 
 export async function getDashboardData(): Promise<DashboardData> {

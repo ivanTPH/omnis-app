@@ -1978,6 +1978,11 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 <p className="text-[12px] text-gray-400 italic">No active ILP targets or EHCP outcomes on file.</p>
                               )}
 
+                              {/* Link to full SEND profile */}
+                              <Link href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                View full SEND profile <Icon name="chevron_right" size="sm" />
+                              </Link>
+
                               {/* Suggest adaptation button */}
                               {lessonId && (
                                 <div>

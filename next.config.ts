@@ -21,6 +21,11 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Prevent Next.js from bundling these server-only packages.
+  // @sparticuz/chromium includes a native Chromium binary; puppeteer/puppeteer-core
+  // must also be external so they can resolve the binary path at runtime.
+  serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core', 'puppeteer'],
+
   async headers() {
     return [
       {

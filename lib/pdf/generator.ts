@@ -1,20 +1,33 @@
-/*
- * DEPLOYMENT NOTE:
- * This uses puppeteer (full) which bundles Chromium — fine for development.
- * For Vercel serverless deployment, swap to:
- *   npm install puppeteer-core @sparticuz/chromium
- * And update generator.ts to use:
- *   import chromium from '@sparticuz/chromium'
- *   import puppeteer from 'puppeteer-core'
- *   const browser = await puppeteer.launch({
- *     args: chromium.args,
- *     executablePath: await chromium.executablePath(),
- *     headless: chromium.headless,
- *   })
- * Also set: export const maxDuration = 60 on each export route.
+/**
+ * PDF generation using Puppeteer.
+ *
+ * On Vercel/Lambda (process.env.VERCEL is set), uses @sparticuz/chromium +
+ * puppeteer-core for a self-contained Chromium binary compatible with the
+ * serverless environment.
+ *
+ * Locally, falls back to the full puppeteer package which manages its own
+ * Chrome download.
  */
 
-import puppeteer from 'puppeteer'
+import puppeteerCore from 'puppeteer-core'
+import type { Browser } from 'puppeteer-core'
+
+async function launchBrowser(): Promise<Browser> {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    const chromium = (await import('@sparticuz/chromium')).default
+    return puppeteerCore.launch({
+      args:           [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: await chromium.executablePath(),
+      headless:       true,
+    }) as unknown as Browser
+  }
+  // Local dev: use full puppeteer's managed Chrome
+  const puppeteer = (await import('puppeteer')).default
+  return puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+  }) as unknown as Browser
+}
 
 export type PdfOptions = {
   format?:    'A4' | 'Letter'
@@ -31,14 +44,11 @@ const DEFAULT_OPTIONS: PdfOptions = {
 export async function generatePdf(html: string, options: PdfOptions = {}): Promise<ArrayBuffer> {
   const opts = { ...DEFAULT_OPTIONS, ...options }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  })
+  const browser = await launchBrowser()
 
   try {
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+    await page.setContent(html, { waitUntil: 'load' })
 
     const pdfBuf = await page.pdf({
       format:           opts.format as 'A4' | 'Letter',

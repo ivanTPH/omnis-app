@@ -78,7 +78,12 @@ test.describe('Sprint C — admin dashboard after audit', () => {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('h1')).toContainText('Admin Dashboard', { timeout: 15_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    // Wait for stat cards to render (server-rendered, so should be immediate)
+    await expect(
+      page.getByText(/open concerns/i).or(page.getByText(/concerns/i))
+    ).toBeVisible({ timeout: 15_000 })
+
+    const body = await page.locator('body').innerText({ timeout: 5_000 })
     // Sprint C removed 'Awaiting Marking' from admin dashboard; added 'Open Concerns'
     expect(body).toMatch(/concerns/i)
     expect(body).not.toMatch(/awaiting marking/i)

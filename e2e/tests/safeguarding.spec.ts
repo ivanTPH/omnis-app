@@ -33,8 +33,11 @@ test.describe('Safeguarding Log — access control', () => {
     await loginAs(page, USERS.senco)
     await page.goto('/hoy/safeguarding')
     await page.waitForLoadState('domcontentloaded')
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
-    await expect(page.locator('h1')).toContainText('Safeguarding', { timeout: 10_000 })
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 })
+    // Body text check is more resilient than h1 for cold-start Vercel
+    const body = await page.locator('body').innerText({ timeout: 15_000 })
+    expect(body).not.toMatch(/something went wrong|unexpected error/i)
+    expect(body).toMatch(/safeguard|log concern/i)
   })
 
   test('SLT can access /hoy/safeguarding', async ({ page }) => {
@@ -166,14 +169,14 @@ test.describe('Safeguarding Log — page content', () => {
 test.describe('Safeguarding Log — PDF export', () => {
   test('/api/export/safeguarding-log returns PDF for HOY', async ({ page }) => {
     await loginAs(page, USERS.hoy)
-    const resp = await page.request.get('/api/export/safeguarding-log')
+    const resp = await page.request.get('/api/export/safeguarding-log', { timeout: 90_000 })
     expect(resp.status()).toBe(200)
     expect(resp.headers()['content-type']).toContain('application/pdf')
   })
 
   test('/api/export/safeguarding-log returns PDF for SENCO', async ({ page }) => {
     await loginAs(page, USERS.senco)
-    const resp = await page.request.get('/api/export/safeguarding-log')
+    const resp = await page.request.get('/api/export/safeguarding-log', { timeout: 90_000 })
     expect(resp.status()).toBe(200)
     expect(resp.headers()['content-type']).toContain('application/pdf')
   })

@@ -145,7 +145,13 @@ test.describe('Department Analytics — access control', () => {
   test('teacher cannot access /analytics/department', async ({ page }) => {
     await loginAs(page, USERS.teacher)
     await gotoCommit(page, '/analytics/department')
-    await page.waitForTimeout(2_000)
+    await page.waitForTimeout(3_000)
+    // May redirect to dashboard or analytics — just must not stay on /analytics/department
+    const url = page.url()
+    // If still on the page, wait a bit longer for the redirect
+    if (url.includes('/analytics/department')) {
+      await page.waitForTimeout(3_000)
+    }
     expect(page.url()).not.toMatch(/\/analytics\/department/)
   })
 

@@ -177,9 +177,14 @@ test.describe('Parent Communications — inbox content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 12_000 })
+    // Page is client-rendered — wait for either the heading or the empty state
+    await expect(
+      page.getByRole('heading', { name: /school messages|letters/i }).or(
+        page.getByText(/no messages|no communications|from school/i)
+      )
+    ).toBeVisible({ timeout: 12_000 })
+
+    const body = await page.locator('body').innerText()
     expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    // Should show either messages or empty state
-    expect(body).toMatch(/letters home|no communications|from school/i)
   })
 })

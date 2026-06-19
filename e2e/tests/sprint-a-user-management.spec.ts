@@ -132,8 +132,9 @@ test.describe('Sprint A — admin dashboard activation widget', () => {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('h1')).toContainText('Admin Dashboard', { timeout: 15_000 })
 
-    // Should have "All Users" or "Users" quick-link
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/users/i)
+    // Should have "All Users" or "Users" quick-link — wait for sidebar or content
+    await expect(
+      page.getByRole('link', { name: /users/i }).first()
+    ).toBeVisible({ timeout: 15_000 })
   })
 })

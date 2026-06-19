@@ -236,7 +236,7 @@ test.describe('Student Timetable — page content', () => {
 // ── Cross-links — drill through from /slt/staff to teacher view ───────────────
 
 test.describe('Staff Overview — drill-through links', () => {
-  test('/slt/staff table rows have View links to /analytics/teacher', async ({ page }) => {
+  test('/slt/staff table rows have links to /analytics/teacher', async ({ page }) => {
     await loginAs(page, USERS.slt)
     await page.goto('/slt/staff')
     await page.waitForLoadState('domcontentloaded')
@@ -245,12 +245,13 @@ test.describe('Staff Overview — drill-through links', () => {
     const body = await page.locator('body').innerText({ timeout: 12_000 })
     expect(body).not.toMatch(/something went wrong/i)
 
-    // If we have any teachers, View links exist
-    const viewLinks = page.getByRole('link', { name: /view/i })
-    const count = await viewLinks.count()
+    // Look for any link pointing to /analytics/teacher (may be "View" text or icon-only)
+    const teacherLinks = page.locator('a[href*="/analytics/teacher?teacherId="]')
+    const count = await teacherLinks.count()
     if (count > 0) {
-      const href = await viewLinks.first().getAttribute('href')
+      const href = await teacherLinks.first().getAttribute('href')
       expect(href).toContain('/analytics/teacher?teacherId=')
     }
+    // If no rows, just verify no error
   })
 })

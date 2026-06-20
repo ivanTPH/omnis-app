@@ -46,12 +46,17 @@ jobs:
         run: npm run build
 
       - name: Start Next.js server
-        run: npm run start &
+        run: |
+          npm run start &
+          echo $! > /tmp/server.pid
         env:
           PORT: 3000
 
       - name: Wait for server
         run: npx wait-on http://localhost:3000 --timeout 30000
+
+      - name: Verify server process is alive
+        run: kill -0 $(cat /tmp/server.pid) || (echo "ERROR: Next.js server process died before tests ran" && exit 1)
 
       - name: Run E2E tests
         run: npm run test:e2e

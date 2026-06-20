@@ -150,11 +150,11 @@ test.describe('EHCP evidence — homework marking integration', () => {
       const teacher = await prisma.user.findUnique({ where: { email: USERS.teacher.email }, select: { id: true } })
       if (!teacher) return
 
-      // Find a returned homework for this teacher
+      // Find a returned homework created by this teacher (Homework has no teacherId — use createdBy)
       const hw = await prisma.homework.findFirst({
         where: {
           schoolId:  school.id,
-          teacherId: teacher.id,
+          createdBy: teacher.id,
           status:    'PUBLISHED',
           submissions: { some: { status: 'RETURNED' } },
         },
@@ -163,9 +163,9 @@ test.describe('EHCP evidence — homework marking integration', () => {
       if (hw) {
         homeworkId = hw.id
       } else {
-        // Fall back to any published homework
+        // Fall back to any published homework by this teacher
         const any = await prisma.homework.findFirst({
-          where:  { schoolId: school.id, teacherId: teacher.id, status: 'PUBLISHED' },
+          where:  { schoolId: school.id, createdBy: teacher.id, status: 'PUBLISHED' },
           select: { id: true },
         })
         if (any) homeworkId = any.id

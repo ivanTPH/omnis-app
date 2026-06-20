@@ -26,6 +26,13 @@ const nextConfig: NextConfig = {
   // must also be external so they can resolve the binary path at runtime.
   serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core', 'puppeteer'],
 
+  // Ensure the Chromium binary assets (Brotli-compressed) are included in every
+  // PDF export Lambda bundle. Next.js's file tracer only follows JS imports, so
+  // the .br binary files would otherwise be omitted from the Vercel deployment.
+  outputFileTracingIncludes: {
+    '/api/export/**': ['./node_modules/@sparticuz/chromium/bin/**'],
+  },
+
   async headers() {
     return [
       {

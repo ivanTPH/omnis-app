@@ -257,7 +257,9 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
 // Cache keyed by (userId, schoolId, dateKey) — busts at midnight and on revalidatePath('/dashboard')
 export async function getDashboardData(): Promise<DashboardData> {
   const { id: userId, schoolId } = await requireAuth()
-  return fetchDashboardData(userId, schoolId, '')
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  return fetchDashboardData(userId, schoolId, todayStart.toISOString())
 }
 
 // ─── Concern actions (for raising teacher from dashboard) ─────────────────────

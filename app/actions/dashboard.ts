@@ -131,7 +131,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       where: {
         schoolId,
         raisedBy: userId,
-        status:   { in: ['open', 'under_review'] },
+        status:   { in: ['open', 'under_review', 'escalated'] },
       },
     }),
 
@@ -140,7 +140,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       where: {
         schoolId,
         raisedBy: userId,
-        status:   { in: ['open', 'under_review'] },
+        status:   { in: ['open', 'under_review', 'escalated'] },
       },
       select: {
         id:            true,

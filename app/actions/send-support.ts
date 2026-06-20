@@ -1831,7 +1831,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     upcomingIlpsRaw,
     planCoherenceAlerts,
   ] = await Promise.all([
-    prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review'] } } }),
+    prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
     prisma.individualLearningPlan.count({ where: { schoolId, status: 'active' } }),
     prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', reviewDate: { gte: now, lte: in14Days } } }),

@@ -44,8 +44,8 @@ export async function getAcademyStats(): Promise<AcademyStats> {
       prisma.user.count({ where: { role: 'STUDENT', isActive: true } }),
       prisma.user.count({ where: { role: { notIn: ['STUDENT', 'PARENT'] }, isActive: true } }),
       prisma.school.count({ where: { isActive: true, onboardedAt: { not: null } } }),
-      prisma.iLP.count({ where: { status: 'ACTIVE' } }),
-      prisma.ehcpPlan.count({ where: { status: { in: ['ACTIVE', 'UNDER_REVIEW'] } } }),
+      prisma.individualLearningPlan.count({ where: { status: 'active' } }),
+      prisma.ehcpPlan.count({ where: { status: { in: ['active', 'under_review'] } } }),
       prisma.sendConcern.count({ where: { status: { in: ['open', 'under_review', 'escalated'] } } }),
     ])
 
@@ -78,10 +78,10 @@ export async function getAcademySchools(): Promise<AcademySchoolRow[]> {
       prisma.user.count({ where: { schoolId: s.id, role: { notIn: ['STUDENT', 'PARENT'] }, isActive: true } })
     )),
     Promise.all(schools.map(s =>
-      prisma.iLP.count({ where: { schoolId: s.id, status: 'ACTIVE' } })
+      prisma.individualLearningPlan.count({ where: { schoolId: s.id, status: 'active' } })
     )),
     Promise.all(schools.map(s =>
-      prisma.ehcpPlan.count({ where: { schoolId: s.id, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } } })
+      prisma.ehcpPlan.count({ where: { schoolId: s.id, status: { in: ['active', 'under_review'] } } })
     )),
     Promise.all(schools.map(s =>
       prisma.sendStatus.count({ where: { student: { schoolId: s.id }, NOT: { activeStatus: 'NONE' } } })

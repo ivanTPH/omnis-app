@@ -94,9 +94,9 @@ export default async function HoyAnalyticsPage() {
   // Total homework set in scope
   const totalHwSet = hwCounts.reduce((s, h) => s + h._count.id, 0)
 
-  // Pending submissions to mark
+  // Pending submissions to mark: not yet returned to student (SUBMITTED + auto-MARKED need action)
   const toMark = await prisma.submission.count({
-    where: { schoolId, status: 'SUBMITTED', homework: { classId: { in: classIds } } },
+    where: { schoolId, status: { not: 'RETURNED' }, homework: { classId: { in: classIds } } },
   })
 
   // KPIs

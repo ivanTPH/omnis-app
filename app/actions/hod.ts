@@ -152,22 +152,23 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
     prisma.sendConcern.count({
       where: { schoolId, studentId: { in: studentIdArr }, status: { notIn: ['closed', 'no_action'] } },
     }),
+    // Count submissions that still need teacher action: not yet returned to student.
+    // status=MARKED = auto-marked by AI but teacher hasn't reviewed/returned → still ungraded.
     prisma.submission.findMany({
       where: {
         homework: { classId: { in: classIds } },
-        status:   { in: ['SUBMITTED', 'UNDER_REVIEW'] },
-        teacherScore: null,
-        autoScore:    null,
+        status:   { not: 'RETURNED' },
       },
-      select: { homeworkId: true, homework: { select: { classId: true, createdBy: true } } },
+      select: { homeworkId: true, grade: true, homework: { select: { classId: true, createdBy: true } } },
     }),
   ])
 
   const sendStudentSet = new Set(sendStatuses.map(s => s.studentId))
 
-  // Ungraded per class
+  // Ungraded per class — JS !grade filter matches HomeworkMarkingView exactly
   const ungradedByClass = new Map<string, number>()
   for (const sub of ungradedSubs) {
+    if (sub.grade) continue   // has a grade already — not ungraded
     const cid = sub.homework.classId
     ungradedByClass.set(cid, (ungradedByClass.get(cid) ?? 0) + 1)
   }
@@ -228,6 +229,7 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
 
   const ungradedByTeacher = new Map<string, number>()
   for (const sub of ungradedSubs) {
+    if (sub.grade) continue   // has a grade — not ungraded
     const createdBy = sub.homework.createdBy
     ungradedByTeacher.set(createdBy, (ungradedByTeacher.get(createdBy) ?? 0) + 1)
   }

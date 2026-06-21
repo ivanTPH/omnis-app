@@ -48,7 +48,9 @@ export default async function HomeworkPage() {
   const items = homework.map(hw => {
     const total    = countByClass[hw.classId!] ?? 0
     const submitted = hw.submissions.length
-    const marked    = hw.submissions.filter(s => s.status === 'RETURNED' || s.status === 'MARKED').length
+    // Only RETURNED = teacher has graded and given back to student.
+    // MARKED = auto-marked but teacher hasn't reviewed/returned yet → still needs action.
+    const returned      = hw.submissions.filter(s => s.status === 'RETURNED').length
     return {
       id:             hw.id,
       title:          hw.title,
@@ -58,8 +60,8 @@ export default async function HomeworkPage() {
       class:          hw.class,
       lesson:         hw.lesson,
       submittedCount: submitted,
-      markedCount:    marked,
-      needsMarkCount: submitted - marked,
+      markedCount:    returned,
+      needsMarkCount: submitted - returned,
       totalEnrolled:  total,
     }
   })

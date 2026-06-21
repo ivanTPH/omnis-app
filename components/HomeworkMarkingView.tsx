@@ -199,7 +199,7 @@ function QuestionCard({
 
 // ── filter type ────────────────────────────────────────────────────────────────
 
-type PupilFilter = 'all' | 'ungraded' | 'submitted' | 'returned' | 'missing' | 'send'
+type PupilFilter = 'all' | 'ungraded' | 'submitted' | 'returned' | 'missing' | 'send' | 'review'
 
 type IlpData = {
   studentId: string
@@ -372,6 +372,13 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       case 'send':
         return pupils.filter(p =>
           sendByStudent[p.id]?.activeStatus && sendByStudent[p.id].activeStatus !== 'NONE'
+        )
+      case 'review':
+        return pupils.filter(p =>
+          p.submission &&
+          ((p.submission as any).autoMarked || (p.submission as any).autoScore != null) &&
+          !(p.submission as any).teacherReviewed &&
+          p.submission.status !== 'RETURNED'
         )
       default:
         return pupils
@@ -1076,24 +1083,34 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       <div className="shrink-0 border-r border-gray-200 flex flex-col" style={{ width: listPanelWidth }}>
 
         {needsReviewCount > 0 && (
-          <div className="px-3 py-2 border-b border-amber-100 bg-amber-50">
-            <p className="text-[10px] text-amber-600 font-medium">⚡ {needsReviewCount} awaiting AI review</p>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleFilterClick('review')}
+            className={`w-full px-3 py-2 border-b border-amber-100 text-left transition-colors ${pupilFilter === 'review' ? 'bg-amber-100' : 'bg-amber-50 hover:bg-amber-100'}`}
+          >
+            <p className="text-[10px] text-amber-600 font-medium">⚡ {needsReviewCount} awaiting AI review {pupilFilter === 'review' ? '· showing only these' : '· click to filter'}</p>
+          </button>
         )}
 
         {missingCount > 0 && (
-          <div className="px-3 py-2 border-b border-red-100 bg-red-50 flex items-center justify-between">
+          <div className={`px-3 py-2 border-b border-red-100 flex items-center justify-between transition-colors ${pupilFilter === 'missing' ? 'bg-red-100' : 'bg-red-50'}`}>
             {bulkRemindedCount != null ? (
               <p className="text-[10px] text-red-700 font-medium flex items-center gap-1">
                 <Icon name="check_circle" size="sm" /> {bulkRemindedCount} reminder{bulkRemindedCount !== 1 ? 's' : ''} sent
               </p>
             ) : (
               <>
-                <p className="text-[10px] text-red-600 font-medium">{missingCount} student{missingCount !== 1 ? 's' : ''} haven&apos;t submitted</p>
+                <button
+                  type="button"
+                  onClick={() => handleFilterClick('missing')}
+                  className="text-[10px] text-red-600 font-medium hover:text-red-800 text-left"
+                >
+                  {missingCount} student{missingCount !== 1 ? 's' : ''} haven&apos;t submitted {pupilFilter === 'missing' ? '· showing only' : '· click to filter'}
+                </button>
                 <button
                   onClick={handleBulkRemind}
                   disabled={bulkReminding}
-                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-50 shrink-0 ml-2"
                 >
                   {bulkReminding
                     ? <Icon name="refresh" size="sm" className="animate-spin" />
@@ -1137,7 +1154,13 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               </p>
             ) : (
               <>
-                <p className="text-[10px] text-purple-700 font-medium">{needsReviewCount} AI mark{needsReviewCount !== 1 ? 's' : ''} awaiting review</p>
+                <button
+                  type="button"
+                  onClick={() => handleFilterClick('review')}
+                  className="text-[10px] text-purple-700 font-medium hover:text-purple-900 text-left"
+                >
+                  {needsReviewCount} AI mark{needsReviewCount !== 1 ? 's' : ''} awaiting review {pupilFilter === 'review' ? '· showing only' : '· click to filter'}
+                </button>
                 <button
                   onClick={async () => {
                     setBulkApproving(true)

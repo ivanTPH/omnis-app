@@ -83,9 +83,10 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       orderBy: { scheduledAt: 'asc' },
     }),
 
-    // Homework with at least one submission that still needs teacher action.
-    // Match homework page logic: needsMarkCount = submissions not yet RETURNED or MARKED.
-    // Include RESUBMISSION_REQ (dashboard previously missed these).
+    // Homework with at least one submission that still needs teacher grading.
+    // Match marking view logic: ungradedCount = submissions with no grade and not RETURNED.
+    // Auto-marked submissions have status='MARKED' but grade=null — they still need
+    // teacher review. Using status-based filter would exclude them (wrong).
     prisma.homework.findMany({
       where: {
         schoolId,
@@ -94,7 +95,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
           { class: { teachers: { some: { userId } } } },
         ],
         submissions: {
-          some: { status: { notIn: ['RETURNED', 'MARKED'] } },
+          some: { grade: null, status: { not: 'RETURNED' } },
         },
       },
       select: {
@@ -104,7 +105,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         _count: {
           select: {
             submissions: {
-              where: { status: { notIn: ['RETURNED', 'MARKED'] } },
+              where: { grade: null, status: { not: 'RETURNED' } },
             },
           },
         },

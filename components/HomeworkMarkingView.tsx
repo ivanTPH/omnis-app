@@ -321,10 +321,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   const [bulkApproving, setBulkApproving] = useState(false)
   const [bulkApprovedCount, setBulkApprovedCount] = useState<number | null>(null)
   // Resizable marking panel (vertical drag)
-  const [markPanelHeight, setMarkPanelHeight] = useState(300)
+  const [markPanelHeight, setMarkPanelHeight] = useState(400)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
   // Resizable student list (horizontal drag)
-  const [listPanelWidth, setListPanelWidth] = useState(224) // default w-56
+  const [listPanelWidth, setListPanelWidth] = useState(256) // default w-64
   const hDragRef = useRef<{ startX: number; startW: number } | null>(null)
 
   const router = useRouter()
@@ -915,6 +915,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   const currentAdaptiveSugg = selectedId ? adaptiveSugg[selectedId] ?? null : null
 
   const startPanelDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
     dragRef.current = { startY: e.clientY, startH: markPanelHeight }
     function onMove(ev: MouseEvent) {
       if (!dragRef.current) return
@@ -1190,13 +1191,13 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
       {/* ── Horizontal drag handle ──────────────────────────────────────────── */}
       <div
-        className="w-3 shrink-0 cursor-col-resize select-none flex flex-col items-center justify-center gap-1 bg-gray-100 hover:bg-blue-100 active:bg-blue-200 border-x border-gray-200 hover:border-blue-300 transition-colors group"
+        className="w-5 shrink-0 cursor-col-resize select-none flex flex-col items-center justify-center gap-1.5 bg-gray-100 hover:bg-blue-100 active:bg-blue-200 border-x border-gray-200 hover:border-blue-300 transition-colors group"
         onMouseDown={startListDrag}
         title="Drag to resize panels"
       >
         {/* Grip dots */}
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="w-1 h-1 rounded-full bg-gray-400 group-hover:bg-blue-500 transition-colors" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-400 group-hover:bg-blue-500 transition-colors" />
         ))}
       </div>
 

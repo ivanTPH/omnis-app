@@ -84,9 +84,8 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
     }),
 
     // Homework with at least one submission that still needs teacher grading.
-    // Match marking view logic: ungradedCount = submissions with no grade and not RETURNED.
-    // Auto-marked submissions have status='MARKED' but grade=null — they still need
-    // teacher review. Using status-based filter would exclude them (wrong).
+    // ungradedCount is computed in JS with !s.grade — mirrors HomeworkMarkingView exactly.
+    // Prisma _count.select.where with null comparisons is unreliable; JS filter is not.
     prisma.homework.findMany({
       where: {
         schoolId,
@@ -94,20 +93,15 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
           { createdBy: userId },
           { class: { teachers: { some: { userId } } } },
         ],
-        submissions: {
-          some: { grade: null, status: { not: 'RETURNED' } },
-        },
+        submissions: { some: { status: { not: 'RETURNED' } } },
       },
       select: {
         id:    true,
         title: true,
         dueAt: true,
-        _count: {
-          select: {
-            submissions: {
-              where: { grade: null, status: { not: 'RETURNED' } },
-            },
-          },
+        submissions: {
+          where:  { schoolId, status: { not: 'RETURNED' } },
+          select: { id: true, grade: true },
         },
       },
       orderBy: { dueAt: 'asc' },
@@ -220,12 +214,14 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       className:   l.class?.name    ?? '—',
       subject:     l.class?.subject ?? '—',
     })),
-    homeworkToMark: hwToMark.map(hw => ({
-      id:            hw.id,
-      title:         hw.title,
-      dueAt:         hw.dueAt.toISOString(),
-      ungradedCount: hw._count.submissions,
-    })),
+    homeworkToMark: hwToMark
+      .map(hw => ({
+        id:            hw.id,
+        title:         hw.title,
+        dueAt:         hw.dueAt.toISOString(),
+        ungradedCount: hw.submissions.filter(s => !s.grade).length,
+      }))
+      .filter(hw => hw.ungradedCount > 0),
     submissionsToday:  subsTodayCount,
     openConcernsCount: concernsCount,
     sencoAlerts: alertNotifs.map(n => ({

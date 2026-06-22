@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useTransition, useMemo } from 'react'
+import React, { useState, useEffect, useTransition, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
@@ -214,6 +214,15 @@ function Step1({
 
 // ── Step 2 ────────────────────────────────────────────────────────────────────
 
+const TASK_TYPE_DESCRIPTIONS: Record<string, string> = {
+  retrieval_practice: 'Short-answer questions pulling key facts from memory — proven to strengthen long-term retention.',
+  spaced_repetition:  'Questions revisiting material at increasing intervals to combat forgetting curves.',
+  extended_writing:   'Longer essay or analytical response to develop higher-order thinking and exam technique.',
+  exam_style:         'Past-paper style questions at the correct command-word level for the qualification.',
+  vocabulary:         'Terminology and definition exercises to build subject-specific language.',
+  mixed:              'A blend of question types calibrated to the student\'s individual profile.',
+}
+
 function Step2({
   analysis,
   coverage,
@@ -227,6 +236,8 @@ function Step2({
   onGenerate: () => void
   generating: boolean
 }) {
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null)
+
   return (
     <div className="space-y-5">
       {/* Topic heatmap */}
@@ -275,29 +286,107 @@ function Step2({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {analysis.studentAnalysis.map(s => (
-                <tr key={s.studentId} className="hover:bg-gray-50">
-                  <td className="px-3 py-2">
-                    <span className="font-medium text-gray-800">{s.studentName}</span>
-                    {s.sendStatus && s.sendStatus !== 'NONE' && (
-                      <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
+              {analysis.studentAnalysis.map(s => {
+                const isExpanded = expandedStudentId === s.studentId
+                const taskDesc   = TASK_TYPE_DESCRIPTIONS[s.recommendedTaskType] ?? 'AI-recommended question format.'
+                return (
+                  <React.Fragment key={s.studentId}>
+                    <tr
+                      className="hover:bg-blue-50/40 cursor-pointer transition-colors"
+                      onClick={() => setExpandedStudentId(isExpanded ? null : s.studentId)}
+                    >
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium text-gray-800">{s.studentName}</span>
+                          {s.sendStatus && s.sendStatus !== 'NONE' && (
+                            <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
+                          )}
+                          <Icon name={isExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 ml-auto shrink-0" />
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        {s.avgScore === 0 ? (
+                          <Tooltip content="No graded homework found for this student in the selected period. Revision will be based on lesson topics.">
+                            <span className="text-gray-400 italic">—</span>
+                          </Tooltip>
+                        ) : (
+                          <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-600' : s.avgScore >= 4.5 ? 'text-amber-600' : 'text-rose-600'}`}>
+                            {gradeLabel(Math.round(s.avgScore))}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-gray-500">{s.weakTopics.slice(0, 2).join(', ') || '—'}</td>
+                      <td className="px-3 py-2">
+                        <Tooltip content={taskDesc} side="left">
+                          <span className="inline-flex items-center gap-0.5 text-blue-600 capitalize cursor-help">
+                            {s.recommendedTaskType.replace(/_/g, ' ')}
+                            <Icon name="info" size="sm" className="text-blue-400" />
+                          </span>
+                        </Tooltip>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr key={`${s.studentId}-detail`} className="bg-blue-50/30">
+                        <td colSpan={4} className="px-4 py-3">
+                          <div className="grid grid-cols-2 gap-4 text-xs">
+                            {/* Weak topics */}
+                            <div>
+                              <p className="font-semibold text-rose-700 mb-1 uppercase tracking-wide text-[10px]">Weak topics</p>
+                              {s.weakTopics.length === 0
+                                ? <span className="text-gray-400 italic">None identified</span>
+                                : <div className="flex flex-wrap gap-1">{s.weakTopics.map(t => (
+                                    <span key={t} className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-medium">{t}</span>
+                                  ))}</div>
+                              }
+                            </div>
+                            {/* Strong topics */}
+                            <div>
+                              <p className="font-semibold text-green-700 mb-1 uppercase tracking-wide text-[10px]">Strong topics</p>
+                              {s.strongTopics.length === 0
+                                ? <span className="text-gray-400 italic">None identified</span>
+                                : <div className="flex flex-wrap gap-1">{s.strongTopics.map(t => (
+                                    <span key={t} className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-medium">{t}</span>
+                                  ))}</div>
+                              }
+                            </div>
+                            {/* Completion rate */}
+                            <div>
+                              <p className="font-semibold text-gray-500 mb-1 uppercase tracking-wide text-[10px]">Homework completion</p>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${s.completionRate >= 0.75 ? 'bg-green-500' : s.completionRate >= 0.5 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${Math.round(s.completionRate * 100)}%` }} />
+                                </div>
+                                <span className="text-gray-600 font-semibold">{Math.round(s.completionRate * 100)}%</span>
+                              </div>
+                            </div>
+                            {/* Task type explanation */}
+                            <div>
+                              <p className="font-semibold text-blue-700 mb-1 uppercase tracking-wide text-[10px]">Recommended approach</p>
+                              <p className="text-gray-600">{taskDesc}</p>
+                            </div>
+                            {/* ILP targets */}
+                            {s.ilpTargetsDue.length > 0 && (
+                              <div className="col-span-2">
+                                <p className="font-semibold text-purple-700 mb-1 uppercase tracking-wide text-[10px]">ILP targets to address</p>
+                                <div className="flex flex-wrap gap-1">{s.ilpTargetsDue.map((t, i) => (
+                                  <span key={i} className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-medium">{t}</span>
+                                ))}</div>
+                              </div>
+                            )}
+                            {/* SEND adaptations */}
+                            {s.sendAdaptations.length > 0 && (
+                              <div className="col-span-2">
+                                <p className="font-semibold text-purple-700 mb-1 uppercase tracking-wide text-[10px]">SEND adaptations to be applied</p>
+                                <p className="text-gray-600">{s.sendAdaptations.join(' · ')}</p>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     )}
-                  </td>
-                  <td className="px-3 py-2">
-                    {s.avgScore === 0 ? (
-                      <Tooltip content="No graded homework found for this student in the selected period. Revision will be based on lesson topics.">
-                        <span className="text-gray-400 italic">—</span>
-                      </Tooltip>
-                    ) : (
-                      <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-600' : s.avgScore >= 4.5 ? 'text-amber-600' : 'text-rose-600'}`}>
-                        {gradeLabel(Math.round(s.avgScore))}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-gray-500">{s.weakTopics.slice(0, 2).join(', ') || '—'}</td>
-                  <td className="px-3 py-2 text-blue-600 capitalize">{s.recommendedTaskType.replace(/_/g, ' ')}</td>
-                </tr>
-              ))}
+                  </React.Fragment>
+                )
+              })}
             </tbody>
           </table>
         </div>

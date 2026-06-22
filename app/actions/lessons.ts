@@ -1038,10 +1038,7 @@ function maxFromBandsServer(bands: unknown): number {
   return nums.length ? Math.max(...nums) : 9
 }
 
-export async function getClassInsights(classId: string): Promise<ClassInsightsData> {
-  try {
-    const { schoolId } = await requireAuth()
-
+async function fetchClassInsights(classId: string, schoolId: string): Promise<ClassInsightsData> {
     const [enrolments, homework] = await Promise.all([
       prisma.enrolment.findMany({
         where:   { classId, class: { schoolId } },
@@ -1096,6 +1093,16 @@ export async function getClassInsights(classId: string): Promise<ClassInsightsDa
       : null
 
     return { students, classAvg, totalHomework }
+}
+
+export async function getClassInsights(classId: string): Promise<ClassInsightsData> {
+  try {
+    const { schoolId } = await requireAuth()
+    return await unstable_cache(
+      () => fetchClassInsights(classId, schoolId),
+      [`class-insights-${classId}-${schoolId}`],
+      { revalidate: 120, tags: [`insights-${classId}`, 'class-rosters'] },
+    )()
   } catch (err) {
     console.error('[getClassInsights] error:', err)
     return { students: [], classAvg: null, totalHomework: 0 }
@@ -1248,57 +1255,54 @@ export type ClassTimeSeriesData = {
   studentNames: { studentId: string; name: string }[]
 }
 
-export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeriesData> {
-  try {
-    const { schoolId } = await requireAuth()
-
-    // 1. Get class metadata
-    const cls = await prisma.schoolClass.findFirst({
-      where:  { id: classId, schoolId },
-      select: { yearGroup: true, subject: true },
-    })
-    if (!cls) return { points: [], studentNames: [] }
-
-    const { yearGroup, subject } = cls
-
-    // 2. Fetch this class's published homework ordered by dueAt
-    const classHomework = await prisma.homework.findMany({
-      where:   { classId, schoolId, status: { not: 'DRAFT' } },
-      select: {
-        id:           true,
-        title:        true,
-        dueAt:        true,
-        gradingBands: true,
-        submissions:  {
-          select: {
-            studentId:   true,
-            finalScore:  true,
-            autoScore:   true,
-            teacherScore: true,
+async function fetchClassTimeSeries(classId: string, schoolId: string): Promise<ClassTimeSeriesData> {
+    // 1+2+3 in parallel — steps 2 and 3 only need classId, not cls metadata
+    const [cls, classHomework, enrolments] = await Promise.all([
+      // 1. Class metadata (needed for year-group benchmark query)
+      prisma.schoolClass.findFirst({
+        where:  { id: classId, schoolId },
+        select: { yearGroup: true, subject: true },
+      }),
+      // 2. This class's published homework ordered by dueAt
+      prisma.homework.findMany({
+        where:   { classId, schoolId, status: { not: 'DRAFT' } },
+        select: {
+          id:           true,
+          title:        true,
+          dueAt:        true,
+          gradingBands: true,
+          submissions:  {
+            select: {
+              studentId:    true,
+              finalScore:   true,
+              autoScore:    true,
+              teacherScore: true,
+            },
           },
         },
-      },
-      orderBy: { dueAt: 'asc' },
-    })
+        orderBy: { dueAt: 'asc' },
+      }),
+      // 3. Enrolled students
+      prisma.enrolment.findMany({
+        where:   { classId, class: { schoolId } },
+        include: { user: { select: { id: true, firstName: true, lastName: true } } },
+        orderBy: [{ user: { lastName: 'asc' } }],
+      }),
+    ])
 
-    // 3. Fetch enrolled students
-    const enrolments = await prisma.enrolment.findMany({
-      where:   { classId, class: { schoolId } },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
-      orderBy: [{ user: { lastName: 'asc' } }],
-    })
+    if (!cls) return { points: [], studentNames: [] }
 
     const studentNames = enrolments.map(e => ({
       studentId: e.user.id,
       name:      `${e.user.firstName} ${e.user.lastName}`,
     }))
 
-    // 4. Compute year group average (excluding this class)
+    // 4. Year group average (needs cls.yearGroup + cls.subject from step 1)
     const yearHomework = await prisma.homework.findMany({
       where: {
         schoolId,
         classId:  { not: classId },
-        class:    { yearGroup, subject },
+        class:    { yearGroup: cls.yearGroup, subject: cls.subject },
         status:   { not: 'DRAFT' },
       },
       select: {
@@ -1355,6 +1359,16 @@ export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeri
     }
 
     return { points, studentNames }
+}
+
+export async function getClassTimeSeries(classId: string): Promise<ClassTimeSeriesData> {
+  try {
+    const { schoolId } = await requireAuth()
+    return await unstable_cache(
+      () => fetchClassTimeSeries(classId, schoolId),
+      [`class-timeseries-${classId}-${schoolId}`],
+      { revalidate: 120, tags: [`insights-${classId}`, 'class-rosters'] },
+    )()
   } catch (err) {
     console.error('[getClassTimeSeries] error:', err)
     return { points: [], studentNames: [] }

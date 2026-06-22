@@ -193,12 +193,22 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
                 {concern.recentHomework.map(hw => (
                   <Link
                     key={hw.submissionId}
-                    href={`/homework/${hw.id}/mark`}
+                    href={hw.isOwnHomework
+                      ? `/homework/${hw.id}/mark/${hw.submissionId}`
+                      : `/students/${concern.studentId}?tab=Homework`}
                     className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                   >
                     <Icon name="assignment_turned_in" size="sm" className="shrink-0 text-gray-400" />
-                    {hw.title}
-                    <span className="text-gray-400">· due {formatDate(hw.dueAt)}</span>
+                    <span className="truncate">{hw.title}</span>
+                    {hw.grade && (
+                      <span className="shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                        Gr {hw.grade}
+                      </span>
+                    )}
+                    <span className="text-gray-400 shrink-0">· due {formatDate(hw.dueAt)}</span>
+                    {!hw.isOwnHomework && (
+                      <span className="shrink-0 text-[10px] text-gray-400 italic">other teacher</span>
+                    )}
                   </Link>
                 ))}
               </div>
@@ -414,7 +424,7 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
               label="TO MARK"
               value={data.homeworkToMark.length}
               trend={`${totalUngraded} submission${totalUngraded !== 1 ? 's' : ''} waiting`}
-              anchor="homework-mark"
+              href="/homework"
             />
             <StatCard
               icon="inbox"

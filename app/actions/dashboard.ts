@@ -1,7 +1,7 @@
 'use server'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 
 export type TodayLesson = {
   id: string
@@ -23,6 +23,8 @@ export type ConcernHomeworkEvidence = {
   submissionId: string
   title: string
   dueAt: string
+  grade: string | null
+  isOwnHomework: boolean   // whether the viewing teacher set this homework
 }
 
 export type OpenConcern = {
@@ -176,19 +178,11 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
           orderBy: { scheduledAt: 'asc' },
         }),
         prisma.submission.findMany({
-          where: {
-            schoolId,
-            studentId: c.studentId,
-            homework: {
-              OR: [
-                { createdBy: userId },
-                { class: { teachers: { some: { userId } } } },
-              ],
-            },
-          },
+          where: { schoolId, studentId: c.studentId },
           select: {
-            id: true,
-            homework: { select: { id: true, title: true, dueAt: true } },
+            id:    true,
+            grade: true,
+            homework: { select: { id: true, title: true, dueAt: true, createdBy: true } },
           },
           orderBy: { submittedAt: 'desc' },
           take: 3,
@@ -244,10 +238,12 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         ? { scheduledAt: lesson.scheduledAt.toISOString(), className: lesson.class?.name ?? '—' }
         : null,
       recentHomework: recentSubs.map(s => ({
-        id:           s.homework.id,
-        submissionId: s.id,
-        title:        s.homework.title,
-        dueAt:        s.homework.dueAt.toISOString(),
+        id:            s.homework.id,
+        submissionId:  s.id,
+        title:         s.homework.title,
+        dueAt:         s.homework.dueAt.toISOString(),
+        grade:         s.grade,
+        isOwnHomework: s.homework.createdBy === userId,
       })),
     })),
   }
@@ -258,7 +254,12 @@ export async function getDashboardData(): Promise<DashboardData> {
   const { id: userId, schoolId } = await requireAuth()
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
-  return fetchDashboardData(userId, schoolId, todayStart.toISOString())
+  const dateKey = todayStart.toISOString()
+  return unstable_cache(
+    () => fetchDashboardData(userId, schoolId, dateKey),
+    ['dashboard', userId, dateKey],
+    { revalidate: 120, tags: [`dashboard-${userId}`] },
+  )()
 }
 
 // ─── Concern actions (for raising teacher from dashboard) ─────────────────────
@@ -284,6 +285,7 @@ export async function addConcernNote(concernId: string, note: string): Promise<v
   })
 
   revalidatePath('/dashboard')
+  revalidateTag(`dashboard-${userId}`, 'default')
 }
 
 export async function escalateConcernToStaff(
@@ -291,7 +293,7 @@ export async function escalateConcernToStaff(
   targetRoles: string[],
   message: string,
 ): Promise<{ notified: number }> {
-  const { schoolId, firstName, lastName } = await requireAuth()
+  const { schoolId, id: userId, firstName, lastName } = await requireAuth()
 
   const concern = await prisma.sendConcern.findFirst({
     where: { id: concernId, schoolId },
@@ -331,6 +333,7 @@ export async function escalateConcernToStaff(
   })
 
   revalidatePath('/dashboard')
+  revalidateTag(`dashboard-${userId}`, 'default')
   return { notified: recipients.length }
 }
 

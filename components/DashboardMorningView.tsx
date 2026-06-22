@@ -1,7 +1,7 @@
 'use client'
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { getDashboardData, addConcernNote, escalateConcernToStaff, dismissSencoAlert, getTeacherTodayTimetable, type DashboardData, type OpenConcern, type TeacherTimetableLesson } from '@/app/actions/dashboard'
+import { getDashboardData, addConcernNote, escalateConcernToStaff, dismissSencoAlert, type DashboardData, type OpenConcern, type TeacherTimetableLesson } from '@/app/actions/dashboard'
 import { CONCERN_SECTIONS } from '@/components/send-support/ConcernList'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -294,9 +294,19 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
   )
 }
 
-export default function DashboardMorningView({ firstName, role }: { firstName: string; role: string }) {
-  const [data,             setData]             = useState<DashboardData | null>(null)
-  const [timetable,        setTimetable]        = useState<TeacherTimetableLesson[]>([])
+export default function DashboardMorningView({
+  firstName,
+  role,
+  initialData,
+  initialTimetable,
+}: {
+  firstName: string
+  role: string
+  initialData: DashboardData | null
+  initialTimetable: TeacherTimetableLesson[]
+}) {
+  const [data,             setData]             = useState<DashboardData | null>(initialData)
+  const [timetable]                             = useState<TeacherTimetableLesson[]>(initialTimetable)
   const [dismissedAlerts,  setDismissedAlerts]  = useState<Set<string>>(new Set())
   const [,                 startDismiss]        = useTransition()
 
@@ -304,10 +314,8 @@ export default function DashboardMorningView({ firstName, role }: { firstName: s
     getDashboardData().then(setData).catch(console.error)
   }
 
-  useEffect(() => {
-    load()
-    getTeacherTodayTimetable().then(setTimetable).catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  // No useEffect data fetch needed on mount — data arrives via server props.
+  // Only re-fetch after mutations (concern notes, dismissals) via load().
 
   function handleDismissAlert(id: string) {
     setDismissedAlerts(prev => new Set(prev).add(id))

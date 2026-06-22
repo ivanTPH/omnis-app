@@ -64,7 +64,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
   const todayEnd   = new Date(todayStart); todayEnd.setHours(23, 59, 59, 999)
   const now        = new Date()
 
-  const [todayLessons, hwToMark, subsTodayCount, concernsCount, concerns, alertNotifs] = await Promise.all([
+  const [todayLessons, hwToMark, subsTodayCount, concerns, alertNotifs] = await Promise.all([
 
     // Today's lessons, sorted by start time
     prisma.lesson.findMany({
@@ -123,16 +123,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       },
     }),
 
-    // Open concern count (raised by this teacher)
-    prisma.sendConcern.count({
-      where: {
-        schoolId,
-        raisedBy: userId,
-        status:   { in: ['open', 'under_review', 'escalated'] },
-      },
-    }),
-
-    // Open concerns (raised by this teacher)
+    // Open concerns (raised by this teacher) — count derived from .length below
     prisma.sendConcern.findMany({
       where: {
         schoolId,
@@ -161,7 +152,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
     }),
   ])
 
-  // For each concern, find today's lesson + recent homework evidence in parallel
+  // For each concern, fetch today's lessons + recent submissions in parallel (no fallback query)
   const concernsWithData = await Promise.all(
     concerns.map(async c => {
       const lessonSelect = { scheduledAt: true, class: { select: { name: true } } } as const
@@ -171,11 +162,13 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         class: { enrolments: { some: { userId: c.studentId } } },
       }
 
-      const [upcoming, recentSubs] = await Promise.all([
-        prisma.lesson.findFirst({
-          where: { ...baseWhere, scheduledAt: { gte: now, lte: todayEnd } },
+      const [todayLessonsForStudent, recentSubs] = await Promise.all([
+        // Fetch all of today's lessons for this student in one query; pick upcoming or fall back in JS
+        prisma.lesson.findMany({
+          where: baseWhere,
           select: lessonSelect,
           orderBy: { scheduledAt: 'asc' },
+          take: 8,
         }),
         prisma.submission.findMany({
           where: { schoolId, studentId: c.studentId },
@@ -189,12 +182,10 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         }),
       ])
 
-      // Fall back to earliest lesson today if all are in the past
-      const lesson = upcoming ?? await prisma.lesson.findFirst({
-        where: baseWhere,
-        select: lessonSelect,
-        orderBy: { scheduledAt: 'asc' },
-      })
+      // Prefer the next upcoming lesson; fall back to earliest today (no extra DB round-trip)
+      const lesson = todayLessonsForStudent.find(l => l.scheduledAt >= now)
+        ?? todayLessonsForStudent[0]
+        ?? null
 
       return { concern: c, lesson, recentSubs }
     }),
@@ -217,7 +208,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       }))
       .filter(hw => hw.ungradedCount > 0),
     submissionsToday:  subsTodayCount,
-    openConcernsCount: concernsCount,
+    openConcernsCount: concerns.length,
     sencoAlerts: alertNotifs.map(n => ({
       id:        n.id,
       title:     n.title,

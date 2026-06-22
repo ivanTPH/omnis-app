@@ -42,40 +42,55 @@ export async function GET(
     return NextResponse.json({ error: 'Student not found' }, { status: 404 })
   }
 
-  const [openConcerns, submissions, school] = await Promise.all([
+  const [openConcerns, submissions, school, ilpTargets, behaviourCount] = await Promise.all([
     prisma.sendConcern.count({
       where: { studentId, status: { in: ['open', 'under_review', 'escalated'] } },
     }),
+    // Include ALL returned submissions — teacher-graded (finalScore) + auto-graded (autoScore)
     prisma.submission.findMany({
-      where:   { studentId, status: 'RETURNED', autoScore: { not: null } },
-      include: { homework: { select: { class: { select: { subject: true } } } } },
+      where:   { studentId, status: 'RETURNED', finalScore: { not: null } },
+      select:  {
+        finalScore: true,
+        autoScore:  true,
+        feedback:   true,
+        submittedAt: true,
+        homework: { select: { title: true, class: { select: { subject: true } } } },
+      },
       orderBy: { submittedAt: 'desc' },
     }),
     prisma.school.findUnique({ where: { id: user.schoolId }, select: { name: true } }),
+    prisma.ilpTarget.findMany({
+      where:  { ilp: { studentId, status: { not: 'ARCHIVED' } }, status: 'active' },
+      select: { target: true, successMeasure: true, status: true },
+      take:   5,
+    }),
+    prisma.behaviourRecord.count({ where: { studentId } }),
   ])
 
-  // Aggregate per subject
-  const subjectMap = new Map<string, { scores: number[]; lastScore: number | null; hwCount: number }>()
+  // Aggregate per subject — use finalScore (teacher grade) with autoScore as fallback
+  const subjectMap = new Map<string, { scores: number[]; lastScore: number | null; hwCount: number; feedbacks: string[] }>()
   for (const sub of submissions) {
     const subject = sub.homework.class?.subject ?? 'Unknown'
-    const raw     = sub.autoScore!
+    const raw     = sub.finalScore!
     const gcse    = raw <= 9 ? raw : percentToGcseGrade(raw)
 
-    if (!subjectMap.has(subject)) subjectMap.set(subject, { scores: [], lastScore: null, hwCount: 0 })
+    if (!subjectMap.has(subject)) subjectMap.set(subject, { scores: [], lastScore: null, hwCount: 0, feedbacks: [] })
     const entry = subjectMap.get(subject)!
     entry.scores.push(gcse)
     entry.hwCount++
-    if (entry.lastScore === null) entry.lastScore = gcse  // sorted desc
+    if (entry.lastScore === null) entry.lastScore = gcse  // sorted desc, first = most recent
+    if (sub.feedback && entry.feedbacks.length < 1) entry.feedbacks.push(sub.feedback)
   }
 
   const subjects = [...subjectMap.entries()].map(([subject, data]) => {
     const avg = data.scores.reduce((a, b) => a + b, 0) / data.scores.length
     return {
       subject,
-      avgGrade:    Math.round(avg * 10) / 10,
-      letterGrade: null,
-      hwCount:     data.hwCount,
-      lastGrade:   data.lastScore,
+      avgGrade:       Math.round(avg * 10) / 10,
+      letterGrade:    null,
+      hwCount:        data.hwCount,
+      lastGrade:      data.lastScore,
+      recentFeedback: data.feedbacks[0] ?? null,
     }
   }).sort((a, b) => a.subject.localeCompare(b.subject))
 
@@ -93,6 +108,8 @@ export async function GET(
     ilpSummary,
     openConcerns,
     subjects,
+    ilpTargets:     ilpTargets.map(t => ({ description: t.target, successCriteria: t.successMeasure ?? '', status: t.status })),
+    behaviourCount,
   })
 
   const pdf  = await generatePdf(html)

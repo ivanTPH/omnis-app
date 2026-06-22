@@ -109,6 +109,16 @@ export async function deletePlan(id: string) {
   revalidatePath('/plans/year-group')
 }
 
+// Returns the school's exam board config for a given subject (used for template generation)
+export async function getSubjectExamBoard(subject: string): Promise<{ examBoard: string | null; tier: string | null }> {
+  const user = await requireAccess()
+  const config = await prisma.subjectConfig.findUnique({
+    where: { schoolId_subject: { schoolId: user.schoolId, subject } },
+    select: { examBoard: true, tier: true },
+  })
+  return { examBoard: config?.examBoard ?? null, tier: config?.tier ?? null }
+}
+
 // Used by homework generation to get scheme of work context
 export async function getYearGroupPlanContext(schoolId: string, subject: string, yearGroup: number): Promise<string | null> {
   const plan = await prisma.yearGroupPlan.findUnique({

@@ -8,6 +8,7 @@ import {
   submitForApproval,
   approvePlan,
   deletePlan,
+  getSubjectExamBoard,
   type YearGroupPlanData,
 } from '@/app/actions/year-group-plans'
 
@@ -33,6 +34,84 @@ type ModalState = {
   content:         string
   fileUrl:         string
   submitAfterSave: boolean
+}
+
+function getSubjectTemplate(subject: string, yearGroup: number, examBoard?: string | null, tier?: string | null): string {
+  const s    = subject.toLowerCase()
+  const eb   = (examBoard ?? '').toUpperCase()
+  const isGcse = yearGroup >= 10
+  const tierNote = tier ? ` (${tier})` : ''
+  const boardNote = eb ? ` — ${eb}${tierNote}` : tierNote
+
+  if (s.includes('english lit')) {
+    const aqaLit  = eb === 'AQA'     ? 'An Inspector Calls + Macbeth + AQA Poetry Anthology (Power & Conflict)' : null
+    const edxLit  = eb === 'EDEXCEL' ? 'A Christmas Carol + Macbeth + Edexcel Anthology (Conflict cluster)'       : null
+    const ocrLit  = eb === 'OCR'     ? 'set text chosen by school + OCR poetry selection'                         : null
+    const text1 = aqaLit ?? edxLit ?? ocrLit ?? (isGcse ? 'Set text 1 — confirm with exam board' : 'Gothic/Victorian fiction')
+    return `# English Literature Year ${yearGroup}${boardNote}\n\n## Term 1\n- Texts: ${text1}\n- Key themes and authorial intent\n- Context (social, historical, literary)\n- Assessment: character / theme essay\n\n## Term 2\n- Poetry: comparative analysis\n- Unseen poetry technique\n- Sentence-level accuracy and quotation embedding\n\n## Term 3\n- ${isGcse ? 'Exam technique + full paper practice' : 'Extended independent reading project'}\n- Revision of key texts and themes`
+  }
+
+  if (s.includes('english language') || s === 'english') {
+    const aqaLang   = eb === 'AQA'     ? 'Paper 1: Fiction + descriptive writing | Paper 2: Non-fiction + viewpoints' : null
+    const edxLang   = eb === 'EDEXCEL' ? 'Paper 1: Fiction + transactional writing | Paper 2: Non-fiction + creative'  : null
+    const paperNote = aqaLang ?? edxLang ?? (isGcse ? 'Paper 1 & 2 skills' : 'Reading and writing skills')
+    return `# English Language Year ${yearGroup}${boardNote}\n\n## Term 1\n- Reading: ${isGcse ? 'Fiction (Paper 1)' : 'Narrative texts'}\n- Writing: descriptive and narrative\n- Spoken language component\n\n## Term 2\n- Reading: ${isGcse ? 'Non-fiction (Paper 2)' : 'Non-fiction and media texts'}\n- Writing: persuasive, informative, viewpoints\n- Key vocabulary, grammar, punctuation\n\n## Term 3\n- ${paperNote}\n- Spoken language final assessment\n- Exam technique under timed conditions`
+  }
+
+  if (s.includes('math')) {
+    const aqaMath = eb === 'AQA'     ? 'AQA specification content' : null
+    const edxMath = eb === 'EDEXCEL' ? 'Pearson Edexcel specification' : null
+    const specNote = aqaMath ?? edxMath ?? 'Specification content'
+    return `# Mathematics Year ${yearGroup}${boardNote}\n\n## Term 1\n- Number: fractions, decimals, percentages, standard form\n- Algebra: ${isGcse ? 'quadratics, simultaneous equations, inequalities' : 'expressions, linear equations, sequences'}\n\n## Term 2\n- Geometry & Measures: ${isGcse ? 'circle theorems, trigonometry, vectors' : 'angles, area, volume, Pythagoras'}\n- Statistics & Probability: ${isGcse ? 'histograms, cumulative frequency, tree diagrams' : 'averages, probability experiments'}\n\n## Term 3\n- ${isGcse ? `Ratio, proportion & rates of change${tier ? ` — ${tier} tier` : ''}` : 'Mixed problem solving and reasoning'}\n- ${specNote}\n- Practice papers and exam technique`
+  }
+
+  if (s.includes('biology')) {
+    const units = eb === 'AQA' ? ['Cell biology', 'Organisation', 'Infection and response'] :
+                  eb === 'EDEXCEL' ? ['Key concepts in biology', 'Cells and control', 'Genetics'] :
+                  ['Unit 1', 'Unit 2', 'Unit 3']
+    return `# Biology Year ${yearGroup}${boardNote}\n\n## Term 1 — ${units[0]}\n- Key concepts and vocabulary\n- Required practicals: [list here]\n- Assessment: test / exam question practice\n\n## Term 2 — ${units[1]}\n- Core content and diagrams\n- Required practicals: [list here]\n- Assessment: extended writing / data analysis\n\n## Term 3 — ${units[2]}\n- Key processes and pathways\n- Revision of terms 1–2\n- Exam technique: 6-mark questions`
+  }
+
+  if (s.includes('chemistry')) {
+    const units = eb === 'AQA' ? ['Atomic structure & periodic table', 'Bonding, structure & properties', 'Quantitative chemistry'] :
+                  eb === 'EDEXCEL' ? ['States of matter & mixtures', 'Methods of separating & purifying substances', 'Atomic structure'] :
+                  ['Unit 1', 'Unit 2', 'Unit 3']
+    return `# Chemistry Year ${yearGroup}${boardNote}\n\n## Term 1 — ${units[0]}\n- Key concepts and vocabulary\n- Required practicals\n- Assessment: calculation skills\n\n## Term 2 — ${units[1]}\n- Core content and equations\n- Required practicals\n- Assessment: written explanation\n\n## Term 3 — ${units[2]}\n- Applied content\n- Revision of prior units\n- Exam technique: quantitative questions`
+  }
+
+  if (s.includes('physics')) {
+    const units = eb === 'AQA' ? ['Energy', 'Electricity', 'Particle model of matter'] :
+                  eb === 'EDEXCEL' ? ['Motion & forces', 'Conservation of energy', 'Waves'] :
+                  ['Unit 1', 'Unit 2', 'Unit 3']
+    return `# Physics Year ${yearGroup}${boardNote}\n\n## Term 1 — ${units[0]}\n- Key concepts and vocabulary\n- Required practicals\n- Assessment: calculation / data questions\n\n## Term 2 — ${units[1]}\n- Core equations and applications\n- Required practicals\n- Assessment: extended response\n\n## Term 3 — ${units[2]}\n- Applied content\n- Revision and exam technique`
+  }
+
+  if (s.includes('science') && !s.includes('computer')) {
+    return `# Science Year ${yearGroup}${boardNote}\n\n## Term 1 — Biology unit\n- [insert unit name]\n- Key concepts and required practicals\n\n## Term 2 — Chemistry unit\n- [insert unit name]\n- Key equations and required practicals\n\n## Term 3 — Physics unit\n- [insert unit name]\n- Revision and assessment`
+  }
+
+  if (s.includes('history')) {
+    const aqaHist = eb === 'AQA' ? 'Period study + thematic study + British depth study + Historic environment' : null
+    const edxHist = eb === 'EDEXCEL' ? 'Thematic study + British depth study + Period study + Modern depth study' : null
+    const structNote = aqaHist ?? edxHist ?? (isGcse ? 'Period study + thematic study' : 'Chronological enquiry')
+    return `# History Year ${yearGroup}${boardNote}\n\n## Term 1\n- Period: [insert period/topic]\n- Key events, turning points and causation\n- Source analysis and evaluation\n\n## Term 2\n- Period: [insert period/topic]\n- Significance and consequence\n- Essay writing: argue, explain, assess\n\n## Term 3\n- ${isGcse ? structNote : 'Historical enquiry project'}\n- Exam technique: structured responses`
+  }
+
+  if (s.includes('geog')) {
+    const aqaGeog  = eb === 'AQA'     ? 'Living with the physical environment + Changing human environment + Geographical applications' : null
+    const edxGeog  = eb === 'EDEXCEL' ? 'Physical environments + Human environments + Geographical investigations' : null
+    const structNote = aqaGeog ?? edxGeog ?? (isGcse ? 'Physical + Human + Fieldwork' : 'Physical and human geography enquiry')
+    return `# Geography Year ${yearGroup}${boardNote}\n\n## Term 1\n- Physical geography: [topic — e.g. rivers, coasts, glaciation]\n- Fieldwork skills and data collection\n- Case studies: UK and global examples\n\n## Term 2\n- Human geography: [topic — e.g. urban, development, resources]\n- Data interpretation and map skills\n- Assessment essay\n\n## Term 3\n- ${structNote}\n- Geographical skills: maps, graphs, statistics\n- Exam technique`
+  }
+
+  if (s.includes('computer')) {
+    const aqaCS  = eb === 'AQA' ? 'Systems architecture, memory, storage, networks, cyber security, ethical issues, programming' : null
+    const ocrCS  = eb === 'OCR' ? 'Computer systems, computational thinking, programming and algorithms, data and information' : null
+    return `# Computer Science Year ${yearGroup}${boardNote}\n\n## Term 1\n- ${aqaCS ?? ocrCS ?? 'Computer systems and hardware'}\n- Programming: [language used in school]\n- Assessment: theory test\n\n## Term 2\n- Algorithms and problem solving\n- Computational thinking: abstraction, decomposition\n- Programming task / project\n\n## Term 3\n- ${isGcse ? 'Revision: theory + programming exam' : 'Data, networks and security'}\n- Exam technique`
+  }
+
+  // Generic template
+  return `# ${subject} Year ${yearGroup}${boardNote}\n\n## Term 1\n- Topic: [insert topic]\n- Key skills and knowledge\n- Assessment: [method]\n\n## Term 2\n- Topic: [insert topic]\n- Core concepts\n- Assessment: [method]\n\n## Term 3\n- Revision and consolidation\n- End of year assessment`
 }
 
 const DEFAULT_MODAL: ModalState = {
@@ -89,9 +168,22 @@ export default function YearGroupPlansView({
   const [activeSubject,    setActiveSubject]    = useState<string>(subjects[0] ?? ALL_SUBJECTS[0])
   const [expandedId,       setExpandedId]       = useState<string | null>(null)
   const [modal,            setModal]            = useState<ModalState>(DEFAULT_MODAL)
-  const [saving,           setSaving]           = useState(false)
-  const [confirmDeleteId,  setConfirmDeleteId]  = useState<string | null>(null)
-  const [helpDismissed,    setHelpDismissed]    = useState(false)
+  const [saving,            setSaving]            = useState(false)
+  const [confirmDeleteId,   setConfirmDeleteId]   = useState<string | null>(null)
+  const [helpDismissed,     setHelpDismissed]     = useState(false)
+  const [insertingTemplate, setInsertingTemplate] = useState(false)
+
+  async function handleInsertTemplate(subject: string, yearGroup: number) {
+    setInsertingTemplate(true)
+    try {
+      const { examBoard, tier } = await getSubjectExamBoard(subject)
+      setModal(m => ({ ...m, content: getSubjectTemplate(subject || 'generic', yearGroup, examBoard, tier) }))
+    } catch {
+      setModal(m => ({ ...m, content: getSubjectTemplate(subject || 'generic', yearGroup) }))
+    } finally {
+      setInsertingTemplate(false)
+    }
+  }
 
   const planIndex = useMemo(() => {
     const idx: Record<string, Record<number, YearGroupPlanData>> = {}
@@ -472,15 +564,40 @@ export default function YearGroupPlansView({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Plan Content
-                  <span className="text-gray-400 font-normal ml-1">(describe your scheme of work — topics, terms, key texts)</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Plan Content
+                    <span className="text-gray-400 font-normal ml-1">(describe your scheme of work — topics, terms, key texts)</span>
+                  </label>
+                  {!modal.content.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => handleInsertTemplate(modal.subject, modal.yearGroup)}
+                      disabled={insertingTemplate}
+                      className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      <Icon name={insertingTemplate ? 'refresh' : 'auto_fix_high'} size="sm" className={insertingTemplate ? 'animate-spin' : ''} />
+                      {insertingTemplate ? 'Loading…' : 'Insert template'}
+                    </button>
+                  )}
+                  {modal.content.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => handleInsertTemplate(modal.subject, modal.yearGroup)}
+                      disabled={insertingTemplate}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors shrink-0 disabled:opacity-50"
+                      title="Replace with template (will overwrite current content)"
+                    >
+                      <Icon name={insertingTemplate ? 'refresh' : 'refresh'} size="sm" className={insertingTemplate ? 'animate-spin' : ''} />
+                      {insertingTemplate ? 'Loading…' : 'Reset to template'}
+                    </button>
+                  )}
+                </div>
                 <textarea
                   value={modal.content}
                   onChange={e => setModal(m => ({ ...m, content: e.target.value }))}
                   rows={14}
-                  placeholder={`Example for English Year 9:\n\nTerm 1 — An Inspector Calls\n- Characters: Birling family, Inspector Goole\n- Themes: responsibility, class, gender\n- Assessment: character analysis essay\n\nTerm 2 — Poetry Anthology\n- AQA Power and Conflict cluster\n- Comparative essay technique\n\nTerm 3 — Language Paper 1 & 2\n- Fiction reading / descriptive writing\n- Non-fiction reading / persuasive writing`}
+                  placeholder="Describe your scheme of work — use the 'Insert template' button above to get started, or type your own content here."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </div>

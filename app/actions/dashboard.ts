@@ -448,35 +448,94 @@ export async function getTeacherTodayTimetable(): Promise<TeacherTimetableLesson
 
 /** Returns the teacher's full weekly timetable (all 5 days) from Wonde MIS. */
 export async function getTeacherTimetable(): Promise<TeacherTimetableDay[]> {
-  const { schoolId, firstName, lastName } = await requireAuth()
+  const { schoolId, id: userId, firstName, lastName } = await requireAuth()
 
+  // ── 1. Try Wonde timetable ─────────────────────────────────────────────────
   const employee = await prisma.wondeEmployee.findFirst({
     where:  { schoolId, firstName, lastName },
     select: { id: true },
   })
-  if (!employee) return []
 
-  const entries = await prisma.wondeTimetableEntry.findMany({
-    where: { schoolId, employeeId: employee.id },
-    include: {
-      wondeClass: { select: { name: true, subject: true } },
-      period:     { select: { startTime: true, endTime: true, dayOfWeek: true } },
+  if (employee) {
+    const entries = await prisma.wondeTimetableEntry.findMany({
+      where: { schoolId, employeeId: employee.id },
+      include: {
+        wondeClass: { select: { name: true, subject: true } },
+        period:     { select: { startTime: true, endTime: true, dayOfWeek: true } },
+      },
+    })
+
+    if (entries.length > 0) {
+      const byDay = new Map<number, TeacherTimetableLesson[]>()
+      for (const e of entries) {
+        const day = e.period.dayOfWeek
+        if (!day || day < 1 || day > 5) continue
+        const raw  = e.roomName
+        const room = raw && !/^[A-Z]\d{6,}$/.test(raw) ? raw : null
+        const list = byDay.get(day) ?? []
+        list.push({
+          startTime: e.period.startTime.slice(0, 5),
+          endTime:   e.period.endTime.slice(0, 5),
+          subject:   e.wondeClass.subject,
+          className: e.wondeClass.name,
+          room,
+        })
+        byDay.set(day, list)
+      }
+
+      const result: TeacherTimetableDay[] = []
+      for (let day = 1; day <= 5; day++) {
+        result.push({
+          dayOfWeek: day,
+          lessons: (byDay.get(day) ?? []).sort((a, b) => a.startTime.localeCompare(b.startTime)),
+        })
+      }
+      return result
+    }
+  }
+
+  // ── 2. Fallback: build timetable from lessons in the DB ────────────────────
+  // Find lessons taught by this teacher in the past 14 days + next 7 days
+  const windowStart = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
+  const windowEnd   = new Date(Date.now() +  7 * 24 * 60 * 60 * 1000)
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      schoolId,
+      scheduledAt: { gte: windowStart, lte: windowEnd },
+      OR: [
+        { createdBy: userId },
+        { class: { teachers: { some: { userId } } } },
+      ],
     },
+    include: { class: true },
+    orderBy: { scheduledAt: 'asc' },
   })
 
+  // Group by day-of-week (1=Mon…5=Fri); deduplicate by class+time
   const byDay = new Map<number, TeacherTimetableLesson[]>()
-  for (const e of entries) {
-    const day = e.period.dayOfWeek
-    if (!day || day < 1 || day > 5) continue
-    const raw  = e.roomName
-    const room = raw && !/^[A-Z]\d{6,}$/.test(raw) ? raw : null
+  const seen  = new Set<string>()
+
+  for (const l of lessons) {
+    const d   = l.scheduledAt.getDay()         // 0=Sun, 1=Mon…6=Sat
+    const day = d === 0 ? 7 : d               // normalise Sun→7, keep Mon=1…Fri=5
+    if (day < 1 || day > 5) continue
+
+    const start = l.scheduledAt
+    const end   = l.endsAt ?? new Date(start.getTime() + 60 * 60 * 1000)
+    const startStr = start.toTimeString().slice(0, 5)
+    const endStr   = end.toTimeString().slice(0, 5)
+    const key   = `${day}|${(l as any).class?.name ?? 'Lesson'}|${startStr}`
+    if (seen.has(key)) continue
+    seen.add(key)
+
     const list = byDay.get(day) ?? []
     list.push({
-      startTime: e.period.startTime.slice(0, 5),
-      endTime:   e.period.endTime.slice(0, 5),
-      subject:   e.wondeClass.subject,
-      className: e.wondeClass.name,
-      room,
+      startTime: startStr,
+      endTime:   endStr,
+      subject:   (l as any).class?.subject ?? null,
+      className: (l as any).class?.name ?? l.title,
+      room:      null,
     })
     byDay.set(day, list)
   }

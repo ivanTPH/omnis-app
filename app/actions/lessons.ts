@@ -538,6 +538,44 @@ export async function getSchoolResourceLibrary(forLessonId?: string) {
   })
 }
 
+// ── Lesson picker for resource library "Add to lesson" ────────────────────────
+
+export type LessonPickerItem = {
+  id:        string
+  title:     string
+  subject:   string | null
+  className: string | null
+  scheduledAt: string  // ISO
+}
+
+export async function getLessonsForPicker(): Promise<LessonPickerItem[]> {
+  const { schoolId, id: userId } = await requireAuth()
+  const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const to   = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      schoolId,
+      scheduledAt: { gte: from, lte: to },
+      OR: [
+        { createdBy: userId },
+        { class: { teachers: { some: { userId } } } },
+      ],
+    },
+    include: { class: true },
+    orderBy: { scheduledAt: 'asc' },
+    take: 40,
+  })
+
+  return lessons.map(l => ({
+    id:          l.id,
+    title:       l.title,
+    subject:     l.class?.subject ?? null,
+    className:   l.class?.name ?? null,
+    scheduledAt: l.scheduledAt.toISOString(),
+  }))
+}
+
 // ── Full resource library (for /resources page) ───────────────────────────────
 
 export type ResourceLibraryItem = {

@@ -61,10 +61,10 @@ export default function TeacherTimetableView({ timetable }: { timetable: Teacher
         <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Icon name="event_note" size="lg" className="text-gray-400" />
         </div>
-        <h2 className="text-[16px] font-semibold text-gray-700 mb-2">No timetable available</h2>
+        <h2 className="text-[16px] font-semibold text-gray-700 mb-2">No lessons found this week</h2>
         <p className="text-[13px] text-gray-400 max-w-xs mx-auto">
-          Your timetable will appear here once the school MIS has been synced. Ask your admin to
-          run a Wonde sync from the MIS Sync panel.
+          Your timetable is built from lessons added to your calendar. Add lessons via the Calendar
+          page, or ask your admin to connect the school MIS for automatic timetable import.
         </p>
       </div>
     )
@@ -74,7 +74,7 @@ export default function TeacherTimetableView({ timetable }: { timetable: Teacher
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-page-title">My Timetable</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">Your weekly lesson schedule from the school MIS</p>
+        <p className="text-[13px] text-gray-400 mt-0.5">Your weekly lesson schedule</p>
       </div>
 
       {/* Today strip (school days only) */}

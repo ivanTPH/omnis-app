@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma, writeAudit, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
 import { markDirty } from '@/lib/agents/snapshot'
@@ -3204,18 +3204,13 @@ export async function getStudentLearnerPassport(studentId: string): Promise<Lear
  * Returns a map of studentId → { id, sendInformation, status }.
  * Teachers only see APPROVED plans; SENCO sees all.
  */
-export async function getClassKPlanSummaries(
+async function fetchClassKPlanSummaries(
   classId: string,
+  schoolId: string,
+  isSencoTier: boolean,
 ): Promise<Record<string, { id: string; sendInformation: string; status: string; teacherActions: string[] }>> {
-  try {
-  const user = await requireAuth()
-  const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
-  if (!allowedRoles.includes(user.role)) return {}
-
-  const isSencoTier = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
-
   const enrolments = await prisma.enrolment.findMany({
-    where: { classId, class: { schoolId: user.schoolId } },
+    where: { classId, class: { schoolId } },
     select: { userId: true },
   })
   const studentIds = enrolments.map(e => e.userId)
@@ -3224,14 +3219,13 @@ export async function getClassKPlanSummaries(
   const passports = await prisma.learnerPassport.findMany({
     where: {
       studentId: { in: studentIds },
-      schoolId:  user.schoolId,
+      schoolId,
       ...(isSencoTier ? {} : { status: 'APPROVED' }),
     },
     orderBy: { createdAt: 'desc' },
     select: { id: true, studentId: true, sendInformation: true, status: true, teacherActions: true },
   })
 
-  // Keep only the latest per student
   const result: Record<string, { id: string; sendInformation: string; status: string; teacherActions: string[] }> = {}
   for (const p of passports) {
     if (!result[p.studentId]) {
@@ -3239,6 +3233,22 @@ export async function getClassKPlanSummaries(
     }
   }
   return result
+}
+
+export async function getClassKPlanSummaries(
+  classId: string,
+): Promise<Record<string, { id: string; sendInformation: string; status: string; teacherActions: string[] }>> {
+  try {
+    const user = await requireAuth()
+    const allowedRoles = ['SENCO', 'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
+    if (!allowedRoles.includes(user.role)) return {}
+    const isSencoTier = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
+    const tier = isSencoTier ? 'senco' : 'teacher'
+    return await unstable_cache(
+      () => fetchClassKPlanSummaries(classId, user.schoolId, isSencoTier),
+      [`kplan-${classId}-${user.schoolId}-${tier}`],
+      { revalidate: 60, tags: [`kplan-${classId}`, 'class-rosters'] },
+    )()
   } catch (err) {
     console.error('[getClassKPlanSummaries] error:', err)
     return {}
@@ -3249,21 +3259,19 @@ export async function getClassKPlanSummaries(
 
 /** Returns a map of studentId → array of Section F provision strings for all
  *  EHCP students in the class.  Used by ClassRosterTab for quick-tip display. */
-export async function getClassEhcpSectionF(
-  classId: string,
+async function fetchClassEhcpSectionF(
+  classId:  string,
+  schoolId: string,
 ): Promise<Record<string, string[]>> {
-  try {
-  const user = await requireAuth()
-
   const enrolments = await prisma.enrolment.findMany({
-    where: { classId, class: { schoolId: user.schoolId } },
+    where: { classId, class: { schoolId } },
     select: { userId: true },
   })
   const studentIds = enrolments.map(e => e.userId)
   if (studentIds.length === 0) return {}
 
   const plans = await prisma.ehcpPlan.findMany({
-    where:  { studentId: { in: studentIds }, schoolId: user.schoolId },
+    where:  { studentId: { in: studentIds }, schoolId },
     select: { studentId: true, sections: true },
   })
 
@@ -3277,6 +3285,18 @@ export async function getClassEhcpSectionF(
       .filter(Boolean)
   }
   return result
+}
+
+export async function getClassEhcpSectionF(
+  classId: string,
+): Promise<Record<string, string[]>> {
+  try {
+    const { schoolId } = await requireAuth()
+    return await unstable_cache(
+      () => fetchClassEhcpSectionF(classId, schoolId),
+      [`ehcp-sectionf-${classId}-${schoolId}`],
+      { revalidate: 60, tags: [`ehcp-${classId}`, 'class-rosters'] },
+    )()
   } catch (err) {
     console.error('[getClassEhcpSectionF] error:', err)
     return {}

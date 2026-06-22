@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { writeAudit } from '@/lib/prisma'
+import { unstable_cache } from 'next/cache'
 import { currentTermLabel, termLabelToDates } from '@/lib/termUtils'
 import { percentToGcseGrade } from '@/lib/grading'
 
@@ -88,14 +89,12 @@ function computeRag(workingAt: number | null, effective: number | null): RagStat
 
 // ── getClassRagData ────────────────────────────────────────────────────────────
 
-export async function getClassRagData(
-  classId:    string,
-  termLabel?: string,
+async function fetchClassRagData(
+  classId:   string,
+  schoolId:  string,
+  teacherId: string,
+  term:      string,
 ): Promise<RagStudent[]> {
-  try {
-  const { schoolId, id: teacherId } = await requireAuth()
-
-  const term       = termLabel ?? currentTermLabel()
   const { from, to } = termLabelToDates(term)
 
   // ── 1+2. Resolve class + enrolled students ───────────────────────────────────
@@ -237,6 +236,20 @@ export async function getClassRagData(
       }
     })
     .sort((a, b) => `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`))
+}
+
+export async function getClassRagData(
+  classId:    string,
+  termLabel?: string,
+): Promise<RagStudent[]> {
+  try {
+    const { schoolId, id: teacherId } = await requireAuth()
+    const term = termLabel ?? currentTermLabel()
+    return await unstable_cache(
+      () => fetchClassRagData(classId, schoolId, teacherId, term),
+      [`rag-${classId}-${schoolId}-${teacherId}-${term}`],
+      { revalidate: 60, tags: [`rag-${classId}`, `class-rosters`] },
+    )()
   } catch (err) {
     console.error('[getClassRagData] error:', err)
     return []

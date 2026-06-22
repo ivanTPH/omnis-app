@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
@@ -284,9 +284,15 @@ function Step2({
                     )}
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-600' : s.avgScore >= 4.5 ? 'text-amber-600' : 'text-rose-600'}`}>
-                      {gradeLabel(Math.round(s.avgScore))}
-                    </span>
+                    {s.avgScore === 0 ? (
+                      <Tooltip content="No graded homework found for this student in the selected period. Revision will be based on lesson topics.">
+                        <span className="text-gray-400 italic">—</span>
+                      </Tooltip>
+                    ) : (
+                      <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-600' : s.avgScore >= 4.5 ? 'text-amber-600' : 'text-rose-600'}`}>
+                        {gradeLabel(Math.round(s.avgScore))}
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-gray-500">{s.weakTopics.slice(0, 2).join(', ') || '—'}</td>
                   <td className="px-3 py-2 text-blue-600 capitalize">{s.recommendedTaskType.replace(/_/g, ' ')}</td>
@@ -295,6 +301,11 @@ function Step2({
             </tbody>
           </table>
         </div>
+        {analysis.studentAnalysis.some(s => s.avgScore === 0) && (
+          <p className="text-[10px] text-gray-400 mt-1.5 pl-1">
+            — indicates no graded homework was found in the selected period. Revision tasks will be generated from lesson topics instead.
+          </p>
+        )}
       </div>
 
       {/* Curriculum coverage */}
@@ -613,6 +624,7 @@ function Step4({
   const [saveErr, setSaveErr]         = useState<string | null>(null)
   const [saving, startSaving]         = useTransition()
   const [focusedQ, setFocusedQ]       = useState<string | null>(null)
+  const [showSendOnly, setShowSendOnly] = useState(false)
 
   const nameMap = Object.fromEntries(
     analysis.studentAnalysis.map(s => [s.studentId, { name: s.studentName, sendStatus: s.sendStatus }])
@@ -674,6 +686,18 @@ function Step4({
   const hasDirty = dirtyIds.size > 0
   const canApprove = !hasDirty
 
+  const sendCount = useMemo(() => tasks.filter(t => (t.sendAdaptations ?? []).length > 0).length, [tasks])
+
+  const displayTasks = useMemo(() => {
+    const sorted = [...tasks].sort((a, b) => {
+      const aS = (a.sendAdaptations ?? []).length > 0
+      const bS = (b.sendAdaptations ?? []).length > 0
+      if (aS === bS) return 0
+      return aS ? -1 : 1
+    })
+    return showSendOnly ? sorted.filter(t => (t.sendAdaptations ?? []).length > 0) : sorted
+  }, [tasks, showSendOnly])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 gap-2 text-gray-500">
@@ -701,8 +725,26 @@ function Step4({
       )}
 
       {/* per-student task previews */}
-      <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-        {tasks.map(task => {
+      <div className="flex items-center gap-2 mb-1">
+        <button
+          type="button"
+          onClick={() => setShowSendOnly(false)}
+          className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition ${!showSendOnly ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}
+        >
+          All ({tasks.length})
+        </button>
+        {sendCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowSendOnly(true)}
+            className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border transition ${showSendOnly ? 'bg-purple-700 text-white border-purple-700' : 'bg-white text-purple-700 border-purple-300 hover:border-purple-500'}`}
+          >
+            SEND adapted ({sendCount})
+          </button>
+        )}
+      </div>
+      <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+        {displayTasks.map(task => {
           const info       = nameMap[task.studentId]
           const name       = info?.name ?? `Student ${task.studentId.slice(0, 6)}`
           const questions  = editedQs[task.id] ?? []
@@ -723,7 +765,9 @@ function Step4({
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-medium text-gray-900">{name}</p>
                     {isSend && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">SEND adapted</span>
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-600 text-white">
+                        <span className="material-icons" style={{ fontSize: 11 }}>accessibility_new</span> SEND adapted
+                      </span>
                     )}
                     {isDirty && (
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Edited — unsaved</span>

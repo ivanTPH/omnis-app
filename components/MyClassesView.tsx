@@ -14,8 +14,16 @@ type ClassOption = { id: string; name: string; subject: string; yearGroup: numbe
 
 export type ClassKpis = { students: number; sendCount: number; needsMarking: number }
 
+function defaultSubject(classes: ClassOption[]): string {
+  if (classes.length === 0) return ''
+  // Count frequency of each subject; pick most common (primary teaching subject)
+  const freq: Record<string, number> = {}
+  for (const c of classes) freq[c.subject] = (freq[c.subject] ?? 0) + 1
+  return Object.entries(freq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? ''
+}
+
 export default function MyClassesView({ classes, role, kpiData }: { classes: ClassOption[]; role: string; kpiData?: Record<string, ClassKpis> }) {
-  const [subject,     setSubject]     = useState('')
+  const [subject,     setSubject]     = useState(() => defaultSubject(classes))
   const [year,        setYear]        = useState('')
   const [selectedId,  setSelectedId]  = useState('')
   const [search,      setSearch]      = useState('')

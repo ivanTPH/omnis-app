@@ -5,8 +5,10 @@ import OmnisLogo from '@/components/ui/OmnisLogo'
 import Sidebar from '@/components/Sidebar'
 import { getMyAvatarUrl } from '@/app/actions/settings'
 import { getTeacherDefaults } from '@/app/actions/analytics'
+import { getUnreadNotificationCount } from '@/app/actions/messaging'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
 import { MobileMenuContext } from '@/lib/mobileMenuContext'
+import { NotificationCountContext } from '@/lib/notificationCountContext'
 import { ToastContainer } from '@/components/ui/Toast'
 import GuideChatButton from '@/components/help/GuideChatButton'
 import OnboardingChecklist from '@/components/help/OnboardingChecklist'
@@ -26,9 +28,21 @@ export default function AppShell({
   schoolName: string
   children:   React.ReactNode
 }) {
-  const [open,           setOpen]           = useState(false)
-  const [avatarUrl,      setAvatarUrl]      = useState<string | null>(null)
-  const [teacherProfile, setTeacherProfile] = useState<TeacherProfile>(EMPTY_PROFILE)
+  const [open,              setOpen]              = useState(false)
+  const [avatarUrl,         setAvatarUrl]         = useState<string | null>(null)
+  const [teacherProfile,    setTeacherProfile]    = useState<TeacherProfile>(EMPTY_PROFILE)
+  const [notificationCount, setNotificationCount] = useState(0)
+
+  // Single notification poll — shared via context so both mobile bell and
+  // sidebar badge consume the same value without duplicate DB queries.
+  useEffect(() => {
+    function loadNotifications() {
+      getUnreadNotificationCount().then(setNotificationCount).catch(() => {})
+    }
+    loadNotifications()
+    const id = setInterval(loadNotifications, 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     // Always fetch avatar
@@ -79,6 +93,7 @@ export default function AppShell({
 
   return (
     <MobileMenuContext.Provider value={{ openMenu: () => setOpen(true) }}>
+    <NotificationCountContext.Provider value={notificationCount}>
     <TeacherProfileContext.Provider value={teacherProfile}>
       <div className="flex h-dvh overflow-hidden bg-white">
 
@@ -142,6 +157,7 @@ export default function AppShell({
       <OnboardingChecklist role={role} />
       {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
     </TeacherProfileContext.Provider>
+    </NotificationCountContext.Provider>
     </MobileMenuContext.Provider>
   )
 }

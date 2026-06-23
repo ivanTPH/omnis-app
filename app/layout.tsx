@@ -3,7 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { auth }                    from '@/lib/auth'
 import { getAccessibilitySettings } from '@/app/actions/accessibility'
-import { settingsToClasses }        from '@/lib/accessibility'
+import { settingsToClasses, ACCESSIBILITY_DEFAULTS } from '@/lib/accessibility'
 import AccessibilityToolbar         from '@/components/accessibility/AccessibilityToolbar'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -22,14 +22,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Fetch accessibility settings server-side so classes are applied before paint
   let userId: string | null = null
   let accessibilityClasses = ''
+  let initialSettings = ACCESSIBILITY_DEFAULTS
   try {
     const session = await auth()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session?.user as any
     if (user?.id) {
       userId = user.id
-      const settings = await getAccessibilitySettings(user.id)
-      accessibilityClasses = settingsToClasses(settings)
+      initialSettings = await getAccessibilitySettings(user.id)
+      accessibilityClasses = settingsToClasses(initialSettings)
     }
   } catch {
     // Not authenticated — no classes applied
@@ -40,15 +41,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Material Icons are self-hosted via public/fonts/material-icons.woff2
             and declared in globals.css — no external CDN request needed. */}
-        {/* OpenDyslexic font — loaded when dyslexia-font class is active */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic-regular.min.css"
-        />
+        {/* OpenDyslexic font — only loaded when user has dyslexia font enabled */}
+        {initialSettings.dyslexiaFont && (
+          <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic-regular.min.css"
+          />
+        )}
       </head>
       <body className={inter.className}>
         {children}
-        <AccessibilityToolbar userId={userId} />
+        <AccessibilityToolbar userId={userId} initialSettings={initialSettings} />
       </body>
     </html>
   )

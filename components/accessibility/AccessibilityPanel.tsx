@@ -76,10 +76,12 @@ export default function AccessibilityPanel({
   initialSettings,
   userId,
   onClose,
+  onSettingsChange,
 }: {
-  initialSettings: AccessibilitySettings
-  userId:          string
-  onClose:         () => void
+  initialSettings:   AccessibilitySettings
+  userId:            string
+  onClose:           () => void
+  onSettingsChange?: (s: AccessibilitySettings) => void
 }) {
   const [settings, setSettings] = useState<AccessibilitySettings>(initialSettings)
   const [pending,  start]       = useTransition()
@@ -88,6 +90,7 @@ export default function AccessibilityPanel({
     const next = { ...settings, ...patch }
     setSettings(next)
     applyToHtml(next)
+    onSettingsChange?.(next)
     start(async () => {
       await saveAccessibilitySettings(userId, patch)
     })
@@ -96,6 +99,7 @@ export default function AccessibilityPanel({
   function resetAll() {
     setSettings({ ...ACCESSIBILITY_DEFAULTS })
     applyToHtml(ACCESSIBILITY_DEFAULTS)
+    onSettingsChange?.({ ...ACCESSIBILITY_DEFAULTS })
     start(async () => {
       await saveAccessibilitySettings(userId, { ...ACCESSIBILITY_DEFAULTS })
     })

@@ -1,40 +1,22 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
 import AccessibilityPanel from './AccessibilityPanel'
-import { getAccessibilitySettings } from '@/app/actions/accessibility'
-import { ACCESSIBILITY_DEFAULTS, hasActiveSettings, settingsToClasses, type AccessibilitySettings } from '@/lib/accessibility'
+import { ACCESSIBILITY_DEFAULTS, hasActiveSettings, type AccessibilitySettings } from '@/lib/accessibility'
 
-export default function AccessibilityToolbar({ userId }: { userId: string | null }) {
+export default function AccessibilityToolbar({
+  userId,
+  initialSettings = ACCESSIBILITY_DEFAULTS,
+}: {
+  userId:          string | null
+  initialSettings?: AccessibilitySettings
+}) {
   const [open,     setOpen]     = useState(false)
-  const [settings, setSettings] = useState<AccessibilitySettings>(ACCESSIBILITY_DEFAULTS)
-  const [loaded,   setLoaded]   = useState(false)
-  const [, start] = useTransition()
+  const [settings, setSettings] = useState<AccessibilitySettings>(initialSettings)
 
-  // Load settings on mount and apply classes to <html>
-  useEffect(() => {
-    if (!userId) { setLoaded(true); return }
-    start(async () => {
-      try {
-        const s = await getAccessibilitySettings(userId)
-        setSettings(s)
-        setLoaded(true)
-        // Reconcile with server-applied classes (idempotent)
-        const el = document.documentElement
-        el.classList.remove(
-          'dyslexia-font', 'high-contrast', 'large-text',
-          'reduced-motion', 'line-spacing-wide', 'line-spacing-wider',
-        )
-        const classes = settingsToClasses(s)
-        if (classes) el.classList.add(...classes.split(' '))
-      } catch (err) {
-        console.error('[AccessibilityToolbar] settings load failed:', err)
-        setLoaded(true)
-      }
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId])
+  // Settings are applied to <html> server-side in layout.tsx before paint —
+  // no client-side fetch needed. AccessibilityPanel updates state + DOM on change.
 
   const active = hasActiveSettings(settings)
 
@@ -47,7 +29,7 @@ export default function AccessibilityToolbar({ userId }: { userId: string | null
         className="fixed bottom-5 right-5 z-40 w-11 h-11 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
       >
         <Icon name="accessibility" size="md" />
-        {loaded && active && (
+        {active && (
           <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-blue-600 border-2 border-white" />
         )}
       </button>
@@ -67,6 +49,7 @@ export default function AccessibilityToolbar({ userId }: { userId: string | null
                 initialSettings={settings}
                 userId={userId}
                 onClose={() => setOpen(false)}
+                onSettingsChange={setSettings}
               />
             ) : (
               <div className="flex flex-col h-full">

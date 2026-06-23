@@ -434,7 +434,7 @@ function Step2({
           <Icon name="info" size="sm" className="text-gray-400 shrink-0" />
           <p className="text-xs text-gray-500">
             No approved scheme of work found for this subject and year group.{' '}
-            <Link href="/plans/year-group" target="_blank" className="text-blue-600 underline hover:text-blue-800">Add one →</Link>
+            <Link href="/plans/year-group" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">Add one →</Link>
           </p>
         </div>
       )}

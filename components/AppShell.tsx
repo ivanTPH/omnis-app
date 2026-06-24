@@ -5,6 +5,7 @@ import OmnisLogo from '@/components/ui/OmnisLogo'
 import Sidebar from '@/components/Sidebar'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 import { useAvatarUrl } from '@/lib/avatarContext'
+import { useInitialNotificationCount } from '@/lib/initialNotificationCountContext'
 import { getUnreadNotificationCount } from '@/app/actions/messaging'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
 import { MobileMenuContext } from '@/lib/mobileMenuContext'
@@ -28,14 +29,15 @@ export default function AppShell({
   schoolName: string
   children:   React.ReactNode
 }) {
-  const contextAvatarUrl = useAvatarUrl()
+  const contextAvatarUrl         = useAvatarUrl()
+  const contextNotificationCount = useInitialNotificationCount()
   const [open,              setOpen]              = useState(false)
   const [avatarUrl,         setAvatarUrl]         = useState<string | null>(contextAvatarUrl)
+  const [teacherProfile,    setTeacherProfile]    = useState<TeacherProfile>(EMPTY_PROFILE)
+  const [notificationCount, setNotificationCount] = useState(contextNotificationCount)
 
   // Sync when context updates — e.g. after avatar upload + router.refresh()
   useEffect(() => { setAvatarUrl(contextAvatarUrl) }, [contextAvatarUrl])
-  const [teacherProfile,    setTeacherProfile]    = useState<TeacherProfile>(EMPTY_PROFILE)
-  const [notificationCount, setNotificationCount] = useState(0)
 
   // Single notification poll — shared via context so both mobile bell and
   // sidebar badge consume the same value without duplicate DB queries.

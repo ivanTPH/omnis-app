@@ -1107,6 +1107,7 @@ export async function setTeacherClasses(teacherId: string, classIds: string[]): 
   ])
   await writeAudit({ schoolId, actorId, action: 'USER_CLASS_ASSIGNED', targetType: 'user', targetId: teacherId, metadata: { classIds } })
   revalidatePath('/admin/users')
+  revalidateTag(`teacher-defaults-${teacherId}`, 'default')
 }
 
 // ─── Item 6: School onboarding ────────────────────────────────────────────────

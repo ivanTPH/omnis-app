@@ -2,7 +2,7 @@
 
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit }  from '@/lib/prisma'
-import { revalidatePath }      from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import bcrypt                  from 'bcryptjs'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -205,6 +205,7 @@ export async function saveProfessionalPrefs(input: {
 
   revalidatePath('/settings')
   revalidatePath('/classes')
+  revalidateTag(`teacher-defaults-${userId}`, 'default')
   return { ok: true }
 }
 

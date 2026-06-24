@@ -4,6 +4,7 @@ import './globals.css'
 import { auth }                    from '@/lib/auth'
 import { getAccessibilitySettings } from '@/app/actions/accessibility'
 import { getMyAvatarUrl }           from '@/app/actions/settings'
+import { getUnreadNotificationCount } from '@/app/actions/messaging'
 import { settingsToClasses, ACCESSIBILITY_DEFAULTS } from '@/lib/accessibility'
 import AccessibilityToolbar         from '@/components/accessibility/AccessibilityToolbar'
 import AvatarProvider               from '@/components/AvatarProvider'
@@ -26,15 +27,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let accessibilityClasses = ''
   let initialSettings = ACCESSIBILITY_DEFAULTS
   let avatarUrl: string | null = null
+  let initialNotificationCount = 0
   try {
     const session = await auth()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session?.user as any
     if (user?.id) {
       userId = user.id
-      ;[initialSettings, avatarUrl] = await Promise.all([
+      ;[initialSettings, avatarUrl, initialNotificationCount] = await Promise.all([
         getAccessibilitySettings(user.id),
         getMyAvatarUrl(),
+        getUnreadNotificationCount(),
       ])
       accessibilityClasses = settingsToClasses(initialSettings)
     }
@@ -56,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
       </head>
       <body className={inter.className}>
-        <AvatarProvider avatarUrl={avatarUrl}>
+        <AvatarProvider avatarUrl={avatarUrl} initialNotificationCount={initialNotificationCount}>
           {children}
         </AvatarProvider>
         <AccessibilityToolbar userId={userId} initialSettings={initialSettings} />

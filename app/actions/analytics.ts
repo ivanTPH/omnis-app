@@ -748,9 +748,7 @@ export type TeacherDefaults = {
   teacherClasses:    { id: string; name: string; subject: string; yearGroup: number; examBoard: string | null; examModules: string[] }[]
 }
 
-export async function getTeacherDefaults(): Promise<TeacherDefaults> {
-  const { id: userId, schoolId, firstName, lastName } = await requireAuth()
-
+async function fetchTeacherDefaults(userId: string, schoolId: string, firstName: string, lastName: string): Promise<TeacherDefaults> {
   const [classes, settings] = await Promise.all([
     prisma.schoolClass.findMany({
       where:   { schoolId, teachers: { some: { userId } } },
@@ -776,6 +774,15 @@ export async function getTeacherDefaults(): Promise<TeacherDefaults> {
       examModules: c.examModules ?? [],
     })),
   }
+}
+
+export async function getTeacherDefaults(): Promise<TeacherDefaults> {
+  const { id: userId, schoolId, firstName, lastName } = await requireAuth()
+  return unstable_cache(
+    () => fetchTeacherDefaults(userId, schoolId, firstName, lastName),
+    [`teacher-defaults-${userId}`],
+    { revalidate: 300, tags: [`teacher-defaults-${userId}`] },
+  )()
 }
 
 // ── Adaptive topic heatmap ──────────────────────────────────────────────────

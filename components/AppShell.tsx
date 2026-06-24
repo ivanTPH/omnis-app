@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import Sidebar from '@/components/Sidebar'
-import { getMyAvatarUrl } from '@/app/actions/settings'
 import { getTeacherDefaults } from '@/app/actions/analytics'
+import { useAvatarUrl } from '@/lib/avatarContext'
 import { getUnreadNotificationCount } from '@/app/actions/messaging'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
 import { MobileMenuContext } from '@/lib/mobileMenuContext'
@@ -28,8 +28,12 @@ export default function AppShell({
   schoolName: string
   children:   React.ReactNode
 }) {
+  const contextAvatarUrl = useAvatarUrl()
   const [open,              setOpen]              = useState(false)
-  const [avatarUrl,         setAvatarUrl]         = useState<string | null>(null)
+  const [avatarUrl,         setAvatarUrl]         = useState<string | null>(contextAvatarUrl)
+
+  // Sync when context updates — e.g. after avatar upload + router.refresh()
+  useEffect(() => { setAvatarUrl(contextAvatarUrl) }, [contextAvatarUrl])
   const [teacherProfile,    setTeacherProfile]    = useState<TeacherProfile>(EMPTY_PROFILE)
   const [notificationCount, setNotificationCount] = useState(0)
 
@@ -45,9 +49,6 @@ export default function AppShell({
   }, [])
 
   useEffect(() => {
-    // Always fetch avatar
-    getMyAvatarUrl().then(url => setAvatarUrl(url ?? null)).catch(() => {})
-
     // Fetch teacher defaults for staff roles only
     if (!STAFF_ROLES.has(role)) return
     getTeacherDefaults()

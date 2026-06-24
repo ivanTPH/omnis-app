@@ -3,8 +3,10 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { auth }                    from '@/lib/auth'
 import { getAccessibilitySettings } from '@/app/actions/accessibility'
+import { getMyAvatarUrl }           from '@/app/actions/settings'
 import { settingsToClasses, ACCESSIBILITY_DEFAULTS } from '@/lib/accessibility'
 import AccessibilityToolbar         from '@/components/accessibility/AccessibilityToolbar'
+import AvatarProvider               from '@/components/AvatarProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -23,13 +25,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let userId: string | null = null
   let accessibilityClasses = ''
   let initialSettings = ACCESSIBILITY_DEFAULTS
+  let avatarUrl: string | null = null
   try {
     const session = await auth()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session?.user as any
     if (user?.id) {
       userId = user.id
-      initialSettings = await getAccessibilitySettings(user.id)
+      ;[initialSettings, avatarUrl] = await Promise.all([
+        getAccessibilitySettings(user.id),
+        getMyAvatarUrl(),
+      ])
       accessibilityClasses = settingsToClasses(initialSettings)
     }
   } catch {
@@ -50,7 +56,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
       </head>
       <body className={inter.className}>
-        {children}
+        <AvatarProvider avatarUrl={avatarUrl}>
+          {children}
+        </AvatarProvider>
         <AccessibilityToolbar userId={userId} initialSettings={initialSettings} />
       </body>
     </html>

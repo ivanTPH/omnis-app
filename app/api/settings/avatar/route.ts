@@ -1,7 +1,7 @@
 import { prisma, writeAudit } from '@/lib/prisma'
 import { requireAuth } from '@/lib/session'
 import { NextRequest }        from 'next/server'
-import { revalidatePath }     from 'next/cache'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png']
 const MAX_BYTES     = 5 * 1024 * 1024   // 5 MB
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  revalidateTag(`avatar-${userId}`, 'default')
   revalidatePath('/', 'layout')
   revalidatePath('/settings')
 

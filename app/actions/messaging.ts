@@ -1,7 +1,7 @@
 'use server'
 import { auth }                  from '@/lib/auth'
 import { prisma }                from '@/lib/prisma'
-import { revalidatePath }        from 'next/cache'
+import { revalidatePath, unstable_cache } from 'next/cache'
 import { sendNewMessageEmail }   from '@/lib/email'
 
 function requireAuth() {
@@ -572,15 +572,19 @@ export async function getThreadReadOnly(threadId: string): Promise<ThreadDetail 
 
 // ── Unread notification count (used by sidebar badge) ────────────────────────
 
-export async function getUnreadNotificationCount(): Promise<number> {
-  const user = await requireAuth()
+async function fetchUnreadNotificationCount(userId: string, schoolId: string): Promise<number> {
   const [sendCount, platformCount] = await Promise.all([
-    prisma.sendNotification.count({
-      where: { recipientId: user.id, isRead: false },
-    }),
-    prisma.notification.count({
-      where: { userId: user.id, schoolId: user.schoolId, read: false },
-    }),
+    prisma.sendNotification.count({ where: { recipientId: userId, isRead: false } }),
+    prisma.notification.count({ where: { userId, schoolId, read: false } }),
   ])
   return sendCount + platformCount
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const user = await requireAuth()
+  return unstable_cache(
+    () => fetchUnreadNotificationCount(user.id, user.schoolId),
+    [`notifications-${user.id}`],
+    { revalidate: 30, tags: [`notifications-${user.id}`] },
+  )()
 }

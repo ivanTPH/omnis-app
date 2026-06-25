@@ -2,7 +2,7 @@
 
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit }  from '@/lib/prisma'
-import { revalidatePath, revalidateTag } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import bcrypt                  from 'bcryptjs'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -290,11 +290,17 @@ export async function saveSharingSettings(input: {
 export async function getMyAvatarUrl(): Promise<string | null> {
   try {
     const { id: userId } = await requireAuth()
-    const settings = await prisma.userSettings.findUnique({
-      where:  { userId },
-      select: { profilePictureUrl: true },
-    })
-    return settings?.profilePictureUrl ?? null
+    return await unstable_cache(
+      async () => {
+        const settings = await prisma.userSettings.findUnique({
+          where:  { userId },
+          select: { profilePictureUrl: true },
+        })
+        return settings?.profilePictureUrl ?? null
+      },
+      [`avatar-${userId}`],
+      { revalidate: 3600, tags: [`avatar-${userId}`] },
+    )()
   } catch {
     return null
   }

@@ -39,13 +39,12 @@ export default function AppShell({
   // Sync when context updates — e.g. after avatar upload + router.refresh()
   useEffect(() => { setAvatarUrl(contextAvatarUrl) }, [contextAvatarUrl])
 
-  // Single notification poll — shared via context so both mobile bell and
-  // sidebar badge consume the same value without duplicate DB queries.
+  // Notification poll — initial value comes from server via context, so skip
+  // the immediate call and only poll at 60s intervals for subsequent updates.
   useEffect(() => {
     function loadNotifications() {
       getUnreadNotificationCount().then(setNotificationCount).catch(() => {})
     }
-    loadNotifications()
     const id = setInterval(loadNotifications, 60_000)
     return () => clearInterval(id)
   }, [])

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma, writeAudit, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
-import { revalidatePath, unstable_cache } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
 import { markDirty } from '@/lib/agents/snapshot'
@@ -1587,6 +1587,7 @@ export async function markNotificationRead(notificationId: string): Promise<void
     where: { id: notificationId, recipientId: user.id },
     data: { isRead: true },
   })
+  revalidateTag(`notifications-${user.id}`, 'default')
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
@@ -1595,6 +1596,7 @@ export async function markAllNotificationsRead(): Promise<void> {
     where: { recipientId: user.id, isRead: false },
     data: { isRead: true },
   })
+  revalidateTag(`notifications-${user.id}`, 'default')
 }
 
 export async function getUnreadCount(): Promise<number> {

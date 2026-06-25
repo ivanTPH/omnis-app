@@ -377,6 +377,7 @@ export async function dismissSencoAlert(notificationId: string): Promise<void> {
     where: { id: notificationId, schoolId, userId },
     data:  { read: true },
   })
+  revalidateTag(`notifications-${userId}`, 'default')
 }
 
 // ─── Teacher timetable — Wonde MIS ────────────────────────────────────────────
@@ -399,15 +400,9 @@ export type TeacherTimetableDay = {
  *  WondeTimetableEntry records for today's day of week.
  *  Returns [] when no Wonde record exists or today is a weekend.
  */
-export async function getTeacherTodayTimetable(): Promise<TeacherTimetableLesson[]> {
-  const { schoolId, firstName, lastName } = await requireAuth()
-
-  // JS getDay(): 0=Sun, 1=Mon…6=Sat → ISO school day 1–5 (Mon–Fri)
-  const jsDay    = new Date().getDay()
-  const todayNum = jsDay === 0 ? 7 : jsDay  // keep 1-6, let filter below reject 6 & 7
-  if (todayNum < 1 || todayNum > 5) return []
-
-  // Resolve teacher via name match (same bridge as student timetable)
+async function fetchTeacherTodayTimetable(
+  schoolId: string, firstName: string, lastName: string, todayNum: number,
+): Promise<TeacherTimetableLesson[]> {
   const employee = await prisma.wondeEmployee.findFirst({
     where: { schoolId, firstName, lastName },
     select: { id: true },
@@ -438,6 +433,23 @@ export async function getTeacherTodayTimetable(): Promise<TeacherTimetableLesson
       room,
     }
   })
+}
+
+export async function getTeacherTodayTimetable(): Promise<TeacherTimetableLesson[]> {
+  const { id: userId, schoolId, firstName, lastName } = await requireAuth()
+
+  // JS getDay(): 0=Sun, 1=Mon…6=Sat → ISO school day 1–5 (Mon–Fri)
+  const jsDay    = new Date().getDay()
+  const todayNum = jsDay === 0 ? 7 : jsDay  // keep 1-6, let filter below reject 6 & 7
+  if (todayNum < 1 || todayNum > 5) return []
+
+  // Cache key includes today's date so it auto-invalidates at midnight
+  const todayISO = new Date().toISOString().slice(0, 10)
+  return unstable_cache(
+    () => fetchTeacherTodayTimetable(schoolId, firstName, lastName, todayNum),
+    [`timetable-today-${userId}-${todayISO}`],
+    { revalidate: 3600 },
+  )()
 }
 
 /** Returns the teacher's full weekly timetable (all 5 days) from Wonde MIS. */

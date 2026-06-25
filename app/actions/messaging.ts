@@ -1,7 +1,7 @@
 'use server'
 import { auth }                  from '@/lib/auth'
 import { prisma }                from '@/lib/prisma'
-import { revalidatePath, unstable_cache } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { sendNewMessageEmail }   from '@/lib/email'
 
 function requireAuth() {
@@ -444,6 +444,7 @@ export async function markPlatformNotificationRead(id: string): Promise<void> {
     where: { id, userId: user.id },
     data:  { read: true },
   })
+  revalidateTag(`notifications-${user.id}`, 'default')
 }
 
 export async function markAllPlatformNotificationsRead(): Promise<void> {
@@ -452,6 +453,7 @@ export async function markAllPlatformNotificationsRead(): Promise<void> {
     where: { userId: user.id, read: false },
     data:  { read: true },
   })
+  revalidateTag(`notifications-${user.id}`, 'default')
 }
 
 export async function dismissNotification(id: string): Promise<void> {
@@ -459,6 +461,7 @@ export async function dismissNotification(id: string): Promise<void> {
   await prisma.notification.deleteMany({
     where: { id, userId: user.id },
   })
+  revalidateTag(`notifications-${user.id}`, 'default')
 }
 
 export async function clearReadNotifications(): Promise<void> {

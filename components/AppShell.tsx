@@ -4,7 +4,6 @@ import Icon from '@/components/ui/Icon'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import Sidebar from '@/components/Sidebar'
 import { getTeacherDefaults } from '@/app/actions/analytics'
-import { useAvatarUrl } from '@/lib/avatarContext'
 import { useInitialNotificationCount } from '@/lib/initialNotificationCountContext'
 import { getUnreadNotificationCount } from '@/app/actions/messaging'
 import { TeacherProfileContext, EMPTY_PROFILE, type TeacherProfile } from '@/lib/teacherProfileContext'
@@ -29,15 +28,13 @@ export default function AppShell({
   schoolName: string
   children:   React.ReactNode
 }) {
-  const contextAvatarUrl         = useAvatarUrl()
   const contextNotificationCount = useInitialNotificationCount()
   const [open,              setOpen]              = useState(false)
-  const [avatarUrl,         setAvatarUrl]         = useState<string | null>(contextAvatarUrl)
   const [teacherProfile,    setTeacherProfile]    = useState<TeacherProfile>(EMPTY_PROFILE)
   const [notificationCount, setNotificationCount] = useState(contextNotificationCount)
 
-  // Sync when context updates — e.g. after avatar upload + router.refresh()
-  useEffect(() => { setAvatarUrl(contextAvatarUrl) }, [contextAvatarUrl])
+  // Sync when context updates — e.g. after router.refresh() following mark-as-read
+  useEffect(() => { setNotificationCount(contextNotificationCount) }, [contextNotificationCount])
 
   // Notification poll — initial value comes from server via context, so skip
   // the immediate call and only poll at 60s intervals for subsequent updates.
@@ -101,7 +98,7 @@ export default function AppShell({
 
         {/* Desktop sidebar — always in flow on md+ (768px+) */}
         <div className="hidden md:flex shrink-0">
-          <Sidebar role={role} firstName={firstName} lastName={lastName} schoolName={schoolName} avatarUrl={avatarUrl} />
+          <Sidebar role={role} firstName={firstName} lastName={lastName} schoolName={schoolName} />
         </div>
 
         {/* Mobile drawer — rendered as overlay when open (below md) */}
@@ -116,7 +113,6 @@ export default function AppShell({
                 firstName={firstName}
                 lastName={lastName}
                 schoolName={schoolName}
-                avatarUrl={avatarUrl}
                 onClose={() => setOpen(false)}
               />
             </div>

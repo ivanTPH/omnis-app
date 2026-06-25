@@ -7,6 +7,7 @@ import OmnisLogo from '@/components/ui/OmnisLogo'
 import UnreadBadge from '@/components/messaging/UnreadBadge'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 import StudentSearch from '@/components/StudentSearch'
+import { useAvatarUrl } from '@/lib/avatarContext'
 
 const STAFF_ROLES = new Set(['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','COVER_MANAGER','TEACHING_ASSISTANT'])
 
@@ -200,15 +201,15 @@ const navByRole: Record<string, NavItem[]> = {
   ],
 }
 
-export default function Sidebar({ role, firstName, lastName, schoolName, onClose, avatarUrl }: {
+export default function Sidebar({ role, firstName, lastName, schoolName, onClose }: {
   role:        string
   firstName:   string
   lastName:    string
   schoolName:  string
   onClose?:    () => void
-  avatarUrl?:  string | null
 }) {
-  const pathname = usePathname()
+  const pathname  = usePathname()
+  const avatarUrl = useAvatarUrl()
   const nav = navByRole[role] ?? navByRole['TEACHER']
 
   return (

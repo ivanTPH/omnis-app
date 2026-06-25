@@ -24,8 +24,7 @@ export async function getAccessibilitySettings(userId: string): Promise<Accessib
       [`accessibility-${userId}`],
       { revalidate: 3600, tags: [`accessibility-${userId}`] },
     )()
-  } catch (err) {
-    console.error('[getAccessibilitySettings] error:', err)
+  } catch {
     return { ...ACCESSIBILITY_DEFAULTS }
   }
 }

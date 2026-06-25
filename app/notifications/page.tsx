@@ -9,8 +9,8 @@ export default async function NotificationsPage() {
   let notifications: Awaited<ReturnType<typeof getMyPlatformNotifications>> = []
   try {
     notifications = await getMyPlatformNotifications()
-  } catch (err) {
-    console.error('[NotificationsPage] fetch failed:', err)
+  } catch {
+    // Fall through with empty list
   }
 
   return (

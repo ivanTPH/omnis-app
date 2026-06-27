@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import StudentAvatar from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
 import { getClassRoster, type ClassRosterRow } from '@/app/actions/lessons'
-import { getTaNotes, addTaNote, markTaNoteRead, getTaClasses, type TaNoteRow, type TaClass } from '@/app/actions/ta-notes'
+import { getTaNotes, addTaNote, markTaNoteRead, getTaClasses, getTaSendProfile, type TaNoteRow, type TaClass, type TaSendProfile } from '@/app/actions/ta-notes'
 
 export default function TaNotesHub() {
   const [classes,         setClasses]         = useState<TaClass[]>([])
@@ -15,7 +15,8 @@ export default function TaNotesHub() {
   const [students,        setStudents]        = useState<ClassRosterRow[]>([])
   const [studentsLoading, setStudentsLoading] = useState(false)
 
-  const [notesCache,  setNotesCache]  = useState<Record<string, TaNoteRow[] | 'loading'>>({})
+  const [notesCache,     setNotesCache]     = useState<Record<string, TaNoteRow[] | 'loading'>>({})
+  const [sendProfiles,   setSendProfiles]   = useState<Record<string, TaSendProfile | null>>({})
   const [expandedId,  setExpandedId]  = useState<string | null>(null)
   const [noteText,    setNoteText]    = useState<Record<string, string>>({})
   const [noteUrgent,  setNoteUrgent]  = useState<Record<string, boolean>>({})
@@ -57,10 +58,16 @@ export default function TaNotesHub() {
       .catch(() => setNotesCache(c => ({ ...c, [studentId]: [] })))
   }
 
-  function handleToggle(studentId: string) {
+  function handleToggle(studentId: string, sendStatus: string) {
     if (expandedId === studentId) { setExpandedId(null); return }
     setExpandedId(studentId)
     loadTaNotes(studentId)
+    // Lazy-load SEND profile for SEND students
+    if (sendStatus !== 'NONE' && !(studentId in sendProfiles)) {
+      getTaSendProfile(studentId)
+        .then(profile => setSendProfiles(p => ({ ...p, [studentId]: profile })))
+        .catch(() => setSendProfiles(p => ({ ...p, [studentId]: null })))
+    }
   }
 
   async function handleAddNote(studentId: string) {
@@ -164,7 +171,7 @@ export default function TaNotesHub() {
             <div key={student.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <button
                 type="button"
-                onClick={() => handleToggle(student.id)}
+                onClick={() => handleToggle(student.id, student.sendStatus)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
               >
                 <StudentAvatar
@@ -202,6 +209,55 @@ export default function TaNotesHub() {
 
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
+
+                  {/* SEND strategies panel */}
+                  {student.sendStatus !== 'NONE' && (() => {
+                    const profile = sendProfiles[student.id]
+                    if (profile === undefined) return (
+                      <div className="flex items-center gap-2 text-[11px] text-purple-500 bg-purple-50 rounded-lg px-3 py-2">
+                        <Icon name="refresh" size="sm" className="animate-spin" /> Loading SEND profile…
+                      </div>
+                    )
+                    if (!profile) return null
+                    return (
+                      <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Icon name="support" size="sm" className="text-purple-600" />
+                          <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide">
+                            {profile.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'} — Classroom Strategies
+                          </span>
+                        </div>
+                        {profile.needArea && (
+                          <p className="text-[11px] text-purple-700 font-medium">{profile.needArea}</p>
+                        )}
+                        {profile.supportSnapshot && (
+                          <p className="text-[12px] text-purple-800 leading-relaxed">{profile.supportSnapshot}</p>
+                        )}
+                        {profile.classroomStrategies.length > 0 && (
+                          <ul className="space-y-1 mt-1">
+                            {profile.classroomStrategies.map((s, i) => (
+                              <li key={i} className="flex items-start gap-2 text-[12px] text-purple-800">
+                                <Icon name="check_circle" size="sm" className="text-purple-400 shrink-0 mt-0.5" />
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {profile.ilpTargets.length > 0 && (
+                          <div className="pt-1 border-t border-purple-100">
+                            <p className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide mb-1">ILP targets</p>
+                            {profile.ilpTargets.map(t => (
+                              <p key={t.id} className="text-[11px] text-purple-700 leading-snug">• {t.target}</p>
+                            ))}
+                          </div>
+                        )}
+                        {profile.classroomStrategies.length === 0 && !profile.supportSnapshot && profile.ilpTargets.length === 0 && (
+                          <p className="text-[11px] text-purple-500 italic">No strategies recorded yet — SENCO can add these in the student&apos;s SEND profile.</p>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   {cachedNotes === 'loading' ? (
                     <div className="flex items-center gap-2 text-[12px] text-gray-400">
                       <Icon name="refresh" size="sm" className="animate-spin" /> Loading notes…

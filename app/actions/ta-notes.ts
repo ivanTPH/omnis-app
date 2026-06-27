@@ -190,3 +190,43 @@ export async function getTaClasses(): Promise<TaClass[]> {
 
   return classes
 }
+
+export type TaSendProfile = {
+  sendStatus:           string
+  needArea:             string | null
+  supportSnapshot:      string | null
+  classroomStrategies:  string[]
+  ilpTargets:           { id: string; target: string; status: string }[]
+}
+
+export async function getTaSendProfile(studentId: string): Promise<TaSendProfile | null> {
+  const { schoolId } = await requireAllowed()
+
+  const [student, profile, ilp] = await Promise.all([
+    prisma.user.findFirst({
+      where:  { id: studentId, schoolId },
+      select: {
+        sendStatus:      { select: { activeStatus: true, needArea: true } },
+        supportSnapshot: true,
+      },
+    }),
+    (prisma as any).studentLearningProfile.findUnique({
+      where:  { studentId },
+      select: { classroomStrategies: true },
+    }).catch(() => null),
+    prisma.individualLearningPlan.findFirst({
+      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      include: { targets: { where: { status: { in: ['active', 'achieved'] } }, select: { id: true, target: true, status: true }, take: 5 } },
+    }),
+  ])
+
+  if (!student) return null
+
+  return {
+    sendStatus:          student.sendStatus?.activeStatus ?? 'NONE',
+    needArea:            student.sendStatus?.needArea     ?? null,
+    supportSnapshot:     student.supportSnapshot          ?? null,
+    classroomStrategies: Array.isArray(profile?.classroomStrategies) ? profile.classroomStrategies : [],
+    ilpTargets:          ilp?.targets.map((t: { id: string; target: string; status: string }) => ({ id: t.id, target: t.target, status: t.status })) ?? [],
+  }
+}

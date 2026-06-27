@@ -202,12 +202,13 @@ test.describe('Password reset — valid token (DB-backed)', () => {
   })
 
   test('expired token shows error on submit', async ({ page }) => {
-    try {
-      const school = await getDemoSchool()
-      if (!school) return test.skip()
+    const school = await getDemoSchool()
+    if (!school) return test.skip()
 
-      // Create a second temp user with an already-expired token
-      const expiredEmail = `test-expired-${Date.now()}@omnisdemo.school`
+    // Create a second temp user with an already-expired token
+    const expiredEmail = `test-expired-${Date.now()}@omnisdemo.school`
+    let expiredUserId: string | null = null
+    try {
       const expiredUser  = await prisma.user.create({
         data: {
           email:        expiredEmail,
@@ -218,6 +219,7 @@ test.describe('Password reset — valid token (DB-backed)', () => {
           schoolId:     school.id,
         },
       })
+      expiredUserId = expiredUser.id
       const { raw, hash } = makeToken()
       await prisma.passwordResetToken.create({
         data: {
@@ -236,10 +238,9 @@ test.describe('Password reset — valid token (DB-backed)', () => {
       await page.waitForTimeout(2000)
       const body = await page.locator('body').innerText()
       expect(body.toLowerCase()).toMatch(/expired|invalid|used/)
-
-      await prisma.user.delete({ where: { id: expiredUser.id } }).catch(() => {})
-    } catch {
-      test.skip()
+    } finally {
+      // Always clean up — prevents test accounts leaking into admin user list
+      if (expiredUserId) await prisma.user.delete({ where: { id: expiredUserId } }).catch(() => {})
     }
   })
 })

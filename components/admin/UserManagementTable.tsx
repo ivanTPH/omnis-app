@@ -8,6 +8,7 @@ import {
   changeUserRole, updateStudentYearGroup,
   getSchoolClasses, getUserClasses, setTeacherClasses,
   getStudentEnrolments, setStudentEnrolments,
+  activateAllPendingUsers,
 } from '@/app/actions/admin'
 import type { ManagedUser, UserFilter, ClassOption } from '@/app/actions/admin'
 import StudentImportModal from '@/components/admin/StudentImportModal'
@@ -325,6 +326,14 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
     })
   }
 
+  async function handleActivateAll() {
+    startTransition(async () => {
+      const { count } = await activateAllPendingUsers()
+      router.refresh()
+      showToast(`${count} account${count !== 1 ? 's' : ''} activated`)
+    })
+  }
+
   return (
     <div className="space-y-4">
 
@@ -354,13 +363,26 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <button
-          onClick={() => setImporting(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium rounded-lg transition"
-        >
-          <Icon name="upload_file" size="sm" />
-          Import students (CSV)
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setImporting(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium rounded-lg transition"
+          >
+            <Icon name="upload_file" size="sm" />
+            Import students (CSV)
+          </button>
+          {counts.pending > 0 && (
+            <button
+              onClick={handleActivateAll}
+              disabled={pending}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-[13px] font-medium rounded-lg transition"
+              title={`Mark all ${counts.pending} pending accounts as activated (for demo/trial use)`}
+            >
+              <Icon name="how_to_reg" size="sm" />
+              Activate all ({counts.pending})
+            </button>
+          )}
+        </div>
         <button
           onClick={() => {
             const csv = toCSV(

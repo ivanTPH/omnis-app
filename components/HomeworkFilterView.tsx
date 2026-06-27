@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import Tooltip from '@/components/ui/Tooltip'
+import { toast } from '@/components/ui/Toast'
 import SetHomeworkModal from './SetHomeworkModal'
 import ExportPdfButton  from '@/components/ExportPdfButton'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -424,7 +425,7 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
       {showModal && (
         <SetHomeworkModal
           onClose={() => setShowModal(false)}
-          onCreated={() => { setShowModal(false); router.refresh() }}
+          onCreated={() => { setShowModal(false); router.refresh(); toast('Homework published successfully') }}
         />
       )}
     </div>

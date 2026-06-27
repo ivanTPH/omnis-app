@@ -285,8 +285,8 @@ export default async function HoyDashboardPage() {
             <StatCard label="Students"       value={yearStudents.length}   icon="people"         href={myYearGroup ? `/analytics?year=${myYearGroup}` : '/analytics'} />
             <StatCard label="SEND Register"  value={sendCount}             icon="support"        colour={sendCount > 0 ? 'text-purple-700' : 'text-gray-300'} href="/senco/concerns" />
             <StatCard label="Open Concerns"  value={openConcerns.length}   icon="report_problem" colour={openConcerns.length > 0 ? 'text-red-600' : 'text-gray-300'} href="/senco/concerns" />
-            <StatCard label="Reviews Due"    value={reviewsDueCount}       icon="event"          colour={reviewsDueCount > 0 ? 'text-amber-600' : 'text-gray-300'} />
-            <StatCard label="Low Attendance" value={lowAttendanceCount}    icon="directions_run" colour={lowAttendanceCount > 0 ? 'text-red-600' : 'text-gray-300'} />
+            <StatCard label="Reviews Due"    value={reviewsDueCount}       icon="event"          colour={reviewsDueCount > 0 ? 'text-amber-600' : 'text-gray-300'} href="/send/review-due" />
+            <StatCard label="Low Attendance" value={lowAttendanceCount}    icon="directions_run" colour={lowAttendanceCount > 0 ? 'text-red-600' : 'text-gray-300'} href="/admin/attendance" />
           </div>
 
           {/* Quick actions */}

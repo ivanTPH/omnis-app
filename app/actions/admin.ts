@@ -1007,6 +1007,19 @@ export async function getSchoolAllUsers(filter: UserFilter = 'all'): Promise<Man
   return users
 }
 
+export async function activateAllPendingUsers(): Promise<{ count: number }> {
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const result = await prisma.user.updateMany({
+    where: { schoolId, isActive: true, activatedAt: null },
+    data: { activatedAt: new Date() },
+  })
+  await writeAudit({ schoolId, actorId, action: 'USER_PROVISIONED', targetType: 'school', targetId: schoolId, metadata: { bulkActivated: result.count } })
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/dashboard')
+  revalidateTag('admin-dashboard-stats', 'default')
+  return { count: result.count }
+}
+
 export async function deactivateUser(userId: string): Promise<void> {
   const { schoolId, id: actorId } = await requireAdminOrSlt()
   const target = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, role: true } })

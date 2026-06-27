@@ -3726,6 +3726,80 @@ async function main() {
     console.log('  ⚠ Sophia Ahmed not found — skipping SEND profile (run db:seed first)')
   }
 
+  // ── Clean up orphaned E2E test accounts ──────────────────────────────────────
+  const deleted = await prisma.user.deleteMany({
+    where: { schoolId: school.id, email: { startsWith: 'test-expired-' } },
+  })
+  if (deleted.count > 0) console.log(`  ✓ Removed ${deleted.count} orphaned E2E test account(s)`)
+
+  // ── Behaviour records ────────────────────────────────────────────────────────
+  const behaviourStudentEmails = [
+    'a.hughes@students.omnisdemo.school',
+    'c.harris@students.omnisdemo.school',
+    'l.hunt@students.omnisdemo.school',
+    'e.russell@students.omnisdemo.school',
+    'z.hussain@students.omnisdemo.school',
+    's.patel@students.omnisdemo.school',
+    'o.thompson@students.omnisdemo.school',
+  ]
+  const bhvStudents = await prisma.user.findMany({
+    where: { email: { in: behaviourStudentEmails } },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const bhvAuthorIds = [
+    created['j.patel'].id,
+    created['t.adeyemi'].id,
+    created['k.wright'].id,
+  ]
+
+  const behaviourData: Array<{
+    studentIdx: number; type: string; category: string; description: string; points: number; daysAgo: number
+  }> = [
+    // Positive
+    { studentIdx: 0, type: 'positive', category: 'academic',   description: 'Excellent homework submission — detailed analysis well above year group standard.', points: 3,  daysAgo: 1  },
+    { studentIdx: 0, type: 'positive', category: 'conduct',    description: 'Supported a peer who was struggling in paired reading activity.',                     points: 2,  daysAgo: 4  },
+    { studentIdx: 1, type: 'positive', category: 'academic',   description: 'Demonstrated outstanding effort in Science practical — careful recording and analysis.', points: 3, daysAgo: 2 },
+    { studentIdx: 2, type: 'positive', category: 'academic',   description: 'Volunteered to lead the group presentation — confident delivery.',                     points: 2,  daysAgo: 3  },
+    { studentIdx: 3, type: 'positive', category: 'conduct',    description: 'Remained on task throughout a challenging 60-minute lesson without prompting.',        points: 2,  daysAgo: 5  },
+    { studentIdx: 4, type: 'positive', category: 'academic',   description: 'Met all revision programme deadlines and achieved top confidence rating.',             points: 3,  daysAgo: 6  },
+    { studentIdx: 5, type: 'positive', category: 'academic',   description: 'Improved essay grade by 2 GCSE grades following teacher feedback.',                    points: 3,  daysAgo: 7  },
+    { studentIdx: 6, type: 'positive', category: 'conduct',    description: 'Arrived early and helped set up the classroom for a practical lesson.',                points: 1,  daysAgo: 2  },
+    { studentIdx: 0, type: 'positive', category: 'academic',   description: 'Completed all extension tasks in today\'s lesson to a high standard.',                 points: 2,  daysAgo: 9  },
+    { studentIdx: 2, type: 'positive', category: 'communication', description: 'Proactively emailed teacher to clarify homework brief before submission.',          points: 1,  daysAgo: 10 },
+    // Negative
+    { studentIdx: 1, type: 'negative', category: 'conduct',    description: 'Disruptive during silent reading — repeated verbal interruptions after two warnings.', points: -2, daysAgo: 3  },
+    { studentIdx: 3, type: 'negative', category: 'attendance', description: 'Third consecutive unexplained late arrival to Period 1.',                              points: -1, daysAgo: 1  },
+    { studentIdx: 4, type: 'negative', category: 'academic',   description: 'Failed to submit homework by deadline; no prior communication.',                       points: -2, daysAgo: 5  },
+    { studentIdx: 6, type: 'negative', category: 'conduct',    description: 'Phone confiscated in class — third incident this term.',                               points: -3, daysAgo: 4  },
+    { studentIdx: 1, type: 'negative', category: 'academic',   description: 'Submitted incomplete work — only 40% of task completed.',                              points: -1, daysAgo: 8  },
+    // Neutral
+    { studentIdx: 0, type: 'neutral',  category: 'other',      description: 'Parent meeting noted — parents aware of current homework targets.',                    points: 0,  daysAgo: 6  },
+    { studentIdx: 5, type: 'neutral',  category: 'academic',   description: 'Reminder given about upcoming mock exam schedule.',                                    points: 0,  daysAgo: 3  },
+  ]
+
+  for (const bhv of behaviourData) {
+    if (bhvStudents.length === 0) break
+    const student = bhvStudents[bhv.studentIdx % bhvStudents.length]
+    const authorId = bhvAuthorIds[bhv.studentIdx % bhvAuthorIds.length]
+    const recordDate = new Date(Date.now() - bhv.daysAgo * 24 * 60 * 60 * 1000)
+    await prisma.behaviourRecord.upsert({
+      where: { id: `seed-bhv-${bhv.studentIdx}-${bhv.daysAgo}` },
+      update: {},
+      create: {
+        id:          `seed-bhv-${bhv.studentIdx}-${bhv.daysAgo}`,
+        schoolId:    school.id,
+        studentId:   student.id,
+        authorId,
+        type:        bhv.type,
+        category:    bhv.category,
+        description: bhv.description,
+        points:      bhv.points,
+        recordDate,
+      },
+    })
+  }
+  console.log(`  ✓ ${behaviourData.length} behaviour records seeded`)
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

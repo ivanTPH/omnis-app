@@ -388,7 +388,7 @@ export async function createHomework(input: {
               id: true, email: true, firstName: true, lastName: true,
               childLinks: {
                 select: {
-                  parent: { select: { email: true, firstName: true } },
+                  parent: { select: { id: true, email: true, firstName: true } },
                 },
               },
             },
@@ -399,6 +399,41 @@ export async function createHomework(input: {
       const homeworkUrl = `${baseUrl}/student/homework/${hw.id}`
       const subject = cls?.subject ?? 'Homework'
       const dueAt = input.dueAt ? new Date(input.dueAt) : null
+
+      const dueStr = dueAt
+        ? ` — due ${dueAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+        : ''
+
+      // In-app notifications for students
+      await prisma.notification.createMany({
+        data: enrolments.map(e => ({
+          schoolId,
+          userId:   e.user.id,
+          type:     'HOMEWORK_GRADED', // reuse type for new HW
+          title:    `New homework: ${input.title}`,
+          body:     `${subject} homework has been set${dueStr}. Click to view and submit.`,
+          linkHref: `/student/homework/${hw.id}`,
+        })),
+        skipDuplicates: true,
+      })
+
+      // In-app notifications for parents
+      const parentNotifData = enrolments.flatMap(e =>
+        e.user.childLinks
+          .filter(link => link.parent.id)
+          .map(link => ({
+            schoolId,
+            userId:   link.parent.id,
+            type:     'HOMEWORK_GRADED',
+            title:    `New homework set for ${e.user.firstName}`,
+            body:     `${subject} homework "${input.title}" has been set${dueStr}.`,
+            linkHref: `/parent/progress`,
+          }))
+      )
+
+      if (parentNotifData.length > 0) {
+        await prisma.notification.createMany({ data: parentNotifData, skipDuplicates: true })
+      }
 
       await Promise.allSettled([
         // Students

@@ -186,6 +186,33 @@ export async function submitHomework(homeworkId: string, content: string) {
   // Fire SEND risk screen asynchronously — never blocks or delays the submission
   void screenSendRisk(saved.id, content.trim(), homeworkId, schoolId, userId).catch(() => {})
 
+  // Notify parents — best-effort, fire-and-forget
+  void (async () => {
+    try {
+      const student = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          firstName: true, lastName: true,
+          childLinks: { select: { parent: { select: { id: true } } } },
+        },
+      })
+      const parentIds = student?.childLinks.map(l => l.parent.id) ?? []
+      if (parentIds.length > 0) {
+        await prisma.notification.createMany({
+          data: parentIds.map(parentId => ({
+            schoolId,
+            userId:   parentId,
+            type:     'HOMEWORK_SUBMITTED',
+            title:    `${student!.firstName} submitted homework`,
+            body:     `${student!.firstName} ${student!.lastName} has submitted their homework. Check their progress in the parent portal.`,
+            linkHref: '/parent/progress',
+          })),
+          skipDuplicates: true,
+        })
+      }
+    } catch { /* best-effort */ }
+  })()
+
   revalidatePath(`/student/homework/${homeworkId}`)
   revalidatePath('/student/dashboard')
 }

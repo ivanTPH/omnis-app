@@ -45,14 +45,22 @@ async function getSession() {
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
-/** Fetch (or create default) UserSettings for the current user. */
-export async function getMySettings(): Promise<SettingsData> {
-  const { userId } = await getSession()
+async function fetchMySettings(userId: string): Promise<SettingsData> {
   return prisma.userSettings.upsert({
     where:  { userId },
     create: { userId },
     update: {},
   }) as Promise<SettingsData>
+}
+
+/** Fetch (or create default) UserSettings for the current user. */
+export async function getMySettings(): Promise<SettingsData> {
+  const { userId } = await getSession()
+  return unstable_cache(
+    () => fetchMySettings(userId),
+    [`settings-${userId}`],
+    { revalidate: 300, tags: [`settings-${userId}`] },
+  )()
 }
 
 /** Save profile identity fields + write per-field audit entries. */
@@ -119,6 +127,7 @@ export async function saveProfile(input: {
   }
 
   revalidatePath('/settings')
+  revalidateTag(`settings-${userId}`, 'default')
   return { ok: true }
 }
 
@@ -156,6 +165,7 @@ export async function requestEmailChange(
   })
 
   revalidatePath('/settings')
+  revalidateTag(`settings-${userId}`, 'default')
   return { status: 'pending_verification' }
 }
 
@@ -206,6 +216,7 @@ export async function saveProfessionalPrefs(input: {
   revalidatePath('/settings')
   revalidatePath('/classes')
   revalidateTag(`teacher-defaults-${userId}`, 'default')
+  revalidateTag(`settings-${userId}`, 'default')
   return { ok: true }
 }
 
@@ -251,6 +262,7 @@ export async function savePrivacySettings(input: {
   }
 
   revalidatePath('/settings')
+  revalidateTag(`settings-${userId}`, 'default')
   return { ok: true }
 }
 
@@ -283,6 +295,7 @@ export async function saveSharingSettings(input: {
   }
 
   revalidatePath('/settings')
+  revalidateTag(`settings-${userId}`, 'default')
   return { ok: true }
 }
 

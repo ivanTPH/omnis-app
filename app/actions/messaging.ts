@@ -130,6 +130,7 @@ export async function getThread(threadId: string): Promise<ThreadDetail | null> 
     where: { threadId_userId: { threadId, userId: user.id } },
     data:  { lastReadAt: new Date() },
   })
+  revalidateTag(`msg-unread-${user.id}`, 'default')
 
   return {
     id:          thread.id,
@@ -336,16 +337,14 @@ export async function archiveThread(threadId: string): Promise<void> {
 
 // ── getUnreadMessageCount ─────────────────────────────────────────────────────
 
-export async function getUnreadMessageCount(): Promise<number> {
-  const user = await requireAuth()
-
+async function fetchUnreadMessageCount(userId: string): Promise<number> {
   const participations = await prisma.msgParticipant.findMany({
-    where:   { userId: user.id, isArchived: false },
+    where:   { userId, isArchived: false },
     include: {
       thread: {
         include: {
           messages: {
-            where:   { senderId: { not: user.id } },
+            where:   { senderId: { not: userId } },
             orderBy: { sentAt: 'desc' },
             take:    1,
             select:  { sentAt: true },
@@ -363,6 +362,15 @@ export async function getUnreadMessageCount(): Promise<number> {
     }
   }
   return count
+}
+
+export async function getUnreadMessageCount(): Promise<number> {
+  const user = await requireAuth()
+  return unstable_cache(
+    () => fetchUnreadMessageCount(user.id),
+    [`msg-unread-${user.id}`],
+    { revalidate: 30, tags: [`msg-unread-${user.id}`] },
+  )()
 }
 
 // ── getContactList ────────────────────────────────────────────────────────────

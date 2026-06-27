@@ -1,4 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'AI-Powered Learning & SEND Platform for UK Schools',
+  description: 'Omnis brings lesson planning, adaptive homework, ILP/EHCP management, and MIS sync together in one platform built for UK secondary schools.',
+  openGraph: {
+    title: 'Omnis Education — AI-Powered Learning & SEND Platform',
+    description: 'Omnis brings lesson planning, adaptive homework, ILP/EHCP management, and MIS sync together in one platform built for UK secondary schools.',
+    url: 'https://omnis-app-ten.vercel.app/marketing/home',
+  },
+}
 
 const features = [
   {

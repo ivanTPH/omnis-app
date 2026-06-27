@@ -4,7 +4,7 @@ import './globals.css'
 import { auth }                    from '@/lib/auth'
 import { getAccessibilitySettings } from '@/app/actions/accessibility'
 import { getMyAvatarUrl }           from '@/app/actions/settings'
-import { getUnreadNotificationCount } from '@/app/actions/messaging'
+import { getUnreadNotificationCount, getUnreadMessageCount } from '@/app/actions/messaging'
 import { settingsToClasses, ACCESSIBILITY_DEFAULTS } from '@/lib/accessibility'
 import AccessibilityToolbar         from '@/components/accessibility/AccessibilityToolbar'
 import AvatarProvider               from '@/components/AvatarProvider'
@@ -28,16 +28,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   let initialSettings = ACCESSIBILITY_DEFAULTS
   let avatarUrl: string | null = null
   let initialNotificationCount = 0
+  let initialMessageCount = 0
   try {
     const session = await auth()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session?.user as any
     if (user?.id) {
       userId = user.id
-      ;[initialSettings, avatarUrl, initialNotificationCount] = await Promise.all([
+      ;[initialSettings, avatarUrl, initialNotificationCount, initialMessageCount] = await Promise.all([
         getAccessibilitySettings(user.id),
         getMyAvatarUrl(),
         getUnreadNotificationCount(),
+        getUnreadMessageCount(),
       ])
       accessibilityClasses = settingsToClasses(initialSettings)
     }
@@ -59,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
       </head>
       <body className={inter.className}>
-        <AvatarProvider avatarUrl={avatarUrl} initialNotificationCount={initialNotificationCount}>
+        <AvatarProvider avatarUrl={avatarUrl} initialNotificationCount={initialNotificationCount} initialMessageCount={initialMessageCount}>
           {children}
         </AvatarProvider>
         <AccessibilityToolbar userId={userId} initialSettings={initialSettings} />

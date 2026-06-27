@@ -1,18 +1,19 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { getUnreadMessageCount } from '@/app/actions/messaging'
+import { useInitialMessageCount } from '@/lib/initialMessageCountContext'
 
 export default function UnreadBadge() {
-  const [count, setCount] = useState(0)
+  const contextCount = useInitialMessageCount()
+  const [count, setCount] = useState(contextCount)
+
+  // Sync when server re-fetches (e.g. after router.refresh())
+  useEffect(() => { setCount(contextCount) }, [contextCount])
 
   useEffect(() => {
-    async function load() {
-      try {
-        const n = await getUnreadMessageCount()
-        setCount(n)
-      } catch {}
+    function load() {
+      getUnreadMessageCount().then(setCount).catch(() => {})
     }
-    load()
     const id = setInterval(load, 60_000)
     return () => clearInterval(id)
   }, [])

@@ -1,6 +1,20 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import CookieConsent from '@/components/marketing/CookieConsent'
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Omnis Education',
+    default:  'Omnis Education',
+  },
+  description: 'AI-powered learning and SEND management platform for UK secondary schools. Lesson planning, adaptive homework, ILP/EHCP tracking, and MIS sync in one place.',
+  openGraph: {
+    siteName: 'Omnis Education',
+    type:     'website',
+    locale:   'en_GB',
+  },
+}
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -11,6 +11,7 @@ import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
+import { toast } from '@/components/ui/Toast'
 
 type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homework').getHomeworkForMarking>>>
 
@@ -492,6 +493,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           grade:        form.grade || undefined,
         })
         setSavedId(selectedId)
+        toast('Grade saved')
         router.refresh()
         setTimeout(() => setSavedId(null), 2500)
         if (result?.ilpData) {
@@ -507,6 +509,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         }
       } catch {
         setError('Failed to save. Please try again.')
+        toast('Failed to save grade', 'error')
       }
     })
   }
@@ -529,6 +532,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           grade:        gradeStr || undefined,
         })
         setSavedId(selectedId)
+        toast('AI mark approved')
         router.refresh()
         setTimeout(() => setSavedId(null), 2500)
         if (result?.ilpData) {
@@ -544,6 +548,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         }
       } catch {
         setError('Failed to save. Please try again.')
+        toast('Failed to approve mark', 'error')
       }
     })
   }
@@ -554,8 +559,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       try {
         await resendHomeworkReminder(hw.id, studentId)
         setRemindedIds(prev => new Set([...prev, studentId]))
+        toast('Reminder sent')
       } catch {
-        // silently fail — reminder is best-effort
+        toast('Failed to send reminder', 'error')
       } finally {
         setRemindingId(null)
       }
@@ -568,10 +574,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     try {
       const { count } = await bulkReturnSubmissions(hw.id)
       setBulkReturnedCount(count)
+      toast(`${count} submission${count !== 1 ? 's' : ''} returned to students`)
       router.refresh()
       setTimeout(() => setBulkReturnedCount(null), 3000)
     } catch {
-      // silently fail — teacher can return individually
+      toast('Failed to return submissions', 'error')
     } finally {
       setBulkReturning(false)
     }
@@ -583,9 +590,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     try {
       const { count } = await bulkRemindMissing(hw.id)
       setBulkRemindedCount(count)
+      toast(`Reminders sent to ${count} student${count !== 1 ? 's' : ''}`)
       setTimeout(() => setBulkRemindedCount(null), 4000)
     } catch {
-      // best-effort
+      toast('Failed to send reminders', 'error')
     } finally {
       setBulkReminding(false)
     }
@@ -598,9 +606,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     try {
       await saveHomeworkTeacherNote(selectedSub.id, newNote.trim())
       setNewNote('')
+      toast('Note saved')
       router.refresh()
     } catch {
       setNoteError('Failed to save note. Please try again.')
+      toast('Failed to save note', 'error')
     } finally {
       setNoteSaving(false)
     }
@@ -612,11 +622,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     try {
       const result = await recordHomeworkAsIlpEvidence(hw.id, targetId)
       setEvidenceSaved(prev => ({ ...prev, [targetId]: true }))
-      if (result.alreadyLinked) {
-        // Already linked — just mark as saved
+      if (!result.alreadyLinked) {
+        toast('Evidence linked to ILP target')
       }
     } catch {
-      // silently fail
+      toast('Failed to link evidence', 'error')
     } finally {
       setEvidenceLoading(prev => ({ ...prev, [targetId]: false }))
     }
@@ -702,9 +712,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       setIlpSaved(true)
       setIlpModalOpen(false)
       setIlpPromptData(null)
+      toast('ILP evidence saved')
       setTimeout(() => setIlpSaved(false), 3000)
     } catch {
-      // silently fail
+      toast('Failed to save ILP evidence', 'error')
     } finally {
       setIlpSaving(false)
     }

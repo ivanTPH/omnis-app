@@ -3973,6 +3973,88 @@ async function main() {
   }
   console.log('  ✓ 3 school communications seeded for l.hughes')
 
+  // ── Demo platform notifications ──────────────────────────────────────────────
+  // Seed realistic notifications for a.hughes (student) and l.hughes (parent)
+  // so the Alerts tab and parent Activity Feed show demo content.
+  const ahughesId = created['a.hughes'].id
+  const notifData = [
+    // Student notifications
+    {
+      id:        'seed-notif-student-1',
+      schoolId:  school.id,
+      userId:    ahughesId,
+      type:      'HOMEWORK_GRADED',
+      title:     'New homework: Macbeth — Dramatic Tension Essay',
+      body:      'English homework has been set — due in 5 days. Click to view and submit.',
+      linkHref:  '/student/homework',
+      read:      false,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id:        'seed-notif-student-2',
+      schoolId:  school.id,
+      userId:    ahughesId,
+      type:      'HOMEWORK_GRADED',
+      title:     'Grade returned: Norman Conquest MCQ Quiz',
+      body:      'Your teacher has marked your submission. Grade: 7 (A). Click to see feedback.',
+      linkHref:  '/student/homework',
+      read:      false,
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id:        'seed-notif-student-3',
+      schoolId:  school.id,
+      userId:    ahughesId,
+      type:      'HOMEWORK_GRADED',
+      title:     'New homework: Algebra Problem Set 3',
+      body:      'Maths homework has been set — due next Monday. Click to view.',
+      linkHref:  '/student/homework',
+      read:      true,
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    },
+    // Parent notifications
+    ...(lhughes ? [
+      {
+        id:        'seed-notif-parent-1',
+        schoolId:  school.id,
+        userId:    lhughes.id,
+        type:      'HOMEWORK_GRADED',
+        title:     'New homework set for Aiden',
+        body:      'English homework "Macbeth — Dramatic Tension Essay" has been set — due in 5 days.',
+        linkHref:  '/parent/progress',
+        read:      false,
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id:        'seed-notif-parent-2',
+        schoolId:  school.id,
+        userId:    lhughes.id,
+        type:      'HOMEWORK_GRADED',
+        title:     "Aiden's homework has been graded",
+        body:      'Norman Conquest MCQ Quiz — Grade 7 (A). Your child performed above expectations.',
+        linkHref:  '/parent/progress',
+        read:      false,
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id:        'seed-notif-parent-3',
+        schoolId:  school.id,
+        userId:    lhughes.id,
+        type:      'HOMEWORK_GRADED',
+        title:     'New homework set for Aiden',
+        body:      'Maths homework "Algebra Problem Set 3" has been set — due next Monday.',
+        linkHref:  '/parent/progress',
+        read:      true,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      },
+    ] : []),
+  ]
+  await prisma.notification.deleteMany({
+    where: { id: { in: notifData.map(n => n.id) } },
+  })
+  await prisma.notification.createMany({ data: notifData, skipDuplicates: true })
+  console.log('  ✓ Demo notifications seeded for a.hughes + l.hughes')
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon'
 // fresh data from the DB rather than re-rendering the same broken cache entry.
 export default function HomeworkError({
   error,
+  reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
@@ -16,6 +17,11 @@ export default function HomeworkError({
   useEffect(() => {
     console.error('[HomeworkPage] error:', error?.message)
   }, [error])
+
+  function handleRetry() {
+    router.refresh()
+    reset()
+  }
 
   return (
     <div className="flex-1 flex items-center justify-center">
@@ -28,7 +34,7 @@ export default function HomeworkError({
           There was a problem fetching your homework data. This is usually a temporary issue.
         </p>
         <button
-          onClick={() => router.refresh()}
+          onClick={handleRetry}
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
         >
           <Icon name="refresh" size="sm" />

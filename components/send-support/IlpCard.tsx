@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { toast } from '@/components/ui/Toast'
 import type { IlpWithTargets, IlpAuditEntryRow } from '@/app/actions/send-support'
 import {
   updateIlpTarget, approveGeneratedIlp, getIlpAuditLog, updateSendStatus,
@@ -122,6 +123,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
     try {
       await approveGeneratedIlp(ilp.id)
       setApproved(true)
+      toast('ILP approved and activated')
+    } catch {
+      toast('Failed to approve ILP', 'error')
     } finally {
       setApproving(false)
     }
@@ -136,8 +140,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
         successCriteria:  draftCriteria,
       })
       setEditMode(false)
-    } catch (err) {
-      console.error('[IlpCard] draft save failed:', err)
+      toast('ILP saved')
+    } catch {
+      toast('Failed to save ILP', 'error')
     } finally {
       setSavingDraft(false)
     }
@@ -154,8 +159,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
         setAuditEntries(entries)
       }
       setEditingTarget(null)
-    } catch (err) {
-      console.error('[IlpCard] target text save failed:', err)
+      toast('Target saved')
+    } catch {
+      toast('Failed to save target', 'error')
     } finally {
       setSavingTargetText(false)
     }
@@ -183,6 +189,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
     try {
       const nd = pendingStatus === 'deferred' && deferredDate ? new Date(deferredDate) : undefined
       await updateIlpTarget(targetId, pendingStatus, notes, nd)
+      toast('Target status updated')
+    } catch {
+      toast('Failed to update target', 'error')
     } finally {
       setUpdatingId(null)
       setExpandedTargetId(null)

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import { toast } from '@/components/ui/Toast'
 
 export default function ExportPdfButton({
   href,
@@ -15,11 +16,9 @@ export default function ExportPdfButton({
   className?: string
 }) {
   const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
 
   async function handleClick() {
     setLoading(true)
-    setError(null)
     try {
       const res = await fetch(href)
       if (!res.ok) {
@@ -34,25 +33,12 @@ export default function ExportPdfButton({
       document.body.appendChild(a)
       a.click()
       a.remove()
-      URL.revokeObjectURL(url)
+      setTimeout(() => URL.revokeObjectURL(url), 100)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Export failed')
+      toast(err instanceof Error ? err.message : 'Export failed', 'error')
     } finally {
       setLoading(false)
     }
-  }
-
-  if (error) {
-    return (
-      <button
-        onClick={() => setError(null)}
-        className={`flex items-center gap-1.5 text-[11px] text-red-600 hover:text-red-700 ${className ?? ''}`}
-        title={error}
-      >
-        <Icon name="error" size="sm" />
-        {error.length > 30 ? 'Export failed' : error}
-      </button>
-    )
   }
 
   return (

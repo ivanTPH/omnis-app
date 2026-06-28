@@ -95,6 +95,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Early Warning',   href: '/senco/early-warning',   icon: 'notifications'  },
     { label: 'AI Insights',     href: '/senco/agent-insights',  icon: 'psychology'     },
     { label: 'Interventions',   href: '/senco/interventions',   icon: 'people_alt'     },
+    { label: 'SEND Analytics',  href: '/senco/analytics',       icon: 'query_stats'    },
     { label: 'Year Group Plans', href: '/plans/year-group',     icon: 'menu_book'      },
     { label: 'Resource Scorer', href: '/send-scorer',           icon: 'auto_awesome'   },
     { label: 'AI Generator',    href: '/ai-generator',          icon: 'auto_fix_high'  },

@@ -4569,3 +4569,117 @@ export async function getSencoInterventions(): Promise<InterventionRow[]> {
     return (a.yearGroup ?? 99) - (b.yearGroup ?? 99)
   })
 }
+
+// ── SENCo Analytics aggregated data ──────────────────────────────────────────
+
+export type SencoAnalytics = {
+  // SEND register counts
+  totalSend:      number
+  senSupport:     number
+  ehcp:           number
+  // APDR cycles
+  apdrTotal:      number
+  apdrCompleted:  number
+  apdrInProgress: number
+  apdrNotStarted: number
+  // ILP evidence
+  ilpTargetsTotal:     number
+  ilpTargetsEvidenced: number
+  // Early warning flags
+  flagsHigh:   number
+  flagsMedium: number
+  flagsLow:    number
+  // Low attendance SEND students (attendance <85%)
+  lowAttendanceSend: { studentId: string; studentName: string; attendance: number; sendStatus: string }[]
+}
+
+export async function getSencoAnalytics(): Promise<SencoAnalytics> {
+  const user = await requireAuth()
+  const { role, schoolId } = user
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) throw new Error('Forbidden')
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000)
+  const now = new Date()
+
+  const [
+    sendCounts,
+    apdrCycles,
+    ilpTargets,
+    evidencedTargetIds,
+    flags,
+    lowAttStudents,
+  ] = await Promise.all([
+    // SEND tier breakdown
+    prisma.sendStatus.groupBy({
+      by: ['activeStatus'],
+      where: { student: { schoolId, isActive: true }, activeStatus: { not: 'NONE' } },
+      _count: { _all: true },
+    }),
+    // APDR cycle statuses
+    prisma.assessPlanDoReview.findMany({
+      where: { schoolId },
+      select: { status: true },
+    }),
+    // All active ILP targets
+    prisma.ilpTarget.findMany({
+      where: {
+        ilp: { schoolId, status: { not: 'archived' } },
+        status: { not: 'not_achieved' },
+      },
+      select: { id: true },
+    }),
+    // Evidenced targets (distinct ilpTargetId values)
+    prisma.ilpEvidenceEntry.findMany({
+      where: { schoolId },
+      select: { ilpTargetId: true },
+      distinct: ['ilpTargetId'],
+    }),
+    // Unactioned early warning flags
+    prisma.earlyWarningFlag.findMany({
+      where: { schoolId, isActioned: false, expiresAt: { gte: now }, createdAt: { gte: thirtyDaysAgo } },
+      select: { severity: true },
+    }),
+    // SEND students with low attendance
+    prisma.sendStatus.findMany({
+      where: {
+        activeStatus: { not: 'NONE' },
+        student: { schoolId, isActive: true, attendancePercentage: { lt: 85 } },
+      },
+      select: {
+        activeStatus: true,
+        student: { select: { id: true, firstName: true, lastName: true, attendancePercentage: true } },
+      },
+      take: 10,
+      orderBy: { student: { attendancePercentage: 'asc' } },
+    }),
+  ])
+
+  const senSupport = sendCounts.find(r => r.activeStatus === 'SEN_SUPPORT')?._count._all ?? 0
+  const ehcp       = sendCounts.find(r => r.activeStatus === 'EHCP')?._count._all ?? 0
+
+  const apdrCompleted  = apdrCycles.filter(c => c.status === 'completed').length
+  const apdrInProgress = apdrCycles.filter(c => c.status === 'in_progress').length
+
+  const evidencedSet = new Set(evidencedTargetIds.map((r: { ilpTargetId: string }) => r.ilpTargetId))
+
+  return {
+    totalSend:      senSupport + ehcp,
+    senSupport,
+    ehcp,
+    apdrTotal:      apdrCycles.length,
+    apdrCompleted,
+    apdrInProgress,
+    apdrNotStarted: apdrCycles.length - apdrCompleted - apdrInProgress,
+    ilpTargetsTotal:     ilpTargets.length,
+    ilpTargetsEvidenced: ilpTargets.filter(t => evidencedSet.has(t.id)).length,
+    flagsHigh:   flags.filter(f => f.severity === 'high').length,
+    flagsMedium: flags.filter(f => f.severity === 'medium').length,
+    flagsLow:    flags.filter(f => f.severity === 'low').length,
+    lowAttendanceSend: lowAttStudents.map(s => ({
+      studentId:   s.student.id,
+      studentName: `${s.student.firstName} ${s.student.lastName}`,
+      attendance:  s.student.attendancePercentage ?? 0,
+      sendStatus:  s.activeStatus,
+    })),
+  }
+}

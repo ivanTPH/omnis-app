@@ -3894,6 +3894,52 @@ async function main() {
   }
   console.log(`  ✓ ${allStudents.length} students seeded with attendance data`)
 
+  // ── School communications (letters home) ──────────────────────────────────────
+  // Seed 3 demo letters so l.hughes sees content in /parent/communications
+  const commLetters = [
+    {
+      title: 'Year 9 Parents\' Evening — Thursday 10 July 2026',
+      body: `Dear Parent/Carer,\n\nWe are pleased to invite you to our Year 9 Parents' Evening on Thursday 10 July 2026, between 4:00pm and 7:00pm.\n\nAppointments can be booked via SchoolCloud from Monday 30 June. Please log in at parents.schoolcloud.co.uk using your child's date of birth and the email address registered with us.\n\nIf you have any difficulty booking, please contact the school office on 01234 567890.\n\nWe look forward to seeing you.\n\nYours sincerely,\nAdmin Team\nOmnis Demo School`,
+      sentAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    },
+    {
+      title: 'Attendance Update — Action Required',
+      body: `Dear Parent/Carer,\n\nThis letter is to inform you that your child's attendance has fallen below the school's expected level of 90%. We understand that absences can sometimes be unavoidable, however regular attendance is essential to your child's progress and wellbeing.\n\nWe would like to invite you to a short meeting to discuss how we can support your child. Please contact your child's Head of Year, Mr T. Adeyemi, via the school office to arrange a convenient time.\n\nIf attendance does not improve, we may be required to refer the matter to the Local Authority's Education Welfare Service.\n\nYours sincerely,\nT. Adeyemi\nHead of Year 9`,
+      sentAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    },
+    {
+      title: 'Summer Term Dates & Key Information 2025–2026',
+      body: `Dear Parent/Carer,\n\nPlease find below key dates for the remainder of the Summer Term 2025–2026:\n\n• Friday 11 July — Year 9 trips (consent forms due 4 July)\n• Monday 14 July — Year 9 mock results day\n• Friday 18 July — Last day of term, school closes at 1:00pm\n• Monday 1 September — INSET day (no students)\n• Tuesday 2 September — First day of Autumn Term\n\nUniform reminder: All students are expected to return in full school uniform in September. A copy of the uniform policy is available on the school website.\n\nThank you for your continued support.\n\nYours sincerely,\nAdmin Team\nOmnis Demo School`,
+      sentAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 21 days ago
+    },
+  ]
+  for (let i = 0; i < commLetters.length; i++) {
+    const letter = commLetters[i]
+    const commId = `seed-comm-${i}`
+    const comm = await prisma.schoolCommunication.upsert({
+      where:  { id: commId },
+      update: {},
+      create: {
+        id:             commId,
+        schoolId:       school.id,
+        authorId:       created['admin'].id,
+        title:          letter.title,
+        body:           letter.body,
+        recipientScope: 'ALL_PARENTS',
+        sentAt:         letter.sentAt,
+        createdAt:      letter.sentAt,
+      },
+    })
+    if (lhughes) {
+      await prisma.communicationReceipt.upsert({
+        where:  { communicationId_parentId: { communicationId: comm.id, parentId: lhughes.id } },
+        update: {},
+        create: { communicationId: comm.id, parentId: lhughes.id },
+      })
+    }
+  }
+  console.log('  ✓ 3 school communications seeded for l.hughes')
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

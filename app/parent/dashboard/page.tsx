@@ -89,6 +89,13 @@ export default async function ParentDashboardPage() {
     },
   })
 
+  // Activity feed — in-app notifications for this parent (homework set, graded, etc.)
+  const activityFeed = await prisma.notification.findMany({
+    where:   { userId, schoolId },
+    orderBy: { createdAt: 'desc' },
+    take:    10,
+  })
+
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <main className="flex-1 overflow-auto bg-gray-50">
@@ -107,6 +114,50 @@ export default async function ParentDashboardPage() {
               </Link>
             )}
           </div>
+
+          {/* Activity Feed */}
+          {activityFeed.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-8">
+              <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100">
+                <Icon name="notifications_active" size="sm" className="text-blue-600" />
+                <h3 className="text-[13px] font-semibold text-gray-900">Activity</h3>
+                {activityFeed.some(n => !n.read) && (
+                  <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
+                    {activityFeed.filter(n => !n.read).length} new
+                  </span>
+                )}
+              </div>
+              <ul className="divide-y divide-gray-50">
+                {activityFeed.map((n: any) => (
+                  <li key={n.id}>
+                    {n.linkHref ? (
+                      <Link href={n.linkHref} className={`flex items-start gap-3 px-5 py-3 hover:bg-gray-50 transition ${!n.read ? 'bg-blue-50/40' : ''}`}>
+                        <Icon name="chevron_right" size="sm" className="text-gray-300 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[13px] leading-snug ${!n.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
+                          {n.body && <p className="text-[11px] text-gray-400 mt-0.5">{n.body}</p>}
+                        </div>
+                        <time className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                          {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </time>
+                      </Link>
+                    ) : (
+                      <div className={`flex items-start gap-3 px-5 py-3 ${!n.read ? 'bg-blue-50/40' : ''}`}>
+                        <Icon name="circle" size="sm" className="text-gray-200 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-[13px] leading-snug ${!n.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
+                          {n.body && <p className="text-[11px] text-gray-400 mt-0.5">{n.body}</p>}
+                        </div>
+                        <time className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                          {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        </time>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {children.length === 0 && (
             <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl text-gray-400">

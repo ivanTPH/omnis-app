@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
-import { getUnreadMessageCount } from '@/app/actions/messaging'
+import { getUnreadMessageCount, getMyPlatformNotifications } from '@/app/actions/messaging'
 import { getStudentOwnPassport, getStudentTimetable } from '@/app/actions/students'
 import StudentMobileDashboard, { type MobileHw, type SubjectProgress } from '@/components/StudentMobileDashboard'
 import AppShell from '@/components/AppShell'
@@ -105,6 +105,9 @@ export default async function StudentDashboardPage() {
   let unreadCount = 0
   try { unreadCount = await getUnreadMessageCount() } catch {}
 
+  let notifications: Awaited<ReturnType<typeof getMyPlatformNotifications>> = []
+  try { notifications = await getMyPlatformNotifications() } catch {}
+
   let passport = null
   try { passport = await getStudentOwnPassport() } catch {}
 
@@ -131,6 +134,7 @@ export default async function StudentDashboardPage() {
         unreadCount={unreadCount}
         passport={passport}
         todayLessons={todayLessons}
+        notifications={notifications}
       />
     </AppShell>
   )

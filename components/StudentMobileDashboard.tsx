@@ -45,6 +45,16 @@ type TodayLesson = {
   className: string
 }
 
+type PlatformNotif = {
+  id:        string
+  type:      string
+  title:     string
+  body:      string
+  read:      boolean
+  linkHref:  string | null
+  createdAt: Date
+}
+
 type Props = {
   userId?:         string | null
   firstName:       string
@@ -56,6 +66,7 @@ type Props = {
   unreadCount:     number
   passport?:       Passport | null
   todayLessons?:   TodayLesson[]
+  notifications?:  PlatformNotif[]
 }
 
 // ── Bottom nav tab keys ────────────────────────────────────────────────────────
@@ -124,6 +135,7 @@ export default function StudentMobileDashboard({
   unreadCount,
   passport,
   todayLessons = [],
+  notifications = [],
 }: Props) {
   const [tab, setTab] = useState<Tab>('home')
   useMobileMenu()
@@ -258,8 +270,41 @@ export default function StudentMobileDashboard({
   // ── Notifications tab ────────────────────────────────────────────────────────
 
   function NotificationsTab() {
+    const unreadNotifs = notifications.filter(n => !n.read)
     return (
       <div>
+        {/* Real DB notifications — new homework set, graded, etc. */}
+        {unreadNotifs.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Icon name="notifications_active" size="sm" className="text-blue-600" />
+              <p className="text-sm font-semibold text-blue-800">New notifications</p>
+            </div>
+            <ul className="space-y-2">
+              {unreadNotifs.slice(0, 8).map(n => (
+                <li key={n.id}>
+                  {n.linkHref ? (
+                    <Link href={n.linkHref} className="flex items-start gap-2 group">
+                      <Icon name="chevron_right" size="sm" className="text-blue-400 mt-0.5 shrink-0 group-hover:text-blue-600" />
+                      <div>
+                        <p className="text-[13px] text-blue-900 font-medium leading-snug">{n.title}</p>
+                        {n.body && <p className="text-[11px] text-blue-700 mt-0.5">{n.body}</p>}
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-2">
+                      <Icon name="chevron_right" size="sm" className="text-blue-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-[13px] text-blue-900 font-medium leading-snug">{n.title}</p>
+                        {n.body && <p className="text-[11px] text-blue-700 mt-0.5">{n.body}</p>}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {overdue.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
@@ -481,7 +526,7 @@ export default function StudentMobileDashboard({
         <div className="flex max-w-2xl mx-auto">
           {TABS.map(t => {
             const active = tab === t.key
-            const badge  = t.key === 'notifications' && (overdue.length + dueSoon.length) > 0
+            const badge  = t.key === 'notifications' && (overdue.length + dueSoon.length + notifications.filter(n => !n.read).length) > 0
             return (
               <button
                 key={t.key}

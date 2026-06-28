@@ -230,3 +230,99 @@ export async function getTaSendProfile(studentId: string): Promise<TaSendProfile
     ilpTargets:          ilp?.targets.map((t: { id: string; target: string; status: string }) => ({ id: t.id, target: t.target, status: t.status })) ?? [],
   }
 }
+
+export type TaSendStudent = {
+  id:                  string
+  firstName:           string
+  lastName:            string
+  yearGroup:           number | null
+  sendStatus:          string
+  needArea:            string | null
+  supportSnapshot:     string | null
+  classroomStrategies: string[]
+  ilpTargets:          { id: string; target: string; status: string }[]
+  apdrPhase:           string | null
+  classes:             { id: string; name: string; subject: string }[]
+}
+
+export async function getTaSendStudents(): Promise<TaSendStudent[]> {
+  const { schoolId } = await requireAllowed()
+
+  // Find all students enrolled in classes that have at least one TA note from this school
+  // (TA sees SEND students across all their assigned classes)
+  const sendStudents = await prisma.user.findMany({
+    where: {
+      schoolId,
+      role: 'STUDENT',
+      sendStatus: { activeStatus: { not: 'NONE' } },
+    },
+    select: {
+      id:              true,
+      firstName:       true,
+      lastName:        true,
+      yearGroup:       true,
+      supportSnapshot: true,
+      sendStatus: {
+        select: { activeStatus: true, needArea: true },
+      },
+      enrolments: {
+        select: {
+          class: { select: { id: true, name: true, subject: true } },
+        },
+      },
+    },
+    orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+  })
+
+  // Fetch ILP targets and APDR data in parallel for SEND students
+  const studentIds = sendStudents.map(s => s.id)
+  const [ilps, apdrs, profiles] = await Promise.all([
+    prisma.individualLearningPlan.findMany({
+      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['active', 'under_review'] } },
+      include: { targets: { where: { status: { in: ['active', 'achieved'] } }, select: { id: true, target: true, status: true }, take: 4 } },
+    }),
+    prisma.assessPlanDoReview.findMany({
+      where:  { studentId: { in: studentIds }, schoolId, status: 'ACTIVE' },
+      select: { studentId: true, reviewContent: true },
+      orderBy: { createdAt: 'desc' },
+    }),
+    (prisma as any).studentLearningProfile.findMany({
+      where:  { studentId: { in: studentIds } },
+      select: { studentId: true, classroomStrategies: true },
+    }).catch(() => [] as { studentId: string; classroomStrategies: string[] }[]),
+  ])
+
+  const ilpMap    = new Map(ilps.map((i: { studentId: string; targets: { id: string; target: string; status: string }[] }) => [i.studentId, i]))
+  const apdrMap   = new Map(apdrs.map((a: { studentId: string; reviewContent: string }) => [a.studentId, a]))
+  const profMap   = new Map((profiles as { studentId: string; classroomStrategies: string[] }[]).map(p => [p.studentId, p]))
+
+  return sendStudents.map(s => {
+    const ilp     = ilpMap.get(s.id)
+    const apdr    = apdrMap.get(s.id)
+    const profile = profMap.get(s.id)
+
+    // Determine APDR phase from reviewContent keywords
+    let apdrPhase: string | null = null
+    if (apdr?.reviewContent) {
+      if (apdr.reviewContent.toLowerCase().includes('assess')) apdrPhase = 'Assess'
+      else if (apdr.reviewContent.toLowerCase().includes('plan')) apdrPhase = 'Plan'
+      else apdrPhase = 'Do'
+    } else if (ilp) {
+      apdrPhase = 'Assess'
+    }
+
+    return {
+      id:                  s.id,
+      firstName:           s.firstName,
+      lastName:            s.lastName,
+      yearGroup:           s.yearGroup,
+      sendStatus:          s.sendStatus?.activeStatus ?? 'NONE',
+      needArea:            s.sendStatus?.needArea ?? null,
+      supportSnapshot:     s.supportSnapshot ?? null,
+      classroomStrategies: Array.isArray(profile?.classroomStrategies) ? profile.classroomStrategies as string[] : [],
+      ilpTargets:          ilp?.targets ?? [],
+      apdrPhase,
+      classes:             s.enrolments.map((e: { class: { id: string; name: string; subject: string } }) => e.class),
+    }
+  })
+}

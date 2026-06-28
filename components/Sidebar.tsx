@@ -195,9 +195,10 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Consent Settings', href: '/parent/consent',    icon: 'verified_user'  },
   ],
   TEACHING_ASSISTANT: [
-    { label: 'Student Notes', href: '/ta/notes',       icon: 'add_comment'    },
-    { label: 'Messages',      href: '/messages',       icon: 'chat'           },
-    { label: 'Notifications', href: '/notifications',  icon: 'notifications'  },
+    { label: 'Student Notes',  href: '/ta/notes',         icon: 'add_comment' },
+    { label: 'SEND Students',  href: '/ta/send-students', icon: 'support'     },
+    { label: 'Messages',       href: '/messages',         icon: 'chat'        },
+    { label: 'Notifications',  href: '/notifications',    icon: 'notifications' },
   ],
 }
 

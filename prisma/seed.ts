@@ -768,7 +768,7 @@ async function main() {
   // classroom tips for students in 9E/En1.
   const aidenIlp = await prisma.individualLearningPlan.upsert({
     where:  { id: 'seed-ilp-aiden-hughes' },
-    update: { status: 'active', approvedBySenco: true, approvedAt: daysAgo(14), approvedBy: created['r.morris'].id },
+    update: { status: 'active', approvedBySenco: true, approvedAt: daysAgo(14), approvedBy: created['r.morris'].id, reviewDate: daysFromNow(60) },
     create: {
       id:               'seed-ilp-aiden-hughes',
       schoolId:         school.id,
@@ -785,7 +785,7 @@ async function main() {
         'Check understanding at each stage before moving on',
       ],
       successCriteria: 'Independently complete a structured 4-paragraph essay using planning frame by end of Spring term.',
-      reviewDate:       new Date('2026-06-20'),
+      reviewDate:       daysFromNow(60),
       status:           'active',
       parentConsent:    true,
     },
@@ -1664,7 +1664,7 @@ async function main() {
   }) {
     const ilp = await prisma.individualLearningPlan.upsert({
       where:  { id: opts.ilpId },
-      update: {},
+      update: { reviewDate: opts.reviewDate },
       create: {
         id: opts.ilpId, schoolId: school.id, studentId: opts.studentId,
         createdBy: senco.id, sendCategory: opts.sendCategory,
@@ -1706,7 +1706,7 @@ async function main() {
       'Allow 25% extra time on timed written tasks',
     ],
     successCriteria: 'Independently produce a structured two-paragraph analytical response using a writing frame by end of Spring term.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Sophie has Specific Learning Difficulties (Dyslexia) affecting reading fluency and written output. Verbal comprehension is strong. Responds well to structured scaffolds and explicit vocabulary support.',
     teacherActions: [
       'Provide writing frames and sentence starters for extended tasks',
@@ -1735,7 +1735,7 @@ async function main() {
       'Acknowledge effort explicitly before commenting on accuracy',
     ],
     successCriteria: 'Complete at least 3 out of 5 homework tasks each half-term and remain on task for 80% of a 60-minute lesson.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Marcus has Social, Emotional and Mental Health needs. Can become anxious in unstructured situations or when called on unexpectedly. Responds best to predictable routines, positive reinforcement, and quiet 1:1 check-ins.',
     teacherActions: [
       'Check in quietly before the lesson if there are known stressors',
@@ -1764,7 +1764,7 @@ async function main() {
       'Offer scribe or voice-to-text for assessed pieces where needed',
     ],
     successCriteria: 'Produce a structured essay plan and a full two-paragraph response using scaffold by end of Summer term.',
-    reviewDate: new Date('2026-07-01'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Rosa has an EHCP — Specific Learning Difficulty (SpLD). EHCP provision: 25% extra time, laptop access, reader for examinations, writing frames in all subjects.',
     teacherActions: [
       'Provide essay planning template before extended writing',
@@ -1776,7 +1776,7 @@ async function main() {
       'Use the planning template before starting any extended answer',
       'Request the glossary if vocabulary is unclear',
     ],
-    targets: [{ id: 'seed-ilpt-rosa-1', target: 'Produce a structured essay plan before writing using the provided template', strategy: 'Planning template provided before every extended task; modelled in lesson starter.', successMeasure: 'Uses template independently on 3 consecutive extended tasks.', targetDate: new Date('2026-07-01') }],
+    targets: [{ id: 'seed-ilpt-rosa-1', target: 'Produce a structured essay plan before writing using the provided template', strategy: 'Planning template provided before every extended task; modelled in lesson starter.', successMeasure: 'Uses template independently on 3 consecutive extended tasks.', targetDate: daysFromNow(45) }],
   })
 
   // Aaron Walsh — SEMH (10E/En2)
@@ -1793,7 +1793,7 @@ async function main() {
       'Communicate upcoming assessments in advance to reduce anxiety',
     ],
     successCriteria: 'Complete at least 3 out of 5 homework tasks per half-term and manage classroom stress using self-regulation strategies on at least 2 occasions.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Aaron has Social, Emotional and Mental Health needs. Homework avoidance is a key concern. He responds poorly to public challenge but well to trusted adult relationships. Pastoral team involved.',
     teacherActions: [
       'Address incomplete work privately, never in front of peers',
@@ -1805,7 +1805,7 @@ async function main() {
       'Attempt at least one section of each homework before the deadline',
       'Use the calm-down card instead of leaving the room unannounced',
     ],
-    targets: [{ id: 'seed-ilpt-aaron-1', target: 'Submit at least 3 homework tasks per half-term to any standard', strategy: 'Tasks broken into sections; partial submission accepted; teacher checks in individually.', successMeasure: '3+ tasks submitted per half-term.', targetDate: new Date('2026-06-20') }],
+    targets: [{ id: 'seed-ilpt-aaron-1', target: 'Submit at least 3 homework tasks per half-term to any standard', strategy: 'Tasks broken into sections; partial submission accepted; teacher checks in individually.', successMeasure: '3+ tasks submitted per half-term.', targetDate: daysFromNow(45) }],
   })
 
   // Caitlin Fox — EHCP/C&I (11E/En1)
@@ -1822,7 +1822,7 @@ async function main() {
       'Provide a sentence-starter sheet for all analytical paragraphs',
     ],
     successCriteria: 'Write a three-sentence analytical paragraph using the sentence-starter sheet independently on at least 3 occasions by end of term.',
-    reviewDate: new Date('2026-07-01'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Caitlin has an EHCP — Communication and Interaction. Social communication difficulties affect interpretation of implicit meaning and response to verbal-only instructions. EHCP provision: written instructions in all subjects, processing time, laptop access, weekly mentor meeting.',
     teacherActions: [
       'Give written instructions alongside verbal explanations',
@@ -1834,7 +1834,7 @@ async function main() {
       'Ask for clarification if an instruction is unclear rather than guessing',
       'Use the sentence-starter sheet before asking for help',
     ],
-    targets: [{ id: 'seed-ilpt-caitlin-1', target: 'Write a three-sentence PEE paragraph using the sentence-starter sheet independently', strategy: 'Sentence-starter sheet provided before every analytical task; teacher models use.', successMeasure: 'Independently produces a full PEE paragraph on 3 consecutive tasks.', targetDate: new Date('2026-07-01') }],
+    targets: [{ id: 'seed-ilpt-caitlin-1', target: 'Write a three-sentence PEE paragraph using the sentence-starter sheet independently', strategy: 'Sentence-starter sheet provided before every analytical task; teacher models use.', successMeasure: 'Independently produces a full PEE paragraph on 3 consecutive tasks.', targetDate: daysFromNow(45) }],
   })
 
   // Michael Torres — Cognition & Learning (11E/En1)
@@ -1851,7 +1851,7 @@ async function main() {
       'Seat away from distractions; use a task-completion checklist',
     ],
     successCriteria: 'Complete at least 3 multi-step written tasks independently using a graphic organiser by end of term.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Michael has Cognition and Learning needs. Working memory difficulties mean he cannot hold multiple instructions simultaneously. Works best with step-by-step modelling, visual organisers, and clearly chunked tasks.',
     teacherActions: [
       'Break instructions into single steps',
@@ -1880,7 +1880,7 @@ async function main() {
       'Provide a pre-worked example alongside each homework task',
     ],
     successCriteria: 'Submit at least 3 homework tasks per half-term and attempt a full question set (Q1–3) without support on at least 2 occasions.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Tyler has Social, Emotional and Mental Health needs. Maths performance anxiety drives avoidance. Responds best to low-stakes starts, private check-ins, and explicit praise for effort.',
     teacherActions: [
       'Acknowledge effort before accuracy',
@@ -1909,7 +1909,7 @@ async function main() {
       'Allow 25% extra time on timed tasks',
     ],
     successCriteria: 'Independently complete a 5-question algebra task using the method card within extended time by end of term.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Layla has Specific Learning Difficulties (Dyslexia) affecting decoding of complex written mathematical notation and written working speed. Visual and verbal processing strengths can be leveraged with appropriate scaffolding.',
     teacherActions: [
       'Provide large-print or zoomed worksheets',
@@ -1938,7 +1938,7 @@ async function main() {
       'Accept written responses where verbal responses are expected when needed',
     ],
     successCriteria: 'Independently formulate and deliver a verbal analytical response of 2+ sentences in 3 out of 5 class discussions by end of term.',
-    reviewDate: new Date('2026-06-20'),
+    reviewDate: daysFromNow(45),
     sendInfo: 'Fatima has Speech, Language and Communication needs. Expressive language processing takes longer than peers. Benefits from advance notice of questions, processing time, and written supports alongside verbal instructions. NHS SALT sessions fortnightly.',
     teacherActions: [
       'Allow processing time — wait 10 seconds after asking Fatima a question',
@@ -2945,7 +2945,7 @@ async function main() {
         'Seat at the front to reduce distractions',
       ],
       successCriteria: 'Independently structure a 4-paragraph extended answer using a planning frame by end of term.',
-      reviewDate:      new Date('2026-06-15'),
+      reviewDate:      daysFromNow(45),
       status:          'active',
       parentConsent:   true,
     },
@@ -2961,7 +2961,7 @@ async function main() {
         target:         'Use a planning frame to structure extended writing before attempting the task',
         strategy:       'Provide a 4-box paragraph planner for all extended written tasks; model during lesson starter.',
         successMeasure: 'Independently uses planner on at least 3 consecutive pieces of written work with no prompting.',
-        targetDate:     new Date('2026-05-30'),
+        targetDate:     daysFromNow(30),
         status:         'active',
       },
       {
@@ -2970,7 +2970,7 @@ async function main() {
         target:         'Demonstrate understanding of multi-step problems by writing out each step clearly',
         strategy:       'Chunk problem sheets with sub-question numbering; allow rough-working space per sub-step.',
         successMeasure: 'Shows all working in at least 80% of multi-step questions over a half-term.',
-        targetDate:     new Date('2026-06-15'),
+        targetDate:     daysFromNow(45),
         status:         'active',
       },
     ],
@@ -3035,7 +3035,7 @@ async function main() {
         'Allow 25% extra time on all timed tasks and assessments',
       ],
       successCriteria: 'Independently structure a four-paragraph historical essay using a PEEL writing frame by end of Summer term, with no verbal prompting from teacher.',
-      reviewDate: new Date('2026-07-10'),
+      reviewDate: daysFromNow(45),
     },
   })
 
@@ -3329,7 +3329,7 @@ async function main() {
       doContent: `DO — Implementation notes (January–March 2026)\n\n✓ All subject teachers briefed at January INSET Day (20 Jan). Confirmation emails from History (Mr Lewis), English (Mr Patel), Science (Ms Ahmed), Maths (Ms Wright) received.\n\n✓ Blue overlay confirmed in use — Rehan is consistently using it in all lessons as of February 2026. History teacher confirms overlay improves reading pace noticeably during source work.\n\n✓ 25% extra time applied to all assessments from 20 January. History SAC form submitted to exams officer.\n\n✓ PEEL writing frames in use: confirmed by History (3 assessed tasks) and English (2 assessed tasks). Maths not applicable.\n\n✓ Vocabulary cards produced for Norman Conquest and WWI units. Rehan reported finding the cards "really useful" during Norman assessment.\n\n✓ Mind-mapping sessions: 3 sessions completed (3 Feb, 17 Feb, 3 Mar). Topics covered: Norman Conquest, Anglo-Saxon England. Rehan produced colour-coded maps for both. Parents confirmed receiving photo via portal.\n\n⚠ Note: Rehan missed one session (17 Feb) due to a field trip — rescheduled to 24 Feb. Otherwise consistent attendance at all sessions.`,
       reviewContent: '',
       status: 'ACTIVE',
-      reviewDate: new Date('2026-06-30'),
+      reviewDate: daysFromNow(45),
       createdBy: created['r.morris'].id,
       approvedBySenco: true,
       approvedAt: new Date('2026-01-22'),
@@ -3366,7 +3366,7 @@ async function main() {
         'Seat away from peers most likely to cause distraction, ideally near the teacher',
       ],
       successCriteria: 'Maintain on-task behaviour for at least 3 consecutive 10-minute focused blocks per lesson, as recorded by teacher in fortnightly observation log, by end of Summer term.',
-      reviewDate: new Date('2026-06-20'),
+      reviewDate: daysFromNow(60),
       status: 'active', parentConsent: true,
     },
   })
@@ -3539,7 +3539,7 @@ async function main() {
       id: 'seed-ehcp-caitlin-harris', schoolId: school.id,
       studentId: caitlinHarris.id, createdBy: created['r.morris'].id,
       localAuthority: 'Oakfield Metropolitan Borough Council',
-      planDate: new Date('2025-09-01'), reviewDate: new Date('2026-06-20'),
+      planDate: new Date('2025-09-01'), reviewDate: daysFromNow(30),
       coordinatorName: 'Ms J. Freeman (SEND Coordinator, Oakfield LA)',
       status: 'active', approvedBySenco: true,
       outcomes: {
@@ -3679,7 +3679,7 @@ async function main() {
         'Seat Sophia where she can clearly see the board and has minimal distractions',
       ],
       successCriteria: 'Independently produce a structured two-paragraph analytical response using a writing frame by end of Summer term. Achieve 25% extra time provision for all Year 9 formal assessments.',
-      reviewDate: new Date('2026-07-04'),
+      reviewDate: daysFromNow(45),
       sendInfo: 'Sophia Ahmed (Year 9) has Specific Learning Difficulties (Dyslexia) affecting phonological processing, reading fluency and written output speed. Her verbal comprehension and reasoning are strong — she is an active participant in class discussion. The primary barrier is the translation of ideas into written form under time pressure. She benefits from structured scaffolding, pre-teaching of vocabulary, and extended time. Parents are aware and supportive. No co-occurring diagnosis of ADHD or ASD.',
       teacherActions: [
         'Provide writing frames and sentence starters before every extended task',

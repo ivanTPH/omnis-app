@@ -282,3 +282,54 @@ If no match: {"match": false, "outcomeIndex": 0, "rationale": ""}`
     console.error('[checkEhcpEvidenceMatch] failed', submissionId)
   }
 }
+
+// ── Manual ILP evidence entry (SENCO adds evidence directly) ──────────────────
+
+export async function addManualIlpEvidence(
+  ilpTargetId:  string,
+  studentId:    string,
+  evidenceType: 'PROGRESS' | 'CONCERN' | 'NEUTRAL',
+  teacherNote:  string,
+): Promise<{ success: boolean; error?: string }> {
+  const { schoolId, id: actorId, role } = await requireAuth()
+  if (!['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)) {
+    return { success: false, error: 'Insufficient permissions' }
+  }
+
+  // Verify target belongs to this school's student
+  const target = await prisma.ilpTarget.findFirst({
+    where: { id: ilpTargetId, ilp: { studentId, schoolId } },
+    select: { id: true },
+  })
+  if (!target) return { success: false, error: 'Target not found' }
+
+  // Use a unique sentinel submissionId for manual entries
+  const manualId = `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  await prisma.ilpEvidenceEntry.create({
+    data: {
+      schoolId,
+      studentId,
+      ilpTargetId,
+      submissionId:  manualId,
+      homeworkTitle: 'Manual evidence (SENCO)',
+      evidenceType,
+      teacherNote:   teacherNote.trim() || null,
+      createdBy:     actorId,
+    },
+  })
+
+  await writeAudit({
+    schoolId, actorId,
+    action:     'ILP_CREATED', // reuse closest audit action
+    targetType: 'IlpEvidenceEntry',
+    targetId:   ilpTargetId,
+    metadata:   { manual: true, evidenceType },
+  })
+
+  const { revalidatePath } = await import('next/cache')
+  revalidatePath('/senco/ilp-evidence')
+  revalidatePath(`/send/ilp/${studentId}`)
+
+  return { success: true }
+}

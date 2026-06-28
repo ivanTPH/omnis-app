@@ -3726,6 +3726,69 @@ async function main() {
     console.log('  ⚠ Sophia Ahmed not found — skipping SEND profile (run db:seed first)')
   }
 
+  // ── GDPR consent purposes ────────────────────────────────────────────────────
+  const consentPurposes = [
+    {
+      id: 'CP-DEMO-1', slug: 'send-data-sharing',
+      title: 'SEND Data Sharing with External Agencies',
+      description: 'Sharing your child\'s SEND assessment data with local authority educational psychologists, speech therapists, and other support agencies.',
+      lawfulBasis: 'consent',
+    },
+    {
+      id: 'CP-DEMO-2', slug: 'photo-video-consent',
+      title: 'Photography and Video Recording',
+      description: 'Use of your child\'s image in school publications, website, social media, and promotional materials.',
+      lawfulBasis: 'consent',
+    },
+    {
+      id: 'CP-DEMO-3', slug: 'data-analytics',
+      title: 'Learning Analytics',
+      description: 'Use of anonymised learning data to identify pupils at risk of underachievement and personalise support.',
+      lawfulBasis: 'legitimate_interest',
+    },
+    {
+      id: 'CP-DEMO-4', slug: 'third-party-tools',
+      title: 'Third-Party EdTech Tools',
+      description: 'Sharing pupil data with approved third-party educational technology tools used in lessons (e.g. online quizzes, revision platforms).',
+      lawfulBasis: 'consent',
+    },
+    {
+      id: 'CP-DEMO-5', slug: 'homework-marking-ai',
+      title: 'AI-Assisted Homework Marking',
+      description: 'Submission content processed by AI to assist teachers with marking and feedback. No personally identifying information is shared.',
+      lawfulBasis: 'legitimate_interest',
+    },
+  ]
+  for (const p of consentPurposes) {
+    await prisma.consentPurpose.upsert({
+      where:  { schoolId_slug: { schoolId: school.id, slug: p.slug } },
+      update: {},
+      create: { ...p, schoolId: school.id, isActive: true },
+    })
+  }
+  // Seed consent record for Aiden Hughes (linked parent l.hughes will see it)
+  const aidenUser = await prisma.user.findUnique({ where: { email: 'a.hughes@students.omnisdemo.school' }, select: { id: true } })
+  const lhughes  = await prisma.user.findUnique({ where: { email: 'l.hughes@parents.omnisdemo.school'  }, select: { id: true } })
+  if (aidenUser && lhughes) {
+    for (const p of consentPurposes) {
+      const existing = await prisma.consentRecord.findFirst({ where: { studentId: aidenUser.id, purposeId: p.id } })
+      if (!existing) {
+        await prisma.consentRecord.create({
+          data: {
+            schoolId:    school.id,
+            studentId:   aidenUser.id,
+            purposeId:   p.id,
+            responderId: lhughes.id,
+            decision:    'granted',
+            method:      'portal',
+            notes:       'Consent recorded during initial setup',
+          },
+        })
+      }
+    }
+  }
+  console.log(`  ✓ ${consentPurposes.length} GDPR consent purposes seeded`)
+
   // ── Clean up orphaned E2E test accounts ──────────────────────────────────────
   const deleted = await prisma.user.deleteMany({
     where: { schoolId: school.id, email: { startsWith: 'test-expired-' } },

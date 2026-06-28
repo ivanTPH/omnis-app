@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 import { SencoRow } from '@/components/ui/SencoRow'
 import type { IlpEvidenceSummary, IlpEvidenceStudent, IlpEvidenceTarget } from '@/app/actions/adaptive-learning'
-import { requestILPEvidence } from '@/app/actions/ilp-evidence'
+import { requestILPEvidence, addManualIlpEvidence } from '@/app/actions/ilp-evidence'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -53,13 +54,39 @@ function EvidenceDot({ target }: { target: IlpEvidenceTarget }) {
 
 // ── Student Row ────────────────────────────────────────────────────────────────
 
+type EvidenceType = 'PROGRESS' | 'CONCERN' | 'NEUTRAL'
+
 function StudentRow({ student, expanded, onToggle }: {
   student: IlpEvidenceStudent
   expanded: boolean
   onToggle: () => void
 }) {
+  const router = useRouter()
   const [requesting,  setRequesting]  = useState(false)
   const [requestSent, setRequestSent] = useState(false)
+
+  // Per-target inline evidence form state
+  const [addingFor,      setAddingFor]      = useState<string | null>(null)
+  const [evidenceType,   setEvidenceType]   = useState<EvidenceType>('PROGRESS')
+  const [evidenceNote,   setEvidenceNote]   = useState('')
+  const [savingEvidence, setSavingEvidence] = useState(false)
+  const [savedTargets,   setSavedTargets]   = useState<Set<string>>(new Set())
+
+  async function handleAddEvidence(targetId: string) {
+    setSavingEvidence(true)
+    try {
+      const result = await addManualIlpEvidence(targetId, student.studentId, evidenceType, evidenceNote)
+      if (result.success) {
+        setSavedTargets(prev => new Set([...prev, targetId]))
+        setAddingFor(null)
+        setEvidenceNote('')
+        setEvidenceType('PROGRESS')
+        router.refresh()
+      }
+    } finally {
+      setSavingEvidence(false)
+    }
+  }
 
   async function handleRequestEvidence() {
     setRequesting(true)
@@ -164,7 +191,14 @@ function StudentRow({ student, expanded, onToggle }: {
               <div key={t.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-[12px] text-gray-800 leading-snug flex-1">{t.target}</p>
-                  <EvidenceDot target={t} />
+                  <div className="flex items-center gap-2 shrink-0">
+                    {savedTargets.has(t.id) && (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">
+                        <Icon name="check" size="sm" /> Saved
+                      </span>
+                    )}
+                    <EvidenceDot target={t} />
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   <span className="text-[10px] text-gray-400">
@@ -179,6 +213,63 @@ function StudentRow({ student, expanded, onToggle }: {
                     <span className="text-[10px] text-gray-500 italic truncate max-w-[200px]">{t.progressNote}</span>
                   )}
                 </div>
+
+                {/* Add evidence toggle */}
+                {addingFor !== t.id ? (
+                  <button
+                    onClick={() => { setAddingFor(t.id); setEvidenceType('PROGRESS'); setEvidenceNote('') }}
+                    className="mt-2 flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 font-medium"
+                  >
+                    <Icon name="add_circle_outline" size="sm" /> Add evidence
+                  </button>
+                ) : (
+                  <div className="mt-2 space-y-2 border-t border-gray-100 pt-2">
+                    {/* Evidence type selector */}
+                    <div className="flex items-center gap-2">
+                      {(['PROGRESS', 'CONCERN', 'NEUTRAL'] as EvidenceType[]).map(type => (
+                        <button
+                          key={type}
+                          onClick={() => setEvidenceType(type)}
+                          className={`text-[10px] font-semibold px-2 py-1 rounded-full border transition-colors ${
+                            evidenceType === type
+                              ? type === 'PROGRESS' ? 'bg-green-600 text-white border-green-600'
+                                : type === 'CONCERN' ? 'bg-red-600 text-white border-red-600'
+                                : 'bg-gray-500 text-white border-gray-500'
+                              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+                          }`}
+                        >
+                          {type === 'PROGRESS' ? 'Progress' : type === 'CONCERN' ? 'Concern' : 'Neutral'}
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      value={evidenceNote}
+                      onChange={e => setEvidenceNote(e.target.value)}
+                      placeholder="Add a note about this evidence (optional)…"
+                      rows={2}
+                      className="w-full text-[12px] border border-gray-200 rounded-lg px-2.5 py-1.5 resize-none focus:outline-none focus:ring-2 focus:ring-purple-200 bg-white"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleAddEvidence(t.id)}
+                        disabled={savingEvidence}
+                        className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                      >
+                        {savingEvidence
+                          ? <Icon name="refresh" size="sm" className="animate-spin" />
+                          : <Icon name="save" size="sm" />
+                        }
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setAddingFor(null)}
+                        className="text-[11px] text-gray-400 hover:text-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -362,6 +453,7 @@ export default function IlpEvidenceView({ data }: { data: IlpEvidenceSummary }) 
           <p className="text-[12px] font-semibold text-blue-800">How to link evidence</p>
         </div>
         <ul className="text-[11px] text-blue-700 space-y-1">
+          <li>• Click <strong>Add evidence</strong> on any ILP target to manually log a Progress, Concern or Neutral entry</li>
           <li>• When marking homework, click <strong>Record as ILP evidence</strong> in the SEND sidebar</li>
           <li>• When creating homework, use Step 5 to link to ILP targets</li>
           <li>• AI classifies each linked piece as Progress, Concern or Neutral</li>

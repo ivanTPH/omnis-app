@@ -11,6 +11,7 @@ import StudentAPDRPanel from '@/components/send-support/StudentAPDRPanel'
 import KPlanSection from '@/components/send-support/KPlanSection'
 import RefreshSnapshotButton from '@/components/send-support/RefreshSnapshotButton'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import StudentAvatar from '@/components/StudentAvatar'
 
 const ALLOWED = ['SENCO', 'SLT', 'HEAD_OF_YEAR', 'SCHOOL_ADMIN', 'TEACHER', 'HEAD_OF_DEPT']
@@ -46,10 +47,6 @@ export default async function StudentSendPage({
   const studentName = `${student.firstName} ${student.lastName}`
   const flags = allFlags.filter(f => f.studentId === studentId)
 
-  const statusColour =
-    sendStatus?.activeStatus === 'EHCP'        ? 'bg-purple-100 text-purple-700' :
-    sendStatus?.activeStatus === 'SEN_SUPPORT' ? 'bg-amber-100  text-amber-700'  :
-                                                 'bg-gray-100   text-gray-600'
 
   return (
     <AppShell role={user.role} firstName={user.firstName} lastName={user.lastName} schoolName={user.schoolName}>
@@ -70,9 +67,11 @@ export default async function StudentSendPage({
               {student.yearGroup && (
                 <span className="text-sm text-gray-500">Year {student.yearGroup}</span>
               )}
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColour}`}>
-                {sendStatus?.activeStatus?.replace(/_/g, ' ') ?? 'No SEND status'}
-              </span>
+              {sendStatus?.activeStatus && sendStatus.activeStatus !== 'NONE' ? (
+                <SendBadge status={sendStatus.activeStatus as 'EHCP' | 'SEN_SUPPORT'} showTier size="md" />
+              ) : (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600">No SEND status</span>
+              )}
               {sendStatus?.needArea && (
                 <span className="text-xs text-gray-500">{sendStatus.needArea}</span>
               )}

@@ -2683,6 +2683,7 @@ export type APDROverviewRow = ApdrRow & {
   studentName: string
   yearGroup: number | null
   sendCategory: string
+  sendStatus: string
 }
 
 export async function getAllAPDRCycles(): Promise<APDROverviewRow[]> {
@@ -2693,7 +2694,7 @@ export async function getAllAPDRCycles(): Promise<APDROverviewRow[]> {
       student: {
         select: {
           firstName: true, lastName: true, yearGroup: true,
-          sendStatus: { select: { needArea: true } },
+          sendStatus: { select: { activeStatus: true, needArea: true } },
         },
       },
     },
@@ -2710,6 +2711,7 @@ export async function getAllAPDRCycles(): Promise<APDROverviewRow[]> {
     studentName: `${c.student.firstName} ${c.student.lastName}`,
     yearGroup: c.student.yearGroup,
     sendCategory: c.student.sendStatus?.needArea ?? 'SEND',
+    sendStatus: c.student.sendStatus?.activeStatus ?? 'NONE',
   }))
 }
 

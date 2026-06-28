@@ -2426,7 +2426,7 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
           {(student.sendStatus && student.sendStatus !== 'NONE') && (
             <SectionCard title="SEND status">
               <div className="flex flex-wrap items-center gap-3">
-                <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} size="md" />
+                <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} size="md" showTier />
                 {student.needArea && (
                   <span className="text-sm text-gray-700">{student.needArea}</span>
                 )}

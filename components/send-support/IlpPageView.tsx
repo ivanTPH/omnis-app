@@ -693,7 +693,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                         {s.needArea ?? s.sendStatus.replace(/_/g, ' ')}
                       </p>
                     </div>
-                    <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
+                    <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
                   </div>
                 ))}
               </div>

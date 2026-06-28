@@ -183,7 +183,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
                     {s.needArea ?? s.sendStatus.replace(/_/g, ' ')}
                   </p>
                 </div>
-                <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
+                <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
                 <a
                   href={`/student/${s.id}/send`}
                   className="text-[11px] text-purple-600 hover:underline"

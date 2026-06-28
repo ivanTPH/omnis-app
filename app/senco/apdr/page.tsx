@@ -4,6 +4,7 @@ import Link from 'next/link'
 import AppShell from '@/components/AppShell'
 import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
+import SendBadge from '@/components/ui/SendBadge'
 import { getAllAPDRCycles } from '@/app/actions/send-support'
 
 export const dynamic = 'force-dynamic'
@@ -110,8 +111,13 @@ export default async function ApdrOverviewPage() {
                 {active.map(c => (
                   <Link key={c.id} href={`/students/${c.studentId}?tab=APDR`} className="flex items-center gap-4 px-5 py-3 hover:bg-blue-50 transition-colors group">
                     {/* Student */}
-                    <div className="w-36 shrink-0">
-                      <p className="text-[13px] font-semibold text-gray-900 truncate">{c.studentName}</p>
+                    <div className="w-44 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-semibold text-gray-900 truncate">{c.studentName}</p>
+                        {c.sendStatus !== 'NONE' && (
+                          <SendBadge status={c.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
+                        )}
+                      </div>
                       <p className="text-[11px] text-gray-400">
                         {c.yearGroup ? `Year ${c.yearGroup}` : '—'}
                         {c.sendCategory ? ` · ${c.sendCategory}` : ''}
@@ -195,8 +201,13 @@ export default async function ApdrOverviewPage() {
               <div className="divide-y divide-gray-100">
                 {completed.map(c => (
                   <Link key={c.id} href={`/students/${c.studentId}?tab=APDR`} className="flex items-center gap-4 px-5 py-3 hover:bg-blue-50 transition-colors group">
-                    <div className="w-36 shrink-0">
-                      <p className="text-[13px] font-medium text-gray-700 truncate">{c.studentName}</p>
+                    <div className="w-44 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[13px] font-medium text-gray-700 truncate">{c.studentName}</p>
+                        {c.sendStatus !== 'NONE' && (
+                          <SendBadge status={c.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
+                        )}
+                      </div>
                       <p className="text-[11px] text-gray-400">{c.yearGroup ? `Year ${c.yearGroup}` : '—'}</p>
                     </div>
                     <span className="text-[11px] text-gray-400">Cycle {c.cycleNumber}</span>

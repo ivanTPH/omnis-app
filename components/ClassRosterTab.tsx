@@ -404,7 +404,7 @@ export default function ClassRosterTab({
                 <div className="flex justify-center">
                   {isSend && (
                     <Tooltip content={row.sendStatus === 'EHCP' ? 'Education, Health and Care Plan — statutory SEND support' : 'SEN Support — school-based SEND provision'} side="left">
-                      <SendBadge status={row.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
+                      <SendBadge status={row.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
                     </Tooltip>
                   )}
                 </div>

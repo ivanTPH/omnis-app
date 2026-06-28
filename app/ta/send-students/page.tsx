@@ -17,15 +17,10 @@ import AppShell from '@/components/AppShell'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { EmptyState } from '@/components/ui/EmptyState'
 import Icon from '@/components/ui/Icon'
+import SendBadge from '@/components/ui/SendBadge'
 import { getTaSendStudents } from '@/app/actions/ta-notes'
 
 export const dynamic = 'force-dynamic'
-
-const SEND_TIER: Record<string, { label: string; colour: string }> = {
-  EHCP:        { label: 'Specialist (EHCP)',    colour: 'bg-purple-100 text-purple-800' },
-  SEN_SUPPORT: { label: 'Targeted (SEN Support)', colour: 'bg-blue-100 text-blue-700' },
-  NONE:        { label: 'Universal',            colour: 'bg-gray-100 text-gray-600' },
-}
 
 export default async function TaSendStudentsPage() {
   const { role, firstName, lastName, schoolName } = await requireAuth()
@@ -54,9 +49,7 @@ export default async function TaSendStudentsPage() {
           />
         ) : (
           <div className="space-y-4 mt-6">
-            {students.map(s => {
-              const tier = SEND_TIER[s.sendStatus] ?? SEND_TIER.NONE
-              return (
+            {students.map(s => (
                 <div key={s.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                   {/* Header */}
                   <div className="flex items-center gap-4 px-5 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -68,9 +61,7 @@ export default async function TaSendStudentsPage() {
                         <span className="text-[14px] font-semibold text-gray-900">
                           {s.firstName} {s.lastName}
                         </span>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${tier.colour}`}>
-                          {tier.label}
-                        </span>
+                        <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
                         {s.apdrPhase && (
                           <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
                             APDR: {s.apdrPhase} phase
@@ -141,8 +132,7 @@ export default async function TaSendStudentsPage() {
                     </div>
                   </div>
                 </div>
-              )
-            })}
+            ))}
           </div>
         )}
       </main>

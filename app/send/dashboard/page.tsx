@@ -292,15 +292,15 @@ export default async function SendDashboardPage() {
                 <p className="text-[11px] text-gray-400">{reviewsDue} plan{reviewsDue !== 1 ? 's' : ''} to review</p>
               </div>
             </Link>
-            <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 opacity-60">
-              <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center shrink-0">
-                <Icon name="check_circle" size="sm" className="text-gray-400" />
+            <Link href="/analytics/adaptive" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 hover:border-indigo-300 hover:shadow-sm transition group">
+              <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center shrink-0">
+                <Icon name="psychology" size="sm" className="text-indigo-600" />
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-gray-500">Adaptations</p>
-                <p className="text-[11px] text-gray-400">Coming soon</p>
+                <p className="text-[13px] font-semibold text-gray-900">Adaptive Learning</p>
+                <p className="text-[11px] text-gray-400">Per-student differentiation</p>
               </div>
-            </div>
+            </Link>
           </div>
 
         </div>

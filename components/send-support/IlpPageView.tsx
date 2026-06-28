@@ -10,6 +10,7 @@ import {
   generateIlpGoalsForStudent, createIlp, approveGeneratedIlp, scheduleIlpReview,
 } from '@/app/actions/send-support'
 import IlpCard from './IlpCard'
+import { toast } from '@/components/ui/Toast'
 import IlpForm from './IlpForm'
 
 // ── Bulk generate state ────────────────────────────────────────────────────────
@@ -182,6 +183,9 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
     try {
       await approveIlpEdit(id)
       setPendingEdits(prev => prev.filter(e => e.id !== id))
+      toast('Edit approved')
+    } catch {
+      toast('Failed to approve edit', 'error')
     } finally {
       setEditAction(a => { const n = { ...a }; delete n[id]; return n })
     }
@@ -193,6 +197,9 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
       await rejectIlpEdit(id, rejectReason[id] ?? '')
       setPendingEdits(prev => prev.filter(e => e.id !== id))
       setRejectOpen(r => { const n = { ...r }; delete n[id]; return n })
+      toast('Edit rejected')
+    } catch {
+      toast('Failed to reject edit', 'error')
     } finally {
       setEditAction(a => { const n = { ...a }; delete n[id]; return n })
     }

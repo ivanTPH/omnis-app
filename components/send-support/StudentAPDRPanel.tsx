@@ -7,6 +7,7 @@ import {
   getStudentAPDRCycles, updateAPDRSection, approveAPDR,
   completeAPDRReview, getAPDRAuditLog, generateAPDRForStudent,
 } from '@/app/actions/send-support'
+import { toast } from '@/components/ui/Toast'
 
 const SECTIONS = [
   { key: 'assessContent', label: 'Assess', colour: 'blue',   desc: 'Information gathered: strengths, observations, learner\'s voice, aspirations' },
@@ -76,6 +77,9 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
         c.id === editingSection.apdrId ? { ...c, [editingSection.section]: editValue } : c
       ) ?? null)
       setEditingSection(null)
+      toast('Section saved')
+    } catch {
+      toast('Failed to save section', 'error')
     } finally {
       setSaving(false)
     }
@@ -88,6 +92,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
       setCycles(prev => prev?.map(c =>
         c.id === apdrId ? { ...c, approvedBySenco: true, approvedAt: new Date() } : c
       ) ?? null)
+      toast('APDR approved')
     } finally {
       setApprovingId(null)
     }
@@ -103,6 +108,9 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
       setCycles(updated)
       setReviewMode(null)
       setReviewText('')
+      toast('APDR review completed')
+    } catch {
+      toast('Failed to complete review', 'error')
     } finally {
       setCompleting(false)
     }
@@ -114,6 +122,9 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
       await generateAPDRForStudent(studentId)
       const updated = await getStudentAPDRCycles(studentId)
       setCycles(updated)
+      toast('APDR cycle generated')
+    } catch {
+      toast('Failed to generate APDR', 'error')
     } finally {
       setGenerating(false)
     }

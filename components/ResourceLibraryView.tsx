@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter }          from 'next/navigation'
 import Icon                   from '@/components/ui/Icon'
-import { toast, ToastContainer } from '@/components/ui/Toast'
+import { toast } from '@/components/ui/Toast'
 import type { ResourceLibraryItem, LessonPickerItem } from '@/app/actions/lessons'
 import { getLessonsForPicker, addLibraryResource }    from '@/app/actions/lessons'
 
@@ -275,7 +275,6 @@ export default function ResourceLibraryView({
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <ToastContainer />
       {preview && (
         <ResourcePreviewSlideOver resource={preview} onClose={() => setPreview(null)} />
       )}

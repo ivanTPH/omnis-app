@@ -6,6 +6,7 @@ import type { EhcpPlanWithOutcomes, EhcpSections, EhcpAuditEntryRow, EhcpAnnualR
 import { approveGeneratedEhcp, updateEhcpSection, getEhcpAuditLog } from '@/app/actions/ehcp'
 import EhcpOutcomeTracker from '@/components/homework/EhcpOutcomeTracker'
 import EhcpAnnualReviewModal from './EhcpAnnualReviewModal'
+import { toast } from '@/components/ui/Toast'
 
 const SECTION_KEYS = ['A','B','C','D','E','F','G','H1','H2','I','J','K'] as const
 const SECTION_LABELS: Record<string, string> = {
@@ -68,6 +69,9 @@ export default function EhcpCard({ plan, isSenco }: Props) {
     try {
       await approveGeneratedEhcp(plan.id, reviewNote.trim() || undefined)
       setApproved(true)
+      toast('EHCP plan approved')
+    } catch {
+      toast('Failed to approve EHCP plan', 'error')
     } finally {
       setApproving(false)
     }
@@ -84,6 +88,9 @@ export default function EhcpCard({ plan, isSenco }: Props) {
       await updateEhcpSection(plan.id, key as keyof EhcpSections, editValue)
       setSections(prev => prev ? { ...prev, [key]: editValue } : null)
       setEditingSection(null)
+      toast('Section saved')
+    } catch {
+      toast('Failed to save section', 'error')
     } finally {
       setSaving(false)
     }

@@ -7,6 +7,7 @@ import StudentAvatar from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
 import { getClassRoster, type ClassRosterRow } from '@/app/actions/lessons'
 import { getTaNotes, addTaNote, markTaNoteRead, getTaClasses, getTaSendProfile, type TaNoteRow, type TaClass, type TaSendProfile } from '@/app/actions/ta-notes'
+import { toast } from '@/components/ui/Toast'
 
 export default function TaNotesHub() {
   const [classes,         setClasses]         = useState<TaClass[]>([])
@@ -81,6 +82,9 @@ export default function TaNotesHub() {
       setNotesCache(c => ({ ...c, [studentId]: 'loading' }))
       const updated = await getTaNotes(studentId)
       setNotesCache(c => ({ ...c, [studentId]: updated }))
+      toast('Note saved')
+    } catch {
+      toast('Failed to save note', 'error')
     } finally {
       setSaving(null)
     }

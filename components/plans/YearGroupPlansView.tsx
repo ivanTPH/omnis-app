@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
-import { toast, ToastContainer } from '@/components/ui/Toast'
+import { toast } from '@/components/ui/Toast'
 import {
   upsertYearGroupPlan,
   submitForApproval,
@@ -268,7 +268,6 @@ export default function YearGroupPlansView({
 
   return (
     <div className="flex flex-col flex-1 overflow-auto bg-gray-50">
-      <ToastContainer />
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-5">

@@ -3863,6 +3863,37 @@ async function main() {
   }
   console.log(`  ✓ ${behaviourData.length} behaviour records seeded`)
 
+  // ── Demo attendance data ──────────────────────────────────────────────────
+  // Set attendancePercentage on student accounts so HOY attendance views show data.
+  // Realistic distribution: most 88–98%, two persistent absentees <85%.
+  const attendanceMap: Record<string, number> = {
+    'a.hughes@students.omnisdemo.school':  94.2,  // Aiden Hughes (demo student)
+    'm.johnson@students.omnisdemo.school': 71.8,  // Persistent absentee (flagged)
+    's.novak@students.omnisdemo.school':   91.5,
+    'p.reddy@students.omnisdemo.school':   97.3,
+  }
+  // All other students get realistic values seeded by yearGroup
+  const allStudents = await prisma.user.findMany({
+    where:  { schoolId: school.id, role: 'STUDENT' },
+    select: { id: true, email: true, yearGroup: true },
+  })
+  // Deterministic pseudo-random based on email length + yearGroup
+  const getAttendance = (email: string, yearGroup: number | null): number => {
+    if (attendanceMap[email] != null) return attendanceMap[email]
+    const seed = (email.length * 7 + (yearGroup ?? 9) * 13) % 100
+    // 5% chance of <85% attendance
+    if (seed < 5) return 78 + (seed % 7)
+    // 20% chance of 85–90%
+    if (seed < 25) return 85 + (seed % 5)
+    // 75% chance of 90–98%
+    return 90 + (seed % 9)
+  }
+  for (const s of allStudents) {
+    const pct = getAttendance(s.email, s.yearGroup)
+    await prisma.user.update({ where: { id: s.id }, data: { attendancePercentage: pct } })
+  }
+  console.log(`  ✓ ${allStudents.length} students seeded with attendance data`)
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

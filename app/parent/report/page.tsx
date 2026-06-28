@@ -3,6 +3,7 @@ import { redirect }   from 'next/navigation'
 import Link           from 'next/link'
 import AppShell       from '@/components/AppShell'
 import Icon           from '@/components/ui/Icon'
+import ExportPdfButton from '@/components/ExportPdfButton'
 import { prisma }     from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -85,13 +86,11 @@ export default async function ParentReportPage() {
                       </div>
                     </div>
 
-                    <a
+                    <ExportPdfButton
                       href={`/api/export/parent-report/${child.id}`}
-                      className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shrink-0"
-                    >
-                      <Icon name="download" size="sm" />
-                      Download PDF
-                    </a>
+                      filename={`${child.firstName}-${child.lastName}-report.pdf`}
+                      label="Download PDF"
+                    />
                   </div>
                 )
               })}

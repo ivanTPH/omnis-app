@@ -3,15 +3,25 @@ import { prisma }   from '@/lib/prisma'
 import AppShell     from '@/components/AppShell'
 import WeeklyCalendar, { type CalendarLesson, type UnscheduledLesson } from '@/components/WeeklyCalendar'
 
-export default async function CalendarPage() {
+export default async function CalendarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ week?: string }>
+}) {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
+  const { week } = await searchParams
 
-  // Current week Mon 00:00 → Fri 23:59
-  const now    = new Date()
-  const dow    = now.getDay()
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + (dow === 0 ? 1 : dow === 6 ? 2 : -(dow - 1)))
-  monday.setHours(0, 0, 0, 0)
+  // Use ?week=YYYY-MM-DD if provided (e.g. from E2E tests), else default to current week
+  let monday: Date
+  if (week && /^\d{4}-\d{2}-\d{2}$/.test(week)) {
+    monday = new Date(`${week}T00:00:00Z`)
+  } else {
+    const now = new Date()
+    const dow = now.getDay()
+    monday = new Date(now)
+    monday.setDate(now.getDate() + (dow === 0 ? 1 : dow === 6 ? 2 : -(dow - 1)))
+    monday.setHours(0, 0, 0, 0)
+  }
   const friday = new Date(monday)
   friday.setDate(monday.getDate() + 4)
   friday.setHours(23, 59, 59, 999)

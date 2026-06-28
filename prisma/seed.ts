@@ -3498,6 +3498,39 @@ async function main() {
     },
   })
 
+  // 9a. ILP evidence for Aiden Hughes (AIC submission → target 1 and target 2)
+  //     These push 2 targets to evidenced + PROGRESS, showing "on track"
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: aidenSub.id, ilpTargetId: 'seed-ilpt-aiden-1' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: created['a.hughes'].id,
+      ilpTargetId: 'seed-ilpt-aiden-1', submissionId: aidenSub.id,
+      homeworkTitle: 'An Inspector Calls — Context Essay', subject: 'English', score: 7, maxScore: 9,
+      evidenceType: 'PROGRESS',
+      aiSummary: 'Aiden\'s essay demonstrates independent use of a structured paragraph format (context → evidence → analysis → link). Both paragraphs follow this model without teacher scaffolding. This represents clear PROGRESS against Target 1 (use planning frame independently for extended written responses). The linking sentences at the end of each paragraph are particularly strong evidence of internalized structure.',
+      teacherNote: 'Aiden completed this entirely independently — he didn\'t ask for the writing frame this time. Big step forward.',
+      createdBy: created['j.patel'].id,
+    },
+  })
+  await prisma.ilpEvidenceEntry.upsert({
+    where:  { submissionId_ilpTargetId: { submissionId: aidenSub.id, ilpTargetId: 'seed-ilpt-aiden-2' } },
+    update: {},
+    create: {
+      schoolId: school.id, studentId: created['a.hughes'].id,
+      ilpTargetId: 'seed-ilpt-aiden-2', submissionId: aidenSub.id,
+      homeworkTitle: 'An Inspector Calls — Context Essay', subject: 'English', score: 7, maxScore: 9,
+      evidenceType: 'PROGRESS',
+      aiSummary: 'Submitted on time within the adjusted time allowance (1h 15min with 25% extra time). Aiden completed both paragraphs to a good standard, suggesting he is managing the time pressure more effectively. PROGRESS against Target 2 (complete responses within GCSE time allowance). The response length and quality are both appropriate for a Grade 7 standard.',
+      createdBy: created['j.patel'].id,
+    },
+  })
+  // Mark Rehan's target 2 as achieved — he has 2× PROGRESS entries and teacher confirmation
+  await prisma.ilpTarget.updateMany({
+    where: { id: 'seed-ilpt-rehan-dys-2' },
+    data:  { status: 'achieved' },
+  })
+
   // 9. EHCP for Caitlin Harris (ADHD with emotional regulation needs)
   await prisma.ehcpPlan.upsert({
     where:  { id: 'seed-ehcp-caitlin-harris' },

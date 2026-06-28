@@ -427,7 +427,7 @@ export default async function HoyDashboardPage() {
                       <th className="text-left px-3 py-2.5 text-gray-500 font-medium">Subject</th>
                       <th className="text-left px-3 py-2.5 text-gray-500 font-medium">Teacher</th>
                       <th className="text-right px-5 py-2.5 text-gray-500 font-medium">HW Set</th>
-                      <th className="text-right px-5 py-2.5 text-gray-500 font-medium">Submitted</th>
+                      <th className="text-right px-5 py-2.5 text-gray-500 font-medium">Submitted / Expected</th>
                       <th className="text-right px-5 py-2.5 text-gray-500 font-medium">Rate</th>
                     </tr>
                   </thead>
@@ -444,14 +444,19 @@ export default async function HoyDashboardPage() {
                           <td className="px-3 py-2.5 text-gray-500">{c.subject}</td>
                           <td className="px-3 py-2.5 text-gray-500">{teacher ? `${teacher.firstName[0]}. ${teacher.lastName}` : '—'}</td>
                           <td className="px-5 py-2.5 text-right text-gray-600">{hwSet || '—'}</td>
-                          <td className="px-5 py-2.5 text-right text-gray-600">{hwSet > 0 ? subCount : '—'}</td>
+                          <td className="px-5 py-2.5 text-right text-gray-600">
+                            {hwSet > 0 ? (
+                              <span title={`${hwSet} assignment${hwSet !== 1 ? 's' : ''} × ${c._count.enrolments} students`}>
+                                {subCount} <span className="text-gray-400">/ {expected}</span>
+                              </span>
+                            ) : '—'}
+                          </td>
                           <td className="px-5 py-2.5 text-right">
                             {rate != null ? (
                               <span
-                                className={`font-semibold cursor-help ${
+                                className={`font-semibold ${
                                   rate >= 0.8 ? 'text-green-600' : rate >= 0.6 ? 'text-amber-600' : 'text-red-600'
                                 }`}
-                                title={`${subCount} of ${expected} expected submissions (${hwSet} assignment${hwSet !== 1 ? 's' : ''} × ${c._count.enrolments} students)`}
                               >
                                 {Math.round(rate * 100)}%
                               </span>

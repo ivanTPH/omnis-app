@@ -699,6 +699,8 @@ export async function generateDifferentiatedVersions(
   adaptedContent: object
   adaptationNotes: string
   adaptationType: 'send' | 'profile' | 'standard'
+  failedAi?: boolean
+  ilpFallbackTargets?: { target: string; strategy: string }[]
 }[]> {
   const user = await requireStaff()
   const schoolId = user.schoolId
@@ -724,6 +726,8 @@ export async function generateDifferentiatedVersions(
     adaptedContent: object
     adaptationNotes: string
     adaptationType: 'send' | 'profile' | 'standard'
+    failedAi?: boolean
+    ilpFallbackTargets?: { target: string; strategy: string }[]
   }> {
     const student = studentMap.get(studentId)
     const studentName = student ? `${student.firstName} ${student.lastName}` : 'Unknown'
@@ -765,6 +769,8 @@ export async function generateDifferentiatedVersions(
         adaptedContent: hwData.structuredContent as object ?? {},
         adaptationNotes: `${adaptationType === 'send' ? 'SEND' : 'Profile'} adaptation required but AI unavailable.`,
         adaptationType,
+        failedAi: true,
+        ilpFallbackTargets: ilpTargets,
       }
     }
 
@@ -821,6 +827,8 @@ Return a JSON object with:
         adaptedContent: hwData.structuredContent as object ?? {},
         adaptationNotes: `${adaptationType === 'send' ? 'SEND' : 'Profile'} adaptation requested — AI unavailable, original content returned.`,
         adaptationType,
+        failedAi: true,
+        ilpFallbackTargets: ilpTargets,
       }
     }
   }

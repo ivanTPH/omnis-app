@@ -308,6 +308,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   const [diffLoading, setDiffLoading] = useState(false)
   const [diffResults, setDiffResults] = useState<DiffResult[] | null>(null)
   const [diffError,   setDiffError]   = useState<string | null>(null)
+  const [retryingStudents, setRetryingStudents] = useState<Set<string>>(new Set())
   // Per-student adaptive suggestions (fetched lazily on selection)
   const [adaptiveSugg, setAdaptiveSugg] = useState<Record<string, AdaptiveHomeworkSuggestions>>({})
   const [adaptiveSuggLoading, setAdaptiveSuggLoading] = useState(false)
@@ -893,6 +894,23 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       setDiffError(e?.message ?? 'Failed to generate differentiated versions.')
     } finally {
       setDiffLoading(false)
+    }
+  }
+
+  // ── retry single-student differentiation ────────────────────────────────
+  async function handleRetryDifferentiation(studentId: string) {
+    setRetryingStudents(prev => new Set(prev).add(studentId))
+    try {
+      const results = await generateDifferentiatedVersions(hw.id, [studentId])
+      const updated = results[0]
+      if (updated) {
+        setDiffResults(prev => prev
+          ? prev.map(r => r.studentId === studentId ? updated : r)
+          : [updated]
+        )
+      }
+    } finally {
+      setRetryingStudents(prev => { const s = new Set(prev); s.delete(studentId); return s })
     }
   }
 
@@ -2158,36 +2176,71 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   <p className="text-[13px] text-rose-700">{diffError}</p>
                 </div>
               )}
-              {!diffLoading && diffResults && diffResults.map(r => (
-                <div key={r.studentId} className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${
-                    r.adaptationType === 'send'    ? 'bg-purple-50 border-purple-100' :
-                    r.adaptationType === 'profile' ? 'bg-indigo-50 border-indigo-100' :
-                                                     'bg-gray-50 border-gray-100'
-                  }`}>
-                    <span className="text-[12px] font-semibold text-gray-800 flex-1">{r.studentName}</span>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                      r.adaptationType === 'send'    ? 'bg-purple-100 text-purple-700' :
-                      r.adaptationType === 'profile' ? 'bg-indigo-100 text-indigo-700' :
-                                                       'bg-gray-200 text-gray-500'
+              {!diffLoading && diffResults && diffResults.map(r => {
+                const isRetrying = retryingStudents.has(r.studentId)
+                return (
+                  <div key={r.studentId} className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className={`px-4 py-2.5 border-b flex items-center gap-2 ${
+                      r.adaptationType === 'send'    ? 'bg-purple-50 border-purple-100' :
+                      r.adaptationType === 'profile' ? 'bg-indigo-50 border-indigo-100' :
+                                                       'bg-gray-50 border-gray-100'
                     }`}>
-                      {r.adaptationType === 'send' ? 'SEND' : r.adaptationType === 'profile' ? 'Profile' : 'Standard'}
-                    </span>
+                      <span className="text-[12px] font-semibold text-gray-800 flex-1">{r.studentName}</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                        r.adaptationType === 'send'    ? 'bg-purple-100 text-purple-700' :
+                        r.adaptationType === 'profile' ? 'bg-indigo-100 text-indigo-700' :
+                                                         'bg-gray-200 text-gray-500'
+                      }`}>
+                        {r.adaptationType === 'send' ? 'SEND' : r.adaptationType === 'profile' ? 'Profile' : 'Standard'}
+                      </span>
+                    </div>
+                    <div className="px-4 py-3 space-y-2">
+                      {r.failedAi ? (
+                        <>
+                          <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
+                            <Icon name="warning" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
+                            <p className="text-[12px] text-amber-800 flex-1">{r.adaptationNotes}</p>
+                            <button
+                              onClick={() => handleRetryDifferentiation(r.studentId)}
+                              disabled={isRetrying}
+                              className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                            >
+                              <Icon name={isRetrying ? 'refresh' : 'replay'} size="sm" className={isRetrying ? 'animate-spin' : ''} />
+                              {isRetrying ? 'Retrying…' : 'Retry AI'}
+                            </button>
+                          </div>
+                          {r.ilpFallbackTargets && r.ilpFallbackTargets.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Active ILP targets (use as manual fallback)</p>
+                              <ul className="space-y-1.5">
+                                {r.ilpFallbackTargets.map((t, i) => (
+                                  <li key={i} className="text-[11px] text-gray-700 bg-gray-50 rounded-lg px-3 py-1.5">
+                                    <span className="font-medium">{t.target}</span>
+                                    {t.strategy && <span className="text-gray-400"> — {t.strategy}</span>}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Teacher notes</p>
+                          <p className="text-[12px] text-gray-700 leading-relaxed">{r.adaptationNotes}</p>
+                          {r.adaptationType !== 'standard' && (
+                            <details className="mt-2">
+                              <summary className="text-[11px] text-indigo-600 cursor-pointer hover:text-indigo-800 font-medium">View adapted content</summary>
+                              <pre className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-[10px] text-gray-600 overflow-auto max-h-40 whitespace-pre-wrap">
+                                {JSON.stringify(r.adaptedContent, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="px-4 py-3 space-y-2">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Teacher notes</p>
-                    <p className="text-[12px] text-gray-700 leading-relaxed">{r.adaptationNotes}</p>
-                    {r.adaptationType !== 'standard' && (
-                      <details className="mt-2">
-                        <summary className="text-[11px] text-indigo-600 cursor-pointer hover:text-indigo-800 font-medium">View adapted content</summary>
-                        <pre className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-[10px] text-gray-600 overflow-auto max-h-40 whitespace-pre-wrap">
-                          {JSON.stringify(r.adaptedContent, null, 2)}
-                        </pre>
-                      </details>
-                    )}
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
             <div className="border-t border-gray-200 px-5 py-3 bg-gray-50 shrink-0">
               <p className="text-[11px] text-gray-400">

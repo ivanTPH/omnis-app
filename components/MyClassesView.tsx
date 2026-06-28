@@ -1,9 +1,9 @@
 'use client'
 import { useState, useTransition, useCallback } from 'react'
-import Link from 'next/link'
 import ClassRosterTab from '@/components/ClassRosterTab'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
+import ExportPdfButton from '@/components/ExportPdfButton'
 import { bulkGenerateLearningPassports, generatePassportsForStudents } from '@/app/actions/students'
 import { updateClassExamBoard } from '@/app/actions/admin'
 
@@ -345,13 +345,11 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
       {/* ── Class report download ── */}
       {effectiveId && (
         <div className="flex justify-end">
-          <Link
+          <ExportPdfButton
             href={`/api/export/class-report/${effectiveId}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition-colors"
-          >
-            <Icon name="picture_as_pdf" size="sm" />
-            Class Report PDF
-          </Link>
+            filename={`class-report-${effectiveClass?.name ?? effectiveId}.pdf`}
+            label="Class Report PDF"
+          />
         </div>
       )}
 

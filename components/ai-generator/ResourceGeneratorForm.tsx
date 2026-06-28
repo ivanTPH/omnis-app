@@ -118,7 +118,11 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
     if (!subject || yearGroup === '') return
     setLoadingTopics(true)
     getTopicsForSubjectAndYear(subject, yearGroup as number)
-      .then(setTopics)
+      .then(loaded => {
+        setTopics(loaded)
+        // Auto-select custom topic entry when no curriculum topics exist
+        if (loaded.length === 0) setTopic('__custom__')
+      })
       .catch(() => {})
       .finally(() => setLoadingTopics(false))
   }, [subject, yearGroup])
@@ -249,6 +253,11 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           )}
         </div>
+        {topics.length === 0 && !loadingTopics && yearGroup !== '' && (
+          <p className="mt-1 text-[11px] text-amber-600 flex items-center gap-1">
+            <span>No curriculum topics found — type your topic below</span>
+          </p>
+        )}
         {topic === '__custom__' && (
           <input
             type="text"

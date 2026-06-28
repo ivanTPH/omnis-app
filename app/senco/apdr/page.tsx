@@ -108,7 +108,7 @@ export default async function ApdrOverviewPage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {active.map(c => (
-                  <div key={c.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
+                  <Link key={c.id} href={`/students/${c.studentId}?tab=APDR`} className="flex items-center gap-4 px-5 py-3 hover:bg-blue-50 transition-colors group">
                     {/* Student */}
                     <div className="w-36 shrink-0">
                       <p className="text-[13px] font-semibold text-gray-900 truncate">{c.studentName}</p>
@@ -162,14 +162,11 @@ export default async function ApdrOverviewPage() {
                       </p>
                     )}
 
-                    {/* Open link */}
-                    <Link
-                      href={`/students/${c.studentId}?tab=APDR`}
-                      className="shrink-0 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      Manage <Icon name="open_in_new" size="sm" />
-                    </Link>
-                  </div>
+                    {/* Manage indicator */}
+                    <span className="shrink-0 inline-flex items-center gap-1 text-xs text-blue-600 group-hover:text-blue-800">
+                      Manage <Icon name="chevron_right" size="sm" />
+                    </span>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -197,7 +194,7 @@ export default async function ApdrOverviewPage() {
               </div>
               <div className="divide-y divide-gray-100">
                 {completed.map(c => (
-                  <div key={c.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 transition-colors">
+                  <Link key={c.id} href={`/students/${c.studentId}?tab=APDR`} className="flex items-center gap-4 px-5 py-3 hover:bg-blue-50 transition-colors group">
                     <div className="w-36 shrink-0">
                       <p className="text-[13px] font-medium text-gray-700 truncate">{c.studentName}</p>
                       <p className="text-[11px] text-gray-400">{c.yearGroup ? `Year ${c.yearGroup}` : '—'}</p>
@@ -209,13 +206,10 @@ export default async function ApdrOverviewPage() {
                     <span className="ml-auto text-[11px] text-gray-400">
                       Completed {new Date(c.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
-                    <Link
-                      href={`/students/${c.studentId}?tab=APDR`}
-                      className="shrink-0 inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600"
-                    >
-                      View <Icon name="open_in_new" size="sm" />
-                    </Link>
-                  </div>
+                    <span className="shrink-0 inline-flex items-center gap-1 text-xs text-gray-400 group-hover:text-blue-600">
+                      View <Icon name="chevron_right" size="sm" />
+                    </span>
+                  </Link>
                 ))}
               </div>
             </div>

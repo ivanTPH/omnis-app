@@ -447,9 +447,12 @@ export default async function HoyDashboardPage() {
                           <td className="px-5 py-2.5 text-right text-gray-600">{hwSet > 0 ? subCount : '—'}</td>
                           <td className="px-5 py-2.5 text-right">
                             {rate != null ? (
-                              <span className={`font-semibold ${
-                                rate >= 0.8 ? 'text-green-600' : rate >= 0.6 ? 'text-amber-600' : 'text-red-600'
-                              }`}>
+                              <span
+                                className={`font-semibold cursor-help ${
+                                  rate >= 0.8 ? 'text-green-600' : rate >= 0.6 ? 'text-amber-600' : 'text-red-600'
+                                }`}
+                                title={`${subCount} of ${expected} expected submissions (${hwSet} assignment${hwSet !== 1 ? 's' : ''} × ${c._count.enrolments} students)`}
+                              >
                                 {Math.round(rate * 100)}%
                               </span>
                             ) : <span className="text-gray-300">—</span>}

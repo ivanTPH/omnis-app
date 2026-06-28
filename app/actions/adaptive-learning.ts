@@ -543,7 +543,7 @@ export async function getIlpEvidenceStudents(): Promise<IlpEvidenceSummary> {
   const schoolId = user.schoolId
   const now = new Date()
 
-  const [activePlans, linkedTargets, sendStatuses, learningProfiles] = await Promise.all([
+  const [activePlans, linkedTargets, manualEntries, sendStatuses, learningProfiles] = await Promise.all([
     prisma.individualLearningPlan.findMany({
       where:   { schoolId, status: 'active' },
       include: { targets: { orderBy: { targetDate: 'asc' } } },
@@ -552,6 +552,11 @@ export async function getIlpEvidenceStudents(): Promise<IlpEvidenceSummary> {
     prisma.ilpHomeworkLink.findMany({
       where:  { homework: { schoolId } },
       select: { ilpTargetId: true, linkedAt: true, homework: { select: { title: true, dueAt: true } } },
+    }),
+    // Also count manual evidence entries (SENCO-added via addManualIlpEvidence)
+    prisma.ilpEvidenceEntry.findMany({
+      where:  { schoolId },
+      select: { ilpTargetId: true, createdAt: true },
     }),
     prisma.sendStatus.findMany({
       where:  { student: { schoolId } },
@@ -573,6 +578,7 @@ export async function getIlpEvidenceStudents(): Promise<IlpEvidenceSummary> {
   const profileMap = new Map(learningProfiles.map(p => [p.studentId, p]))
 
   // Build evidence map: targetId → { count, lastLinkedAt }
+  // Merges IlpHomeworkLink (homework-linked evidence) + IlpEvidenceEntry (manual SENCO entries)
   const evidenceMap = new Map<string, { count: number; lastLinkedAt: Date | null }>()
   for (const link of linkedTargets) {
     const existing = evidenceMap.get(link.ilpTargetId)
@@ -583,6 +589,17 @@ export async function getIlpEvidenceStudents(): Promise<IlpEvidenceSummary> {
       existing.count++
       if (linkDate && (!existing.lastLinkedAt || linkDate > existing.lastLinkedAt)) {
         existing.lastLinkedAt = linkDate
+      }
+    }
+  }
+  for (const entry of manualEntries) {
+    const existing = evidenceMap.get(entry.ilpTargetId)
+    if (!existing) {
+      evidenceMap.set(entry.ilpTargetId, { count: 1, lastLinkedAt: entry.createdAt })
+    } else {
+      existing.count++
+      if (entry.createdAt > (existing.lastLinkedAt ?? new Date(0))) {
+        existing.lastLinkedAt = entry.createdAt
       }
     }
   }

@@ -220,9 +220,12 @@ export default function LessonSlideOver({
 
   return (
     <>
-      {open && <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />}
+      {open && <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} aria-hidden="true" />}
 
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="New lesson"
         className={`fixed top-0 right-0 h-full w-full sm:w-[440px] bg-white shadow-2xl border-l border-gray-200 z-50 flex flex-col
           transform transition-transform duration-300 ease-in-out
           ${open ? 'translate-x-0' : 'translate-x-full'}`}

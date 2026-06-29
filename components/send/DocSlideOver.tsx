@@ -133,10 +133,10 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
   return (
     <div className="fixed inset-0 z-[80] flex">
       {/* Backdrop */}
-      <div className="flex-1 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="flex-1 bg-black/40 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
 
       {/* Panel — slides in from right */}
-      <div className="w-[520px] max-w-full bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Document" className="w-[520px] max-w-full bg-white shadow-2xl flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className={`flex items-center gap-3 px-6 py-4 text-white shrink-0 ${meta.headerCls}`}>

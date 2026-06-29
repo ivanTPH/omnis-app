@@ -240,10 +240,10 @@ function RagStudentPanel({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-black/30" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-gray-200 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Student RAG detail" className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col border-l border-gray-200 overflow-hidden">
 
         {/* ── Header ── */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 shrink-0">

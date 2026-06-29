@@ -770,10 +770,10 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
     {selectedHw && (
       <div className="fixed inset-0 z-50 overflow-hidden">
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/30" onClick={closeSlideOver} />
+        <div className="absolute inset-0 bg-black/30" onClick={closeSlideOver} aria-hidden="true" />
 
         {/* Panel */}
-        <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl flex flex-col">
+        <div role="dialog" aria-modal="true" aria-label="Submission detail" className="absolute right-0 top-0 h-full w-full max-w-xl bg-white shadow-2xl flex flex-col">
 
           {/* Header */}
           <div className="flex items-start justify-between px-6 py-5 border-b border-gray-200 shrink-0">

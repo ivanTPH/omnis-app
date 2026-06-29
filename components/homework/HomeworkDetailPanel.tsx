@@ -160,10 +160,10 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
-      <div className="flex-1 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="flex-1 bg-black/30 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
-      <div className="w-[540px] max-w-full bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Homework detail" className="w-[540px] max-w-full bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2.5">

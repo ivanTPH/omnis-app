@@ -262,12 +262,12 @@ Verified: [x]
 
 ### TASK-NEW-012: Accessibility — contrast, focus rings, keyboard navigation
 
-Status: 🔄 PARTIAL (foundation done; Lighthouse audit still needed)
+Status: 🔄 PARTIAL (major work done; Lighthouse audit still needed)
 Priority: P2 Medium
 Role(s): All roles
 Finding: Some amber badge text may not meet WCAG AA contrast. No visible focus ring on Tab navigation through forms. SEND-focused platform should be exemplary in accessibility.
-Fix applied: (1) Global :focus-visible outline (2px blue ring, offset 2px) added to globals.css — all interactive elements now have visible keyboard focus. (2) :focus:not(:focus-visible) hides ring on mouse click. (3) Skip-to-content link added in layout.tsx (visible on focus). (4) id="main-content" added to AppShell content div. (5) aria-label added to icon-only expand/navigate buttons in StudentAnalyticsView. Icon component already has aria-hidden="true".
-Outstanding: Lighthouse Accessibility audit, WCAG contrast check on amber text, full tab-order review.
+Fix applied: (1) Global :focus-visible outline (2px blue ring, offset 2px) added to globals.css. (2) Skip-to-content link in layout.tsx. (3) id="main-content" on AppShell content div. (4) aria-label on icon-only buttons in StudentAnalyticsView. (5) role="dialog" + aria-modal="true" + aria-label added to 6 key modals (ResourceLibraryView, ResourcePreviewModal, UserManagementTable, StudentImportModal, StudentOptionsModal, StudentAnalyticsView). (6) aria-hidden="true" on all modal backdrops.
+Outstanding: Lighthouse Accessibility audit, WCAG contrast check on amber text, full tab-order review. Additional modals not yet updated: HomeworkMarkingView diff panel, StudentFilePanel slide-over, LessonSlideOver, HomeworkDetailPanel, DocSlideOver.
 Verified: [ ]
 
 ---

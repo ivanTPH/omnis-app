@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { PlanStatus } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ParentDashboardPage() {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PARENT') redirect('/dashboard')

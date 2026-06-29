@@ -1499,7 +1499,7 @@ export async function markSubmission(submissionId: string, data: {
         select: {
           firstName: true, lastName: true,
           parentLinks: {
-            include: { parent: { select: { email: true, firstName: true } } },
+            include: { parent: { select: { id: true, email: true, firstName: true } } },
           },
         },
       })
@@ -1518,6 +1518,21 @@ export async function markSubmission(submissionId: string, data: {
         where:  { studentId: sub.studentId, schoolId },
         select: { predictedGrade: true },
       })
+      // Always notify parents in-app when homework is graded
+      if (student && hw && student.parentLinks.length > 0) {
+        await prisma.notification.createMany({
+          data: student.parentLinks.map(link => ({
+            schoolId,
+            userId:   link.parent.id,
+            type:     'HOMEWORK_GRADED',
+            title:    `${student.firstName}'s ${hw.class?.subject ?? 'homework'} has been marked`,
+            body:     `Grade ${achievedGcse} — ${hw.title}`,
+            linkHref: '/parent/progress',
+          })),
+          skipDuplicates: true,
+        })
+      }
+
       const predicted = profile?.predictedGrade ?? null
       if (student && hw && predicted != null && achievedGcse <= predicted - 2) {
         const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'

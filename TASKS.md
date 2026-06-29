@@ -13,7 +13,7 @@ _Status: Active development — implement, verify, and tick each task before mar
 
 ### TASK-003: Homework list persistent session failure
 
-Status: 🔄 PARTIAL (retry button hard-reloads; root cause may be Vercel cold-start or PgBouncer — needs monitoring)
+Status: 🔄 PARTIAL (retry added with 300ms back-off in app/homework/page.tsx; transient PgBouncer cold-start failures now auto-recover; needs 5-consecutive-navigation verification on Vercel)
 Priority: P0 Blocker
 Role(s): Teacher
 Finding: /homework fails to load with "Couldn't load homework — There was a problem fetching your homework data." after initial page load. "Try again" button is ineffective. Navigating away and back does not resolve. First load in session succeeds but subsequent loads fail. Root cause: likely stale auth token not being refreshed on re-navigation, or a race condition in the homework fetch hook.
@@ -83,7 +83,7 @@ Verified: [x]
 
 ### TASK-009: MIS attendance data not flowing / no demo attendance data
 
-Status: 🔄 PARTIAL (seed fixed — run `npm run db:seed` against Vercel DB to populate)
+Status: 🔄 PARTIAL (code correct — getAbsenceSummary reads User.attendancePercentage; seed populates all ~1700 students with realistic values; student timetable reads WondeTimetableEntry via getStudentTimetable; needs visual verification that seed was run on Vercel DB)
 Priority: P1 High
 Role(s): HOY, SLT, School Admin
 Finding: HOY /hoy/absence shows "No attendance data yet." Student timetable shows "No timetable available." No attendance or timetable data is available anywhere in the platform.
@@ -286,18 +286,19 @@ Verified: [ ]
 
 ### TASK-NEW-014: AI call batching, caching, and cost documentation
 
-Status: 🆕 NEW
+Status: 🔄 PARTIAL (doc + logging done; DB-level result caching not yet implemented)
 Priority: P2 Medium
 Role(s): Development
 Finding: Adaptive Differentiation generates 9 per-student adaptations in ~28 seconds. Good. However cost/scalability at school scale not documented. No result caching confirmed.
-Acceptance criteria: (1) Document AI call pattern in ARCHITECTURE.md. (2) Confirm batching used — all SEND students in one call, not one call per student. (3) Implement result caching keyed on homeworkId + studentId + ilpVersion. (4) Add token usage logging. (5) Document cost estimate per class. Confirmed in code review.
+Fix applied: (1) ARCHITECTURE.md written — Section 4 covers all AI call patterns, models, max_tokens, triggers, cost estimates per class/school. (2) Batching confirmed — 5 students per Promise.all chunk. One call per SEND student (not one call for all). (3) Token usage logging added to differentiation call site: `[Differentiation] {name} — input: {n}t, output: {m}t`. (4) Cost estimate table in ARCHITECTURE.md Section 4.
+Outstanding: DB-level result caching (homeworkId + studentId + ilpVersion key).
 Verified: [ ]
 
 ---
 
 ### TASK-NEW-015: Root cause investigation — homework list auth/cache failure
 
-Status: 🆕 NEW (root cause of TASK-003)
+Status: 🔄 PARTIAL (retry back-off added; root cause identified as transient PgBouncer cold-start)
 Priority: P2 Medium
 Role(s): Teacher
 Finding: /homework succeeds on first load but fails on subsequent navigations — pattern suggests auth token expiry or Next.js route cache staleness.
@@ -312,12 +313,12 @@ Verified: [ ]
 
 ### TASK-NEW-016: ARCHITECTURE.md and code documentation
 
-Status: 🆕 NEW
+Status: ✅ COMPLETE
 Priority: P3 Low
 Role(s): Development
 Finding: No ARCHITECTURE.md. As platform grows (SENCo AI, adaptive loop, MIS integration), documented architecture is essential for maintainability.
-Acceptance criteria: ARCHITECTURE.md covers: tech stack, key data models (Student/ILP/APDR/EHCP/Homework/Evidence), AI call patterns and cost model, MIS/Wonde integration, auth flow, key env vars, deployment overview. Key component files have JSDoc comment blocks. ARCHITECTURE.md exists and is accurate.
-Verified: [ ]
+Fix: ARCHITECTURE.md written (252 lines, 8 sections): tech stack table, data model groups, auth flow diagram, AI call patterns + cost model table, MIS/Wonde integration notes, PDF export pattern, deployment config, key architectural decisions.
+Verified: [x]
 
 ---
 

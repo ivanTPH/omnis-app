@@ -811,6 +811,7 @@ Return a JSON object with:
 }`,
         }],
       })
+      console.log(`[Differentiation] ${studentName} — input: ${msg.usage.input_tokens}t, output: ${msg.usage.output_tokens}t, model: claude-sonnet-4-6`)
       const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
       const parsed = JSON.parse(raw)
       return {

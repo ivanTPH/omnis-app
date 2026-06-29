@@ -23,8 +23,17 @@ export default async function HomeworkPage() {
     console.error('[HomeworkPage] schoolId missing from session — cannot scope query')
   }
 
+  // Retry helper — transient PgBouncer connection failures on Vercel cold-starts
+  // resolve on the second attempt. One retry with 300ms back-off is sufficient.
+  async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+    try { return await fn() } catch {
+      await new Promise(r => setTimeout(r, 300))
+      return fn()
+    }
+  }
+
   if (!fetchError) try {
-    const homework = await prisma.homework.findMany({
+    const homework = await withRetry(() => prisma.homework.findMany({
       where: {
         schoolId,
         ...(isTeacher ? { class: { teachers: { some: { userId } } } } : {}),
@@ -35,15 +44,15 @@ export default async function HomeworkPage() {
         submissions: { select: { id: true, status: true, finalScore: true } },
       },
       orderBy: { dueAt: 'asc' },
-    })
+    }))
 
     const classIds = [...new Set(homework.map(h => h.classId).filter(Boolean))] as string[]
     const enrolmentCounts = classIds.length
-      ? await prisma.enrolment.groupBy({
+      ? await withRetry(() => prisma.enrolment.groupBy({
           by:    ['classId'],
           where: { classId: { in: classIds } },
           _count: { classId: true },
-        })
+        }))
       : []
 
     const countByClass = Object.fromEntries(

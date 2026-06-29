@@ -784,15 +784,7 @@ export async function generateDifferentiatedVersions(
       ? `Active ILP targets to incorporate:\n${ilpTargets.map((t, i) => `${i + 1}. ${t.target} (strategy: ${t.strategy})`).join('\n')}`
       : ''
 
-    try {
-      const client = new Anthropic({ apiKey })
-      const msg = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1200,
-        system: 'You are a UK SENCO and differentiation expert. Adapt homework for specific student needs. Keep the same learning objectives. Return ONLY valid JSON matching the original structuredContent schema exactly.',
-        messages: [{
-          role: 'user',
-          content: `Adapt this ${hwData.homeworkVariantType} homework for a student with the following profile.
+    const prompt = `Adapt this ${hwData.homeworkVariantType} homework for a student with the following profile.
 
 Homework: "${hwData.title}"
 Bloom's level: ${hwData.bloomsLevel ?? 'understand'}
@@ -808,19 +800,35 @@ Return a JSON object with:
 {
   "adaptedContent": { /* same schema as original content but adapted */ },
   "adaptationNotes": "Brief teacher-facing explanation of what was adapted and why (2-3 sentences)"
-}`,
-        }],
+}`
+
+    async function callAI(): Promise<{ adaptedContent: object; adaptationNotes: string }> {
+      const client = new Anthropic({ apiKey })
+      const msg = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        system: 'You are a UK SENCO and differentiation expert. Adapt homework for specific student needs. Keep the same learning objectives. Return ONLY valid JSON matching the original structuredContent schema exactly.',
+        messages: [{ role: 'user', content: prompt }],
       })
       console.log(`[Differentiation] ${studentName} — input: ${msg.usage.input_tokens}t, output: ${msg.usage.output_tokens}t, model: claude-sonnet-4-6`)
-      const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
-      const parsed = JSON.parse(raw)
+      const raw = (msg.content[0] as { text: string }).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+      const parsed = JSON.parse(raw) as { adaptedContent?: object; adaptationNotes?: string }
       return {
-        studentId,
-        studentName,
-        adaptedContent: parsed.adaptedContent ?? (hwData.structuredContent as object ?? {}),
+        adaptedContent:  parsed.adaptedContent  ?? (hwData.structuredContent as object ?? {}),
         adaptationNotes: parsed.adaptationNotes ?? `Adapted for ${adaptationType} needs.`,
-        adaptationType,
       }
+    }
+
+    try {
+      // Attempt with one automatic retry after 2s on failure
+      let result: { adaptedContent: object; adaptationNotes: string }
+      try {
+        result = await callAI()
+      } catch {
+        await new Promise(r => setTimeout(r, 2000))
+        result = await callAI()
+      }
+      return { studentId, studentName, adaptedContent: result.adaptedContent, adaptationNotes: result.adaptationNotes, adaptationType }
     } catch {
       return {
         studentId,
@@ -834,10 +842,10 @@ Return a JSON object with:
     }
   }
 
-  // Process in batches of 5 to limit concurrent API calls
+  // Process in batches of 3 to limit concurrent API calls and reduce rate-limit failures
   const results: Awaited<ReturnType<typeof processStudent>>[] = []
-  for (let i = 0; i < studentIds.length; i += 5) {
-    const chunk = studentIds.slice(i, i + 5)
+  for (let i = 0; i < studentIds.length; i += 3) {
+    const chunk = studentIds.slice(i, i + 3)
     const chunkResults = await Promise.all(chunk.map(processStudent))
     results.push(...chunkResults)
   }

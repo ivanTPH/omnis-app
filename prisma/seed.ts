@@ -4177,6 +4177,46 @@ async function main() {
   await prisma.notification.createMany({ data: notifData, skipDuplicates: true })
   console.log('  ✓ Demo notifications seeded for a.hughes + l.hughes')
 
+  // ── Subject config (exam boards) ──────────────────────────────────────────
+  const EXAM_BOARDS: Array<{ subject: string; examBoard: string; tier: string | null }> = [
+    { subject: 'English',              examBoard: 'AQA',     tier: null        },
+    { subject: 'English Language',     examBoard: 'AQA',     tier: null        },
+    { subject: 'English Literature',   examBoard: 'AQA',     tier: null        },
+    { subject: 'Mathematics',          examBoard: 'Edexcel', tier: 'Higher'    },
+    { subject: 'Maths',                examBoard: 'Edexcel', tier: 'Higher'    },
+    { subject: 'Science',              examBoard: 'AQA',     tier: null        },
+    { subject: 'Combined Science',     examBoard: 'AQA',     tier: null        },
+    { subject: 'Biology',              examBoard: 'AQA',     tier: 'Higher'    },
+    { subject: 'Chemistry',            examBoard: 'AQA',     tier: 'Higher'    },
+    { subject: 'Physics',              examBoard: 'AQA',     tier: 'Higher'    },
+    { subject: 'History',              examBoard: 'Edexcel', tier: null        },
+    { subject: 'Geography',            examBoard: 'AQA',     tier: null        },
+    { subject: 'French',               examBoard: 'AQA',     tier: null        },
+    { subject: 'Spanish',              examBoard: 'AQA',     tier: null        },
+    { subject: 'Religious Studies',    examBoard: 'AQA',     tier: null        },
+    { subject: 'Drama',                examBoard: 'AQA',     tier: null        },
+    { subject: 'Music',                examBoard: 'Edexcel', tier: null        },
+    { subject: 'Art',                  examBoard: 'AQA',     tier: null        },
+    { subject: 'Art & Design',         examBoard: 'AQA',     tier: null        },
+    { subject: 'Computer Science',     examBoard: 'AQA',     tier: null        },
+    { subject: 'Design & Technology',  examBoard: 'AQA',     tier: null        },
+    { subject: 'Physical Education',   examBoard: 'AQA',     tier: null        },
+    { subject: 'PE',                   examBoard: 'AQA',     tier: null        },
+    { subject: 'Business Studies',     examBoard: 'Edexcel', tier: null        },
+    { subject: 'PSHE',                 examBoard: 'N/A',     tier: null        },
+  ]
+  for (const cfg of EXAM_BOARDS) {
+    await prisma.subjectConfig.upsert({
+      where:  { schoolId_subject: { schoolId: school.id, subject: cfg.subject } },
+      update: { examBoard: cfg.examBoard, tier: cfg.tier },
+      create: {
+        schoolId: school.id, subject: cfg.subject,
+        examBoard: cfg.examBoard, tier: cfg.tier, updatedBy: senco.id,
+      },
+    })
+  }
+  console.log('  ✓ Subject exam boards seeded')
+
   console.log('\nSeed complete. All passwords: Demo1234!')
   console.log('\n── Test accounts ────────────────────────────────────────')
   console.log('  j.patel@omnisdemo.school       TEACHER    (English, 3 classes)')

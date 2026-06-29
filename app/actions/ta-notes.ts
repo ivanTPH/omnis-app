@@ -278,10 +278,10 @@ export async function getTaSendStudents(): Promise<TaSendStudent[]> {
   const studentIds = sendStudents.map(s => s.id)
   const [ilps, apdrs] = await Promise.all([
     prisma.individualLearningPlan.findMany({
-      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['active', 'under_review'] } },
       select:  {
-        studentId:       true,
-        successCriteria: true,
+        studentId:  true,
+        strategies: true,
         targets: { where: { status: { in: ['active', 'achieved'] } }, select: { id: true, target: true, status: true }, take: 4 },
       },
     }),
@@ -317,9 +317,7 @@ export async function getTaSendStudents(): Promise<TaSendStudent[]> {
       sendStatus:          s.sendStatus?.activeStatus ?? 'NONE',
       needArea:            s.sendStatus?.needArea ?? null,
       supportSnapshot:     s.supportSnapshot ?? null,
-      classroomStrategies: ilp?.successCriteria
-        ? ilp.successCriteria.split(/\n|•|-/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
-        : [],
+      classroomStrategies: Array.isArray(ilp?.strategies) ? ilp.strategies as string[] : [],
       ilpTargets:          ilp?.targets ?? [],
       apdrPhase,
       classes:             s.enrolments.map((e: { class: { id: string; name: string; subject: string } }) => e.class),

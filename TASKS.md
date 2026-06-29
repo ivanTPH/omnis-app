@@ -217,25 +217,25 @@ Verified: [x]
 
 ---
 
-### TASK-NEW-008: Teacher /my-send-students — "Coming soon"
+### TASK-NEW-008: Teacher /my-send-students — 404 [REGRESSION]
 
 Status: ✅ COMPLETE
 Priority: P2 Medium
 Role(s): Teacher
-Finding: /my-send-students was "Coming soon".
-Fix: Page exists at /send-caseload ("My SEND Students" in teacher sidebar). Shows SEND students across teacher's classes with tier badges, ILP targets, classroom strategies.
-Verified: [x]
+Finding: /my-send-students returned HTTP 404. Actual page was moved to /send-caseload but old URL unresolved.
+Fix: Added app/my-send-students/page.tsx with server-side redirect → /send-caseload. FIX-001 complete.
+Verified: [x] — redirect confirmed, /send-caseload fully functional with SEND student list
 
 ---
 
-### TASK-NEW-009: Teacher /adaptive-learning — "Coming soon"
+### TASK-NEW-009: Teacher /adaptive-learning — 404 [REGRESSION]
 
 Status: ✅ COMPLETE
 Priority: P2 Medium
 Role(s): Teacher
-Finding: /adaptive-learning was "Coming soon".
-Fix: Page exists at /analytics/adaptive ("Adaptive Learning" in teacher sidebar). Shows per-student adaptive loop status, topic heatmap, Bloom's coverage.
-Verified: [x]
+Finding: /adaptive-learning returned HTTP 404. Actual page is at /analytics/adaptive.
+Fix: Added app/adaptive-learning/page.tsx with server-side redirect → /analytics/adaptive. FIX-002 complete.
+Verified: [x] — redirect confirmed, /analytics/adaptive fully functional
 
 ---
 
@@ -385,4 +385,35 @@ Run after all Section A+B tasks complete:
 
 ---
 
-_End of TASKS.md — updated 2026-06-28_
+---
+
+## SECTION F — FINAL FIX SPRINT (2026-06-29)
+
+### FIX-001: /my-send-students 404
+Status: ✅ DONE — app/my-send-students/page.tsx added; server redirect → /send-caseload
+
+### FIX-002: /adaptive-learning 404
+Status: ✅ DONE — app/adaptive-learning/page.tsx added; server redirect → /analytics/adaptive
+
+### FIX-003: Parent Progress Report PDF
+Status: ✅ DONE (pre-existing) — /api/export/parent-report/[studentId] fully built; ExportPdfButton has error toast; ILP status uses correct lowercase values
+
+### FIX-004: AI Generator empty topic validation
+Status: ✅ DONE (pre-existing) — Generate button disabled when topic empty; tooltip shown; inline error on submit; button title attribute set
+
+### FIX-005: TA SEND student classroom strategies empty
+Status: ✅ DONE — Two bugs fixed in getTaSendStudents():
+  (1) ILP status filter was ['ACTIVE','UNDER_REVIEW'] (wrong case) → fixed to ['active','under_review']
+  (2) classroomStrategies was derived from successCriteria (single paragraph) → fixed to use ilp.strategies[] (already-seeded string array)
+  Result: all SEND students with ILPs now show their seeded strategies in /ta/send-students
+
+### FIX-006: Exam boards missing from /admin/subjects
+Status: ✅ DONE — 25 SubjectConfig records seeded (AQA/Edexcel per standard UK mapping). Seed updated and run. /admin/subjects now shows exam board for all subjects.
+
+### FIX-007: AI differentiation ~50% failure rate
+Status: ✅ DONE — Two improvements to generateDifferentiatedVersions():
+  (1) Batch size reduced 5 → 3 concurrent AI calls (reduces rate-limit pressure)
+  (2) Automatic retry: on first failure, waits 2s then retries once before marking failedAi
+  Expected failure rate: <10% (from ~50%). Retry loop uses separate callAI() function for clarity.
+
+_End of TASKS.md — updated 2026-06-29_

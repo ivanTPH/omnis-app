@@ -323,6 +323,7 @@ export default function ResourceLibraryView({
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -369,6 +370,7 @@ export default function ResourceLibraryView({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

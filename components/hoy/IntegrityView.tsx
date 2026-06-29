@@ -527,6 +527,7 @@ export default function IntegrityView({
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -545,6 +546,7 @@ export default function IntegrityView({
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
               Click a row to expand review actions
             </p>
@@ -580,6 +582,7 @@ export default function IntegrityView({
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -596,6 +599,7 @@ export default function IntegrityView({
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
               Click a row to manage the case
             </p>

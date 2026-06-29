@@ -1,7 +1,8 @@
 export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/session'
+import { auth } from '@/lib/auth'
+import type { AuthUser } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { generatePdf } from '@/lib/pdf/generator'
 import { classReportPdf } from '@/lib/pdf/class-report-template'
@@ -12,7 +13,13 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ classId: string }> },
 ) {
-  const user = await requireAuth()
+  // Use auth() directly so unauthenticated fetch() gets 401 (not a 307 redirect
+  // that fetch follows, producing a 200 HTML response that silently corrupts the download).
+  const session = await auth()
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const user = session.user as AuthUser
   if (!ALLOWED.includes(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -157,7 +164,14 @@ export async function GET(
     overallAvg:  aggregate?.avgScore ?? null,
   })
 
-  const pdf  = await generatePdf(html)
+  let pdf: ArrayBuffer
+  try {
+    pdf = await generatePdf(html)
+  } catch (err) {
+    console.error('[class-report] PDF generation failed:', err)
+    return NextResponse.json({ error: 'PDF generation failed — please try again' }, { status: 500 })
+  }
+
   const date = new Date().toISOString().slice(0, 10)
   const name = `class-report-${schoolClass.name.replace(/\s+/g, '-').toLowerCase()}-${date}.pdf`
 

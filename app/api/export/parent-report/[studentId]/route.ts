@@ -73,9 +73,9 @@ export async function GET(
       take: 10,
     }),
 
-    // Active ILP targets
+    // Active ILP targets (ILPStatus enum values are uppercase)
     prisma.individualLearningPlan.findFirst({
-      where: { studentId, schoolId: user.schoolId, status: { in: ['active', 'under_review'] } },
+      where: { studentId, schoolId: user.schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
       select: {
         targets: {
           where:   { status: { notIn: ['not_achieved'] } },
@@ -150,7 +150,13 @@ export async function GET(
     openConcerns:  sendConcerns,
   })
 
-  const pdf = await generatePdf(html)
+  let pdf: ArrayBuffer
+  try {
+    pdf = await generatePdf(html)
+  } catch (err) {
+    console.error('[parent-report] PDF generation failed:', err)
+    return NextResponse.json({ error: 'PDF generation failed — please try again' }, { status: 500 })
+  }
 
   const safeFileName = `${student.firstName}-${student.lastName}-report`.replace(/[^a-z0-9-]/gi, '-')
 

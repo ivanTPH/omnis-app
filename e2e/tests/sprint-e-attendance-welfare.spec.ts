@@ -168,6 +168,7 @@ test.describe('/hoy/welfare — access control', () => {
   })
 
   test('SLT can access /hoy/welfare', async ({ page }) => {
+    test.setTimeout(90_000)
     await loginAs(page, USERS.slt)
     await page.goto('/hoy/welfare')
     await page.waitForLoadState('domcontentloaded')

@@ -192,7 +192,7 @@ export default function TaNotesHub() {
                       {student.firstName} {student.lastName}
                     </span>
                     {student.sendStatus !== 'NONE' && (
-                      <SendBadge status={student.sendStatus as 'SEN_SUPPORT' | 'EHCP'} size="sm" />
+                      <SendBadge status={student.sendStatus as 'SEN_SUPPORT' | 'EHCP'} size="sm" showTier />
                     )}
                     {urgentCount > 0 && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">

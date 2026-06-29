@@ -65,9 +65,14 @@ export default async function StudentSupportPage() {
                     <Icon name="accessibility_new" size="sm" className="text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-[14px] font-semibold text-gray-900">
-                      {profile.sendStatus === 'EHCP' ? 'EHCP (Education, Health & Care Plan)' : 'SEN Support'}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[14px] font-semibold text-gray-900">
+                        {profile.sendStatus === 'EHCP' ? 'EHCP (Education, Health & Care Plan)' : 'SEN Support'}
+                      </p>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${profile.sendStatus === 'EHCP' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>
+                        {profile.sendStatus === 'EHCP' ? 'Specialist' : 'Targeted'}
+                      </span>
+                    </div>
                     {profile.needArea && (
                       <p className="text-[12px] text-gray-500">{profile.needArea}</p>
                     )}

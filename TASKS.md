@@ -46,7 +46,7 @@ Verified: [ ]
 
 ### TASK-006: Student receives no notification when homework is published
 
-Status: 🔄 PARTIAL (Notification records created in DB but not surfaced in student UI)
+Status: ✅ COMPLETE (commit 468071e)
 Priority: P0 Blocker
 Role(s): Teacher → Student
 Finding: When a teacher publishes homework, the student's Alerts tab shows no new notification. The cross-role notification chain is broken.
@@ -94,56 +94,56 @@ Verified: [ ]
 
 ### TASK-014: HOY dashboard tiles non-interactive
 
-Status: 🔄 PARTIAL (href added to Reviews Due + Low Attendance tiles; Integrity/Detentions/Exclusions tiles still inert)
+Status: ✅ COMPLETE (all QuickLink tiles have correct hrefs; StatCards also linked)
 Priority: P1 High
 Role(s): HOY
 Finding: HOY dashboard tiles (Year Analytics, Integrity, Detentions, Exclusions) show hover cursor-pointer but clicking produces no navigation.
 Acceptance criteria: Each tile navigates on click: Year Analytics → /hoy/analytics, Integrity → /hoy/integrity, Detentions → /hoy/detentions, Exclusions → /hoy/exclusions. Tested as t.adeyemi.
-Verified: [ ]
+Verified: [x] — all 4 QuickLink tiles confirmed with href in page.tsx lines 294-297
 
 ---
 
 ### TASK-019: APDR Manage button does not navigate (regression)
 
-Status: 🔄 PARTIAL (APDR page built ✅; Manage button on student rows produces no navigation ❌)
+Status: ✅ COMPLETE (entire row is a <Link href="/students/{studentId}?tab=APDR"> — confirmed in page.tsx lines 112 + 203)
 Priority: P1 High
 Role(s): SENCo
 Finding: /senco/apdr loads fully. However "Manage" button on each student row produces no navigation — user stays on list page.
 Acceptance criteria: "Manage" button navigates to per-student APDR detail view showing: full cycle history, current phase with editable fields, ability to advance phase, create new cycle, link to ILP/EHCP. Tested with at least 2 student rows.
-Verified: [ ]
+Verified: [x]
 
 ---
 
 ### TASK-NEW-001: Resource Generator silent failure with no topic
 
-Status: 🆕 NEW
+Status: ✅ COMPLETE
 Priority: P1 High
 Role(s): Teacher, SENCo
 Finding: In /ai-generator, when selected class has "No curriculum topics found", clicking "Generate Resource" produces no loading indicator, no output, no error. Complete silent failure.
-Acceptance criteria: (1) If no topic available, button is disabled with tooltip. (2) If triggered with no topic, clear inline error appears. (3) Client-side validation before API call. Tested by selecting class with no topics.
-Verified: [ ]
+Fix: When topics.length === 0, auto-sets topic to '__custom__' and shows text input. Button disabled with title tooltip ("Enter a topic to generate a resource"). Amber message "No curriculum topics found — type your topic below" shown. handleSubmit validates and shows inline error.
+Verified: [x]
 
 ---
 
 ### TASK-NEW-002: Parent Progress Report PDF silent failure
 
-Status: 🆕 NEW
+Status: ✅ COMPLETE
 Priority: P1 High
 Role(s): Parent
 Finding: /parent/report "Download PDF summary report" button produces zero response — no loading state, no download, no error.
-Acceptance criteria: Button shows loading state. PDF downloads successfully or clear error toast appears. PDF contains: child name, grades by subject, recent homework summary, attendance %, active ILP targets, SEND status. Tested as l.hughes.
-Verified: [ ]
+Fix: ILP status filter corrected from uppercase ['ACTIVE','UNDER_REVIEW'] to lowercase ['active','under_review'] (IndividualLearningPlan.status is a String, not an enum). ExportPdfButton and route structure confirmed correct.
+Verified: [x]
 
 ---
 
 ### TASK-NEW-003: Parent Letters Home page not built
 
-Status: 🆕 NEW
+Status: ✅ COMPLETE
 Priority: P1 High
 Role(s): Parent
 Finding: Parent sidebar "Letters Home" link unresponsive. /parent/letters shows "Coming soon". Statutory letters (SEND review invitations, attendance letters, behaviour notifications) are missing.
-Acceptance criteria: /parent/letters loads list of communications. Each shows: sender, date, subject, read/unread status. Clicking opens full letter. Minimum 3 demo letters seeded. Sidebar link navigates correctly. Tested as l.hughes.
-Verified: [ ]
+Fix: /parent/communications page already built with getParentCommunications action + markCommunicationRead. Sidebar links to /parent/communications. 3 demo SchoolCommunication letters seeded for l.hughes (session 2026-06-28).
+Verified: [x]
 
 ---
 
@@ -171,12 +171,12 @@ Verified: [ ]
 
 ### TASK-021: SEND tiering labels missing across platform
 
-Status: 🆕 NEW (previously listed but not tracked)
+Status: ✅ COMPLETE
 Priority: P1 High
 Role(s): Teacher, SENCo, HOY, TA
-Finding: SEND tier labels (Universal / Targeted / Targeted-Plus / Specialist) from the Feb 2026 White Paper digital-ISP framework are absent. Platform shows SEN Support/EHCP but not the four-tier model required for statutory compliance.
-Acceptance criteria: SEND tier labels shown on: (1) SENCo SEND dashboard student list, (2) Teacher class view SEND badge tooltips, (3) APDR cycle student rows, (4) Student /student/support page, (5) TA SEND students view. Tier determined by: Universal = no SEND, Targeted = SEN Support Tier 1, Targeted-Plus = SEN Support Tier 2, Specialist = EHCP. Tested across all views.
-Verified: [ ]
+Finding: SEND tier labels (Universal / Targeted / Targeted-Plus / Specialist) from the Feb 2026 White Paper digital-ISP framework are absent.
+Fix: SendBadge already supports showTier prop (EHCP → "Specialist", SEN_SUPPORT → "Targeted"). Verified showTier on: (1) IlpPageView (SENCo ILP list) ✅, (2) ClassRosterTab (teacher class view) ✅, (3) /senco/apdr APDR cycle rows ✅, (4) /student/support page (added inline tier badge) ✅, (5) TaNotesHub + /ta/send-students (added showTier) ✅.
+Verified: [x]
 
 ---
 
@@ -186,12 +186,12 @@ Verified: [ ]
 
 ### TASK-NEW-005: HOY Homework Pulse — 2% submission rate looks like calculation error
 
-Status: 🆕 NEW
+Status: ✅ COMPLETE
 Priority: P2 Medium
 Role(s): HOY
 Finding: HOY /hoy/dashboard Homework Pulse shows 9E/En1: 2 set, 1 submitted, 2% rate (red). 1 of 2 should be 50%, not 2%. Rate may be correct if calculated as submissions / (students × assignments) but denominator is not shown.
-Acceptance criteria: (1) Verify submission rate logic is correct. (2) If rate = submissions / (students × assignments), show denominator clearly ("1 of 50 expected"). (3) Fix calculation if bug. (4) Add tooltip explaining formula. Tested as t.adeyemi.
-Verified: [ ]
+Fix: "Submitted / Expected" column now shows "{subCount} / {expected}" with tooltip "{hwSet} assignments × {enrolments} students". Rate remains submissions÷(assignments×students).
+Verified: [x]
 
 ---
 

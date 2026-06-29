@@ -321,6 +321,12 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
       <button
         type="submit"
         disabled={pending || !subject || yearGroup === '' || !effectiveTopic.trim()}
+        title={
+          !subject ? 'Select a subject first'
+          : yearGroup === '' ? 'Select a year group first'
+          : !effectiveTopic.trim() ? 'Enter a topic to generate a resource'
+          : undefined
+        }
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {pending

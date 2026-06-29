@@ -75,7 +75,7 @@ export async function GET(
 
     // Active ILP targets (ILPStatus enum values are uppercase)
     prisma.individualLearningPlan.findFirst({
-      where: { studentId, schoolId: user.schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+      where: { studentId, schoolId: user.schoolId, status: { in: ['active', 'under_review'] } },
       select: {
         targets: {
           where:   { status: { notIn: ['not_achieved'] } },

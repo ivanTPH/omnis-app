@@ -7,6 +7,8 @@ import { getStudentOwnPassport, getStudentTimetable } from '@/app/actions/studen
 import StudentMobileDashboard, { type MobileHw, type SubjectProgress } from '@/components/StudentMobileDashboard'
 import AppShell from '@/components/AppShell'
 
+export const dynamic = 'force-dynamic'
+
 export default async function StudentDashboardPage() {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')

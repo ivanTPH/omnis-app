@@ -190,6 +190,23 @@ export default function StudentMobileDashboard({
           ))}
         </div>
 
+        {/* Unread notifications prompt */}
+        {notifications.filter(n => !n.read).length > 0 && (
+          <button
+            onClick={() => setTab('notifications')}
+            className="w-full flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-2xl px-4 py-3 text-left"
+          >
+            <Icon name="notifications_active" size="sm" className="text-blue-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-blue-800">
+                {notifications.filter(n => !n.read).length} new alert{notifications.filter(n => !n.read).length !== 1 ? 's' : ''}
+              </p>
+              <p className="text-[11px] text-blue-600">Tap to view</p>
+            </div>
+            <Icon name="chevron_right" size="sm" className="text-blue-400 shrink-0" />
+          </button>
+        )}
+
         {/* Today's timetable strip */}
         {todayLessons.length > 0 && (
           <div>
@@ -356,7 +373,7 @@ export default function StudentMobileDashboard({
             </ul>
           </div>
         )}
-        {overdue.length === 0 && dueSoon.length === 0 && graded.length === 0 && (
+        {unreadNotifs.length === 0 && overdue.length === 0 && dueSoon.length === 0 && graded.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <Icon name="notifications_none" size="lg" className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No new notifications</p>

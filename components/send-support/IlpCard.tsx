@@ -78,30 +78,50 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
   function handleSaveDo() {
     if (!ilp.activeApdrCycle) return
     startDoTransition(async () => {
-      await updateAPDRSection(ilp.activeApdrCycle!.id, 'doContent', doContent)
-      setDoEditing(false)
+      try {
+        await updateAPDRSection(ilp.activeApdrCycle!.id, 'doContent', doContent)
+        setDoEditing(false)
+        toast('Section saved')
+      } catch {
+        toast('Failed to save section', 'error')
+      }
     })
   }
 
   function handleApproveApdr() {
     if (!ilp.activeApdrCycle) return
     startApproveApdrTransition(async () => {
-      await approveAPDR(ilp.activeApdrCycle!.id)
-      setApdrApproved(true)
+      try {
+        await approveAPDR(ilp.activeApdrCycle!.id)
+        setApdrApproved(true)
+        toast('APDR approved')
+      } catch {
+        toast('Failed to approve APDR', 'error')
+      }
     })
   }
 
   function handleCompleteApdrReview() {
     if (!ilp.activeApdrCycle) return
     startCompleteApdrTransition(async () => {
-      await completeAPDRReview(ilp.activeApdrCycle!.id, apdrReviewDraft, '', '')
-      setApdrReviewOpen(false)
+      try {
+        await completeAPDRReview(ilp.activeApdrCycle!.id, apdrReviewDraft, '', '')
+        setApdrReviewOpen(false)
+        toast('APDR review completed')
+      } catch {
+        toast('Failed to complete review', 'error')
+      }
     })
   }
 
   function handleGenerateApdr() {
     startGenerateApdrTransition(async () => {
-      await generateAPDRForStudent(ilp.studentId)
+      try {
+        await generateAPDRForStudent(ilp.studentId)
+        toast('APDR cycle generated')
+      } catch {
+        toast('Failed to generate APDR', 'error')
+      }
     })
   }
 

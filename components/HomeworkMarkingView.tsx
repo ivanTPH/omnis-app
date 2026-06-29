@@ -1196,6 +1196,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     try {
                       const r = await bulkApproveAiMarks(hw.id)
                       setBulkApprovedCount(r.approved)
+                      toast(`${r.approved} AI mark${r.approved !== 1 ? 's' : ''} approved`)
                       router.refresh()
                     } finally {
                       setBulkApproving(false)

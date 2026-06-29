@@ -2,6 +2,7 @@
 import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import { toast } from '@/components/ui/Toast'
 import StudentAvatar from '@/components/StudentAvatar'
 import SendBadge from '@/components/ui/SendBadge'
 import { TableSkeleton } from '@/components/ui/skeletons'
@@ -1489,15 +1490,25 @@ function ApdrCycleCard({
 
   function handleApprove() {
     startApproveTransition(async () => {
-      await approveAPDR(cycle.id)
-      setApproved(true)
+      try {
+        await approveAPDR(cycle.id)
+        setApproved(true)
+        toast('APDR approved')
+      } catch {
+        toast('Failed to approve APDR', 'error')
+      }
     })
   }
 
   function handleCompleteReview() {
     startCompleteTransition(async () => {
-      await completeAPDRReview(cycle.id, reviewDraft, outcomeDraft, parentDraft)
-      setShowReviewForm(false)
+      try {
+        await completeAPDRReview(cycle.id, reviewDraft, outcomeDraft, parentDraft)
+        setShowReviewForm(false)
+        toast('APDR review completed')
+      } catch {
+        toast('Failed to complete review', 'error')
+      }
     })
   }
 

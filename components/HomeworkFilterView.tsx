@@ -36,7 +36,7 @@ function statusDisplayLabel(s: string) {
   }
 }
 
-export default function HomeworkFilterView({ homework }: { homework: HomeworkListItem[] }) {
+export default function HomeworkFilterView({ homework, fetchError }: { homework: HomeworkListItem[]; fetchError?: boolean }) {
   const router  = useRouter()
 
   const [subject,   setSubject]   = useState('')
@@ -236,6 +236,19 @@ export default function HomeworkFilterView({ homework }: { homework: HomeworkLis
           </button>
         }
       />
+
+      {fetchError && (
+        <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <Icon name="error" size="sm" className="shrink-0" />
+          <span className="flex-1">Couldn&apos;t load your homework — there was a temporary database issue.</span>
+          <button
+            onClick={() => router.refresh()}
+            className="flex items-center gap-1 px-3 py-1 bg-white border border-red-200 rounded-lg text-xs font-medium hover:bg-red-50 transition-colors"
+          >
+            <Icon name="refresh" size="sm" />Retry
+          </button>
+        </div>
+      )}
 
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
       <div className="card p-4 mb-5 space-y-3">

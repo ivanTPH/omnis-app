@@ -1,10 +1,8 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Icon from '@/components/ui/Icon'
 
-// Uses router.refresh() instead of reset() so the server component re-fetches
-// fresh data from the DB rather than re-rendering the same broken cache entry.
 export default function HomeworkError({
   error,
   reset,
@@ -13,14 +11,18 @@ export default function HomeworkError({
   reset: () => void
 }) {
   const router = useRouter()
+  const [pending, startTransition] = useTransition()
 
   useEffect(() => {
-    console.error('[HomeworkPage] error:', error?.message)
+    console.error('[HomeworkPage] error boundary triggered:', error?.message)
   }, [error])
 
   function handleRetry() {
-    router.refresh()
-    reset()
+    // Refresh server data first, then reset the boundary once the transition completes.
+    startTransition(() => {
+      router.refresh()
+    })
+    setTimeout(reset, 200)
   }
 
   return (
@@ -35,10 +37,11 @@ export default function HomeworkError({
         </p>
         <button
           onClick={handleRetry}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+          disabled={pending}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-60"
         >
-          <Icon name="refresh" size="sm" />
-          Try again
+          <Icon name="refresh" size="sm" className={pending ? 'animate-spin' : ''} />
+          {pending ? 'Refreshing…' : 'Try again'}
         </button>
       </div>
     </div>

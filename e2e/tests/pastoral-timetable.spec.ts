@@ -226,7 +226,7 @@ test.describe('Student Timetable — page content', () => {
     await page.goto('/student/dashboard')
     await page.waitForLoadState('domcontentloaded')
 
-    const timetableLink = page.getByRole('link', { name: /timetable/i })
+    const timetableLink = page.getByRole('link', { name: 'My Timetable' })
     await expect(timetableLink).toBeVisible({ timeout: 10_000 })
     const href = await timetableLink.getAttribute('href')
     expect(href).toContain('/student/timetable')

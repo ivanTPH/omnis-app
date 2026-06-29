@@ -383,6 +383,8 @@ test('Step 5 — K Plan auto-generated; SENCO approves it', async ({ page }) => 
     if (await approveKPlanBtn.isVisible({ timeout: 4_000 }).catch(() => false)) {
       await approveKPlanBtn.click()
       await expect(page.getByText(/approved/i).first()).toBeVisible({ timeout: 8_000 })
+      // Give the server action time to commit before reading DB
+      await page.waitForTimeout(1000)
       const updated = await prisma.learnerPassport.findFirst({ where: { studentId: targetId } })
       expect(updated?.status, 'K Plan should be APPROVED after clicking Approve').toBe('APPROVED')
       console.info('  K Plan approved ✓')

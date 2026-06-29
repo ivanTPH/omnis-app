@@ -60,8 +60,11 @@ export default function ResourcePreviewModal({
   const exitQuiz     = (detail?.exitQuiz            as { question: string; answers?: string[] }[] | null) ?? []
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 z-[70] flex items-center justify-center p-4" onClick={onClose} aria-hidden="true">
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Resource preview"
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >

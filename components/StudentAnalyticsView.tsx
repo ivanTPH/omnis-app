@@ -1087,8 +1087,8 @@ function HomeworkTimelineRow({ hw, onOpen, loading, scoreToGrade }: {
 function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClose: () => void }) {
   const submittedDate = new Date(detail.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose} aria-hidden="true">
+      <div role="dialog" aria-modal="true" aria-label={`${detail.studentName} submission detail`} className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between gap-4">
           <div>
             <h2 className="font-semibold text-gray-900 text-base">{detail.studentName}</h2>

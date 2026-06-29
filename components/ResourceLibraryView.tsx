@@ -101,9 +101,12 @@ function ResourcePreviewSlideOver({
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
       {/* Backdrop */}
-      <div className="flex-1 bg-black/30" />
+      <div className="flex-1 bg-black/30" aria-hidden="true" />
       {/* Panel */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={resource.label}
         className="w-full max-w-md bg-white shadow-2xl flex flex-col h-full overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >

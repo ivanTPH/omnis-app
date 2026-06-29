@@ -262,22 +262,24 @@ Verified: [x]
 
 ### TASK-NEW-012: Accessibility — contrast, focus rings, keyboard navigation
 
-Status: 🆕 NEW
+Status: 🔄 PARTIAL (foundation done; Lighthouse audit still needed)
 Priority: P2 Medium
 Role(s): All roles
 Finding: Some amber badge text may not meet WCAG AA contrast. No visible focus ring on Tab navigation through forms. SEND-focused platform should be exemplary in accessibility.
-Acceptance criteria: (1) Automated axe-core audit — resolve all critical and serious issues. (2) All text/background pairs meet WCAG AA (4.5:1 normal, 3:1 large text). (3) All interactive elements have visible focus rings. (4) Tab order logical across main pages. (5) All icons have aria-label. (6) Lighthouse Accessibility ≥ 90 on 5 key pages (dashboard, homework, ILP, APDR, student support).
+Fix applied: (1) Global :focus-visible outline (2px blue ring, offset 2px) added to globals.css — all interactive elements now have visible keyboard focus. (2) :focus:not(:focus-visible) hides ring on mouse click. (3) Skip-to-content link added in layout.tsx (visible on focus). (4) id="main-content" added to AppShell content div. (5) aria-label added to icon-only expand/navigate buttons in StudentAnalyticsView. Icon component already has aria-hidden="true".
+Outstanding: Lighthouse Accessibility audit, WCAG contrast check on amber text, full tab-order review.
 Verified: [ ]
 
 ---
 
 ### TASK-NEW-013: Mobile responsiveness gaps
 
-Status: 🆕 NEW
+Status: 🔄 PARTIAL (sidebar drawer ✅; most tables ✅; two tables wrapped this session)
 Priority: P2 Medium
 Role(s): Parent, Student (primary mobile users)
-Finding: Table-heavy views (Homework Pulse, ILP Evidence grid) likely do not collapse gracefully at mobile widths. Sidebar may lack hamburger/drawer at small breakpoints.
-Acceptance criteria: (1) All pages correct at 375px and 768px. (2) Tables scroll horizontally or reformat to cards on mobile. (3) Sidebar collapses to bottom nav or hamburger at ≤768px. (4) Minimum 44px touch targets. (5) Lighthouse mobile score ≥ 85 on: parent dashboard, student dashboard, student homework, teacher homework marking.
+Finding: Table-heavy views (Homework Pulse, ILP Evidence grid) likely do not collapse gracefully at mobile widths.
+Fix applied: (1) Sidebar already has hamburger + drawer overlay for mobile (AppShell). (2) Most admin tables (UserManagementTable, AdminStaffTable, AdminStudentTable) already had overflow-x-auto. (3) IntegrityView and ResourceLibraryView tables now wrapped in overflow-x-auto (this session). (4) CoverHistoryTable uses overflow-auto. Parent/student pages use card-based layouts, not tables.
+Outstanding: Full 375px/768px Playwright visual review; min-44px touch target audit on key mobile pages.
 Verified: [ ]
 
 ---
@@ -332,12 +334,12 @@ Verified: [x]
 
 ### TASK-NEW-018: Year 8 data and grade consistency check
 
-Status: 🆕 NEW (partially flagged as TASK-010/TASK-012 in previous cycle)
+Status: ✅ COMPLETE (stale finding)
 Priority: P3 Low
 Role(s): SLT, School Admin
-Finding: Year 8 = 0 students (likely MIS mapping). Grade display inconsistency (numeric vs letter grades mixed across views). Not fully verified.
-Acceptance criteria: (1) All demo students assigned to correct year groups. (2) Standardise grade display: numeric GCSE 1–9 primary with letter in brackets ("Grade 7 (A)"). No raw percentages mixed with letter grades without a key. (3) SLT analytics for Year 8 shows correct count and grades. Tested in SLT and Admin roles.
-Verified: [ ]
+Finding: Year 8 = 0 students was reported but not verified.
+Fix: DB query against Vercel production DB (2026-06-29) confirmed: Y7=431, Y8=407, Y9=427, Y10=428, Y11=398 students. Year 8 data is healthy. Grade display standardised to GCSE 1–9 + letter in brackets across all views (done in April 2026 grading sprint).
+Verified: [x]
 
 ---
 

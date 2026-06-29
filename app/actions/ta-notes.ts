@@ -276,30 +276,28 @@ export async function getTaSendStudents(): Promise<TaSendStudent[]> {
 
   // Fetch ILP targets and APDR data in parallel for SEND students
   const studentIds = sendStudents.map(s => s.id)
-  const [ilps, apdrs, profiles] = await Promise.all([
+  const [ilps, apdrs] = await Promise.all([
     prisma.individualLearningPlan.findMany({
-      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['active', 'under_review'] } },
-      include: { targets: { where: { status: { in: ['active', 'achieved'] } }, select: { id: true, target: true, status: true }, take: 4 } },
+      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
+      select:  {
+        studentId:       true,
+        successCriteria: true,
+        targets: { where: { status: { in: ['active', 'achieved'] } }, select: { id: true, target: true, status: true }, take: 4 },
+      },
     }),
     prisma.assessPlanDoReview.findMany({
       where:  { studentId: { in: studentIds }, schoolId, status: 'ACTIVE' },
       select: { studentId: true, reviewContent: true },
       orderBy: { createdAt: 'desc' },
     }),
-    (prisma as any).studentLearningProfile.findMany({
-      where:  { studentId: { in: studentIds } },
-      select: { studentId: true, classroomStrategies: true },
-    }).catch(() => [] as { studentId: string; classroomStrategies: string[] }[]),
   ])
 
-  const ilpMap    = new Map(ilps.map((i: { studentId: string; targets: { id: string; target: string; status: string }[] }) => [i.studentId, i]))
-  const apdrMap   = new Map(apdrs.map((a: { studentId: string; reviewContent: string }) => [a.studentId, a]))
-  const profMap   = new Map((profiles as { studentId: string; classroomStrategies: string[] }[]).map(p => [p.studentId, p]))
+  const ilpMap  = new Map(ilps.map(i => [i.studentId, i]))
+  const apdrMap = new Map(apdrs.map(a => [a.studentId, a]))
 
   return sendStudents.map(s => {
-    const ilp     = ilpMap.get(s.id)
-    const apdr    = apdrMap.get(s.id)
-    const profile = profMap.get(s.id)
+    const ilp  = ilpMap.get(s.id)
+    const apdr = apdrMap.get(s.id)
 
     // Determine APDR phase from reviewContent keywords
     let apdrPhase: string | null = null
@@ -319,7 +317,9 @@ export async function getTaSendStudents(): Promise<TaSendStudent[]> {
       sendStatus:          s.sendStatus?.activeStatus ?? 'NONE',
       needArea:            s.sendStatus?.needArea ?? null,
       supportSnapshot:     s.supportSnapshot ?? null,
-      classroomStrategies: Array.isArray(profile?.classroomStrategies) ? profile.classroomStrategies as string[] : [],
+      classroomStrategies: ilp?.successCriteria
+        ? ilp.successCriteria.split(/\n|•|-/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+        : [],
       ilpTargets:          ilp?.targets ?? [],
       apdrPhase,
       classes:             s.enrolments.map((e: { class: { id: string; name: string; subject: string } }) => e.class),

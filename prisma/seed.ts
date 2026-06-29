@@ -2705,6 +2705,15 @@ async function main() {
   }
   console.log(`  ✓ ${enrolCount} pool enrolments across new Section E classes`)
 
+  // Set yearGroup on all pool students so HOY year-scoped queries work
+  for (const [ygStr, emails] of Object.entries(yearGroupStudentPools)) {
+    const yg = Number(ygStr)
+    for (const email of emails) {
+      await prisma.user.updateMany({ where: { email, schoolId: school.id }, data: { yearGroup: yg } })
+    }
+  }
+  console.log('  ✓ Student yearGroup fields set from pool assignments')
+
   // ── User Settings (demo data for 3 test users) ─────────────────────────────
   const settingsSeed = [
     {
@@ -3925,6 +3934,118 @@ async function main() {
     await prisma.user.update({ where: { id: s.id }, data: { attendancePercentage: pct } })
   }
   console.log(`  ✓ ${allStudents.length} students seeded with attendance data`)
+
+  // ── Demo timetable (Wonde synthetic data for Aiden Hughes) ────────────────────
+  // Seeds WondeStudent + WondePeriod + WondeClass + WondeTimetableEntry so that
+  // /student/timetable shows a realistic weekly grid for the demo student.
+  const aidenWondeId   = 'demo-wonde-student-aiden'
+  const patelWondeId   = 'demo-wonde-emp-patel'
+  const wrightWondeId  = 'demo-wonde-emp-wright'
+
+  await prisma.wondeStudent.upsert({
+    where:  { id: aidenWondeId },
+    update: {},
+    create: { id: aidenWondeId, schoolId: school.id, misId: 'DEMO001', firstName: 'Aiden', lastName: 'Hughes', yearGroup: 9 },
+  })
+  await prisma.wondeEmployee.upsert({
+    where:  { id: patelWondeId },
+    update: {},
+    create: { id: patelWondeId, schoolId: school.id, firstName: 'Jay', lastName: 'Patel', title: 'Mr', isTeacher: true, subjects: ['English'] },
+  })
+  await prisma.wondeEmployee.upsert({
+    where:  { id: wrightWondeId },
+    update: {},
+    create: { id: wrightWondeId, schoolId: school.id, firstName: 'Karen', lastName: 'Wright', title: 'Ms', isTeacher: true, subjects: ['Maths'] },
+  })
+
+  // Periods: 5 per day × 5 days = 25 (Mon=1 … Fri=5)
+  const periodDefs = [
+    { name: 'Period 1', start: '09:00:00', end: '10:00:00' },
+    { name: 'Period 2', start: '10:00:00', end: '11:00:00' },
+    { name: 'Period 3', start: '11:15:00', end: '12:15:00' },
+    { name: 'Period 4', start: '13:15:00', end: '14:15:00' },
+    { name: 'Period 5', start: '14:15:00', end: '15:15:00' },
+  ]
+  const periodIds: Record<string, string> = {}
+  for (let day = 1; day <= 5; day++) {
+    for (let p = 0; p < periodDefs.length; p++) {
+      const id = `demo-period-d${day}-p${p + 1}`
+      await prisma.wondePeriod.upsert({
+        where:  { id },
+        update: {},
+        create: { id, schoolId: school.id, name: periodDefs[p].name, startTime: periodDefs[p].start, endTime: periodDefs[p].end, dayOfWeek: day },
+      })
+      periodIds[`${day}-${p + 1}`] = id
+    }
+  }
+
+  // Classes
+  const wondeClasses = [
+    { id: 'demo-wc-english',  name: '9E/En1',  subject: 'English',    empId: patelWondeId,  room: 'E12' },
+    { id: 'demo-wc-maths',    name: '9M/Ma2',  subject: 'Maths',      empId: wrightWondeId, room: 'M5'  },
+    { id: 'demo-wc-science',  name: '9S/Sc1',  subject: 'Science',    empId: null,          room: 'L3'  },
+    { id: 'demo-wc-history',  name: '9/Hi1',   subject: 'History',    empId: null,          room: 'H2'  },
+    { id: 'demo-wc-pe',       name: '9/Pe1',   subject: 'PE',         empId: null,          room: 'Gym' },
+    { id: 'demo-wc-art',      name: '9/Ar1',   subject: 'Art',        empId: null,          room: 'A4'  },
+  ]
+  for (const wc of wondeClasses) {
+    await prisma.wondeClass.upsert({
+      where:  { id: wc.id },
+      update: {},
+      create: { id: wc.id, schoolId: school.id, name: wc.name, subject: wc.subject, yearGroup: 9, employeeId: wc.empId },
+    })
+    await prisma.wondeClassStudent.upsert({
+      where:  { classId_studentId: { classId: wc.id, studentId: aidenWondeId } },
+      update: {},
+      create: { classId: wc.id, studentId: aidenWondeId },
+    })
+  }
+
+  // Timetable: realistic Year 9 weekly grid (day-period → classId)
+  const timetableSlots: { day: number; period: number; classId: string }[] = [
+    { day: 1, period: 1, classId: 'demo-wc-english'  },
+    { day: 1, period: 2, classId: 'demo-wc-maths'    },
+    { day: 1, period: 3, classId: 'demo-wc-science'  },
+    { day: 1, period: 4, classId: 'demo-wc-history'  },
+    { day: 1, period: 5, classId: 'demo-wc-art'      },
+    { day: 2, period: 1, classId: 'demo-wc-maths'    },
+    { day: 2, period: 2, classId: 'demo-wc-history'  },
+    { day: 2, period: 3, classId: 'demo-wc-science'  },
+    { day: 2, period: 4, classId: 'demo-wc-english'  },
+    { day: 2, period: 5, classId: 'demo-wc-pe'       },
+    { day: 3, period: 1, classId: 'demo-wc-science'  },
+    { day: 3, period: 2, classId: 'demo-wc-art'      },
+    { day: 3, period: 3, classId: 'demo-wc-english'  },
+    { day: 3, period: 4, classId: 'demo-wc-maths'    },
+    { day: 3, period: 5, classId: 'demo-wc-pe'       },
+    { day: 4, period: 1, classId: 'demo-wc-history'  },
+    { day: 4, period: 2, classId: 'demo-wc-english'  },
+    { day: 4, period: 3, classId: 'demo-wc-science'  },
+    { day: 4, period: 4, classId: 'demo-wc-maths'    },
+    { day: 4, period: 5, classId: 'demo-wc-art'      },
+    { day: 5, period: 1, classId: 'demo-wc-maths'    },
+    { day: 5, period: 2, classId: 'demo-wc-pe'       },
+    { day: 5, period: 3, classId: 'demo-wc-history'  },
+    { day: 5, period: 4, classId: 'demo-wc-english'  },
+    { day: 5, period: 5, classId: 'demo-wc-science'  },
+  ]
+  for (const slot of timetableSlots) {
+    const id = `demo-tte-d${slot.day}-p${slot.period}`
+    const wc = wondeClasses.find(c => c.id === slot.classId)!
+    await prisma.wondeTimetableEntry.upsert({
+      where:  { id },
+      update: {},
+      create: {
+        id,
+        schoolId:   school.id,
+        classId:    slot.classId,
+        periodId:   periodIds[`${slot.day}-${slot.period}`],
+        employeeId: wc.empId ?? null,
+        roomName:   wc.room,
+      },
+    })
+  }
+  console.log('  ✓ Demo timetable seeded (Aiden Hughes — 25 periods across 5 days)')
 
   // ── School communications (letters home) ──────────────────────────────────────
   // Seed 3 demo letters so l.hughes sees content in /parent/communications

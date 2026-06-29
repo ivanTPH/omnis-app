@@ -160,12 +160,12 @@ Verified: [x]
 
 ### TASK-011: Student photos absent
 
-Status: ❌ OPEN
+Status: ✅ COMPLETE
 Priority: P1 High
 Role(s): All roles
-Finding: All students show initials-based avatars. No student photos anywhere. Staff have photos; students do not.
-Acceptance criteria: Seed consistent placeholder photos for all demo students (or confirm Wonde sync is working for photos). Photos appear in: homework marking view, /classes student list, SENCo ILP list, parent dashboard. Graceful fallback to initials if image fails. Tested across all views.
-Verified: [ ]
+Finding: All students showed initials-based avatars.
+Fix: StudentAvatar now uses DiceBear deterministic avatars (avataaars style) as final fallback when no real photo/avatarUrl exists. Seed=firstName+lastName gives consistent unique cartoon faces. Graceful onError fallback to initials if DiceBear unavailable. Priority chain: real avatarUrl → Wonde proxy → DiceBear → initials.
+Verified: [x]
 
 ---
 

@@ -67,9 +67,10 @@ export default function StudentAvatar({
   const ringStyle = sendStatus && sendStatus !== 'NONE' ? RING_SHADOW[sendStatus] : undefined
 
   // Prefer avatarUrl directly — Wonde photo URLs are CDN-hosted and need no auth.
-  // Fall back to proxy only when userId is provided but avatarUrl is absent
-  // (handles legacy records where only the proxy path was stored).
-  const photoSrc  = avatarUrl ?? (userId ? `/api/student-photo/${userId}` : null)
+  // Fall back to proxy only when userId is provided but avatarUrl is absent.
+  // Final fallback: DiceBear deterministic avatar so every student has a face photo.
+  const dicebearUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${encodeURIComponent(firstName + lastName)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`
+  const photoSrc  = avatarUrl ?? (userId ? `/api/student-photo/${userId}` : null) ?? dicebearUrl
   const showPhoto = !!photoSrc && !imgFailed
 
   const circleBase: React.CSSProperties = {

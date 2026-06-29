@@ -3808,7 +3808,6 @@ async function main() {
       if (!existing) {
         await prisma.consentRecord.create({
           data: {
-            schoolId:    school.id,
             studentId:   aidenUser.id,
             purposeId:   p.id,
             responderId: lhughes.id,
@@ -3845,7 +3844,7 @@ async function main() {
   const bhvAuthorIds = [
     created['j.patel'].id,
     created['t.adeyemi'].id,
-    created['k.wright'].id,
+    kwright.id,
   ]
 
   const behaviourData: Array<{

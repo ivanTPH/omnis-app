@@ -3979,19 +3979,21 @@ async function main() {
     }
   }
 
-  // Classes
+  // Classes — empId intentionally null for all so teacher timetable (/timetable)
+  // falls back to the lesson DB (which correctly reflects all teacher's classes).
+  // If a real Wonde sync runs later, it will populate proper entries.
   const wondeClasses = [
-    { id: 'demo-wc-english',  name: '9E/En1',  subject: 'English',    empId: patelWondeId,  room: 'E12' },
-    { id: 'demo-wc-maths',    name: '9M/Ma2',  subject: 'Maths',      empId: wrightWondeId, room: 'M5'  },
-    { id: 'demo-wc-science',  name: '9S/Sc1',  subject: 'Science',    empId: null,          room: 'L3'  },
-    { id: 'demo-wc-history',  name: '9/Hi1',   subject: 'History',    empId: null,          room: 'H2'  },
-    { id: 'demo-wc-pe',       name: '9/Pe1',   subject: 'PE',         empId: null,          room: 'Gym' },
-    { id: 'demo-wc-art',      name: '9/Ar1',   subject: 'Art',        empId: null,          room: 'A4'  },
+    { id: 'demo-wc-english',  name: '9E/En1',  subject: 'English',    empId: null, room: 'E12' },
+    { id: 'demo-wc-maths',    name: '9M/Ma2',  subject: 'Maths',      empId: null, room: 'M5'  },
+    { id: 'demo-wc-science',  name: '9S/Sc1',  subject: 'Science',    empId: null, room: 'L3'  },
+    { id: 'demo-wc-history',  name: '9/Hi1',   subject: 'History',    empId: null, room: 'H2'  },
+    { id: 'demo-wc-pe',       name: '9/Pe1',   subject: 'PE',         empId: null, room: 'Gym' },
+    { id: 'demo-wc-art',      name: '9/Ar1',   subject: 'Art',        empId: null, room: 'A4'  },
   ]
   for (const wc of wondeClasses) {
     await prisma.wondeClass.upsert({
       where:  { id: wc.id },
-      update: {},
+      update: { employeeId: wc.empId },   // re-run safe: clears old empId links
       create: { id: wc.id, schoolId: school.id, name: wc.name, subject: wc.subject, yearGroup: 9, employeeId: wc.empId },
     })
     await prisma.wondeClassStudent.upsert({
@@ -4034,13 +4036,13 @@ async function main() {
     const wc = wondeClasses.find(c => c.id === slot.classId)!
     await prisma.wondeTimetableEntry.upsert({
       where:  { id },
-      update: {},
+      update: { employeeId: null },  // re-run safe: clear any stale teacher link
       create: {
         id,
         schoolId:   school.id,
         classId:    slot.classId,
         periodId:   periodIds[`${slot.day}-${slot.period}`],
-        employeeId: wc.empId ?? null,
+        employeeId: null,            // no teacher link — teacher timetable uses lesson fallback
         roomName:   wc.room,
       },
     })

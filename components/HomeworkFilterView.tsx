@@ -242,7 +242,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
           <Icon name="error" size="sm" className="shrink-0" />
           <span className="flex-1">Couldn&apos;t load your homework — there was a temporary database issue.</span>
           <button
-            onClick={() => router.refresh()}
+            onClick={() => { window.location.href = '/homework' }}
             className="flex items-center gap-1 px-3 py-1 bg-white border border-red-200 rounded-lg text-xs font-medium hover:bg-red-50 transition-colors"
           >
             <Icon name="refresh" size="sm" />Retry

@@ -17,7 +17,13 @@ export default async function HomeworkPage() {
   let items: HomeworkListItem[] = []
   let fetchError = false
 
-  try {
+  // Guard: if schoolId is missing from the session JWT, bail immediately
+  if (!schoolId) {
+    fetchError = true
+    console.error('[HomeworkPage] schoolId missing from session — cannot scope query')
+  }
+
+  if (!fetchError) try {
     const homework = await prisma.homework.findMany({
       where: {
         schoolId,
@@ -65,7 +71,8 @@ export default async function HomeworkPage() {
       }
     })
   } catch (err) {
-    console.error('[HomeworkPage] data fetch failed:', err)
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[HomeworkPage] data fetch failed:', msg)
     fetchError = true
   }
 

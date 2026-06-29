@@ -3,7 +3,6 @@ import { useState, useTransition, useCallback } from 'react'
 import ClassRosterTab from '@/components/ClassRosterTab'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
-import ExportPdfButton from '@/components/ExportPdfButton'
 import { bulkGenerateLearningPassports, generatePassportsForStudents } from '@/app/actions/students'
 import { updateClassExamBoard } from '@/app/actions/admin'
 
@@ -345,11 +344,15 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
       {/* ── Class report download ── */}
       {effectiveId && (
         <div className="flex justify-end">
-          <ExportPdfButton
+          <a
             href={`/api/export/class-report/${effectiveId}`}
-            filename={`class-report-${effectiveClass?.name ?? effectiveId}.pdf`}
-            label="Class Report PDF"
-          />
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          >
+            <Icon name="download" size="sm" />
+            Class Report PDF
+          </a>
         </div>
       )}
 

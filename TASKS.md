@@ -13,7 +13,7 @@ _Status: Active development — implement, verify, and tick each task before mar
 
 ### TASK-003: Homework list persistent session failure
 
-Status: ❌ OPEN (WORSENED — failed 4/4 attempts in latest review)
+Status: 🔄 PARTIAL (retry button hard-reloads; root cause may be Vercel cold-start or PgBouncer — needs monitoring)
 Priority: P0 Blocker
 Role(s): Teacher
 Finding: /homework fails to load with "Couldn't load homework — There was a problem fetching your homework data." after initial page load. "Try again" button is ineffective. Navigating away and back does not resolve. First load in session succeeds but subsequent loads fail. Root cause: likely stale auth token not being refreshed on re-navigation, or a race condition in the homework fetch hook.
@@ -24,7 +24,7 @@ Verified: [ ]
 
 ### TASK-005: Class Report PDF silent failure
 
-Status: ❌ OPEN
+Status: ✅ COMPLETE
 Priority: P0 Blocker
 Role(s): Teacher
 Finding: "Download Class Report PDF" button in /classes produces zero response — no loading state, no download, no error message, no network request visible. Complete silent failure.
@@ -83,7 +83,7 @@ Verified: [ ]
 
 ### TASK-009: MIS attendance data not flowing / no demo attendance data
 
-Status: ❌ OPEN
+Status: 🔄 PARTIAL (seed fixed — run `npm run db:seed` against Vercel DB to populate)
 Priority: P1 High
 Role(s): HOY, SLT, School Admin
 Finding: HOY /hoy/absence shows "No attendance data yet." Student timetable shows "No timetable available." No attendance or timetable data is available anywhere in the platform.

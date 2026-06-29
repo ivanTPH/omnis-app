@@ -1199,12 +1199,14 @@ function ContactsTab({
       method, summary, outcome: outcome || null, authorName: 'You', authorRole: '', createdAt: new Date().toISOString(),
     }, ...prev])
     setSummary(''); setOutcome(''); setShowForm(false)
+    toast('Contact entry logged')
   }
 
   function handleDelete(id: string) {
     startTransition(async () => {
       await deleteParentContactEntry(id)
       setEntries(prev => prev.filter(e => e.id !== id))
+      toast('Contact entry deleted')
     })
   }
 

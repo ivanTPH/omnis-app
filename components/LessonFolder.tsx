@@ -25,6 +25,7 @@ const ClassBriefingCard      = dynamic(() => import('@/components/ClassBriefingC
 const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/HomeworkDetailPanel'),       { ssr: false })
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
+import { toast } from '@/components/ui/Toast'
 
 // Extract plain text from a PPTX file (ZIP containing XML slide files)
 async function extractPptxText(file: File): Promise<string> {
@@ -541,6 +542,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     startSave(async () => {
       await updateLessonOverview(lessonId, { title, objectives })
       router.refresh()
+      toast('Lesson overview saved')
     })
   }
 

@@ -61,6 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         )}
       </head>
       <body className={inter.className}>
+        {/* Skip-link — allows keyboard users to jump past the nav to main content */}
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <AvatarProvider avatarUrl={avatarUrl} initialNotificationCount={initialNotificationCount} initialMessageCount={initialMessageCount}>
           {children}
         </AvatarProvider>

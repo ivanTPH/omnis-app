@@ -927,7 +927,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
       <div className="flex sm:grid sm:grid-cols-[1fr_130px_110px_110px_60px_80px] items-center gap-3 sm:gap-0 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 select-none">
         {/* Name + expand */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <button onClick={onExpand} className="shrink-0 text-gray-400">
+          <button onClick={onExpand} aria-label={expanded ? 'Collapse student row' : 'Expand student row'} className="shrink-0 text-gray-400">
             {expanded ? <Icon name="expand_more" size="sm" /> : <Icon name="chevron_right" size="sm" />}
           </button>
           {/* Avatar — click to open contact panel */}
@@ -1031,7 +1031,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         <div className="flex sm:hidden items-center gap-2 shrink-0">
           <span className="text-xs text-gray-500">{student.completionRate}%</span>
           {student.hasSend && <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">SEN</span>}
-          <button onClick={onNavigate} className="p-1 text-gray-400"><Icon name="open_in_new" size="sm" /></button>
+          <button onClick={onNavigate} aria-label="Open student dashboard" className="p-1 text-gray-400"><Icon name="open_in_new" size="sm" /></button>
         </div>
       </div>
 

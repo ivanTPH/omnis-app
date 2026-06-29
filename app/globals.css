@@ -88,6 +88,45 @@ html.reduced-motion *::after {
 html.line-spacing-wide  body { line-height: 1.8 !important; }
 html.line-spacing-wider body { line-height: 2.2 !important; }
 
+/* ─── Accessibility: Global focus rings ─────────────────────────────────────
+   Ensures all interactive elements have a visible keyboard focus indicator.
+   Uses :focus-visible so mouse clicks don't show the ring (only Tab/keyboard). */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remove default browser outline since we're providing our own */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure skip-link is visible on focus */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  width: auto;
+  height: auto;
+  outline: 3px solid #fff;
+}
+
 /* ─── Lesson panel slide-up animation ──────────────────────────────────────── */
 @keyframes slide-up {
   from { transform: translateY(12px); opacity: 0; }

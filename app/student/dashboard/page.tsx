@@ -16,22 +16,33 @@ export default async function StudentDashboardPage() {
   const enrolments = await prisma.enrolment.findMany({ where: { userId }, select: { classId: true } })
   const classIds = enrolments.map((e: any) => e.classId)
 
-  const allHw = await prisma.homework.findMany({
-    where: {
-      schoolId,
-      classId: { in: classIds },
-      status: 'PUBLISHED',
-      OR: [{ isAdapted: false, adaptedFor: null }, { isAdapted: true, adaptedFor: userId }],
-    },
-    include: {
-      class: { select: { name: true, subject: true } },
-      submissions: {
-        where: { studentId: userId },
-        select: { id: true, status: true, grade: true, finalScore: true, submittedAt: true, homework: { select: { gradingBands: true } } },
+  const [allHwResult, unreadResult, notifResult, passportResult, timetableResult] = await Promise.allSettled([
+    prisma.homework.findMany({
+      where: {
+        schoolId,
+        classId: { in: classIds },
+        status: 'PUBLISHED',
+        OR: [{ isAdapted: false, adaptedFor: null }, { isAdapted: true, adaptedFor: userId }],
       },
-    },
-    orderBy: { dueAt: 'asc' },
-  })
+      include: {
+        class: { select: { name: true, subject: true } },
+        submissions: {
+          where: { studentId: userId },
+          select: { id: true, status: true, grade: true, finalScore: true, submittedAt: true, homework: { select: { gradingBands: true } } },
+        },
+      },
+      orderBy: { dueAt: 'asc' },
+    }),
+    getUnreadMessageCount(),
+    getMyPlatformNotifications(),
+    getStudentOwnPassport(),
+    getStudentTimetable(),
+  ])
+
+  const allHw         = allHwResult.status     === 'fulfilled' ? allHwResult.value     : []
+  const unreadCount   = unreadResult.status    === 'fulfilled' ? unreadResult.value    : 0
+  const notifications = notifResult.status     === 'fulfilled' ? notifResult.value     : []
+  const passport      = passportResult.status  === 'fulfilled' ? passportResult.value  : null
 
   // Prefer adapted version for same lesson
   const map = new Map<string, any>()
@@ -102,26 +113,14 @@ export default async function StudentDashboardPage() {
     })
     .sort((a, b) => b.avgScore - a.avgScore)
 
-  // ── Unread message count ────────────────────────────────────────────────────
-
-  let unreadCount = 0
-  try { unreadCount = await getUnreadMessageCount() } catch {}
-
-  let notifications: Awaited<ReturnType<typeof getMyPlatformNotifications>> = []
-  try { notifications = await getMyPlatformNotifications() } catch {}
-
-  let passport = null
-  try { passport = await getStudentOwnPassport() } catch {}
-
   // Today's timetable — ISO weekday 1=Mon…7=Sun
   let todayLessons: { subject: string; startTime: string; endTime: string; teacher: string | null; room: string | null; className: string }[] = []
-  try {
-    const timetable = await getStudentTimetable()
+  if (timetableResult.status === 'fulfilled') {
     const jsDay = new Date().getDay()  // 0=Sun
     const isoDay = jsDay === 0 ? 7 : jsDay
-    const today = timetable.find(d => d.dayOfWeek === isoDay)
+    const today = timetableResult.value.find(d => d.dayOfWeek === isoDay)
     todayLessons = today?.lessons ?? []
-  } catch {}
+  }
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

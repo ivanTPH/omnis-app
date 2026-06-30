@@ -21,6 +21,14 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Never serve a stale client-side cached version of dynamic pages.
+    // Without this, Next.js router cache holds the last server render for 30s —
+    // so if /homework renders an error banner on one navigation, the next sidebar
+    // click within 30s returns the same cached error instead of re-fetching.
+    staleTimes: { dynamic: 0 },
+  },
+
   // Prevent Next.js from bundling these server-only packages.
   // @sparticuz/chromium includes a native Chromium binary; puppeteer/puppeteer-core
   // must also be external so they can resolve the binary path at runtime.

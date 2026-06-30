@@ -24,11 +24,15 @@ export default async function HomeworkPage() {
   }
 
   // Retry helper — transient PgBouncer connection failures on Vercel cold-starts
-  // resolve on the second attempt. One retry with 300ms back-off is sufficient.
+  // can take 1–2 seconds to resolve. Two retries with increasing back-off covers
+  // the vast majority of cold-start pool exhaustion cases.
   async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
     try { return await fn() } catch {
-      await new Promise(r => setTimeout(r, 300))
-      return fn()
+      await new Promise(r => setTimeout(r, 800))
+      try { return await fn() } catch {
+        await new Promise(r => setTimeout(r, 1500))
+        return fn()
+      }
     }
   }
 

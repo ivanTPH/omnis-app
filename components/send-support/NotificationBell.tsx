@@ -16,19 +16,22 @@ type UnifiedNotification =
   | (SendNotificationRow  & { source: 'send';     linkHref?: null })
   | (PlatformNotificationRow & { source: 'platform'; isRead: boolean })
 
-const TYPE_LABELS: Record<string, string> = {
-  new_concern:         '🔔 New concern',
-  concern_escalated:   '⚠️ Concern escalated',
-  ilp_created:         '📋 ILP created',
-  ilp_review_due:      '📅 Review due',
-  pattern_detected:    '📊 Pattern detected',
-  review_requested:    '👁 Review requested',
-  HOMEWORK_SUBMITTED:  '📝 Homework submitted',
-  HOMEWORK_GRADED:     '✅ Homework graded',
-  PLAN_REVIEW_DUE:     '📅 Plan review due',
-  SUBMISSION_FLAGGED:  '🚩 Submission flagged',
-  new_message:         '💬 New message',
-  GENERAL:             '🔔 Notification',
+const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
+  new_concern:         { icon: 'warning',          color: 'text-amber-500',  label: 'New concern' },
+  concern_escalated:   { icon: 'report_problem',   color: 'text-red-500',    label: 'Concern escalated' },
+  ilp_created:         { icon: 'description',      color: 'text-blue-500',   label: 'ILP created' },
+  ilp_review_due:      { icon: 'event',            color: 'text-orange-500', label: 'Review due' },
+  pattern_detected:    { icon: 'bar_chart',        color: 'text-purple-500', label: 'Pattern detected' },
+  review_requested:    { icon: 'visibility',       color: 'text-blue-500',   label: 'Review requested' },
+  HOMEWORK_SUBMITTED:  { icon: 'assignment',       color: 'text-indigo-500', label: 'Homework submitted' },
+  HOMEWORK_GRADED:     { icon: 'check_circle',     color: 'text-green-500',  label: 'Homework graded' },
+  PLAN_REVIEW_DUE:     { icon: 'event',            color: 'text-orange-500', label: 'Plan review due' },
+  SUBMISSION_FLAGGED:  { icon: 'flag',             color: 'text-red-500',    label: 'Submission flagged' },
+  new_message:         { icon: 'chat_bubble',      color: 'text-blue-500',   label: 'New message' },
+  GENERAL:             { icon: 'notifications',    color: 'text-gray-400',   label: 'Notification' },
+  ILP_EVIDENCE_REQUEST:{ icon: 'link',             color: 'text-teal-500',   label: 'Evidence request' },
+  ILP_EVIDENCE_SUGGESTED: { icon: 'auto_awesome', color: 'text-teal-500',   label: 'Evidence suggested' },
+  SYSTEM:              { icon: 'info',             color: 'text-blue-400',   label: 'System' },
 }
 
 export default function NotificationBell() {
@@ -146,8 +149,13 @@ export default function NotificationBell() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-500 mb-0.5">
-                          {TYPE_LABELS[n.type] ?? n.type}
+                        <p className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-0.5">
+                          <Icon
+                            name={(TYPE_META[n.type] ?? TYPE_META.GENERAL).icon}
+                            size="sm"
+                            className={(TYPE_META[n.type] ?? TYPE_META.GENERAL).color}
+                          />
+                          {(TYPE_META[n.type] ?? { label: n.type.replace(/_/g, ' ').toLowerCase() }).label}
                         </p>
                         <p className="text-sm font-medium text-gray-900 line-clamp-1">{n.title}</p>
                         <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{n.body}</p>

@@ -472,14 +472,16 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               )}
 
               {spacingSuggestion && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-                  📅 Spacing: {spacingSuggestion}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800 flex items-start gap-2">
+                  <Icon name="event" size="sm" className="shrink-0 mt-0.5 text-amber-600" />
+                  <span>Spacing: {spacingSuggestion}</span>
                 </div>
               )}
               {suggestedIlpTargets.length > 0 && (
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 space-y-1.5">
-                  <p className="text-sm font-medium text-purple-800">
-                    ⚡ {suggestedIlpTargets.length} ILP target{suggestedIlpTargets.length !== 1 ? 's' : ''} due within 28 days for students in this class
+                  <p className="text-sm font-medium text-purple-800 flex items-center gap-1.5">
+                    <Icon name="flag" size="sm" className="text-purple-600 shrink-0" />
+                    {suggestedIlpTargets.length} ILP target{suggestedIlpTargets.length !== 1 ? 's' : ''} due within 28 days for students in this class
                   </p>
                   <ul className="space-y-0.5">
                     {suggestedIlpTargets.map((t, i) => (

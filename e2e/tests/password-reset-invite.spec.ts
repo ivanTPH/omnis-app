@@ -250,16 +250,20 @@ test.describe('Password reset — valid token (DB-backed)', () => {
 test.describe('Staff invitation — accept-invite page', () => {
   test('no token → shows error/expired state', async ({ page }) => {
     await page.goto('/accept-invite')
-    await page.waitForLoadState('domcontentloaded')
-    await page.waitForTimeout(2000)
+    await page.waitForFunction(
+      () => !document.body.innerText.toLowerCase().includes('verifying'),
+      { timeout: 15000 }
+    )
     const body = await page.locator('body').innerText()
     expect(body.toLowerCase()).toMatch(/expired|invalid|used|not found/)
   })
 
   test('invalid token → shows error/expired state', async ({ page }) => {
     await page.goto('/accept-invite?token=notavalidtoken')
-    await page.waitForLoadState('domcontentloaded')
-    await page.waitForTimeout(2000)
+    await page.waitForFunction(
+      () => !document.body.innerText.toLowerCase().includes('verifying'),
+      { timeout: 15000 }
+    )
     const body = await page.locator('body').innerText()
     expect(body.toLowerCase()).toMatch(/expired|invalid|used|not found/)
   })

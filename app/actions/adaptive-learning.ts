@@ -804,13 +804,14 @@ Return a JSON object with:
 
     async function callAI(): Promise<{ adaptedContent: object; adaptationNotes: string }> {
       const client = new Anthropic({ apiKey })
+      const start = Date.now()
       const msg = await client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1200,
         system: 'You are a UK SENCO and differentiation expert. Adapt homework for specific student needs. Keep the same learning objectives. Return ONLY valid JSON matching the original structuredContent schema exactly.',
         messages: [{ role: 'user', content: prompt }],
       })
-      console.log(`[Differentiation] ${studentName} — input: ${msg.usage.input_tokens}t, output: ${msg.usage.output_tokens}t, model: claude-sonnet-4-6`)
+      console.log(`[Differentiation] Student: ${studentName} | Status: SUCCESS | Duration: ${Date.now() - start}ms | tokens: ${msg.usage.input_tokens}in/${msg.usage.output_tokens}out`)
       const raw = (msg.content[0] as { text: string }).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
       const parsed = JSON.parse(raw) as { adaptedContent?: object; adaptationNotes?: string }
       return {
@@ -819,17 +820,32 @@ Return a JSON object with:
       }
     }
 
+    // Guard: skip AI call if student has no meaningful profile data to adapt for
+    if (!studentName || studentName === 'Unknown') {
+      return {
+        studentId,
+        studentName,
+        adaptedContent: hwData.structuredContent as object ?? {},
+        adaptationNotes: 'Student data unavailable — original content returned.',
+        adaptationType,
+        failedAi: true,
+        ilpFallbackTargets: ilpTargets,
+      }
+    }
+
     try {
-      // Attempt with one automatic retry after 2s on failure
+      // Attempt with one automatic retry after 5s on failure (rate-limit window reset)
       let result: { adaptedContent: object; adaptationNotes: string }
       try {
         result = await callAI()
       } catch {
-        await new Promise(r => setTimeout(r, 2000))
+        console.log(`[Differentiation] Student: ${studentName} | Attempt: 1 | Status: FAIL — retrying in 5s`)
+        await new Promise(r => setTimeout(r, 5000))
         result = await callAI()
       }
       return { studentId, studentName, adaptedContent: result.adaptedContent, adaptationNotes: result.adaptationNotes, adaptationType }
-    } catch {
+    } catch (err) {
+      console.log(`[Differentiation] Student: ${studentName} | Attempt: 2 | Status: FAIL — ${err instanceof Error ? err.message : String(err)}`)
       return {
         studentId,
         studentName,
@@ -842,12 +858,17 @@ Return a JSON object with:
     }
   }
 
-  // Process in batches of 3 to limit concurrent API calls and reduce rate-limit failures
+  // Process in batches of 2 to minimise concurrent API load and avoid rate-limit collisions.
+  // With 11 SEND students this means 6 sequential batches — each batch completes before the next
+  // starts, and a 500ms inter-batch pause lets the API rate-limit window settle.
   const results: Awaited<ReturnType<typeof processStudent>>[] = []
-  for (let i = 0; i < studentIds.length; i += 3) {
-    const chunk = studentIds.slice(i, i + 3)
+  for (let i = 0; i < studentIds.length; i += 2) {
+    const chunk = studentIds.slice(i, i + 2)
     const chunkResults = await Promise.all(chunk.map(processStudent))
     results.push(...chunkResults)
+    if (i + 2 < studentIds.length) {
+      await new Promise(r => setTimeout(r, 500))
+    }
   }
 
   return results

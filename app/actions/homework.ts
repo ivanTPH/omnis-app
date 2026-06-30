@@ -409,7 +409,7 @@ export async function createHomework(input: {
         data: enrolments.map(e => ({
           schoolId,
           userId:   e.user.id,
-          type:     'HOMEWORK_GRADED', // reuse type for new HW
+          type:     'HOMEWORK_REMINDER',
           title:    `New homework: ${input.title}`,
           body:     `${subject} homework has been set${dueStr}. Click to view and submit.`,
           linkHref: `/student/homework/${hw.id}`,
@@ -424,7 +424,7 @@ export async function createHomework(input: {
           .map(link => ({
             schoolId,
             userId:   link.parent.id,
-            type:     'HOMEWORK_GRADED',
+            type:     'HOMEWORK_REMINDER',
             title:    `New homework set for ${e.user.firstName}`,
             body:     `${subject} homework "${input.title}" has been set${dueStr}.`,
             linkHref: `/parent/progress`,

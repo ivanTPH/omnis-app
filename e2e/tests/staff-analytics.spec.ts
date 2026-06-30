@@ -287,9 +287,8 @@ test.describe('SLT Staff Overview — page content', () => {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
     // Either a populated table or an empty state is acceptable, but no crash
-    // 20s timeout: loading skeleton shows first (no table), then streams in
     const table = page.locator('table')
-    await expect(table).toBeVisible({ timeout: 20_000 })
+    await expect(table).toBeVisible({ timeout: 10_000 })
     const body = await page.locator('body').innerText()
     expect(body).not.toMatch(/something went wrong/i)
   })

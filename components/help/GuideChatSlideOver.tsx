@@ -51,10 +51,10 @@ export default function GuideChatSlideOver({ onClose }: { onClose: () => void })
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
-      <div className="fixed bottom-0 right-0 z-50 w-full max-w-sm h-[600px] max-h-[90dvh] bg-white shadow-2xl rounded-tl-2xl flex flex-col border-l border-t border-gray-200 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Help assistant" className="fixed bottom-0 right-0 z-50 w-full max-w-sm h-[600px] max-h-[90dvh] bg-white shadow-2xl rounded-tl-2xl flex flex-col border-l border-t border-gray-200 overflow-hidden">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-3.5 bg-blue-700 shrink-0">

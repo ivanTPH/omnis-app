@@ -47,7 +47,7 @@ export default function RaiseConcernModal({ studentId, studentName, onClose }: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+      <div role="dialog" aria-modal="true" aria-label="Raise SEND concern" className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Icon name="warning" size="md" className="text-amber-500" />

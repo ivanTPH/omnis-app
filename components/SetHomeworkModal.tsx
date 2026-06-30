@@ -141,6 +141,9 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Set homework"
         className="bg-white w-full sm:max-w-2xl sm:rounded-2xl shadow-2xl max-h-[95dvh] flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >

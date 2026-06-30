@@ -68,18 +68,19 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
           className="fixed inset-0 bg-black/30"
           style={{ zIndex }}
           onClick={onClose}
+          aria-hidden="true"
         />
       )}
 
       {/* Panel */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Student contact information"
         className={`fixed inset-y-0 right-0 w-[380px] max-w-[95vw] bg-white shadow-2xl flex flex-col
           transition-transform duration-300 ease-in-out
           ${open ? 'translate-x-0' : 'translate-x-full'}`}
         style={{ zIndex: zIndex + 1 }}
-        aria-modal="true"
-        role="dialog"
-        aria-label="Student contact details"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">

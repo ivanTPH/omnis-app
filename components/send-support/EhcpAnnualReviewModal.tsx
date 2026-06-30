@@ -65,7 +65,7 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+      <div role="dialog" aria-modal="true" aria-label="EHCP annual review" className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2">

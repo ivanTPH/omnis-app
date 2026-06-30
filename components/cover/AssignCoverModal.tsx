@@ -59,7 +59,7 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Assign cover" className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[14px] font-bold text-gray-900">Assign Cover</h2>

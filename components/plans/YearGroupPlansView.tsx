@@ -517,7 +517,7 @@ export default function YearGroupPlansView({
       {/* Create/Edit modal */}
       {modal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div role="dialog" aria-modal="true" aria-label="Year group plan" className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
               <div>
                 <h2 className="font-semibold text-gray-900 text-lg">
@@ -664,7 +664,7 @@ export default function YearGroupPlansView({
       {/* Delete confirmation */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+          <div role="dialog" aria-modal="true" aria-label="Delete plan" className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
                 <Icon name="delete" size="md" className="text-red-600" />

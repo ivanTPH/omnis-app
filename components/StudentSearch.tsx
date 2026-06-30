@@ -134,9 +134,10 @@ export default function StudentSearch({ role }: { role: string }) {
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => setPanelOpen(false)}
+            aria-hidden="true"
           />
           {/* Panel */}
-          <div className="relative w-full max-w-2xl bg-gray-50 overflow-y-auto shadow-2xl flex flex-col">
+          <div role="dialog" aria-modal="true" aria-label="Student file" className="relative w-full max-w-2xl bg-gray-50 overflow-y-auto shadow-2xl flex flex-col">
             <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shrink-0">
               <span className="text-sm font-semibold text-gray-700">Student File</span>
               <button

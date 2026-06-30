@@ -106,7 +106,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div role="dialog" aria-modal="true" aria-label="Review SEND concern" className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100 z-10">
           <div>
             <h2 className="font-semibold text-gray-900">Review SEND Concern</h2>

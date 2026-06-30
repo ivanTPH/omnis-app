@@ -319,7 +319,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-        <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div role="dialog" aria-modal="true" aria-label="ILP detail" className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
 
           {/* Header */}
           <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100 z-10">
@@ -453,7 +453,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
       {/* ILP generation progress overlay */}
       {genState.phase === 'loading' && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-7 text-center space-y-5">
+          <div role="dialog" aria-modal="true" aria-label="Generating ILP" className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-7 text-center space-y-5">
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
               <Icon name="auto_awesome" size="md" className="text-purple-600" />
             </div>
@@ -776,7 +776,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
       {/* Create ILP modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div role="dialog" aria-modal="true" aria-label="Create Individual Learning Plan" className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100 z-10">
               <h2 className="font-semibold text-gray-900">Create Individual Learning Plan</h2>
               <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
@@ -822,7 +822,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
       {/* Review Schedule Modal — shown after ILP approval */}
       {reviewModal.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+          <div role="dialog" aria-modal="true" aria-label="Review schedule" className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
             {/* Header */}
             <div className="px-6 py-5 border-b border-gray-100">
               <div className="flex items-center gap-3">

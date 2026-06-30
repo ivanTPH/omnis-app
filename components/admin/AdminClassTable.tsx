@@ -145,8 +145,8 @@ function ClassSlideOver({
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <div className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div className="flex-1 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div role="dialog" aria-modal="true" aria-label="Class details" className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
             <p className="text-[15px] font-semibold text-gray-900">

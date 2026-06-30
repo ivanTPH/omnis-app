@@ -2161,8 +2161,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       {/* ── Adaptive Differentiation Slide-Over ── */}
       {diffOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setDiffOpen(false)} />
-          <div className="relative bg-white w-full max-w-xl h-full flex flex-col shadow-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setDiffOpen(false)} aria-hidden="true" />
+          <div role="dialog" aria-modal="true" aria-label="Adaptive Differentiation" className="relative bg-white w-full max-w-xl h-full flex flex-col shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
               <div className="flex items-center gap-2">
                 <Icon name="auto_fix_high" size="sm" className="text-indigo-600" />
@@ -2266,7 +2266,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       {/* ILP Evidence Modal */}
       {ilpModalOpen && ilpPromptData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col overflow-hidden">
+          <div role="dialog" aria-modal="true" aria-label="Record ILP Evidence" className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-2 shrink-0">
               <Icon name="track_changes" size="sm" className="text-blue-600" />
               <h2 className="text-[15px] font-bold text-gray-900 flex-1">Record ILP Evidence</h2>

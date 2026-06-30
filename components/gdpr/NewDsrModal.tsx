@@ -38,7 +38,7 @@ export default function NewDsrModal({ students, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="New data subject request" className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-[15px] font-semibold text-gray-900">New Data Subject Request</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">

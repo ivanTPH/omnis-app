@@ -100,6 +100,9 @@ export default function GlobalSearch() {
       onClick={() => setOpen(false)}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
         className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden mx-4"
         onClick={e => e.stopPropagation()}
       >

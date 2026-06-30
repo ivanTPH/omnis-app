@@ -999,7 +999,7 @@ function FlagConcernModal({ studentId, studentName, onClose }: { studentId: stri
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+      <div role="dialog" aria-modal="true" aria-label="Student options" className="bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Icon name="flag" size="sm" className="text-amber-500" />

@@ -74,10 +74,11 @@ export default function EarlyWarningActionSlideOver({ flag, onClose, onResolve, 
       <div
         className="fixed inset-0 bg-black/30 z-40"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white shadow-xl z-50 flex flex-col">
+      <div role="dialog" aria-modal="true" aria-label="Early warning action" className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white shadow-xl z-50 flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between px-5 py-4 border-b border-gray-200 shrink-0">
           <div className="min-w-0 flex-1">

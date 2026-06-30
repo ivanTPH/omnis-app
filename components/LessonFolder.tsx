@@ -2210,7 +2210,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     {/* Resource picker — shown when 2+ presentation resources exist before generating homework */}
     {resourcePickerOpen && lesson && typeof window !== 'undefined' && createPortal(
       <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-sm mx-4 p-5 space-y-4">
+        <div role="dialog" aria-modal="true" aria-label="Select resource" className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-sm mx-4 p-5 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-900">Which resource to use?</p>
             <button

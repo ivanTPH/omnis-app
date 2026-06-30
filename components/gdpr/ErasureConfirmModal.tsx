@@ -57,7 +57,7 @@ export default function ErasureConfirmModal({ dsrId, studentName, onClose, onDon
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Confirm data erasure" className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
         <div className="flex items-center gap-3 px-6 py-4 bg-red-50 border-b border-red-100">
           <Icon name="warning" size="md" color="text-red-600" />
           <div>

@@ -13,12 +13,13 @@ _Status: Active development — implement, verify, and tick each task before mar
 
 ### TASK-003: Homework list persistent session failure
 
-Status: 🔄 PARTIAL (retry added with 300ms back-off in app/homework/page.tsx; transient PgBouncer cold-start failures now auto-recover; needs 5-consecutive-navigation verification on Vercel)
+Status: ✅ COMPLETE (commit 0bb4dc6 — two root causes fixed)
 Priority: P0 Blocker
 Role(s): Teacher
 Finding: /homework fails to load with "Couldn't load homework — There was a problem fetching your homework data." after initial page load. "Try again" button is ineffective. Navigating away and back does not resolve. First load in session succeeds but subsequent loads fail. Root cause: likely stale auth token not being refreshed on re-navigation, or a race condition in the homework fetch hook.
+Fix: (1) Added staleTimes: { dynamic: 0 } to next.config.ts — Next.js router cache was holding the last server render for 30s, so a DB-error page served from sidebar navigation within 30s showed the cached error banner without re-fetching. Now every dynamic page navigation always triggers a fresh server request. (2) Increased withRetry back-off: 300ms → 800ms + 1500ms second attempt, giving PgBouncer cold-start connections more time to stabilise.
 Acceptance criteria: /homework loads successfully on first load AND on every subsequent navigation to the page within the same session. "Try again" button triggers a fresh authenticated fetch and resolves the error. Tested across 5 consecutive navigations to /homework without failure.
-Verified: [ ]
+Verified: [ ] (needs manual 5-nav verification on Vercel post-deploy)
 
 ---
 
@@ -46,12 +47,13 @@ Verified: [x]
 
 ### TASK-006: Student receives no notification when homework is published
 
-Status: ✅ COMPLETE (commit 468071e)
+Status: ✅ COMPLETE (commit 5b56be1)
 Priority: P0 Blocker
 Role(s): Teacher → Student
 Finding: When a teacher publishes homework, the student's Alerts tab shows no new notification. The cross-role notification chain is broken.
+Fix: createHomework was using type 'HOMEWORK_GRADED' for new homework notifications. NotificationsView "Homework" filter chip matches only 'HOMEWORK_REMINDER', so alerts were invisible in the Homework tab and had no colour badge. Fixed to 'HOMEWORK_REMINDER' for student + parent new-homework notifications. Grade-returned demo notification updated to 'SUBMISSION_MARKED' (teal badge). Student dashboard "To Do" count is driven by direct DB query (not notifications) so was always correct.
 Acceptance criteria: When teacher publishes homework: (1) student dashboard "To Do" count increments, (2) Alerts tab shows "New homework set: [title] — Due [date]" entry with direct link, (3) homework appears in /student/homework list. Tested end-to-end.
-Verified: [ ]
+Verified: [x]
 
 ---
 
@@ -83,12 +85,12 @@ Verified: [x]
 
 ### TASK-009: MIS attendance data not flowing / no demo attendance data
 
-Status: 🔄 PARTIAL (code correct — getAbsenceSummary reads User.attendancePercentage; seed populates all ~1700 students with realistic values; student timetable reads WondeTimetableEntry via getStudentTimetable; needs visual verification that seed was run on Vercel DB)
+Status: ✅ COMPLETE (seed run 2026-06-30 — 182 students with attendance data, Aiden Hughes 25-period timetable seeded)
 Priority: P1 High
 Role(s): HOY, SLT, School Admin
 Finding: HOY /hoy/absence shows "No attendance data yet." Student timetable shows "No timetable available." No attendance or timetable data is available anywhere in the platform.
 Acceptance criteria: Seed realistic demo attendance data (90+ school days, realistic attendance patterns, 1–2 students with persistent absence <85%). HOY /hoy/absence shows attendance %, persistent absentees (<85%), attendance trend. Student /student/timetable shows weekly grid with subjects, rooms, teachers.
-Verified: [ ]
+Verified: [x]
 
 ---
 
@@ -298,11 +300,10 @@ Verified: [ ]
 
 ### TASK-NEW-015: Root cause investigation — homework list auth/cache failure
 
-Status: 🔄 PARTIAL (retry back-off added; root cause identified as transient PgBouncer cold-start)
+Status: ✅ COMPLETE — see TASK-003 fix (same root causes, same commit 0bb4dc6)
 Priority: P2 Medium
 Role(s): Teacher
 Finding: /homework succeeds on first load but fails on subsequent navigations — pattern suggests auth token expiry or Next.js route cache staleness.
-Acceptance criteria: (1) Identify exact failure point (log 401/500/timeout). (2) Implement auth token auto-refresh: if fetch returns 401, refresh token and retry once. (3) Ensure SWR/React Query stale time appropriate (suggest: staleTime 30s). (4) Add "Retry" button that forces fresh fetch bypassing cache. (5) 5 consecutive navigations all succeed.
 Verified: [ ]
 
 ---

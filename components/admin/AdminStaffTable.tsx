@@ -193,10 +193,10 @@ function StaffSlideOver({
   return (
     <div className="fixed inset-0 z-50 flex">
       {/* Overlay */}
-      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div className="flex-1 bg-black/40" onClick={onClose} aria-hidden="true" />
 
       {/* Panel */}
-      <div className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div role="dialog" aria-modal="true" aria-label="Staff member" className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
@@ -399,7 +399,7 @@ function DeleteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+      <div role="dialog" aria-modal="true" aria-label="Invite staff member" className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
             <Icon name="delete" size="md" className="text-red-600" />
@@ -475,8 +475,8 @@ function InviteModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <div className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div className="flex-1 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div role="dialog" aria-modal="true" aria-label="Edit staff member" className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <p className="text-[15px] font-semibold text-gray-900">Invite staff member</p>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">

@@ -43,61 +43,54 @@ export default async function HoyAnalyticsPage() {
   for (const s of allStudents) studentMap.set(s.id, s)
   const uniqueStudentIds = Array.from(studentMap.keys())
 
-  // Latest aggregate per class
-  const allAggs = await prisma.classPerformanceAggregate.findMany({
-    where: { classId: { in: classIds } },
-    orderBy: { termId: 'desc' },
-  })
+  // Parallelise all post-class fetches in one round-trip
+  const [
+    allAggs,
+    allMedians,
+    [sendCount, activePlanCount],
+    submissionStats,
+    hwCounts,
+    toMark,
+  ] = await Promise.all([
+    prisma.classPerformanceAggregate.findMany({ where: { classId: { in: classIds } }, orderBy: { termId: 'desc' } }),
+    prisma.subjectMedianAggregate.findMany({ where: { schoolId }, orderBy: { termId: 'desc' } }),
+    Promise.all([
+      prisma.sendStatus.count({ where: { studentId: { in: uniqueStudentIds }, NOT: { activeStatus: 'NONE' } } }),
+      prisma.plan.count({ where: { schoolId, student: { id: { in: uniqueStudentIds } }, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } } }),
+    ]),
+    prisma.submission.groupBy({
+      by: ['studentId'],
+      where: { schoolId, studentId: { in: uniqueStudentIds } },
+      _count: { id: true },
+      _avg:   { finalScore: true },
+    }),
+    prisma.homework.groupBy({
+      by: ['classId'],
+      where: { classId: { in: classIds }, status: 'PUBLISHED' },
+      _count: { id: true },
+    }),
+    prisma.submission.count({
+      where: { schoolId, status: { not: 'RETURNED' }, homework: { classId: { in: classIds } } },
+    }),
+  ])
+
   const aggByClass = new Map<string, typeof allAggs[0]>()
   for (const a of allAggs) { if (!aggByClass.has(a.classId)) aggByClass.set(a.classId, a) }
 
-  // Subject medians
-  const allMedians = await prisma.subjectMedianAggregate.findMany({
-    where: { schoolId },
-    orderBy: { termId: 'desc' },
-  })
   const medianMap = new Map<string, typeof allMedians[0]>()
   for (const m of allMedians) {
     const key = `${m.subjectId}-${m.yearGroup}`
     if (!medianMap.has(key)) medianMap.set(key, m)
   }
 
-  // SEND overview for this year group's students
-  const [sendCount, activePlanCount] = await Promise.all([
-    prisma.sendStatus.count({
-      where: { studentId: { in: uniqueStudentIds }, NOT: { activeStatus: 'NONE' } },
-    }),
-    prisma.plan.count({
-      where: { schoolId, student: { id: { in: uniqueStudentIds } }, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
-    }),
-  ])
-
-  // Per-student submission stats (to identify at-risk pupils)
-  const submissionStats = await prisma.submission.groupBy({
-    by: ['studentId'],
-    where: { schoolId, studentId: { in: uniqueStudentIds } },
-    _count: { id: true },
-    _avg:   { finalScore: true },
-  })
   const subStatByStudent = new Map<string, typeof submissionStats[0]>()
   for (const s of submissionStats) subStatByStudent.set(s.studentId, s)
 
-  // Homework counts per class (for submission rate calc)
-  const hwCounts = await prisma.homework.groupBy({
-    by: ['classId'],
-    where: { classId: { in: classIds }, status: 'PUBLISHED' },
-    _count: { id: true },
-  })
   const hwCountByClass = new Map<string, number>()
   for (const h of hwCounts) hwCountByClass.set(h.classId, h._count.id)
 
   // Total homework set in scope
   const totalHwSet = hwCounts.reduce((s, h) => s + h._count.id, 0)
-
-  // Pending submissions to mark: not yet returned to student (SUBMITTED + auto-MARKED need action)
-  const toMark = await prisma.submission.count({
-    where: { schoolId, status: { not: 'RETURNED' }, homework: { classId: { in: classIds } } },
-  })
 
   // KPIs
   const aggsArr       = Array.from(aggByClass.values())

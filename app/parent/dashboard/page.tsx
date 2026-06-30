@@ -54,16 +54,17 @@ export default async function ParentDashboardPage() {
     const total    = homework.filter((h: any) => h.submissions[0]).length
     const completion = homework.length ? Math.round((total / homework.length) * 100) : 0
 
-    const plan = await prisma.plan.findFirst({
-      where: { studentId: child.id, schoolId, status: PlanStatus.ACTIVE_PARENT_SHARED },
-      include: { targets: true },
-      orderBy: { activatedAt: 'desc' },
-    })
-
-    const learningProfile = await prisma.studentLearningProfile.findUnique({
-      where: { studentId: child.id },
-      select: { strengthAreas: true, developmentAreas: true, profileSummary: true },
-    })
+    const [plan, learningProfile] = await Promise.all([
+      prisma.plan.findFirst({
+        where: { studentId: child.id, schoolId, status: PlanStatus.ACTIVE_PARENT_SHARED },
+        include: { targets: true },
+        orderBy: { activatedAt: 'desc' },
+      }),
+      prisma.studentLearningProfile.findUnique({
+        where: { studentId: child.id },
+        select: { strengthAreas: true, developmentAreas: true, profileSummary: true },
+      }),
+    ])
 
     // Subject averages from returned homework (GCSE grade scale)
     const subjectPerf: Record<string, { total: number; count: number }> = {}
@@ -84,19 +85,20 @@ export default async function ParentDashboardPage() {
     return { child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }
   }))
 
-  const unreadMsgs = await prisma.parentConversation.count({
-    where: {
-      schoolId, parentId: userId,
-      parentMessages: { some: { senderType: 'TEACHER', readAt: null } },
-    },
-  })
-
-  // Activity feed — in-app notifications for this parent (homework set, graded, etc.)
-  const activityFeed = await prisma.notification.findMany({
-    where:   { userId, schoolId },
-    orderBy: { createdAt: 'desc' },
-    take:    10,
-  })
+  const [unreadMsgs, activityFeed] = await Promise.all([
+    prisma.parentConversation.count({
+      where: {
+        schoolId, parentId: userId,
+        parentMessages: { some: { senderType: 'TEACHER', readAt: null } },
+      },
+    }),
+    // Activity feed — in-app notifications for this parent (homework set, graded, etc.)
+    prisma.notification.findMany({
+      where:   { userId, schoolId },
+      orderBy: { createdAt: 'desc' },
+      take:    10,
+    }),
+  ])
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

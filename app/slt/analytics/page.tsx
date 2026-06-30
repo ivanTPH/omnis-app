@@ -17,52 +17,58 @@ export default async function SltAnalyticsPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SLT', 'SCHOOL_ADMIN'].includes(role)) redirect('/dashboard')
 
-  // All classes with teachers and enrolment counts
-  const allClasses = await prisma.schoolClass.findMany({
-    where: { schoolId },
-    include: {
-      teachers:   { include: { user: { select: { firstName: true, lastName: true } } } },
-      _count:     { select: { enrolments: true } },
-    },
-  })
+  // SEND overview
+  const in30days   = new Date(Date.now() + 30 * 86_400_000) // eslint-disable-line react-hooks/purity
+  const last30days = new Date(Date.now() - 30 * 86_400_000)
 
-  // Latest aggregate per class
-  const allAggs = await prisma.classPerformanceAggregate.findMany({
-    where: { schoolId },
-    orderBy: { termId: 'desc' },
-  })
+  // Parallelise all independent fetches in one round-trip
+  const [
+    allClasses,
+    allAggs,
+    allMedians,
+    [sendTotal, senSupportCount, ehcpCount, ilpCoverage, reviewsDue],
+    [totalHw, totalSubs, pendingMark],
+    sendIdsRaw,
+  ] = await Promise.all([
+    prisma.schoolClass.findMany({
+      where: { schoolId },
+      include: {
+        teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+        _count:   { select: { enrolments: true } },
+      },
+    }),
+    prisma.classPerformanceAggregate.findMany({ where: { schoolId }, orderBy: { termId: 'desc' } }),
+    prisma.subjectMedianAggregate.findMany({ where: { schoolId }, orderBy: { termId: 'desc' } }),
+    Promise.all([
+      prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
+      prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'SEN_SUPPORT' } }),
+      prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'EHCP' } }),
+      prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', approvedBySenco: true } }),
+      prisma.plan.count({ where: { schoolId, reviewDate: { lte: in30days }, status: { notIn: [PlanStatus.ARCHIVED] } } }),
+    ]),
+    Promise.all([
+      prisma.homework.count({ where: { schoolId, status: 'PUBLISHED' } }),
+      prisma.submission.count({ where: { schoolId } }),
+      prisma.submission.count({ where: { schoolId, status: 'SUBMITTED' } }),
+    ]),
+    prisma.sendStatus.findMany({
+      where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
+      select: { studentId: true },
+    }),
+  ])
+
   const aggByClass = new Map<string, typeof allAggs[0]>()
   for (const a of allAggs) { if (!aggByClass.has(a.classId)) aggByClass.set(a.classId, a) }
 
-  // Subject medians
-  const allMedians = await prisma.subjectMedianAggregate.findMany({
-    where: { schoolId },
-    orderBy: { termId: 'desc' },
-  })
   const medianMap = new Map<string, typeof allMedians[0]>()
   for (const m of allMedians) {
     const key = `${m.subjectId}-${m.yearGroup}`
     if (!medianMap.has(key)) medianMap.set(key, m)
   }
 
-  // SEND overview
-  const in30days  = new Date(Date.now() + 30 * 86_400_000) // eslint-disable-line react-hooks/purity
-  const last30days = new Date(Date.now() - 30 * 86_400_000)
-
-  const [sendTotal, senSupportCount, ehcpCount, ilpCoverage, reviewsDue] = await Promise.all([
-    prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
-    prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'SEN_SUPPORT' } }),
-    prisma.sendStatus.count({ where: { student: { schoolId }, activeStatus: 'EHCP' } }),
-    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', approvedBySenco: true } }),
-    prisma.plan.count({ where: { schoolId, reviewDate: { lte: in30days }, status: { notIn: [PlanStatus.ARCHIVED] } } }),
-  ])
+  const sendIds = sendIdsRaw.map(s => s.studentId)
 
   // Attainment gap: SEND vs school avg (last 30 days, finalScore on 0–9 scale)
-  const sendIds = (await prisma.sendStatus.findMany({
-    where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } },
-    select: { studentId: true },
-  })).map(s => s.studentId)
-
   const [sendAvgResult, allAvgResult] = await Promise.all([
     sendIds.length > 0
       ? prisma.submission.aggregate({
@@ -78,13 +84,6 @@ export default async function SltAnalyticsPage() {
   const sendAvgScore  = sendAvgResult._avg.finalScore  ?? null
   const allAvgScore   = allAvgResult._avg.finalScore   ?? null
   const ilpCoveragePC = sendTotal > 0 ? Math.round(ilpCoverage / sendTotal * 100) : 0
-
-  // School-wide live submission stats
-  const [totalHw, totalSubs, pendingMark] = await Promise.all([
-    prisma.homework.count({ where: { schoolId, status: 'PUBLISHED' } }),
-    prisma.submission.count({ where: { schoolId } }),
-    prisma.submission.count({ where: { schoolId, status: 'SUBMITTED' } }),
-  ])
 
   // School-level aggregates
   const aggsArr          = Array.from(aggByClass.values())

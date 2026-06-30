@@ -216,19 +216,21 @@ export default async function HoyDashboardPage() {
   // ── Per-class homework stats ─────────────────────────────────────────────────
   const classIds = classes.map(c => c.id)
 
-  const hwByClass = await prisma.homework.groupBy({
-    by: ['classId'],
-    where: { classId: { in: classIds }, status: 'PUBLISHED', createdAt: { gte: last30 } },
-    _count: { id: true },
-  })
-  const hwCountByClass = new Map(hwByClass.map(h => [h.classId, h._count.id]))
+  const [hwByClass, recentHwIds] = await Promise.all([
+    prisma.homework.groupBy({
+      by: ['classId'],
+      where: { classId: { in: classIds }, status: 'PUBLISHED', createdAt: { gte: last30 } },
+      _count: { id: true },
+    }),
+    prisma.homework.findMany({
+      where: { classId: { in: classIds }, status: 'PUBLISHED', createdAt: { gte: last30 } },
+      select: { id: true, classId: true },
+    }),
+  ])
 
-  // Submissions per class via homework join
-  const recentHwIds = (await prisma.homework.findMany({
-    where: { classId: { in: classIds }, status: 'PUBLISHED', createdAt: { gte: last30 } },
-    select: { id: true, classId: true },
-  }))
-  const hwToClassMap = new Map(recentHwIds.map(h => [h.id, h.classId]))
+  const hwCountByClass = new Map(hwByClass.map(h => [h.classId, h._count.id]))
+  const hwToClassMap   = new Map(recentHwIds.map(h => [h.id, h.classId]))
+
   const subRows = await prisma.submission.groupBy({
     by: ['homeworkId'],
     where: { homeworkId: { in: recentHwIds.map(h => h.id) }, submittedAt: { gte: last30 } },

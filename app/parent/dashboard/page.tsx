@@ -66,20 +66,31 @@ export default async function ParentDashboardPage() {
       }),
     ])
 
-    // Subject averages from returned homework (GCSE grade scale)
-    const subjectPerf: Record<string, { total: number; count: number }> = {}
+    // Subject averages + trend from returned homework (GCSE grade scale)
+    const subjectGrades: Record<string, Array<{ g: number; at: Date }>> = {}
     for (const hw of graded) {
       const sub = hw.submissions[0]
       const g = sub?.grade ? parseInt(sub.grade, 10) : null
       if (g != null && !isNaN(g)) {
         const subject = hw.class.name.replace(/\s*(Y\d+|Year\s*\d+|\d+[A-Z]?)$/i, '').trim() || hw.class.name
-        if (!subjectPerf[subject]) subjectPerf[subject] = { total: 0, count: 0 }
-        subjectPerf[subject].total += g
-        subjectPerf[subject].count++
+        if (!subjectGrades[subject]) subjectGrades[subject] = []
+        subjectGrades[subject].push({ g, at: new Date(sub.submittedAt ?? 0) })
       }
     }
-    const subjectAverages = Object.entries(subjectPerf)
-      .map(([subject, { total, count }]) => ({ subject, avg: Math.round(total / count) }))
+    const subjectAverages = Object.entries(subjectGrades)
+      .map(([subject, entries]) => {
+        const sorted = entries.sort((a, b) => a.at.getTime() - b.at.getTime())
+        const avg = Math.round(sorted.reduce((s, e) => s + e.g, 0) / sorted.length)
+        // Trend: compare last 2 submissions vs 2 before that (need ≥ 4)
+        let trend: 'up' | 'down' | 'stable' = 'stable'
+        if (sorted.length >= 4) {
+          const recent = sorted.slice(-2).reduce((s, e) => s + e.g, 0) / 2
+          const older  = sorted.slice(-4, -2).reduce((s, e) => s + e.g, 0) / 2
+          if (recent - older >= 0.5) trend = 'up'
+          else if (older - recent >= 0.5) trend = 'down'
+        }
+        return { subject, avg, trend }
+      })
       .sort((a, b) => b.avg - a.avg)
 
     return { child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }
@@ -309,14 +320,18 @@ export default async function ParentDashboardPage() {
                     <p className="text-[11px] text-gray-400 mt-0.5">Based on returned homework</p>
                   </div>
                   <div className="divide-y divide-gray-100">
-                    {subjectAverages.slice(0, 5).map(({ subject, avg }: any) => (
+                    {subjectAverages.slice(0, 5).map(({ subject, avg, trend }: any) => (
                       <div key={subject} className="flex items-center justify-between px-5 py-2.5">
                         <p className="text-[13px] text-gray-700">{subject}</p>
-                        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-lg ${
-                          avg >= 7 ? 'bg-green-100 text-green-800' :
-                          avg >= 5 ? 'bg-amber-100 text-amber-800' :
-                                     'bg-rose-100 text-rose-800'
-                        }`}>Grade {avg}</span>
+                        <div className="flex items-center gap-1.5">
+                          {trend === 'up'   && <Icon name="trending_up"   size="sm" className="text-green-500" />}
+                          {trend === 'down' && <Icon name="trending_down" size="sm" className="text-rose-500"  />}
+                          <span className={`text-[12px] font-bold px-2 py-0.5 rounded-lg ${
+                            avg >= 7 ? 'bg-green-100 text-green-800' :
+                            avg >= 5 ? 'bg-amber-100 text-amber-800' :
+                                       'bg-rose-100 text-rose-800'
+                          }`}>Grade {avg}</span>
+                        </div>
                       </div>
                     ))}
                   </div>

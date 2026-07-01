@@ -1092,7 +1092,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               onClick={handleDifferentiate}
               disabled={diffLoading}
               title="Generate AI-differentiated versions for SEND students"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors text-[11px] font-semibold shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-[11px] font-semibold shrink-0 disabled:opacity-60"
             >
               {diffLoading
                 ? <Icon name="refresh" size="sm" className="animate-spin" />

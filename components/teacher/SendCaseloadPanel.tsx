@@ -1,12 +1,79 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { gradeLabel, gradePillClass } from '@/lib/grading'
 import type { TeacherSendCaseload, CaseloadStudent } from '@/app/actions/teacher-send'
+import { raiseConcern } from '@/app/actions/send-support'
 
 type Props = { data: TeacherSendCaseload }
+
+/** Inline concern modal used by teachers — avoids linking to /senco/concerns which teachers can't access */
+function RaiseConcernModal({
+  student,
+  defaultDescription,
+  onClose,
+}: {
+  student: CaseloadStudent
+  defaultDescription?: string
+  onClose: () => void
+}) {
+  const [description, setDescription] = useState(defaultDescription ?? '')
+  const [category, setCategory] = useState('Academic')
+  const [isPending, start] = useTransition()
+  const [done, setDone] = useState(false)
+
+  function handleSubmit() {
+    if (!description.trim()) return
+    start(async () => {
+      await raiseConcern({ studentId: student.id, category, description })
+      setDone(true)
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        {done ? (
+          <>
+            <div className="flex items-center gap-2 text-green-700">
+              <Icon name="check_circle" size="md" />
+              <p className="font-semibold">Concern raised — SENCO notified.</p>
+            </div>
+            <button onClick={onClose} className="w-full py-2 bg-gray-100 rounded-lg text-sm font-medium hover:bg-gray-200">Close</button>
+          </>
+        ) : (
+          <>
+            <h3 className="font-semibold text-gray-900">Raise SEND concern — {student.firstName} {student.lastName}</h3>
+            <div>
+              <label className="block text-[12px] text-gray-500 mb-1">Category</label>
+              <select value={category} onChange={e => setCategory(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px]">
+                {['Academic', 'Behaviour', 'Social/Emotional', 'Communication', 'Attendance', 'Medical', 'Safeguarding', 'Other'].map(c => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[12px] text-gray-500 mb-1">Description</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-amber-200"
+                placeholder="Describe the concern in detail…" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={handleSubmit} disabled={!description.trim() || isPending}
+                className="flex-1 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50">
+                {isPending ? 'Submitting…' : 'Submit concern'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function SendBadge({ status }: { status: 'SEN_SUPPORT' | 'EHCP' }) {
   return (
@@ -26,7 +93,11 @@ function GradePill({ grade }: { grade: number }) {
   )
 }
 
-function StudentCard({ student, defaultOpen }: { student: CaseloadStudent; defaultOpen?: boolean }) {
+function StudentCard({ student, defaultOpen, onRaiseConcern }: {
+  student: CaseloadStudent
+  defaultOpen?: boolean
+  onRaiseConcern: (s: CaseloadStudent, desc?: string) => void
+}) {
   const [open, setOpen] = useState(defaultOpen ?? false)
 
   const reviewUrgent = student.reviewDaysUntil != null && student.reviewDaysUntil <= 7
@@ -133,10 +204,15 @@ function StudentCard({ student, defaultOpen }: { student: CaseloadStudent; defau
           ) : (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
               <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[12px] text-amber-800">
-                This student has no approved ILP. Contact the SENCO to create one, or{' '}
-                <Link href="/senco/concerns" className="underline font-medium">raise a concern</Link>.
-              </p>
+              <div className="flex-1">
+                <p className="text-[12px] text-amber-800">This student has no approved ILP.</p>
+                <button
+                  onClick={() => onRaiseConcern(student, `${student.firstName} ${student.lastName} is on the SEND register but has no approved ILP. Please could the SENCO create one?`)}
+                  className="mt-1 text-[11px] font-semibold text-amber-700 underline hover:text-amber-900"
+                >
+                  Notify SENCO to create ILP →
+                </button>
+              </div>
             </div>
           )}
 
@@ -158,9 +234,6 @@ function StudentCard({ student, defaultOpen }: { student: CaseloadStudent; defau
               <span className="text-amber-800 font-medium">
                 {student.openConcerns} open SEND concern{student.openConcerns !== 1 ? 's' : ''}
               </span>
-              <Link href="/senco/concerns" className="ml-auto text-[11px] text-blue-600 hover:underline font-medium">
-                View concerns →
-              </Link>
             </div>
           )}
 
@@ -180,12 +253,12 @@ function StudentCard({ student, defaultOpen }: { student: CaseloadStudent; defau
                 <Icon name="task_alt" size="sm" /> View ILP
               </Link>
             )}
-            <Link
-              href="/senco/concerns"
+            <button
+              onClick={() => onRaiseConcern(student)}
               className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 rounded-lg text-[11px] text-amber-700 font-medium transition-colors"
             >
               <Icon name="warning" size="sm" /> Raise concern
-            </Link>
+            </button>
           </div>
         </div>
       )}
@@ -195,6 +268,7 @@ function StudentCard({ student, defaultOpen }: { student: CaseloadStudent; defau
 
 export default function SendCaseloadPanel({ data }: Props) {
   const [classFilter, setClassFilter] = useState<string>('all')
+  const [concernModal, setConcernModal] = useState<{ student: CaseloadStudent; defaultDescription?: string } | null>(null)
 
   const filtered = classFilter === 'all'
     ? data.students
@@ -219,6 +293,7 @@ export default function SendCaseloadPanel({ data }: Props) {
   }
 
   return (
+    <>
     <div className="space-y-6">
 
       {/* KPI row */}
@@ -302,7 +377,7 @@ export default function SendCaseloadPanel({ data }: Props) {
           <h2 className="text-[11px] font-bold text-purple-700 uppercase tracking-wider flex items-center gap-1.5">
             <Icon name="description" size="sm" /> EHCP students ({ehcpStudents.length})
           </h2>
-          {ehcpStudents.map(s => <StudentCard key={s.id} student={s} />)}
+          {ehcpStudents.map(s => <StudentCard key={s.id} student={s} onRaiseConcern={(st, desc) => setConcernModal({ student: st, defaultDescription: desc })} />)}
         </div>
       )}
 
@@ -311,7 +386,7 @@ export default function SendCaseloadPanel({ data }: Props) {
           <h2 className="text-[11px] font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
             <Icon name="support" size="sm" /> SEN Support students ({senStudents.length})
           </h2>
-          {senStudents.map(s => <StudentCard key={s.id} student={s} />)}
+          {senStudents.map(s => <StudentCard key={s.id} student={s} onRaiseConcern={(st, desc) => setConcernModal({ student: st, defaultDescription: desc })} />)}
         </div>
       )}
 
@@ -320,13 +395,19 @@ export default function SendCaseloadPanel({ data }: Props) {
         <Link href="/classes" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="groups" size="sm" /> My Classes
         </Link>
-        <Link href="/senco/concerns" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-          <Icon name="warning" size="sm" /> Raise Concern
-        </Link>
         <Link href="/senco/ilp" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="task_alt" size="sm" /> ILP Records
         </Link>
       </div>
     </div>
+
+    {concernModal && concernModal.student?.id && (
+      <RaiseConcernModal
+        student={concernModal.student}
+        defaultDescription={concernModal.defaultDescription}
+        onClose={() => setConcernModal(null)}
+      />
+    )}
+    </>
   )
 }

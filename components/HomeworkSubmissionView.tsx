@@ -1,5 +1,5 @@
 'use client'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { submitHomework } from '@/app/actions/student'
 import Icon from '@/components/ui/Icon'
@@ -44,10 +44,31 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
 
   const wordCount = content.trim().split(/\s+/).filter(Boolean).length
   const draftKey  = `hw-draft-${hw.id}`
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Restore draft from localStorage on mount (only when no submission yet)
+  useEffect(() => {
+    if (sub) return
+    try {
+      const saved = localStorage.getItem(draftKey)
+      if (saved) setContent(saved)
+    } catch { /* storage unavailable */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Auto-save draft to localStorage 500ms after the user stops typing
+  function handleContentChange(val: string) {
+    setContent(val)
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(() => {
+      try { localStorage.setItem(draftKey, val) } catch { /* ignore */ }
+    }, 500)
+  }
 
   function handleSubmit() {
     setSubmitError(null)
-    // Back up content to localStorage before hitting the network
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    // Ensure latest draft is persisted before network request
     try { localStorage.setItem(draftKey, content) } catch { /* storage unavailable */ }
     startTransition(async () => {
       try {
@@ -212,7 +233,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                   type={hw.homeworkVariantType}
                   structuredContent={hw.structuredContent}
                   value={content}
-                  onChange={setContent}
+                  onChange={handleContentChange}
                   disabled={textareaDisabled}
                   sendStatus={hw.sendStatus ?? 'NONE'}
                   onSubmitRequest={multiQStepper && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
@@ -223,7 +244,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                   className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition"
                   placeholder="Write your answer here..."
                   value={content}
-                  onChange={e => setContent(e.target.value)}
+                  onChange={e => handleContentChange(e.target.value)}
                   disabled={textareaDisabled}
                 />
               )}

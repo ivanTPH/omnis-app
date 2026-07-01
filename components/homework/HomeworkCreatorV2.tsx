@@ -211,6 +211,19 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100"><Icon name="close" size="md" /></button>
         </div>
 
+        {/* Generating banner — visible above the fold while AI runs */}
+        {loading && (
+          <div className="sticky top-[73px] z-10 bg-blue-50 border-b border-blue-100 px-6 py-2 flex items-center gap-2">
+            <Icon name="refresh" size="sm" className="animate-spin text-blue-600 shrink-0" />
+            <span className="text-[13px] text-blue-700 font-medium">
+              {genElapsed < 10 ? 'Generating homework…'
+               : genElapsed < 30 ? `Generating… (${genElapsed}s)`
+               : genElapsed < 60 ? `Still working… (${genElapsed}s)`
+               : `Almost there… (${genElapsed}s)`}
+            </span>
+          </div>
+        )}
+
         <div className="p-6 space-y-5">
           {/* Step 1: Choose source */}
           {step === 1 && (

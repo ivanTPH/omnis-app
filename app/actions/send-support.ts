@@ -2336,6 +2336,20 @@ export async function approveGeneratedIlp(ilpId: string): Promise<void> {
   )
 }
 
+export async function bulkApproveIlps(ilpIds: string[]): Promise<{ approved: number; errors: string[] }> {
+  const errors: string[] = []
+  let approved = 0
+  for (const id of ilpIds) {
+    try {
+      await approveGeneratedIlp(id)
+      approved++
+    } catch (err) {
+      errors.push(String(err).slice(0, 120))
+    }
+  }
+  return { approved, errors }
+}
+
 // ─── APDR — Assess, Plan, Do, Review ─────────────────────────────────────────
 
 const APDR_FIELD_LABELS: Record<string, string> = {

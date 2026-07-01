@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-06-18. Authoritative reference for Claude sessions.
+> Last updated: 2026-07-01. Authoritative reference for Claude sessions.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
@@ -146,7 +146,26 @@
 > SEND concern student names also deep-link to Pastoral tab. HoyWelfarePanel open-in-new icon
 > updated to eco + emerald, deep-links to Pastoral tab.
 >
-> **Latest commit:** ba207a3 (fix: seed ILP review dates to daysFromNow, calendar ?week= param, send-smoke steps 6/7/8 graceful skip). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-06-29). 1 intentional skip (APDR PDF — needs seeded data).**
+> July 2026 UAT sprint: multi-role browser UAT on omnis-app-ten.vercel.app — 8 bugs diagnosed and
+> fixed. (1) AI Goals generation failure — Claude (sonnet-4-6) returned prose-prefixed or
+> object-wrapped JSON; replaced single regex with multi-strategy extractor (strip fences →
+> JSON.parse → array regex → object unwrap). (2) HOD "SEND Concerns" + "Early Warning" dead
+> links — HEAD_OF_DEPT excluded from /senco prefix in auth.config.ts ROLE_ROUTES; removed both
+> sidebar links from HEAD_OF_DEPT nav. (3) Resource library duplicates — getFullResourceLibrary
+> returned same URL once per lesson it was attached to; added in-memory dedup by url ?? fileKey
+> ?? label, keeping copy with highest sendScore. (4) Student draft answers not persisted —
+> HomeworkSubmissionView lacked auto-save; added 500ms debounced localStorage save on change +
+> restore on mount before first submission. (5) AI homework generation progress bar below fold —
+> loading state only shown in modal button (scrollable modal); added sticky blue banner below
+> modal header visible during AI generation. (6) "Differentiate" button not prominent — was ghost
+> bg-indigo-50; changed to solid bg-indigo-600 primary button. (7) Parent dashboard: no grade
+> trend — added trajectory arrows (trending_up/trending_down) by comparing last-2 vs previous-2
+> graded submissions per subject. (8) Teacher SEND caseload: broken concern links — three links
+> to /senco/concerns silently redirected TEACHER role; replaced with inline RaiseConcernModal
+> calling raiseConcern() server action directly, with pre-filled ILP notification for students
+> with no ILP. See dmox.md for full root-cause + fix log.
+>
+> **Latest commit:** d8e4eba (July 2026 UAT fixes — AI goals extraction, HOD links, resource dedup, draft auto-save, generation banner, differentiate button, grade trend, SEND caseload modal). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-06-29). 1 intentional skip (APDR PDF — needs seeded data).**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

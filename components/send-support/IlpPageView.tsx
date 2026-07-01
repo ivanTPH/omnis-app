@@ -7,7 +7,7 @@ import { SencoRow } from '@/components/ui/SencoRow'
 import type { IlpWithTargets, PendingIlpEdit, StudentWithoutIlp } from '@/app/actions/send-support'
 import {
   getPendingIlpEdits, approveIlpEdit, rejectIlpEdit,
-  generateIlpGoalsForStudent, createIlp, approveGeneratedIlp, scheduleIlpReview,
+  generateIlpGoalsForStudent, createIlp, approveGeneratedIlp, scheduleIlpReview, bulkApproveIlps,
 } from '@/app/actions/send-support'
 import IlpCard from './IlpCard'
 import { toast } from '@/components/ui/Toast'
@@ -84,6 +84,9 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
   const [rejectOpen,     setRejectOpen]     = useState<Record<string, boolean>>({})
   const [aiModal,        setAiModal]        = useState<AiModalState>({ phase: 'idle' })
   const [approveAction,  setApproveAction]  = useState<Record<string, boolean>>({})
+  const [selectedIlpIds,    setSelectedIlpIds]    = useState<Set<string>>(new Set())
+  const [bulkApproveState,  setBulkApproveState]  = useState<'idle' | 'running' | 'done'>('idle')
+  const [bulkApproveResult, setBulkApproveResult] = useState<{ approved: number; errors: string[] } | null>(null)
 
   useEffect(() => {
     getPendingIlpEdits().then(setPendingEdits).catch(() => {})
@@ -227,6 +230,36 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
     }
   }
 
+  function toggleSelectIlp(id: string) {
+    setSelectedIlpIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAllDrafts() {
+    if (selectedIlpIds.size === draftIlps.length) {
+      setSelectedIlpIds(new Set())
+    } else {
+      setSelectedIlpIds(new Set(draftIlps.map(i => i.id)))
+    }
+  }
+
+  async function handleBulkApprove() {
+    if (selectedIlpIds.size === 0) return
+    setBulkApproveState('running')
+    try {
+      const result = await bulkApproveIlps(Array.from(selectedIlpIds))
+      setBulkApproveResult(result)
+      setSelectedIlpIds(new Set())
+      setBulkApproveState('done')
+      setTimeout(() => window.location.reload(), 2000)
+    } catch {
+      setBulkApproveState('idle')
+    }
+  }
+
   async function handleConfirmReviewDate(newDate: Date) {
     if (!reviewModal.open) return
     setReviewModal(m => m.open ? { ...m, saving: true } : m)
@@ -271,6 +304,8 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
     }
     return true
   }), [ilps, yearFilter, classFilter, searchQuery])
+
+  const draftIlps = useMemo(() => filteredIlps.filter(i => i.status === 'under_review'), [filteredIlps])
 
   // Filtered students without ILP
   const filteredWithoutIlp = useMemo(() => studentsWithoutIlp.filter(s => {
@@ -713,64 +748,120 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
           <p className="text-sm">{searchQuery || yearFilter ? 'No ILPs match your search.' : 'No active ILPs.'}</p>
         </div>
       ) : (
-        <div className="space-y-0">
-          {filteredIlps.map(ilp => {
-            const initials  = ilp.studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-            const reviewDays = (new Date(ilp.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-            const isDraft    = ilp.status === 'under_review'
+        <>
+          {/* Bulk approve toolbar — shown when there are multiple drafts */}
+          {draftIlps.length > 1 && (
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl flex-wrap">
+              <input
+                type="checkbox"
+                checked={selectedIlpIds.size > 0 && selectedIlpIds.size === draftIlps.length}
+                onChange={toggleSelectAllDrafts}
+                className="rounded border-amber-400 w-4 h-4 accent-amber-600 shrink-0"
+                aria-label="Select all draft ILPs"
+              />
+              <span className="text-[12px] text-amber-800 font-medium flex-1 min-w-0">
+                {selectedIlpIds.size > 0
+                  ? `${selectedIlpIds.size} of ${draftIlps.length} drafts selected`
+                  : `${draftIlps.length} ILPs pending approval — select to bulk approve`}
+              </span>
+              {selectedIlpIds.size > 0 && (
+                <button
+                  onClick={handleBulkApprove}
+                  disabled={bulkApproveState === 'running'}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[12px] font-semibold disabled:opacity-60"
+                >
+                  {bulkApproveState === 'running'
+                    ? <><Icon name="refresh" size="sm" className="animate-spin" /> Approving…</>
+                    : <><Icon name="check_circle" size="sm" /> Approve {selectedIlpIds.size} ILP{selectedIlpIds.size > 1 ? 's' : ''}</>
+                  }
+                </button>
+              )}
+            </div>
+          )}
 
-            const badges = [
-              ...(ilp.autoGenerated ? [{ label: 'AI', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1' }] : []),
-              reviewDays <= 14 ? { label: 'Review due', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700' } : null,
-              isDraft
-                ? { label: 'Draft', variant: 'draft' as const }
-                : { label: 'Published', variant: 'published' as const },
-            ].filter(Boolean) as typeof ilp extends never ? never : { label: string; variant: 'custom'|'draft'|'published'; customClass?: string }[]
+          {/* Bulk approve result banner */}
+          {bulkApproveResult && (
+            <div className={`rounded-xl px-4 py-3 text-sm border ${bulkApproveResult.errors.length > 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-green-50 border-green-200 text-green-800'}`}>
+              <p className="font-medium">
+                {bulkApproveResult.approved} ILP{bulkApproveResult.approved !== 1 ? 's' : ''} approved and published.
+              </p>
+              {bulkApproveResult.errors.length > 0 && (
+                <ul className="mt-1 text-xs space-y-0.5 opacity-80">
+                  {bulkApproveResult.errors.map((e, i) => <li key={i}>· {e}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
 
-            return (
-              <SencoRow
-                key={ilp.id}
-                studentName={ilp.studentName}
-                studentInitials={initials}
-                avatarColour="bg-purple-400"
-                meta={[
-                  { label: 'CLASS',       value: ilp.className   ?? '—' },
-                  { label: 'SEND STATUS', value: ilp.sendCategory },
-                  { label: 'TARGETS',     value: `${ilp.targets.length}` },
-                  { label: 'REVIEW DATE', value: new Date(ilp.reviewDate).toLocaleDateString('en-GB') },
-                ]}
-                badges={badges}
-                rightContent={
-                  <>
-                    <button
-                      onClick={() => handleAiGenerate(ilp)}
-                      title="Re-generate ILP goals using AI"
-                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg transition-colors"
-                    >
-                      <Icon name="auto_awesome" size="sm" /> AI Goals
-                    </button>
-                    {isDraft && (
+          <div className="space-y-0">
+            {filteredIlps.map(ilp => {
+              const initials  = ilp.studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+              const reviewDays = (new Date(ilp.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+              const isDraft    = ilp.status === 'under_review'
+
+              const badges = [
+                ...(ilp.autoGenerated ? [{ label: 'AI', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 flex items-center gap-1' }] : []),
+                reviewDays <= 14 ? { label: 'Review due', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700' } : null,
+                isDraft
+                  ? { label: 'Draft', variant: 'draft' as const }
+                  : { label: 'Published', variant: 'published' as const },
+              ].filter(Boolean) as typeof ilp extends never ? never : { label: string; variant: 'custom'|'draft'|'published'; customClass?: string }[]
+
+              return (
+                <SencoRow
+                  key={ilp.id}
+                  studentName={ilp.studentName}
+                  studentInitials={initials}
+                  avatarColour="bg-purple-400"
+                  meta={[
+                    { label: 'CLASS',       value: ilp.className   ?? '—' },
+                    { label: 'SEND STATUS', value: ilp.sendCategory },
+                    { label: 'TARGETS',     value: `${ilp.targets.length}` },
+                    { label: 'REVIEW DATE', value: new Date(ilp.reviewDate).toLocaleDateString('en-GB') },
+                  ]}
+                  badges={badges}
+                  rightContent={
+                    <>
+                      {isDraft && draftIlps.length > 1 && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIlpIds.has(ilp.id)}
+                          onChange={() => toggleSelectIlp(ilp.id)}
+                          onClick={e => e.stopPropagation()}
+                          className="rounded border-gray-300 w-4 h-4 accent-purple-600 shrink-0"
+                          title="Select for bulk approve"
+                        />
+                      )}
                       <button
-                        onClick={() => handleApproveIlp(ilp.id)}
-                        disabled={approveAction[ilp.id]}
-                        className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60"
+                        onClick={() => handleAiGenerate(ilp)}
+                        title="Re-generate ILP goals using AI"
+                        className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg transition-colors"
                       >
-                        {approveAction[ilp.id]
-                          ? <><Icon name="refresh" size="sm" className="animate-spin" /> Approving…</>
-                          : <><Icon name="check_circle" size="sm" /> Approve &amp; Publish</>
-                        }
+                        <Icon name="auto_awesome" size="sm" /> AI Goals
                       </button>
-                    )}
-                  </>
-                }
-                isExpanded={expanded.has(ilp.id)}
-                onToggle={() => toggleExpand(ilp.id)}
-              >
-                <IlpCard ilp={ilp} userRole={userRole} />
-              </SencoRow>
-            )
-          })}
-        </div>
+                      {isDraft && (
+                        <button
+                          onClick={() => handleApproveIlp(ilp.id)}
+                          disabled={approveAction[ilp.id]}
+                          className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60"
+                        >
+                          {approveAction[ilp.id]
+                            ? <><Icon name="refresh" size="sm" className="animate-spin" /> Approving…</>
+                            : <><Icon name="check_circle" size="sm" /> Approve &amp; Publish</>
+                          }
+                        </button>
+                      )}
+                    </>
+                  }
+                  isExpanded={expanded.has(ilp.id)}
+                  onToggle={() => toggleExpand(ilp.id)}
+                >
+                  <IlpCard ilp={ilp} userRole={userRole} />
+                </SencoRow>
+              )
+            })}
+          </div>
+        </>
       )}
 
       {/* Create ILP modal */}

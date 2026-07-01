@@ -613,7 +613,7 @@ export async function getFullResourceLibrary(
     take:    200,
   })
 
-  return resources.map(r => ({
+  const mapped = resources.map(r => ({
     id:         r.id,
     label:      r.label,
     type:       r.type,
@@ -627,6 +627,18 @@ export async function getFullResourceLibrary(
     lessonTitle: r.lesson?.title ?? null,
     subject:    r.lesson?.class?.subject ?? null,
   }))
+
+  // Deduplicate: same URL/fileKey can appear across multiple lessons.
+  // Keep the copy with the highest sendScore (or first seen if tied).
+  const seen = new Map<string, typeof mapped[number]>()
+  for (const item of mapped) {
+    const key = item.url ?? item.fileKey ?? item.label
+    const existing = seen.get(key)
+    if (!existing || (item.sendScore ?? -1) > (existing.sendScore ?? -1)) {
+      seen.set(key, item)
+    }
+  }
+  return Array.from(seen.values())
 }
 
 // ── Add URL resource with SEND review ────────────────────────────────────────

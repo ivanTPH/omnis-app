@@ -3915,13 +3915,37 @@ Return ONLY valid JSON — no markdown, no explanation:
       messages:   [{ role: 'user', content: prompt }],
     })
 
-    const raw   = (msg.content[0] as { type: string; text: string }).text.trim()
-    const match = raw.match(/\[[\s\S]*\]/)
-    if (!match) return { ok: false, error: 'AI returned unexpected format — try again' }
+    const raw = (msg.content[0] as { type: string; text: string }).text.trim()
+    // Strip markdown fences if present
+    const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
 
-    const goals = JSON.parse(match[0]) as GeneratedIlpGoal[]
-    if (!Array.isArray(goals) || goals.length === 0) {
-      return { ok: false, error: 'AI returned no goals — try again' }
+    let goals: GeneratedIlpGoal[] | null = null
+
+    // 1. Try parsing the whole response as JSON
+    try {
+      const parsed: unknown = JSON.parse(stripped)
+      if (Array.isArray(parsed)) {
+        goals = parsed as GeneratedIlpGoal[]
+      } else if (parsed && typeof parsed === 'object') {
+        const obj = parsed as Record<string, unknown>
+        const inner = obj.goals ?? obj.targets ?? obj.items
+        if (Array.isArray(inner)) goals = inner as GeneratedIlpGoal[]
+      }
+    } catch { /* fall through to regex extraction */ }
+
+    // 2. Regex-extract the first JSON array from the text
+    if (!goals) {
+      const arrayMatch = stripped.match(/\[[\s\S]*\]/)
+      if (arrayMatch) {
+        try {
+          const parsed: unknown = JSON.parse(arrayMatch[0])
+          if (Array.isArray(parsed)) goals = parsed as GeneratedIlpGoal[]
+        } catch { /* ignore */ }
+      }
+    }
+
+    if (!goals || goals.length === 0) {
+      return { ok: false, error: 'Could not generate goals — please try again.' }
     }
 
     return { ok: true, goals: goals.slice(0, 3), studentName, sendCategory, subject }

@@ -480,6 +480,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
       )
       router.refresh()
       await refreshLesson()
+      toast('Lesson rescheduled')
       setHeaderEditDate(false)
     })
   }
@@ -534,6 +535,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
       })
       setEditingResourceId(null)
       await refreshLesson()
+      toast('Resource updated')
     })
   }
 

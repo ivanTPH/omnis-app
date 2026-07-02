@@ -49,7 +49,6 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
   const [auditLoading,     setAuditLoading]     = useState(false)
   const [sendStatus,       setSendStatus]       = useState(ilp.sendStatus ?? 'NONE')
   const [statusUpdating,   setStatusUpdating]   = useState(false)
-  const [statusToast,      setStatusToast]      = useState<string | null>(null)
 
   // Edit-before-approve state (for under_review ILPs)
   const [editMode,         setEditMode]         = useState(false)
@@ -194,11 +193,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
       await updateSendStatus(ilp.studentId, newStatus)
       setSendStatus(newStatus)
       const label = newStatus === 'NONE' ? 'No SEND' : newStatus === 'SEN_SUPPORT' ? 'SEN Support' : 'EHCP'
-      setStatusToast(`SEND status updated to ${label}`)
-      setTimeout(() => setStatusToast(null), 3000)
+      toast(`SEND status updated to ${label}`)
     } catch {
-      setStatusToast('Failed to update SEND status')
-      setTimeout(() => setStatusToast(null), 3000)
+      toast('Failed to update SEND status', 'error')
     } finally {
       setStatusUpdating(false)
     }
@@ -229,13 +226,6 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      {/* Toast */}
-      {statusToast && (
-        <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-700 font-medium">
-          {statusToast}
-        </div>
-      )}
-
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-4 border-b border-gray-100">
         <div className="flex items-start justify-between gap-3">

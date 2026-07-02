@@ -3,6 +3,7 @@
 import { useState, useRef }         from 'react'
 import { useRouter }                from 'next/navigation'
 import Icon from '@/components/ui/Icon'
+import { toast } from '@/components/ui/Toast'
 import {
   saveProfile,
   requestEmailChange,
@@ -79,15 +80,6 @@ type SettingsData = {
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
-function Toast({ msg, ok }: { msg: string; ok: boolean }) {
-  return (
-    <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium shadow-lg
-      ${ok ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-      {ok ? <Icon name="check_circle" size="sm" className="text-green-600 shrink-0" /> : <Icon name="error" size="sm" className="text-red-600 shrink-0" />}
-      {msg}
-    </div>
-  )
-}
 
 function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
@@ -138,7 +130,6 @@ export default function SettingsShell({
 }) {
   const router = useRouter()
   const [activeTab, setActiveTab]       = useState<Tab>('Profile')
-  const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null)
   const [saving, setSaving]             = useState(false)
   const [settings, setSettings]         = useState<SettingsData>(initialSettings)
 
@@ -188,17 +179,12 @@ export default function SettingsShell({
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
-  function flash(msg: string, ok: boolean) {
-    setToast({ msg, ok })
-    setTimeout(() => setToast(null), 4000)
-  }
-
   async function wrap(fn: () => Promise<void>) {
     setSaving(true)
     try {
       await fn()
     } catch (e: any) {
-      flash(e.message ?? 'Something went wrong.', false)
+      toast(e.message ?? 'Something went wrong.', 'error')
     } finally {
       setSaving(false)
     }
@@ -210,10 +196,10 @@ export default function SettingsShell({
     const file = e.target.files?.[0]
     if (!file) return
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      flash('Only JPG and PNG images are allowed.', false); return
+      toast('Only JPG and PNG images are allowed.', 'error'); return
     }
     if (file.size > 5 * 1024 * 1024) {
-      flash('File must be smaller than 5 MB.', false); return
+      toast('File must be smaller than 5 MB.', 'error'); return
     }
     setAvatarUploading(true)
     const fd = new FormData()
@@ -221,9 +207,9 @@ export default function SettingsShell({
     const res = await fetch('/api/settings/avatar', { method: 'POST', body: fd })
     const json = await res.json()
     setAvatarUploading(false)
-    if (!res.ok) { flash(json.error ?? 'Upload failed.', false); return }
+    if (!res.ok) { toast(json.error ?? 'Upload failed.', 'error'); return }
     setAvatarUrl(json.url)
-    flash('Profile picture updated.', true)
+    toast('Profile picture updated.')
     router.refresh()
   }
 
@@ -238,7 +224,7 @@ export default function SettingsShell({
     if (Object.keys(errs).length) return
     await wrap(async () => {
       await saveProfile({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), bio: bio.trim() })
-      flash('Profile saved.', true)
+      toast('Profile saved.')
       router.refresh()
     })
   }
@@ -254,7 +240,7 @@ export default function SettingsShell({
       setSettings(s => ({ ...s, pendingEmail: newEmail.trim() }))
       setShowEmailForm(false)
       setNewEmail('')
-      flash('Email change requested. Check your inbox to verify.', true)
+      toast('Email change requested. Check your inbox to verify.')
     })
   }
 
@@ -262,7 +248,7 @@ export default function SettingsShell({
     await wrap(async () => {
       const teachingModules = modulesInput.split(',').map(s => s.trim()).filter(Boolean)
       await saveProfessionalPrefs({ defaultSubject, additionalSubjects, preferredExamBoard, teachingModules })
-      flash('Professional preferences saved.', true)
+      toast('Professional preferences saved.')
     })
   }
 
@@ -273,14 +259,14 @@ export default function SettingsShell({
         allowAnalyticsInsights: allowAnalytics, profileVisibleToColleagues: visColleagues,
         profileVisibleToAdmins: visAdmins,
       })
-      flash('Privacy settings saved.', true)
+      toast('Privacy settings saved.')
     })
   }
 
   async function handleSaveSharing() {
     await wrap(async () => {
       await saveSharingSettings({ lessonSharing: sharing, allowAiImprovement: aiOptIn })
-      flash('Sharing settings saved.', true)
+      toast('Sharing settings saved.')
     })
   }
 
@@ -291,7 +277,7 @@ export default function SettingsShell({
       await changePassword({ currentPassword: currentPw, newPassword: newPw, confirmPassword: confirmPw })
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
       setPwSuccess(true)
-      flash('Password changed successfully.', true)
+      toast('Password changed successfully.')
     }).catch((e: any) => {
       setPwError(e.message ?? 'Failed to change password.')
     })
@@ -309,13 +295,6 @@ export default function SettingsShell({
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Account Settings</h1>
         <p className="mt-1 text-sm text-gray-500">{user.school.name} · {ROLE_LABELS[user.role] ?? user.role}</p>
       </div>
-
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-5 right-5 z-50">
-          <Toast msg={toast.msg} ok={toast.ok} />
-        </div>
-      )}
 
       {/* Tab Bar — icon-only on mobile, icon+label on sm+ */}
       <div className="border-b border-gray-200 mb-6 sm:mb-8">

@@ -32,7 +32,7 @@ import {
   getStudentAssessments, addAssessment, deleteAssessment, editAssessment,
   type AssessmentRow,
 } from '@/app/actions/assessments'
-import { updateClassroomStrategies } from '@/app/actions/students'
+import { updateClassroomStrategies, saveLearningFormatNotes } from '@/app/actions/students'
 import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 import { getSubmissionReadOnly, type SubmissionReadOnly } from '@/app/actions/homework'
 
@@ -103,6 +103,9 @@ function LearningPassportSection({
   const [editingStrategies, setEditingStrategies] = useState(false)
   const [strategiesText,    setStrategiesText]    = useState(passport.classroomStrategies.join('\n'))
   const [savingStrategies,  startSaveStrategies]  = useTransition()
+  const [editingFormatNotes, setEditingFormatNotes] = useState(false)
+  const [formatNotesText,    setFormatNotesText]    = useState(passport.learningFormatNotes ?? '')
+  const [savingFormatNotes,  startSaveFormatNotes]  = useTransition()
   const isDraft = passport.passportStatus === 'DRAFT' && !approved
   const canEditStrategies = ['TEACHER', 'HEAD_OF_DEPT', 'SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(role)
 
@@ -118,6 +121,13 @@ function LearningPassportSection({
     startSaveStrategies(async () => {
       await updateClassroomStrategies(studentId, strategies)
       setEditingStrategies(false)
+    })
+  }
+
+  function handleSaveFormatNotes() {
+    startSaveFormatNotes(async () => {
+      await saveLearningFormatNotes(studentId, formatNotesText)
+      setEditingFormatNotes(false)
     })
   }
 
@@ -232,14 +242,44 @@ function LearningPassportSection({
         )}
       </div>
 
-      {passport.learningFormatNotes && (
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Learning format notes</p>
-          <p className="text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-            {passport.learningFormatNotes}
-          </p>
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Learning format notes</p>
+          {canEditStrategies && !editingFormatNotes && (
+            <button onClick={() => setEditingFormatNotes(true)} className="text-xs text-blue-500 hover:underline">
+              {formatNotesText ? 'Edit' : '+ Add'}
+            </button>
+          )}
         </div>
-      )}
+        {editingFormatNotes ? (
+          <div className="space-y-2">
+            <textarea
+              rows={3}
+              value={formatNotesText}
+              onChange={e => setFormatNotesText(e.target.value)}
+              placeholder="e.g. Prefers MCQ and short-answer tasks. Struggles with extended writing. Benefits from structured scaffolding."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSaveFormatNotes}
+                disabled={savingFormatNotes}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg disabled:opacity-50"
+              >
+                {savingFormatNotes ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
+                {savingFormatNotes ? 'Saving…' : 'Save'}
+              </button>
+              <button onClick={() => { setEditingFormatNotes(false); setFormatNotesText(passport.learningFormatNotes ?? '') }} className="text-xs text-gray-500 hover:underline">Cancel</button>
+            </div>
+          </div>
+        ) : formatNotesText ? (
+          <p className="text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            {formatNotesText}
+          </p>
+        ) : canEditStrategies ? null : (
+          <p className="text-sm text-gray-400 italic">No format notes recorded</p>
+        )}
+      </div>
 
       {isDraft && (
         <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">

@@ -1317,3 +1317,32 @@ export async function deleteParentContactEntry(
   revalidatePath(`/students/${entry.studentId}`)
   return { success: true }
 }
+
+// ── Learning format notes (Teacher/SENCO sets preferred format per student) ───
+
+export async function saveLearningFormatNotes(
+  studentId: string,
+  notes: string,
+): Promise<void> {
+  const user = await requireStaff()
+  const trimmed = notes.trim() || null
+  const existing = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
+  if (existing) {
+    await prisma.studentLearningProfile.update({
+      where: { studentId },
+      data:  { learningFormatNotes: trimmed, lastUpdated: new Date() },
+    })
+  } else {
+    await prisma.studentLearningProfile.create({
+      data: {
+        studentId,
+        schoolId:           user.schoolId,
+        learningFormatNotes: trimmed,
+        passportStatus:     'DRAFT',
+        approvedByTeacher:  false,
+        lastUpdated:        new Date(),
+      },
+    })
+  }
+  revalidatePath(`/students/${studentId}`)
+}

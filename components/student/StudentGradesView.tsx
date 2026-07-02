@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { gradeLabel, gradePillClass } from '@/lib/grading'
 import type { SubjectGradeSummary, GradeHistorySubmission, TopicWeakness, TopicSummary, FormatBreakdown } from '@/app/actions/student'
+import { getAiRevisionSuggestions } from '@/app/actions/student'
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 
@@ -64,8 +65,24 @@ function TrendArrow({ avgGrade, predictedGrade, grades }: {
 
 // ── Weak topic pills ──────────────────────────────────────────────────────────
 
-function WeakTopicList({ topics, avgGrade }: { topics: TopicWeakness[]; avgGrade: number }) {
+function WeakTopicList({ topics, avgGrade, subject }: { topics: TopicWeakness[]; avgGrade: number; subject: string }) {
+  const [tips,    setTips]    = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [fetched, setFetched] = useState(false)
+
   if (topics.length === 0) return null
+
+  async function handleGetTips() {
+    setLoading(true)
+    try {
+      const result = await getAiRevisionSuggestions(subject, topics, avgGrade)
+      setTips(result.tips)
+      setFetched(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="mt-3 pt-3 border-t border-amber-100">
       <p className="text-[11px] font-semibold text-amber-700 mb-2 flex items-center gap-1">
@@ -82,6 +99,32 @@ function WeakTopicList({ topics, avgGrade }: { topics: TopicWeakness[]; avgGrade
           </span>
         ))}
       </div>
+
+      {fetched && tips.length > 0 ? (
+        <div className="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-3 py-3 space-y-1.5">
+          <p className="text-[11px] font-semibold text-blue-700 flex items-center gap-1 mb-2">
+            <Icon name="auto_fix_high" size="sm" />AI revision tips for your focus areas
+          </p>
+          {tips.map((tip, i) => (
+            <p key={i} className="text-[11px] text-blue-800 flex items-start gap-1.5">
+              <Icon name="check" size="sm" className="text-blue-500 shrink-0 mt-0.5" />
+              {tip}
+            </p>
+          ))}
+        </div>
+      ) : !fetched && (
+        <button
+          onClick={handleGetTips}
+          disabled={loading}
+          className="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-[11px] text-blue-700 font-medium hover:bg-blue-100 transition-colors disabled:opacity-60"
+        >
+          {loading
+            ? <Icon name="refresh" size="sm" className="animate-spin" />
+            : <Icon name="auto_fix_high" size="sm" />}
+          {loading ? 'Getting tips…' : 'Get AI revision tips'}
+        </button>
+      )}
+
       <Link
         href="/student/revision"
         className="inline-flex items-center gap-1 mt-2 text-[11px] text-blue-600 hover:text-blue-800 font-medium"
@@ -346,7 +389,7 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
 
           {/* Weak topics */}
           {summary.weakTopics.length > 0 && (
-            <WeakTopicList topics={summary.weakTopics} avgGrade={summary.avgGrade} />
+            <WeakTopicList topics={summary.weakTopics} avgGrade={summary.avgGrade} subject={summary.subject} />
           )}
 
           {/* Format breakdown */}

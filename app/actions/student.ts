@@ -686,3 +686,44 @@ export async function saveTopicConfidence(
   revalidatePath(`/student/homework/${homeworkId}`)
   return { success: true }
 }
+
+// ── AI revision suggestions for weak topics ───────────────────────────────────
+
+export async function getAiRevisionSuggestions(
+  subject:    string,
+  weakTopics: { topic: string; avgGrade: number }[],
+  avgGrade:   number,
+): Promise<{ tips: string[] }> {
+  const { role } = await requireAuth()
+  if (role !== 'STUDENT') throw new Error('Students only')
+
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey || weakTopics.length === 0) return { tips: [] }
+
+  const topicList = weakTopics.map(t => `- "${t.topic}" (Grade ${t.avgGrade})`).join('\n')
+  const prompt = `You are helping a UK secondary school student improve in ${subject}.
+
+Their overall average is Grade ${avgGrade}/9 (GCSE scale). Their weaker topic areas are:
+${topicList}
+
+Give exactly 4 concise, practical revision tips tailored to these specific topics.
+Each tip should be 1–2 sentences. Be specific to the topic names, not generic.
+Reply with ONLY a JSON array of strings: ["tip 1", "tip 2", "tip 3", "tip 4"]`
+
+  try {
+    const Anthropic = (await import('@anthropic-ai/sdk')).default
+    const client = new Anthropic({ apiKey })
+    const msg = await client.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages:   [{ role: 'user', content: prompt }],
+    })
+    const raw  = ((msg.content[0] as any).text as string).trim()
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
+    const tips = JSON.parse(raw)
+    if (!Array.isArray(tips)) return { tips: [] }
+    return { tips: tips.slice(0, 4) }
+  } catch {
+    return { tips: [] }
+  }
+}

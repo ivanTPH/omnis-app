@@ -75,6 +75,7 @@
 
 ### BUG-005
 - **ID:** BUG-005
+- **Status:** ✅ FIXED — revision-program.spec.ts tests implemented (no test.skip calls)
 - **Role:** Teacher
 - **Area:** E2E Test Coverage
 - **Severity:** Low
@@ -153,6 +154,7 @@
 
 ### BUG-011
 - **ID:** BUG-011
+- **Status:** ℹ️ BY DESIGN — /send/* is the SLT/SENCO SEND register; /senco/* is the SENCO workspace. Both are in auth.config.ts ROLE_ROUTES. Dual-route intent documented.
 - **Role:** SENCO
 - **Area:** Navigation — Dual Route System
 - **Severity:** Medium
@@ -326,6 +328,7 @@
 
 ### BUG-023
 - **ID:** BUG-023
+- **Status:** ✅ FIXED — kill -0 server process check added to e2e.yml; revision-program tests fully implemented
 - **Role:** All
 - **Area:** E2E Test Coverage — Workflow
 - **Severity:** Medium
@@ -363,6 +366,7 @@
 
 ### BUG-026
 - **ID:** BUG-026
+- **Status:** ✅ VERIFIED — all 5 accessibility CSS classes present in app/globals.css: dyslexia-font, high-contrast, large-text, reduced-motion, line-spacing-wide/wider
 - **Role:** All
 - **Area:** Accessibility
 - **Severity:** Low
@@ -406,7 +410,7 @@
 
 ---
 
-### GAP-005 — Analytics Full Drill-Down (All Staff Roles)
+### GAP-005 — Analytics Full Drill-Down ✅ DONE (All Staff Roles)
 - **Roles:** Teacher, HOY, SLT, Admin
 - **What is built:** RAG breakdown, SEND attainment comparison, per-student grade pill and trend arrow in `ClassAnalyticsPanel`. Student rows link to `/student/[id]/send`.
 - **What is needed when clicking a RAG category or student:**
@@ -420,14 +424,14 @@
 
 ---
 
-### GAP-006 — Student Predicted vs Actual Grade View
+### GAP-006 — Student Predicted vs Actual Grade View ✅ DONE (already in StudentGradesView — target grade label, progress bar, above/below target status)
 - **Roles:** Student
 - **What is built:** `TeacherPrediction` and `StudentBaseline` models hold predicted scores. `ClassAnalyticsPanel` shows predicted grade (`P6`) to teachers.
 - **What is needed:** The student should be able to see their own predicted grade vs current working-at grade on their dashboard or grade history page. Currently students have no visibility of their predicted grade.
 
 ---
 
-### GAP-007 — Adaptive Learning: Per-Student Format Preferences
+### GAP-007 — Adaptive Learning: Per-Student Format Preferences ✅ DONE
 - **Roles:** Teacher, SENCO
 - **What is built:** `StudentLearningProfile`, `LearningSequence`, and `SubjectAdaptationProfile` models exist. The heatmap shows topic performance by student.
 - **What is needed:**
@@ -449,7 +453,7 @@
 
 ---
 
-### GAP-009 — Student Progress View: Topic-by-Topic Breakdown
+### GAP-009 — Student Progress View: Topic-by-Topic Breakdown ✅ DONE
 - **Roles:** Student
 - **What is built:** Homework submissions are stored with scores. The adaptive heatmap shows topic scores to teachers.
 - **What is needed:** Students should see their own topic-by-topic performance (from the same heatmap data), their strengths and gaps, and AI-generated personalised revision suggestions based on those gaps. Currently the adaptive heatmap is teacher-only.

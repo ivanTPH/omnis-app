@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
+import Link from 'next/link'
 import AppShell from '@/components/AppShell'
 import Icon from '@/components/ui/Icon'
 import { formatAvgGrade } from '@/lib/gradeUtils'
@@ -328,14 +329,14 @@ export default async function HoyAnalyticsPage() {
                     {atRisk.slice(0, 8).map(s => {
                       const rate = Math.round((s.submissionCount / s.expectedCount) * 100)
                       return (
-                        <div key={s.id} className="px-5 py-3">
+                        <Link key={s.id} href={`/students/${s.id}`} className="block px-5 py-3 hover:bg-rose-50 transition-colors">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 text-[10px] font-bold shrink-0">
                                 {s.firstName[0]}{s.lastName[0]}
                               </div>
                               <div>
-                                <p className="text-[12px] font-semibold text-gray-800 leading-tight">
+                                <p className="text-[12px] font-semibold text-gray-800 leading-tight hover:text-blue-600">
                                   {s.firstName} {s.lastName}
                                 </p>
                                 {s.sendOnRegister && (
@@ -351,7 +352,7 @@ export default async function HoyAnalyticsPage() {
                           <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-rose-400 rounded-full" style={{ width: `${rate}%` }} />
                           </div>
-                        </div>
+                        </Link>
                       )
                     })}
                     {atRisk.length > 8 && (

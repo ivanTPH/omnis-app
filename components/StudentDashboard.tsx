@@ -82,6 +82,14 @@ export default function StudentDashboard({ data, staffView = false }: { data: St
             ))}
           </div>
         </div>
+        {/* Full file link */}
+        <Link
+          href={`/students/${data.id}`}
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-300 rounded-lg text-[12px] text-gray-600 hover:text-blue-700 font-medium transition-colors shrink-0"
+        >
+          <Icon name="folder_open" size="sm" />
+          Full file
+        </Link>
       </div>
 
       {/* ── KPI row ── */}

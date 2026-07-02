@@ -121,35 +121,38 @@ export async function checkILPEvidenceMatch({
   homeworkId:    string
 }): Promise<void> {
   try {
-    // Only flag passing grades (4+) — no point linking a failing submission
+    // Exclude only grade 1 (no meaningful work) — for SEND students grades 2+
+    // can still evidence ILP targets (partial progress, strategy use, engagement)
     const gradeNum = parseInt(grade, 10)
-    if (!isNaN(gradeNum) && gradeNum < 4) return
+    if (!isNaN(gradeNum) && gradeNum < 2) return
     if (ilpTargets.length === 0) return
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return
 
     const targetsText = ilpTargets.map((t, i) => `${i + 1}. ${t.description}`).join('\n')
-    const prompt = `A student has just had homework graded.
+    const prompt = `You are helping a SENCO track ILP evidence for a SEND student.
 
-Homework title: "${homeworkTitle}"
+Homework: "${homeworkTitle}"
 Subject: ${subject || 'Not specified'}
-Grade: ${grade || 'Not graded'} (GCSE 1–9)
+Grade awarded: ${grade || 'ungraded'}/9 (GCSE scale)
 
 Active ILP targets:
 ${targetsText}
 
-Does this homework likely provide evidence toward any of these ILP targets?
+Could any aspect of this homework — even partially — provide evidence toward any of these targets?
+For SEND students, evidence includes partial attempts, demonstrated strategies, or engagement with the subject area.
+Default to match: true if there is any reasonable connection.
 
-Respond with ONLY valid JSON (no markdown):
-{"match": true/false, "targetIndices": [1, 2], "rationale": "one sentence"}
+Respond with ONLY valid JSON (no markdown, no explanation outside the JSON):
+{"match": true/false, "targetIndices": [1], "rationale": "one sentence"}
 
-If no match: {"match": false, "targetIndices": [], "rationale": ""}`
+If genuinely no connection at all: {"match": false, "targetIndices": [], "rationale": ""}`
 
     const client = new Anthropic({ apiKey })
     const msg    = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
-      max_tokens: 150,
+      max_tokens: 200,
       messages:   [{ role: 'user', content: prompt }],
     })
     const text   = (msg.content[0] as any).text.trim()
@@ -217,33 +220,35 @@ export async function checkEhcpEvidenceMatch({
 }): Promise<void> {
   try {
     const gradeNum = parseInt(grade, 10)
-    if (!isNaN(gradeNum) && gradeNum < 4) return
+    if (!isNaN(gradeNum) && gradeNum < 2) return
     if (ehcpOutcomes.length === 0) return
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return
 
     const outcomesText = ehcpOutcomes.map((o, i) => `${i + 1}. [Section ${o.section}] ${o.outcomeText}`).join('\n')
-    const prompt = `A student has just had homework graded.
+    const prompt = `You are helping a SENCO track EHCP evidence for a student with an Education, Health and Care Plan.
 
-Homework title: "${homeworkTitle}"
+Homework: "${homeworkTitle}"
 Subject: ${subject || 'Not specified'}
-Grade: ${grade} (GCSE 1–9 scale)
+Grade awarded: ${grade}/9 (GCSE scale)
 
 Active EHCP outcomes:
 ${outcomesText}
 
-Does this homework likely provide evidence toward any of these EHCP outcomes?
+Could any aspect of this homework — even partially — provide evidence toward any of these outcomes?
+For EHCP students, evidence includes partial attempts, demonstrated strategies, or engagement with the subject area.
+Default to match: true if there is any reasonable connection.
 
-Respond with ONLY valid JSON (no markdown):
+Respond with ONLY valid JSON (no markdown, no explanation outside the JSON):
 {"match": true/false, "outcomeIndex": 1, "rationale": "one sentence"}
 
-If no match: {"match": false, "outcomeIndex": 0, "rationale": ""}`
+If genuinely no connection at all: {"match": false, "outcomeIndex": 0, "rationale": ""}`
 
     const client = new Anthropic({ apiKey })
     const msg    = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
-      max_tokens: 150,
+      max_tokens: 200,
       messages:   [{ role: 'user', content: prompt }],
     })
     const text   = (msg.content[0] as any).text.trim()

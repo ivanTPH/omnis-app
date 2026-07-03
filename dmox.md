@@ -161,3 +161,74 @@ The `raiseConcern()` server action DOES allow TEACHER role (line 278 of send-sup
 | "Q X of Y" progress indicator | Already exists in `HomeworkTypeRenderer` at lines 131 + 377. Tester was likely on EXTENDED_WRITING homework (plain textarea, no stepper). No action needed. |
 | Calendar refresh after lesson save | `saveOverview` calls `router.refresh()` which propagates to WeeklyCalendar via `lessons` prop change. Works on current week. Non-current weeks re-fetch on nav. Low impact. |
 | Adaptive ILP/EHCP evidence rates | haiku detection works but has false negatives at grade 4. Requires prompt tuning — not a UI bug. |
+
+---
+
+## 9. AI ILP Goals Generation Fails 100% of the Time
+
+**Observed:** SENCO clicks 'AI Goals' for any student. Spinner shows for 5-8s then 'Could not generate goals — please try again.' on every attempt.
+
+**Root cause:** max_tokens: 600 was too low for 3 full SMART ILP targets. claude-sonnet-4-6 outputs each target with a ~50-word description, ~30-word success criteria, and ~40-word teacher strategy. Three targets with JSON structure required ~700-900 tokens. The response was truncated mid-array, causing JSON.parse to throw silently and falling through to the error branch. No exception was raised — Claude returned HTTP 200 but with incomplete JSON.
+
+**Fix:**
+- max_tokens: 600 → 1200 in generateIlpGoalsForStudent (send-support.ts line ~3928)
+- export const maxDuration = 60 added to app/senco/ilp/page.tsx so Vercel Lambda allows enough time for the Claude Sonnet call
+
+**Files:** app/actions/send-support.ts, app/senco/ilp/page.tsx
+**Commit:** 2ae51ed
+
+---
+
+## 10. Lesson Resource Search Showing Duplicate Entries
+
+**Observed:** Searching 'An Inspector' in lesson Resources tab returns 3 identical copies of 'An Inspector Calls — Act 1 Slides.pptx'.
+
+**Root cause:** getSchoolResourceLibrary returned all Resource records matching the subject filter — one record per lesson the file was attached to. getFullResourceLibrary (used on /resources page) already had dedup logic but getSchoolResourceLibrary (used in UnifiedResourceSearch) did not.
+
+**Fix:** Added same dedup logic to getSchoolResourceLibrary: iterate rows, key by url ?? fileKey ?? label, keep the copy with the highest sendScore. Also increased take from 60 to 120 to compensate for pre-dedup volume.
+
+**Files:** app/actions/lessons.ts
+**Commit:** 2ae51ed
+
+---
+
+## 11. HOD Quick Access 'SEND Concerns' Link Causes Silent Redirect
+
+**Observed:** HOD (d.brooks) clicks 'SEND Concerns' in the Dashboard Quick Access section and lands back on the HOD dashboard instead of the SEND concerns page.
+
+**Root cause:** /senco/concerns requires SENCO/SLT/SCHOOL_ADMIN/HEAD_OF_YEAR per auth.config.ts ROLE_ROUTES. HEAD_OF_DEPT is not in that list. The middleware silently redirects to getRoleHome(role) = /hoy/dashboard... wait, actually to /hod/dashboard. This caused user confusion — looked like the sidebar 'Staff Overview' was broken (BUG-006).
+
+**Fix:** Replaced 'SEND Concerns' → /senco/concerns with 'SEND Students' → /send-caseload in the HOD Dashboard Quick Access grid. /send-caseload IS accessible to HEAD_OF_DEPT.
+
+**Files:** app/hod/dashboard/page.tsx
+**Commit:** 2ae51ed
+
+---
+
+## 12. TA SEND Students Page: ILP Targets All Show as Empty
+
+**Observed:** TA navigates to /ta/send-students. Page loads but shows 'No active ILP targets' for all SEND students.
+
+**Root cause:** getTaSendStudents used lowercase status values ('active', 'under_review') when querying IndividualLearningPlan. ILPStatus is a Prisma enum defined with uppercase values (ACTIVE, UNDER_REVIEW). Prisma silently returns no results when an enum filter value does not match exactly. The same bug existed in getTaNotes (line 218).
+
+**Fix:** Changed status filter to uppercase in both functions: ['active', 'under_review'] → ['ACTIVE', 'UNDER_REVIEW']. ILPTarget.status is a plain string using lowercase — those filters are correct and were not changed.
+
+**Files:** app/actions/ta-notes.ts (lines 218 and 281)
+**Commit:** 2ae51ed
+
+---
+
+## 13. AI Goals Error Modal Has No Retry Button
+
+**Observed:** When AI ILP Goals generation fails, modal shows error message and only a 'Close' button. User must close, find the student in the list, and click 'AI Goals' again.
+
+**Root cause:** Error state shape { phase: 'error', message } did not store which student was being generated for, so a retry button could not be rendered without that context.
+
+**Fix:**
+- Extended error state type: { phase: 'error', message, retryIlp?: IlpWithTargets }
+- handleAiGenerate passes the ilp object into the error state on failure
+- Error modal renders 'Try again' button (blue primary) when retryIlp is present, calling handleAiGenerate(aiModal.retryIlp) directly
+- 'Close' button retained alongside
+
+**Files:** components/send-support/IlpPageView.tsx
+**Commit:** 2ae51ed

@@ -519,7 +519,7 @@ export async function getSchoolResourceLibrary(forLessonId?: string) {
     contextSubject = ctx?.class?.subject ?? undefined
   }
 
-  return prisma.resource.findMany({
+  const rows = await prisma.resource.findMany({
     where: {
       schoolId,
       type: { in: [ResourceType.PLAN, ResourceType.SLIDES, ResourceType.WORKSHEET] },
@@ -534,8 +534,19 @@ export async function getSchoolResourceLibrary(forLessonId?: string) {
     },
     include: { review: true },
     orderBy: { updatedAt: 'desc' },
-    take: 60,
+    take: 120,
   })
+
+  // Deduplicate: same file can be attached to multiple lessons — keep highest sendScore copy
+  const seen = new Map<string, typeof rows[number]>()
+  for (const row of rows) {
+    const key = row.url ?? row.fileKey ?? row.label
+    const existing = seen.get(key)
+    if (!existing || ((row.review?.sendScore ?? -1) > (existing.review?.sendScore ?? -1))) {
+      seen.set(key, row)
+    }
+  }
+  return Array.from(seen.values())
 }
 
 // ── Lesson picker for resource library "Add to lesson" ────────────────────────

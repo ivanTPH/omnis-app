@@ -207,7 +207,7 @@ export default async function HodDashboardPage() {
                   {[
                     { label: 'Analytics',    href: '/analytics',            icon: 'bar_chart'     },
                     { label: 'Homework',     href: '/homework',             icon: 'assignment'    },
-                    { label: 'SEND Concerns',href: '/senco/concerns',       icon: 'warning'       },
+                    { label: 'SEND Students', href: '/send-caseload',        icon: 'support'       },
                     { label: 'AI Generator', href: '/ai-generator',         icon: 'auto_awesome'  },
                   ].map(l => (
                     <Link

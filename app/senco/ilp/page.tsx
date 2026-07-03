@@ -1,4 +1,6 @@
 import { requireAuth } from '@/lib/session'
+
+export const maxDuration = 60
 import { redirect } from 'next/navigation'
 import { getAllIlps, getStudentsWithSendButNoIlp } from '@/app/actions/send-support'
 import AppShell from '@/components/AppShell'

@@ -34,7 +34,7 @@ type AiModalState =
   | { phase: 'review';     studentId: string; studentName: string; sendCategory: string; subject: string; goals: AiGoalDraft[] }
   | { phase: 'saving' }
   | { phase: 'done'; studentName: string }
-  | { phase: 'error'; message: string }
+  | { phase: 'error'; message: string; retryIlp?: IlpWithTargets }
 
 // ── Post-approval review schedule modal ───────────────────────────────────────
 
@@ -119,7 +119,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
     setAiModal({ phase: 'generating', studentId: ilp.studentId, studentName: ilp.studentName })
     const result = await generateIlpGoalsForStudent(ilp.studentId)
     if (!result.ok) {
-      setAiModal({ phase: 'error', message: result.error })
+      setAiModal({ phase: 'error', message: result.error, retryIlp: ilp })
       return
     }
     setAiModal({
@@ -466,12 +466,22 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-800">
                   {aiModal.message}
                 </div>
-                <button
-                  onClick={() => setAiModal({ phase: 'idle' })}
-                  className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-2">
+                  {aiModal.retryIlp && (
+                    <button
+                      onClick={() => handleAiGenerate(aiModal.retryIlp!)}
+                      className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Try again
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setAiModal({ phase: 'idle' })}
+                    className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             )}
           </div>

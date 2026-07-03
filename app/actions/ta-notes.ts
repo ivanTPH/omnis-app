@@ -215,7 +215,7 @@ export async function getTaSendProfile(studentId: string): Promise<TaSendProfile
       select: { classroomStrategies: true },
     }).catch(() => null),
     prisma.individualLearningPlan.findFirst({
-      where:   { studentId, schoolId, status: { in: ['active', 'under_review'] } },
+      where:   { studentId, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
       include: { targets: { where: { status: { in: ['active', 'achieved'] } }, select: { id: true, target: true, status: true }, take: 5 } },
     }),
   ])
@@ -278,7 +278,7 @@ export async function getTaSendStudents(): Promise<TaSendStudent[]> {
   const studentIds = sendStudents.map(s => s.id)
   const [ilps, apdrs] = await Promise.all([
     prisma.individualLearningPlan.findMany({
-      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['active', 'under_review'] } },
+      where:   { studentId: { in: studentIds }, schoolId, status: { in: ['ACTIVE', 'UNDER_REVIEW'] } },
       select:  {
         studentId:  true,
         strategies: true,

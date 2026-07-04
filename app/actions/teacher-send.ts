@@ -50,12 +50,27 @@ export async function getTeacherSendCaseload(): Promise<TeacherSendCaseload> {
   const now     = new Date()
   const since90 = new Date(now.getTime() - 90 * 86_400_000)
 
-  // 1. Teacher's classes
-  const classes = await prisma.schoolClass.findMany({
+  // 1. Teacher's classes (for HOD: fall back to department-wide if not assigned as ClassTeacher)
+  let classes = await prisma.schoolClass.findMany({
     where:   { schoolId, teachers: { some: { userId } } },
-    select:  { id: true, name: true, subject: true, yearGroup: true },
+    select:  { id: true, name: true, subject: true, yearGroup: true, department: true },
     orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
   })
+
+  if (classes.length === 0 && role === 'HEAD_OF_DEPT') {
+    // HOD may not be a ClassTeacher on individual classes — look up department via any class link
+    const deptLink = await prisma.classTeacher.findFirst({
+      where:  { userId, class: { schoolId } },
+      select: { class: { select: { department: true } } },
+    })
+    const dept = deptLink?.class.department ?? null
+    classes = await prisma.schoolClass.findMany({
+      where:   { schoolId, ...(dept ? { department: dept } : {}) },
+      select:  { id: true, name: true, subject: true, yearGroup: true, department: true },
+      orderBy: [{ yearGroup: 'asc' }, { name: 'asc' }],
+    })
+  }
+
   const classIds = classes.map(c => c.id)
 
   if (classIds.length === 0) {

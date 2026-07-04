@@ -399,8 +399,8 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                       <textarea
                         value={goal.targetDescription}
                         onChange={e => updateGoalField(idx, 'targetDescription', e.target.value)}
-                        rows={2}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-300"
                       />
                     </div>
                     <div>
@@ -408,8 +408,8 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                       <textarea
                         value={goal.successCriteria}
                         onChange={e => updateGoalField(idx, 'successCriteria', e.target.value)}
-                        rows={2}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-300"
                       />
                     </div>
                     <div>
@@ -417,8 +417,8 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                       <textarea
                         value={goal.teacherStrategy}
                         onChange={e => updateGoalField(idx, 'teacherStrategy', e.target.value)}
-                        rows={2}
-                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-none focus:outline-none focus:ring-2 focus:ring-purple-300"
+                        rows={4}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] resize-y focus:outline-none focus:ring-2 focus:ring-purple-300"
                       />
                     </div>
                   </div>

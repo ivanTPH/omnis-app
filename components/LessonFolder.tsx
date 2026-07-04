@@ -2272,7 +2272,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
       document.body,
     )}
 
-    {/* Resource preview modal — iframe for URL resources */}
+    {/* Resource preview modal */}
     {previewUrl && typeof window !== 'undefined' && createPortal(
       <div className="fixed inset-0 z-[200] flex flex-col bg-black/80">
         <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
@@ -2293,12 +2293,31 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             <Icon name="open_in_new" size="sm" /> Open in new tab
           </a>
         </div>
-        <iframe
-          src={getEmbedUrl(previewUrl)}
-          className="flex-1 w-full bg-white"
-          allow="autoplay"
-          title={previewLabel}
-        />
+        {/.(?:pptx?|docx?|xlsx?|ppt)$/i.test(previewLabel) ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center">
+              <Icon name="description" size="lg" className="text-blue-600" />
+            </div>
+            <div className="text-center">
+              <p className="text-base font-semibold text-gray-900 mb-1">{previewLabel}</p>
+              <p className="text-sm text-gray-500 mb-4">This file type cannot be previewed in the browser.</p>
+              <a
+                href={previewUrl}
+                download
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Icon name="download" size="sm" /> Download file
+              </a>
+            </div>
+          </div>
+        ) : (
+          <iframe
+            src={getEmbedUrl(previewUrl)}
+            className="flex-1 w-full bg-white"
+            allow="autoplay"
+            title={previewLabel}
+          />
+        )}
       </div>,
       document.body,
     )}

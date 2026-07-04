@@ -3817,8 +3817,15 @@ export async function generateIlpGoalsForStudent(
     return { ok: false, error: 'Student has no active SEND status' }
   }
 
+  // Use existing ILP's sendCategory as source of truth (matches what ILP card displays)
+  const existingIlp = await prisma.individualLearningPlan.findFirst({
+    where:  { studentId, schoolId: user.schoolId, status: { in: ['active', 'under_review'] } },
+    select: { sendCategory: true },
+    orderBy: { createdAt: 'desc' },
+  })
+
   const studentName  = `${student.firstName} ${student.lastName}`
-  const sendCategory = sendStatus.needArea ?? sendStatus.activeStatus
+  const sendCategory = existingIlp?.sendCategory || (sendStatus.needArea ?? sendStatus.activeStatus)
   const subject      = baselines[0]?.subject ?? 'General'
   const baselinePct  = baselines[0]?.baselineScore ?? null
   const yearGroup    = student.yearGroup ?? null

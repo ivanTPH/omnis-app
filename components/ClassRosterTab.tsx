@@ -57,11 +57,13 @@ const EXPANDED_TABS: { key: ExpandedTabKey; label: string }[] = [
 export default function ClassRosterTab({
   classId,
   externalSearch,
+  externalSendFilter,
   showCheckboxes,
   onSelectionChange,
 }: {
   classId: string
   externalSearch?: string
+  externalSendFilter?: string
   showCheckboxes?: boolean
   onSelectionChange?: (ids: string[]) => void
 }) {
@@ -108,16 +110,24 @@ export default function ClassRosterTab({
   const senSupportCount = rows.filter(r => r.sendStatus === 'SEN_SUPPORT').length
   const ehcpCount       = rows.filter(r => r.sendStatus === 'EHCP').length
   const sendCount       = senSupportCount + ehcpCount
-  const ilpCount        = rows.filter(r => r.hasIlp).length
+  const ilpCount        = rows.filter(r => r.hasIlp && (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP')).length
 
   // ── Row filter ────────────────────────────────────────────────────────────
 
   function matchesFilter(row: ClassRosterRow) {
     const q = externalSearch ?? searchQuery
-    const matchesSend = sendFilter === 'ALL' ? true
-      : sendFilter === 'NO_PLAN'     ? (row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP') && !row.hasIlp
-      : sendFilter === 'NO_PASSPORT' ? !row.hasLearningProfile
-      : row.sendStatus === sendFilter
+    // External SEND filter from analytics page overrides internal tab filter
+    let matchesSend: boolean
+    if (externalSendFilter) {
+      matchesSend = externalSendFilter === '__send_only__'
+        ? row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP'
+        : row.sendStatus === externalSendFilter
+    } else {
+      matchesSend = sendFilter === 'ALL' ? true
+        : sendFilter === 'NO_PLAN'     ? (row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP') && !row.hasIlp
+        : sendFilter === 'NO_PASSPORT' ? !row.hasLearningProfile
+        : row.sendStatus === sendFilter
+    }
     return matchesSend && (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
   }
 

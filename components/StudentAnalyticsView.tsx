@@ -568,7 +568,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             {/* Roster view — SEND badges + K Plan bullets, matching lesson class view */}
             {studentView === 'roster' && classId && !studentId && (
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <ClassRosterTab classId={classId} />
+                <ClassRosterTab classId={classId} externalSendFilter={sendCat || undefined} />
               </div>
             )}
 

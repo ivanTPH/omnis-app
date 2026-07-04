@@ -165,7 +165,28 @@
 > calling raiseConcern() server action directly, with pre-filled ILP notification for students
 > with no ILP. See dmox.md for full root-cause + fix log.
 >
-> **Latest commit:** d8e4eba (July 2026 UAT fixes — AI goals extraction, HOD links, resource dedup, draft auto-save, generation banner, differentiate button, grade trend, SEND caseload modal). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-06-29). 1 intentional skip (APDR PDF — needs seeded data).**
+> July 2026 UAT Round 2: 6 confirmed bugs fixed. (1) Lesson resource preview blank for .pptx —
+> browsers cannot render Office formats in iframes; LessonFolder.tsx now detects non-previewable
+> extensions (.pptx/.docx/.xlsx/.ppt) and shows a Download button instead of a blank iframe.
+> (2) AI Goals modal fixed-height textareas — three textarea fields (Target/Success criteria/
+> Teacher strategy) had rows={2} and resize-none; changed to rows={4} + resize-y so full AI
+> content is visible and user-resizable. (3) HOD SEND Students showing 0 — getTeacherSendCaseload
+> only scoped to ClassTeacher-assigned classes; HOD may not be directly assigned as ClassTeacher,
+> so added department fallback (same logic as getHodDashboardData) when classes.length === 0 and
+> role === HEAD_OF_DEPT. (4) Analytics "SEND Need" filter non-functional — ClassRosterTab has its
+> own internal sendFilter state; analytics sendCat was never passed down; added externalSendFilter
+> prop to ClassRosterTab and wired it from StudentAnalyticsView. (5) Active ILPs count
+> overcounting — ilpCount in ClassRosterTab counted all students with ILP records including
+> non-SEND students; fixed to only count students where sendStatus === SEN_SUPPORT or EHCP.
+> (6) TA SEND Students showing no ILP targets — previous session wrongly changed
+> IndividualLearningPlan status queries to uppercase (ACTIVE/UNDER_REVIEW); IndividualLearningPlan
+> .status is a plain String with lowercase values ('active'/'under_review'/'archived'), NOT the
+> ILPStatus enum (which belongs to the legacy ILP model); reverted both occurrences in ta-notes.ts.
+> Bonus: Mia Adams SEND category inconsistency — ILP card showed ilp.sendCategory; AI Goals modal
+> used sendStatus.needArea (different DB fields); fixed generateIlpGoalsForStudent to look up
+> existing ILP's sendCategory as source of truth. 449/450 E2E passing on Vercel (2026-07-04).
+>
+> **Latest commit:** 5d0c6ea (UAT round 3 fixes — ILP textareas, TA ILP status, HOD scope, SEND filter, ILP count, ILP sendCategory consistency, resource preview download). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-04). 1 intentional skip (APDR PDF — needs seeded data).**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -771,7 +792,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**450 tests across 37 spec files. Last full Vercel run: 449/450 pass (2026-06-29). 1 intentional skip.**
+**450 tests across 37 spec files. Last full Vercel run: 449/450 pass (2026-07-04). 1 intentional skip.**
 - 1 skip: `sprint-d-apdr.spec.ts:177` (APDR PDF — requires a completed cycle in Vercel DB; run `npm run db:seed` to populate)
 - SEND smoke steps 6/7/8: graceful skip when local/Vercel DB weeks differ (calendar `?week=` param now respected; re-seed Vercel to fully enable)
 - 37 spec files: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),

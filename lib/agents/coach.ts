@@ -314,7 +314,7 @@ async function generateRecommendation(
 
   const response = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
-    max_tokens: 800,
+    max_tokens: 1200,
     system: `${RETRIEVAL_SPACING_SKILL.systemPromptFragment}
 
 You are also applying the Bloom's Analysis skill to classify any Bloom's gaps across topics.
@@ -330,10 +330,22 @@ Return ONLY valid JSON with this exact shape:
   })
 
   const text = response.content[0].type === 'text' ? response.content[0].text : ''
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('[coach] Haiku returned no JSON')
 
-  const parsed = JSON.parse(jsonMatch[0]) as {
+  function extractCoachJson(raw: string) {
+    const s = raw
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ' ')
+    const m = s.match(/\{[\s\S]*\}/)
+    if (!m) throw new Error('[coach] Haiku returned no JSON')
+    try { return JSON.parse(m[0]) } catch {
+      const cleaned = m[0].replace(/("(?:[^"\\]|\\.)*")/g, (str) =>
+        str.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')
+      )
+      return JSON.parse(cleaned)
+    }
+  }
+
+  const parsed = extractCoachJson(text) as {
     recommendedFocus: Array<{ topic: string } | string>
     bloomsGaps: string[]
     summaryNarrative: string

@@ -36,18 +36,17 @@ const STAFF_ROLES: Role[] = [
 
 const fetchAdminDashboardData = unstable_cache(
   async (schoolId: string): Promise<AdminDashboardData> => {
-    const [studentCount, staffCount, classCount, sendCount, activeIlpCount, openConcerns, pendingActivation] =
-      await Promise.all([
-        prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } }),
-        prisma.user.count({ where: { schoolId, role: { in: STAFF_ROLES }, isActive: true } }),
-        prisma.schoolClass.count({ where: { schoolId } }),
-        prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } }),
-        prisma.plan.count({
-          where: { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
-        }),
-        prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } }),
-        prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true, activatedAt: null } }),
-      ])
+    // Sequential queries to avoid exhausting the 5-connection PgBouncer pool (P2024).
+    // This cache refreshes at most once per minute per schoolId so sequencing is fine.
+    const studentCount       = await prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true } })
+    const staffCount         = await prisma.user.count({ where: { schoolId, role: { in: STAFF_ROLES }, isActive: true } })
+    const classCount         = await prisma.schoolClass.count({ where: { schoolId } })
+    const sendCount          = await prisma.sendStatus.count({ where: { student: { schoolId }, NOT: { activeStatus: 'NONE' } } })
+    const activeIlpCount     = await prisma.plan.count({
+      where: { schoolId, status: { in: ['ACTIVE_INTERNAL', 'ACTIVE_PARENT_SHARED'] } },
+    })
+    const openConcerns       = await prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } })
+    const pendingActivation  = await prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true, activatedAt: null } })
     return { studentCount, staffCount, classCount, sendCount, activeIlpCount, openConcerns, pendingActivation }
   },
   ['admin-dashboard-stats'],

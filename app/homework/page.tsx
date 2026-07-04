@@ -73,7 +73,7 @@ export default async function HomeworkPage() {
         id:             hw.id,
         title:          hw.title,
         status:         hw.status as string,
-        dueAt:          hw.dueAt.toISOString(),
+        dueAt:          hw.dueAt instanceof Date ? hw.dueAt.toISOString() : String(hw.dueAt),
         classId:        hw.classId,
         class:          hw.class,
         lesson:         hw.lesson,

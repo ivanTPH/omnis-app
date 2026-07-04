@@ -15,11 +15,25 @@ import type { Browser } from 'puppeteer-core'
 async function launchBrowser(): Promise<Browser> {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     const chromium = (await import('@sparticuz/chromium')).default
-    return puppeteerCore.launch({
-      args:           [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath: await chromium.executablePath(),
-      headless:       true,
-    }) as unknown as Browser
+    // ETXTBSY can occur on cold-start when two Lambda invocations try to extract
+    // the Chromium binary simultaneously. Retry up to 2 times with back-off.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        return await puppeteerCore.launch({
+          args:           [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+          executablePath: await chromium.executablePath(),
+          headless:       true,
+        }) as unknown as Browser
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException).code
+        if (code === 'ETXTBSY' && attempt < 2) {
+          await new Promise(r => setTimeout(r, 500 * (attempt + 1)))
+          continue
+        }
+        throw err
+      }
+    }
+    throw new Error('Failed to launch browser after 3 attempts')
   }
   // Local dev: use full puppeteer's managed Chrome
   const puppeteer = (await import('puppeteer')).default

@@ -294,16 +294,28 @@ Rules:
 
   const response = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
-    max_tokens: 1200,
+    max_tokens: 2000,
     system:     systemPrompt,
     messages:   [{ role: 'user', content: JSON.stringify(payload) }],
   })
 
-  const text      = response.content[0].type === 'text' ? response.content[0].text : ''
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('[quality] Haiku returned no JSON')
+  const text = response.content[0].type === 'text' ? response.content[0].text : ''
 
-  const parsed = JSON.parse(jsonMatch[0]) as Omit<QualityAnalysis, 'lastCheckedHomeworkId'>
+  function extractQualityJson(raw: string): Omit<QualityAnalysis, 'lastCheckedHomeworkId'> {
+    const s = raw
+      .replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '')
+      .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ' ')
+    const m = s.match(/\{[\s\S]*\}/)
+    if (!m) throw new Error('[quality] Haiku returned no JSON')
+    try { return JSON.parse(m[0]) } catch {
+      const cleaned = m[0].replace(/("(?:[^"\\]|\\.)*")/g, (str) =>
+        str.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')
+      )
+      return JSON.parse(cleaned)
+    }
+  }
+
+  const parsed = extractQualityJson(text)
 
   return {
     ...parsed,

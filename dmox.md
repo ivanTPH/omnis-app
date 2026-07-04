@@ -232,3 +232,37 @@ The `raiseConcern()` server action DOES allow TEACHER role (line 278 of send-sup
 
 **Files:** components/send-support/IlpPageView.tsx
 **Commit:** 2ae51ed
+
+---
+
+## 14. Student Draft Answers Not Persisted Between Page Navigations (GAP-001)
+
+**Observed:** Student types a partial answer into a multi-question homework, navigates to the dashboard, returns to the same homework URL. Answer field is empty.
+
+**Root cause:** Two-layer state management with a timing gap:
+
+1. `HomeworkSubmissionView` holds `content` (a JSON string for structured types) and saves it to localStorage via a 500ms debounced `handleContentChange`.
+2. On mount, a `useEffect` reads localStorage and calls `setContent(saved)` — this is async (fires after render).
+3. `HomeworkTypeRenderer` receives `value={content}` and initialises its internal `answers` state via `useState(() => JSON.parse(value))` — this runs only once, on the first render where `content` is still `''`.
+4. When the parent's `useEffect` later updates `content` to the localStorage value, React re-renders `HomeworkTypeRenderer` with the new `value` prop, but `useState` ignores subsequent prop changes — `answers` remains `{}`.
+
+The localStorage save was working correctly; only the restore path was broken.
+
+**Fix:** Added a `useEffect` in `HomeworkTypeRenderer` that fires whenever `value` changes. If the new value parses as a JSON object (i.e. answers map), `setAnswers` is called with the parsed result. Plain strings (EXTENDED_WRITING fallback) do not parse as objects and are silently ignored — no change to that render path.
+
+```typescript
+useEffect(() => {
+  if (!value) return
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      setAnswers(parsed as Record<string, string>)
+    }
+  } catch { /* plain string — not JSON-structured */ }
+}, [value])
+```
+
+This creates no render loop: when a user types, `updateAnswer` → `setAnswers` → `onChange` → parent `setContent` → new `value` prop → effect parses same answers object → `setAnswers` called with identical value → React bails (no state change detected).
+
+**Files:** `components/homework/HomeworkTypeRenderer.tsx`
+**Commit:** (current)

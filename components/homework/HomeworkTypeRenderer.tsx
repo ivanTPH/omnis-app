@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Icon from '@/components/ui/Icon'
 
 type Props = {
@@ -79,6 +79,18 @@ export default function HomeworkTypeRenderer({
     try { return JSON.parse(value) } catch { return {} }
   })
   const [showOriginal, setShowOriginal] = useState<Record<string, boolean>>({})
+
+  // Sync answers when parent restores a draft from localStorage (value prop updates after mount)
+  useEffect(() => {
+    if (!value) return
+    try {
+      const parsed: unknown = JSON.parse(value)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        setAnswers(parsed as Record<string, string>)
+      }
+    } catch { /* plain string — not JSON-structured, used directly */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
 
   // Stepper state (used only in multi-question short_answer mode)
   const [currentQ,    setCurrentQ]    = useState(0)

@@ -201,7 +201,25 @@
 > back-off on ETXTBSY before re-throwing. (4) dueAt crash (3 occurrences) — app/homework/page.tsx
 > called .toISOString() without instanceof Date guard; fixed with ternary fallback to String(hw.dueAt).
 >
-> **Latest commit:** 9e5ec48 (UAT round 4 fixes — quality/coach JSON extractor, admin P2024 sequential queries, PDF ETXTBSY retry, dueAt guard). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-05). 1 intentional skip (APDR PDF — needs seeded data).**
+> July 2026 UAT Round 4: 6-issue data-coherence audit. (1) ILP pollution — generate-ilp route,
+> generateILPForStudent, and generateILPFromConcern all lacked a SendStatus.activeStatus check;
+> created ILPs for non-SEND students; fixed with SEND guard in all 3 locations. createIlp now
+> archives under_review alongside active ILPs, preventing duplicate non-archived ILPs per student.
+> getSencoDashboardData studentsWithIlp count now scoped to SEND-registered students only.
+> DB cleanup: 123 orphaned ILPs (non-SEND students) archived via direct SQL.
+> (2) Conflicting SEND classification (Mia Adams, Rehan Ali, Anya Patel) — root cause was duplicate
+> ILPs surviving from under_review status; fixed by createIlp archive fix above.
+> (3) EHCP count mismatch — getEhcpRegisterCount action added to ehcp.ts; EHCP Plans page now
+> fetches both EhcpPlan count and SendStatus.activeStatus=EHCP count; shows amber reconciliation
+> banner if they diverge. (4) SEND Need filter non-functional — externalSendFilter in
+> StudentAnalyticsView was passing raw ILP sendCategory strings ('SpLD/Dyslexia' etc.) to
+> ClassRosterTab which compares against sendStatus values; normalised to '__send_only__'.
+> (5) Duplicate dashboard routes — auth.config.ts SENCO login now routes to /senco/dashboard
+> (working hub) not /send/dashboard (register list). (6) Homework 'to mark' inconsistency —
+> homework/page.tsx scope aligned to dashboard (createdBy OR class teacher); needsMarkCount
+> criterion aligned to !s.finalScore matching dashboard's !s.grade check.
+>
+> **Latest commit:** 8665fa3 (UAT round 4 data-coherence audit — ILP SEND gating, EHCP reconciliation, homework alignment). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-05). 1 intentional skip (APDR PDF — needs seeded data).**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

@@ -1844,8 +1844,8 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
   ] = await Promise.all([
     prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
-    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
-    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', reviewDate: { gte: now, lte: in14Days }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
+    prisma.individualLearningPlan.count({ where: { schoolId, status: { in: ['active', 'under_review'] }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
+    prisma.individualLearningPlan.count({ where: { schoolId, status: { in: ['active', 'under_review'] }, reviewDate: { gte: now, lte: in14Days }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
     prisma.sendConcern.findMany({
       where: { schoolId },
       orderBy: { createdAt: 'desc' },
@@ -1861,7 +1861,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       orderBy: { createdAt: 'asc' },
     }),
     prisma.individualLearningPlan.findMany({
-      where: { schoolId, status: 'active', reviewDate: { gte: now, lte: in30Days } },
+      where: { schoolId, status: { in: ['active', 'under_review'] }, reviewDate: { gte: now, lte: in30Days } },
       select: { id: true, studentId: true, reviewDate: true, sendCategory: true },
       orderBy: { reviewDate: 'asc' },
       take: 20,

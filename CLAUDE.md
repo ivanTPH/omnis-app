@@ -303,7 +303,7 @@ session.user = { id, schoolId, schoolName, role, firstName, lastName }
 |---|---|
 | STUDENT | `/student/dashboard` |
 | PARENT | `/parent/dashboard` |
-| SENCO | `/send/dashboard` |
+| SENCO | `/senco/dashboard` |
 | SLT | `/slt/analytics` |
 | SCHOOL_ADMIN | `/admin/dashboard` |
 | PLATFORM_ADMIN | `/platform-admin/dashboard` |

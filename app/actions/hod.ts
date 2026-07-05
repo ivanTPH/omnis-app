@@ -147,7 +147,7 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
       select: { studentId: true },
     }),
     prisma.individualLearningPlan.count({
-      where: { schoolId, studentId: { in: studentIdArr }, status: 'active' },
+      where: { schoolId, studentId: { in: studentIdArr }, status: { in: ['active', 'under_review'] }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } },
     }),
     prisma.sendConcern.count({
       where: { schoolId, studentId: { in: studentIdArr }, status: { notIn: ['closed', 'no_action'] } },

@@ -713,7 +713,8 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       </div>
 
       {/* ── Grade Calibration Report (HOD / SLT) ── */}
-      {calibrationReport && calibrationReport.teacherRows.length > 0 && (
+      {/* Hidden when SEND filter active — the report is pre-computed at page load and cannot be SEND-filtered */}
+      {calibrationReport && calibrationReport.teacherRows.length > 0 && !sendCat && (
         <div className="mt-8 bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
             <Icon name="balance" size="sm" className="text-blue-600" />

@@ -336,13 +336,22 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
   }
 
   const classIds = deptClasses.map(c => c.id)
-  const [classStatsMap, bloomsHw] = await Promise.all([
+  const [classStatsMap, bloomsHw, deptEnrolments, deptSendCount] = await Promise.all([
     buildClassStats(classIds, schoolId),
     prisma.homework.findMany({
       where:  { classId: { in: classIds }, bloomsLevel: { not: null } },
       select: { bloomsLevel: true },
     }),
+    // De-duplicated enrollment for accurate totals (students in multiple classes must not be double-counted)
+    prisma.enrolment.findMany({
+      where:  { classId: { in: classIds } },
+      select: { userId: true },
+    }),
+    prisma.sendStatus.count({
+      where: { student: { schoolId, enrolments: { some: { classId: { in: classIds } } } }, NOT: { activeStatus: 'NONE' } },
+    }),
   ])
+  const uniqueDeptStudents = new Set(deptEnrolments.map(e => e.userId)).size
 
   // Group by teacher
   const teacherMap = new Map<string, { name: string; classIds: Set<string> }>()
@@ -394,8 +403,6 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
     .map(l => ({ level: l, count: bloomsMap.get(l)! }))
 
   const allGrades = teachers.map(t => t.avgGrade).filter((g): g is number => g != null)
-  const totalStudents = teachers.reduce((s, t) => s + t.studentCount, 0)
-  const totalSend     = teachers.reduce((s, t) => s + t.sendCount, 0)
 
   return {
     department:     dept || 'All departments',
@@ -405,9 +412,10 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
     totals: {
       teachers:   teachers.length,
       classes:    deptClasses.length,
-      students:   totalStudents,
+      // uniqueDeptStudents de-duplicates students enrolled in multiple department classes
+      students:   uniqueDeptStudents,
       avgGrade:   allGrades.length > 0 ? Math.round(allGrades.reduce((a, b) => a + b, 0) / allGrades.length * 10) / 10 : null,
-      sendPct:    totalStudents > 0 ? Math.round((totalSend / totalStudents) * 100) : 0,
+      sendPct:    uniqueDeptStudents > 0 ? Math.round((deptSendCount / uniqueDeptStudents) * 100) : 0,
       ungraded:   teachers.reduce((s, t) => s + t.ungraded, 0),
     },
   }

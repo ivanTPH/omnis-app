@@ -106,13 +106,12 @@ export async function getTeacherSendCaseload(): Promise<TeacherSendCaseload> {
   })
   const studentMap = new Map(students.map(s => [s.id, s]))
 
-  // 5. Active ILPs for SEND students (approved only)
+  // 5. Active ILPs for SEND students — include under_review so hasIlp reflects reality
   const ilps = await prisma.individualLearningPlan.findMany({
     where: {
       schoolId,
-      studentId:      { in: sendStudentIds },
-      status:         'active',
-      approvedBySenco: true,
+      studentId: { in: sendStudentIds },
+      status:    { in: ['active', 'under_review'] },
     },
     select: {
       id: true, studentId: true, reviewDate: true, sendCategory: true,

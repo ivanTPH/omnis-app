@@ -186,7 +186,22 @@
 > used sendStatus.needArea (different DB fields); fixed generateIlpGoalsForStudent to look up
 > existing ILP's sendCategory as source of truth. 449/450 E2E passing on Vercel (2026-07-04).
 >
-> **Latest commit:** 5d0c6ea (UAT round 3 fixes — ILP textareas, TA ILP status, HOD scope, SEND filter, ILP count, ILP sendCategory consistency, resource preview download). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-04). 1 intentional skip (APDR PDF — needs seeded data).**
+> July 2026 UAT Round 3: 4 production bugs fixed via Vercel runtime error log analysis (no manual
+> browser testing). (1) Quality/Coach agent JSON parse failures (298+33 occurrences) — Claude
+> returned prose-prefixed JSON or embedded raw newlines/control chars inside string values;
+> lib/agents/quality.ts and lib/agents/coach.ts now use a multi-strategy extractor: strip markdown
+> fences → clean control chars (0x00-0x08/0x0b/0x0c/0x0e-0x1f) → match {…} → JSON.parse → on
+> failure, escape unescaped \n/\r/\t inside string values via regex → retry parse. max_tokens
+> increased (quality 1200→2000, coach 800→1200). (2) Admin dashboard P2024 connection pool
+> exhaustion (9 occurrences) — getAdminDashboardData (in unstable_cache) ran 7 parallel
+> prisma.count() queries; with PgBouncer connection_limit=5, concurrent background cache refreshes
+> exhausted the pool; fixed by running all 7 queries sequentially in app/actions/admin.ts.
+> (3) PDF export ETXTBSY (33 occurrences) — @sparticuz/chromium binary locked during concurrent
+> Lambda cold-starts; lib/pdf/generator.ts launchBrowser() now retries ×3 with 500ms/1000ms
+> back-off on ETXTBSY before re-throwing. (4) dueAt crash (3 occurrences) — app/homework/page.tsx
+> called .toISOString() without instanceof Date guard; fixed with ternary fallback to String(hw.dueAt).
+>
+> **Latest commit:** 9e5ec48 (UAT round 4 fixes — quality/coach JSON extractor, admin P2024 sequential queries, PDF ETXTBSY retry, dueAt guard). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-05). 1 intentional skip (APDR PDF — needs seeded data).**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

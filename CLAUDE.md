@@ -219,7 +219,31 @@
 > homework/page.tsx scope aligned to dashboard (createdBy OR class teacher); needsMarkCount
 > criterion aligned to !s.finalScore matching dashboard's !s.grade check.
 >
-> **Latest commit:** 8665fa3 (UAT round 4 data-coherence audit — ILP SEND gating, EHCP reconciliation, homework alignment). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-05). 1 intentional skip (APDR PDF — needs seeded data).**
+> July 2026 UAT Round 5: Data architecture audit — single source of truth for SEND/ILP/EHCP.
+> Root cause was three independent representations of SEND status that were never reconciled.
+> DB fixes: (1) Promoted 5 EHCP plan holders (Caitlin Harris, Mia Adams, Rehan Ali, Sophia Ahmed,
+> Tyler Cooper) to SendStatus.activeStatus=EHCP — EhcpPlan presence is now authoritative; register
+> count rises from 2→7, matching EhcpPlan document count. (2) Synced ILP.sendCategory to
+> SendStatus.needArea for 13 ILPs where fields diverged (root cause of Mia Adams showing SpLD on
+> SENCO view vs ASD/Autism on teacher/TA views). (3) Set approvedBySenco=true on 2 seed ILPs
+> (Rehan Ali, Sophia Ahmed) that were status=active but unapproved — eliminating false
+> "ILP awaiting approval" entries in the pending actions widget.
+> Code fixes: (4) getSencoDashboardData studentsWithIlp + ilpReviewsDue + upcomingIlpsRaw now
+> count status IN [active,under_review] — was 'active' only, showing 16 instead of 49.
+> (5) getHodDashboardData activeIlps count aligned same way + SEND guard added.
+> (6) getTeacherSendCaseload ILP lookup now covers [active,under_review] without approvedBySenco
+> filter — hasIlp=false for students with under_review ILPs was why Jay Patel saw Rehan Ali/
+> Sophia Ahmed as "no approved ILP" despite SENCO and TA views showing full active ILP targets.
+> (7) getDepartmentAnalytics totals.students and sendPct now use de-duplicated unique student Set
+> across all department classes — was summing per-teacher per-class counts, inflating to 734
+> students / 28% SEND vs actual unique count. (8) StudentAnalyticsView Grade Calibration table
+> hidden when sendCat filter is active — pre-computed server data cannot be SEND-filtered client-
+> side, so hiding prevents misleading unfiltered rows appearing alongside a filtered class list.
+> Post-fix cross-role trace confirmed: Mia Adams, Rehan Ali, Sophia Ahmed all show send_status=EHCP,
+> correct needArea/sendCategory, ilp_status=active, approvedBySenco=true, has_ehcp_doc=true.
+> Dashboard ILP count = ILP Records page count = 49 (was: dashboard 16 vs records 49).
+>
+> **Latest commit:** 1decb59 (UAT Round 5 data architecture — SEND/ILP/EHCP single source of truth). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-05). 1 intentional skip (APDR PDF — needs seeded data).**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

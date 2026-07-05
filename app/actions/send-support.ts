@@ -830,9 +830,18 @@ export async function createIlp(data: {
 
   const validated = CreateIlpSchema.parse(data)
 
-  // Archive any existing active ILPs for this student
+  // Guard: only SEND-registered students may have ILPs
+  const sendCheck = await prisma.sendStatus.findUnique({
+    where:  { studentId: validated.studentId },
+    select: { activeStatus: true },
+  })
+  if (!sendCheck || sendCheck.activeStatus === 'NONE') {
+    throw new Error('ILPs can only be created for students on the SEND register.')
+  }
+
+  // Archive any existing active or under-review ILPs for this student
   await prisma.individualLearningPlan.updateMany({
-    where: { schoolId, studentId: validated.studentId, status: 'active' },
+    where: { schoolId, studentId: validated.studentId, status: { in: ['active', 'under_review'] } },
     data: { status: 'archived' },
   })
 
@@ -1835,8 +1844,8 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
   ] = await Promise.all([
     prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
-    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active' } }),
-    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', reviewDate: { gte: now, lte: in14Days } } }),
+    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
+    prisma.individualLearningPlan.count({ where: { schoolId, status: 'active', reviewDate: { gte: now, lte: in14Days }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
     prisma.sendConcern.findMany({
       where: { schoolId },
       orderBy: { createdAt: 'desc' },
@@ -2133,9 +2142,12 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
 
   const sendStatus = await prisma.sendStatus.findUnique({
     where: { studentId },
-    select: { needArea: true },
+    select: { activeStatus: true, needArea: true },
   })
-  const sendCategory = sendStatus?.needArea ?? 'General Learning Support'
+  if (!sendStatus || sendStatus.activeStatus === 'NONE') {
+    return { success: false, error: 'ILPs can only be created for students on the SEND register.' }
+  }
+  const sendCategory = sendStatus.needArea ?? 'General Learning Support'
   const yearGroup = student.yearGroup ?? 9
 
   try {
@@ -4122,12 +4134,15 @@ export async function generateILPFromConcern(
 
   const sendStatus = await prisma.sendStatus.findUnique({
     where: { studentId },
-    select: { needArea: true },
+    select: { activeStatus: true, needArea: true },
   })
+  if (!sendStatus || sendStatus.activeStatus === 'NONE') {
+    return { success: false, error: 'ILPs can only be created for students on the SEND register.' }
+  }
 
   const yearGroup = student.yearGroup ?? 9
   const ksLabel = yearGroup <= 9 ? 'KS3' : yearGroup <= 11 ? 'KS4 (GCSE)' : 'KS5 (A-Level)'
-  const sendCategory = sendStatus?.needArea
+  const sendCategory = sendStatus.needArea
     ?? concern.category.replace(/_/g, ' ')
     ?? 'General Learning Support'
 

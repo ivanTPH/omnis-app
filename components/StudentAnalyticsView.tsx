@@ -568,7 +568,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             {/* Roster view — SEND badges + K Plan bullets, matching lesson class view */}
             {studentView === 'roster' && classId && !studentId && (
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <ClassRosterTab classId={classId} externalSendFilter={sendCat || undefined} />
+                {/* externalSendFilter only understands sendStatus values ('SEN_SUPPORT'/'EHCP'/'__send_only__').
+                    Any specific need-area category value (e.g. 'SpLD/Dyslexia') is normalised to
+                    '__send_only__' so the roster always shows SEND students when a SEND filter is active. */}
+                <ClassRosterTab classId={classId} externalSendFilter={sendCat ? '__send_only__' : undefined} />
               </div>
             )}
 

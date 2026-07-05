@@ -9,7 +9,7 @@ function getRoleHome(role: string): string {
   switch (role) {
     case 'STUDENT':        return '/student/dashboard'
     case 'PARENT':         return '/parent/dashboard'
-    case 'SENCO':          return '/send/dashboard'
+    case 'SENCO':          return '/senco/dashboard'
     case 'SLT':            return '/slt/analytics'
     case 'SCHOOL_ADMIN':       return '/admin/dashboard'
     case 'PLATFORM_ADMIN':     return '/platform-admin/dashboard'

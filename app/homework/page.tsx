@@ -40,7 +40,9 @@ export default async function HomeworkPage() {
     const homework = await withRetry(() => prisma.homework.findMany({
       where: {
         schoolId,
-        ...(isTeacher ? { class: { teachers: { some: { userId } } } } : {}),
+        // Mirror the dashboard scope: createdBy OR class teacher, so
+        // homework created directly (e.g. cover lessons) appears in both views.
+        ...(isTeacher ? { OR: [{ createdBy: userId }, { class: { teachers: { some: { userId } } } }] } : {}),
       },
       include: {
         class:       { select: { name: true, subject: true, yearGroup: true } },
@@ -66,9 +68,11 @@ export default async function HomeworkPage() {
     items = homework.map(hw => {
       const total     = countByClass[hw.classId!] ?? 0
       const submitted = hw.submissions.length
-      // Only RETURNED = teacher has graded and given back to student.
-      // MARKED = auto-marked but teacher hasn't reviewed/returned yet → still needs action.
-      const returned = hw.submissions.filter(s => s.status === 'RETURNED').length
+      const returned  = hw.submissions.filter(s => s.status === 'RETURNED').length
+      // needsMarkCount mirrors the dashboard's criterion: non-RETURNED submissions
+      // that have not yet been given a finalScore (ungraded). This aligns the
+      // "To Mark" figure between the dashboard and the homework list.
+      const needsMarkCount = hw.submissions.filter(s => s.status !== 'RETURNED' && !s.finalScore).length
       return {
         id:             hw.id,
         title:          hw.title,
@@ -79,7 +83,7 @@ export default async function HomeworkPage() {
         lesson:         hw.lesson,
         submittedCount: submitted,
         markedCount:    returned,
-        needsMarkCount: submitted - returned,
+        needsMarkCount,
         totalEnrolled:  total,
       }
     })

@@ -263,6 +263,14 @@ export async function getStudentEhcp(studentId: string): Promise<EhcpPlanWithOut
   }
 }
 
+/** Count of students whose SendStatus.activeStatus = 'EHCP' — the authoritative register. */
+export async function getEhcpRegisterCount(): Promise<number> {
+  const user = await requireSenco()
+  return prisma.sendStatus.count({
+    where: { student: { schoolId: user.schoolId }, activeStatus: 'EHCP' },
+  })
+}
+
 export async function getAllEhcpPlans(): Promise<EhcpPlanWithOutcomes[]> {
   const user = await requireSenco()
   const schoolId = user.schoolId

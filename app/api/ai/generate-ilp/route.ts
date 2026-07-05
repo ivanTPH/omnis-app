@@ -68,9 +68,13 @@ export async function POST(request: Request) {
 
         const sendStatus = await prisma.sendStatus.findUnique({
           where:  { studentId },
-          select: { needArea: true },
+          select: { activeStatus: true, needArea: true },
         })
-        const sendCategory = sendStatus?.needArea ?? 'General Learning Support'
+        if (!sendStatus || sendStatus.activeStatus === 'NONE') {
+          emit(controller, { type: 'error', message: 'ILPs can only be created for students on the SEND register.' })
+          return
+        }
+        const sendCategory = sendStatus.needArea ?? 'General Learning Support'
         const yearGroup    = student.yearGroup ?? 9
 
         // ── Anthropic streaming call ─────────────────────────────────────────

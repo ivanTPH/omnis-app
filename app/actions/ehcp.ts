@@ -152,6 +152,13 @@ export async function createEhcpPlan(data: {
     },
   })
 
+  // Forward-sync: promote student to EHCP status on the SEND register
+  await prisma.sendStatus.upsert({
+    where:  { studentId: data.studentId },
+    update: { activeStatus: 'EHCP' },
+    create: { studentId: data.studentId, activeStatus: 'EHCP', needArea: null },
+  })
+
   // Log to SendReviewLog (EHCP is Special Category data)
   await prisma.sendReviewLog.create({
     data: {

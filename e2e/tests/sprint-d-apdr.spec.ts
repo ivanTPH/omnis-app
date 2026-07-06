@@ -129,13 +129,15 @@ test.describe('Sprint D — APDR student detail page', () => {
     await loginAs(page, USERS.senco)
     // Use the list page — guaranteed to have ILP/APDR content or empty state
     await page.goto('/senco/ilp')
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    // Wait for meaningful content — empty state or ILP list, not a loading skeleton
+    await expect(page.locator('body')).not.toBeEmpty()
+    const body = await page.locator('body').innerText({ timeout: 15_000 })
     // Page should render ILP list content (not a "coming soon" stub)
     expect(body).not.toMatch(/this section is still being built/i)
-    expect(body.length).toBeGreaterThan(100)
+    expect(body.length).toBeGreaterThan(200)
   })
 
   test('completed APDR cycle shows outcome labels (if cycles exist)', async ({ page }) => {

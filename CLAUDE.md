@@ -243,7 +243,7 @@
 > correct needArea/sendCategory, ilp_status=active, approvedBySenco=true, has_ehcp_doc=true.
 > Dashboard ILP count = ILP Records page count = 49 (was: dashboard 16 vs records 49).
 >
-> **Latest commit:** 1decb59 (UAT Round 5 data architecture — SEND/ILP/EHCP single source of truth). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (2026-07-05). 1 intentional skip (APDR PDF — needs seeded data).**
+> **Latest commit:** 1decb59 (UAT Round 5 data architecture — SEND/ILP/EHCP single source of truth). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel (2026-07-06). 2 flaky (cold-start retries: K Plan approval timing, APDR ILP list redirect). 1 intentional skip (APDR PDF — needs seeded data). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

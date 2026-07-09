@@ -2494,6 +2494,22 @@ model SchoolCohortAggregate {
   @@unique([schoolId, subject, yearGroup])
   @@index([schoolId])
 }
+// Cross-school anonymised insight pipeline.
+// Populated weekly by /api/cron/platform-insights.
+// k-anonymity: only written when schoolCount >= 3.
+// No school IDs, no student IDs — aggregate signals only.
+model PlatformInsight {
+  id           String   @id @default(cuid())
+  insightType  String   // 'BLOOMS_DISTRIBUTION' | 'SEND_TASK_TYPE' | 'STRATEGY_FREQUENCY' | 'NEED_AREA_PREVALENCE' | 'ATTAINMENT_BENCHMARK'
+  yearGroup    Int?     // null = cross-year aggregate; 7-13 = year-specific
+  schoolCount  Int      // how many schools contributed (privacy threshold >= 3)
+  studentCount Int      // total students across contributing schools
+  payload      Json     // varies by insightType — see lib/platform-insight.ts
+  generatedAt  DateTime @default(now())
+
+  @@unique([insightType, yearGroup])
+  @@index([insightType])
+}
 
 model EhcpPlan {
   id              String      @id @default(cuid())

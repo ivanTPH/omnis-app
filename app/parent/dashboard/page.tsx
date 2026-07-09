@@ -81,13 +81,13 @@ export default async function ParentDashboardPage() {
       .map(([subject, entries]) => {
         const sorted = entries.sort((a, b) => a.at.getTime() - b.at.getTime())
         const avg = Math.round(sorted.reduce((s, e) => s + e.g, 0) / sorted.length)
-        // Trend: compare last 2 submissions vs 2 before that (need ≥ 4)
+        // Trend: need ≥ 2 submissions; compare most recent vs prior
         let trend: 'up' | 'down' | 'stable' = 'stable'
-        if (sorted.length >= 4) {
-          const recent = sorted.slice(-2).reduce((s, e) => s + e.g, 0) / 2
-          const older  = sorted.slice(-4, -2).reduce((s, e) => s + e.g, 0) / 2
-          if (recent - older >= 0.5) trend = 'up'
-          else if (older - recent >= 0.5) trend = 'down'
+        if (sorted.length >= 2) {
+          const recent = sorted[sorted.length - 1].g
+          const prior  = sorted[sorted.length - 2].g
+          if (recent - prior >= 1) trend = 'up'
+          else if (prior - recent >= 1) trend = 'down'
         }
         return { subject, avg, trend }
       })

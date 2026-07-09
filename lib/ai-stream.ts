@@ -40,7 +40,16 @@ export async function streamAiRequest<T>(
   let buffer = ''
 
   while (true) {
-    const { done, value } = await reader.read()
+    // 45 s stale-stream guard — if no bytes arrive, the Lambda or Anthropic
+    // stream has hung; cancel and surface a user-friendly error.
+    const STALE_MS = 45_000
+    const readResult = await Promise.race([
+      reader.read(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI generation timed out — please try again.')), STALE_MS)
+      ),
+    ])
+    const { done, value } = readResult
 
     if (!done) {
       buffer += decoder.decode(value, { stream: true })

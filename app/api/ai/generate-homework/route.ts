@@ -158,7 +158,7 @@ export async function POST(request: Request) {
                 select: { studentId: true, activeStatus: true, needArea: true },
               }),
               prisma.individualLearningPlan.findMany({
-                where: { approvedBySenco: true, status: 'ACTIVE', student: { enrolments: { some: { classId: lesson.classId } } } },
+                where: { status: { in: ['active', 'under_review'] }, student: { enrolments: { some: { classId: lesson.classId } } } },
                 select: { studentId: true, sendCategory: true, areasOfNeed: true, targets: { where: { status: 'active' }, select: { target: true }, take: 2 } },
               }),
             ])
@@ -236,7 +236,7 @@ ${buildTypePrompt(type, subject, qualification)}`
         const client      = new Anthropic({ apiKey })
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
-          max_tokens: 8000,
+          max_tokens: 4000,
           system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
           messages:   [{ role: 'user', content: prompt }],
         })

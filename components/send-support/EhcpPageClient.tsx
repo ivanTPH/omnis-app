@@ -7,6 +7,7 @@ import SendBadge from '@/components/ui/SendBadge'
 import { SencoRow } from '@/components/ui/SencoRow'
 import type { EhcpPlanWithOutcomes, StudentWithoutEhcp } from '@/app/actions/ehcp'
 import EhcpCard from './EhcpCard'
+import CreateEhcpPlanModal from './CreateEhcpPlanModal'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Active',
@@ -31,10 +32,11 @@ type Props = {
 }
 
 export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: Props) {
-  const [expanded,   setExpanded]   = useState<Set<string>>(new Set())
-  const [searchQuery, setSearchQuery] = useState('')
-  const [yearFilter,  setYearFilter]  = useState('')
-  const [viewMode,    setViewMode]    = useState<'plans' | 'no_ehcp'>('plans')
+  const [expanded,        setExpanded]        = useState<Set<string>>(new Set())
+  const [searchQuery,     setSearchQuery]     = useState('')
+  const [yearFilter,      setYearFilter]      = useState('')
+  const [viewMode,        setViewMode]        = useState<'plans' | 'no_ehcp'>('plans')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const pendingApproval = plans.filter(p => !p.approvedBySenco)
   // Count ALL plans regardless of approval status — unapproved plans still have statutory review deadlines
@@ -140,6 +142,15 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
             >
               <Icon name="warning" size="sm" />
               SEND without EHCP ({studentsWithoutEhcp.length})
+            </button>
+          )}
+          {isSenco && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            >
+              <Icon name="add" size="sm" />
+              New EHCP Plan
             </button>
           )}
         </div>
@@ -266,6 +277,13 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
             )
           })}
         </div>
+      )}
+
+      {showCreateModal && (
+        <CreateEhcpPlanModal
+          students={studentsWithoutEhcp}
+          onClose={() => setShowCreateModal(false)}
+        />
       )}
     </div>
   )

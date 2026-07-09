@@ -14,6 +14,7 @@ import GuideChatButton from '@/components/help/GuideChatButton'
 import OnboardingChecklist from '@/components/help/OnboardingChecklist'
 import GlobalSearch from '@/components/GlobalSearch'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
+import SessionTimeout from '@/components/SessionTimeout'
 import Link from 'next/link'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
@@ -154,6 +155,7 @@ export default function AppShell({
       <GuideChatButton />
       <OnboardingChecklist role={role} />
       {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
+      <SessionTimeout />
     </TeacherProfileContext.Provider>
     </NotificationCountContext.Provider>
     </MobileMenuContext.Provider>

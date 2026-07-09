@@ -940,6 +940,18 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
   })
   if (!ilp) return null
 
+  // UK GDPR Article 9 — log direct ILP record access
+  void prisma.auditLog.create({
+    data: {
+      schoolId:   user.schoolId,
+      actorId:    user.id,
+      action:     'SEND_RECORD_VIEWED',
+      targetType: 'ILP',
+      targetId:   ilp.id,
+      metadata:   { studentId, accessorRole: user.role },
+    },
+  }).catch(() => {})
+
   const [student, sendStatusRecord] = await Promise.all([
     prisma.user.findUnique({
       where:  { id: studentId },

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { checkLoginRatelimit } from '@/lib/kv'
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
   trustHost: true,
   providers: [
@@ -48,12 +48,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: user.role,
           firstName: user.firstName,
           lastName: user.lastName,
+          dpaAcceptedAt: user.dpaAcceptedAt?.toISOString() ?? null,
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === 'update' && session?.dpaAcceptedAt) {
+        token.dpaAcceptedAt = session.dpaAcceptedAt
+      }
       if (user) {
         const u = user as Session['user']
         token.id = u.id
@@ -62,6 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = u.role
         token.firstName = u.firstName
         token.lastName = u.lastName
+        token.dpaAcceptedAt = (u as any).dpaAcceptedAt ?? null
       }
       return token
     },
@@ -72,6 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.role = token.role
       session.user.firstName = token.firstName
       session.user.lastName = token.lastName
+      ;(session.user as any).dpaAcceptedAt = token.dpaAcceptedAt
       return session
     },
   },

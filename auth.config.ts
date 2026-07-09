@@ -74,6 +74,15 @@ export const authConfig = {
       const pathname = req.nextUrl?.pathname ?? '/dashboard'
       const role     = user.role as string
 
+      // DPA gate — staff must acknowledge data processing agreement on first access
+      const STAFF_ROLES = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN',
+                           'TEACHING_ASSISTANT','COVER_MANAGER','PLATFORM_ADMIN','ACADEMY_ADMIN','SUPER_ADMIN']
+      if (STAFF_ROLES.includes(role) && !(auth as any)?.user?.dpaAcceptedAt && pathname !== '/accept-dpa') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/accept-dpa'
+        return NextResponse.redirect(url)
+      }
+
       // Check role-based route restrictions
       for (const { prefix, roles } of ROLE_ROUTES) {
         if (pathname.startsWith(prefix)) {
@@ -100,6 +109,7 @@ export const authConfig = {
         token.role = u.role
         token.firstName = u.firstName
         token.lastName = u.lastName
+        token.dpaAcceptedAt = (u as any).dpaAcceptedAt ?? null
       }
       return token
     },
@@ -110,6 +120,7 @@ export const authConfig = {
       session.user.role = token.role
       session.user.firstName = token.firstName
       session.user.lastName = token.lastName
+      ;(session.user as any).dpaAcceptedAt = token.dpaAcceptedAt
       return session
     },
   },

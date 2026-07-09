@@ -1,6 +1,6 @@
 'use server'
 import { requireAuth } from '@/lib/session'
-import { prisma } from '@/lib/prisma'
+import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
 import type { ApdrRow } from '@/app/actions/send-support'
@@ -254,6 +254,16 @@ export async function getStudentFile(studentId: string): Promise<StudentFileData
     },
   })
   if (!student) return null
+
+  // UK GDPR Article 9 — log all staff access to student records containing SEND data
+  void writeAudit({
+    schoolId:   schoolId,
+    actorId:    user.id,
+    action:     'SEND_RECORD_VIEWED',
+    targetType: 'Student',
+    targetId:   studentId,
+    metadata:   { accessorRole: user.role },
+  })
 
   const isSenco = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
 

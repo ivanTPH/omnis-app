@@ -208,6 +208,9 @@ enum AuditAction {
   WELCOME_EMAIL_SENT
   USER_DATA_ERASED
   INTEGRITY_CASE_ESCALATED
+  DPA_ACCEPTED
+  SEND_RECORD_VIEWED
+  BEHAVIOUR_RECORD_VIEWED
   BEHAVIOUR_RECORDED
   BEHAVIOUR_DELETED
   PASTORAL_NOTE_ADDED
@@ -484,6 +487,7 @@ model User {
   dateOfBirth  DateTime?            // DOB — synced from Wonde
   isActive     Boolean  @default(true)
   activatedAt  DateTime?                    // Set on first login — null means never logged in
+  dpaAcceptedAt DateTime?                   // Set on first DPA acknowledgement — staff only
   createdAt    DateTime @default(now())
   avatarUrl            String?
   supportSnapshot      String?          // 1–2 sentence plain-English SEND summary for teachers

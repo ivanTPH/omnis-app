@@ -243,6 +243,23 @@
 > correct needArea/sendCategory, ilp_status=active, approvedBySenco=true, has_ehcp_doc=true.
 > Dashboard ILP count = ILP Records page count = 49 (was: dashboard 16 vs records 49).
 >
+> July 2026 Compliance sprint (UK GDPR Article 9): (1) First-login DPA acknowledgement gate —
+> staff roles (all except STUDENT/PARENT) are redirected to /accept-dpa on first access; page
+> presents full Data Processing Acknowledgement including controller/processor roles, staff
+> obligations, AI sub-processor disclosure, audit logging disclosure, retention policy, session
+> security; acceptDpa() server action sets User.dpaAcceptedAt + writes DPA_ACCEPTED audit entry
+> + patches JWT via unstable_update so middleware gate clears without re-login; middleware.ts
+> excludes /accept-dpa from auth matcher; auth.config.ts authorized() checks token.dpaAcceptedAt
+> for staff roles. Schema: User.dpaAcceptedAt DateTime?. (2) SEND read audit logging — all staff
+> access to student records via getStudentFile() writes SEND_RECORD_VIEWED audit log (fire-and-
+> forget, UK GDPR Article 9); direct ILP record access via getStudentIlp() also writes
+> SEND_RECORD_VIEWED with targetType=ILP. AuditAction enum: DPA_ACCEPTED, SEND_RECORD_VIEWED,
+> BEHAVIOUR_RECORD_VIEWED added and pushed to production DB. (3) Session inactivity timeout —
+> SessionTimeout.tsx client component tracks mouse/key/click/scroll/touch events; after 25 min
+> inactivity shows modal warning with countdown (5 min remaining); after 30 min forces signOut
+> to /login?reason=timeout; "Stay Logged In" button resets timers; rendered in AppShell for all
+> authenticated users; activity debounced to 30s intervals to avoid timer thrash.
+>
 > July 2026 UAT Round 5 follow-up (E2E flakes + high-priority guards): (1) send-smoke Step 5
 > K Plan approval — replaced 2500ms fixed wait with 10s poll loop tolerating cold Lambda DB
 > commit lag. (2) sprint-d-apdr ILP list cold-start — added networkidle wait + raised body
@@ -272,7 +289,7 @@
 > across all roles ✓, department analytics 182 students (not 734) ✓, agent insights 3721
 > recommendations with confirm/reviewed flow ✓, HOY/admin/TA dashboards all correct ✓.
 >
-> **Latest commit:** dbab4aa (UAT Round 5 browser fixes — AI stall, EHCP creation modal, search Enter, parent trend). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel (2026-07-06). 2 flaky resolved in 9b6a72e (K Plan poll, APDR networkidle). 1 intentional skip (APDR PDF). Exit 0.**
+> **Latest commit:** 68001d5 (UK GDPR compliance — DPA gate, SEND read audit, session timeout). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel (2026-07-06). 2 flaky resolved in 9b6a72e (K Plan poll, APDR networkidle). 1 intentional skip (APDR PDF). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

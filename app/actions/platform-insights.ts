@@ -2,6 +2,8 @@
 
 import { requireAuth } from '@/lib/session'
 import { getAllPlatformInsights, type AttainmentBenchmarkPayload, type BloomsPayload, type SendTaskTypePayload, type StrategyFrequencyPayload, type NeedAreaPrevalencePayload } from '@/lib/platform-insight'
+import { getInferenceStats, type InferenceStats } from '@/lib/omnis-inference'
+export type { InferenceStats }
 
 export type PlatformInsightDashboardData = {
   lastGeneratedAt: Date | null
@@ -36,4 +38,10 @@ export async function getPlatformInsightDashboardData(): Promise<PlatformInsight
     strategies:      (crossYear.find(r => r.insightType === 'STRATEGY_FREQUENCY')?.payload     ?? null) as StrategyFrequencyPayload | null,
     needAreas:       (crossYear.find(r => r.insightType === 'NEED_AREA_PREVALENCE')?.payload   ?? null) as NeedAreaPrevalencePayload | null,
   }
+}
+
+export async function getInferenceStatsAction(): Promise<InferenceStats | null> {
+  const { role } = await requireAuth()
+  if (role !== 'PLATFORM_ADMIN') return null
+  return getInferenceStats()
 }

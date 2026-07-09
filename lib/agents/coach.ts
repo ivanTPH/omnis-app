@@ -29,6 +29,12 @@ import Anthropic                              from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId }            from '@prisma/client'
 import { prisma, writeAudit }                 from '@/lib/prisma'
 import { getSnapshot, saveSnapshot, inOneWeek, type CoachKnowledge } from './snapshot'
+import {
+  buildCoachSignature,
+  lookupCoachAdvice,
+  storeCoachAdvice,
+  type CachedCoachSendAdvice,
+} from '@/lib/omnis-inference'
 import { RETRIEVAL_SPACING_SKILL, assertSkillPermitted, ALL_STANDARDS } from './skills'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -54,6 +60,7 @@ type StudentCoachData = {
     id:         string
     firstName:  string
     lastName:   string
+    yearGroup:  number | null
     sendStatus: string | null
     needArea:   string | null
   }
@@ -91,7 +98,7 @@ async function fetchStudentData(
     prisma.user.findUnique({
       where:  { id: studentId },
       select: {
-        id: true, firstName: true, lastName: true,
+        id: true, firstName: true, lastName: true, yearGroup: true,
         enrolments: {
           select: {
             class: {
@@ -152,6 +159,7 @@ async function fetchStudentData(
       id:         student.id,
       firstName:  student.firstName,
       lastName:   student.lastName,
+      yearGroup:  student.yearGroup ?? null,
       sendStatus: student.sendStatus?.activeStatus ?? null,
       needArea:   student.sendStatus?.needArea ?? null,
     },
@@ -271,7 +279,7 @@ async function generateRecommendation(
   gaps:    GapAnalysis,
   matrix:  Record<string, TopicRecord>,
   student: StudentCoachData['student'],
-): Promise<{ recommendedFocus: string[]; bloomsGaps: string[]; summaryNarrative: string; interleaveSuggestion: string }> {
+): Promise<{ recommendedFocus: string[]; bloomsGaps: string[]; summaryNarrative: string; interleaveSuggestion: string; fromCache: boolean }> {
 
   if (gaps.weakTopics.length === 0 && gaps.retentionRisks.length === 0) {
     return {
@@ -279,22 +287,40 @@ async function generateRecommendation(
       bloomsGaps: [],
       summaryNarrative: `${student.firstName} is performing well across all recent topics with no significant gaps or retention risks identified.`,
       interleaveSuggestion: 'Continue current homework structure. Introduce one new topic alongside monthly review of strong topics.',
+      fromCache: false,
     }
   }
 
+  // ── Omnis Inference Layer: check cache before calling Claude ──────────────
+  const avgWeakScore = gaps.weakTopics.length > 0
+    ? gaps.weakTopics.reduce((s, t) => s + t.avgScore, 0) / gaps.weakTopics.length
+    : 75
+  const { hash, inputs: sigInputs } = buildCoachSignature(
+    student,
+    gaps.weakTopics.length,
+    gaps.retentionRisks.length,
+    avgWeakScore,
+  )
+  const cachedAdvice = await lookupCoachAdvice(hash)
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    // Graceful fallback without API key
     return {
       recommendedFocus: [
         ...gaps.weakTopics.slice(0, 2).map(t => t.topic),
         ...gaps.retentionRisks.slice(0, 1).map(t => t.topic),
       ].slice(0, MAX_FOCUS_TOPICS),
-      bloomsGaps:       [],
-      summaryNarrative: `${student.firstName} has ${gaps.weakTopics.length} weak topic(s) and ${gaps.retentionRisks.length} retention risk(s).`,
+      bloomsGaps:           [],
+      summaryNarrative:     `${student.firstName} has ${gaps.weakTopics.length} weak topic(s) and ${gaps.retentionRisks.length} retention risk(s).`,
       interleaveSuggestion: `Focus next homework on: ${gaps.weakTopics.slice(0, 2).map(t => t.topic).join(', ')}.`,
+      fromCache:            false,
     }
   }
+
+  // Build prompt — inject cached SEND advice if available (shortens prompt ~35%)
+  const sendAdviceBlock = cachedAdvice
+    ? `\n\nSEND ACCOMMODATION CONTEXT (pre-computed for this profile type — do NOT repeat verbatim, use as grounding):\n- ${cachedAdvice.sendSpecificAdvice}\n- Preferred formats: ${cachedAdvice.preferredFormats.join(', ')}\n- Bloom's note: ${cachedAdvice.bloomsRemediation}`
+    : ''
 
   // Sample up to 10 question texts for Bloom's classification
   const sampleQuestions = Object.values(matrix)
@@ -317,15 +343,23 @@ async function generateRecommendation(
     max_tokens: 1200,
     system: `${RETRIEVAL_SPACING_SKILL.systemPromptFragment}
 
-You are also applying the Bloom's Analysis skill to classify any Bloom's gaps across topics.
+You are also applying the Bloom's Analysis skill to classify any Bloom's gaps across topics.${sendAdviceBlock}
 
 Return ONLY valid JSON with this exact shape:
 {
   "recommendedFocus": [{ "topic": string, "reason": string, "priority": 1|2|3 }],
   "bloomsGaps": string[],
   "summaryNarrative": string,
-  "interleaveSuggestion": string
-}`,
+  "interleaveSuggestion": string,
+  "sendSpecificAdvice": string,
+  "preferredFormats": string[],
+  "bloomsRemediation": string
+}
+
+Rules for last 3 fields (only if student has SEND need; use "" if no SEND):
+- sendSpecificAdvice: 2-3 sentences of SEND accommodation advice generic enough for this profile type
+- preferredFormats: homework type strings from [MCQ_QUIZ, SHORT_ANSWER, EXTENDED_WRITING, MIXED] ordered best-first
+- bloomsRemediation: one sentence on Bloom's progression for this student type`,
     messages: [{ role: 'user', content: JSON.stringify(payload) }],
   })
 
@@ -346,10 +380,13 @@ Return ONLY valid JSON with this exact shape:
   }
 
   const parsed = extractCoachJson(text) as {
-    recommendedFocus: Array<{ topic: string } | string>
-    bloomsGaps: string[]
-    summaryNarrative: string
+    recommendedFocus:    Array<{ topic: string } | string>
+    bloomsGaps:          string[]
+    summaryNarrative:    string
     interleaveSuggestion: string
+    sendSpecificAdvice?: string
+    preferredFormats?:   string[]
+    bloomsRemediation?:  string
   }
 
   // Normalise recommendedFocus to string[] regardless of what haiku returns
@@ -357,11 +394,22 @@ Return ONLY valid JSON with this exact shape:
     typeof r === 'string' ? r : r.topic
   ).slice(0, MAX_FOCUS_TOPICS)
 
+  // Cache the SEND-specific advice portion (generic across this profile type)
+  if (!cachedAdvice && student.sendStatus && parsed.sendSpecificAdvice) {
+    const adviceToCache: CachedCoachSendAdvice = {
+      sendSpecificAdvice: parsed.sendSpecificAdvice,
+      preferredFormats:   Array.isArray(parsed.preferredFormats) ? parsed.preferredFormats : [],
+      bloomsRemediation:  parsed.bloomsRemediation ?? '',
+    }
+    void storeCoachAdvice(hash, sigInputs, adviceToCache).catch(() => {})
+  }
+
   return {
     recommendedFocus:     recommendedFocusStrings,
     bloomsGaps:           parsed.bloomsGaps ?? [],
     summaryNarrative:     parsed.summaryNarrative ?? '',
     interleaveSuggestion: parsed.interleaveSuggestion ?? '',
+    fromCache:            !!cachedAdvice,
   }
 }
 
@@ -421,7 +469,7 @@ async function notifyTeachers(
 export async function runCoachForStudent(
   studentId: string,
   schoolId:  string,
-): Promise<{ ran: boolean; weakTopics: number; retentionRisks: number }> {
+): Promise<{ ran: boolean; weakTopics: number; retentionRisks: number; fromCache: boolean }> {
 
   const previous  = await getSnapshot(studentId, AgentType.COACH) as CoachKnowledge | null
   const snap      = await prisma.agentSnapshot.findUnique({
@@ -436,12 +484,12 @@ export async function runCoachForStudent(
 
   // Nothing to process
   if (data.submissions.length === 0 && data.revisionProgress.length === 0) {
-    return { ran: false, weakTopics: 0, retentionRisks: 0 }
+    return { ran: false, weakTopics: 0, retentionRisks: 0, fromCache: false }
   }
 
   const matrix  = buildTopicMatrix(data)
   const gaps    = analyseGaps(matrix, data)
-  const { recommendedFocus, bloomsGaps, summaryNarrative, interleaveSuggestion } =
+  const { recommendedFocus, bloomsGaps, summaryNarrative, interleaveSuggestion, fromCache: hitCache } =
     await generateRecommendation(gaps, matrix, data.student)
 
   // Build new CoachKnowledge (merge with previous strong topics for continuity)
@@ -505,14 +553,14 @@ export async function runCoachForStudent(
     ).catch(() => {})
   }
 
-  return { ran: true, weakTopics: gaps.weakTopics.length, retentionRisks: gaps.retentionRisks.length }
+  return { ran: true, weakTopics: gaps.weakTopics.length, retentionRisks: gaps.retentionRisks.length, fromCache: hitCache }
 }
 
 // ── Batch runner — called by cron ─────────────────────────────────────────────
 
 export async function runCoachBatchForSchool(
   schoolId: string,
-): Promise<{ processed: number; skipped: number; errors: number; totalGaps: number }> {
+): Promise<{ processed: number; skipped: number; errors: number; totalGaps: number; cacheHits: number }> {
   // Find all students who are dirty (or have never been run) — up to 100 per batch
   const dirty = await prisma.agentSnapshot.findMany({
     where: {
@@ -546,7 +594,7 @@ export async function runCoachBatchForSchool(
     ...newStudents.map(s => s.id),
   ]
 
-  let processed = 0, skipped = 0, errors = 0, totalGaps = 0
+  let processed = 0, skipped = 0, errors = 0, totalGaps = 0, cacheHits = 0
 
   const BATCH = 5
   for (let i = 0; i < allStudents.length; i += BATCH) {
@@ -559,6 +607,7 @@ export async function runCoachBatchForSchool(
         if (result.value.ran) {
           processed++
           totalGaps += result.value.weakTopics + result.value.retentionRisks
+          if (result.value.fromCache) cacheHits++
         } else {
           skipped++
         }
@@ -573,5 +622,5 @@ export async function runCoachBatchForSchool(
     }
   }
 
-  return { processed, skipped, errors, totalGaps }
+  return { processed, skipped, errors, totalGaps, cacheHits }
 }

@@ -14,6 +14,7 @@ import { analyseStudentPatterns, checkIlpTargetReviewsDue, checkEhcpReviewsDue }
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 import { computeSchoolCohortAggregate } from '@/lib/cohort-aggregate'
 import { runEvidenceAgentBatch } from '@/lib/agents/evidence-agent'
+import { purgeExpiredInferenceCache } from '@/lib/omnis-inference'
 import { prisma } from '@/lib/prisma'
 
 export const maxDuration = 300
@@ -116,10 +117,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const durationMs = Date.now() - startTime
-    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalEhcpReviewNotifications} EHCP review notifications, ${totalProfiles} profiles refreshed, ${totalCohortRows} cohort aggregate rows upserted, ${totalEvidenceStudents} evidence students processed across ${schools.length} schools in ${durationMs}ms`)
+    // Purge expired Omnis Inference Cache entries
+    let purgedInferenceEntries = 0
+    try {
+      purgedInferenceEntries = await purgeExpiredInferenceCache()
+    } catch (err) {
+      console.error('[early-warning cron] Inference cache purge error:', err)
+    }
 
-    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications, totalProfiles, totalCohortRows, totalEvidenceStudents, schools: results, durationMs })
+    const durationMs = Date.now() - startTime
+    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalEhcpReviewNotifications} EHCP review notifications, ${totalProfiles} profiles refreshed, ${totalCohortRows} cohort aggregate rows upserted, ${totalEvidenceStudents} evidence students processed, ${purgedInferenceEntries} inference cache entries purged across ${schools.length} schools in ${durationMs}ms`)
+
+    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications, totalProfiles, totalCohortRows, totalEvidenceStudents, purgedInferenceEntries, schools: results, durationMs })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[early-warning cron] FATAL:', err)

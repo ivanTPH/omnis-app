@@ -7,6 +7,7 @@ import PlatformUsageChart from '@/components/platform-admin/PlatformUsageChart'
 import PlatformAuditLogTable from '@/components/platform-admin/PlatformAuditLogTable'
 import PlatformSchoolHealthTable from '@/components/platform-admin/PlatformSchoolHealthTable'
 import PlatformInsightsPanel from '@/components/platform-admin/PlatformInsightsPanel'
+import OmnisInferenceStatsPanel from '@/components/platform-admin/OmnisInferenceStatsPanel'
 
 export default async function PlatformDashboardPage() {
   const { role, firstName, lastName, schoolName } = await requireAuth()
@@ -29,6 +30,7 @@ export default async function PlatformDashboardPage() {
           </div>
           <PlatformDashboardStats data={stats} />
           <PlatformInsightsPanel />
+          <OmnisInferenceStatsPanel />
           <PlatformUsageChart data={usageStats} />
           <PlatformSchoolHealthTable rows={healthRows} />
           <PlatformAuditLogTable logs={auditLog} />

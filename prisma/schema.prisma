@@ -2510,6 +2510,23 @@ model PlatformInsight {
   @@unique([insightType, yearGroup])
   @@index([insightType])
 }
+// Omnis Inference Layer — cached agent outputs keyed by coarse profile signature.
+// k-type clustering: ~49 profile types (yearGroup x needArea x perf/retention tiers).
+// Cache hits skip or shorten Claude calls; stats tracked for API savings dashboard.
+model OmnisInferenceCache {
+  id            String   @id @default(cuid())
+  cacheType     String   // 'COACH_SEND_ADVICE'
+  signatureHash String   // first 16 hex chars of SHA-256(bucketed signature JSON)
+  signature     Json     // human-readable inputs (for analysis)
+  payload       Json     // cached Claude output (type-specific shape)
+  hitCount      Int      @default(0)
+  generatedAt   DateTime @default(now())
+  expiresAt     DateTime // TTL — checked on read; purged by early-warning cron
+
+  @@unique([cacheType, signatureHash])
+  @@index([cacheType])
+  @@index([expiresAt])
+}
 
 model EhcpPlan {
   id              String      @id @default(cuid())

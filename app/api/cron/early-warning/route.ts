@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { analyseStudentPatterns, checkIlpTargetReviewsDue, checkEhcpReviewsDue } from '@/lib/send/early-warning'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
+import { computeSchoolCohortAggregate } from '@/lib/cohort-aggregate'
 import { runEvidenceAgentBatch } from '@/lib/agents/evidence-agent'
 import { prisma } from '@/lib/prisma'
 
@@ -92,6 +93,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Roll up per-student profiles into school cohort aggregates.
+    // Runs after all individual profiles are fresh so aggregates reflect today's data.
+    let totalCohortRows = 0
+    for (const school of schools) {
+      try {
+        const rows = await computeSchoolCohortAggregate(school.id)
+        totalCohortRows += rows
+      } catch (err) {
+        console.error(`[early-warning cron] Cohort aggregate error for school ${school.id}:`, err)
+      }
+    }
+
     // Run Evidence Agent batch for each school — retroactively link homework evidence to SEND plans
     let totalEvidenceStudents = 0
     for (const school of schools) {
@@ -104,9 +117,9 @@ export async function GET(request: NextRequest) {
     }
 
     const durationMs = Date.now() - startTime
-    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalEhcpReviewNotifications} EHCP review notifications, ${totalProfiles} profiles refreshed, ${totalEvidenceStudents} evidence students processed across ${schools.length} schools in ${durationMs}ms`)
+    console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalEhcpReviewNotifications} EHCP review notifications, ${totalProfiles} profiles refreshed, ${totalCohortRows} cohort aggregate rows upserted, ${totalEvidenceStudents} evidence students processed across ${schools.length} schools in ${durationMs}ms`)
 
-    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications, totalProfiles, totalEvidenceStudents, schools: results, durationMs })
+    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications, totalProfiles, totalCohortRows, totalEvidenceStudents, schools: results, durationMs })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[early-warning cron] FATAL:', err)

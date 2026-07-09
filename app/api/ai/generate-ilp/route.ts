@@ -3,6 +3,7 @@ import { prisma, writeAudit } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import { revalidatePath } from 'next/cache'
 import { buildIlpPrompt } from '@/lib/ilp-helpers'
+import { getSchoolCohortContext } from '@/lib/cohort-aggregate'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -77,6 +78,10 @@ export async function POST(request: Request) {
         const sendCategory = sendStatus.needArea ?? 'General Learning Support'
         const yearGroup    = student.yearGroup ?? 9
 
+        // ── Load cohort context (no Claude call — DB read only) ──────────────
+        emit(controller, { type: 'progress', message: 'Loading cohort context…', pct: 30 })
+        const cohort = await getSchoolCohortContext(schoolId, student.yearGroup ?? undefined)
+
         // ── Anthropic streaming call ─────────────────────────────────────────
         emit(controller, { type: 'progress', message: 'Sending to AI…', pct: 35 })
 
@@ -85,7 +90,7 @@ export async function POST(request: Request) {
           model:      'claude-sonnet-4-6',
           max_tokens: 1200,
           system:     'You are a UK SENCO creating Individual Learning Plans. Return ONLY valid JSON, no markdown.',
-          messages:   [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory) }],
+          messages:   [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory, cohort ?? undefined) }],
         })
 
         let accumulated = ''

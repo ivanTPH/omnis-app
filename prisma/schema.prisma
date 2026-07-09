@@ -346,6 +346,7 @@ model School {
   // Phase 6 — Adaptive Learning & EHCP
   learningSequences    LearningSequence[]
   studentProfiles      StudentLearningProfile[]
+  cohortAggregates     SchoolCohortAggregate[]
   ehcpPlans            EhcpPlan[]
   ehcpAnnualReviews    EhcpAnnualReview[] @relation("SchoolEhcpAnnualReviews")
   msgThreads           MsgThread[]
@@ -2462,6 +2463,35 @@ model StudentLearningProfile {
   student User   @relation(fields: [studentId], references: [id])
   school  School @relation(fields: [schoolId], references: [id])
 
+  @@index([schoolId])
+}
+
+// ─── School Cohort Aggregate ──────────────────────────────────────────────────
+// Rolled up nightly from StudentLearningProfile records. Provides "what works
+// for this cohort" context to ILP generation, SENCO dashboards, and homework
+// difficulty calibration — without hitting Claude on every per-student call.
+
+model SchoolCohortAggregate {
+  id                  String   @id @default(cuid())
+  schoolId            String
+  subject             String   // "ALL" = school-wide; or subject name e.g. "English"
+  yearGroup           Int?     // null = all year groups for this subject
+  studentCount        Int      @default(0)
+  sendCount           Int      @default(0)
+  highConcernCount    Int      @default(0)  // sendConcernLevel >= 60
+  avgCompletionRate   Float    @default(0)
+  avgScore            Float    @default(0)  // average across all graded submissions
+  bloomsPerformance   Json     @default("{}")  // { "remember": 72, "apply": 58, ... }
+  typePerformance     Json     @default("{}")  // { "MCQ_QUIZ": { avg: 74, count: 120 } }
+  sendTypePerformance Json     @default("{}")  // same but SEND students only — key signal
+  needAreaBreakdown   Json     @default("{}")  // { "SpLD/Dyslexia": 8, "ASD/Autism": 3 }
+  trendCounts         Json     @default("{}")  // { "improving": 12, "stable": 30, "declining": 8 }
+  topStrategies       String[] // top-3 ILP strategies by frequency across cohort
+  updatedAt           DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@unique([schoolId, subject, yearGroup])
   @@index([schoolId])
 }
 

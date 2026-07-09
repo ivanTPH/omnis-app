@@ -7,6 +7,7 @@ import type { SencoDashboardData, SencoPendingActions } from '@/app/actions/send
 import { triggerEarlyWarningAnalysis, generateILPFromConcern, getSencoPendingActions } from '@/app/actions/send-support'
 import { ConcernStatusBadge } from './ConcernList'
 import { SeverityBadge } from './EarlyWarningPanel'
+import CohortInsightsPanel from './CohortInsightsPanel'
 
 type Props = { data: SencoDashboardData }
 
@@ -164,6 +165,9 @@ export default function SencoDashboard({ data }: Props) {
           </div>
         </div>
       )}
+
+      {/* School cohort insights — grounded in per-student profiles computed nightly */}
+      <CohortInsightsPanel />
 
       {/* Run analysis button */}
       <div className="flex items-center gap-4">

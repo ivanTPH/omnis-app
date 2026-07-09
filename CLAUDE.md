@@ -243,7 +243,36 @@
 > correct needArea/sendCategory, ilp_status=active, approvedBySenco=true, has_ehcp_doc=true.
 > Dashboard ILP count = ILP Records page count = 49 (was: dashboard 16 vs records 49).
 >
-> **Latest commit:** 1decb59 (UAT Round 5 data architecture — SEND/ILP/EHCP single source of truth). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel (2026-07-06). 2 flaky (cold-start retries: K Plan approval timing, APDR ILP list redirect). 1 intentional skip (APDR PDF — needs seeded data). Exit 0.**
+> July 2026 UAT Round 5 follow-up (E2E flakes + high-priority guards): (1) send-smoke Step 5
+> K Plan approval — replaced 2500ms fixed wait with 10s poll loop tolerating cold Lambda DB
+> commit lag. (2) sprint-d-apdr ILP list cold-start — added networkidle wait + raised body
+> length threshold 100→200 chars (was receiving 34-char cold-start skeleton). (3) createEhcpPlan
+> EHCP forward-sync guard — upserts SendStatus.activeStatus=EHCP immediately on plan creation
+> so new EHCP plans automatically promote the student's register status without manual DB fixes.
+>
+> July 2026 UAT Round 5 browser test (live cross-role inspection on Vercel — 8 Jul 2026):
+> Full 7-section visual audit run across all 6 roles. 2 critical failures found and fixed:
+> (A1 CRITICAL) AI homework generation stalled at 85% indefinitely — root cause: Anthropic
+> streaming loop ran with max_tokens=8000, capping progress at 85% for 40-90s; no client
+> timeout meant hangs from Anthropic API mid-stream were invisible. Fix: max_tokens 8000→4000
+> (halves generation time); lib/ai-stream.ts Promise.race 45s stale-stream timeout now surfaces
+> user-friendly error instead of infinite freeze. Bonus fix: generate-homework SEND context
+> query used status:'ACTIVE' (wrong casing for plain-string field) — corrected to
+> { in: ['active','under_review'] }. (A11 CRITICAL) No "New EHCP Plan" button on /senco/ehcp
+> — EhcpPageClient was read-only with no creation entry point; createEhcpPlan action existed
+> but was unreachable from UI. Fix: CreateEhcpPlanModal.tsx built (student dropdown scoped to
+> SEND-registered students without plans, local authority, dates, initial outcome section);
+> "New EHCP Plan" button added to EHCP Plans toolbar for SENCO/SLT/SCHOOL_ADMIN; creating a
+> plan calls createEhcpPlan which upserts SendStatus.activeStatus=EHCP — forward-sync and
+> document creation happen atomically. 4 warnings also fixed: (B10) Cmd+K Enter closed palette
+> without navigating — added e.preventDefault() + unified through navigate() helper. (A5) Parent
+> dashboard trajectory arrows required 4 graded submissions per subject — lowered to 2,
+> comparing most-recent vs prior with >=1 grade diff; demo students now show arrows. Audit
+> confirmed PASS: SENCO dashboard ILP count=49 ✓, Rehan Ali/Sophia Ahmed EHCP+ILP correct
+> across all roles ✓, department analytics 182 students (not 734) ✓, agent insights 3721
+> recommendations with confirm/reviewed flow ✓, HOY/admin/TA dashboards all correct ✓.
+>
+> **Latest commit:** dbab4aa (UAT Round 5 browser fixes — AI stall, EHCP creation modal, search Enter, parent trend). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel (2026-07-06). 2 flaky resolved in 9b6a72e (K Plan poll, APDR networkidle). 1 intentional skip (APDR PDF). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

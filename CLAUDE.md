@@ -289,7 +289,38 @@
 > across all roles ✓, department analytics 182 students (not 734) ✓, agent insights 3721
 > recommendations with confirm/reviewed flow ✓, HOY/admin/TA dashboards all correct ✓.
 >
-> **Latest commit:** 68001d5 (UK GDPR compliance — DPA gate, SEND read audit, session timeout). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel (2026-07-06). 2 flaky resolved in 9b6a72e (K Plan poll, APDR networkidle). 1 intentional skip (APDR PDF). Exit 0.**
+> July 2026 School Cohort Aggregation (memory layer 1): SchoolCohortAggregate model — per-school,
+> per-year-group rollup of all StudentLearningProfile records. computeSchoolCohortAggregate()
+> reads all per-student profiles with student.yearGroup + SendStatus, partitions into school-wide
+> and per-year buckets, computes weighted averages for Bloom's performance, task-type performance
+> (all students + SEND-only), need area breakdown, trend distribution, and top ILP strategies.
+> Upserts SchoolCohortAggregate rows (@@unique[schoolId, subject, yearGroup]). getSchoolCohortContext()
+> read helper consumed by ILP generation. CohortInsightsPanel on SENCO dashboard (loading skeleton,
+> graceful empty state, SEND overview, attainment bars, trend distribution, Bloom's bars, best SEND
+> task type, top ILP strategies). Added to nightly early-warning cron after per-student profiles
+> complete. ILP generation now loads cohort context in parallel and passes to buildIlpPrompt()
+> via cohort section (school-grounded targets, best task types, proven strategies). app/actions/cohort.ts
+> server action (SENCO/SLT/SCHOOL_ADMIN/HOY/HOD/PLATFORM_ADMIN/ACADEMY_ADMIN).
+>
+> July 2026 Cross-School Insight Pipeline (memory layer 2): PlatformInsight model — anonymised,
+> aggregated signals across all schools. k-anonymity threshold: MIN_SCHOOLS=3 (never writes if
+> fewer than 3 schools contribute to a bucket). 5 insight types per yearGroup (null=cross-year,
+> 7-13=year-specific): ATTAINMENT_BENCHMARK (national avg score/completion/SEND gap/improving%),
+> BLOOMS_DISTRIBUTION (weighted avg per Bloom's level), SEND_TASK_TYPE (best homework types for
+> SEND students nationally), STRATEGY_FREQUENCY (top ILP strategies by school adoption count,
+> cross-year only), NEED_AREA_PREVALENCE (% distribution of SEND need areas, cross-year only).
+> computePlatformInsights() reads all SchoolCohortAggregate rows, groups by yearGroup, applies
+> k-anon guard, computes weighted averages, upserts via @@unique[insightType, yearGroup].
+> /api/cron/platform-insights: Sundays 05:00 UTC, no Claude calls. getPlatformInsightsForIlp()
+> read helper: loads 5 insight rows in parallel, collapses to PlatformInsightForIlp summary.
+> buildIlpPrompt() now accepts IlpPlatformContext as 3rd grounding layer (national benchmarks
+> section: avg score, completion, SEND %, best Bloom's, best SEND task types, top need areas,
+> top strategies). ILP generation loads cohort + platform context in parallel (pct 28) before
+> Claude call. PlatformInsightsPanel: 3-column UI on /platform-admin/dashboard — national
+> benchmarks KPI grid, Bloom's + SEND task bars, need area prevalence + strategy rankings.
+> Shows graceful empty state until first Sunday cron fires with >=3 schools.
+>
+> **Latest commit:** 701d062 (cross-school insight pipeline — memory layer 2). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel. 1 intentional skip (APDR PDF). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -536,6 +567,7 @@ tail -f /tmp/omnis-dev.log
 /api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk
 /api/cron/agent-quality     QUALITY agent nightly batch (03:00 UTC) — Bloom's, SEND adaptation, feedback
 /api/cron/agent-plan-synthesis  PLAN_SYNTHESIS agent nightly (03:30 UTC) — ILP/EHCP/K Plan coherence
+/api/cron/platform-insights Cross-school insight pipeline (Sun 05:00 UTC) — aggregates SchoolCohortAggregate across all schools into PlatformInsight rows; k-anon MIN_SCHOOLS=3; no Claude calls
 /api/wonde/sync             Wonde full sync — POST, 300s maxDuration, SCHOOL_ADMIN/SLT only
 
 /marketing/home                                   ← fully built (hero, feature grid, role cards, CTAs)
@@ -587,6 +619,8 @@ tail -f /tmp/omnis-dev.log
 | `wonde.ts` | testWondeConnection, triggerWondeSync (legacy — now prefer /api/wonde/sync), getWondeConfig, getWondeSyncLogs, getWondeCounts |
 | `admin.ts` | getAdminDashboardData, getSchoolSettings, saveSchoolSettings, completeOnboarding, getManagedUsers, changeUserRole, updateStudentYearGroup, toggleUserActive, getSchoolClasses, getUserClasses, setTeacherClasses, getStudentEnrolments, setStudentEnrolments, getActivationBreakdown, importStudents + year rollover actions |
 | `academy.ts` | getAcademyStats, getAcademySchools (ACADEMY_ADMIN/PLATFORM_ADMIN only) |
+| `cohort.ts` | getSchoolCohortInsights(yearGroup?) — SENCO/SLT/HOY/HOD/SCHOOL_ADMIN/PLATFORM_ADMIN/ACADEMY_ADMIN; wraps getSchoolCohortContext from lib/cohort-aggregate |
+| `platform-insights.ts` | getPlatformInsightDashboardData() — PLATFORM_ADMIN only; returns PlatformInsightDashboardData with all 5 insight types collapsed from cross-year rows |
 | `hoy-welfare.ts` | getHoyWelfareData — SEND flags, open concerns, attendance signals for HOY pastoral welfare hub |
 | `behaviour.ts` | addBehaviourRecord, deleteBehaviourRecord, getStudentBehaviourRecords, getChildBehaviourSummary, getBehaviourOverview(yearGroup?), getBehaviourTrends(weeks=8) |
 | `detentions.ts` | logDetention, resolveDetention, deleteDetention, getDetentionRegister(yearGroup?), getStudentDetentions(studentId) |
@@ -615,6 +649,8 @@ tail -f /tmp/omnis-dev.log
 | `academy/AcademyDashboardStats.tsx` | 6-stat grid: schools, students, staff, homework, ILPs, EHCPs |
 | `academy/AcademySchoolsTable.tsx` | Per-school table: sync health (amber if >14 days stale), onboarding status, phase |
 | `platform-admin/PlatformSchoolHealthTable.tsx` | Per-school health on platform dashboard: sync age, open SEND issues (last 30 days), onboarding state |
+| `platform-admin/PlatformInsightsPanel.tsx` | Cross-school insight dashboard — 3-column UI: national benchmarks (avg score/completion/SEND gap/improving%), Bloom's distribution bars + best SEND task types, need area prevalence + top ILP strategies ranked by school adoption. Shows graceful empty state until first Sunday cron fires with >=3 schools. |
+| `send-support/CohortInsightsPanel.tsx` | School cohort insight panel on SENCO dashboard — SEND overview, attainment bars, trend distribution, Bloom's performance, best SEND task type, top ILP strategies. Calls getSchoolCohortInsights(). Shows empty state until nightly cron populates data. |
 | `GlobalSearch.tsx` | Cmd+K/Ctrl+K command palette — debounced 250ms, grouped results (student/staff/homework/resource), ↑↓ arrow nav + Enter + Escape; rendered in AppShell for non-student/parent/TA roles |
 | `admin/StudentImportModal.tsx` | CSV upload modal — client-side parser (no deps), preview table, calls importStudents(), shows created/skipped/errors summary |
 | `admin/ActivationPanel.tsx` | Amber dashboard widget — pending activation count, per-year-group breakdown, progress bar; hidden when all students activated |
@@ -677,6 +713,9 @@ tail -f /tmp/omnis-dev.log
 | `lib/accessibility.ts` | `settingsToClasses()`, defaults |
 | `lib/sendReview.ts` / `sendReviewCached.ts` | SEND accessibility scoring via Claude — score 0–100 |
 | `lib/sendInsights.ts` | SEND insight aggregation |
+| `lib/cohort-aggregate.ts` | School cohort aggregation — `computeSchoolCohortAggregate(schoolId)` rolls up StudentLearningProfile records into SchoolCohortAggregate (per yearGroup); `getSchoolCohortContext(schoolId, yearGroup?)` read helper for ILP generation and SENCO dashboard |
+| `lib/platform-insight.ts` | Cross-school insight pipeline — `computePlatformInsights()` aggregates all SchoolCohortAggregate rows with k-anonymity (MIN_SCHOOLS=3) into 5 PlatformInsight types; `getPlatformInsightsForIlp(yearGroup?)` collapses into PlatformInsightForIlp for ILP prompts; `getAllPlatformInsights()` for platform admin UI |
+| `lib/ilp-helpers.ts` | ILP prompt builder — `buildIlpPrompt(firstName, lastName, yearGroup, sendCategory, cohort?, platform?)` builds 3-layer grounded prompt: student context + school cohort context + national platform benchmarks |
 | `lib/send/early-warning.ts` | Pattern checks → EarlyWarningFlags + SENCO notifications |
 | `lib/send/concern-analyser.ts` | Claude AI concern pattern analysis |
 | `lib/curriculum.ts` | Curriculum helpers |
@@ -721,7 +760,7 @@ tail -f /tmp/omnis-dev.log
 - **ILP/EHCP:** `ILP`, `ILPTarget`, `Plan`, `PlanTarget`, `EhcpPlan`, `EhcpOutcome`, `IlpHomeworkLink`, `HomeworkEhcpEvidence`, `IlpEvidenceEntry`
 - **Adaptive:** `StudentLearningProfile`, `LearningSequence`, `SubjectAdaptationProfile`
 - **Messaging:** `MsgThread`, `MsgParticipant`, `MsgMessage`
-- **Analytics:** `ClassPerformanceAggregate`, `SubjectMedianAggregate`
+- **Analytics:** `ClassPerformanceAggregate`, `SubjectMedianAggregate`, `SchoolCohortAggregate`, `PlatformInsight`
 - **System:** `Notification`, `AuditLog`, `UserSettings`, `UserAccessibilitySettings`
 - **Revision (student):** `RevisionExam`, `RevisionSession`, `RevisionConfidence`
 - **Revision Program (teacher-created):** `RevisionProgram`, `RevisionTask`, `RevisionProgress`, `RevisionAnalyticsCache`

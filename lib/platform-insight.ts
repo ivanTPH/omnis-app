@@ -11,6 +11,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { storeIlpStrategyRec } from '@/lib/omnis-inference'
 
 const MIN_SCHOOLS = 3  // k-anonymity threshold
 
@@ -215,6 +216,49 @@ export async function computePlatformInsights(): Promise<number> {
       await upsertInsight('NEED_AREA_PREVALENCE', null, schoolCount, totalStudents, needPayload)
       upsertCount++
     }
+  }
+
+  // ── Per-needArea ILP strategy recommendations (no Claude — pure data) ────────
+  // Cross-join ILP.strategies with SendStatus.needArea across all active ILPs.
+  // Stored in OmnisInferenceCache as ILP_STRATEGY_REC; consumed by ILP generation.
+  try {
+    const ilps = await prisma.individualLearningPlan.findMany({
+      where:  { status: { in: ['active', 'under_review'] } },
+      select: {
+        strategies: true,
+        student:    { select: { sendStatus: { select: { needArea: true } } } },
+        schoolId:   true,
+      },
+    })
+
+    // Count strategy frequency per needArea, track contributing schools
+    const needAreaData: Record<string, {
+      stratFreq:  Record<string, number>
+      schoolIds:  Set<string>
+    }> = {}
+
+    for (const ilp of ilps) {
+      const needArea = ilp.student.sendStatus?.needArea
+      if (!needArea || !ilp.strategies.length) continue
+      if (!needAreaData[needArea]) needAreaData[needArea] = { stratFreq: {}, schoolIds: new Set() }
+      needAreaData[needArea].schoolIds.add(ilp.schoolId)
+      for (const s of ilp.strategies) {
+        const key = s.trim().toLowerCase()
+        needAreaData[needArea].stratFreq[key] = (needAreaData[needArea].stratFreq[key] ?? 0) + 1
+      }
+    }
+
+    for (const [needArea, { stratFreq, schoolIds }] of Object.entries(needAreaData)) {
+      if (schoolIds.size < MIN_SCHOOLS) continue  // k-anonymity
+      const strategies = Object.entries(stratFreq)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([s]) => s)
+      await storeIlpStrategyRec(needArea, { strategies, schoolCount: schoolIds.size })
+      upsertCount++
+    }
+  } catch {
+    // Non-fatal — strategy recs are optional enhancement
   }
 
   return upsertCount

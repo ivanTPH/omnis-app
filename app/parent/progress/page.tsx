@@ -6,6 +6,8 @@ import { PlanStatus } from '@prisma/client'
 import Icon from '@/components/ui/Icon'
 import { formatRawScore } from '@/lib/gradeUtils'
 import Link from 'next/link'
+import IlpAcknowledgementPanel from '@/components/parent/IlpAcknowledgementPanel'
+import { getMyIlpResponse } from '@/app/actions/ilp-parent'
 
 export default async function ParentProgressPage() {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
@@ -85,7 +87,10 @@ export default async function ParentProgressPage() {
       },
     })
 
-    return { child, byClass: Array.from(byClass.values()), plans, ilp }
+    // Parent's existing response (acknowledgement + notes)
+    const ilpResponse = ilp ? await getMyIlpResponse(ilp.id) : null
+
+    return { child, byClass: Array.from(byClass.values()), plans, ilp, ilpResponse }
   }))
 
   return (
@@ -98,7 +103,7 @@ export default async function ParentProgressPage() {
             <p className="text-[13px] text-gray-400 mt-0.5">Subject-by-subject breakdown</p>
           </div>
 
-          {childProgress.map(({ child, byClass, plans, ilp }: any) => (
+          {childProgress.map(({ child, byClass, plans, ilp, ilpResponse }: any) => (
             <div key={child.id} className="mb-10">
 
               {/* Child header */}
@@ -247,38 +252,18 @@ export default async function ParentProgressPage() {
 
               {/* Active ILP goals */}
               {ilp && ilp.targets.length > 0 && (
-                <div className="mt-2 mb-6">
+                <div className="mt-2">
                   <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                     <Icon name="flag" size="sm" /> Active Learning Goals
                   </h3>
-                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-[13px] font-semibold text-indigo-900">Individual Learning Plan</span>
-                      <span className="text-[11px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">
-                        {ilp.targets.length} active goal{ilp.targets.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      {ilp.targets.slice(0, 4).map((t: any) => (
-                        <div key={t.id} className="flex items-start gap-3">
-                          <div className="w-5 h-5 rounded-full bg-indigo-200 flex items-center justify-center shrink-0 mt-0.5">
-                            <Icon name="flag" size="sm" className="text-indigo-700" />
-                          </div>
-                          <div>
-                            <p className="text-[13px] font-medium text-indigo-900">{t.target}</p>
-                            {t.successMeasure && (
-                              <p className="text-[11px] text-indigo-500 mt-0.5">Success: {t.successMeasure}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      {ilp.targets.length > 4 && (
-                        <p className="text-[11px] text-indigo-400 pl-8">
-                          +{ilp.targets.length - 4} more goal{ilp.targets.length - 4 !== 1 ? 's' : ''}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                  <IlpAcknowledgementPanel
+                    ilpId={ilp.id}
+                    targets={ilp.targets}
+                    sendCategory={ilp.sendCategory}
+                    acknowledged={ilpResponse?.acknowledged ?? false}
+                    reviewedAt={ilpResponse?.reviewedAt ?? null}
+                    meetingRequested={ilpResponse?.meetingRequested ?? false}
+                  />
                 </div>
               )}
 

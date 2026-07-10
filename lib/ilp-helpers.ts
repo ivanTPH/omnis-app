@@ -85,16 +85,20 @@ Use national patterns to: set ambitions beyond this school's current baseline wh
 }
 
 export function buildIlpPrompt(
-  firstName:    string,
-  lastName:     string,
-  yearGroup:    number,
-  sendCategory: string,
-  cohort?:      IlpCohortContext,
-  platform?:    IlpPlatformContext,
+  firstName:        string,
+  lastName:         string,
+  yearGroup:        number,
+  sendCategory:     string,
+  cohort?:          IlpCohortContext,
+  platform?:        IlpPlatformContext,
+  provenStrategies?: string[],
 ): string {
   const ksLabel         = yearGroup <= 9 ? 'KS3' : yearGroup <= 11 ? 'KS4 (GCSE)' : 'KS5 (A-Level)'
   const cohortSection   = cohort   ? buildCohortSection(cohort, yearGroup)   : ''
   const platformSection = platform ? buildPlatformSection(platform)           : ''
+  const strategySection = provenStrategies && provenStrategies.length > 0
+    ? `\nPROVEN STRATEGIES for ${sendCategory} (derived from national ILP data — use as primary source for strategies field):\n${provenStrategies.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
+    : ''
 
   return `Generate a UK secondary school Individual Learning Plan for this student.
 
@@ -103,6 +107,7 @@ Year: Year ${yearGroup} (${ksLabel})
 Support category: ${sendCategory}
 ${cohortSection}
 ${platformSection}
+${strategySection}
 Return ONLY valid JSON (no markdown):
 {
   "likes": "2 sentences describing what Year ${yearGroup} students typically enjoy at school",

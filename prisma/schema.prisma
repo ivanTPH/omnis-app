@@ -198,6 +198,8 @@ enum AuditAction {
   AGENT_RECOMMENDATION_CONFIRMED
   AGENT_RECOMMENDATION_OVERRIDDEN
   AGENT_RECOMMENDATION_DISMISSED
+  ILP_PARENT_ACKNOWLEDGED
+  SENCO_MEETING_REQUESTED
   SCHOOL_ONBOARDED
   SCHOOL_SETTINGS_UPDATED
   USER_CLASS_ASSIGNED
@@ -2204,8 +2206,9 @@ model IndividualLearningPlan {
   school       School          @relation("SchoolLearningPlans", fields: [schoolId], references: [id])
   student      User            @relation("StudentIlps", fields: [studentId], references: [id])
   creator      User            @relation("IlpCreator", fields: [createdBy], references: [id])
-  targets      IlpTarget[]
-  auditEntries IlpAuditEntry[]
+  targets         IlpTarget[]
+  auditEntries    IlpAuditEntry[]
+  parentResponses IlpParentResponse[]
 
   @@index([schoolId, studentId])
 }
@@ -2224,6 +2227,25 @@ model IlpTarget {
   ilp IndividualLearningPlan @relation(fields: [ilpId], references: [id], onDelete: Cascade)
 
   @@index([ilpId])
+}
+
+// Parent co-production for SEND Code of Practice compliance.
+// Parents acknowledge ILP targets, add home progress notes, and request SENCO meetings.
+model IlpParentResponse {
+  id               String   @id @default(cuid())
+  ilpId            String
+  schoolId         String
+  parentId         String
+  studentId        String
+  reviewedAt       DateTime @default(now())
+  homeProgress     String?  // parent's note on how the student is progressing at home
+  meetingRequested Boolean  @default(false)
+  meetingNote      String?  // optional context for the meeting request
+
+  ilp    IndividualLearningPlan @relation(fields: [ilpId], references: [id], onDelete: Cascade)
+
+  @@unique([ilpId, parentId])
+  @@index([schoolId, studentId])
 }
 
 model IlpAuditEntry {

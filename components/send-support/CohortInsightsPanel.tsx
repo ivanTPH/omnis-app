@@ -19,16 +19,21 @@ function ScoreBar({ value, max = 100 }: { value: number; max?: number }) {
   )
 }
 
-export default function CohortInsightsPanel({ yearGroup }: { yearGroup?: number }) {
-  const [data,    setData]    = useState<CohortContext | null>(null)
-  const [loading, setLoading] = useState(true)
+const YEAR_GROUPS = [7, 8, 9, 10, 11, 12, 13]
+
+export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { yearGroup?: number }) {
+  const [selectedYear, setSelectedYear] = useState<number | undefined>(initialYearGroup)
+  const [data,         setData]         = useState<CohortContext | null>(null)
+  const [loading,      setLoading]      = useState(true)
 
   useEffect(() => {
-    getSchoolCohortInsights(yearGroup)
+    setLoading(true)
+    setData(null)
+    getSchoolCohortInsights(selectedYear)
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [yearGroup])
+  }, [selectedYear])
 
   if (loading) {
     return (
@@ -78,19 +83,43 @@ export default function CohortInsightsPanel({ yearGroup }: { yearGroup?: number 
   return (
     <div className="rounded-2xl border border-purple-100 bg-white overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-purple-50 bg-purple-50/40">
-        <div className="flex items-center gap-2">
-          <Icon name="insights" size="sm" className="text-purple-600" />
-          <div>
-            <p className="text-[13px] font-semibold text-purple-900">
-              School Cohort Insights{yearGroup ? ` — Year ${yearGroup}` : ''}
-            </p>
-            <p className="text-[11px] text-purple-500">{data.studentCount} students · updated nightly</p>
+      <div className="px-5 py-4 border-b border-purple-50 bg-purple-50/40 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon name="insights" size="sm" className="text-purple-600" />
+            <div>
+              <p className="text-[13px] font-semibold text-purple-900">School Cohort Insights</p>
+              <p className="text-[11px] text-purple-500">{data.studentCount} students · updated nightly</p>
+            </div>
           </div>
+          <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Live</span>
         </div>
-        <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-          Live
-        </span>
+        {/* Year group selector */}
+        <div className="flex flex-wrap gap-1">
+          <button
+            onClick={() => setSelectedYear(undefined)}
+            className={`text-[10px] font-medium px-2 py-0.5 rounded-full transition ${
+              selectedYear == null
+                ? 'bg-purple-600 text-white'
+                : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+            }`}
+          >
+            All years
+          </button>
+          {YEAR_GROUPS.map(yg => (
+            <button
+              key={yg}
+              onClick={() => setSelectedYear(yg)}
+              className={`text-[10px] font-medium px-2 py-0.5 rounded-full transition ${
+                selectedYear === yg
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+              }`}
+            >
+              Y{yg}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="p-5 grid grid-cols-2 gap-5">
@@ -106,10 +135,11 @@ export default function CohortInsightsPanel({ yearGroup }: { yearGroup?: number 
                 <p className="text-2xl font-semibold text-purple-700">{data.sendCount}</p>
                 <p className="text-[10px] text-purple-500">{sendPct}% on register</p>
               </div>
-              <div className="bg-rose-50 rounded-xl p-3 text-center">
+              <a href="/senco/concerns" className="bg-rose-50 rounded-xl p-3 text-center block hover:bg-rose-100 transition">
                 <p className="text-2xl font-semibold text-rose-700">{data.highConcernCount}</p>
                 <p className="text-[10px] text-rose-500">high concern</p>
-              </div>
+                <p className="text-[9px] text-rose-400 mt-0.5">view all →</p>
+              </a>
             </div>
             {topNeedArea && (
               <p className="text-[11px] text-gray-500 mt-2">

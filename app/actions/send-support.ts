@@ -936,7 +936,7 @@ export async function getStudentIlp(studentId: string): Promise<IlpWithTargets |
   const ilp = await prisma.individualLearningPlan.findFirst({
     where: { schoolId: user.schoolId, studentId, status: statusFilter },
     orderBy: { createdAt: 'desc' },
-    include: { targets: { orderBy: { targetDate: 'asc' } } },
+    include: { targets: { orderBy: { targetDate: 'asc' } }, parentResponses: { select: { reviewedAt: true, meetingRequested: true } } },
   })
   if (!ilp) return null
 
@@ -1070,6 +1070,8 @@ export async function getAllIlps(): Promise<IlpWithTargets[]> {
       resourcesNeeded: ilp.resourcesNeeded,
       createdAt: ilp.createdAt,
       updatedAt: ilp.updatedAt,
+      parentAcknowledged: (ilp as any).parentResponses?.length > 0,
+      parentMeetingRequested: (ilp as any).parentResponses?.some((r: any) => r.meetingRequested) ?? false,
       sendStatus: ss?.activeStatus ?? 'NONE',
       needArea:   ss?.needArea ?? null,
       activeApdrCycle: (() => {

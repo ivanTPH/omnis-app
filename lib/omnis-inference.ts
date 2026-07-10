@@ -175,3 +175,38 @@ export async function getInferenceStats(): Promise<InferenceStats> {
     newestEntry: dates.length ? new Date(Math.max(...dates)) : null,
   }
 }
+
+// ── ILP Strategy Recommendations (per needArea, derived from platform data) ──
+// These are computed without any Claude call during computePlatformInsights().
+// TTL: 7 days (refreshes with weekly platform-insights cron).
+
+export type IlpStrategyRec = {
+  strategies:  string[]   // top strategies for this needArea, ordered by frequency
+  schoolCount: number     // how many schools contributed (k-anon proof)
+}
+
+export async function lookupIlpStrategyRec(needArea: string): Promise<IlpStrategyRec | null> {
+  const key = needArea.trim().toLowerCase()
+  const row  = await (prisma.omnisInferenceCache as any).findUnique({
+    where: { cacheType_signatureHash: { cacheType: 'ILP_STRATEGY_REC', signatureHash: key } },
+  })
+  if (!row || new Date(row.expiresAt) < new Date()) return null
+  void (prisma.omnisInferenceCache as any).update({
+    where: { cacheType_signatureHash: { cacheType: 'ILP_STRATEGY_REC', signatureHash: key } },
+    data:  { hitCount: { increment: 1 } },
+  }).catch(() => {})
+  return row.payload as IlpStrategyRec
+}
+
+export async function storeIlpStrategyRec(needArea: string, rec: IlpStrategyRec): Promise<void> {
+  const key       = needArea.trim().toLowerCase()
+  const expiresAt = new Date(Date.now() + 7 * 86_400_000)
+  await (prisma.omnisInferenceCache as any).upsert({
+    where:  { cacheType_signatureHash: { cacheType: 'ILP_STRATEGY_REC', signatureHash: key } },
+    update: { payload: rec, generatedAt: new Date(), expiresAt },
+    create: {
+      cacheType: 'ILP_STRATEGY_REC', signatureHash: key,
+      signature: { needArea }, payload: rec, expiresAt,
+    },
+  })
+}

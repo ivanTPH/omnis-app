@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { buildIlpPrompt } from '@/lib/ilp-helpers'
 import { getSchoolCohortContext } from '@/lib/cohort-aggregate'
 import { getPlatformInsightsForIlp } from '@/lib/platform-insight'
+import { lookupIlpStrategyRec } from '@/lib/omnis-inference'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -81,9 +82,10 @@ export async function POST(request: Request) {
 
         // ── Load cohort + platform context (no Claude calls — DB reads only) ──
         emit(controller, { type: 'progress', message: 'Loading cohort context…', pct: 28 })
-        const [cohort, platform] = await Promise.all([
+        const [cohort, platform, strategyRec] = await Promise.all([
           getSchoolCohortContext(schoolId, student.yearGroup ?? undefined),
           getPlatformInsightsForIlp(student.yearGroup ?? undefined),
+          lookupIlpStrategyRec(sendCategory),
         ])
 
         // ── Anthropic streaming call ─────────────────────────────────────────
@@ -94,7 +96,7 @@ export async function POST(request: Request) {
           model:      'claude-sonnet-4-6',
           max_tokens: 1200,
           system:     'You are a UK SENCO creating Individual Learning Plans. Return ONLY valid JSON, no markdown.',
-          messages:   [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory, cohort ?? undefined, platform ?? undefined) }],
+          messages:   [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory, cohort ?? undefined, platform ?? undefined, strategyRec?.strategies) }],
         })
 
         let accumulated = ''

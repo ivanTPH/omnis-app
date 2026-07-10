@@ -320,7 +320,21 @@
 > benchmarks KPI grid, Bloom's + SEND task bars, need area prevalence + strategy rankings.
 > Shows graceful empty state until first Sunday cron fires with >=3 schools.
 >
-> **Latest commit:** 701d062 (cross-school insight pipeline — memory layer 2). E2E: 37 spec files, 450 tests. **447/450 passing on Vercel. 1 intentional skip (APDR PDF). Exit 0.**
+> July 2026 SEND co-production + cohort drill-down + ILP strategy inference (options 2/3/4):
+> (Option 2) IlpParentResponse model — parent acknowledges ILP, adds home progress notes, requests
+> SENCO meetings; IlpAcknowledgementPanel on /parent/progress; acknowledgeIlp/getIlpParentResponses/
+> getMyIlpResponse server actions; SENCO sees parent responses inline on ILP detail with meeting
+> request indicator. (Option 3) CohortInsightsPanel year-group selector — All/Y7–Y13 buttons
+> re-fetch getSchoolCohortInsights() without page reload; selected year passed to AI ILP generation.
+> (Option 4) OmnisInferenceCache ILP_STRATEGY_REC type — lookupIlpStrategyRec/storeIlpStrategyRec
+> helpers; buildIlpPrompt 4th grounding layer injects provenStrategies from national ILP data.
+> Schema: IlpParentResponse model (ilpId, parentId, schoolId, studentId, homeProgress,
+> meetingRequested, meetingNote, reviewedAt; @@unique[ilpId_parentId]), ILP_STRATEGY_REC in
+> OmnisInferenceCache.cacheType. Mobile DPA fix: /accept-dpa sticky footer pattern — card is
+> flex flex-col with maxHeight calc(100dvh - 2rem), shrink-0 header/footer, overflow-y-auto
+> flex-1 body; items-start on mobile so card anchors to top rather than centering off-screen.
+>
+> **Latest commit:** 9d17474 (fix accept-dpa mobile layout). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (warm run). 1 intentional skip (APDR PDF). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

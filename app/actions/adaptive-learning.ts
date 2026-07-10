@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import Anthropic from '@anthropic-ai/sdk'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
+import { buildDiffSignature, lookupDiffResult, storeDiffResult } from '@/lib/omnis-inference'
 
 async function requireStaff() {
   const user = await requireAuth()
@@ -761,6 +762,17 @@ export async function generateDifferentiatedVersions(
       }
     }
 
+    // ── Cache lookup — skip Claude call if result already cached for this
+    // homework × student × ILP version combination
+    const { hash: diffHash, inputs: diffInputs } = buildDiffSignature(
+      homeworkId, studentId, ilpTargets, hwData.structuredContent,
+    )
+    const cached = await lookupDiffResult(diffHash)
+    if (cached) {
+      console.log(`[Differentiation] Student: ${studentName} | Status: CACHE HIT`)
+      return { studentId, studentName, ...cached }
+    }
+
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) {
       return {
@@ -843,6 +855,8 @@ Return a JSON object with:
         await new Promise(r => setTimeout(r, 5000))
         result = await callAI()
       }
+      // Store in cache — fire-and-forget so a write failure never blocks the response
+      void storeDiffResult(diffHash, diffInputs, { ...result, adaptationType }).catch(() => {})
       return { studentId, studentName, adaptedContent: result.adaptedContent, adaptationNotes: result.adaptationNotes, adaptationType }
     } catch (err) {
       console.log(`[Differentiation] Student: ${studentName} | Attempt: 2 | Status: FAIL — ${err instanceof Error ? err.message : String(err)}`)

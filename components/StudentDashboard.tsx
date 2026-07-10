@@ -146,7 +146,7 @@ export default function StudentDashboard({ data, staffView = false }: { data: St
           <select
             value={subjectFilter}
             onChange={e => setSubjectFilter(e.target.value)}
-            className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border border-gray-200 rounded-lg px-2.5 py-2 min-h-[44px] text-[12px] bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All subjects</option>
             {subjects.map(s => <option key={s} value={s}>{s}</option>)}

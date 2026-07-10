@@ -164,7 +164,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
           <button
             onClick={handleSubmit}
             disabled={isPending}
-            className="shrink-0 px-3 py-1.5 bg-red-600 text-white text-[12px] font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+            className="shrink-0 px-3 py-2.5 min-h-[44px] bg-red-600 text-white text-[12px] font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
           >
             Retry
           </button>
@@ -263,7 +263,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                 <button
                   onClick={handleSubmit}
                   disabled={isPending || content.trim().length < 10}
-                  className="px-5 py-2.5 bg-blue-600 text-white text-[14px] font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  className="px-5 py-2.5 min-h-[44px] bg-blue-600 text-white text-[14px] font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   {isPending ? 'Submitting…' : canResubmit ? 'Resubmit' : 'Submit'}
                 </button>

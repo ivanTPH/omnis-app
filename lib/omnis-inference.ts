@@ -26,6 +26,7 @@ import { prisma }      from '@/lib/prisma'
 
 const TTL_DAYS: Record<string, number> = {
   COACH_SEND_ADVICE: 30,
+  DIFF_RESULT:        7,  // differentiation results re-generate weekly as ILP targets progress
 }
 
 // ── Signature types ───────────────────────────────────────────────────────────
@@ -207,6 +208,72 @@ export async function storeIlpStrategyRec(needArea: string, rec: IlpStrategyRec)
     create: {
       cacheType: 'ILP_STRATEGY_REC', signatureHash: key,
       signature: { needArea }, payload: rec, expiresAt,
+    },
+  })
+}
+
+// ── Differentiation result cache (homeworkId × studentId × ILP version) ──────
+// Avoids re-calling Claude when the same student's homework differentiation is
+// requested again (e.g. teacher re-opens the panel) before ILP targets change.
+// Key inputs: homeworkId + studentId + ILP target fingerprint + HW content fingerprint.
+// TTL: 7 days — results expire when targets progress (weekly ILP reviews).
+
+export type DiffSignatureInputs = {
+  homeworkId:    string
+  studentId:     string
+  ilpTargetKey:  string  // SHA-256[:16] of sorted ILP target strings
+  hwContentKey:  string  // SHA-256[:8] of stringified structuredContent
+}
+
+export type CachedDiffResult = {
+  adaptedContent:  object
+  adaptationNotes: string
+  adaptationType:  'send' | 'profile' | 'standard'
+}
+
+export function buildDiffSignature(
+  homeworkId:  string,
+  studentId:   string,
+  ilpTargets:  { target: string; strategy: string }[],
+  hwContent:   unknown,
+): { hash: string; inputs: DiffSignatureInputs } {
+  const ilpTargetKey = createHash('sha256')
+    .update(ilpTargets.map(t => `${t.target}|${t.strategy}`).sort().join('\n'))
+    .digest('hex').slice(0, 16)
+  const hwContentKey = createHash('sha256')
+    .update(JSON.stringify(hwContent ?? ''))
+    .digest('hex').slice(0, 8)
+  const inputs: DiffSignatureInputs = { homeworkId, studentId, ilpTargetKey, hwContentKey }
+  const hash = createHash('sha256')
+    .update(JSON.stringify(inputs, Object.keys(inputs).sort()))
+    .digest('hex').slice(0, 16)
+  return { hash, inputs }
+}
+
+export async function lookupDiffResult(hash: string): Promise<CachedDiffResult | null> {
+  const row = await (prisma.omnisInferenceCache as any).findUnique({
+    where: { cacheType_signatureHash: { cacheType: 'DIFF_RESULT', signatureHash: hash } },
+  })
+  if (!row || new Date(row.expiresAt) < new Date()) return null
+  void (prisma.omnisInferenceCache as any).update({
+    where: { cacheType_signatureHash: { cacheType: 'DIFF_RESULT', signatureHash: hash } },
+    data:  { hitCount: { increment: 1 } },
+  }).catch(() => {})
+  return row.payload as CachedDiffResult
+}
+
+export async function storeDiffResult(
+  hash:   string,
+  inputs: DiffSignatureInputs,
+  result: CachedDiffResult,
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + TTL_DAYS.DIFF_RESULT * 86_400_000)
+  await (prisma.omnisInferenceCache as any).upsert({
+    where:  { cacheType_signatureHash: { cacheType: 'DIFF_RESULT', signatureHash: hash } },
+    update: { payload: result, generatedAt: new Date(), expiresAt },
+    create: {
+      cacheType: 'DIFF_RESULT', signatureHash: hash,
+      signature: inputs, payload: result, expiresAt,
     },
   })
 }

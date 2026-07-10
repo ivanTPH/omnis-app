@@ -1160,8 +1160,13 @@ export async function saveSchoolSettings(data: Partial<Omit<SchoolSettings, 'id'
 
 export async function completeOnboarding(): Promise<void> {
   const { schoolId, id: actorId } = await requireAdminOrSlt()
-  await prisma.school.update({ where: { id: schoolId as string }, data: { onboardedAt: new Date() } })
+  const now = new Date()
+  await prisma.school.update({
+    where: { id: schoolId as string },
+    data: { onboardedAt: now, orgDpaSignedAt: now, orgDpaSignedBy: actorId },
+  })
   await writeAudit({ schoolId: schoolId as string, actorId, action: 'SCHOOL_ONBOARDED', targetType: 'school', targetId: schoolId as string })
+  await writeAudit({ schoolId: schoolId as string, actorId, action: 'ORG_DPA_SIGNED', targetType: 'school', targetId: schoolId as string, metadata: { signedAt: now.toISOString(), signedBy: actorId } })
   revalidatePath('/admin/dashboard')
 }
 

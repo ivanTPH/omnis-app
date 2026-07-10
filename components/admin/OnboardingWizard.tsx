@@ -42,6 +42,7 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
   const [step, setStep]    = useState(0)
   const [pending, startT]  = useTransition()
   const [error, setError]  = useState<string | null>(null)
+  const [dpaAccepted, setDpaAccepted] = useState(false)
 
   // Step 0 — school profile
   const [name,        setName]        = useState(school.name)
@@ -322,9 +323,9 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Icon name="celebration" size="lg" className="text-green-600" />
               </div>
-              <h2 className="text-[20px] font-bold text-gray-900">You&apos;re all set!</h2>
+              <h2 className="text-[20px] font-bold text-gray-900">One last step</h2>
               <p className="text-[13px] text-gray-500 mt-2 max-w-sm mx-auto">
-                Your school is configured and ready. Head to the dashboard to start using Omnis.
+                Please review and sign the Data Processing Agreement before going live.
               </p>
             </div>
 
@@ -338,14 +339,43 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
               </ul>
             </div>
 
+            {/* School-level DPA acceptance */}
+            <div className="border border-amber-200 bg-amber-50 rounded-xl p-4 space-y-3">
+              <p className="text-[12px] font-semibold text-amber-900 flex items-center gap-1.5">
+                <Icon name="gavel" size="sm" className="text-amber-600" />
+                Data Processing Agreement
+              </p>
+              <p className="text-[12px] text-amber-800">
+                By completing onboarding, <strong>{school.name}</strong> enters into a Data Processing
+                Agreement with Omnis Education Ltd as set out in our{' '}
+                <a href="/marketing/terms" target="_blank" rel="noopener noreferrer" className="underline">
+                  Terms of Service
+                </a>
+                . The school remains Data Controller for all pupil data. Omnis acts as Data Processor.
+                This agreement is logged with a timestamp against your account for audit purposes.
+              </p>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={dpaAccepted}
+                  onChange={e => setDpaAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
+                />
+                <span className="text-[12px] text-amber-900">
+                  I confirm I am authorised to sign on behalf of <strong>{school.name}</strong> and
+                  I accept the Omnis Data Processing Agreement and Terms of Service.
+                </span>
+              </label>
+            </div>
+
             {error && <p className="text-[12px] text-red-600">{error}</p>}
 
             <button
               onClick={handleComplete}
-              disabled={pending}
+              disabled={pending || !dpaAccepted}
               className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-[13px] font-medium transition"
             >
-              {pending ? 'Finishing…' : 'Go to dashboard'}
+              {pending ? 'Finishing…' : 'Sign DPA & Go to dashboard'}
             </button>
           </>
         )}

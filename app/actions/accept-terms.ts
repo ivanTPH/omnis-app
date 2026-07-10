@@ -4,29 +4,28 @@ import { auth, unstable_update } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
 
 /**
- * Records the staff member's DPA acknowledgement in the DB and patches the
- * JWT token in-place via unstable_update so the middleware gate clears
- * without requiring a full re-login.
+ * Records the parent/student Terms & AUP acceptance in the DB and patches
+ * the JWT token in-place so the middleware gate clears without re-login.
  */
-export async function acceptDpa() {
+export async function acceptTerms() {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Not authenticated')
 
   const now = new Date()
   await prisma.user.update({
     where: { id: session.user.id },
-    data:  { dpaAcceptedAt: now },
+    data:  { termsAcceptedAt: now },
   })
 
   await writeAudit({
     schoolId:   session.user.schoolId as string,
     actorId:    session.user.id,
-    action:     'DPA_ACCEPTED',
+    action:     'TERMS_ACCEPTED',
     targetType: 'User',
     targetId:   session.user.id,
-    metadata:   { acceptedAt: now.toISOString() },
+    metadata:   { acceptedAt: now.toISOString(), role: session.user.role },
   })
 
-  // Patch JWT token so middleware picks up dpaAcceptedAt immediately
-  await unstable_update({ dpaAcceptedAt: now.toISOString() } as any)
+  // Patch JWT so middleware gate clears immediately (no re-login required)
+  await unstable_update({ termsAcceptedAt: now.toISOString() } as any)
 }

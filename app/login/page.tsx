@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
+import { requestLoginMfaCode } from '@/app/actions/mfa'
 
 const SHOW_DEMO = process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === 'true'
 
@@ -25,15 +26,54 @@ const PLATFORM_DEMOS = [
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [otpCode, setOtpCode] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mfaStep, setMfaStep] = useState(false) // true once a code has been emailed and we're waiting for it
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Step 1: verify credentials. Staff accounts get emailed a code and move
+  // to step 2; everyone else (or if MFA infra isn't configured) signs in
+  // immediately, unchanged from the original single-step flow.
+  async function handleCredentialsSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
+
+    const mfaResult = await requestLoginMfaCode(email, password)
+
+    if (mfaResult.status === 'rate_limited') {
+      setError(mfaResult.message)
+      setLoading(false)
+      return
+    }
+
+    if (mfaResult.status === 'code_sent') {
+      setMfaStep(true)
+      setLoading(false)
+      return
+    }
+
+    // status === 'not_required' — either wrong credentials, a non-staff
+    // role, or MFA infra unavailable. signIn() itself is still the real
+    // security check either way.
     const result = await signIn('credentials', { email, password, redirect: false })
     if (result?.error) { setError('Invalid email or password.'); setLoading(false) }
     else { window.location.href = '/' }
+  }
+
+  // Step 2: submit the emailed code alongside the original credentials.
+  async function handleCodeSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true); setError('')
+    const result = await signIn('credentials', { email, password, otpCode, redirect: false })
+    if (result?.error) { setError('Invalid or expired code. Try again.'); setLoading(false) }
+    else { window.location.href = '/' }
+  }
+
+  async function handleResendCode() {
+    setLoading(true); setError('')
+    const mfaResult = await requestLoginMfaCode(email, password)
+    if (mfaResult.status === 'rate_limited') setError(mfaResult.message)
+    setLoading(false)
   }
 
   return (
@@ -44,26 +84,72 @@ export default function LoginPage() {
           <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="you@school.ac.uk" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required />
-            </div>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
-            <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition">
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-            <p className="text-center text-sm text-gray-500">
-              <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
-            </p>
-          </form>
+          {!mfaStep ? (
+            <>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
+              <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="you@school.ac.uk" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required />
+                </div>
+                {error && <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
+                <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition">
+                  {loading ? 'Signing in...' : 'Sign in'}
+                </button>
+                <p className="text-center text-sm text-gray-500">
+                  <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
+                </p>
+              </form>
+            </>
+          ) : (
+            <>
+              {/* aria-live announcement when the MFA screen appears */}
+              <div aria-live="polite" className="sr-only">
+                A 6-digit sign-in code has been sent to {email}. Enter it below.
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Check your email</h2>
+              <p className="text-sm text-gray-500 mb-6">
+                We&#39;ve sent a 6-digit code to <strong>{email}</strong>. It expires in 5 minutes.
+              </p>
+              <form onSubmit={handleCodeSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="otp-input" className="block text-sm font-medium text-gray-700 mb-1">Sign-in code</label>
+                  <input
+                    id="otp-input"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-center text-2xl tracking-[0.5em] font-semibold"
+                    placeholder="------"
+                    required
+                    aria-describedby={error ? 'mfa-error' : undefined}
+                  />
+                </div>
+                {error && <div id="mfa-error" role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
+                <button type="submit" disabled={loading || otpCode.length !== 6} className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition">
+                  {loading ? 'Verifying...' : 'Verify and sign in'}
+                </button>
+                <div className="flex items-center justify-between text-sm">
+                  <button type="button" onClick={() => { setMfaStep(false); setOtpCode(''); setError('') }} className="text-gray-500 hover:underline" aria-label="Back to sign-in">
+                    &larr; Back
+                  </button>
+                  <button type="button" onClick={handleResendCode} disabled={loading} className="text-blue-700 hover:underline disabled:opacity-60" aria-label="Resend sign-in code">
+                    Resend code
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
-        {SHOW_DEMO && (
+        {!mfaStep && SHOW_DEMO && (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-5 space-y-4">
             <p className="text-blue-100 text-sm font-medium">Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>
 

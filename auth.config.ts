@@ -2,6 +2,7 @@ import type { NextAuthConfig, Session } from 'next-auth'
 import type { JWT } from 'next-auth/jwt'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { STAFF_ROLES } from '@/lib/roles'
 
 // ─── Role → home page mapping ─────────────────────────────────────────────────
 
@@ -22,6 +23,15 @@ function getRoleHome(role: string): string {
 }
 
 // ─── Role-restricted route prefixes ───────────────────────────────────────────
+// IMPORTANT: order matters. The matcher below walks this array top-to-bottom
+// and stops at the first prefix match (`break` in the authorized() callback).
+// More specific prefixes MUST appear before their generic parent prefix, e.g.
+// '/admin/subjects' before '/admin', '/hoy/safeguarding' before '/hoy',
+// '/send-caseload' / '/send-scorer' before '/send'. Adding a new specific
+// prefix below its generic parent will silently apply the wrong role list.
+// Any prefix NOT listed here falls through to allow all authenticated roles —
+// per-route protection for those must come from requireAuth() in the
+// corresponding app/actions/*.ts file instead.
 
 const ROLE_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/platform-admin',  roles: ['PLATFORM_ADMIN'] },
@@ -75,11 +85,17 @@ export const authConfig = {
       const role     = user.role as string
 
       // DPA gate — staff must acknowledge data processing agreement on first access
-      const STAFF_ROLES = ['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN',
-                           'TEACHING_ASSISTANT','COVER_MANAGER','PLATFORM_ADMIN','ACADEMY_ADMIN','SUPER_ADMIN']
-      if (STAFF_ROLES.includes(role) && !(auth as any)?.user?.dpaAcceptedAt && pathname !== '/accept-dpa') {
+      if ((STAFF_ROLES as readonly string[]).includes(role) && !(auth as any)?.user?.dpaAcceptedAt && pathname !== '/accept-dpa') {
         const url = req.nextUrl.clone()
         url.pathname = '/accept-dpa'
+        return NextResponse.redirect(url)
+      }
+
+      // Terms/AUP gate — parents and students must accept T&C before first access
+      const PARENT_STUDENT_ROLES = ['PARENT', 'STUDENT']
+      if (PARENT_STUDENT_ROLES.includes(role) && !(auth as any)?.user?.termsAcceptedAt && pathname !== '/accept-terms') {
+        const url = req.nextUrl.clone()
+        url.pathname = '/accept-terms'
         return NextResponse.redirect(url)
       }
 
@@ -109,7 +125,8 @@ export const authConfig = {
         token.role = u.role
         token.firstName = u.firstName
         token.lastName = u.lastName
-        token.dpaAcceptedAt = (u as any).dpaAcceptedAt ?? null
+        token.dpaAcceptedAt   = (u as any).dpaAcceptedAt   ?? null
+        token.termsAcceptedAt = (u as any).termsAcceptedAt ?? null
       }
       return token
     },
@@ -120,7 +137,8 @@ export const authConfig = {
       session.user.role = token.role
       session.user.firstName = token.firstName
       session.user.lastName = token.lastName
-      ;(session.user as any).dpaAcceptedAt = token.dpaAcceptedAt
+      ;(session.user as any).dpaAcceptedAt   = token.dpaAcceptedAt
+      ;(session.user as any).termsAcceptedAt = token.termsAcceptedAt
       return session
     },
   },

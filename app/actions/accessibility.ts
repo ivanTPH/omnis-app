@@ -17,8 +17,14 @@ async function fetchAccessibilitySettings(userId: string): Promise<Accessibility
   }
 }
 
-export async function getAccessibilitySettings(userId: string): Promise<AccessibilitySettings> {
+export async function getAccessibilitySettings(
+  _userId: string, // ignored — always uses the authenticated user's ID
+): Promise<AccessibilitySettings> {
+  // Security: always use session user ID, never trust client-provided userId
+  // (matches the pattern already used in saveAccessibilitySettings below)
   try {
+    const user = await requireAuth()
+    const userId = user.id as string
     return await unstable_cache(
       () => fetchAccessibilitySettings(userId),
       [`accessibility-${userId}`],

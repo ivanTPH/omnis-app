@@ -211,6 +211,8 @@ enum AuditAction {
   USER_DATA_ERASED
   INTEGRITY_CASE_ESCALATED
   DPA_ACCEPTED
+  TERMS_ACCEPTED
+  ORG_DPA_SIGNED
   SEND_RECORD_VIEWED
   BEHAVIOUR_RECORD_VIEWED
   BEHAVIOUR_RECORDED
@@ -288,6 +290,10 @@ model School {
 
   emailDomain String?           // e.g. "oakfield.sch.uk" — used to auto-generate student emails from Wonde
   allowAggregatedContribution Boolean @default(false)
+
+  // School-level Data Processing Agreement signing
+  orgDpaSignedAt DateTime?    // Timestamp when SCHOOL_ADMIN accepted the org-level DPA
+  orgDpaSignedBy String?      // userId of SCHOOL_ADMIN who signed
 
   schoolGroupId String?
   schoolGroup   SchoolGroup? @relation(fields: [schoolGroupId], references: [id])
@@ -490,7 +496,8 @@ model User {
   dateOfBirth  DateTime?            // DOB — synced from Wonde
   isActive     Boolean  @default(true)
   activatedAt  DateTime?                    // Set on first login — null means never logged in
-  dpaAcceptedAt DateTime?                   // Set on first DPA acknowledgement — staff only
+  dpaAcceptedAt   DateTime?                  // Set on first DPA acknowledgement — staff only
+  termsAcceptedAt DateTime?                  // Set on first T&C/AUP acceptance — parent + student
   createdAt    DateTime @default(now())
   avatarUrl            String?
   supportSnapshot      String?          // 1–2 sentence plain-English SEND summary for teachers

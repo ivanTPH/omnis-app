@@ -2,7 +2,8 @@ import NextAuth, { type Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { checkLoginRatelimit } from '@/lib/kv'
+import { checkLoginRatelimit, mfaInfraAvailable, verifyAndConsumeMfaCode } from '@/lib/kv'
+import { STAFF_ROLES } from '@/lib/roles'
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
@@ -13,10 +14,12 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
       credentials: {
         email: { type: 'email' },
         password: { type: 'password' },
+        otpCode: { type: 'text' }, // staff-only second factor; see app/actions/mfa.ts
       },
       async authorize(credentials, request) {
         const email = credentials?.email as string | undefined
         const password = credentials?.password as string | undefined
+        const otpCode = credentials?.otpCode as string | undefined
         if (!email || !password) return null
 
         // Rate limit by IP: 5 attempts per 15 min (no-ops when Upstash not configured)
@@ -34,6 +37,13 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         if (!user || !user.isActive) return null
         if (!await bcrypt.compare(password, user.passwordHash)) return null
 
+        // MFA: staff roles must supply a valid, single-use email code once
+        // Upstash is configured. Gracefully skipped when MFA infra is
+        // unavailable (dev/CI), matching the rate-limiter convention above.
+        if ((STAFF_ROLES as readonly string[]).includes(user.role) && mfaInfraAvailable()) {
+          if (!otpCode || !(await verifyAndConsumeMfaCode(user.id, otpCode))) return null
+        }
+
         // Set activatedAt on first ever login (fire-and-forget)
         if (!user.activatedAt) {
           void prisma.user.update({ where: { id: user.id }, data: { activatedAt: new Date() } })
@@ -48,15 +58,17 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
           role: user.role,
           firstName: user.firstName,
           lastName: user.lastName,
-          dpaAcceptedAt: user.dpaAcceptedAt?.toISOString() ?? null,
+          dpaAcceptedAt:   user.dpaAcceptedAt?.toISOString()   ?? null,
+          termsAcceptedAt: user.termsAcceptedAt?.toISOString() ?? null,
         }
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      if (trigger === 'update' && session?.dpaAcceptedAt) {
-        token.dpaAcceptedAt = session.dpaAcceptedAt
+      if (trigger === 'update') {
+        if (session?.dpaAcceptedAt)   token.dpaAcceptedAt   = session.dpaAcceptedAt
+        if (session?.termsAcceptedAt) token.termsAcceptedAt = session.termsAcceptedAt
       }
       if (user) {
         const u = user as Session['user']
@@ -66,7 +78,8 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.role = u.role
         token.firstName = u.firstName
         token.lastName = u.lastName
-        token.dpaAcceptedAt = (u as any).dpaAcceptedAt ?? null
+        token.dpaAcceptedAt   = (u as any).dpaAcceptedAt   ?? null
+        token.termsAcceptedAt = (u as any).termsAcceptedAt ?? null
       }
       return token
     },
@@ -77,7 +90,8 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
       session.user.role = token.role
       session.user.firstName = token.firstName
       session.user.lastName = token.lastName
-      ;(session.user as any).dpaAcceptedAt = token.dpaAcceptedAt
+      ;(session.user as any).dpaAcceptedAt   = token.dpaAcceptedAt
+      ;(session.user as any).termsAcceptedAt = token.termsAcceptedAt
       return session
     },
   },

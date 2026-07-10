@@ -92,6 +92,26 @@ export async function sendPasswordResetEmail(params: {
   )
 }
 
+/** Staff sign-in one-time code (MFA — second login factor). */
+export async function sendMfaCodeEmail(params: {
+  to: string
+  firstName: string
+  code: string
+}): Promise<void> {
+  const { to, firstName, code } = params
+  await send(
+    to,
+    `Your Omnis sign-in code: ${code}`,
+    `
+    <p>Hi ${firstName},</p>
+    <p>Your one-time sign-in code is:</p>
+    <p style="font-size:28px;font-weight:700;letter-spacing:6px;color:#1e3a8a;margin:16px 0">${code}</p>
+    <p>This code expires in 5 minutes. If you didn't just try to sign in to Omnis, you can ignore this email — your account is still safe.</p>
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform</p>
+    `,
+  )
+}
+
 /** Staff invitation email sent by school admin. */
 export async function sendStaffInvitationEmail(params: {
   to: string

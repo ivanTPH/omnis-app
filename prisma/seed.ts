@@ -70,8 +70,8 @@ async function main() {
   for (const u of usersData) {
     const user = await prisma.user.upsert({
       where:  { email: u.email },
-      update: { firstName: u.firstName, lastName: u.lastName, passwordHash },
-      create: { schoolId: school.id, email: u.email, passwordHash, role: u.role, firstName: u.firstName, lastName: u.lastName },
+      update: { firstName: u.firstName, lastName: u.lastName, passwordHash, dpaAcceptedAt: new Date(), termsAcceptedAt: new Date() },
+      create: { schoolId: school.id, email: u.email, passwordHash, role: u.role, firstName: u.firstName, lastName: u.lastName, dpaAcceptedAt: new Date(), termsAcceptedAt: new Date() },
     })
     created[u.username] = user
     console.log(`  ✓ ${u.role.padEnd(14)}  ${u.email}`)
@@ -180,7 +180,7 @@ async function main() {
     const user = await prisma.user.upsert({
       where:  { email: s.email },
       update: { firstName: s.firstName, lastName: s.lastName },
-      create: { schoolId: school.id, email: s.email, passwordHash, role: Role.STUDENT, firstName: s.firstName, lastName: s.lastName },
+      create: { schoolId: school.id, email: s.email, passwordHash, role: Role.STUDENT, firstName: s.firstName, lastName: s.lastName, termsAcceptedAt: new Date() },
     })
     for (const key of s.classKeys) {
       await prisma.enrolment.upsert({
@@ -947,7 +947,7 @@ async function main() {
     const user = await prisma.user.upsert({
       where:  { email: s.email },
       update: { firstName: s.firstName, lastName: s.lastName },
-      create: { schoolId: school.id, email: s.email, passwordHash, role: Role.STUDENT, firstName: s.firstName, lastName: s.lastName },
+      create: { schoolId: school.id, email: s.email, passwordHash, role: Role.STUDENT, firstName: s.firstName, lastName: s.lastName, termsAcceptedAt: new Date() },
     })
     sc[s.key] = user
     await prisma.enrolment.upsert({
@@ -1378,7 +1378,7 @@ async function main() {
     const u = await prisma.user.upsert({
       where:  { email },
       update: { firstName, lastName },
-      create: { schoolId: school.id, email, passwordHash, role: Role.STUDENT, firstName, lastName },
+      create: { schoolId: school.id, email, passwordHash, role: Role.STUDENT, firstName, lastName, termsAcceptedAt: new Date() },
     })
     await prisma.enrolment.upsert({
       where:  { classId_userId: { classId, userId: u.id } },
@@ -2481,7 +2481,7 @@ async function main() {
     await prisma.user.upsert({
       where:  { email: u.email },
       update: {},
-      create: { schoolId: school.id, email: u.email, passwordHash, role: u.role, firstName: u.firstName, lastName: u.lastName },
+      create: { schoolId: school.id, email: u.email, passwordHash, role: u.role, firstName: u.firstName, lastName: u.lastName, dpaAcceptedAt: new Date(), termsAcceptedAt: new Date() },
     })
   }
 
@@ -2624,7 +2624,7 @@ async function main() {
     await prisma.user.upsert({
       where:  { email: s.email },
       update: {},
-      create: { schoolId: school.id, email: s.email, passwordHash, role: Role.STUDENT, firstName: s.firstName, lastName: s.lastName },
+      create: { schoolId: school.id, email: s.email, passwordHash, role: Role.STUDENT, firstName: s.firstName, lastName: s.lastName, termsAcceptedAt: new Date() },
     })
   }
 

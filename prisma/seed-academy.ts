@@ -104,7 +104,7 @@ async function seedSchool(opts: {
     await prisma.user.upsert({
       where:  { email: s.email },
       update: {},
-      create: { email: s.email, passwordHash: opts.passwordHash, role: s.role, firstName: s.firstName, lastName: s.lastName, schoolId: school.id, isActive: true },
+      create: { email: s.email, passwordHash: opts.passwordHash, role: s.role, firstName: s.firstName, lastName: s.lastName, schoolId: school.id, isActive: true, dpaAcceptedAt: new Date(), termsAcceptedAt: new Date() },
     })
   }
 

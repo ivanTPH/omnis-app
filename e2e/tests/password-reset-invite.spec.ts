@@ -363,12 +363,18 @@ test.describe('Staff invitation — valid token (DB-backed)', () => {
     const inputs = page.locator('input[type="password"]')
     await inputs.nth(0).fill('InvitePass1!')
     await inputs.nth(1).fill('InvitePass1!')
+    // Tick all DPA consent checkboxes (new multi-checkbox consent flow)
+    const checkboxes = page.locator('input[type="checkbox"]')
+    const cbCount = await checkboxes.count()
+    for (let i = 0; i < cbCount; i++) {
+      await checkboxes.nth(i).check()
+    }
     await page.click('button[type="submit"]')
     await page.waitForTimeout(3000)
-    // Should show success or redirect to login
+    // Should show "Account ready" success screen or redirect to login
     const url  = page.url()
     const body = await page.locator('body').innerText()
-    const success = url.includes('/login') || body.toLowerCase().match(/success|account|created|sign in/) !== null
+    const success = url.includes('/login') || body.toLowerCase().match(/account ready|you can now sign in|sign in/) !== null
     expect(success).toBe(true)
 
     // Record created user id for cleanup

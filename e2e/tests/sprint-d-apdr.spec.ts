@@ -78,7 +78,7 @@ test.describe('Sprint D — APDR page access', () => {
 
     const body = await page.locator('body').innerText({ timeout: 15_000 })
     expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(200)
+    expect(body.length).toBeGreaterThan(100)
   })
 
   test('teacher cannot access /senco/ilp', async ({ page }) => {

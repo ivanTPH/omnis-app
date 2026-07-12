@@ -65,7 +65,7 @@ test.describe('Sprint D — APDR page access', () => {
   test('SENCO can access /senco/ilp', async ({ page }) => {
     await loginAs(page, USERS.senco)
     await page.goto('/senco/ilp')
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle', { timeout: 30_000 })
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
     await expect(page.locator('body')).toBeVisible()
   })
@@ -73,12 +73,12 @@ test.describe('Sprint D — APDR page access', () => {
   test('SENCO ILP list renders without crash', async ({ page }) => {
     await loginAs(page, USERS.senco)
     await page.goto('/senco/ilp')
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle', { timeout: 30_000 })
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    const body = await page.locator('body').innerText({ timeout: 15_000 })
     expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(50)
+    expect(body.length).toBeGreaterThan(200)
   })
 
   test('teacher cannot access /senco/ilp', async ({ page }) => {
@@ -117,12 +117,12 @@ test.describe('Sprint D — APDR student detail page', () => {
 
     await loginAs(page, USERS.senco)
     await page.goto(`/senco/ilp/${studentId}`)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle', { timeout: 30_000 })
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    const body = await page.locator('body').innerText({ timeout: 15_000 })
     expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(50)
+    expect(body.length).toBeGreaterThan(200)
   })
 
   test('SENCO ILP list page contains APDR-related content', async ({ page }) => {
@@ -145,12 +145,12 @@ test.describe('Sprint D — APDR student detail page', () => {
 
     await loginAs(page, USERS.senco)
     await page.goto(`/senco/ilp/${studentId}`)
-    await page.waitForLoadState('domcontentloaded')
+    await page.waitForLoadState('networkidle', { timeout: 30_000 })
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
     // If there are completed cycles, outcome rating badge should be present.
     // If no cycles, page should still render cleanly.
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    const body = await page.locator('body').innerText({ timeout: 15_000 })
     expect(body).not.toMatch(/something went wrong/i)
   })
 })

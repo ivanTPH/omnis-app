@@ -5,12 +5,17 @@ import * as fs from 'fs'
 
 /** Click through /accept-dpa or /accept-terms if the page lands there.
  *  This handles stale JWT cookies that have dpaAcceptedAt/termsAcceptedAt: null
- *  baked in from a previous test run before the compliance gates were live. */
+ *  baked in from a previous test run before the compliance gates were live.
+ *  The redesigned gate pages have multiple checkboxes — tick them all. */
 async function clearComplianceGate(page: Page): Promise<void> {
   const url = page.url()
   if (!url.includes('/accept-dpa') && !url.includes('/accept-terms')) return
-  // Tick the checkbox and click the acknowledge/accept button
-  await page.locator('input[type="checkbox"]').check()
+  // Tick all checkboxes (redesigned pages have 2–3 per role)
+  const checkboxes = page.locator('input[type="checkbox"]')
+  const count = await checkboxes.count()
+  for (let i = 0; i < count; i++) {
+    await checkboxes.nth(i).check()
+  }
   await page.locator('button[type="button"]:not([disabled])').last().click()
   // Wait until we're past the gate (URL no longer contains accept-*)
   await page.waitForURL(url => !url.includes('/accept-dpa') && !url.includes('/accept-terms'), { timeout: 30_000 })

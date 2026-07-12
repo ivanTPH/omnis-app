@@ -4,11 +4,11 @@ import { auth, unstable_update } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
 
 /**
- * Records the staff member's DPA acknowledgement in the DB and patches the
- * JWT token in-place via unstable_update so the middleware gate clears
- * without requiring a full re-login.
+ * Records the staff member's DPA acknowledgement.
+ * @param acceptedConsents - IDs of the consent items the user ticked
+ *   (data-controller | staff-obligations | audit-and-ai)
  */
-export async function acceptDpa() {
+export async function acceptDpa(acceptedConsents: string[] = []) {
   const session = await auth()
   if (!session?.user?.id) throw new Error('Not authenticated')
 
@@ -24,9 +24,13 @@ export async function acceptDpa() {
     action:     'DPA_ACCEPTED',
     targetType: 'User',
     targetId:   session.user.id,
-    metadata:   { acceptedAt: now.toISOString() },
+    metadata:   {
+      acceptedAt:       now.toISOString(),
+      acceptedConsents,
+      consentVersion:   '2026-07',
+    },
   })
 
-  // Patch JWT token so middleware picks up dpaAcceptedAt immediately
+  // Patch JWT so middleware gate clears immediately without re-login
   await unstable_update({ dpaAcceptedAt: now.toISOString() } as any)
 }

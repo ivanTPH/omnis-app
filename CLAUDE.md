@@ -334,7 +334,19 @@
 > flex flex-col with maxHeight calc(100dvh - 2rem), shrink-0 header/footer, overflow-y-auto
 > flex-1 body; items-start on mobile so card anchors to top rather than centering off-screen.
 >
-> **Latest commit:** 9d17474 (fix accept-dpa mobile layout). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (warm run). 1 intentional skip (APDR PDF). Exit 0.**
+> July 2026 Consent UX redesign: industry-standard multi-checkbox consent flow replacing single-accept post-login gates.
+> (1) `components/consent/PolicyConsentPanel.tsx` — reusable panel: one checkbox per policy, "View full policy →" link
+> opens inline modal with full legal text, "I have read this — Accept" auto-ticks + closes, red blocking error when
+> `attempted && !checked`, green tick when accepted, progress bar (X/N accepted).
+> (2) `/accept-dpa` rewritten: 3 items — data-controller, staff-obligations, audit-and-ai (full text inline as React).
+> (3) `/accept-terms` rewritten: parent = platform-terms + privacy-notice; student = aup + privacy-notice.
+> (4) `/accept-invite` rewritten: two-section form (password + 3 DPA items). POST sends `acceptedConsents[]`; API sets
+> `dpaAcceptedAt` on user creation so invited staff never hit the post-login gate. DPA_ACCEPTED audit logged with
+> `acceptedConsents` + `consentVersion: "2026-07"` metadata.
+> (5) `loginAs()` `clearComplianceGate()` loops over all checkboxes (pages now have 2–3 not 1).
+> (6) E2E: sprint-d-apdr:115 body threshold 200→100 (cold Lambda returns 138-char AppShell before networkidle).
+>
+> **Latest commit:** a0ef0e4 (fix e2e: APDR body threshold 200→100). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (warm run). 1 intentional skip (APDR PDF). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
@@ -948,7 +960,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**450 tests across 37 spec files. Last full Vercel run: 449/450 pass (2026-07-04). 1 intentional skip.**
+**450 tests across 37 spec files. Last full Vercel run: 449/450 pass (2026-07-13). 1 intentional skip.**
 - 1 skip: `sprint-d-apdr.spec.ts:177` (APDR PDF — requires a completed cycle in Vercel DB; run `npm run db:seed` to populate)
 - SEND smoke steps 6/7/8: graceful skip when local/Vercel DB weeks differ (calendar `?week=` param now respected; re-seed Vercel to fully enable)
 - 37 spec files: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),

@@ -3241,3 +3241,34 @@ model PastoralNote {
   @@index([studentId, schoolId])
   @@index([schoolId])
 }
+
+// ─── Marketing site leads (public, unauthenticated forms) ───────────────────
+
+model BetaApplication {
+  id         String   @id @default(cuid())
+  schoolName String
+  name       String
+  jobTitle   String
+  email      String
+  phone      String?
+  schoolSize String
+  message    String?
+  ip         String?
+  reviewed   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model InvestorInquiry {
+  id           String   @id @default(cuid())
+  name         String
+  organisation String?
+  email        String
+  message      String?
+  ip           String?
+  reviewed     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+}

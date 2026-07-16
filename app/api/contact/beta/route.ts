@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { checkContactRateLimit } from '@/lib/kv'
+import { prisma } from '@/lib/prisma'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const DEST   = 'ivanyardley@me.com'
@@ -35,8 +36,17 @@ export async function POST(req: NextRequest) {
       <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">School size</td><td style="padding:8px;color:#111827;">${schoolSize}</td></tr>
       ${message ? `<tr><td style="padding:8px;font-weight:600;color:#374151;vertical-align:top;">Message</td><td style="padding:8px;color:#111827;">${message}</td></tr>` : ''}
     </table>
-    <p style="color:#6b7280;font-size:12px;margin-top:24px;">Sent from omnis-app-ten.vercel.app/marketing/beta</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:24px;">Sent from omnis.education/marketing/beta</p>
   `
+
+  // Persist first — a lost/delayed email should never mean the application is gone.
+  try {
+    await prisma.betaApplication.create({
+      data: { schoolName, name, jobTitle, email, phone: phone || null, schoolSize, message: message || null, ip },
+    })
+  } catch (err) {
+    console.error('[contact/beta] db write failed:', err)
+  }
 
   if (resend) {
     try {

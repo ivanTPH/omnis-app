@@ -347,6 +347,7 @@ model School {
   // Phase 5 — SEND Monitoring
   sendConcerns           SendConcern[]
   sendNotifications      SendNotification[]
+  attainmentBenchmarks   AttainmentBenchmark[]
   sendReviewLogs         SendReviewLog[]
   earlyWarningFlags      EarlyWarningFlag[]
   learningPlans          IndividualLearningPlan[] @relation("SchoolLearningPlans")
@@ -3271,4 +3272,31 @@ model InvestorInquiry {
   createdAt    DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// ─── Outcome Benchmarking (consent-gated) ────────────────────────────────────
+// IMPORTANT: This model is deliberately separate from SchoolCohortAggregate.
+// Only students with an active GRANTED ConsentRecord for the
+// 'outcome-benchmarking' ConsentPurpose contribute to these rows.
+// Rows with consentedCohortSize < MIN_BENCHMARK_COHORT are suppressed=true
+// and contain zeroed metric fields to prevent small-cohort re-identification.
+// See evidence/phase-outcome-benchmarking/README.md for the DPIA addendum.
+
+model AttainmentBenchmark {
+  id                    String   @id @default(cuid())
+  schoolId              String
+  school                School   @relation(fields: [schoolId], references: [id])
+  yearGroup             String   // "7" | "8" | ... | "13" | "ALL"
+  subject               String?  // null = cross-subject
+  periodLabel           String   // "2025-26" (academic year)
+  cohortSize            Int      // total students in this school/year (denominator for consent rate)
+  consentedCohortSize   Int      // students whose parent consented
+  avgPriorAttainment    Float    // average baseline score (0–100); 0 when suppressed
+  avgPredictedOutcome   Float    // predicted GCSE grade 1–9 from prior attainment; 0 when suppressed
+  avgActualOutcome      Float    // actual average GCSE grade 1–9; 0 when suppressed
+  upliftPercent         Float    // ((actual - predicted) / predicted) × 100; 0 when suppressed
+  suppressed            Boolean  @default(true)
+  computedAt            DateTime @default(now())
+
+  @@unique([schoolId, yearGroup, periodLabel])
 }

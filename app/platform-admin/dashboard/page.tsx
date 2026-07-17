@@ -8,16 +8,19 @@ import PlatformAuditLogTable from '@/components/platform-admin/PlatformAuditLogT
 import PlatformSchoolHealthTable from '@/components/platform-admin/PlatformSchoolHealthTable'
 import PlatformInsightsPanel from '@/components/platform-admin/PlatformInsightsPanel'
 import OmnisInferenceStatsPanel from '@/components/platform-admin/OmnisInferenceStatsPanel'
+import AttainmentBenchmarkPanel from '@/components/platform-admin/AttainmentBenchmarkPanel'
+import { getAllAttainmentBenchmarks } from '@/app/actions/attainment-benchmark'
 
 export default async function PlatformDashboardPage() {
   const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PLATFORM_ADMIN') redirect('/dashboard')
 
-  const [stats, usageStats, auditLog, healthRows] = await Promise.all([
+  const [stats, usageStats, auditLog, healthRows, benchmarks] = await Promise.all([
     getPlatformStats(),
     getPlatformUsageStats(),
     getAuditLog(50),
     getSchoolHealthData(),
+    getAllAttainmentBenchmarks(),
   ])
 
   return (
@@ -30,6 +33,7 @@ export default async function PlatformDashboardPage() {
           </div>
           <PlatformDashboardStats data={stats} />
           <PlatformInsightsPanel />
+          <AttainmentBenchmarkPanel bySchool={benchmarks.bySchool} network={benchmarks.network} />
           <OmnisInferenceStatsPanel />
           <PlatformUsageChart data={usageStats} />
           <PlatformSchoolHealthTable rows={healthRows} />

@@ -110,6 +110,43 @@ function StudentAupPolicy() {
   )
 }
 
+function OutcomeBenchmarkingPolicy() {
+  return (
+    <>
+      <section>
+        <h3 className="font-semibold text-gray-900 mb-2">What this covers</h3>
+        <p>Omnis may use your child&apos;s anonymised prior attainment (e.g. KS2 SATs scores or
+        CATs results, if held by the school) alongside their homework grades on the platform to
+        compute an individual uplift metric — the difference between predicted and actual
+        attainment. This helps schools and the platform operator understand how well pupils
+        are progressing relative to their starting points.</p>
+      </section>
+      <section>
+        <h3 className="font-semibold text-gray-900 mb-2">How your child&apos;s data is used</h3>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Scores are aggregated across a school year group before any analysis is performed.</li>
+          <li>Individual pupil results are never disclosed outside the school.</li>
+          <li>Results from cohorts of fewer than 10 consented students are suppressed entirely.</li>
+          <li>Aggregated, anonymised signals from multiple schools may be used to produce
+              network-level benchmarks published in Omnis research materials.</li>
+        </ul>
+      </section>
+      <section>
+        <h3 className="font-semibold text-gray-900 mb-2">Lawful basis</h3>
+        <p>Processing is based on your freely given consent under UK GDPR Article 6(1)(a).
+        You may withdraw consent at any time by contacting your school&apos;s Data Protection
+        Officer. Withdrawal does not affect the lawfulness of processing before withdrawal.</p>
+      </section>
+      <section>
+        <h3 className="font-semibold text-gray-900 mb-2">This is optional</h3>
+        <p>Declining this item will not affect your child&apos;s access to any feature of Omnis,
+        or your own access as a parent. It is entirely separate from the required platform
+        terms above.</p>
+      </section>
+    </>
+  )
+}
+
 function StudentPrivacyPolicy() {
   return (
     <>
@@ -155,6 +192,13 @@ const PARENT_ITEMS: ConsentItem[] = [
     policyTitle:  'Privacy Notice',
     policyContent: <ParentPrivacyPolicy />,
   },
+  {
+    id:           'outcome-benchmarking',
+    label:        "I agree to my child's anonymised attainment data being used for outcome benchmarking across the Omnis network. (Optional — you can continue without ticking this.)",
+    policyTitle:  'Outcome Benchmarking — Optional Consent',
+    policyContent: <OutcomeBenchmarkingPolicy />,
+    required:     false,
+  },
 ]
 
 const STUDENT_ITEMS: ConsentItem[] = [
@@ -184,7 +228,7 @@ export default function AcceptTermsClient({ role }: { role: string }) {
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
 
-  const allRequired  = items.every(i => checked[i.id])
+  const allRequired  = items.every(i => i.required === false || !!checked[i.id])
   const acceptedCount = Object.values(checked).filter(Boolean).length
 
   const title    = isParent ? 'Platform Terms & Privacy Notice'    : 'Acceptable Use Policy'

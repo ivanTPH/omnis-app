@@ -6,8 +6,12 @@ import { prisma, writeAudit } from '@/lib/prisma'
 /**
  * Records the parent/student Terms & AUP acceptance.
  * @param acceptedConsents - IDs of the consent items the user ticked
- *   Parent:  platform-terms | privacy-notice
+ *   Parent:  platform-terms | privacy-notice | outcome-benchmarking (optional)
  *   Student: aup | privacy-notice
+ *
+ * When a PARENT ticks 'outcome-benchmarking', a ConsentRecord is created for
+ * each child linked via ParentChildLink, against the school's
+ * 'outcome-benchmarking' ConsentPurpose (if it exists).
  */
 export async function acceptTerms(acceptedConsents: string[] = []) {
   const session = await auth()
@@ -32,6 +36,49 @@ export async function acceptTerms(acceptedConsents: string[] = []) {
       consentVersion:   '2026-07',
     },
   })
+
+  // ── Outcome benchmarking opt-in (parents only) ────────────────────────────
+  if (
+    session.user.role === 'PARENT' &&
+    acceptedConsents.includes('outcome-benchmarking')
+  ) {
+    try {
+      // Find the school's outcome-benchmarking ConsentPurpose
+      const purpose = await prisma.consentPurpose.findFirst({
+        where: { schoolId: session.user.schoolId as string, slug: 'outcome-benchmarking', isActive: true },
+        select: { id: true },
+      })
+
+      if (purpose) {
+        // Find all children linked to this parent
+        const links = await prisma.parentChildLink.findMany({
+          where:  { parentId: session.user.id },
+          select: { childId: true },
+        })
+
+        // Create a ConsentRecord for each child if one doesn't already exist
+        await Promise.all(links.map(async link => {
+          const existing = await prisma.consentRecord.findFirst({
+            where: { purposeId: purpose.id, studentId: link.childId, responderId: session.user.id },
+          })
+          if (!existing) {
+            await prisma.consentRecord.create({
+              data: {
+                purposeId:   purpose.id,
+                studentId:   link.childId,  // User.id of child
+                responderId: session.user.id,
+                decision:    'granted',
+                method:      'portal',
+              },
+            })
+          }
+        }))
+      }
+    } catch (err) {
+      // Non-fatal — log but don't block the terms acceptance
+      console.error('[acceptTerms] outcome-benchmarking consent record failed:', err)
+    }
+  }
 
   // Patch JWT so middleware gate clears immediately without re-login
   await unstable_update({ termsAcceptedAt: now.toISOString() } as any)

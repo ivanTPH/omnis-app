@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { checkContactRateLimit } from '@/lib/kv'
 import { prisma } from '@/lib/prisma'
+import { upsertHubspotContact } from '@/lib/hubspot'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const DEST   = 'ivanyardley@me.com'
@@ -43,6 +44,16 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[contact/investors] db write failed:', err)
   }
+
+  // Fire-and-forget HubSpot CRM logging
+  upsertHubspotContact({
+    email,
+    firstname: name.split(' ')[0],
+    lastname: name.split(' ').slice(1).join(' ') || undefined,
+    company: organisation || undefined,
+    message,
+    leadSource: 'investor_inquiry',
+  }).catch(err => console.error('[contact/investors] hubspot upsert failed:', err))
 
   if (resend) {
     try {

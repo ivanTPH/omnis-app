@@ -79,8 +79,8 @@ export default function InvestorsForm() {
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Traction</h2>
               <div className="space-y-3">
                 {[
-                  { icon: 'check_circle', text: 'Full platform built and beta-ready: 12 roles, 50+ routes, 155 automated tests' },
-                  { icon: 'check_circle', text: 'Live Wonde MIS integration with 30+ staff and 120+ students in test school' },
+                  { icon: 'check_circle', text: 'Full platform built and beta-ready: 12 roles, 80+ routes, 450 automated tests' },
+                  { icon: 'check_circle', text: 'Live Wonde MIS integration — students, staff, timetable, and attendance data operational' },
                   { icon: 'check_circle', text: 'AI homework generation, auto-marking, ILP evidence, and adaptive profiles operational' },
                   { icon: 'check_circle', text: 'Beta school cohort forming — first schools onboarding in 2026' },
                 ].map(({ icon, text }) => (

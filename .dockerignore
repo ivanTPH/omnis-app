@@ -1,0 +1,13 @@
+.git
+.next
+node_modules
+npm-debug.log*
+.env*.local
+.env
+*.env
+.vercel
+.playwright
+playwright-report
+test-results
+coverage
+*.md

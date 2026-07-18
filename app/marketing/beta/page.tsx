@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Request Beta Access | Omnis Education',
     description: 'Join the first cohort of UK schools on Omnis — AI-powered learning & SEND management, free during the beta period.',
-    url: 'https://omnis-app-ten.vercel.app/marketing/beta',
+    url: 'https://omnis.education/marketing/beta',
   },
 }
 

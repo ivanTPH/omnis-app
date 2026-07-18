@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Investor Relations | Omnis Education',
     description: 'Transforming UK secondary education with AI. 3,600+ schools, £2.4bn EdTech market, 1 in 5 pupils with SEND needs.',
-    url: 'https://omnis-app-ten.vercel.app/marketing/investors',
+    url: 'https://omnis.education/marketing/investors',
   },
 }
 

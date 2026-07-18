@@ -28,6 +28,7 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [mfaStep, setMfaStep] = useState(false) // true once a code has been emailed and we're waiting for it
+  const [rememberMe, setRememberMe] = useState(true)
 
   // Step 1: verify credentials. Staff accounts get emailed a code and move
   // to step 2; everyone else (or if MFA infra isn't configured) signs in
@@ -53,7 +54,7 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
     // status === 'not_required' — either wrong credentials, a non-staff
     // role, or MFA infra unavailable. signIn() itself is still the real
     // security check either way.
-    const result = await signIn('credentials', { email, password, redirect: false })
+    const result = await signIn('credentials', { email, password, rememberMe: String(rememberMe), redirect: false })
     if (result?.error) { setError('Invalid email or password.'); setLoading(false) }
     else { window.location.href = '/' }
   }
@@ -62,7 +63,7 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
   async function handleCodeSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
-    const result = await signIn('credentials', { email, password, otpCode, redirect: false })
+    const result = await signIn('credentials', { email, password, otpCode, rememberMe: String(rememberMe), redirect: false })
     if (result?.error) { setError('Invalid or expired code. Try again.'); setLoading(false) }
     else { window.location.href = '/' }
   }
@@ -94,6 +95,15 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required />
                 </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-700 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">Remember me on this device</span>
+                </label>
                 {error && <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
                 <button type="submit" disabled={loading} className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition">
                   {loading ? 'Signing in...' : 'Sign in'}

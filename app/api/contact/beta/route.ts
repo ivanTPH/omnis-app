@@ -1,8 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { checkContactRateLimit } from '@/lib/kv'
 import { prisma } from '@/lib/prisma'
+import type { Role } from '@prisma/client'
 import { upsertHubspotContact } from '@/lib/hubspot'
+import { sendBetaWelcomeEmail } from '@/lib/email'
+
+function generateDemoPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  const rand  = Array.from(crypto.randomBytes(8)).map(b => chars[b % chars.length]).join('')
+  return rand + '!'
+}
+
+function mapJobTitleToRole(jobTitle: string): Role {
+  if (['Headteacher / Principal', 'Deputy Headteacher', 'SLT member'].includes(jobTitle)) return 'SLT'
+  if (jobTitle === 'SENCO') return 'SENCO'
+  if (jobTitle === 'Head of Department') return 'HEAD_OF_DEPT'
+  if (jobTitle === 'Head of Year') return 'HEAD_OF_YEAR'
+  if (['IT / Systems Manager', 'School Business Manager'].includes(jobTitle)) return 'SCHOOL_ADMIN'
+  return 'TEACHER'
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  SLT: 'Senior Leadership (SLT)', SENCO: 'SENCO', HEAD_OF_DEPT: 'Head of Department',
+  HEAD_OF_YEAR: 'Head of Year', SCHOOL_ADMIN: 'School Administrator', TEACHER: 'Teacher',
+}
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const DEST   = 'ivanyardley@me.com'
@@ -60,9 +84,55 @@ export async function POST(req: NextRequest) {
     leadSource: 'beta_application',
   }).catch(err => console.error('[contact/beta] hubspot upsert failed:', err))
 
+  // ── Create demo account ───────────────────────────────────────────────────
+  // Provision the applicant a demo account on the Omnis demo school so they
+  // can explore the platform immediately. Falls back gracefully if the demo
+  // school hasn't been seeded in this environment.
+  let demoCreated = false
+  let demoPassword = ''
+  let roleLabel = ''
+  try {
+    const demoSchool = await prisma.school.findFirst({
+      where: { OR: [{ name: 'Omnis Demo School' }, { emailDomain: 'omnisdemo.school' }] },
+      select: { id: true },
+    })
+    if (demoSchool) {
+      const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+      if (!existing) {
+        demoPassword = generateDemoPassword()
+        const role   = mapJobTitleToRole(jobTitle)
+        roleLabel    = ROLE_LABELS[role] ?? 'Teacher'
+        const [firstName, ...rest] = name.trim().split(' ')
+        await prisma.user.create({
+          data: {
+            email,
+            passwordHash: await bcrypt.hash(demoPassword, 12),
+            firstName,
+            lastName: rest.join(' ') || firstName,
+            role,
+            schoolId: demoSchool.id,
+            isActive: true,
+          },
+        })
+        demoCreated = true
+        // Send welcome email to applicant (fire-and-forget — never block the response)
+        sendBetaWelcomeEmail({ to: email, firstName, email, password: demoPassword, roleLabel })
+          .catch(err => console.error('[contact/beta] welcome email failed:', err))
+      }
+    }
+  } catch (err) {
+    console.error('[contact/beta] demo account creation failed:', err)
+  }
+
+  // Notify ivan — update the email html to include demo account status
+  const demoLine = demoCreated
+    ? `<tr style="background:#f0fdf4;"><td style="padding:8px;font-weight:600;color:#166534;">Demo account</td><td style="padding:8px;color:#166534;">✓ Created — ${email} / ${roleLabel}</td></tr>`
+    : `<tr style="background:#fef9c3;"><td style="padding:8px;font-weight:600;color:#854d0e;">Demo account</td><td style="padding:8px;color:#854d0e;">Not created (demo school not found or email already exists)</td></tr>`
+  const enrichedHtml = html.replace('</table>', `${demoLine}</table>`)
+
   if (resend) {
     try {
-      await resend.emails.send({ from: FROM, to: DEST, subject: `Beta application: ${schoolName}`, html })
+      await resend.emails.send({ from: FROM, to: DEST, subject: `Beta application: ${schoolName}`, html: enrichedHtml })
     } catch (err) {
       console.error('[contact/beta] email send failed:', err)
       return NextResponse.json({ error: 'Email delivery failed' }, { status: 500 })
@@ -70,5 +140,5 @@ export async function POST(req: NextRequest) {
   }
   // In dev (no RESEND_API_KEY) we still return 200 so the form shows success
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, demoCreated })
 }

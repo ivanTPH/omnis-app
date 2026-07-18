@@ -2,12 +2,12 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Features',
+  title: 'Platform Features — AI Homework, SEND Management & MIS Sync',
   description: 'Explore everything Omnis offers — AI homework generation, adaptive learning profiles, SEND/ILP/EHCP management, MIS sync via Wonde, analytics, and more.',
   openGraph: {
-    title: 'Features | Omnis Education',
+    title: 'Platform Features | Omnis Education',
     description: 'AI homework, SEND management, MIS sync, analytics, revision programs — every feature built for UK secondary schools.',
-    url: 'https://omnis-app-ten.vercel.app/marketing/features',
+    url: 'https://omnis.education/marketing/features',
   },
 }
 

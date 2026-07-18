@@ -5,10 +5,11 @@ export const metadata: Metadata = {
   title: 'AI-Powered Learning & SEND Platform for UK Schools',
   description: 'Omnis brings lesson planning, adaptive homework, ILP/EHCP management, and MIS sync together in one platform built for UK secondary schools.',
   openGraph: {
-    title: 'Omnis Education — AI-Powered Learning & SEND Platform',
+    title: 'Omnis Education — AI-Powered Learning & SEND Platform for UK Schools',
     description: 'Omnis brings lesson planning, adaptive homework, ILP/EHCP management, and MIS sync together in one platform built for UK secondary schools.',
-    url: 'https://omnis-app-ten.vercel.app/marketing/home',
+    url: 'https://omnis.education/marketing/home',
   },
+  alternates: { canonical: 'https://omnis.education/marketing/home' },
 }
 
 const features = [
@@ -95,9 +96,57 @@ const roles = [
   },
 ]
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://omnis.education/#organization',
+      name: 'Omnis Education',
+      url: 'https://omnis.education',
+      logo: 'https://omnis.education/favicon.png',
+      description: 'AI-powered learning and SEND management platform for UK secondary schools.',
+      contactPoint: { '@type': 'ContactPoint', contactType: 'sales', email: 'hello@omnis.education', areaServed: 'GB' },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Omnis Education Platform',
+      applicationCategory: 'EducationalApplication',
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'GBP', description: 'Free during beta period' },
+      description: 'AI-powered school platform for UK secondary schools covering lesson planning, adaptive homework, ILP/EHCP management, Wonde MIS sync, and school analytics.',
+      featureList: ['AI homework generation', 'SEND/ILP/EHCP management', 'MIS sync via Wonde', 'Adaptive learning profiles', 'GCSE analytics', 'APDR cycle management'],
+      audience: { '@type': 'EducationalAudience', educationalRole: 'teacher', geographicArea: 'United Kingdom' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        { '@type': 'Question', name: 'What is Omnis?', acceptedAnswer: { '@type': 'Answer', text: 'Omnis is an AI-powered school management platform built specifically for UK secondary schools. It connects lesson planning, adaptive homework generation, SEND/ILP/EHCP management, MIS data sync via Wonde, and school analytics in one integrated platform.' } },
+        { '@type': 'Question', name: 'How does Omnis integrate with our MIS?', acceptedAnswer: { '@type': 'Answer', text: 'Omnis integrates directly with your school\'s Management Information System (MIS) via the Wonde API. Once connected, it automatically pulls students, staff, classes, timetables, and attendance data — keeping everything in sync without manual imports.' } },
+        { '@type': 'Question', name: 'Which SEND documents does Omnis manage?', acceptedAnswer: { '@type': 'Answer', text: 'Omnis manages Individual Learning Plans (ILPs), Education, Health and Care Plans (EHCPs), K Plans, and APDR (Assess, Plan, Do, Review) cycles. It includes AI-assisted ILP generation, evidence linking from homework, early-warning flags, and SENCO oversight dashboards.' } },
+        { '@type': 'Question', name: 'How does the AI homework feature work?', acceptedAnswer: { '@type': 'Answer', text: 'Teachers select a topic, learning objectives, and homework type (multiple choice, short answer, or extended writing). Omnis uses Claude AI to generate a full set of questions with model answers and marking rubrics. For SEND pupils, it automatically produces differentiated variants adapted to each student\'s ILP and EHCP provisions.' } },
+        { '@type': 'Question', name: 'Is Omnis GDPR-compliant?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Omnis is designed for UK GDPR compliance. It includes a full consent management system, immutable audit logging of all staff access to student data (including SEND records), DPA acknowledgement gates for staff, GDPR-compliant data retention, and tools for managing data subject requests.' } },
+        { '@type': 'Question', name: 'Which schools is Omnis designed for?', acceptedAnswer: { '@type': 'Answer', text: 'Omnis is designed for UK state secondary schools, including academies, free schools, and maintained schools, covering Years 7 to 13. It supports 12 roles including Teacher, SENCO, SLT, Head of Year, Head of Department, Teaching Assistant, and Parent.' } },
+        { '@type': 'Question', name: 'How much does Omnis cost?', acceptedAnswer: { '@type': 'Answer', text: 'Omnis is free during our beta programme. Beta schools get full platform access, dedicated onboarding support, and direct input into the product roadmap at no cost. Pricing for the full commercial release will be announced ahead of wider rollout.' } },
+        { '@type': 'Question', name: 'How quickly can our school get started?', acceptedAnswer: { '@type': 'Answer', text: 'Most schools are fully set up within a week. After connecting your MIS via Wonde, student and staff data is pulled in automatically. Our onboarding team helps you configure the platform, train staff, and run the first AI homework generation in your first session.' } },
+      ],
+    },
+  ],
+}
+
+const faqs = [
+  { q: 'What is Omnis?', a: 'Omnis is an AI-powered school platform connecting lesson planning, adaptive homework, SEND/ILP/EHCP management, Wonde MIS sync, and analytics in one place — built for UK secondary schools.' },
+  { q: 'How does MIS integration work?', a: 'Omnis connects to your MIS via the Wonde API, automatically pulling students, staff, classes, timetables, and attendance data. No manual CSV imports.' },
+  { q: 'Which SEND documents does Omnis manage?', a: 'ILPs, EHCPs, K Plans, and APDR cycles — with AI-assisted generation, homework evidence linking, early-warning flags, and a full SENCO oversight dashboard.' },
+  { q: 'How does AI homework generation work?', a: 'Teachers choose a topic and type (MCQ, short answer, extended writing). Claude AI generates questions, model answers, and marking rubrics. SEND pupils automatically receive differentiated variants based on their ILP and EHCP provisions.' },
+  { q: 'Is Omnis GDPR-compliant?', a: 'Yes. Omnis includes consent management, immutable SEND audit logging, DPA acknowledgement gates, data retention controls, and tools for managing subject access requests.' },
+  { q: 'How much does Omnis cost?', a: 'Free during the beta programme. Beta schools receive full access, dedicated onboarding, and direct input into the roadmap at no cost.' },
+]
+
 export default function MarketingHomePage() {
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Hero */}
       <section className="bg-gradient-to-br from-blue-900 via-blue-800 to-teal-700 text-white px-6 py-24 md:py-32">
         <div className="max-w-4xl mx-auto text-center">
@@ -178,6 +227,20 @@ export default function MarketingHomePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* FAQ section */}
+      <section className="max-w-3xl mx-auto px-6 py-20">
+        <h2 className="text-3xl font-bold text-gray-900 text-center mb-4">Common questions</h2>
+        <p className="text-gray-500 text-center mb-12">Everything you need to know before applying for beta access.</p>
+        <dl className="space-y-6">
+          {faqs.map(({ q, a }) => (
+            <div key={q} className="border border-gray-100 rounded-xl p-6">
+              <dt className="font-semibold text-gray-900 mb-2">{q}</dt>
+              <dd className="text-gray-500 text-sm leading-relaxed">{a}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       {/* CTA banner */}

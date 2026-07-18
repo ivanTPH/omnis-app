@@ -966,3 +966,43 @@ export async function sendSchoolCommunicationEmail(params: {
     `,
   )
 }
+
+/** Welcome email sent to a new beta applicant when their demo account is created automatically. */
+export async function sendBetaWelcomeEmail(params: {
+  to: string
+  firstName: string
+  email: string
+  password: string
+  roleLabel: string
+}): Promise<void> {
+  const { to, firstName, email, password, roleLabel } = params
+  await send(
+    to,
+    'Your Omnis demo account is ready',
+    `
+    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
+      <div style="background:#1e3a8a;padding:24px 32px;border-radius:12px 12px 0 0;">
+        <p style="color:#bfdbfe;font-size:12px;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase;">Omnis Education</p>
+        <h1 style="color:#fff;font-size:22px;margin:0;font-weight:700;">Your demo account is ready</h1>
+      </div>
+      <div style="background:#f9fafb;padding:28px 32px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">
+        <p style="color:#374151;margin:0 0 16px;">Hi ${firstName},</p>
+        <p style="color:#374151;margin:0 0 20px;">
+          Thanks for applying to the Omnis beta programme. We've created a <strong>${roleLabel}</strong> demo account so you can explore the full platform straight away.
+        </p>
+        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Your login details</p>
+          <p style="margin:0 0 6px;color:#111827;"><strong>URL:</strong> <a href="https://omnis.education/login" style="color:#2563eb;">https://omnis.education/login</a></p>
+          <p style="margin:0 0 6px;color:#111827;"><strong>Email:</strong> ${email}</p>
+          <p style="margin:0;color:#111827;"><strong>Password:</strong> <span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">${password}</span></p>
+        </div>
+        <p style="color:#6b7280;font-size:13px;margin:0 0 20px;">
+          You're exploring the Omnis demo school, which contains sample data so you can see every feature in action. We'll be in touch shortly to discuss onboarding your own school.
+        </p>
+        <a href="https://omnis.education/login" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Sign in to Omnis →</a>
+        <p style="color:#9ca3af;font-size:11px;margin:24px 0 0;">You can change your password any time via Settings → Password after signing in.</p>
+      </div>
+    </div>
+    `,
+  )
+}

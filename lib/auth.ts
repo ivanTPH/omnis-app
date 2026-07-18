@@ -12,9 +12,10 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email: { type: 'email' },
-        password: { type: 'password' },
-        otpCode: { type: 'text' }, // staff-only second factor; see app/actions/mfa.ts
+        email:      { type: 'email' },
+        password:   { type: 'password' },
+        otpCode:    { type: 'text' },  // staff-only second factor; see app/actions/mfa.ts
+        rememberMe: { type: 'text' },  // 'true' | 'false' — controls session lifetime
       },
       async authorize(credentials, request) {
         const email = credentials?.email as string | undefined
@@ -60,6 +61,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
           lastName: user.lastName,
           dpaAcceptedAt:   user.dpaAcceptedAt?.toISOString()   ?? null,
           termsAcceptedAt: user.termsAcceptedAt?.toISOString() ?? null,
+          rememberMe:      credentials?.rememberMe !== 'false',
         }
       },
     }),
@@ -80,6 +82,12 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.lastName = u.lastName
         token.dpaAcceptedAt   = (u as any).dpaAcceptedAt   ?? null
         token.termsAcceptedAt = (u as any).termsAcceptedAt ?? null
+        // When rememberMe is false, shorten the JWT expiry to 4 hours (session-only feel).
+        // The global maxAge (30 days) still controls the cookie; the short-lived JWT means
+        // the server rejects the token after 4h even if the cookie persists.
+        if (!(u as any).rememberMe) {
+          token.exp = Math.floor(Date.now() / 1000) + 4 * 60 * 60
+        }
       }
       return token
     },
@@ -96,5 +104,5 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
     },
   },
   pages: { signIn: '/login' },
-  session: { strategy: 'jwt', maxAge: 4 * 60 * 60 },
+  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 }, // 30 days — shortened to 4h per-token when rememberMe=false
 })

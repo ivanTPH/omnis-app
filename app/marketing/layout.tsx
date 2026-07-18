@@ -6,13 +6,21 @@ import CookieConsent from '@/components/marketing/CookieConsent'
 export const metadata: Metadata = {
   title: {
     template: '%s | Omnis Education',
-    default:  'Omnis Education',
+    default:  'Omnis Education — AI Learning & SEND Platform for UK Schools',
   },
   description: 'AI-powered learning and SEND management platform for UK secondary schools. Lesson planning, adaptive homework, ILP/EHCP tracking, and MIS sync in one place.',
   openGraph: {
     siteName: 'Omnis Education',
     type:     'website',
     locale:   'en_GB',
+  },
+  twitter: {
+    card:    'summary_large_image',
+    site:    '@OmnisEducation',
+    creator: '@OmnisEducation',
+  },
+  alternates: {
+    canonical: 'https://omnis.education/marketing/home',
   },
 }
 

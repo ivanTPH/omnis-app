@@ -48,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <html lang="en" className={accessibilityClasses || undefined}>
+    <html lang="en-GB" className={accessibilityClasses || undefined}>
       <head>
         {/* Material Icons are self-hosted via public/fonts/material-icons.woff2
             and declared in globals.css — no external CDN request needed. */}

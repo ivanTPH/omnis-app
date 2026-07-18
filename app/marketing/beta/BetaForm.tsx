@@ -33,6 +33,7 @@ export default function BetaForm() {
     message: '',
   })
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [demoCreated, setDemoCreated] = useState(false)
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
@@ -48,6 +49,8 @@ export default function BetaForm() {
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error('failed')
+      const json = await res.json().catch(() => ({}))
+      setDemoCreated(json.demoCreated === true)
       setStatus('sent')
     } catch {
       setStatus('error')
@@ -96,9 +99,22 @@ export default function BetaForm() {
               <div className="w-14 h-14 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <span className="material-icons text-green-600 text-3xl">check_circle</span>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Application received</h2>
-              <p className="text-gray-500 text-sm mb-6">We&apos;ll be in touch within 2 working days to arrange an intro call.</p>
-              <Link href="/marketing/home" className="text-blue-700 text-sm font-medium hover:underline">← Back to home</Link>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {demoCreated ? 'Check your email' : 'Application received'}
+              </h2>
+              <p className="text-gray-500 text-sm mb-6">
+                {demoCreated
+                  ? "We've sent your Omnis demo login details to your email address. You can start exploring the platform right now."
+                  : "We'll be in touch within 2 working days to arrange an intro call and set up your demo access."}
+              </p>
+              {demoCreated && (
+                <Link href="/login" className="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors mb-4">
+                  Sign in to Omnis →
+                </Link>
+              )}
+              <div>
+                <Link href="/marketing/home" className="text-blue-700 text-sm font-medium hover:underline">← Back to home</Link>
+              </div>
             </div>
           ) : (
             <>

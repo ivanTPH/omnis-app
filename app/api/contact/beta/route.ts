@@ -8,10 +8,15 @@ import type { Role } from '@prisma/client'
 import { upsertHubspotContact } from '@/lib/hubspot'
 import { sendBetaWelcomeEmail } from '@/lib/email'
 
+const DEMO_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+
 function generateDemoPassword(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  const rand  = Array.from(crypto.randomBytes(8)).map(b => chars[b % chars.length]).join('')
-  return rand + '!'
+  const bytes = crypto.randomBytes(8)
+  let pwd = ''
+  for (let i = 0; i < bytes.length; i++) {
+    pwd += DEMO_CHARS[bytes[i] % DEMO_CHARS.length]
+  }
+  return pwd + '!'
 }
 
 function mapJobTitleToRole(jobTitle: string): Role {

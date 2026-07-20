@@ -10,6 +10,10 @@ import { sendBetaWelcomeEmail } from '@/lib/email'
 
 const DEMO_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
 
+function h(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+}
+
 function generateDemoPassword(): string {
   const bytes = crypto.randomBytes(8)
   let pwd = ''
@@ -58,13 +62,13 @@ export async function POST(req: NextRequest) {
   const html = `
     <h2>New beta access application</h2>
     <table style="border-collapse:collapse;width:100%;">
-      <tr><td style="padding:8px;font-weight:600;color:#374151;">School</td><td style="padding:8px;color:#111827;">${schoolName}</td></tr>
-      <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">Contact</td><td style="padding:8px;color:#111827;">${name}</td></tr>
-      <tr><td style="padding:8px;font-weight:600;color:#374151;">Job title</td><td style="padding:8px;color:#111827;">${jobTitle}</td></tr>
-      <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">Email</td><td style="padding:8px;color:#111827;"><a href="mailto:${email}">${email}</a></td></tr>
-      <tr><td style="padding:8px;font-weight:600;color:#374151;">Phone</td><td style="padding:8px;color:#111827;">${phone || '—'}</td></tr>
-      <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">School size</td><td style="padding:8px;color:#111827;">${schoolSize}</td></tr>
-      ${message ? `<tr><td style="padding:8px;font-weight:600;color:#374151;vertical-align:top;">Message</td><td style="padding:8px;color:#111827;">${message}</td></tr>` : ''}
+      <tr><td style="padding:8px;font-weight:600;color:#374151;">School</td><td style="padding:8px;color:#111827;">${h(schoolName)}</td></tr>
+      <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">Contact</td><td style="padding:8px;color:#111827;">${h(name)}</td></tr>
+      <tr><td style="padding:8px;font-weight:600;color:#374151;">Job title</td><td style="padding:8px;color:#111827;">${h(jobTitle)}</td></tr>
+      <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">Email</td><td style="padding:8px;color:#111827;"><a href="mailto:${h(email)}">${h(email)}</a></td></tr>
+      <tr><td style="padding:8px;font-weight:600;color:#374151;">Phone</td><td style="padding:8px;color:#111827;">${phone ? h(phone) : '—'}</td></tr>
+      <tr style="background:#f9fafb;"><td style="padding:8px;font-weight:600;color:#374151;">School size</td><td style="padding:8px;color:#111827;">${h(schoolSize)}</td></tr>
+      ${message ? `<tr><td style="padding:8px;font-weight:600;color:#374151;vertical-align:top;">Message</td><td style="padding:8px;color:#111827;">${h(message)}</td></tr>` : ''}
     </table>
     <p style="color:#6b7280;font-size:12px;margin-top:24px;">Sent from omnis.education/marketing/beta</p>
   `
@@ -131,7 +135,7 @@ export async function POST(req: NextRequest) {
 
   // Notify ivan — update the email html to include demo account status
   const demoLine = demoCreated
-    ? `<tr style="background:#f0fdf4;"><td style="padding:8px;font-weight:600;color:#166534;">Demo account</td><td style="padding:8px;color:#166534;">✓ Created — ${email} / ${roleLabel}</td></tr>`
+    ? `<tr style="background:#f0fdf4;"><td style="padding:8px;font-weight:600;color:#166534;">Demo account</td><td style="padding:8px;color:#166534;">✓ Created — ${h(email)} / ${h(roleLabel)}</td></tr>`
     : `<tr style="background:#fef9c3;"><td style="padding:8px;font-weight:600;color:#854d0e;">Demo account</td><td style="padding:8px;color:#854d0e;">Not created (demo school not found or email already exists)</td></tr>`
   const enrichedHtml = html.replace('</table>', `${demoLine}</table>`)
 

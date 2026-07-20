@@ -209,9 +209,12 @@ export default function BetaForm() {
                 <button
                   type="submit"
                   disabled={status === 'sending'}
-                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors"
+                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
-                  {status === 'sending' ? 'Sending…' : 'Submit application'}
+                  {status === 'sending' && (
+                    <span className="material-icons text-base animate-spin">refresh</span>
+                  )}
+                  {status === 'sending' ? 'Submitting…' : 'Submit application'}
                 </button>
                 <p className="text-xs text-gray-400 text-center">We&apos;ll never share your details. No spam — just a reply from the founding team.</p>
               </form>

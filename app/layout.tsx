@@ -12,11 +12,21 @@ import AvatarProvider               from '@/components/AvatarProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://omnis.education'),
   title:       'Omnis Education',
-  description: 'Secondary Learning & SEND Intelligence Platform',
+  description: 'AI-powered learning and SEND management platform for UK secondary schools.',
   icons: {
     icon:   '/favicon.png',
     apple:  '/favicon.png',
+  },
+  openGraph: {
+    siteName: 'Omnis Education',
+    images:   [{ url: '/og.png', width: 1200, height: 630, alt: 'Omnis Education — AI-powered school platform' }],
+  },
+  twitter: {
+    card:    'summary_large_image',
+    site:    '@OmnisEducation',
+    images:  ['/og.png'],
   },
 }
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 }

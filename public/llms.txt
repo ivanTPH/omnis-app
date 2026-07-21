@@ -1,0 +1,28 @@
+# Omnis Education
+> AI-powered learning and SEND management platform for UK secondary schools.
+
+Omnis is a multi-tenant SaaS platform for UK secondary schools (Years 7–13). It covers the full teaching and SEND workflow:
+
+- **AI homework generation**: Teachers generate MCQ, short-answer, and extended-writing homework using Claude AI. EHCP and SEN Support students automatically receive differentiated question variants based on their ILP provisions.
+- **SEND / ILP / EHCP management**: Individual Learning Plans, Education Health and Care Plans, K Plans, and Assess-Plan-Do-Review (APDR) cycles — all in one place. AI-assisted generation, homework evidence linking, early-warning flags, and SENCO oversight dashboards.
+- **Adaptive learning**: Per-student learning profiles updated after every submission. Bloom's taxonomy heatmaps, weak-topic detection, and spaced repetition suggestions.
+- **Analytics**: GCSE-grade attainment (1–9 scale), RAG status, SEND attainment gap, national benchmark comparisons, and school-wide staff analytics.
+- **MIS sync via Wonde**: Live sync of students, staff, classes, timetables, and attendance from school MIS systems.
+- **Revision programs**: AI-generated revision tasks per lesson, student confidence tracking, and teacher-built programs.
+- **GDPR compliance**: DPA acknowledgement gates, immutable SEND audit logging, consent management, and data subject request tooling — built for UK GDPR and the SEND Code of Practice 2015.
+
+## Key pages
+- Homepage: https://omnis.education/marketing/home
+- Features: https://omnis.education/marketing/features
+- Beta programme: https://omnis.education/marketing/beta
+- Investor information: https://omnis.education/marketing/investors
+
+## Target audience
+UK state secondary schools, academies, free schools, and maintained schools. Supports 12 staff roles: Teacher, SENCO, SLT, Head of Year, Head of Department, Teaching Assistant, School Admin, Cover Manager, Platform Admin, Academy Admin, Student, Parent.
+
+## Technology
+Next.js 16 · React 19 · Tailwind CSS v4 · Prisma v6 · PostgreSQL (Supabase) · NextAuth v5 · Anthropic Claude · Resend · Playwright
+
+## Contact
+Beta programme: https://omnis.education/marketing/beta
+Investor enquiries: https://omnis.education/marketing/investors

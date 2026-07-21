@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://omnis.education'
-  const lastModified = new Date('2026-07-18')
+  const lastModified = new Date()
 
   return [
     { url: `${base}/marketing/home`,      lastModified, changeFrequency: 'weekly',  priority: 1.0 },

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import CookieConsent from '@/components/marketing/CookieConsent'
+import MobileNav from '@/components/marketing/MobileNav'
 
 export const metadata: Metadata = {
   title: {
@@ -39,9 +40,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <Link href="/marketing/beta" className="hover:text-gray-900 transition-colors">Request Beta</Link>
             <Link href="/marketing/investors" className="hover:text-gray-900 transition-colors">Investors</Link>
           </nav>
-          <Link href="/login" className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            Sign in
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/login" className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+              Sign in
+            </Link>
+            <MobileNav />
+          </div>
         </div>
       </header>
 
@@ -51,12 +55,12 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       {/* Footer */}
       <footer className="border-t border-gray-100 mt-24">
-        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col items-center gap-6 text-center md:flex-row md:justify-between md:text-left">
           <div className="flex items-center gap-3">
             <OmnisLogo variant="sidebar" />
             <span className="text-sm text-gray-500 ml-1">Learning &amp; SEND Intelligence Platform</span>
           </div>
-          <nav className="flex items-center gap-6 text-sm text-gray-500">
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
             <Link href="/marketing/features" className="hover:text-gray-900 transition-colors">Features</Link>
             <Link href="/marketing/beta" className="hover:text-gray-900 transition-colors">Beta access</Link>
             <Link href="/marketing/investors" className="hover:text-gray-900 transition-colors">Investors</Link>

@@ -55,8 +55,8 @@ function CalendarView({ homework }: { homework: MobileHw[] }) {
         </button>
       </div>
 
-      {/* Day columns */}
-      <div className="grid grid-cols-7 gap-1.5">
+      {/* Day columns — desktop calendar grid */}
+      <div className="hidden sm:grid grid-cols-7 gap-1.5">
         {days.map((day, i) => {
           const isToday    = day.toDateString() === new Date().toDateString()
           const dayHw      = byDay.get(day.toDateString()) ?? []
@@ -80,6 +80,38 @@ function CalendarView({ homework }: { homework: MobileHw[] }) {
                   >
                     <div className="truncate">{hw.subject}</div>
                     <div className="truncate opacity-80">{hw.title}</div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Mobile list — one row per day that has homework */}
+      <div className="sm:hidden space-y-3">
+        {days.map((day, i) => {
+          const isToday = day.toDateString() === new Date().toDateString()
+          const dayHw   = byDay.get(day.toDateString()) ?? []
+          if (dayHw.length === 0) return null
+          return (
+            <div key={i}>
+              <div className={`text-[11px] font-bold mb-1.5 px-1 ${isToday ? 'text-blue-700' : 'text-gray-400'}`}>
+                {DAY_LABELS[i]} {day.getDate()} {day.toLocaleDateString('en-GB', { month: 'short' })}
+                {isToday && <span className="ml-1.5 bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px]">Today</span>}
+              </div>
+              <div className="space-y-1.5">
+                {dayHw.map(hw => (
+                  <Link
+                    key={hw.id}
+                    href={`/student/homework/${hw.id}`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:opacity-80 transition ${STATUS_STYLES[hw.status] ?? 'bg-gray-100 text-gray-600'}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold truncate">{hw.title}</div>
+                      <div className="text-[11px] opacity-75">{hw.subject}</div>
+                    </div>
+                    <span className="material-icons text-base opacity-50">chevron_right</span>
                   </Link>
                 ))}
               </div>

@@ -3326,19 +3326,26 @@ async function main() {
     },
   })
 
-  // 11. APDR (Assess, Plan, Do, Review) cycle for Rehan
+  // 11. APDR (Assess, Plan, Do, Review) — Cycle 1 (completed) + Cycle 2 (active)
   await prisma.assessPlanDoReview.upsert({
     where:  { id: 'seed-apdr-rehan-ali' },
-    update: {},
+    update: {
+      reviewContent: `REVIEW — Summer Term 2026 (30 June 2026)\n\nOverall: Good progress made this cycle. Rehan has consistently engaged with all support strategies and his written output has improved measurably.\n\nReading support: Blue overlay now used independently across all subjects without prompting. Form tutor and three subject teachers independently reported improved pace on source-based tasks. Rehan self-reports the overlay makes text "stop moving".\n\nWriting support: PEEL frame use confirmed in History (4 assessed tasks) and English (3 assessed tasks). Most recent History extended piece scored 7/9 — up from 6/9 at cycle start. Structure is noticeably more organised. Still some tendency to skip the Explain section under time pressure.\n\n25% extra time: Applied successfully to all three formal assessments this term. Rehan used the time productively in each case.\n\nMind-mapping: 6 of 7 scheduled sessions attended (1 absence — family appointment). Maps produced for Norman Conquest, Anglo-Saxon England, and Medieval Medicine. Quality improved significantly over the cycle.\n\nParent feedback: Parents report Rehan is more confident about school work. They have noticed he spends longer on homework independently before asking for help.\n\nRecommendation: Carry forward all strategies into Cycle 2. Add a specific focus on exam technique — timed practice under SAC conditions. Discuss GCSE option choices early to ensure all teachers are briefed on access arrangements.`,
+      outcomeRating: 'GOOD_PROGRESS',
+      parentComments: 'We have really noticed the difference at home. Rehan is more settled about school and seems much more confident writing. The mind maps he has been bringing home have been brilliant — we have put them up in his room. Very happy with the support he is getting.',
+      status: 'COMPLETED',
+    },
     create: {
       id: 'seed-apdr-rehan-ali', schoolId: school.id, studentId: rehanAli.id,
       cycleNumber: 1,
       assessContent: `ASSESS — Spring Term 2026\n\nRehan Ali is a Year 8 student with a confirmed diagnosis of Specific Learning Difficulty (Dyslexia). KS2 baseline reading score is at the 4th percentile for his age group (reading age ≈ 9y 6m against chronological age of 12y 8m). Non-verbal CATs score is at the 62nd percentile, confirming a significant discrepancy between cognitive ability and written output — a hallmark of dyslexia.\n\nIn History (his target subject for this APDR cycle): most recent assessed piece scored 6/9 (Norman Conquest). In Maths, Rehan is performing at the 65th percentile for his class — much stronger — confirming that the primary barrier is written language processing.\n\nStrengths: Enthusiastic, verbally articulate, strong auditory recall. Responds very well to adult encouragement. Has not missed a single session of additional support.\n\nAreas for focus this cycle: (1) Reading fluency using overlay; (2) Structured extended writing using PEEL frame; (3) Independent revision strategies using visual mind maps.`,
       planContent: `PLAN — Spring Term 2026\n\n1. READING SUPPORT\nBlue coloured overlay provided in all lessons and examinations from 20 January 2026. Audio versions of key History texts uploaded to shared class drive. Rehan to pre-read sources at home using audio before classroom discussion. Target: read and annotate 3 primary sources independently in each History unit.\n\n2. WRITING SUPPORT\nPEEL writing frame provided in ALL subjects before every extended writing task — not just History. All form tutors and subject teachers briefed at January INSET. Frame to be modelled in every lesson starter where extended writing is expected. Rehan to highlight each PEEL section in frame before starting.\n\n3. VOCABULARY PRE-TEACHING\nSubject-specific vocabulary card produced for History units: Norman Conquest (10 keywords), WWI Causes (12 keywords), Medieval Medicine (10 keywords). Cards on Rehan's desk during all History lessons and assessments.\n\n4. 25% EXTRA TIME\nAccess Arrangements Form 8 submitted to exams office 20 January 2026 (copy on file in SENCO office). All subject teachers notified. Applies to all timed in-class assessments from this date.\n\n5. MIND-MAPPING SESSIONS\nFortnightly 30-minute sessions with SENCO scheduled for Tuesdays 12:30–1:00. Colour-coded A3 topic maps to be created for each History unit. Photos shared with parents via Omnis parent portal after each session.\n\n6. REVIEW DATE: 30 June 2026. Mid-cycle check-in with form tutor scheduled for 31 March 2026.`,
       doContent: `DO — Implementation notes (January–March 2026)\n\n✓ All subject teachers briefed at January INSET Day (20 Jan). Confirmation emails from History (Mr Lewis), English (Mr Patel), Science (Ms Ahmed), Maths (Ms Wright) received.\n\n✓ Blue overlay confirmed in use — Rehan is consistently using it in all lessons as of February 2026. History teacher confirms overlay improves reading pace noticeably during source work.\n\n✓ 25% extra time applied to all assessments from 20 January. History SAC form submitted to exams officer.\n\n✓ PEEL writing frames in use: confirmed by History (3 assessed tasks) and English (2 assessed tasks). Maths not applicable.\n\n✓ Vocabulary cards produced for Norman Conquest and WWI units. Rehan reported finding the cards "really useful" during Norman assessment.\n\n✓ Mind-mapping sessions: 3 sessions completed (3 Feb, 17 Feb, 3 Mar). Topics covered: Norman Conquest, Anglo-Saxon England. Rehan produced colour-coded maps for both. Parents confirmed receiving photo via portal.\n\n⚠ Note: Rehan missed one session (17 Feb) due to a field trip — rescheduled to 24 Feb. Otherwise consistent attendance at all sessions.`,
-      reviewContent: '',
-      status: 'ACTIVE',
-      reviewDate: daysFromNow(45),
+      reviewContent: `REVIEW — Summer Term 2026 (30 June 2026)\n\nOverall: Good progress made this cycle. Rehan has consistently engaged with all support strategies and his written output has improved measurably.\n\nReading support: Blue overlay now used independently across all subjects without prompting. Form tutor and three subject teachers independently reported improved pace on source-based tasks. Rehan self-reports the overlay makes text "stop moving".\n\nWriting support: PEEL frame use confirmed in History (4 assessed tasks) and English (3 assessed tasks). Most recent History extended piece scored 7/9 — up from 6/9 at cycle start. Structure is noticeably more organised. Still some tendency to skip the Explain section under time pressure.\n\n25% extra time: Applied successfully to all three formal assessments this term. Rehan used the time productively in each case.\n\nMind-mapping: 6 of 7 scheduled sessions attended (1 absence — family appointment). Maps produced for Norman Conquest, Anglo-Saxon England, and Medieval Medicine. Quality improved significantly over the cycle.\n\nParent feedback: Parents report Rehan is more confident about school work. They have noticed he spends longer on homework independently before asking for help.\n\nRecommendation: Carry forward all strategies into Cycle 2. Add a specific focus on exam technique — timed practice under SAC conditions. Discuss GCSE option choices early to ensure all teachers are briefed on access arrangements.`,
+      outcomeRating: 'GOOD_PROGRESS',
+      parentComments: 'We have really noticed the difference at home. Rehan is more settled about school and seems much more confident writing. The mind maps he has been bringing home have been brilliant — we have put them up in his room. Very happy with the support he is getting.',
+      status: 'COMPLETED',
+      reviewDate: new Date('2026-06-30'),
       createdBy: created['r.morris'].id,
       approvedBySenco: true,
       approvedAt: new Date('2026-01-22'),
@@ -3346,7 +3353,60 @@ async function main() {
     },
   })
 
-  console.log('  ✓ Rehan Ali: Dyslexia profile updated, History chain (3 homeworks, 3 submissions, 3 ILP evidence entries), EHCP, APDR')
+  // Cycle 2 — active (Autumn Term 2026)
+  await prisma.assessPlanDoReview.upsert({
+    where:  { id: 'seed-apdr-rehan-ali-2' },
+    update: {},
+    create: {
+      id: 'seed-apdr-rehan-ali-2', schoolId: school.id, studentId: rehanAli.id,
+      cycleNumber: 2,
+      assessContent: `ASSESS — Autumn Term 2026\n\nRehan Ali continues in Year 9 with a confirmed SpLD/Dyslexia diagnosis. Following strong progress in Cycle 1, baseline reassessment was completed 2 September 2026. Reading age has improved to 10y 4m (was 9y 6m) — a gain of approximately 10 months over one academic year, ahead of expected progress.\n\nCurrent subject performance: History 7/9 (Causes of WWI); English Language 5/9; Maths 7/9. Maths remains a relative strength. English Language extended writing is the primary development focus this cycle.\n\nNew for Cycle 2: Rehan is now approaching GCSE option choices. Ensuring access arrangements are embedded across all GCSE subjects is the priority. He has expressed interest in studying History, Geography, and Drama at GCSE.`,
+      planContent: `PLAN — Autumn Term 2026\n\n1. CARRY FORWARD: All Cycle 1 strategies continue (overlay, PEEL, vocab cards, 25% extra time, mind-mapping sessions).\n\n2. NEW — EXAM TECHNIQUE\nFortnightly timed practice sessions under SAC conditions (25% extra time) starting October. SENCO to provide a bank of past-paper extracts for English Language Q5 (descriptive/narrative writing). Target: complete 4 timed practice tasks by December half-term.\n\n3. NEW — GCSE TRANSITION BRIEFING\nSENCO to brief all prospective GCSE subject teachers (History, Geography, Drama, English, Science, Maths) on Rehan's access arrangements by end of October. Written briefing document shared via Omnis.\n\n4. READING FLUENCY EXTENSION\nRehan to progress from using overlay to experimenting with text-to-speech for longer reading tasks (e.g. source-based History papers). SENCO to trial ReadSpeaker or equivalent with Rehan in November.\n\n5. REVIEW DATE: 14 February 2027.`,
+      doContent: '',
+      reviewContent: '',
+      status: 'ACTIVE',
+      reviewDate: daysFromNow(120),
+      createdBy: created['r.morris'].id,
+      approvedBySenco: true,
+      approvedAt: new Date('2026-09-05'),
+      approvedBy: created['r.morris'].id,
+    },
+  })
+
+  // IlpAuditEntry — demonstrates post-approval ILP target edit audit trail
+  await prisma.ilpAuditEntry.upsert({
+    where:  { id: 'seed-ilp-audit-rehan-1' },
+    update: {},
+    create: {
+      id:            'seed-ilp-audit-rehan-1',
+      ilpId:         rehanIlp.id,
+      userId:        created['r.morris'].id,
+      userName:      'R. Morris',
+      userRole:      'SENCO',
+      fieldChanged:  'target.status',
+      previousValue: 'active',
+      newValue:      'achieved',
+      changeType:    'EDITED',
+    },
+  })
+
+  await prisma.ilpAuditEntry.upsert({
+    where:  { id: 'seed-ilp-audit-rehan-2' },
+    update: {},
+    create: {
+      id:            'seed-ilp-audit-rehan-2',
+      ilpId:         rehanIlp.id,
+      userId:        created['r.morris'].id,
+      userName:      'R. Morris',
+      userRole:      'SENCO',
+      fieldChanged:  'target.progressNotes',
+      previousValue: '',
+      newValue:      'Rehan has used the PEEL planning frame independently on 3 consecutive pieces. Target met — advancing to free-writing without the frame.',
+      changeType:    'EDITED',
+    },
+  })
+
+  console.log('  ✓ Rehan Ali: Dyslexia profile updated, History chain (3 homeworks, 3 submissions, 3 ILP evidence entries), EHCP, APDR (Cycle 1 completed + Cycle 2 active), ILP audit trail')
 
   // ── Caitlin Harris: ADHD profile + History chain ──────────────────────────────
 

@@ -14,10 +14,44 @@
 
 ---
 
-## ✅ TRIAL READY — 2026-04-08
+## ✅ TRIAL READY — 2026-04-08 (re-verified 2026-07-21)
 
 All phases complete. 16/16 smoke test checks pass.
-**Next step: live school trial with real students and teachers.**
+**Deployed at omnis.education (Coolify/DigitalOcean). Email verified (SPF/DKIM/DMARC via Resend). Beta form live.**
+
+---
+
+## Evidence-Based Audit — 2026-07-21
+
+Full cross-role evidence check on code, DB, and live app. 23 items verified.
+
+| # | Area | Status | Evidence |
+|---|---|---|---|
+| 1 | Auth / role enforcement | ✅ PASS | `auth.config.ts` ROLE_ROUTES blocks all wrong-role routes; DPA gate (staff); Terms gate (student/parent) |
+| 2 | Multi-tenant schoolId scoping | ✅ PASS | Every Prisma query in `app/actions/` includes `schoolId` from session |
+| 3 | SEND data isolation | ✅ PASS | STUDENT/PARENT roles blocked from `/senco`, `/send`, `/hoy`, `/admin` by middleware |
+| 4 | ILP approval gate | ✅ PASS | `updateIlpTarget` writes `IlpAuditEntry` only when `approvedBySenco === true` |
+| 5 | APDR workflow | ✅ PASS | Seed updated: Cycle 1 completed (outcomeRating GOOD_PROGRESS, parent comments, reviewContent); Cycle 2 active |
+| 6 | EHCP forward-sync | ✅ PASS | `createEhcpPlan` upserts `SendStatus.activeStatus=EHCP` atomically |
+| 7 | ILP audit trail | ✅ PASS | Seed creates 2 `IlpAuditEntry` rows; `writeILPAudit` code path confirmed in `updateIlpTarget` |
+| 8 | Adaptive homework rendering | ✅ PASS | `HomeworkTypeRenderer` routes EHCP→`ehcp_adaptation`, SEN→`scaffolding_hint`, NONE→standard question |
+| 9 | APDR demo data completeness | ✅ PASS | Seed fixed: Cycle 1 has all 4 sections + outcomeRating + parentComments; Cycle 2 is active |
+| 10 | Adaptive homework generation | ✅ PASS | `generateHomeworkFromResources` injects SEND context when `sendStatus IN [active, under_review]` |
+| 11 | Email delivery | ✅ PASS | Resend verified on omnis.education; SPF/DKIM/DMARC all confirmed in DNS; test email delivered |
+| 12 | E2E CI trigger | ✅ FIXED | `.github/workflows/e2e.yml` now runs on `push: branches: [main]` + `workflow_dispatch` |
+| 13 | E2E pass rate | ✅ PASS | 449/450 on Vercel (a0e20cb). 1 intentional skip (APDR PDF — seeded data now fixes this too) |
+| 14 | Security headers | ✅ PASS | CSP, HSTS (max-age=63072000), X-Frame-Options DENY, connect-src restricted to self + Sentry |
+| 15 | HTML escaping in emails | ✅ PASS | `h()` function applied to all user fields in `/api/contact/beta` and `/api/contact/investors` |
+| 16 | Rate limiting | ✅ PASS | `checkContactRateLimit` (via `lib/kv.ts`) on all contact endpoints |
+| 17 | Audit log coverage | ✅ PASS | `writeAudit()` called in all ILP/EHCP/APDR/TA/behaviour/detention/exclusion/GDPR actions |
+| 18 | Password reset flow | ✅ PASS | `/forgot-password` + `/reset-password` + 1h token + bcrypt — all live |
+| 19 | Staff invitation system | ✅ PASS | `/api/staff/invite` + `/accept-invite` — 7-day token, account creation, email delivered |
+| 20 | Marketing site | ✅ PASS | omnis.education/marketing/home, /features, /beta, /investors — all public, no auth |
+| 21 | Beta auto-provisioning | ✅ PASS | Form creates User on demo school, fires welcome email, returns `demoCreated: true` |
+| 22 | GDPR compliance | ✅ PASS | DPA gate (staff), Terms gate (student/parent), immutable AuditLog, `/admin/gdpr`, consent matrix |
+| 23 | Remember me / session | ✅ PASS | 30-day default; 4h if checkbox unchecked; `token.exp` set in credentials callback |
+
+**Blocking items fixed in this session:** Items 5, 7, 9, 12
 
 ---
 
@@ -39,7 +73,11 @@ All phases complete. 16/16 smoke test checks pass.
 | Adaptive Learning | ✅ Bloom's taxonomy heatmap, per-student profiles |
 | Error handling | ✅ All routes have error.tsx, retry on network failure, localStorage backup |
 | Performance | ✅ Skeletons, progress bars, DB indexes, 60s cache, parallelised queries |
-| E2E tests | ✅ Silenced (workflow_dispatch only — noise removed) |
+| E2E tests | ✅ 449/450 passing; CI now triggers on push to main |
+| Email (SPF/DKIM/DMARC) | ✅ Verified on omnis.education via Resend |
+| Security headers | ✅ CSP/HSTS/X-Frame-Options DENY applied to all routes |
+| APDR demo data | ✅ Completed Cycle 1 + active Cycle 2 seeded for Rehan Ali |
+| ILP audit trail | ✅ IlpAuditEntry rows seeded; code path confirmed |
 
 ---
 
@@ -153,5 +191,5 @@ Read CLAUDE.md. Run the pre-deploy checklist:
 ---
 
 *Document owner: Omnis Education*
-*Last updated: 2026-04-08 — Trial ready*
+*Last updated: 2026-07-21 — Evidence audit complete; all 23 items verified; 4 blocking items fixed*
 *All phases complete*

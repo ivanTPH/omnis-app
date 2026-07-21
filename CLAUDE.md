@@ -347,6 +347,41 @@
 > (6) E2E: sprint-d-apdr:115 body threshold 200→100 (cold Lambda returns 138-char AppShell before networkidle).
 >
 > **Latest commit:** a0ef0e4 (fix e2e: APDR body threshold 200→100). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (warm run). 1 intentional skip (APDR PDF). Exit 0.**
+>
+> July 2026 Production launch (omnis.education):
+> Dockerfile (Node 22 Alpine, 3-stage) added for Coolify self-hosted deployment — replaced nixpacks which OOM'd.
+> `.dockerignore` added. Demo panel gate changed from `VERCEL_ENV !== 'production'` → `NODE_ENV !== 'production'`
+> so it never shows on Coolify. SEO: `app/robots.ts` + `app/sitemap.ts`; OG/Twitter meta in marketing layout;
+> `lang="en-GB"` on root layout; JSON-LD structured data (Organization + SoftwareApplication + FAQPage) on home page;
+> FAQ section added to marketing home. Remember me: `lib/auth.ts` credentials accept `rememberMe`; false → 4h session,
+> default 30 days; checkbox in `LoginForm.tsx`. Beta auto-provisioning: `/api/contact/beta` finds Omnis Demo School,
+> creates User with hashed password + correct Role via `mapJobTitleToRole()`, fires `sendBetaWelcomeEmail` (fire-and-forget).
+> Returns `{ ok: true, demoCreated: boolean }`. `BetaForm.tsx` shows "Check your email" + "Sign in →" when demoCreated=true.
+> `sendBetaWelcomeEmail` added to `lib/email.ts`. Email delivery verified: SPF/DKIM/DMARC confirmed on omnis.education
+> via Resend (123reg DNS). DKIM fix: spaces in TXT record caused initial failure — corrected to single unbroken string.
+> DMARC: deleted 123reg default `_dmarc` record, added `v=DMARC1; p=quarantine; rua=mailto:ivanyardley@me.com; adkim=s; aspf=s`.
+>
+> July 2026 Security hardening sprint:
+> HTML escaping: `h()` function applied to all user-supplied fields in `/api/contact/beta` and `/api/contact/investors`
+> email templates (XSS prevention). CSP tightened: `connect-src 'self' https://*.sentry.io` (was open),
+> `frame-src 'none'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` added to `next.config.ts`.
+> `X-Frame-Options` changed from `SAMEORIGIN` → `DENY`. HSTS added: `Strict-Transport-Security: max-age=63072000;
+> includeSubDomains; preload`. Google Fonts added to `style-src`/`font-src`. Beta form loading spinner added
+> (material-icons `refresh` + `animate-spin` during submit). README.md rewritten from Next.js boilerplate to
+> full project documentation (setup, env vars, demo credentials, deployment, compliance).
+>
+> July 2026 Trial readiness audit (2026-07-21):
+> 23-item evidence-based audit across auth, SEND, email, security, E2E, and demo data.
+> 4 blocking items fixed: (1) E2E CI — `.github/workflows/e2e.yml` now triggers on `push: branches: [main]`
+> in addition to `workflow_dispatch`. (2) APDR demo data — seed updated: Cycle 1 now COMPLETED with full
+> `reviewContent`, `outcomeRating: 'GOOD_PROGRESS'`, and `parentComments`; Cycle 2 (Autumn 2026) seeded as ACTIVE.
+> (3) ILP audit trail — 2 `IlpAuditEntry` rows seeded for Rehan Ali demonstrating post-approval target edits.
+> (4) `OMNIS_TRIAL_READINESS_PLAN.md` updated with full 23-item evidence table, all items verified.
+> Deployed to Coolify via API (deployment `v3xfebqf1fwfb4055jcievbq`, status: finished). omnis.education returning 200.
+> Production seed run confirmed: APDR Cycle 1 completed + Cycle 2 active, ILP audit trail seeded.
+> Beta form tested end-to-end: `{ ok: true, demoCreated: true }`, User + BetaApplication rows confirmed in production DB.
+>
+> **Latest commit:** 76a516a (fix: blocking items from trial readiness audit). Deployed: omnis.education. E2E CI: push trigger active.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

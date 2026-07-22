@@ -972,13 +972,13 @@ export async function sendBetaWelcomeEmail(params: {
   to: string
   firstName: string
   email: string
-  password: string
   roleLabel: string
+  setPasswordUrl: string
 }): Promise<void> {
-  const { to, firstName, email, password, roleLabel } = params
+  const { to, firstName, email, roleLabel, setPasswordUrl } = params
   await send(
     to,
-    'Your Omnis demo account is ready',
+    'Set up your Omnis demo account',
     `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
       <div style="background:#1e3a8a;padding:24px 32px;border-radius:12px 12px 0 0;">
@@ -991,16 +991,15 @@ export async function sendBetaWelcomeEmail(params: {
           Thanks for applying to the Omnis beta programme. We've created a <strong>${roleLabel}</strong> demo account so you can explore the full platform straight away.
         </p>
         <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin:0 0 24px;">
-          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Your login details</p>
-          <p style="margin:0 0 6px;color:#111827;"><strong>URL:</strong> <a href="https://omnis.education/login" style="color:#2563eb;">https://omnis.education/login</a></p>
+          <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;">Your account</p>
           <p style="margin:0 0 6px;color:#111827;"><strong>Email:</strong> ${email}</p>
-          <p style="margin:0;color:#111827;"><strong>Password:</strong> <span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">${password}</span></p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Click the button below to set your password and access the platform.</p>
         </div>
-        <p style="color:#6b7280;font-size:13px;margin:0 0 20px;">
+        <p style="color:#6b7280;font-size:13px;margin:0 0 24px;">
           You're exploring the Omnis demo school, which contains sample data so you can see every feature in action. We'll be in touch shortly to discuss onboarding your own school.
         </p>
-        <a href="https://omnis.education/login" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Sign in to Omnis →</a>
-        <p style="color:#9ca3af;font-size:11px;margin:24px 0 0;">You can change your password any time via Settings → Password after signing in.</p>
+        <a href="${setPasswordUrl}" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Set up my account →</a>
+        <p style="color:#9ca3af;font-size:11px;margin:24px 0 0;">This link expires in 24 hours. If it has expired, visit <a href="https://omnis.education/forgot-password" style="color:#9ca3af;">omnis.education/forgot-password</a> to request a new one.</p>
       </div>
     </div>
     `,

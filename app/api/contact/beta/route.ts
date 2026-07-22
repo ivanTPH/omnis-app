@@ -8,20 +8,11 @@ import type { Role } from '@prisma/client'
 import { upsertHubspotContact } from '@/lib/hubspot'
 import { sendBetaWelcomeEmail } from '@/lib/email'
 
-const DEMO_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-
 function h(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
 }
 
-function generateDemoPassword(): string {
-  const bytes = crypto.randomBytes(8)
-  let pwd = ''
-  for (let i = 0; i < bytes.length; i++) {
-    pwd += DEMO_CHARS[bytes[i] % DEMO_CHARS.length]
-  }
-  return pwd + '!'
-}
+const SITE_URL = process.env.NEXTAUTH_URL ?? 'https://omnis.education'
 
 function mapJobTitleToRole(jobTitle: string): Role {
   if (['Headteacher / Principal', 'Deputy Headteacher', 'SLT member'].includes(jobTitle)) return 'SLT'
@@ -98,7 +89,6 @@ export async function POST(req: NextRequest) {
   // can explore the platform immediately. Falls back gracefully if the demo
   // school hasn't been seeded in this environment.
   let demoCreated = false
-  let demoPassword = ''
   let roleLabel = ''
   try {
     const demoSchool = await prisma.school.findFirst({
@@ -108,24 +98,38 @@ export async function POST(req: NextRequest) {
     if (demoSchool) {
       const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
       if (!existing) {
-        demoPassword = generateDemoPassword()
         const role   = mapJobTitleToRole(jobTitle)
         roleLabel    = ROLE_LABELS[role] ?? 'Teacher'
         const [firstName, ...rest] = name.trim().split(' ')
-        await prisma.user.create({
+        // Create user with a random unusable placeholder hash — they must set their real
+        // password via the set-password link. bcrypt of 32 random bytes is effectively unguessable.
+        const placeholderHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12)
+        const newUser = await prisma.user.create({
           data: {
             email,
-            passwordHash: await bcrypt.hash(demoPassword, 12),
+            passwordHash: placeholderHash,
             firstName,
             lastName: rest.join(' ') || firstName,
             role,
             schoolId: demoSchool.id,
             isActive: true,
           },
+          select: { id: true, firstName: true },
         })
+        // Generate single-use setup token valid for 24 hours
+        const rawToken = crypto.randomBytes(32).toString('hex')
+        const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+        await prisma.passwordResetToken.create({
+          data: {
+            userId:    newUser.id,
+            tokenHash,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          },
+        })
+        const setPasswordUrl = `${SITE_URL}/set-password?token=${rawToken}`
         demoCreated = true
-        // Send welcome email to applicant (fire-and-forget — never block the response)
-        sendBetaWelcomeEmail({ to: email, firstName, email, password: demoPassword, roleLabel })
+        // Send welcome email with setup link (fire-and-forget — never block the response)
+        sendBetaWelcomeEmail({ to: email, firstName: newUser.firstName, email, roleLabel, setPasswordUrl })
           .catch(err => console.error('[contact/beta] welcome email failed:', err))
       }
     }

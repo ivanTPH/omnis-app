@@ -104,13 +104,11 @@ export default function BetaForm() {
               </h2>
               <p className="text-gray-500 text-sm mb-6">
                 {demoCreated
-                  ? "We've sent your Omnis demo login details to your email address. You can start exploring the platform right now."
+                  ? "We've sent a link to set up your Omnis demo account. Check your inbox and click the link to choose your password and sign in."
                   : "We'll be in touch within 2 working days to arrange an intro call and set up your demo access."}
               </p>
               {demoCreated && (
-                <Link href="/login" className="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition-colors mb-4">
-                  Sign in to Omnis →
-                </Link>
+                <p className="text-xs text-gray-400 mb-4">The link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 hover:underline">forgot password</Link> to get a new one.</p>
               )}
               <div>
                 <Link href="/marketing/home" className="text-blue-700 text-sm font-medium hover:underline">← Back to home</Link>

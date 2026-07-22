@@ -15,30 +15,27 @@ jobs:
 
     steps:
       - name: Trigger Coolify deploy
-        id: trigger
         run: |
-          RESPONSE=$(curl -s -X GET \
+          curl -s -X GET \
             "http://165.232.96.51:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}")
-          echo "$RESPONSE"
-          UUID=$(echo "$RESPONSE" | jq -r '.deployments[0].deployment_uuid')
-          echo "deployment_uuid=$UUID" >> "$GITHUB_OUTPUT"
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
 
-      - name: Wait for deploy to finish
+      - name: Wait for site to be healthy
+        # Coolify's deployment tracking API only surfaces in-progress jobs —
+        # completed ones vanish immediately, making UUID polling unreliable.
+        # Instead: wait 2 min for the build to get underway, then poll the
+        # live site every 30 s until it returns 200 (or we time out at 20 min).
         run: |
-          UUID="${{ steps.trigger.outputs.deployment_uuid }}"
-          echo "Polling deployment $UUID …"
-          for i in $(seq 1 40); do
+          echo "Waiting 2 minutes for Docker build to start …"
+          sleep 120
+          echo "Polling https://omnis.education …"
+          for i in $(seq 1 36); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://omnis.education/marketing/home)
+            echo "$(date -u '+%H:%M:%S') UTC — HTTP $CODE"
+            if [ "$CODE" = "200" ]; then echo "Site is up"; exit 0; fi
             sleep 30
-            STATUS=$(curl -s \
-              "http://165.232.96.51:8000/api/v1/deployments/$UUID" \
-              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-              | jq -r '.status')
-            echo "$(date -u '+%H:%M:%S') UTC — $STATUS"
-            if [ "$STATUS" = "finished" ]; then echo "Deploy succeeded"; exit 0; fi
-            if [ "$STATUS" = "failed"   ]; then echo "Deploy FAILED";    exit 1; fi
           done
-          echo "Timed out waiting for deploy (20 min)" && exit 1
+          echo "Timed out — site did not return 200 within 20 min" && exit 1
 
   e2e:
     name: Playwright E2E

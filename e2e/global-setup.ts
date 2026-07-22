@@ -4,18 +4,16 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 /**
- * Best-effort auth-state saver for Vercel runs.
+ * Best-effort auth-state saver for remote CI runs.
  *
- * For each role: attempts form login with a SHORT timeout (20s).
- * If the Lambda is warm the state is saved and loginAs() will inject
- * cookies directly (no per-test auth round-trip).
- * If the Lambda is cold we fail fast and move on — the test itself
- * handles the cold start via its own longer timeout + Playwright retries.
+ * For each role: attempts form login with a generous timeout (90s) to handle
+ * Coolify Docker cold starts where the auth pipeline (NextAuth + bcrypt + Prisma)
+ * may take 60-90s on first hit after a fresh deploy.
+ * If login succeeds the state is saved and loginAs() will inject cookies directly
+ * (no per-test auth round-trip — tests run at full speed).
+ * If login fails the test handles it via form-login fallback + Playwright retries.
  *
- * Total warmup is bounded at 9 × 20s = 180s regardless of failures,
- * so Lambdas that did save state remain warm when tests begin.
- *
- * Only runs when PLAYWRIGHT_BASE_URL is set (i.e. against Vercel, not localhost).
+ * Only runs when PLAYWRIGHT_BASE_URL is set (i.e. against remote server, not localhost).
  */
 
 const AUTH_DIR = path.join(__dirname, '.auth')
@@ -39,15 +37,15 @@ export default async function globalSetup() {
     const context = await browser.newContext()
     const page = await context.newPage()
     try {
-      await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 20_000 })
+      await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
       await page.fill('input[type="email"]', email)
       await page.fill('input[type="password"]', password)
       await page.click('button[type="submit"]')
-      await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 20_000 })
+      await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 90_000 })
       await context.storageState({ path: authStateFile(email) })
       console.log(`[global-setup] saved auth: ${label}`)
     } catch {
-      // Cold Lambda — skip; the test will handle it via form-login fallback + Playwright retries
+      // Cold start — skip; the test will handle it via form-login fallback + Playwright retries
       console.log(`[global-setup] cold start for ${label} — skipped, tests will handle via retry`)
     } finally {
       await context.close()
@@ -66,7 +64,7 @@ export default async function globalSetup() {
     [USERS.parent.email,      USERS.parent.password,      'parent'],
   ]
 
-  // Sequential — parallel hammers Supabase pgbouncer; 20s fail-fast keeps total ≤ 3 min
+  // Sequential — parallel hammers Supabase pgbouncer
   for (const [email, password, label] of roles) {
     await saveAuthState(email, password, label)
   }

@@ -395,6 +395,26 @@
 > (DPA inline in invite flow), /admin/gdpr (INSERT-only ConsentRecord, DataSubjectRequest, CSV export) — documented.
 > E2E result: 450/450 passing (433 first-try + 17 flaky/retry, 0 hard failures, exit 0). Up from 449/450.
 > OMNIS_TRIAL_READINESS_PLAN.md updated with full 13-item audit table + PART C description.
+>
+> July 2026 Demo account setup fix (commit 3398cfc):
+> Submitting the beta form previously emailed a plaintext password. Replaced with a secure 24-hour
+> single-use token flow. `/api/contact/beta` now creates a `PasswordResetToken` (24h expiry) and
+> calls `sendBetaWelcomeEmail` with a `setPasswordUrl` pointing to `/set-password?token=...`.
+> New `/set-password` page: validates token, shows password + confirm form, POSTs to
+> `/api/auth/set-password`, then auto-signs-in via `signIn('credentials', ...)` and redirects to
+> `router.push('/')` → middleware → DPA gate → role home. The API route validates token (not
+> expired, not used), hashes password with bcrypt, updates `User.passwordHash + activatedAt`,
+> marks `PasswordResetToken.used = true` in a `$transaction`, fires `writeAudit(USER_PROVISIONED)`.
+> Returns `{ ok: true, email }` so the client can call signIn without the user re-entering email.
+> No schema migration — `PasswordResetToken` model reused (same as password reset, 24h vs 1h).
+> `middleware.ts` updated: `set-password` added to public route exclusion list.
+> `BetaForm.tsx` success copy updated: "sent a link to set up your account" + expiry note (not
+> "Sign in" button, since password hasn't been set yet).
+> `lib/email.ts` `sendBetaWelcomeEmail`: signature changed `password` → `setPasswordUrl`; email
+> shows "Set up my account →" CTA button + "expires in 24 hours" note.
+> E2E: `e2e/tests/demo-account-setup.spec.ts` — 8 tests: page rendering, client-side validation
+> (mismatch/too-short), expired/used/valid token flows, activatedAt set, token marked used.
+> **E2E: 38 spec files, 458 tests (450 prior + 8 new).**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

@@ -382,6 +382,19 @@
 > Beta form tested end-to-end: `{ ok: true, demoCreated: true }`, User + BetaApplication rows confirmed in production DB.
 >
 > **Latest commit:** 76a516a (fix: blocking items from trial readiness audit). Deployed: omnis.education. E2E CI: push trigger active.
+>
+> July 2026 Comprehensive Trial Audit (13 items + compliance): All 13 testable items PASS.
+> PART A (10 trial-blocking): class roster, student photos, homework cycle, GCSE grade display,
+> revision topic relevance, ILP live audit trigger, APDR creation, EHCP SEN→EHCP promotion,
+> RAG chip filtering, E2E test suite — all PASS.
+> PART B (3 data safety): schoolId scoping grep (all false positives — no genuine leaks found),
+> student auth bypass (307 → /student/dashboard for all wrong-role routes), security headers
+> (CSP/HSTS/X-Frame-Options DENY/X-Content-Type-Options nosniff live on omnis.education) — all PASS.
+> PART C (compliance): /accept-dpa (3-checkbox staff gate — controller/processor, staff obligations,
+> audit+AI disclosure), /accept-terms (2-checkbox parent/student gate — terms + privacy), /accept-invite
+> (DPA inline in invite flow), /admin/gdpr (INSERT-only ConsentRecord, DataSubjectRequest, CSV export) — documented.
+> E2E result: 450/450 passing (433 first-try + 17 flaky/retry, 0 hard failures, exit 0). Up from 449/450.
+> OMNIS_TRIAL_READINESS_PLAN.md updated with full 13-item audit table + PART C description.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

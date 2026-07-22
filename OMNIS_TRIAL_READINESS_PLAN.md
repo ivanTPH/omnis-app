@@ -21,7 +21,55 @@ All phases complete. 16/16 smoke test checks pass.
 
 ---
 
-## Evidence-Based Audit — 2026-07-21
+## Comprehensive Audit — 2026-07-21 (13 items + compliance description)
+
+Full ordered verification audit: PART A (10 trial-blocking features), PART B (3 data safety checks), PART C (1 compliance description). All 13 testable items: PASS.
+
+### PART A — Trial-Blocking Features
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| 1 | Class roster with SEND badges | ✅ PASS | `getClassRoster` (lessons.ts:977) scoped by `classId + schoolId`, 60s cache, returns ILP targets + SEND status. `ClassRosterTab.tsx` renders expandable SEND details. |
+| 2 | Student photo proxy / SVG initials | ✅ PASS | `/api/student-photo/[userId]` returns 401 for unauth (live-confirmed). Authenticated: reads `User.avatarUrl`, Basic auth for Wonde URLs, SVG initials fallback when null. |
+| 3 | Homework full cycle | ✅ PASS | `createHomework` → submission → `autoMarkSubmission` / `markSubmission` → `percentToGcseGrade` → grade stored + displayed. All actions confirmed in homework.ts. |
+| 4 | Grade display consistency | ✅ PASS | `lib/grading.ts`: `percentToGcseGrade()` 0-100→1-9, `gradeLabel()` "4 (C)", `gradePillClass()` colour-coded. `gradeUtils.ts` covers analytics avg display. |
+| 5 | Revision topic relevance | ✅ PASS | `content-generator.ts` `generateRevisionTask()` uses `lessonTitle` + `objectives` for 5 Bloom's-mapped curriculum-aligned questions; fallback also lesson-title-anchored. |
+| 6 | ILP live audit trigger | ✅ PASS | `updateIlpTarget` (send-support.ts:1278) writes `IlpAuditEntry` via `writeILPAudit` for status/notes/date changes, gated on `approvedBySenco === true`. 2 seed rows present. |
+| 7 | APDR live creation | ✅ PASS | `generateAPDRForStudent` + `completeAPDRReview` (saves `outcomeRating` + `parentComments`). Seed: Cycle 1 completed (GOOD_PROGRESS), Cycle 2 active. `revalidatePath` correct. |
+| 8 | EHCP SEN_SUPPORT→EHCP promotion | ✅ PASS | `createEhcpPlan` (ehcp.ts:158-159) upserts `SendStatus.activeStatus = 'EHCP'` atomically. Forward-sync is immediate and unconditional on plan creation. |
+| 9 | RAG chip filtering + SEND chart | ✅ PASS | `externalSendFilter` prop in `ClassRosterTab.tsx:121-129` filters on `__send_only__`. RAG data loads via `getClassRagData`. Grade Calibration table hides when filter active. |
+| 10 | E2E test suite | ✅ PASS | **450/450 passing** — 433 first-try + 17 flaky (all retried successfully). 0 hard failures. Vercel run, 49 min. Up from 449/450. |
+
+### PART B — Data Safety Checks
+
+| # | Item | Status | Evidence |
+|---|---|---|---|
+| 11 | schoolId scoping — all actions | ✅ PASS | Grep of `app/actions/` — all hits were false positives. Every query includes `schoolId` from session or uses pre-validated `studentId`/`classId` from a school-scoped lookup. |
+| 12 | Student auth bypass prevention | ✅ PASS | `/senco/ilp`, `/admin/dashboard`, `/hoy/dashboard` all return `307 → /student/dashboard` when accessed by student session. Middleware + ROLE_ROUTES confirmed. |
+| 13 | Security headers | ✅ PASS | Live on omnis.education: `Content-Security-Policy`, `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`. |
+
+### PART C — Consent & Compliance Routes
+
+**`/accept-dpa`** — Staff-only gate; fires on every first login while `User.dpaAcceptedAt` is null (enforced in `auth.config.ts authorized()` callback). `PolicyConsentPanel` with **3 mandatory checkboxes**:
+1. **Data controller/processor** — school = controller, Omnis = processor, Anthropic = AI sub-processor; Article 9(2)(g) lawful basis, 7yr/25yr retention, SAR routing.
+2. **Staff obligations** — need-to-know, no credential sharing, 72h breach reporting duty to DPO.
+3. **Audit and AI disclosure** — all actions logged to immutable `AuditLog`; AI uses pseudonymised IDs; `consentVersion: "2026-07"` recorded.
+
+`acceptDpa()` sets `User.dpaAcceptedAt`, writes `DPA_ACCEPTED` audit entry with `acceptedConsents[]`, calls `unstable_update` (top-level, not wrapped) to patch JWT — gate clears without re-login.
+
+**`/accept-terms`** — PARENT/STUDENT gate while `User.termsAcceptedAt` is null. 2 mandatory checkboxes per role:
+- *Parents*: Platform Terms of Use + Privacy Notice.
+- *Students*: Acceptable Use Policy + Privacy Notice.
+
+`acceptTerms()` sets `User.termsAcceptedAt`, writes audit entry, patches JWT.
+
+**`/accept-invite`** — Combined account-creation + DPA for invited staff. All 3 DPA checkboxes inline in the password-set form. API sets `dpaAcceptedAt` on user creation — invited staff never see the post-login gate. `DPA_ACCEPTED` audit logged at creation.
+
+**`/admin/gdpr`** — GDPR admin console (SCHOOL_ADMIN). `ConsentPurpose` management, INSERT-only `ConsentRecord` (immutable trail per UK GDPR Article 7(1)), `DataSubjectRequest` tracker, CSV consent matrix export.
+
+---
+
+## Evidence-Based Audit — 2026-07-21 (23 items)
 
 Full cross-role evidence check on code, DB, and live app. 23 items verified.
 
@@ -39,7 +87,7 @@ Full cross-role evidence check on code, DB, and live app. 23 items verified.
 | 10 | Adaptive homework generation | ✅ PASS | `generateHomeworkFromResources` injects SEND context when `sendStatus IN [active, under_review]` |
 | 11 | Email delivery | ✅ PASS | Resend verified on omnis.education; SPF/DKIM/DMARC all confirmed in DNS; test email delivered |
 | 12 | E2E CI trigger | ✅ FIXED | `.github/workflows/e2e.yml` now runs on `push: branches: [main]` + `workflow_dispatch` |
-| 13 | E2E pass rate | ✅ PASS | 449/450 on Vercel (a0e20cb). 1 intentional skip (APDR PDF — seeded data now fixes this too) |
+| 13 | E2E pass rate | ✅ PASS | **450/450** (433 + 17 flaky/retry). 0 hard failures. Up from 449/450 (a0e20cb). |
 | 14 | Security headers | ✅ PASS | CSP, HSTS (max-age=63072000), X-Frame-Options DENY, connect-src restricted to self + Sentry |
 | 15 | HTML escaping in emails | ✅ PASS | `h()` function applied to all user fields in `/api/contact/beta` and `/api/contact/investors` |
 | 16 | Rate limiting | ✅ PASS | `checkContactRateLimit` (via `lib/kv.ts`) on all contact endpoints |
@@ -51,7 +99,7 @@ Full cross-role evidence check on code, DB, and live app. 23 items verified.
 | 22 | GDPR compliance | ✅ PASS | DPA gate (staff), Terms gate (student/parent), immutable AuditLog, `/admin/gdpr`, consent matrix |
 | 23 | Remember me / session | ✅ PASS | 30-day default; 4h if checkbox unchecked; `token.exp` set in credentials callback |
 
-**Blocking items fixed in this session:** Items 5, 7, 9, 12
+**Blocking items fixed in this session (2026-07-21):** Items 5, 7, 9, 12
 
 ---
 
@@ -191,5 +239,5 @@ Read CLAUDE.md. Run the pre-deploy checklist:
 ---
 
 *Document owner: Omnis Education*
-*Last updated: 2026-07-21 — Evidence audit complete; all 23 items verified; 4 blocking items fixed*
+*Last updated: 2026-07-21 — Comprehensive 13-item trial audit complete (PART A/B/C); 450/450 E2E passing; 0 hard failures*
 *All phases complete*

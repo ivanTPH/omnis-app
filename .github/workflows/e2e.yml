@@ -6,16 +6,48 @@ on:
   workflow_dispatch:
 
 jobs:
+  deploy:
+    name: Deploy to Coolify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      deployment_uuid: ${{ steps.trigger.outputs.deployment_uuid }}
+
+    steps:
+      - name: Trigger Coolify deploy
+        id: trigger
+        run: |
+          RESPONSE=$(curl -s -X GET \
+            "http://165.232.96.51:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}")
+          echo "$RESPONSE"
+          UUID=$(echo "$RESPONSE" | jq -r '.deployments[0].deployment_uuid')
+          echo "deployment_uuid=$UUID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for deploy to finish
+        run: |
+          UUID="${{ steps.trigger.outputs.deployment_uuid }}"
+          echo "Polling deployment $UUID …"
+          for i in $(seq 1 40); do
+            sleep 30
+            STATUS=$(curl -s \
+              "http://165.232.96.51:8000/api/v1/deployments/$UUID" \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              | jq -r '.status')
+            echo "$(date -u '+%H:%M:%S') UTC — $STATUS"
+            if [ "$STATUS" = "finished" ]; then echo "Deploy succeeded"; exit 0; fi
+            if [ "$STATUS" = "failed"   ]; then echo "Deploy FAILED";    exit 1; fi
+          done
+          echo "Timed out waiting for deploy (20 min)" && exit 1
+
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    needs: deploy
+    timeout-minutes: 30
 
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      NEXTAUTH_URL: http://localhost:3000
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
     steps:
       - name: Checkout
@@ -33,37 +65,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Sync database schema
-        # db push applies the full schema (including tables added via db push that have
-        # no formal migration files). --accept-data-loss is safe here because CI only
-        # adds columns — it never drops data-bearing tables.
-        run: npx prisma db push --accept-data-loss
-
-      - name: Seed database (only if empty)
-        # Guard script checks school count — skips seed when data already exists so
-        # the shared Supabase demo database is not wiped on every push to main.
-        run: npm run db:seed:ci
-
-      - name: Build Next.js app
-        run: npm run build
-
-      - name: Start Next.js server
-        run: |
-          npm run start &
-          echo $! > /tmp/server.pid
-        env:
-          PORT: 3000
-
-      - name: Wait for server
-        run: npx wait-on http://localhost:3000 --timeout 30000
-
-      - name: Verify server process is alive
-        run: kill -0 $(cat /tmp/server.pid) || (echo "ERROR: Next.js server process died before tests ran" && exit 1)
-
       - name: Run E2E tests
         run: npm run test:e2e
         env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: https://omnis.education
 
       - name: Upload test results
         if: always()

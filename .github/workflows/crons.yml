@@ -1,0 +1,139 @@
+name: Cron Jobs
+
+# Replaces Vercel cron runner. Each job matches the schedule from the former vercel.json.
+# All jobs call the corresponding /api/cron/* endpoint on omnis.education with CRON_SECRET.
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'    # oak-sync          — Sun 02:00 UTC
+    - cron: '0 5 * * 0'    # platform-insights  — Sun 05:00 UTC
+    - cron: '0 6 * * 1-5'  # early-warning      — Mon–Fri 06:00 UTC
+    - cron: '30 2 * * *'   # agent-coach        — daily 02:30 UTC
+    - cron: '0 3 * * *'    # agent-quality      — daily 03:00 UTC
+    - cron: '30 3 * * *'   # agent-plan-synthesis — daily 03:30 UTC
+    - cron: '0 1 1 9 *'    # year-rollover      — 1 Sep 01:00 UTC
+    - cron: '0 7 * * 1-5'  # review-due         — Mon–Fri 07:00 UTC
+    - cron: '30 7 * * 1'   # teacher-digest     — Mon 07:30 UTC
+    - cron: '0 7 * * 1'    # parent-hw-digest   — Mon 07:00 UTC
+    - cron: '0 8 1 * *'    # send-monthly       — 1st of month 08:00 UTC
+    - cron: '0 7 * * 3'    # overdue-alert      — Wed 07:00 UTC
+    - cron: '30 8 1 * *'   # engagement-digest  — 1st of month 08:30 UTC
+    - cron: '0 7 * * 5'    # slt-briefing       — Fri 07:00 UTC
+    - cron: '0 8 * * 1'    # parent-activation  — Mon 08:00 UTC
+    - cron: '30 8 * * 1'   # apdr-review        — Mon 08:30 UTC
+    - cron: '0 9 * * 3'    # concern-stale      — Wed 09:00 UTC
+    - cron: '30 7 * * 4'   # weekly-parent-summary — Thu 07:30 UTC
+  workflow_dispatch:
+
+env:
+  BASE: https://omnis.education
+  AUTH: Bearer ${{ secrets.CRON_SECRET }}
+
+jobs:
+  oak-sync:
+    if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/oak-sync" -H "Authorization: $AUTH"
+
+  platform-insights:
+    if: github.event.schedule == '0 5 * * 0' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/platform-insights" -H "Authorization: $AUTH"
+
+  early-warning:
+    if: github.event.schedule == '0 6 * * 1-5' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/early-warning" -H "Authorization: $AUTH"
+
+  agent-coach:
+    if: github.event.schedule == '30 2 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/agent-coach" -H "Authorization: $AUTH"
+
+  agent-quality:
+    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/agent-quality" -H "Authorization: $AUTH"
+
+  agent-plan-synthesis:
+    if: github.event.schedule == '30 3 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: $AUTH"
+
+  year-rollover:
+    if: github.event.schedule == '0 1 1 9 *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/year-rollover" -H "Authorization: $AUTH"
+
+  review-due:
+    if: github.event.schedule == '0 7 * * 1-5' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/review-due" -H "Authorization: $AUTH"
+
+  teacher-digest:
+    if: github.event.schedule == '30 7 * * 1' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/teacher-digest" -H "Authorization: $AUTH"
+
+  parent-hw-digest:
+    if: github.event.schedule == '0 7 * * 1' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/parent-hw-digest" -H "Authorization: $AUTH"
+
+  send-monthly:
+    if: github.event.schedule == '0 8 1 * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/send-monthly" -H "Authorization: $AUTH"
+
+  overdue-alert:
+    if: github.event.schedule == '0 7 * * 3' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/overdue-alert" -H "Authorization: $AUTH"
+
+  engagement-digest:
+    if: github.event.schedule == '30 8 1 * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/engagement-digest" -H "Authorization: $AUTH"
+
+  slt-briefing:
+    if: github.event.schedule == '0 7 * * 5' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/slt-briefing" -H "Authorization: $AUTH"
+
+  parent-activation:
+    if: github.event.schedule == '0 8 * * 1' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/parent-activation" -H "Authorization: $AUTH"
+
+  apdr-review:
+    if: github.event.schedule == '30 8 * * 1' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/apdr-review" -H "Authorization: $AUTH"
+
+  concern-stale:
+    if: github.event.schedule == '0 9 * * 3' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/concern-stale" -H "Authorization: $AUTH"
+
+  weekly-parent-summary:
+    if: github.event.schedule == '30 7 * * 4' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf -X POST "$BASE/api/cron/weekly-parent-summary" -H "Authorization: $AUTH"

@@ -32,7 +32,7 @@
 > GCSE benchmark comparison in SLT analytics, GCSE exam weighting hints in revision AI prompt.
 > 150/155 e2e passing on Vercel (1 network flake, 4 intentional skips).
 >
-> **Deployment:** https://omnis-app-ten.vercel.app
+> **Deployment:** https://omnis.education (Coolify/DigitalOcean — production only; Vercel removed)
 > June 2026 Part 5: Marketing pages — /marketing/home, /marketing/features, /marketing/beta,
 > /marketing/investors. Shared sticky-nav layout, contact forms → ivanyardley@me.com via Resend
 > (/api/contact/beta + /api/contact/investors). Middleware updated to exclude /marketing/* from auth.
@@ -1042,7 +1042,7 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - loginAs timeout: 45s fail-fast (cold Lambdas fail quickly; warm Lambdas respond in 5-15s)
 - 0 flakes when global-setup saves auth state; retries handle remaining cold starts
 - Run locally: `npm run test:e2e`
-- Run against Vercel: `PLAYWRIGHT_BASE_URL=https://omnis-app-ten.vercel.app npx playwright test`
+- Run against Coolify: `PLAYWRIGHT_BASE_URL=https://omnis.education npx playwright test`
 
 ### Unbuilt routes
 All routes are now functional. No unbuilt routes remain.

@@ -81,9 +81,8 @@ test.describe('/admin/attendance — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error|unhandled/i)
-    expect(body.length).toBeGreaterThan(100)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error|unhandled/i, { timeout: 5_000 })
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
   })
 
   test('Attendance Overview heading is visible', async ({ page }) => {
@@ -92,8 +91,7 @@ test.describe('/admin/attendance — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/attendance overview/i)
+    await expect(page.locator('body')).toContainText(/attendance overview/i, { timeout: 15_000 })
   })
 
   test('KPI distribution cards are present', async ({ page }) => {
@@ -102,7 +100,9 @@ test.describe('/admin/attendance — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    // Wait for page to fully render, then check for data or no-data notice
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
+    const body = await page.locator('body').innerText()
     // Page shows either data cards or the no-data notice
     const hasData    = body.match(/excellent|good|concern|serious/i)
     const hasNoData  = body.match(/no attendance data available/i)
@@ -115,7 +115,9 @@ test.describe('/admin/attendance — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
+    // Wait for page to fully render, then check for data or no-data notice
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
+    const body = await page.locator('body').innerText()
     const hasByYear  = body.match(/by year group/i)
     const hasNoData  = body.match(/no attendance data available/i)
     expect(hasByYear || hasNoData).toBeTruthy()

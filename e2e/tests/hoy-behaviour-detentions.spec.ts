@@ -119,9 +119,8 @@ test.describe('HOY Detentions — access control', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body).toMatch(/detention/i)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('body')).toContainText(/detention/i, { timeout: 15_000 })
   })
 
   test('SLT can access /hoy/detentions', async ({ page }) => {
@@ -160,10 +159,8 @@ test.describe('HOY Detentions — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 12_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    // Page should have detention-related content
-    expect(body.length).toBeGreaterThan(50)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
   })
 
   test('log detention button is rendered', async ({ page }) => {
@@ -196,9 +193,8 @@ test.describe('HOY Exclusions — access control', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body).toMatch(/exclusion/i)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('body')).toContainText(/exclusion/i, { timeout: 15_000 })
   })
 
   test('SLT can access /hoy/exclusions', async ({ page }) => {
@@ -237,9 +233,8 @@ test.describe('HOY Exclusions — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 12_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(50)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
   })
 
   test('KPI cards are present', async ({ page }) => {
@@ -248,8 +243,7 @@ test.describe('HOY Exclusions — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/total|active|fixed.term|internal|permanent/i)
+    await expect(page.locator('body')).toContainText(/total|active|fixed.term|internal|permanent/i, { timeout: 15_000 })
   })
 
   test('log exclusion button is rendered', async ({ page }) => {

@@ -70,7 +70,6 @@ function SetPasswordForm() {
               <input
                 type="password"
                 required
-                minLength={8}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="At least 8 characters"

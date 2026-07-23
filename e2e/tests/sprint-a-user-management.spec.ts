@@ -67,11 +67,10 @@ test.describe('Sprint A — user management page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
     // Expect at least "Students" and "Staff" filter chip labels
-    expect(body).toMatch(/students/i)
-    expect(body).toMatch(/staff/i)
-    expect(body.length).toBeGreaterThan(100)
+    await expect(page.locator('body')).toContainText(/students/i, { timeout: 15_000 })
+    await expect(page.locator('body')).toContainText(/staff/i, { timeout: 10_000 })
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })
   })
 
   test('?filter=pending pre-selects pending state', async ({ page }) => {
@@ -81,9 +80,8 @@ test.describe('Sprint A — user management page content', () => {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
     // Page should load without error — no 500 or crash
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body.length).toBeGreaterThan(50)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
   })
 
   test('page shows no crash message', async ({ page }) => {

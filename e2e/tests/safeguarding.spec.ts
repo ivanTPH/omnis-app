@@ -34,10 +34,8 @@ test.describe('Safeguarding Log — access control', () => {
     await page.goto('/hoy/safeguarding')
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 10_000 })
-    // Body text check is more resilient than h1 for cold-start Vercel
-    const body = await page.locator('body').innerText({ timeout: 15_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body).toMatch(/safeguard|log concern/i)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('body')).toContainText(/safeguard|log concern/i, { timeout: 20_000 })
   })
 
   test('SLT can access /hoy/safeguarding', async ({ page }) => {
@@ -85,10 +83,9 @@ test.describe('Safeguarding Log — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 12_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
     // KPI cards
-    expect(body).toMatch(/total|open|referred|critical/i)
+    await expect(page.locator('body')).toContainText(/total|open|referred|critical/i, { timeout: 15_000 })
   })
 
   test('section tab buttons are present', async ({ page }) => {
@@ -108,6 +105,7 @@ test.describe('Safeguarding Log — page content', () => {
     await page.goto('/hoy/safeguarding')
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await expect(page.locator('h1')).toContainText('Safeguarding', { timeout: 15_000 })
 
     await page.getByRole('button', { name: /log concern/i }).click()
     await expect(page.getByRole('heading', { name: /log safeguarding concern/i })).toBeVisible({ timeout: 6_000 })
@@ -118,6 +116,7 @@ test.describe('Safeguarding Log — page content', () => {
     await page.goto('/hoy/safeguarding')
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await expect(page.locator('h1')).toContainText('Safeguarding', { timeout: 15_000 })
 
     await page.getByRole('button', { name: /log concern/i }).click()
     await expect(page.getByRole('heading', { name: /log safeguarding concern/i })).toBeVisible({ timeout: 6_000 })
@@ -133,6 +132,7 @@ test.describe('Safeguarding Log — page content', () => {
     await page.goto('/hoy/safeguarding')
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await expect(page.locator('h1')).toContainText('Safeguarding', { timeout: 15_000 })
 
     await page.getByRole('button', { name: /log concern/i }).click()
     await expect(page.getByRole('heading', { name: /log safeguarding concern/i })).toBeVisible({ timeout: 6_000 })

@@ -33,11 +33,14 @@ export default async function globalSetup() {
   console.log('[global-setup] Saving auth state (request API) at', baseURL)
   fs.mkdirSync(AUTH_DIR, { recursive: true })
 
-  async function saveAuthState(email: string, password: string, label: string): Promise<void> {
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+  /** One attempt to get a session cookie. Returns true on success. */
+  async function tryAuth(email: string, password: string): Promise<boolean> {
     const ctx = await playwrightRequest.newContext({ baseURL, timeout: 30_000 })
     try {
       const csrfRes = await ctx.get('/api/auth/csrf')
-      if (!csrfRes.ok()) throw new Error(`CSRF ${csrfRes.status()}`)
+      if (!csrfRes.ok()) return false
       const { csrfToken } = await csrfRes.json() as { csrfToken: string }
 
       // NextAuth credentials endpoint — request context follows the 302 and
@@ -47,11 +50,29 @@ export default async function globalSetup() {
       })
 
       await ctx.storageState({ path: authStateFile(email) })
-      console.log(`[global-setup] saved auth: ${label}`)
-    } catch (err) {
-      console.log(`[global-setup] auth failed for ${label}: ${err instanceof Error ? err.message : String(err)}`)
+      return true
+    } catch {
+      return false
     } finally {
       await ctx.dispose()
+    }
+  }
+
+  async function saveAuthState(email: string, password: string, label: string): Promise<void> {
+    // Retry once on transient 5xx (e.g. 502 when server is briefly overloaded
+    // by rapid sequential requests during CI warmup).
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const ok = await tryAuth(email, password)
+      if (ok) {
+        console.log(`[global-setup] saved auth: ${label}`)
+        return
+      }
+      if (attempt === 1) {
+        console.log(`[global-setup] auth attempt 1 failed for ${label} — retrying in 3s …`)
+        await sleep(3_000)
+      } else {
+        console.log(`[global-setup] auth failed for ${label}: both attempts failed`)
+      }
     }
   }
 
@@ -67,9 +88,11 @@ export default async function globalSetup() {
     [USERS.parent.email,      USERS.parent.password,      'parent'],
   ]
 
-  // Sequential — parallel hammers Supabase pgbouncer
+  // Sequential with 1.5 s gap to avoid overwhelming pgbouncer / Next.js
+  // cold-start queue. Parallel hammers Supabase connection pool.
   for (const [email, password, label] of roles) {
     await saveAuthState(email, password, label)
+    await sleep(1_500)
   }
 
   console.log('[global-setup] auth state save complete')

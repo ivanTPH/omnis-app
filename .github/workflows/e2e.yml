@@ -90,7 +90,7 @@ jobs:
     name: Playwright E2E
     runs-on: ubuntu-latest
     needs: deploy
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}

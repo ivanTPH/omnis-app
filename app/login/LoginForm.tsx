@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import { requestLoginMfaCode } from '@/app/actions/mfa'
@@ -22,6 +23,8 @@ const PLATFORM_DEMOS = [
 ]
 
 export default function LoginForm({ showDemo }: { showDemo: boolean }) {
+  const searchParams = useSearchParams()
+  const verified = searchParams.get('verified') === '1'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [otpCode, setOtpCode] = useState('')
@@ -83,6 +86,12 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
           <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-4">
+          {verified && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
+              <span className="material-icons text-green-600 text-base">check_circle</span>
+              Email verified — please sign in to access your account.
+            </div>
+          )}
           {!mfaStep ? (
             <>
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>

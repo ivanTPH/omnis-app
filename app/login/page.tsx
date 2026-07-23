@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import LoginForm from './LoginForm'
 
 export default function LoginPage() {
@@ -8,5 +9,9 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === 'true' &&
     process.env.NODE_ENV !== 'production'
 
-  return <LoginForm showDemo={showDemo} />
+  return (
+    <Suspense>
+      <LoginForm showDemo={showDemo} />
+    </Suspense>
+  )
 }

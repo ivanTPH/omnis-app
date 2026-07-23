@@ -31,22 +31,30 @@ export default function BetaForm() {
     phone: '',
     schoolSize: '',
     message: '',
+    password: '',
+    confirmPassword: '',
   })
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [demoCreated, setDemoCreated] = useState(false)
+  const [pwError, setPwError] = useState('')
 
   function update(field: string, value: string) {
     setForm(f => ({ ...f, [field]: value }))
+    if (field === 'password' || field === 'confirmPassword') setPwError('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (form.password.length < 8) { setPwError('Password must be at least 8 characters.'); return }
+    if (form.password !== form.confirmPassword) { setPwError('Passwords do not match.'); return }
     setStatus('sending')
     try {
+      const { confirmPassword, ...payload } = form
+      void confirmPassword
       const res = await fetch('/api/contact/beta', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error('failed')
       const json = await res.json().catch(() => ({}))
@@ -100,15 +108,23 @@ export default function BetaForm() {
                 <span className="material-icons text-green-600 text-3xl">check_circle</span>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                {demoCreated ? 'Check your email' : 'Application received'}
+                {demoCreated ? 'Check your inbox' : 'Application received'}
               </h2>
               <p className="text-gray-500 text-sm mb-6">
                 {demoCreated
-                  ? "We've sent a link to set up your Omnis demo account. Check your inbox and click the link to choose your password and sign in."
+                  ? "We've sent a verification link to your email. Click it to activate your account, then sign in with the email and password you just registered with."
                   : "We'll be in touch within 2 working days to arrange an intro call and set up your demo access."}
               </p>
               {demoCreated && (
-                <p className="text-xs text-gray-400 mb-4">The link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 hover:underline">forgot password</Link> to get a new one.</p>
+                <>
+                  <Link
+                    href="/login"
+                    className="inline-block bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors mb-4"
+                  >
+                    Go to sign in →
+                  </Link>
+                  <p className="text-xs text-gray-400 mb-4">The verification link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 hover:underline">forgot password</Link> to get a new one.</p>
+                </>
               )}
               <div>
                 <Link href="/marketing/home" className="text-blue-700 text-sm font-medium hover:underline">← Back to home</Link>
@@ -165,6 +181,33 @@ export default function BetaForm() {
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
+                    <input
+                      type="password"
+                      required
+                      value={form.password}
+                      onChange={e => update('password', e.target.value)}
+                      placeholder="Min. 8 characters"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password <span className="text-red-500">*</span></label>
+                    <input
+                      type="password"
+                      required
+                      value={form.confirmPassword}
+                      onChange={e => update('confirmPassword', e.target.value)}
+                      placeholder="Repeat password"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm ${pwError ? 'border-red-400' : 'border-gray-200'}`}
+                    />
+                  </div>
+                </div>
+                {pwError && (
+                  <p className="text-red-600 text-xs -mt-1">{pwError}</p>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-400 font-normal">(optional)</span></label>

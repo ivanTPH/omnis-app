@@ -44,10 +44,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { schoolName, name, jobTitle, email, phone, schoolSize, message } = body
+  const { schoolName, name, jobTitle, email, phone, schoolSize, message, password } = body
 
   if (!schoolName || !name || !jobTitle || !email || !schoolSize) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+  if (!password || password.length < 8) {
+    return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
   }
 
   const html = `
@@ -85,51 +88,62 @@ export async function POST(req: NextRequest) {
   }).catch(err => console.error('[contact/beta] hubspot upsert failed:', err))
 
   // ── Create demo account ───────────────────────────────────────────────────
-  // Provision the applicant a demo account on the Omnis demo school so they
-  // can explore the platform immediately. Falls back gracefully if the demo
-  // school hasn't been seeded in this environment.
+  // Provision the applicant a demo account on the Omnis demo school using the
+  // password they chose, then send an email verification link to activate it.
+  // If the email already exists and isn't yet activated, resend the verification link.
   let demoCreated = false
   let roleLabel = ''
+
+  async function issueVerifyToken(userId: string): Promise<string> {
+    // Invalidate any previous unused tokens for this user
+    await prisma.passwordResetToken.updateMany({
+      where: { userId, used: false },
+      data: { used: true },
+    })
+    const rawToken = crypto.randomBytes(32).toString('hex')
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
+    await prisma.passwordResetToken.create({
+      data: { userId, tokenHash, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+    })
+    return rawToken
+  }
+
   try {
     const demoSchool = await prisma.school.findFirst({
       where: { OR: [{ name: 'Omnis Demo School' }, { emailDomain: 'omnisdemo.school' }] },
       select: { id: true },
     })
     if (demoSchool) {
-      const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-      if (!existing) {
-        const role   = mapJobTitleToRole(jobTitle)
-        roleLabel    = ROLE_LABELS[role] ?? 'Teacher'
-        const [firstName, ...rest] = name.trim().split(' ')
-        // Create user with a random unusable placeholder hash — they must set their real
-        // password via the set-password link. bcrypt of 32 random bytes is effectively unguessable.
-        const placeholderHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12)
+      const role = mapJobTitleToRole(jobTitle)
+      roleLabel  = ROLE_LABELS[role] ?? 'Teacher'
+      const [firstName, ...rest] = name.trim().split(' ')
+
+      const existing = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, firstName: true, activatedAt: true },
+      })
+
+      if (existing) {
+        // Email already registered — resend verification link if not yet activated
+        if (!existing.activatedAt) {
+          const rawToken  = await issueVerifyToken(existing.id)
+          const verifyUrl = `${SITE_URL}/verify-email?token=${rawToken}`
+          demoCreated = true
+          sendBetaWelcomeEmail({ to: email, firstName: existing.firstName, email, roleLabel, verifyUrl })
+            .catch(err => console.error('[contact/beta] welcome email resend failed:', err))
+        }
+        // If already activated, demoCreated stays false — they should just log in
+      } else {
+        // New user — create with their chosen password
+        const passwordHash = await bcrypt.hash(password, 12)
         const newUser = await prisma.user.create({
-          data: {
-            email,
-            passwordHash: placeholderHash,
-            firstName,
-            lastName: rest.join(' ') || firstName,
-            role,
-            schoolId: demoSchool.id,
-            isActive: true,
-          },
+          data: { email, passwordHash, firstName, lastName: rest.join(' ') || firstName, role, schoolId: demoSchool.id, isActive: true },
           select: { id: true, firstName: true },
         })
-        // Generate single-use setup token valid for 24 hours
-        const rawToken = crypto.randomBytes(32).toString('hex')
-        const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
-        await prisma.passwordResetToken.create({
-          data: {
-            userId:    newUser.id,
-            tokenHash,
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          },
-        })
-        const setPasswordUrl = `${SITE_URL}/set-password?token=${rawToken}`
+        const rawToken  = await issueVerifyToken(newUser.id)
+        const verifyUrl = `${SITE_URL}/verify-email?token=${rawToken}`
         demoCreated = true
-        // Send welcome email with setup link (fire-and-forget — never block the response)
-        sendBetaWelcomeEmail({ to: email, firstName: newUser.firstName, email, roleLabel, setPasswordUrl })
+        sendBetaWelcomeEmail({ to: email, firstName: newUser.firstName, email, roleLabel, verifyUrl })
           .catch(err => console.error('[contact/beta] welcome email failed:', err))
       }
     }

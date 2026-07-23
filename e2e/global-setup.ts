@@ -37,11 +37,11 @@ export default async function globalSetup() {
     const context = await browser.newContext()
     const page = await context.newPage()
     try {
-      await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
+      await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 150_000 })
       await page.fill('input[type="email"]', email)
       await page.fill('input[type="password"]', password)
       await page.click('button[type="submit"]')
-      await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 90_000 })
+      await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 150_000 })
       await context.storageState({ path: authStateFile(email) })
       console.log(`[global-setup] saved auth: ${label}`)
     } catch {

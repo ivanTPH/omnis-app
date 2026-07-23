@@ -41,7 +41,11 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         // MFA: staff roles must supply a valid, single-use email code once
         // Upstash is configured. Gracefully skipped when MFA infra is
         // unavailable (dev/CI), matching the rate-limiter convention above.
-        if ((STAFF_ROLES as readonly string[]).includes(user.role) && mfaInfraAvailable()) {
+        // Demo accounts (@omnisdemo.school) are exempt — public credentials
+        // mean MFA adds no real security there.
+        const DEMO_DOMAINS = ['@omnisdemo.school', '@students.omnisdemo.school', '@parents.omnisdemo.school']
+        const isDemo = DEMO_DOMAINS.some(d => user.email.endsWith(d))
+        if ((STAFF_ROLES as readonly string[]).includes(user.role) && mfaInfraAvailable() && !isDemo) {
           if (!otpCode || !(await verifyAndConsumeMfaCode(user.id, otpCode))) return null
         }
 

@@ -1,19 +1,21 @@
-import { chromium } from '@playwright/test'
+import { request as playwrightRequest } from '@playwright/test'
 import { USERS } from './fixtures/users'
 import * as fs from 'fs'
 import * as path from 'path'
 
 /**
- * Best-effort auth-state saver for remote CI runs.
+ * Auth-state saver for remote CI runs.
  *
- * For each role: attempts form login with a generous timeout (90s) to handle
- * Coolify Docker cold starts where the auth pipeline (NextAuth + bcrypt + Prisma)
- * may take 60-90s on first hit after a fresh deploy.
- * If login succeeds the state is saved and loginAs() will inject cookies directly
- * (no per-test auth round-trip — tests run at full speed).
- * If login fails the test handles it via form-login fallback + Playwright retries.
+ * Uses Playwright's request API (HTTP client, no browser) to obtain session
+ * cookies by directly calling the NextAuth credentials endpoint. This avoids
+ * Chromium browser startup + full page load overhead that consistently timed
+ * out at 90s on the GitHub Actions → Coolify network path, while curl-based
+ * auth succeeded in < 1s on the same route.
  *
- * Only runs when PLAYWRIGHT_BASE_URL is set (i.e. against remote server, not localhost).
+ * Flow: GET /api/auth/csrf → POST /api/auth/callback/credentials →
+ * request context follows the 302 + stores session cookie → storageState().
+ *
+ * Only runs when PLAYWRIGHT_BASE_URL is set (i.e. against remote server).
  */
 
 const AUTH_DIR = path.join(__dirname, '.auth')
@@ -28,27 +30,28 @@ export default async function globalSetup() {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL
   if (!baseURL) return
 
-  console.log('[global-setup] Saving auth state for Vercel deployment at', baseURL)
+  console.log('[global-setup] Saving auth state (request API) at', baseURL)
   fs.mkdirSync(AUTH_DIR, { recursive: true })
 
-  const browser = await chromium.launch()
-
   async function saveAuthState(email: string, password: string, label: string): Promise<void> {
-    const context = await browser.newContext()
-    const page = await context.newPage()
+    const ctx = await playwrightRequest.newContext({ baseURL, timeout: 30_000 })
     try {
-      await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-      await page.fill('input[type="email"]', email)
-      await page.fill('input[type="password"]', password)
-      await page.click('button[type="submit"]')
-      await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 90_000 })
-      await context.storageState({ path: authStateFile(email) })
+      const csrfRes = await ctx.get('/api/auth/csrf')
+      if (!csrfRes.ok()) throw new Error(`CSRF ${csrfRes.status()}`)
+      const { csrfToken } = await csrfRes.json() as { csrfToken: string }
+
+      // NextAuth credentials endpoint — request context follows the 302 and
+      // stores the session cookie automatically in its cookie jar.
+      await ctx.post('/api/auth/callback/credentials', {
+        form: { csrfToken, email, password },
+      })
+
+      await ctx.storageState({ path: authStateFile(email) })
       console.log(`[global-setup] saved auth: ${label}`)
-    } catch {
-      // Cold start — skip; the test will handle it via form-login fallback + Playwright retries
-      console.log(`[global-setup] cold start for ${label} — skipped, tests will handle via retry`)
+    } catch (err) {
+      console.log(`[global-setup] auth failed for ${label}: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
-      await context.close()
+      await ctx.dispose()
     }
   }
 
@@ -69,6 +72,5 @@ export default async function globalSetup() {
     await saveAuthState(email, password, label)
   }
 
-  await browser.close()
   console.log('[global-setup] auth state save complete')
 }

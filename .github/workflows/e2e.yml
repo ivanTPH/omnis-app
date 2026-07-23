@@ -9,7 +9,7 @@ jobs:
   deploy:
     name: Deploy to Coolify
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     outputs:
       deployment_uuid: ${{ steps.trigger.outputs.deployment_uuid || '' }}
 
@@ -20,45 +20,39 @@ jobs:
             "http://165.232.96.51:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
 
-      - name: Wait for site to be healthy
-        # Coolify's deployment tracking API only surfaces in-progress jobs —
-        # completed ones vanish immediately, making UUID polling unreliable.
-        # Instead: wait 2 min for the build to get underway, then poll the
-        # live site every 30 s until it returns 200 (or we time out at 20 min).
-        run: |
-          echo "Waiting 2 minutes for Docker build to start …"
-          sleep 120
-          echo "Polling https://omnis.education …"
-          for i in $(seq 1 36); do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" https://omnis.education/marketing/home)
-            echo "$(date -u '+%H:%M:%S') UTC — HTTP $CODE"
-            if [ "$CODE" = "200" ]; then echo "Site is up"; exit 0; fi
-            sleep 30
-          done
-          echo "Timed out — site did not return 200 within 20 min" && exit 1
-
-      - name: Warm up auth pipeline
-        # The /marketing/home health check confirms the static layer is up, but
-        # NextAuth + bcrypt + Prisma (connection pool) may still be cold.
-        # Exercise the login endpoint for two roles so the DB pool is pre-warmed
-        # before Playwright global-setup runs — otherwise every test times out.
+      - name: Wait for new container + warm auth
+        # Docker build (3-stage) takes ~6-8 min. The /marketing/home 200 comes from
+        # the OLD container still serving during build — checking it early gives a
+        # false positive. Instead: wait 7 min for the build to complete, then poll
+        # the AUTH endpoint (not just the static page) until the NEW container's
+        # NextAuth + bcrypt + Prisma pipeline responds successfully. This ensures
+        # the DB connection pool is pre-warmed before Playwright runs.
         run: |
           BASE=https://omnis.education
-          echo "Warming up auth pipeline …"
-          for ATTEMPT in 1 2 3; do
-            CSRF=$(curl -sf "$BASE/api/auth/csrf" | sed 's/.*"csrfToken":"\([^"]*\)".*/\1/' || true)
-            if [ -z "$CSRF" ]; then echo "Attempt $ATTEMPT: no CSRF token yet, waiting 20s …"; sleep 20; continue; fi
-            echo "Attempt $ATTEMPT: got CSRF token, submitting login …"
-            HTTP=$(curl -sf -o /dev/null -w "%{http_code}" -X POST "$BASE/api/auth/callback/credentials" \
+          echo "Waiting 7 minutes for Docker build + deploy + container start …"
+          sleep 420
+          echo "Polling auth endpoint until new container is ready …"
+          for i in $(seq 1 24); do
+            CSRF=$(curl -sf --max-time 15 "$BASE/api/auth/csrf" \
+              | sed 's/.*"csrfToken":"\([^"]*\)".*/\1/' || true)
+            if [ -z "$CSRF" ]; then
+              echo "$(date -u '+%H:%M:%S') UTC — no CSRF yet, waiting 30s …"
+              sleep 30
+              continue
+            fi
+            HTTP=$(curl -sf -o /dev/null -w "%{http_code}" \
+              -X POST "$BASE/api/auth/callback/credentials" \
               -H "Content-Type: application/x-www-form-urlencoded" \
               -d "csrfToken=${CSRF}&email=j.patel%40omnisdemo.school&password=Demo1234%21&redirect=false" \
-              --max-time 90 || echo "000")
-            echo "Login response: HTTP $HTTP"
-            if [ "$HTTP" = "200" ] || [ "$HTTP" = "302" ]; then echo "Auth pipeline warm"; break; fi
-            echo "Not ready yet, waiting 20s …"
-            sleep 20
+              --max-time 30 || echo "000")
+            echo "$(date -u '+%H:%M:%S') UTC — auth HTTP $HTTP"
+            if [ "$HTTP" = "200" ] || [ "$HTTP" = "302" ]; then
+              echo "New container ready — auth pipeline warm"
+              exit 0
+            fi
+            sleep 30
           done
-          echo "Warmup complete — proceeding to tests"
+          echo "Timed out waiting for auth endpoint (12 min after build wait)" && exit 1
 
   e2e:
     name: Playwright E2E

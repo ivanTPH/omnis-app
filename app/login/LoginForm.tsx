@@ -1,6 +1,5 @@
 'use client'
-import { useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import { requestLoginMfaCode } from '@/app/actions/mfa'
@@ -23,8 +22,10 @@ const PLATFORM_DEMOS = [
 ]
 
 export default function LoginForm({ showDemo }: { showDemo: boolean }) {
-  const searchParams = useSearchParams()
-  const verified = searchParams.get('verified') === '1'
+  const [verified, setVerified] = useState(false)
+  useEffect(() => {
+    setVerified(new URLSearchParams(window.location.search).get('verified') === '1')
+  }, [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [otpCode, setOtpCode] = useState('')

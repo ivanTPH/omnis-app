@@ -2,6 +2,9 @@
 FROM node:22-alpine AS deps
 WORKDIR /app
 
+# Skip puppeteer Chrome download — we use system Chromium in the runner stage
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
 # prisma schema needed for postinstall (prisma generate)
 COPY package*.json ./
 COPY prisma ./prisma
@@ -26,6 +29,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
+# Install system Chromium for PDF generation (puppeteer-core uses this via
+# PUPPETEER_EXECUTABLE_PATH; avoids glibc-linked Chrome incompatibility on Alpine)
+RUN apk add --no-cache chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Only copy the runtime artefacts
 COPY --from=builder /app/public ./public

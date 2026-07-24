@@ -35,6 +35,16 @@ async function launchBrowser(): Promise<Browser> {
     }
     throw new Error('Failed to launch browser after 3 attempts')
   }
+  // Docker/container: use system Chromium pointed to by PUPPETEER_EXECUTABLE_PATH
+  // (set in Dockerfile via `apk add chromium` + ENV PUPPETEER_EXECUTABLE_PATH)
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH
+  if (executablePath) {
+    return await puppeteerCore.launch({
+      executablePath,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    }) as unknown as Browser
+  }
   // Local dev: use full puppeteer's managed Chrome
   const puppeteer = (await import('puppeteer')).default
   return puppeteer.launch({

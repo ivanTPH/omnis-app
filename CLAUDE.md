@@ -346,7 +346,7 @@
 > (5) `loginAs()` `clearComplianceGate()` loops over all checkboxes (pages now have 2–3 not 1).
 > (6) E2E: sprint-d-apdr:115 body threshold 200→100 (cold Lambda returns 138-char AppShell before networkidle).
 >
-> **Latest commit:** a0ef0e4 (fix e2e: APDR body threshold 200→100). E2E: 37 spec files, 450 tests. **449/450 passing on Vercel (warm run). 1 intentional skip (APDR PDF). Exit 0.**
+> **Latest commit:** 45f9ea8 (fix e2e: dismiss OnboardingChecklist in Step 12). E2E: 38 spec files, 458 tests. **456 passed, 1 flaky, 0 failed on Coolify (2026-07-24). Exit 0.**
 >
 > July 2026 Production launch (omnis.education):
 > Dockerfile (Node 22 Alpine, 3-stage) added for Coolify self-hosted deployment — replaced nixpacks which OOM'd.
@@ -1028,19 +1028,31 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - Email sent to Wonde support (2026-03-17). When granted, re-run full sync from `/admin/wonde`.
 
 ### E2E tests
-**450 tests across 37 spec files. Last full Vercel run: 449/450 pass (2026-07-13). 1 intentional skip.**
-- 1 skip: `sprint-d-apdr.spec.ts:177` (APDR PDF — requires a completed cycle in Vercel DB; run `npm run db:seed` to populate)
-- SEND smoke steps 6/7/8: graceful skip when local/Vercel DB weeks differ (calendar `?week=` param now respected; re-seed Vercel to fully enable)
-- 37 spec files: auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
+**458 tests across 38 spec files. Last Coolify run: 456 passed, 1 flaky, 0 failed (2026-07-24). Exit 0.**
+
+**CI pipeline:** `.github/workflows/e2e.yml` — triggered on `push: branches: [main]` + `workflow_dispatch`.
+- `deploy` job: triggers Coolify API → waits 7 min → polls auth endpoint until new container ready → warms all 9 role auth paths
+- `e2e` job: `timeout-minutes: 120`; `PLAYWRIGHT_BASE_URL=https://omnis.education`; `DATABASE_URL` from repo secret
+- GitHub repo secrets required: `COOLIFY_APP_UUID`, `COOLIFY_TOKEN`, `DATABASE_URL`
+
+**Key E2E gotchas (do NOT revert these fixes):**
+- `global-setup.ts`: uses Playwright request API (not browser) for auth; 1.5s gap between roles; retry-on-502
+- `Dockerfile`: `apk add chromium` + `ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser` + `PUPPETEER_SKIP_DOWNLOAD=true` — Alpine musl can't run glibc Chrome; must use system Chromium
+- `lib/pdf/generator.ts`: checks `PUPPETEER_EXECUTABLE_PATH` before falling back to full puppeteer (local dev only)
+- `app/set-password/page.tsx`: NO `minLength={8}` on password input — browser HTML5 validation fires before React `onSubmit`, preventing error message from showing
+- `send-smoke.spec.ts` Step 12: dismisses `[aria-label="Dismiss"]` (OnboardingChecklist widget) before clicking homework — the fixed-position `z-50` widget intercepted pointer events in a fresh E2E browser session
+- Body text assertions: use `await expect(page.locator('body')).toContainText(/pattern/, { timeout: 15_000 })` NOT `body.innerText()` + `expect(body).toMatch()` — the latter is single-shot and captures pre-render skeleton text on cold-start
+
+**Spec files (38):** auth, accessibility, teacher, student, SENCO, SEND smoke (13 steps),
   adaptive homework, revision program, Wonde sync, PDF export, GDPR, admin, AI generator,
   cover management, platform admin, student photos, revision planner, send scorer,
-  EHCP evidence (P2002 regression), homework UPLOAD type, student returned HW grade strip,
+  EHCP evidence, homework UPLOAD type, student returned HW grade strip,
   student notes CRUD, subjects & boards HOY edit-rights regression,
-  password reset + staff invitation (23 tests), sprint-a/b/c/d/e, hoy-dashboard, hoy-integrity,
-  sprint-e-attendance-welfare, hoy-behaviour-detentions (blocks 29-31, 30 tests).
+  password reset + staff invitation, sprint-a/b/c/d/e, hoy-dashboard, hoy-integrity,
+  sprint-e-attendance-welfare, hoy-behaviour-detentions, safeguarding, communications,
+  demo-account-setup (8 tests).
 - `USERS.hod` (d.brooks), `USERS.hoy` (t.adeyemi), `USERS.ta` (j.taylor) fixtures in users.ts
-- loginAs timeout: 45s fail-fast (cold Lambdas fail quickly; warm Lambdas respond in 5-15s)
-- 0 flakes when global-setup saves auth state; retries handle remaining cold starts
+- loginAs timeout: 45s fail-fast (cold containers fail quickly; warm ones respond in 5-15s)
 - Run locally: `npm run test:e2e`
 - Run against Coolify: `PLAYWRIGHT_BASE_URL=https://omnis.education npx playwright test`
 

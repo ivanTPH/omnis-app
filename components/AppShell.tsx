@@ -15,6 +15,7 @@ import OnboardingChecklist from '@/components/help/OnboardingChecklist'
 import GlobalSearch from '@/components/GlobalSearch'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 import SessionTimeout from '@/components/SessionTimeout'
+import TrialBanner from '@/components/TrialBanner'
 import Link from 'next/link'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
@@ -143,6 +144,9 @@ export default function AppShell({
               </Link>
             </div>
           )}
+
+          {/* Trial expiry banner — shows when <= 7 days left or expired */}
+          <TrialBanner />
 
           {/* Page content */}
           <div id="main-content" className="flex-1 min-h-0 flex flex-col overflow-y-auto">

@@ -499,6 +499,7 @@ model User {
   activatedAt  DateTime?                    // Set on first login — null means never logged in
   dpaAcceptedAt   DateTime?                  // Set on first DPA acknowledgement — staff only
   termsAcceptedAt DateTime?                  // Set on first T&C/AUP acceptance — parent + student
+  trialEndsAt  DateTime?                    // Set on beta/demo signups; null = no trial restriction
   createdAt    DateTime @default(now())
   avatarUrl            String?
   supportSnapshot      String?          // 1–2 sentence plain-English SEND summary for teachers

@@ -106,6 +106,15 @@ export const authConfig = {
         return NextResponse.redirect(url)
       }
 
+      // Trial expiry gate — redirect to /upgrade when trial period has ended
+      const trialEndsAt = (auth as any)?.user?.trialEndsAt
+      const UPGRADE_PATHS = ['/upgrade', '/login', '/accept-dpa', '/accept-terms']
+      if (trialEndsAt && new Date(trialEndsAt) < new Date() && !UPGRADE_PATHS.some(p => pathname.startsWith(p))) {
+        const url = req.nextUrl.clone()
+        url.pathname = '/upgrade'
+        return NextResponse.redirect(url)
+      }
+
       // Check role-based route restrictions
       for (const { prefix, roles } of ROLE_ROUTES) {
         if (pathname.startsWith(prefix)) {
@@ -134,6 +143,7 @@ export const authConfig = {
         token.lastName = u.lastName
         token.dpaAcceptedAt   = (u as any).dpaAcceptedAt   ?? null
         token.termsAcceptedAt = (u as any).termsAcceptedAt ?? null
+        token.trialEndsAt     = (u as any).trialEndsAt     ?? null
       }
       return token
     },
@@ -146,6 +156,7 @@ export const authConfig = {
       session.user.lastName = token.lastName
       ;(session.user as any).dpaAcceptedAt   = token.dpaAcceptedAt
       ;(session.user as any).termsAcceptedAt = token.termsAcceptedAt
+      ;(session.user as any).trialEndsAt     = token.trialEndsAt
       return session
     },
   },

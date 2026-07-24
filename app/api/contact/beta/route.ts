@@ -32,6 +32,24 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const DEST   = 'ivanyardley@me.com'
 const FROM   = 'Omnis Website <notifications@omnis.education>'
 
+/** Assign a new demo user as ClassTeacher for every class in the demo school
+ *  so they immediately see lessons, homework, and student data on first login. */
+async function assignDemoClasses(schoolId: string, userId: string): Promise<void> {
+  try {
+    const classes = await prisma.schoolClass.findMany({
+      where: { schoolId },
+      select: { id: true },
+    })
+    if (classes.length === 0) return
+    await prisma.classTeacher.createMany({
+      data: classes.map(c => ({ classId: c.id, userId })),
+      skipDuplicates: true,
+    })
+  } catch (err) {
+    console.error('[contact/beta] assignDemoClasses failed:', err)
+  }
+}
+
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
   const { success } = await checkContactRateLimit(ip)
@@ -120,15 +138,18 @@ export async function POST(req: NextRequest) {
 
       const existing = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, firstName: true, activatedAt: true },
+        select: { id: true, firstName: true, activatedAt: true, trialEndsAt: true },
       })
 
       if (existing) {
         // Email already registered — resend verification link if not yet activated
         if (!existing.activatedAt) {
-          // Update password hash with the password entered today
+          // Update password hash with the password entered today; ensure trial is set
           const passwordHash = await bcrypt.hash(password, 12)
-          await prisma.user.update({ where: { id: existing.id }, data: { passwordHash } })
+          const trialEndsAt  = existing.trialEndsAt ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          await prisma.user.update({ where: { id: existing.id }, data: { passwordHash, trialEndsAt } })
+          // Ensure classes are assigned (may not have been on original signup)
+          await assignDemoClasses(demoSchool.id, existing.id)
           const rawToken  = await issueVerifyToken(existing.id)
           const verifyUrl = `${SITE_URL}/verify-email?token=${rawToken}`
           demoCreated = true
@@ -137,12 +158,15 @@ export async function POST(req: NextRequest) {
         }
         // If already activated, demoCreated stays false — they should just log in
       } else {
-        // New user — create with their chosen password
+        // New user — create with their chosen password and a 30-day trial
         const passwordHash = await bcrypt.hash(password, 12)
+        const trialEndsAt  = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         const newUser = await prisma.user.create({
-          data: { email, passwordHash, firstName, lastName: rest.join(' ') || firstName, role, schoolId: demoSchool.id, isActive: true },
+          data: { email, passwordHash, firstName, lastName: rest.join(' ') || firstName, role, schoolId: demoSchool.id, isActive: true, trialEndsAt },
           select: { id: true, firstName: true },
         })
+        // Assign to all demo school classes so the user sees real data immediately
+        await assignDemoClasses(demoSchool.id, newUser.id)
         const rawToken  = await issueVerifyToken(newUser.id)
         const verifyUrl = `${SITE_URL}/verify-email?token=${rawToken}`
         demoCreated = true

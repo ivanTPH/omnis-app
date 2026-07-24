@@ -65,6 +65,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
           lastName: user.lastName,
           dpaAcceptedAt:   user.dpaAcceptedAt?.toISOString()   ?? null,
           termsAcceptedAt: user.termsAcceptedAt?.toISOString() ?? null,
+          trialEndsAt:     user.trialEndsAt?.toISOString()     ?? null,
           rememberMe:      credentials?.rememberMe !== 'false',
         }
       },
@@ -86,6 +87,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.lastName = u.lastName
         token.dpaAcceptedAt   = (u as any).dpaAcceptedAt   ?? null
         token.termsAcceptedAt = (u as any).termsAcceptedAt ?? null
+        token.trialEndsAt     = (u as any).trialEndsAt     ?? null
         // When rememberMe is false, shorten the JWT expiry to 4 hours (session-only feel).
         // The global maxAge (30 days) still controls the cookie; the short-lived JWT means
         // the server rejects the token after 4h even if the cookie persists.
@@ -104,6 +106,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
       session.user.lastName = token.lastName
       ;(session.user as any).dpaAcceptedAt   = token.dpaAcceptedAt
       ;(session.user as any).termsAcceptedAt = token.termsAcceptedAt
+      ;(session.user as any).trialEndsAt     = token.trialEndsAt
       return session
     },
   },

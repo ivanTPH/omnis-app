@@ -1,12 +1,12 @@
 import LoginForm from './LoginForm'
 
-export default function LoginPage() {
-  // Demo panel is only available in local development builds.
-  // NODE_ENV is 'production' in any built deployment (Coolify, Vercel, etc.)
-  // regardless of what NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS is set to.
-  const showDemo =
-    process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === 'true' &&
-    process.env.NODE_ENV !== 'production'
-
-  return <LoginForm showDemo={showDemo} />
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ demo?: string }>
+}) {
+  // Show demo credentials panel when ?demo=1 is in the URL.
+  // Use https://omnis.education/login?demo=1 to reveal the role switcher.
+  const sp = await searchParams
+  return <LoginForm showDemo={sp.demo === '1'} />
 }

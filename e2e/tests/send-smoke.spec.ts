@@ -604,6 +604,9 @@ test('Step 12 — Teacher marks homework; K Plan sidebar; ILP evidence link', as
   await expect(page).toHaveURL(/homework/, { timeout: 25_000 })
   await page.waitForLoadState('domcontentloaded')
 
+  // Dismiss the onboarding checklist if visible — it's fixed z-50 and intercepts clicks
+  await page.locator('[aria-label="Dismiss"]').click().catch(() => {})
+
   // Click the first homework
   const hwCard = page.locator('a[href*="/homework/"]').filter({ hasNot: page.locator('[href*="mark"]') }).first()
   if (!(await hwCard.isVisible({ timeout: 5_000 }).catch(() => false))) {

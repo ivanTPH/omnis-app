@@ -126,6 +126,9 @@ export async function POST(req: NextRequest) {
       if (existing) {
         // Email already registered — resend verification link if not yet activated
         if (!existing.activatedAt) {
+          // Update password hash with the password entered today
+          const passwordHash = await bcrypt.hash(password, 12)
+          await prisma.user.update({ where: { id: existing.id }, data: { passwordHash } })
           const rawToken  = await issueVerifyToken(existing.id)
           const verifyUrl = `${SITE_URL}/verify-email?token=${rawToken}`
           demoCreated = true

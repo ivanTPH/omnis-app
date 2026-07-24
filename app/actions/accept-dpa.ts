@@ -1,5 +1,6 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { auth, unstable_update } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
 
@@ -31,6 +32,19 @@ export async function acceptDpa(acceptedConsents: string[] = []) {
     },
   })
 
-  // Patch JWT so middleware gate clears immediately without re-login
-  await unstable_update({ dpaAcceptedAt: now.toISOString() } as any)
+  // Set a fallback cookie so the middleware gate clears on the next request
+  // even if unstable_update hangs (known issue in self-hosted/Docker environments
+  // where the internal HTTP call can deadlock). Cookie value = user ID to
+  // prevent cross-user forgery.
+  const jar = await cookies()
+  jar.set('__dpa_ack', session.user.id, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path:     '/',
+    maxAge:   30 * 24 * 60 * 60, // 30 days
+  })
+
+  // Best-effort JWT patch — fire-and-forget so a hang never blocks the response
+  void unstable_update({ dpaAcceptedAt: now.toISOString() } as any)
 }

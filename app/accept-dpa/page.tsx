@@ -173,7 +173,7 @@ export default function AcceptDpaPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-start sm:items-center justify-center p-4 sm:py-8">
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col overflow-hidden"
         style={{ maxHeight: 'calc(100dvh - 2rem)' }}
       >
         {/* Header */}

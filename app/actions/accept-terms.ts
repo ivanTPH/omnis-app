@@ -1,5 +1,6 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { auth, unstable_update } from '@/lib/auth'
 import { prisma, writeAudit } from '@/lib/prisma'
 
@@ -80,6 +81,16 @@ export async function acceptTerms(acceptedConsents: string[] = []) {
     }
   }
 
-  // Patch JWT so middleware gate clears immediately without re-login
-  await unstable_update({ termsAcceptedAt: now.toISOString() } as any)
+  // Set a fallback cookie so the middleware gate clears even if unstable_update hangs
+  const jar = await cookies()
+  jar.set('__terms_ack', session.user.id, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path:     '/',
+    maxAge:   30 * 24 * 60 * 60,
+  })
+
+  // Best-effort JWT patch — fire-and-forget
+  void unstable_update({ termsAcceptedAt: now.toISOString() } as any)
 }

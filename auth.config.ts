@@ -84,8 +84,13 @@ export const authConfig = {
       const pathname = req.nextUrl?.pathname ?? '/dashboard'
       const role     = user.role as string
 
-      // DPA gate — staff must acknowledge data processing agreement on first access
-      if ((STAFF_ROLES as readonly string[]).includes(role) && !(auth as any)?.user?.dpaAcceptedAt && pathname !== '/accept-dpa') {
+      // DPA gate — staff must acknowledge data processing agreement on first access.
+      // Primary signal: dpaAcceptedAt in the JWT (set at login or via unstable_update).
+      // Fallback signal: __dpa_ack cookie (set by acceptDpa() server action to avoid
+      // blocking on unstable_update which can hang in self-hosted Docker environments).
+      const dpaCookie = req.cookies.get('__dpa_ack')?.value
+      const hasDpa = !!(auth as any)?.user?.dpaAcceptedAt || dpaCookie === (user.id as string)
+      if ((STAFF_ROLES as readonly string[]).includes(role) && !hasDpa && pathname !== '/accept-dpa') {
         const url = req.nextUrl.clone()
         url.pathname = '/accept-dpa'
         return NextResponse.redirect(url)
@@ -93,7 +98,9 @@ export const authConfig = {
 
       // Terms/AUP gate — parents and students must accept T&C before first access
       const PARENT_STUDENT_ROLES = ['PARENT', 'STUDENT']
-      if (PARENT_STUDENT_ROLES.includes(role) && !(auth as any)?.user?.termsAcceptedAt && pathname !== '/accept-terms') {
+      const termsCookie = req.cookies.get('__terms_ack')?.value
+      const hasTerms = !!(auth as any)?.user?.termsAcceptedAt || termsCookie === (user.id as string)
+      if (PARENT_STUDENT_ROLES.includes(role) && !hasTerms && pathname !== '/accept-terms') {
         const url = req.nextUrl.clone()
         url.pathname = '/accept-terms'
         return NextResponse.redirect(url)

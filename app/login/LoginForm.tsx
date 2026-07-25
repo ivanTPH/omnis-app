@@ -21,7 +21,7 @@ const PLATFORM_DEMOS = [
   { role: 'Platform Admin',    email: 'platform@omnis.edu'  },
 ]
 
-export default function LoginForm({ showDemo }: { showDemo: boolean }) {
+export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolean }) {
   const [verified, setVerified] = useState(false)
   useEffect(() => {
     setVerified(new URLSearchParams(window.location.search).get('verified') === '1')
@@ -33,6 +33,7 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
   const [loading, setLoading] = useState(false)
   const [mfaStep, setMfaStep] = useState(false) // true once a code has been emailed and we're waiting for it
   const [rememberMe, setRememberMe] = useState(true)
+  const [showDemo, setShowDemo] = useState(showDemoProp)
 
   // Step 1: verify credentials. Staff accounts get emailed a code and move
   // to step 2; everyone else (or if MFA infra isn't configured) signs in
@@ -120,6 +121,11 @@ export default function LoginForm({ showDemo }: { showDemo: boolean }) {
                 </button>
                 <p className="text-center text-sm text-gray-500">
                   <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
+                </p>
+                <p className="text-center text-sm text-gray-400">
+                  <button type="button" onClick={() => setShowDemo(v => !v)} className="hover:text-blue-600 hover:underline transition-colors">
+                    {showDemo ? 'Hide demo accounts' : 'Explore demo accounts →'}
+                  </button>
                 </p>
               </form>
             </>

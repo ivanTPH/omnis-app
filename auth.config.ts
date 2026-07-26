@@ -34,6 +34,7 @@ function getRoleHome(role: string): string {
 // corresponding app/actions/*.ts file instead.
 
 const ROLE_ROUTES: { prefix: string; roles: string[] }[] = [
+  { prefix: '/demo',            roles: ['PLATFORM_ADMIN'] },
   { prefix: '/platform-admin',  roles: ['PLATFORM_ADMIN'] },
   { prefix: '/academy',         roles: ['ACADEMY_ADMIN', 'PLATFORM_ADMIN'] },
   { prefix: '/admin/subjects',  roles: ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'] },

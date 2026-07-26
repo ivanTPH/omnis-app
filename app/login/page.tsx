@@ -1,5 +1,5 @@
 import LoginForm from './LoginForm'
 
 export default function LoginPage() {
-  return <LoginForm showDemo={true} />
+  return <LoginForm showDemo={false} />
 }

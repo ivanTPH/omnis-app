@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import Icon from '@/components/ui/Icon'
 
@@ -22,19 +22,29 @@ const PLATFORM_ROLES = [
 ]
 
 export default function DemoRolePicker({ firstName }: { firstName: string }) {
-  const [switching, setSwitching] = useState<string | null>(null)
+  const [switching,   setSwitching]   = useState<string | null>(null)
+  const [switchError, setSwitchError] = useState<string | null>(null)
 
   async function switchTo(email: string) {
     setSwitching(email)
-    const result = await signIn('credentials', {
-      email,
-      password: 'Demo1234!',
-      redirect: false,
-    })
-    if (result?.error) {
+    setSwitchError(null)
+    try {
+      // Sign out of current session first so NextAuth replaces it cleanly
+      await signOut({ redirect: false })
+      const result = await signIn('credentials', {
+        email,
+        password: 'Demo1234!',
+        redirect: false,
+      })
+      if (result?.error) {
+        setSwitchError(`Could not sign in as ${email} — ${result.error}`)
+        setSwitching(null)
+      } else {
+        location.assign('/')
+      }
+    } catch (err) {
+      setSwitchError(String(err))
       setSwitching(null)
-    } else {
-      location.assign('/')
     }
   }
 
@@ -122,6 +132,12 @@ export default function DemoRolePicker({ firstName }: { firstName: string }) {
             })}
           </div>
         </div>
+
+        {switchError && (
+          <div className="mt-4 px-4 py-3 bg-red-900/40 border border-red-500/50 text-red-200 text-sm rounded-xl">
+            {switchError}
+          </div>
+        )}
 
         <p className="text-center text-blue-300 text-xs mt-5">
           Click any role to sign in instantly. Use the <span className="font-medium text-white">Switch role</span> button inside the app to switch without returning here.

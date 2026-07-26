@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
 import { getDemoSessionEmail } from '@/app/actions/demo'
 
@@ -29,6 +29,7 @@ export default function DemoRoleSwitcher() {
   const [open,         setOpen]         = useState(false)
   const [currentEmail, setCurrentEmail] = useState<string | null>(null)
   const [switching,    setSwitching]    = useState<string | null>(null)
+  const [switchError,  setSwitchError]  = useState<string | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -63,22 +64,28 @@ export default function DemoRoleSwitcher() {
 
   async function switchTo(email: string, isOwner = false) {
     setSwitching(email)
+    setSwitchError(null)
     setOpen(false)
-    const password = isOwner ? undefined : 'Demo1234!'
-    if (isOwner) {
-      // Return to own account — clear demo mode flag first
-      localStorage.removeItem(LS_KEY)
-    }
-    const result = await signIn('credentials', {
-      email,
-      password: password ?? 'Demo1234!',
-      redirect: false,
-    })
-    if (result?.error) {
+    if (isOwner) localStorage.removeItem(LS_KEY)
+    try {
+      // Sign out first so NextAuth replaces the session cleanly
+      await signOut({ redirect: false })
+      const result = await signIn('credentials', {
+        email,
+        password: 'Demo1234!',
+        redirect: false,
+      })
+      if (result?.error) {
+        setSwitchError(`Sign-in failed: ${result.error}`)
+        setSwitching(null)
+        if (isOwner) localStorage.setItem(LS_KEY, '1')
+      } else {
+        location.assign('/')
+      }
+    } catch (err) {
+      setSwitchError(String(err))
       setSwitching(null)
-      if (isOwner) localStorage.setItem(LS_KEY, '1') // restore flag on failure
-    } else {
-      window.location.href = '/'
+      if (isOwner) localStorage.setItem(LS_KEY, '1')
     }
   }
 
@@ -175,6 +182,11 @@ export default function DemoRoleSwitcher() {
             </div>
           </div>
 
+          {switchError && (
+            <div className="mx-3 mb-2 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
+              {switchError}
+            </div>
+          )}
           <div className="px-4 py-2 border-t border-gray-100 text-[10px] text-gray-400 text-center">
             Visible only to ivanyardley@me.com
           </div>

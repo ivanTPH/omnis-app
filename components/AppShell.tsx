@@ -16,6 +16,7 @@ import GlobalSearch from '@/components/GlobalSearch'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 import SessionTimeout from '@/components/SessionTimeout'
 import TrialBanner from '@/components/TrialBanner'
+import DemoRoleSwitcher from '@/components/DemoRoleSwitcher'
 import Link from 'next/link'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
@@ -160,6 +161,7 @@ export default function AppShell({
       <OnboardingChecklist role={role} />
       {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
       <SessionTimeout />
+      <DemoRoleSwitcher />
     </TeacherProfileContext.Provider>
     </NotificationCountContext.Provider>
     </MobileMenuContext.Provider>

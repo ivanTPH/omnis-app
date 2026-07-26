@@ -173,6 +173,7 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   PLATFORM_ADMIN: [
     { label: 'Dashboard',        href: '/platform-admin/dashboard', icon: 'dashboard'      },
+    { label: 'Beta Signups',     href: '/platform-admin/signups',   icon: 'people'         },
     { label: 'Academy Overview', href: '/academy/dashboard',        icon: 'account_balance' },
     { label: 'Schools',          href: '/platform-admin/schools',   icon: 'business'       },
     { label: 'Oak Sync',         href: '/platform-admin/oak-sync',  icon: 'sync'           },

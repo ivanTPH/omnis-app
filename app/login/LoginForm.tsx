@@ -122,11 +122,13 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
                 <p className="text-center text-sm text-gray-500">
                   <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
                 </p>
-                <p className="text-center text-sm text-gray-400">
-                  <button type="button" onClick={() => setShowDemo(v => !v)} className="hover:text-blue-600 hover:underline transition-colors">
-                    {showDemo ? 'Hide demo accounts' : 'Explore demo accounts →'}
-                  </button>
-                </p>
+                {showDemoProp && (
+                  <p className="text-center text-sm text-gray-400">
+                    <button type="button" onClick={() => setShowDemo(v => !v)} className="hover:text-blue-600 hover:underline transition-colors">
+                      {showDemo ? 'Hide demo accounts' : 'Explore demo accounts →'}
+                    </button>
+                  </p>
+                )}
               </form>
             </>
           ) : (
@@ -173,7 +175,7 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
             </>
           )}
         </div>
-        {!mfaStep && showDemo && (
+        {!mfaStep && showDemoProp && showDemo && (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-5 space-y-4">
             <p className="text-blue-100 text-sm font-medium">Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>
 

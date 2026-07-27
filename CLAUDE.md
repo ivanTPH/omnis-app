@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-07-01. Authoritative reference for Claude sessions.
+> Last updated: 2026-07-27. Authoritative reference for Claude sessions.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
@@ -415,6 +415,33 @@
 > E2E: `e2e/tests/demo-account-setup.spec.ts` — 8 tests: page rendering, client-side validation
 > (mismatch/too-short), expired/used/valid token flows, activatedAt set, token marked used.
 > **E2E: 38 spec files, 458 tests (450 prior + 8 new).**
+>
+> July 2026 Demo + Platform infrastructure (2026-07-27):
+> (1) Demo role system — `ivanyardley@me.com` role changed to PLATFORM_ADMIN. `/demo` page (PLATFORM_ADMIN
+> only, DB email guard) renders DemoRolePicker: dark-blue full-screen picker with school + platform role
+> cards; clicking a role calls `signOut({redirect:false})` then `signIn('credentials',...)` then
+> `location.assign('/')`. `DemoRoleSwitcher` floating bottom-right component in AppShell: visible only to
+> `ivanyardley@me.com` + accounts with `omnis-demo-owner` localStorage flag; shows "Demo active" (amber)
+> when in demo account, "Switch role" (blue) when on own account; "Your account" button returns to owner.
+> `app/actions/demo.ts` — `getDemoSessionEmail()` server action. Root redirect (`app/page.tsx`) and
+> `app/demo/page.tsx` both use DB lookup for email check (email is NOT in JWT). SignOut-before-SignIn
+> pattern required in NextAuth v5 to prevent hang when already authenticated.
+> (2) Beta signups dashboard — `/platform-admin/signups` (PLATFORM_ADMIN, previously email-gated to
+> ivanyardley@me.com — gate removed so platform@omnis.edu demo account can also view). `app/actions/signups.ts`:
+> `getSignupDashboard()` joins BetaApplication + User, deduplicates by email, returns rows + 5 KPI stats.
+> `markSignupReviewed()` action. `SignupsDashboard` component: stat cards, table with Account/Activated/DPA
+> status pills, trial badge, test-account filter, "Mark reviewed" button. "Beta Signups" link in
+> PLATFORM_ADMIN sidebar.
+> (3) Cron infrastructure — `.github/workflows/crons.yml` added: `demo-refresh` schedule (Mon 00:30 UTC)
+> + all other cron jobs moved from Vercel. All cron routes are GET (not POST) — crons.yml uses curl
+> without `-X POST`. `CRON_SECRET` set in both Coolify env vars and GitHub Actions secrets.
+> (4) AppShell sidebar audit — full audit of all ~100 authenticated pages; 4 pages were missing sidebar:
+> `parent/communications` (client component extracted to `ParentCommunicationsClient.tsx`, page.tsx
+> converted to server wrapper), `admin/communications` (AppShell added), `hoy/safeguarding` (AppShell
+> added), `senco/bulk-review` (client component extracted to `BulkReviewClient.tsx`, page.tsx converted
+> to server wrapper). All other pages confirmed to have AppShell. Pattern: 'use client' pages cannot
+> call requireAuth() — extract to *Client.tsx, make page.tsx a server component wrapper.
+> **Latest commit:** 74b85e2 (fix: add AppShell sidebar to 4 pages missing navigation). E2E: **457/458 passed, 0 failed on Coolify (2026-07-27). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

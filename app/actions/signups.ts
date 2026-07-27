@@ -28,14 +28,8 @@ export interface SignupStats {
   trialActive: number
 }
 
-async function assertDemoOwner(userId: string) {
-  const dbUser = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
-  if (dbUser?.email !== 'ivanyardley@me.com') throw new Error('Forbidden')
-}
-
 export async function getSignupDashboard(): Promise<{ rows: SignupRow[]; stats: SignupStats }> {
-  const user = await requireAuth('PLATFORM_ADMIN')
-  await assertDemoOwner(user.id)
+  await requireAuth('PLATFORM_ADMIN')
 
   // Deduplicate by email — keep latest application per email
   const apps = await prisma.betaApplication.findMany({
@@ -92,7 +86,6 @@ export async function getSignupDashboard(): Promise<{ rows: SignupRow[]; stats: 
 }
 
 export async function markSignupReviewed(id: string): Promise<void> {
-  const user = await requireAuth('PLATFORM_ADMIN')
-  await assertDemoOwner(user.id)
+  await requireAuth('PLATFORM_ADMIN')
   await prisma.betaApplication.update({ where: { id }, data: { reviewed: true } })
 }

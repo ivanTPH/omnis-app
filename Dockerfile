@@ -19,6 +19,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Bake git SHA into the image at build time so Sentry release tracking works.
+# Coolify passes COMMIT_SHA as a build arg; defaults to "local" in dev builds.
+ARG COMMIT_SHA=local
+ENV NEXT_PUBLIC_COMMIT_SHA=${COMMIT_SHA}
+
 # Sentry source-map upload is optional; silenced in next.config.ts when
 # SENTRY_AUTH_TOKEN is absent, so the build never fails without it.
 RUN npm run build

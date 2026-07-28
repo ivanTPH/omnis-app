@@ -1,4 +1,5 @@
 'use client'
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 import Link from 'next/link'
@@ -11,7 +12,7 @@ export default function RevisionTaskError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    console.error(error); Sentry.captureException(error)
   }, [error])
 
   return (

@@ -1,4 +1,5 @@
 'use client'
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 
@@ -8,7 +9,7 @@ export default function TimetableError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  useEffect(() => { console.error(error) }, [error])
+  useEffect(() => { console.error(error); Sentry.captureException(error) }, [error])
   return (
     <div className="flex flex-col items-center justify-center h-64 text-center px-4">
       <Icon name="event_busy" size="lg" className="text-gray-300 mb-3" />

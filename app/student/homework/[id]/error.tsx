@@ -1,4 +1,5 @@
 'use client'
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 
@@ -9,7 +10,7 @@ export default function StudentHomeworkError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  useEffect(() => { console.error(error) }, [error])
+  useEffect(() => { console.error(error); Sentry.captureException(error) }, [error])
 
   return (
     <div className="flex-1 flex items-center justify-center min-h-[400px]">

@@ -1,4 +1,5 @@
 'use client'
+import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 import Icon from '@/components/ui/Icon'
 
@@ -10,7 +11,7 @@ export default function StudentRevisionError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    console.error(error); Sentry.captureException(error)
   }, [error])
 
   return (

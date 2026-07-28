@@ -300,6 +300,16 @@ export async function saveSharingSettings(input: {
 }
 
 /** Fetch the current user's avatar URL (for sidebar display). */
+/** Returns minimal session identity for client-side Sentry user context. No DB call. */
+export async function getSessionIdentity(): Promise<{ id: string; schoolId: string; role: string; schoolName: string } | null> {
+  try {
+    const user = await requireAuth()
+    return { id: user.id, schoolId: user.schoolId, role: user.role, schoolName: user.schoolName }
+  } catch {
+    return null
+  }
+}
+
 export async function getMyAvatarUrl(): Promise<string | null> {
   try {
     const { id: userId } = await requireAuth()

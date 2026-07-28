@@ -17,6 +17,8 @@ import NotificationUnreadBadge from '@/components/notifications/NotificationUnre
 import SessionTimeout from '@/components/SessionTimeout'
 import TrialBanner from '@/components/TrialBanner'
 import DemoRoleSwitcher from '@/components/DemoRoleSwitcher'
+import SentryUserContext from '@/components/SentryUserContext'
+import { getSessionIdentity } from '@/app/actions/settings'
 import Link from 'next/link'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
@@ -35,6 +37,10 @@ export default function AppShell({
   const [open,              setOpen]              = useState(false)
   const [teacherProfile,    setTeacherProfile]    = useState<TeacherProfile>(EMPTY_PROFILE)
   const [notificationCount, setNotificationCount] = useState(contextNotificationCount)
+  const [sentryIdentity,    setSentryIdentity]    = useState<{ id: string; schoolId: string; role: string; schoolName: string } | null>(null)
+
+  // Fetch session identity once for Sentry user context
+  useEffect(() => { getSessionIdentity().then(setSentryIdentity).catch(() => {}) }, [])
 
   // Sync when context updates — e.g. after router.refresh() following mark-as-read
   useEffect(() => { setNotificationCount(contextNotificationCount) }, [contextNotificationCount])
@@ -162,6 +168,7 @@ export default function AppShell({
       {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
       <SessionTimeout />
       <DemoRoleSwitcher />
+      {sentryIdentity && <SentryUserContext {...sentryIdentity} />}
     </TeacherProfileContext.Provider>
     </NotificationCountContext.Provider>
     </MobileMenuContext.Provider>

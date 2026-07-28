@@ -81,6 +81,20 @@ export async function verifyAndConsumeMfaCode(userId: string, code: string): Pro
   return true
 }
 
+/**
+ * Password reset rate limit: 3 requests per hour per IP.
+ * Prevents email-bombing any address with reset emails.
+ */
+const passwordResetRatelimiter = redis
+  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '1 h'), prefix: 'rl:pwreset' })
+  : null
+
+export async function checkPasswordResetRateLimit(identifier: string): Promise<{ success: boolean }> {
+  if (!passwordResetRatelimiter) return { success: true }
+  const result = await passwordResetRatelimiter.limit(identifier)
+  return { success: result.success }
+}
+
 /** Max 3 code requests per user per 10 minutes — prevents email-bombing a staff inbox. */
 const mfaRatelimiter = redis
   ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(3, '10 m'), prefix: 'rl:mfa' })

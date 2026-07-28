@@ -24,6 +24,7 @@ on:
     - cron: '0 9 * * 3'    # concern-stale      — Wed 09:00 UTC
     - cron: '30 7 * * 4'   # weekly-parent-summary — Thu 07:30 UTC
     - cron: '30 0 * * 1'   # demo-refresh          — Mon 00:30 UTC
+    - cron: '30 9 * * *'   # trial-onboarding      — daily 09:30 UTC
   workflow_dispatch:
 
 env:
@@ -143,3 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: curl -sf "$BASE/api/cron/demo-refresh" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  trial-onboarding:
+    if: github.event.schedule == '30 9 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf "$BASE/api/cron/trial-onboarding" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

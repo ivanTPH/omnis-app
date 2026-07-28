@@ -1006,3 +1006,155 @@ export async function sendBetaWelcomeEmail(params: {
     `,
   )
 }
+
+// ─── Trial onboarding sequence ────────────────────────────────────────────────
+
+function trialHeader(title: string): string {
+  return `
+  <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
+    <div style="background:linear-gradient(135deg,#1e3a8a 0%,#0f766e 100%);padding:24px 32px;border-radius:12px 12px 0 0;">
+      <p style="color:#bfdbfe;font-size:12px;margin:0 0 4px;letter-spacing:0.05em;text-transform:uppercase;">Omnis Education</p>
+      <h1 style="color:#fff;font-size:22px;margin:0;font-weight:700;">${title}</h1>
+    </div>
+    <div style="background:#f9fafb;padding:28px 32px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb;border-top:none;">`
+}
+
+function trialFooter(daysLeft: number | null): string {
+  const trialNote = daysLeft !== null
+    ? `<p style="color:#6b7280;font-size:12px;margin:16px 0 0;">Your free trial has <strong>${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining</strong>. Questions? Reply to this email and we'll get back to you.</p>`
+    : ''
+  return `
+      ${trialNote}
+      <p style="color:#d1d5db;font-size:11px;margin:20px 0 0;border-top:1px solid #e5e7eb;padding-top:16px;">
+        Omnis Education · <a href="https://omnis.education" style="color:#d1d5db;">omnis.education</a>
+      </p>
+    </div>
+  </div>`
+}
+
+/** Day 1 — sent ~24h after first login. Guides the user to their first key action. */
+export async function sendTrialDay1Email(params: {
+  to: string
+  firstName: string
+  daysLeft: number
+  dashboardUrl: string
+}): Promise<void> {
+  const { to, firstName, daysLeft, dashboardUrl } = params
+  await send(
+    to,
+    `${firstName}, here's how to get the most from your Omnis trial`,
+    trialHeader('Getting started with Omnis') + `
+      <p style="color:#374151;margin:0 0 16px;">Hi ${firstName},</p>
+      <p style="color:#374151;margin:0 0 20px;">
+        Thanks for activating your Omnis trial. Here are three things to try in your first few days —
+        each takes under five minutes and shows you what Omnis can do for your school.
+      </p>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:0 0 24px;">
+        <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:20px;">📋</span>
+          <div>
+            <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">1. Explore a lesson and class roster</p>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">Open any lesson to see the student roster, SEND badges, and homework for that class.</p>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:20px;">📝</span>
+          <div>
+            <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">2. Generate an AI homework task</p>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">Open any lesson → Homework tab → Create homework → let AI generate questions from your lesson content.</p>
+          </div>
+        </div>
+        <div style="padding:14px 20px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:20px;">📊</span>
+          <div>
+            <p style="margin:0;font-weight:600;color:#111827;font-size:14px;">3. View student analytics</p>
+            <p style="margin:4px 0 0;color:#6b7280;font-size:13px;">Head to Analytics → Students to see grade trends, SEND attainment, and Bloom's performance per class.</p>
+          </div>
+        </div>
+      </div>
+
+      <a href="${dashboardUrl}" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Go to your dashboard →</a>
+    ` + trialFooter(daysLeft),
+  )
+}
+
+/** Day 3 — sent ~72h after first login. Highlights AI and SEND features. */
+export async function sendTrialDay3Email(params: {
+  to: string
+  firstName: string
+  daysLeft: number
+  dashboardUrl: string
+}): Promise<void> {
+  const { to, firstName, daysLeft, dashboardUrl } = params
+  await send(
+    to,
+    `Have you tried these Omnis features yet, ${firstName}?`,
+    trialHeader('Features worth exploring') + `
+      <p style="color:#374151;margin:0 0 16px;">Hi ${firstName},</p>
+      <p style="color:#374151;margin:0 0 20px;">
+        Now that you've had a chance to explore, here are some of Omnis's most popular features
+        that schools tell us save real time every week.
+      </p>
+
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:0 0 20px;">
+        <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;">
+          <p style="margin:0 0 2px;font-weight:600;color:#111827;font-size:14px;">🤖 AI goal generation for ILPs</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">SENCO dashboard → open any student with a SEND plan → "Generate Goals". Omnis writes SMART targets using the student's own performance data.</p>
+        </div>
+        <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;">
+          <p style="margin:0 0 2px;font-weight:600;color:#111827;font-size:14px;">📈 SEND attainment gap in analytics</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Analytics → Classes → select a class → the Performance tab shows SEND vs non-SEND grade averages with RAG coding.</p>
+        </div>
+        <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;">
+          <p style="margin:0 0 2px;font-weight:600;color:#111827;font-size:14px;">📚 Oak National Academy resources</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Open a lesson → Resources tab → search Oak for aligned lesson content with SEND accessibility scores built in.</p>
+        </div>
+        <div style="padding:14px 20px;">
+          <p style="margin:0 0 2px;font-weight:600;color:#111827;font-size:14px;">🔔 Early warning flags</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">SENCO → Early Warning shows students showing patterns (missed homework, grade drops, behaviour spikes) that often precede a SEND concern.</p>
+        </div>
+      </div>
+
+      <a href="${dashboardUrl}" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Continue exploring →</a>
+    ` + trialFooter(daysLeft),
+  )
+}
+
+/** Day 7 — sent ~168h after first login. Check-in, support offer, trial status. */
+export async function sendTrialDay7Email(params: {
+  to: string
+  firstName: string
+  daysLeft: number
+  dashboardUrl: string
+}): Promise<void> {
+  const { to, firstName, daysLeft, dashboardUrl } = params
+  await send(
+    to,
+    `One week in — how is your Omnis trial going, ${firstName}?`,
+    trialHeader('A week in — any questions?') + `
+      <p style="color:#374151;margin:0 0 16px;">Hi ${firstName},</p>
+      <p style="color:#374151;margin:0 0 20px;">
+        You've been exploring Omnis for a week. We hope it's been useful — and we'd love to hear what
+        you think, or help with anything you haven't been able to find.
+      </p>
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px 20px;margin:0 0 20px;">
+        <p style="margin:0 0 8px;font-weight:600;color:#1e40af;font-size:14px;">Three questions we'd love your answers to</p>
+        <ol style="margin:0;padding:0 0 0 18px;color:#374151;font-size:13px;line-height:1.7;">
+          <li>Which part of Omnis has been most useful so far?</li>
+          <li>Is there a workflow in your school that Omnis hasn't covered?</li>
+          <li>Would you like a 30-minute walkthrough with the team?</li>
+        </ol>
+        <p style="margin:12px 0 0;font-size:13px;color:#1e40af;">Just reply to this email — we read every response.</p>
+      </div>
+
+      <p style="color:#374151;margin:0 0 20px;font-size:14px;">
+        If you're ready to move forward, we can set up a full school account with your own data,
+        Wonde MIS integration, and onboarding support for your staff.
+      </p>
+
+      <a href="${dashboardUrl}" style="display:inline-block;background:#1d4ed8;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Back to your dashboard →</a>
+    ` + trialFooter(daysLeft),
+  )
+}

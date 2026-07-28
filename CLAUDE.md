@@ -457,6 +457,22 @@
 > previously blocked all PLATFORM_ADMIN accounts except `ivanyardley@me.com`; gate removed so
 > `platform@omnis.edu` demo account can also access the signups dashboard.
 > **Latest commit:** 4f2d527 (fix: hide demo accounts toggle when showDemo prop is false). E2E: **457/458 passed, 3 flaky/retry, 0 failed on Coolify (2026-07-28). Exit 0.**
+>
+> July 2026 Security audit + fixes (2026-07-28):
+> Full security review across auth, API routes, cron endpoints, XSS, open redirects, raw SQL, rate
+> limiting, and file upload. Findings: (1) CRON_SECRET conditional bypass — `agent-plan-synthesis`
+> and `agent-quality` used `if (secret && authHeader !== ...)` meaning routes were fully open when
+> env var absent; fixed to `if (!secret || authHeader !== ...)` — now hard-fail when unset.
+> (2) No rate limiting on `/api/auth/forgot-password` — unlimited POST per IP could spam reset
+> emails; added `checkPasswordResetRateLimit` (3 req/hr/IP sliding window) to `lib/kv.ts` and
+> applied to forgot-password route; returns 200 regardless to avoid leaking rate-limit state.
+> (3) Demo accounts toggle bypass — `LoginForm.tsx` "Explore demo accounts →" toggle was always
+> rendered regardless of `showDemo` prop; fixed to only render when `showDemoProp=true`.
+> Items confirmed safe: avatar upload (type+size validated, requireAuth enforced), all contact
+> forms (rate-limited + h() HTML-escaped), password reset/invite tokens (SHA-256 hashed, single-use,
+> expiring), raw SQL uses Prisma tagged templates (parameterised), no user-controlled redirects,
+> no user input flows through dangerouslySetInnerHTML, HSTS/CSP/X-Frame-Options DENY all live.
+> **Latest commit:** 9010421 (fix: harden cron secret checks and add forgot-password rate limiting).
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

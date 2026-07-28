@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-07-27. Authoritative reference for Claude sessions.
+> Last updated: 2026-07-28. Authoritative reference for Claude sessions.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
@@ -442,6 +442,21 @@
 > to server wrapper). All other pages confirmed to have AppShell. Pattern: 'use client' pages cannot
 > call requireAuth() — extract to *Client.tsx, make page.tsx a server component wrapper.
 > **Latest commit:** 74b85e2 (fix: add AppShell sidebar to 4 pages missing navigation). E2E: **457/458 passed, 0 failed on Coolify (2026-07-27). Exit 0.**
+>
+> July 2026 (2026-07-28) — Login security + sidebar consistency:
+> (1) Demo accounts toggle security fix — `LoginForm.tsx` toggle button ("Explore demo accounts →") was
+> always rendered regardless of `showDemo` prop, allowing unauthenticated users to expand the demo panel
+> and view all credentials. Fixed: toggle and panel now only render when `showDemoProp=true`; production
+> login (`showDemo={false}`) is a clean form with no demo access. Demo accounts only accessible after
+> signing in as `ivanyardley@me.com` via `/demo`.
+> (2) AppShell sidebar audit — comprehensive grep across all ~100 authenticated pages confirmed 4 missing:
+> `parent/communications` + `senco/bulk-review` (client components extracted to `*Client.tsx`, page.tsx
+> converted to server wrapper), `admin/communications` + `hoy/safeguarding` (AppShell added directly).
+> All redirect-only pages (< 10 lines) and public pages confirmed correct. Zero missing after fixes.
+> (3) Beta signups email gate removed — `/platform-admin/signups` page and `getSignupDashboard()` action
+> previously blocked all PLATFORM_ADMIN accounts except `ivanyardley@me.com`; gate removed so
+> `platform@omnis.edu` demo account can also access the signups dashboard.
+> **Latest commit:** 4f2d527 (fix: hide demo accounts toggle when showDemo prop is false). E2E: **457/458 passed, 3 flaky/retry, 0 failed on Coolify (2026-07-28). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

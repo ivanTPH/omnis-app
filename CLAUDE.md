@@ -472,7 +472,7 @@
 > forms (rate-limited + h() HTML-escaped), password reset/invite tokens (SHA-256 hashed, single-use,
 > expiring), raw SQL uses Prisma tagged templates (parameterised), no user-controlled redirects,
 > no user input flows through dangerouslySetInnerHTML, HSTS/CSP/X-Frame-Options DENY all live.
-> **Latest commit:** 9010421 (fix: harden cron secret checks and add forgot-password rate limiting).
+> **Latest commit:** 9010421 (fix: harden cron secret checks and add forgot-password rate limiting). E2E: **457/458 passed, 4 flaky/retry, 0 failed on Coolify (2026-07-28). Exit 0.**
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

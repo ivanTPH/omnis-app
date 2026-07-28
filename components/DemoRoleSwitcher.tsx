@@ -66,7 +66,16 @@ export default function DemoRoleSwitcher() {
     setSwitching(email)
     setSwitchError(null)
     setOpen(false)
-    if (isOwner) localStorage.removeItem(LS_KEY)
+    if (isOwner) {
+      // Return to own account: sign out, clear the demo flag, redirect to login
+      // (owner must re-enter their real password — we don't store it)
+      localStorage.removeItem(LS_KEY)
+      try {
+        await signOut({ redirect: false })
+      } catch { /* ignore */ }
+      location.assign('/login')
+      return
+    }
     try {
       // Sign out first so NextAuth replaces the session cleanly
       await signOut({ redirect: false })
@@ -78,14 +87,12 @@ export default function DemoRoleSwitcher() {
       if (result?.error) {
         setSwitchError(`Sign-in failed: ${result.error}`)
         setSwitching(null)
-        if (isOwner) localStorage.setItem(LS_KEY, '1')
       } else {
         location.assign('/')
       }
     } catch (err) {
       setSwitchError(String(err))
       setSwitching(null)
-      if (isOwner) localStorage.setItem(LS_KEY, '1')
     }
   }
 

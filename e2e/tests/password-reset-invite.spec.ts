@@ -370,12 +370,8 @@ test.describe('Staff invitation — valid token (DB-backed)', () => {
       await checkboxes.nth(i).check()
     }
     await page.click('button[type="submit"]')
-    await page.waitForTimeout(3000)
-    // Should show "Account ready" success screen or redirect to login
-    const url  = page.url()
-    const body = await page.locator('body').innerText()
-    const success = url.includes('/login') || body.toLowerCase().match(/account ready|you can now sign in|sign in/) !== null
-    expect(success).toBe(true)
+    // Wait for "Account ready" success screen or redirect to /login (cold Lambda may be slow: 5-10s)
+    await expect(page.locator('body')).toContainText(/account ready|you can now sign in|sign in/i, { timeout: 15_000 })
 
     // Record created user id for cleanup
     const created = await prisma.user.findFirst({ where: { email: inviteEmail }, select: { id: true } })

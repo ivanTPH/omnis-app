@@ -67,10 +67,9 @@ test.describe('HOY Behaviour Overview — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error/i)
-    expect(body).toMatch(/students/i)
-    expect(body).toMatch(/with exclusion|negative records|positive records/i)
+    await expect(page.locator('body')).not.toContainText(/something went wrong|unexpected error/i, { timeout: 5_000 })
+    await expect(page.locator('body')).toContainText(/students/i, { timeout: 15_000 })
+    await expect(page.locator('body')).toContainText(/with exclusion|negative records|positive records/i, { timeout: 15_000 })
   })
 
   test('year filter buttons are present', async ({ page }) => {
@@ -79,9 +78,8 @@ test.describe('HOY Behaviour Overview — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/all years/i)
-    expect(body).toMatch(/year 9|year 10|year 11/i)
+    await expect(page.locator('body')).toContainText(/all years/i, { timeout: 15_000 })
+    await expect(page.locator('body')).toContainText(/year 9|year 10|year 11/i, { timeout: 15_000 })
   })
 
   test('CSV export buttons are rendered', async ({ page }) => {
@@ -103,10 +101,8 @@ test.describe('HOY Behaviour Overview — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
     // Either a table with students or the empty state message
-    const hasTable = body.match(/student|no behaviour data/i)
-    expect(hasTable).toBeTruthy()
+    await expect(page.locator('body')).toContainText(/student|no behaviour data/i, { timeout: 15_000 })
   })
 })
 

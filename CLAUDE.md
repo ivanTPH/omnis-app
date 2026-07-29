@@ -473,6 +473,52 @@
 > expiring), raw SQL uses Prisma tagged templates (parameterised), no user-controlled redirects,
 > no user input flows through dangerouslySetInnerHTML, HSTS/CSP/X-Frame-Options DENY all live.
 > **Latest commit:** 9010421 (fix: harden cron secret checks and add forgot-password rate limiting). E2E: **457/458 passed, 4 flaky/retry, 0 failed on Coolify (2026-07-28). Exit 0.**
+> 
+> July 2026 Platform + infra sprint (2026-07-29): 7-point improvement session.
+> (1) E2E cold-start flake fixes — hoy-behaviour-detentions.spec.ts (KPI cards + year filter +
+> student table), sprint-c-academy.spec.ts (admin dashboard crash + concerns stat + HOY analytics),
+> password-reset-invite.spec.ts (invite success state): all replaced single-shot `innerText()` +
+> `expect(body).toMatch()` patterns with polling `await expect(page.locator('body')).toContainText(
+> …, { timeout: 15_000 })` — resilient to cold-start skeleton HTML on Coolify.
+> (2) DemoRoleSwitcher "Your account" bug — button tried `signIn('credentials', { email:
+> 'ivanyardley@me.com', password: 'Demo1234!' })` which always fails (real password ≠ Demo1234!).
+> Fixed: when `isOwner=true`, clear localStorage demo flag, `signOut({redirect:false})`, then
+> `location.assign('/login')` — owner signs in with real credentials.
+> (3) Trial onboarding email sequence — `User.trialNudgeSent Int @default(0)` added to schema
+> (pushed to DB). `lib/email.ts`: `sendTrialDay1Email` (getting-started guide — 3 key actions),
+> `sendTrialDay3Email` (feature spotlight — AI ILP, SEND gap, Oak, early warning),
+> `sendTrialDay7Email` (week check-in + upgrade CTA). `/api/cron/trial-onboarding` new route
+> (daily 09:30 UTC): finds activated trial users by `activatedAt` age (≥23h→day1, ≥71h→day3,
+> ≥167h→day7) and `trialNudgeSent` threshold; sends email; updates `trialNudgeSent`; returns
+> counts. `crons.yml` extended with `trial-onboarding` job.
+> (4) Sentry error monitoring wired up properly — all 27 route-level `error.tsx` files updated to
+> import Sentry and call `captureException(error)` alongside `console.error`. `SentryUserContext`
+> client component (new) sets `Sentry.setUser({ id, role, schoolId, schoolName })` on mount and
+> clears on unmount. `getSessionIdentity()` lightweight server action added to `app/actions/settings.ts`
+> (JWT read, no DB call). `AppShell` fetches identity on mount and renders `SentryUserContext`.
+> `sentry.{server,edge,client}.config.ts` all updated: `release: NEXT_PUBLIC_COMMIT_SHA`,
+> `tracesSampleRate: 0.05` (prod-only), `ignoreErrors` for Next.js redirect/not-found noise.
+> `Dockerfile` builder stage passes `ARG COMMIT_SHA` → `ENV NEXT_PUBLIC_COMMIT_SHA` so Sentry
+> release tracking works on Coolify.
+> (5) Beta signups "Send email" button — `sendSignupEmail({ email, name, subject, body })` server
+> action in `app/actions/signups.ts` (PLATFORM_ADMIN only; Resend; reply-to ivanyardley@me.com;
+> plain-text → HTML with newline/URL conversion). `SignupsDashboard` compose modal: editable subject
+> + resizable textarea, pre-filled template per account state (no-account / expired / activated /
+> default), branded footer, sent/error feedback, auto-closes 1.5s after success.
+> (6) Demo data refresh cron improvements — `/api/cron/demo-refresh` also: refreshes 7 known
+> notification timestamps so feed looks current; re-publishes CLOSED demo homework with fresh due
+> dates; auto-extends nearly-expired active beta trials (≤7 days → +30 days); cleans up expired
+> trial users' ClassTeacher records after 14 days (preserves User account).
+> (7) Docker image optimisation — `output: 'standalone'` added to `next.config.ts`. Next.js traces
+> the runtime dependency graph and emits `.next/standalone` (~278 MB) instead of copying the full
+> `node_modules` (1.1 GB). Dockerfile runner stage: `COPY .next/standalone`, `COPY .next/static`,
+> `COPY public`; starts with `node server.js` (not `npm start`) — eliminating npm startup overhead.
+> Image shrinks from ~1.5 GB+ to ~470 MB; cold-start noticeably faster. `.dockerignore` extended
+> to exclude `e2e/`, `scripts/`, `playwright.config.ts`, `*.md`, `*.docx`, `tsconfig.tsbuildinfo`.
+> Deployed to Coolify at 13:37 UTC, site returning 200.
+> **Latest commits:** e8f9bd4 (perf: Docker standalone), 442fbce (demo-refresh cron),
+> 1e1df80 (signup email button), 88f7dfd (Sentry wiring), ef91831 (trial onboarding),
+> 2e015b2 (E2E flakes + DemoRoleSwitcher). Deployed: omnis.education.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

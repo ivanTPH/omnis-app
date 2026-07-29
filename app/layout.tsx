@@ -16,17 +16,19 @@ export const metadata: Metadata = {
   title:       'Omnis Education',
   description: 'AI-powered learning and SEND management platform for UK secondary schools.',
   icons: {
-    icon:   '/favicon.png',
-    apple:  '/favicon.png',
+    icon:  '/favicon.png',
+    // apple-icon.tsx in app/ generates the 180×180 Apple touch icon automatically
   },
   openGraph: {
     siteName: 'Omnis Education',
-    images:   [{ url: '/og.png', width: 1200, height: 630, alt: 'Omnis Education — AI-powered school platform' }],
+    // Per-page opengraph-image.tsx files override this for marketing pages
   },
   twitter: {
-    card:    'summary_large_image',
-    site:    '@OmnisEducation',
-    images:  ['/og.png'],
+    card: 'summary_large_image',
+    site: '@OmnisEducation',
+  },
+  verification: {
+    google: 'q74x9nk4UmAc2eKpzEuwBJCsYflHf3eMzb611eJ-8vI',
   },
 }
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 }

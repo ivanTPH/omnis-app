@@ -29,6 +29,7 @@ export const metadata: Metadata = {
   },
   verification: {
     google: 'q74x9nk4UmAc2eKpzEuwBJCsYflHf3eMzb611eJ-8vI',
+    other: { 'msvalidate.01': 'D102BDE6E55FF502315A041267431D3D' },
   },
 }
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 }

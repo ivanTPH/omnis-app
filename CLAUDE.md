@@ -519,6 +519,17 @@
 > **Latest commits:** e8f9bd4 (perf: Docker standalone), 442fbce (demo-refresh cron),
 > 1e1df80 (signup email button), 88f7dfd (Sentry wiring), ef91831 (trial onboarding),
 > 2e015b2 (E2E flakes + DemoRoleSwitcher). Deployed: omnis.education.
+> 
+> July 2026 Supabase RLS hardening (2026-07-29): Supabase security advisory flagged all 140
+> public tables as `rls_disabled_in_public` (ERROR level) — PostgREST REST API was exposing
+> every table to anyone with the anon key. Omnis uses Prisma server-side only (no Supabase
+> client SDK, no anon key in any env var), so the attack vector was PostgREST directly.
+> Fix: enabled RLS on all 140 tables via a single DO $$ loop in Supabase SQL editor. No
+> policies added — intentional: RLS enabled + no policies = PostgREST anon/authenticated
+> access fully blocked; Prisma connects as `postgres` superuser which bypasses RLS entirely,
+> so app is completely unaffected. Advisory downgraded from ERROR `rls_disabled_in_public`
+> to INFO `rls_enabled_no_policy` (correct state for a Prisma-only app). Site verified 200
+> immediately after change. No code or schema migration needed — this is a DB security config.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

@@ -100,6 +100,20 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
+      '@type': 'WebSite',
+      '@id': 'https://omnis.education/#website',
+      name: 'Omnis Education',
+      url: 'https://omnis.education',
+      description: 'AI-powered learning and SEND management platform for UK secondary schools.',
+      publisher: { '@id': 'https://omnis.education/#organization' },
+      inLanguage: 'en-GB',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { '@type': 'EntryPoint', urlTemplate: 'https://omnis.education/marketing/home?q={search_term_string}' },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+    {
       '@type': 'Organization',
       '@id': 'https://omnis.education/#organization',
       name: 'Omnis Education',

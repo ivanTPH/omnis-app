@@ -9,6 +9,30 @@ export const metadata: Metadata = {
     description: 'AI homework, SEND management, MIS sync, analytics, revision programs — every feature built for UK secondary schools.',
     url: 'https://omnis.education/marketing/features',
   },
+  alternates: { canonical: 'https://omnis.education/marketing/features' },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebPage',
+      '@id': 'https://omnis.education/marketing/features#webpage',
+      url: 'https://omnis.education/marketing/features',
+      name: 'Platform Features — AI Homework, SEND Management & MIS Sync | Omnis Education',
+      description: 'Explore everything Omnis offers — AI homework generation, adaptive learning profiles, SEND/ILP/EHCP management, MIS sync via Wonde, analytics, and more.',
+      isPartOf: { '@id': 'https://omnis.education/#website' },
+      about: { '@id': 'https://omnis.education/#organization' },
+      inLanguage: 'en-GB',
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://omnis.education/marketing/home' },
+        { '@type': 'ListItem', position: 2, name: 'Features', item: 'https://omnis.education/marketing/features' },
+      ],
+    },
+  ],
 }
 
 const sections = [
@@ -104,6 +128,7 @@ const colorMap: Record<string, { bg: string; border: string; icon: string; tag: 
 export default function FeaturesPage() {
   return (
     <main className="max-w-6xl mx-auto px-6 py-16">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Platform features</h1>
         <p className="text-gray-500 text-lg max-w-2xl mx-auto">

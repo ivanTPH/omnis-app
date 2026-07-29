@@ -1,28 +1,49 @@
 # Omnis Education
 > AI-powered learning and SEND management platform for UK secondary schools.
 
-Omnis is a multi-tenant SaaS platform for UK secondary schools (Years 7–13). It covers the full teaching and SEND workflow:
+## What is Omnis?
 
-- **AI homework generation**: Teachers generate MCQ, short-answer, and extended-writing homework using Claude AI. EHCP and SEN Support students automatically receive differentiated question variants based on their ILP provisions.
-- **SEND / ILP / EHCP management**: Individual Learning Plans, Education Health and Care Plans, K Plans, and Assess-Plan-Do-Review (APDR) cycles — all in one place. AI-assisted generation, homework evidence linking, early-warning flags, and SENCO oversight dashboards.
-- **Adaptive learning**: Per-student learning profiles updated after every submission. Bloom's taxonomy heatmaps, weak-topic detection, and spaced repetition suggestions.
-- **Analytics**: GCSE-grade attainment (1–9 scale), RAG status, SEND attainment gap, national benchmark comparisons, and school-wide staff analytics.
-- **MIS sync via Wonde**: Live sync of students, staff, classes, timetables, and attendance from school MIS systems.
-- **Revision programs**: AI-generated revision tasks per lesson, student confidence tracking, and teacher-built programs.
-- **GDPR compliance**: DPA acknowledgement gates, immutable SEND audit logging, consent management, and data subject request tooling — built for UK GDPR and the SEND Code of Practice 2015.
+Omnis is a multi-tenant SaaS platform built specifically for UK state secondary schools (Years 7–13). It integrates the full teaching, SEND, and pastoral workflow into a single platform — replacing disconnected spreadsheets, legacy MIS exports, and paper-based SEND records.
+
+The platform is currently in beta. Beta schools receive full access at no cost during the programme.
+
+## Core capabilities
+
+- **AI homework generation**: Teachers generate MCQ, short-answer, and extended-writing homework using Claude AI. EHCP and SEN Support students automatically receive differentiated question variants based on their ILP provisions. Auto-marking returns GCSE 1–9 grades with per-question feedback.
+- **SEND / ILP / EHCP management**: Individual Learning Plans, Education Health and Care Plans, K Plans, and Assess-Plan-Do-Review (APDR) cycles — all in one place. AI-assisted ILP generation, homework evidence linking, early-warning flags, and SENCO oversight dashboards.
+- **Adaptive learning**: Per-student learning profiles updated after every submission. Bloom's taxonomy heatmaps, weak-topic detection, and spaced repetition suggestions for every class.
+- **Analytics**: GCSE-grade attainment (1–9 scale), RAG status, SEND attainment gap analysis, national JCQ benchmark comparisons, and school-wide staff performance analytics.
+- **MIS sync via Wonde**: Live sync of students, staff, classes, timetables, and attendance from any Wonde-connected school MIS (SIMS, Bromcom, Arbor, iSAMS, etc.).
+- **Lesson planning**: Weekly teacher calendar, Oak National Academy resource integration (11,000+ lessons), cover management, and year-group revision programs.
+- **Pastoral & compliance**: Head of Year dashboards, detention and exclusion registers, safeguarding records, academic integrity signals, GDPR consent management, and immutable audit logging for UK GDPR Article 9 compliance.
+
+## Who uses Omnis?
+
+12 staff and stakeholder roles: Teacher, SENCO, SLT, Head of Year, Head of Department, Teaching Assistant, School Admin, Cover Manager, Platform Admin, Academy Admin (MAT), Student, Parent.
+
+Each role has a tailored interface — teachers see their class calendar and marking queue; SENCOs see ILP caseloads and early-warning flags; SLT sees school-wide attainment vs national benchmarks; parents see their child's progress and GDPR consent options.
+
+## Market context
+
+- 3,600+ UK state secondary schools
+- 1 in 5 pupils has special educational needs (SEND)
+- £2.4bn UK EdTech market
+- SEND Code of Practice 2015 mandates ILP/EHCP documentation — Omnis digitises and automates this compliance requirement
 
 ## Key pages
+
 - Homepage: https://omnis.education/marketing/home
 - Features: https://omnis.education/marketing/features
 - Beta programme: https://omnis.education/marketing/beta
 - Investor information: https://omnis.education/marketing/investors
+- Sign in: https://omnis.education/login
 
-## Target audience
-UK state secondary schools, academies, free schools, and maintained schools. Supports 12 staff roles: Teacher, SENCO, SLT, Head of Year, Head of Department, Teaching Assistant, School Admin, Cover Manager, Platform Admin, Academy Admin, Student, Parent.
+## Technology stack
 
-## Technology
-Next.js 16 · React 19 · Tailwind CSS v4 · Prisma v6 · PostgreSQL (Supabase) · NextAuth v5 · Anthropic Claude · Resend · Playwright
+Next.js 16 · React 19 · Tailwind CSS v4 · Prisma v6 · PostgreSQL (Supabase) · NextAuth v5 · Anthropic Claude (claude-sonnet-4-6) · Resend · Playwright · Deployed on Coolify / DigitalOcean
 
 ## Contact
-Beta programme: https://omnis.education/marketing/beta
-Investor enquiries: https://omnis.education/marketing/investors
+
+- Beta programme applications: https://omnis.education/marketing/beta
+- Investor enquiries: https://omnis.education/marketing/investors
+- General: hello@omnis.education

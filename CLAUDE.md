@@ -520,6 +520,19 @@
 > 1e1df80 (signup email button), 88f7dfd (Sentry wiring), ef91831 (trial onboarding),
 > 2e015b2 (E2E flakes + DemoRoleSwitcher). Deployed: omnis.education.
 > 
+> 
+> July 2026 Supabase performance advisor fixes (2026-07-29): Checked performance advisors —
+> 128 total advisories in two categories. (1) Unindexed foreign keys (72): FK columns without
+> covering indexes causing slow JOINs on hot paths — `Homework.classId`, `Lesson.classId`,
+> `ClassTeacher.userId`, `BehaviourRecord.studentId`, `SendConcern.studentId`, `EhcpPlan.studentId`,
+> `IndividualLearningPlan.studentId`, `Resource.lessonId`, plus 64 others across all models.
+> Applied via single `add_missing_fk_indexes` Supabase migration — all 72 `CREATE INDEX IF NOT
+> EXISTS` statements, advisory count dropped to 0. (2) Unused indexes (56): intentionally left
+> alone — `pg_stat_user_indexes.idx_scan` resets with DB stats; beta query volume is too low to
+> distinguish genuinely unused from not-yet-exercised. Revisit once production traffic establishes
+> real query patterns. Net result: security advisors = 0 ERRORs; performance advisors = 56 INFO
+> (unused indexes only, all intentional).
+
 > July 2026 Supabase RLS hardening (2026-07-29): Supabase security advisory flagged all 140
 > public tables as `rls_disabled_in_public` (ERROR level) — PostgREST REST API was exposing
 > every table to anyone with the anon key. Omnis uses Prisma server-side only (no Supabase

@@ -35,19 +35,21 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Install system Chromium for PDF generation (puppeteer-core uses this via
 # PUPPETEER_EXECUTABLE_PATH; avoids glibc-linked Chrome incompatibility on Alpine)
 RUN apk add --no-cache chromium
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
-# Only copy the runtime artefacts
+# Standalone output includes only the node_modules actually needed at runtime.
+# This is ~150 MB instead of the full 1.1 GB node_modules, shrinking the image
+# significantly and reducing Coolify pull + container start time.
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3000
-CMD ["npm", "start"]
+# standalone/server.js expects PORT and HOSTNAME env vars
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]

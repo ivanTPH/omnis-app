@@ -28,6 +28,12 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  // Emit a self-contained server in .next/standalone that includes only the
+  // node_modules actually needed at runtime (~150 MB vs 1.1 GB full install).
+  // The runner stage copies this instead of the full node_modules, giving
+  // a significantly smaller Docker image and faster cold-start on Coolify.
+  output: 'standalone',
+
   experimental: {
     // Never serve a stale client-side cached version of dynamic pages.
     // Without this, Next.js router cache holds the last server render for 30s —

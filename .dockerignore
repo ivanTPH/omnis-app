@@ -10,4 +10,14 @@ npm-debug.log*
 playwright-report
 test-results
 coverage
+# Docs + planning files (not needed in image)
 *.md
+*.docx
+*.docx
+# E2E tests and test tooling
+e2e/
+playwright.config.ts
+# Dev scripts
+scripts/
+# Local dev artefacts
+tsconfig.tsbuildinfo

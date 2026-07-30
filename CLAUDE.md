@@ -491,7 +491,30 @@
 > crons.yml false-failure fix (61f6dd5): GitHub evaluates all workflow files on every push even
 > for schedule-only workflows; added `noop-on-push` job so push-triggered runs succeed silently
 > instead of emailing "No jobs were run" on every commit. Confirmed: 3 subsequent runs all green.
-> **Latest commit:** 6404de1 (feat: Oak bulk sync via official API). E2E: **452 passed, 4 flaky/retry, 1 cold-start flake on Coolify (2026-07-30). Exit 0 on subsequent run.**
+> **Latest commit:** e2f6e1e (feat: ENGAGE agent + Oak curriculum enrichment). Deployed: omnis.education (2026-07-30). E2E: **452 passed, 4 flaky/retry, 1 cold-start flake on Coolify (2026-07-30). Exit 0 on subsequent run.**
+>
+> July 2026 ENGAGE agent + Oak curriculum enrichment (2026-07-30, commit e2f6e1e):
+> **lib/oak-content.ts** — shared Oak data helper: module-level LRU cache (500 entries, 24h TTL);
+> `getOakLessonContent(slug)`, `getOakDataForLesson(lessonId)` (via lesson→resource join),
+> `findOakDataForTopics(topics[], subjectSlug)`, `extractMisconceptions/Keywords/Klps()`.
+> **QUALITY agent**: lessonId added to homework select; Oak KLPs fetched per submission via
+> `getOakDataForLesson`; passed as `oakCurriculumKlps` to haiku — curriculum alignment now checks
+> against actual Oak lesson content rather than AI model knowledge alone.
+> **COACH agent**: for weak topics calls `findOakDataForTopics` + `extractMisconceptions`;
+> Oak misconceptions injected into haiku system prompt (same single haiku call — zero extra cost).
+> **Homework generation**: transcript always included (was gated on `klp.length===0` — since bulk sync
+> now populates KLPs, transcripts were always skipped); shorter excerpt (300 chars) when KLPs present.
+> **ILP generation**: `buildIlpPrompt` gains `oakVocabulary?` param; `generateILPForStudent` fetches
+> Oak keywords for student's year/subjects and passes them as vocabulary grounding.
+> **ENGAGE agent** (lib/agents/engage.ts): reads COACH snapshot weak topics → fetches Oak data →
+> single haiku call generates engagement packages (curiosity hook + 2-3 MCQ questions with
+> misconception-rooted distractors + pre-teach vocabulary + core retrieval task + Bloom's challenge +
+> SEND adaptation); cached in OmnisInferenceCache 7-day TTL; writes AgentAuditEntry rows (visible
+> in /senco/agent-insights for teacher confirm/override/dismiss); nightly 04:00 UTC.
+> **Schema**: `AgentType.ENGAGE` + `AgentSkillId.ENGAGEMENT_DESIGN` added; pushed to Supabase DB.
+> `lib/agents/skills/engagement-design.ts`: new skill (EEF/Rosenshine/Oak/SEND CoP/Mayer standards).
+> `lib/agents/skills/index.ts`: ENGAGEMENT_DESIGN in ALL_STANDARDS + ENGAGE in AGENT_SKILLS map.
+> `lib/agents/snapshot.ts`: EngageKnowledge type. `/api/cron/agent-engage`: GET route (300s, CRON_SECRET required). crons.yml: `0 4 * * *` schedule + agent-engage job.
 >
 > July 2026 Security audit + fixes (2026-07-28):
 > Full security review across auth, API routes, cron endpoints, XSS, open redirects, raw SQL, rate
@@ -771,7 +794,7 @@ tail -f /tmp/omnis-dev.log
 /senco/early-warning        Early warning flags
 /senco/ehcp                 EHCP plans
 /senco/ilp-evidence         ILP evidence linking
-/senco/agent-insights       Agent recommendation review — confirm/override/dismiss COACH/QUALITY/PLAN_SYNTHESIS outputs
+/senco/agent-insights       Agent recommendation review — confirm/override/dismiss COACH/QUALITY/PLAN_SYNTHESIS/ENGAGE outputs
 /hoy/analytics              Head of Year analytics
 /hoy/behaviour              Behaviour overview — KPI cards, weekly trend chart, student table, year filter, CSV exports (HOY/SLT/SCHOOL_ADMIN/HOD)
 /hoy/dashboard              HOY pastoral dashboard — greeting, KPI cards, attendance panel, SEND concerns, homework pulse, print
@@ -821,9 +844,10 @@ tail -f /tmp/omnis-dev.log
 /api/export/exclusion-log        Exclusion log CSV — 365d default, yearGroup filter, includes SEND status (HOY/SLT/SCHOOL_ADMIN/HOD/SENCO)
 /api/cron/oak-sync          Oak delta sync cron (Sun 02:00 UTC)
 /api/cron/early-warning     SEND early warning cron (Mon–Fri 06:00 UTC)
-/api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk
-/api/cron/agent-quality     QUALITY agent nightly batch (03:00 UTC) — Bloom's, SEND adaptation, feedback
+/api/cron/agent-coach       COACH agent nightly batch (02:30 UTC) — weak topics, retention risk; now enriched with Oak misconceptions for weak topics
+/api/cron/agent-quality     QUALITY agent nightly batch (03:00 UTC) — Bloom's, SEND adaptation, feedback; now enriched with Oak KLPs for curriculum alignment
 /api/cron/agent-plan-synthesis  PLAN_SYNTHESIS agent nightly (03:30 UTC) — ILP/EHCP/K Plan coherence
+/api/cron/agent-engage      ENGAGE agent nightly batch (04:00 UTC) — reads COACH weak topics, fetches Oak data, generates engagement packages (hook/MCQ/vocab/tasks/SEND adapt) via haiku; 7-day inference cache; writes AgentAuditEntry rows → /senco/agent-insights
 /api/cron/platform-insights Cross-school insight pipeline (Sun 05:00 UTC) — aggregates SchoolCohortAggregate across all schools into PlatformInsight rows; k-anon MIN_SCHOOLS=3; no Claude calls
 /api/wonde/sync             Wonde full sync — POST, 300s maxDuration, SCHOOL_ADMIN/SLT only
 
@@ -982,6 +1006,7 @@ tail -f /tmp/omnis-dev.log
 | `lib/wonde-sync.ts` | Full sync engine — upserts employees, students, contacts, groups, classes, periods, timetable. Inner try/catch per student contact so one bad record doesn't abort all |
 | `lib/oak-delta-sync.ts` | Oak delta sync logic (web-scraping fallback — used when OAK_API_KEY absent) |
 | `lib/oak-bulk-sync.ts` | Oak bulk sync via official API — `runBulkSync()` downloads ZIP per subject-phase, upserts Subject/Unit/Lesson; ~17 API calls vs ~11,000 in delta scraper; used when OAK_API_KEY is set |
+| `lib/oak-content.ts` | Shared Oak data helper with 500-entry 24h module-level LRU cache — `getOakLessonContent(slug)`, `getOakDataForLesson(lessonId)` (lesson→resource join), `findOakDataForTopics(topics[], subjectSlug)`, `extractMisconceptions/Keywords/Klps(lessons[])` — used by QUALITY, COACH, ENGAGE agents and ILP generation |
 | `lib/revision/analysis-engine.ts` | `analyseClassPerformance()` |
 | `lib/revision/content-generator.ts` | `generateRevisionTask()` with SEND adaptations + ILP integration |
 | `lib/design-tokens.ts` | Design system constants — `colors`, `badges`, `buttons` objects. Source of truth for Tailwind class strings. Use when building new components. |
@@ -1117,6 +1142,28 @@ files (e.g. `app/api/wonde/sync/route.ts`). The `functions` key in
 - **All icons use Google Material Icons** via `components/ui/Icon.tsx`. Never add lucide-react. Material Icons font is loaded in `app/layout.tsx`.
 - Icon name reference: https://fonts.google.com/icons — use snake_case names (e.g. `check_circle`, `expand_more`, `auto_fix_high`).
 - Animated spinners: `<Icon name="refresh" size="sm" className="animate-spin" />`
+
+### Agent System
+
+Nightly pipeline (all UTC): **02:30 COACH → 03:00 QUALITY → 03:30 PLAN_SYNTHESIS → 04:00 ENGAGE**
+
+All results surface via `AgentAuditEntry` rows in `/senco/agent-insights` (confirm/override/dismiss). Each agent:
+- Uses `AgentSnapshot` for dirty-flag delta processing (only re-runs when new data since last run)
+- Calls `saveSnapshot` to persist `CoachKnowledge | QualityKnowledge | PlanKnowledge | EngageKnowledge`
+- Writes `writeAudit(AGENT_RUN_COMPLETED)` fire-and-forget
+
+**ENGAGE** specifically: reads `CoachKnowledge.weakTopics` → skips if no weak topics → fetches Oak data via `lib/oak-content.ts` → single haiku call → `EngagePackage[]` cached in `OmnisInferenceCache` (7-day TTL, key = SHA256(studentId+sortedTopics+subjectSlug)).
+
+**OmnisInferenceCache** field names: `cacheType`, `signatureHash`, `signature` (NOT `signatureInputs`), `payload` (NOT `outputJson`). Access via `(prisma.omnisInferenceCache as any)` — model is not typed in Prisma client.
+
+**Skill permissions**: each agent declares permitted skills in `AGENT_SKILLS` map. `assertSkillPermitted()` throws at runtime if violated.
+- COACH: RETRIEVAL_SPACING, BLOOMS_ANALYSIS, CURRICULUM_ALIGNMENT, SEND_DIFFERENTIATION
+- QUALITY: CURRICULUM_ALIGNMENT, BLOOMS_ANALYSIS, SEND_DIFFERENTIATION, MARKING_CONSISTENCY, FEEDBACK_QUALITY
+- PLAN_SYNTHESIS: APDR_CYCLE, SEND_DIFFERENTIATION
+- EVIDENCE: SEND_DIFFERENTIATION, APDR_CYCLE
+- ENGAGE: ENGAGEMENT_DESIGN, SEND_DIFFERENTIATION, RETRIEVAL_SPACING
+
+**Oak enrichment in agents**: COACH injects Oak `misconceptionsAndCommonMistakes` for weak topics into haiku prompt. QUALITY fetches Oak KLPs per submission via `getOakDataForLesson(lessonId)` for curriculum alignment. Both use `lib/oak-content.ts` module cache — zero extra DB round-trips on warm containers.
 
 ### ILP Evidence Capture
 - After `markSubmission`, the action returns `{ ilpData: { studentId, ilpId, targets[] } | null }`.

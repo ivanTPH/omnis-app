@@ -46,6 +46,7 @@ import {
   assertSkillPermitted,
   ALL_STANDARDS,
 } from './skills'
+import { getOakDataForLesson, extractKlps } from '@/lib/oak-content'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ type SubmissionForReview = {
     id:                  string
     title:               string
     type:                string
+    lessonId:            string | null
     learningObjectives:  string[]
     bloomsLevel:         string | null
     differentiationNotes: string | null
@@ -134,6 +136,7 @@ async function fetchQualityData(
             id:                   true,
             title:                true,
             type:                 true,
+            lessonId:             true,
             learningObjectives:   true,
             bloomsLevel:          true,
             differentiationNotes: true,
@@ -190,29 +193,34 @@ function extractQuestions(questionsJson: unknown): string[] {
 
 // ── Build compact review payload for haiku ────────────────────────────────────
 
-function buildReviewPayload(data: StudentQualityData) {
+function buildReviewPayload(
+  data:      StudentQualityData,
+  oakKlpMap: Map<string, string[]>,  // homeworkId → Oak key learning points
+) {
   return {
     student: {
       sendStatus: data.student.sendStatus,
       needArea:   data.student.needArea,
     },
     submissions: data.submissions.map(s => ({
-      id:                  s.id,
-      homeworkTitle:       s.homework.title,
-      type:                s.homework.type,
-      subject:             s.homework.class?.subject ?? 'Unknown',
-      yearGroup:           s.homework.class?.yearGroup ?? null,
-      learningObjectives:  s.homework.learningObjectives,
-      bloomsLevelDeclared: s.homework.bloomsLevel,
-      questions:           extractQuestions(s.homework.questionsJson).slice(0, 5),
-      modelAnswer:         s.homework.modelAnswer?.slice(0, 200) ?? null,
-      differentiationNotes: s.homework.differentiationNotes,
-      isAdapted:           s.homework.isAdapted,
-      teacherGrade:        s.teacherScore,
-      autoGrade:           s.autoScore,
-      finalGrade:          s.finalScore,
-      teacherFeedback:     s.feedback ?? s.autoFeedback,
-      autoMarked:          s.autoMarked,
+      id:                    s.id,
+      homeworkTitle:         s.homework.title,
+      type:                  s.homework.type,
+      subject:               s.homework.class?.subject ?? 'Unknown',
+      yearGroup:             s.homework.class?.yearGroup ?? null,
+      learningObjectives:    s.homework.learningObjectives,
+      bloomsLevelDeclared:   s.homework.bloomsLevel,
+      questions:             extractQuestions(s.homework.questionsJson).slice(0, 5),
+      modelAnswer:           s.homework.modelAnswer?.slice(0, 200) ?? null,
+      differentiationNotes:  s.homework.differentiationNotes,
+      isAdapted:             s.homework.isAdapted,
+      teacherGrade:          s.teacherScore,
+      autoGrade:             s.autoScore,
+      finalGrade:            s.finalScore,
+      teacherFeedback:       s.feedback ?? s.autoFeedback,
+      autoMarked:            s.autoMarked,
+      // Oak curriculum benchmarks — haiku uses these to check alignment
+      oakCurriculumKlps:     oakKlpMap.get(s.homework.id) ?? [],
     })),
   }
 }
@@ -237,6 +245,20 @@ async function runQualityAnalysis(data: StudentQualityData): Promise<QualityAnal
   const apiKey = process.env.ANTHROPIC_API_KEY
   const lastSub = data.submissions[0]
 
+  // Fetch Oak curriculum KLPs for submissions that have a linked lesson
+  const oakKlpMap = new Map<string, string[]>()
+  await Promise.allSettled(
+    data.submissions
+      .filter(s => s.homework.lessonId)
+      .map(async s => {
+        const oak = await getOakDataForLesson(s.homework.lessonId!)
+        if (oak) {
+          const klps = extractKlps([oak])
+          if (klps.length > 0) oakKlpMap.set(s.homework.id, klps.slice(0, 5))
+        }
+      })
+  )
+
   if (!apiKey) {
     // Graceful no-API fallback — return minimal structure
     return {
@@ -253,7 +275,7 @@ async function runQualityAnalysis(data: StudentQualityData): Promise<QualityAnal
   }
 
   const client  = new Anthropic({ apiKey })
-  const payload = buildReviewPayload(data)
+  const payload = buildReviewPayload(data, oakKlpMap)
 
   const systemPrompt = [
     BLOOMS_ANALYSIS_SKILL.systemPromptFragment,
@@ -283,7 +305,7 @@ Return ONLY valid JSON with this exact shape:
 
 Rules:
 - bloomsBalance: count questions per Bloom's level across all submissions
-- curriculumIssues: only flag if a learning objective clearly falls outside the subject/year curriculum
+- curriculumIssues: compare learning objectives against oakCurriculumKlps (when present) — flag mismatches; if no oakCurriculumKlps, fall back to subject/year curriculum knowledge
 - sendAdaptationScore: 100 if student has no SEND need; score 0-100 for SEND students based on adaptation quality
 - markingIssues: skip MCQ_QUIZ submissions (unambiguous); flag SHORT_ANSWER and EXTENDED_WRITING only
 - feedbackIssues: only include submissions where feedback is absent, vague, or praise-only

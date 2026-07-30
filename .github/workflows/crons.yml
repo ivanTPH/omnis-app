@@ -11,6 +11,7 @@ on:
     - cron: '30 2 * * *'   # agent-coach        — daily 02:30 UTC
     - cron: '0 3 * * *'    # agent-quality      — daily 03:00 UTC
     - cron: '30 3 * * *'   # agent-plan-synthesis — daily 03:30 UTC
+    - cron: '0 4 * * *'    # agent-engage       — daily 04:00 UTC
     - cron: '0 1 1 9 *'    # year-rollover      — 1 Sep 01:00 UTC
     - cron: '0 7 * * 1-5'  # review-due         — Mon–Fri 07:00 UTC
     - cron: '30 7 * * 1'   # teacher-digest     — Mon 07:30 UTC
@@ -74,6 +75,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: curl -sf "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  agent-engage:
+    if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
   year-rollover:
     if: github.event.schedule == '0 1 1 9 *' || github.event_name == 'workflow_dispatch'

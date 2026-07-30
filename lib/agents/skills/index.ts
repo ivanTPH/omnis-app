@@ -31,6 +31,7 @@ export { RETRIEVAL_SPACING_SKILL }    from './retrieval-spacing'
 export { MARKING_CONSISTENCY_SKILL }  from './marking-consistency'
 export { APDR_CYCLE_SKILL }           from './apdr-cycle'
 export { FEEDBACK_QUALITY_SKILL }     from './feedback-quality'
+export { ENGAGEMENT_DESIGN_SKILL }    from './engagement-design'
 
 export type { CurriculumAlignmentOutput } from './curriculum-alignment'
 export type { BloomsAnalysisOutput, BloomsLevel } from './blooms-analysis'
@@ -39,6 +40,7 @@ export type { RetrievalSpacingOutput }    from './retrieval-spacing'
 export type { MarkingConsistencyOutput, DiscrepancyLevel, MarkSchemeQuality } from './marking-consistency'
 export type { APDRCycleOutput, APDRCoherence } from './apdr-cycle'
 export type { FeedbackQualityOutput, FeedbackDimension } from './feedback-quality'
+export type { EngagementDesignOutput, EngagementTask } from './engagement-design'
 
 // ── Permitted skill sets per agent ────────────────────────────────────────────
 
@@ -63,6 +65,11 @@ export const AGENT_SKILLS: Record<AgentType, AgentSkillId[]> = {
   [AgentType.EVIDENCE]: [
     AgentSkillId.SEND_DIFFERENTIATION,
     AgentSkillId.APDR_CYCLE,
+  ],
+  [AgentType.ENGAGE]: [
+    AgentSkillId.ENGAGEMENT_DESIGN,
+    AgentSkillId.SEND_DIFFERENTIATION,
+    AgentSkillId.RETRIEVAL_SPACING,
   ],
 }
 
@@ -116,5 +123,12 @@ export const ALL_STANDARDS: Record<AgentSkillId, string[]> = {
     "Hattie & Timperley — The Power of Feedback (2007)",
     'DfE ITT Core Content Framework (2019) — Standard 6',
     'Ofsted EIF 2023 §§180–183',
+  ],
+  [AgentSkillId.ENGAGEMENT_DESIGN]: [
+    'EEF Metacognition and Self-regulated Learning (2018)',
+    "Rosenshine's Principles of Instruction (2012) — P1, P2, P6",
+    'Oak National Academy Open Curriculum Licence',
+    'DfE SEND Code of Practice 2015 §§6.1–6.11',
+    'Mayer — Multimedia Learning Theory (2009)',
   ],
 }

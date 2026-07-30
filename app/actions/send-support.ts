@@ -12,6 +12,7 @@ import { AgentType } from '@prisma/client'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getPlanCoherenceAlerts } from '@/app/actions/agent-insights'
+import { findOakDataForTopics, extractKeywords } from '@/lib/oak-content'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2164,6 +2165,18 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
   const sendCategory = sendStatus.needArea ?? 'General Learning Support'
   const yearGroup = student.yearGroup ?? 9
 
+  // Enrich ILP prompt with year-appropriate Oak vocabulary (fire-and-forget safe)
+  const keystage = yearGroup <= 9 ? 'ks3' : 'ks4'
+  let oakVocabulary: string[] = []
+  try {
+    // Fetch Oak lessons for common subjects at this key stage to surface relevant vocabulary
+    const subjectSlugs = ['english', 'maths', 'science']
+    const oakLessons   = await Promise.all(
+      subjectSlugs.map(s => findOakDataForTopics([keystage, sendCategory.toLowerCase()], s, 2))
+    )
+    oakVocabulary = extractKeywords(oakLessons.flat()).slice(0, 20)
+  } catch { /* non-fatal — ILP generation continues without Oak vocab */ }
+
   try {
     const client = new Anthropic({ apiKey })
     let msg
@@ -2172,7 +2185,10 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
         model:      'claude-sonnet-4-6',
         max_tokens: 1200,
         system:     'You are a UK SENCO creating Individual Learning Plans. Return ONLY valid JSON, no markdown.',
-        messages: [{ role: 'user', content: buildIlpPrompt(student.firstName, student.lastName, yearGroup, sendCategory) }],
+        messages: [{ role: 'user', content: buildIlpPrompt(
+          student.firstName, student.lastName, yearGroup, sendCategory,
+          undefined, undefined, undefined, oakVocabulary.length > 0 ? oakVocabulary : undefined,
+        ) }],
       })
     } catch (apiErr) {
       console.error('[generateILPForStudent] Anthropic API error:', apiErr)

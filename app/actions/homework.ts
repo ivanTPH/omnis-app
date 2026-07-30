@@ -593,13 +593,15 @@ export async function generateHomeworkFromResources(
     }
 
     const trans = Array.isArray(oak.transcriptSentences) ? oak.transcriptSentences as any[] : []
-    if (trans.length > 0 && klp.length === 0) {
-      // Only include transcript excerpt when no structured content available
-      const excerpt = trans.slice(0, 8)
+    if (trans.length > 0) {
+      // Include transcript excerpt — shorter when structured content already present
+      const limit  = klp.length > 0 ? 4 : 8
+      const maxLen = klp.length > 0 ? 300 : 600
+      const excerpt = trans.slice(0, limit)
         .map((t: any) => typeof t === 'string' ? t : t?.transcriptSentence ?? '')
         .filter(Boolean)
         .join(' ')
-        .slice(0, 600)
+        .slice(0, maxLen)
       if (excerpt) lines.push(`  Lesson transcript excerpt: ${excerpt}`)
     }
 

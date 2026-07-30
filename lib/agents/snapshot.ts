@@ -60,7 +60,13 @@ export type EvidenceKnowledge = {
   summaryNarrative: string
 }
 
-export type AgentKnowledge = CoachKnowledge | QualityKnowledge | PlanKnowledge | EvidenceKnowledge
+export type EngageKnowledge = {
+  packages:         string[]   // topic slugs for which engagement packages were generated
+  lastGeneratedAt:  string     // ISO timestamp
+  summaryNarrative: string
+}
+
+export type AgentKnowledge = CoachKnowledge | QualityKnowledge | PlanKnowledge | EvidenceKnowledge | EngageKnowledge
 
 // ── Read ─────────────────────────────────────────────────────────────────────
 

@@ -36,6 +36,7 @@ import {
   type CachedCoachSendAdvice,
 } from '@/lib/omnis-inference'
 import { RETRIEVAL_SPACING_SKILL, assertSkillPermitted, ALL_STANDARDS } from './skills'
+import { findOakDataForTopics, extractMisconceptions } from '@/lib/oak-content'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -322,6 +323,20 @@ async function generateRecommendation(
     ? `\n\nSEND ACCOMMODATION CONTEXT (pre-computed for this profile type — do NOT repeat verbatim, use as grounding):\n- ${cachedAdvice.sendSpecificAdvice}\n- Preferred formats: ${cachedAdvice.preferredFormats.join(', ')}\n- Bloom's note: ${cachedAdvice.bloomsRemediation}`
     : ''
 
+  // Look up Oak misconceptions for the top weak topics (module cache — no extra DB round-trips on warm container)
+  let oakMisconceptionsBlock = ''
+  if (gaps.weakTopics.length > 0) {
+    const topWeakTopics  = gaps.weakTopics.slice(0, 3).map(t => t.topic)
+    const primarySubject = gaps.weakTopics[0]?.subject ?? 'english'
+    // Convert subject name to Oak slug (e.g. "English" → "english")
+    const subjectSlug    = primarySubject.toLowerCase().replace(/\s+/g, '-')
+    const oakLessons     = await findOakDataForTopics(topWeakTopics, subjectSlug)
+    const misconceptions = extractMisconceptions(oakLessons)
+    if (misconceptions.length > 0) {
+      oakMisconceptionsBlock = `\n\nOAK CURRICULUM — KNOWN MISCONCEPTIONS for these weak topics (probe with questions; address directly in recommendations):\n${misconceptions.slice(0, 6).map((m, i) => `${i + 1}. ${m}`).join('\n')}`
+    }
+  }
+
   // Sample up to 10 question texts for Bloom's classification
   const sampleQuestions = Object.values(matrix)
     .flatMap(r => r.questionTexts)
@@ -343,7 +358,7 @@ async function generateRecommendation(
     max_tokens: 1200,
     system: `${RETRIEVAL_SPACING_SKILL.systemPromptFragment}
 
-You are also applying the Bloom's Analysis skill to classify any Bloom's gaps across topics.${sendAdviceBlock}
+You are also applying the Bloom's Analysis skill to classify any Bloom's gaps across topics.${sendAdviceBlock}${oakMisconceptionsBlock}
 
 Return ONLY valid JSON with this exact shape:
 {

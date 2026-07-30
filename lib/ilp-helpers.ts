@@ -92,12 +92,16 @@ export function buildIlpPrompt(
   cohort?:          IlpCohortContext,
   platform?:        IlpPlatformContext,
   provenStrategies?: string[],
+  oakVocabulary?:   string[],   // "word: definition" from Oak lessons for this student's subjects/year
 ): string {
   const ksLabel         = yearGroup <= 9 ? 'KS3' : yearGroup <= 11 ? 'KS4 (GCSE)' : 'KS5 (A-Level)'
   const cohortSection   = cohort   ? buildCohortSection(cohort, yearGroup)   : ''
   const platformSection = platform ? buildPlatformSection(platform)           : ''
   const strategySection = provenStrategies && provenStrategies.length > 0
     ? `\nPROVEN STRATEGIES for ${sendCategory} (derived from national ILP data — use as primary source for strategies field):\n${provenStrategies.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
+    : ''
+  const vocabSection = oakVocabulary && oakVocabulary.length > 0
+    ? `\nOAK CURRICULUM VOCABULARY (year-appropriate terms from this student's subjects — embed in ILP targets and success measures):\n${oakVocabulary.slice(0, 20).join('; ')}\n`
     : ''
 
   return `Generate a UK secondary school Individual Learning Plan for this student.
@@ -107,7 +111,7 @@ Year: Year ${yearGroup} (${ksLabel})
 Support category: ${sendCategory}
 ${cohortSection}
 ${platformSection}
-${strategySection}
+${strategySection}${vocabSection}
 Return ONLY valid JSON (no markdown):
 {
   "likes": "2 sentences describing what Year ${yearGroup} students typically enjoy at school",

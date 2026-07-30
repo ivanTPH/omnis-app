@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-07-28. Authoritative reference for Claude sessions.
+> Last updated: 2026-07-30. Authoritative reference for Claude sessions.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
@@ -457,6 +457,27 @@
 > previously blocked all PLATFORM_ADMIN accounts except `ivanyardley@me.com`; gate removed so
 > `platform@omnis.edu` demo account can also access the signups dashboard.
 > **Latest commit:** 4f2d527 (fix: hide demo accounts toggle when showDemo prop is false). E2E: **457/458 passed, 3 flaky/retry, 0 failed on Coolify (2026-07-28). Exit 0.**
+>
+> July 2026 SEO + AI search + Oak Aila integration (2026-07-30):
+> Full SEO and AI-search hardening across all marketing pages.
+> (1) OG images: `app/marketing/{home,features,beta,investors}/opengraph-image.tsx` — per-page
+> `ImageResponse` files (1200×630) via shared `lib/og-image-template.tsx`. Twitter card images
+> auto-generated from same files. `app/apple-icon.tsx` (180×180) + `app/manifest.ts` added.
+> (2) Structured data: JSON-LD `@graph` on home page extended with WebSite schema (sitelinks
+> search box). Features/beta/investors pages each have WebPage + BreadcrumbList schemas (+ beta
+> has RegisterAction). `alternates.canonical` added to each marketing page metadata.
+> (3) Verification: Google Search Console meta tag in `app/layout.tsx` metadata.verification.google;
+> Bing Webmaster Tools `msvalidate.01` in metadata.verification.other. Google HTML file
+> (`public/googledb5ceb9627108dc3.html`) + middleware exclusion `google[a-z0-9]+\\.html` so
+> auth does not intercept verification files.
+> (4) `public/llms.txt` expanded: comprehensive AI-crawler document with market context,
+> capabilities, all key pages with full URLs, tech stack, contact info.
+> (5) Oak Aila deep-link in LessonFolder Overview tab: emerald "Plan with Oak Aila →" banner
+> card inserted between SEND actions card and Date & Time section. Pre-fills Aila URL with
+> lesson title, keyStage (derived from yearGroup: Y7–9=ks3, Y10–11=ks4, Y12–13=ks5), and
+> subject slug via existing `toOakSubjectSlug()`. Only renders when lesson has class+subject+yearGroup.
+> Oak Open API migration deferred — invite-only alpha, requires API key from open-api.thenational.academy.
+> **Latest commit:** 304d221 (feat: Oak Aila deep-link in lesson Overview tab). Pushed to Coolify.
 >
 > July 2026 Security audit + fixes (2026-07-28):
 > Full security review across auth, API routes, cron endpoints, XSS, open redirects, raw SQL, rate

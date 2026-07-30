@@ -1382,6 +1382,34 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <ClassSendActionsCard classId={lesson.class.id} />
                   )}
 
+                  {/* Oak Aila deep-link — only when we have enough context */}
+                  {lesson?.class?.subject && lesson?.class?.yearGroup && (
+                    (() => {
+                      const yg = lesson.class!.yearGroup!
+                      const ks = yg <= 6 ? 'ks2' : yg <= 9 ? 'ks3' : yg <= 11 ? 'ks4' : 'ks5'
+                      const subjectSlug = toOakSubjectSlug(lesson.class!.subject!)
+                      const ailaTitle = title.trim() || lesson.class!.subject!
+                      const ailaUrl = `https://labs.thenational.academy/aila?title=${encodeURIComponent(ailaTitle)}&keyStage=${ks}&subject=${encodeURIComponent(subjectSlug)}`
+                      return (
+                        <a
+                          href={ailaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl hover:bg-emerald-100 transition-colors group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon name="auto_awesome" size="sm" className="text-emerald-600 shrink-0" />
+                            <span className="text-[12px] text-emerald-800">
+                              <span className="font-semibold">Plan with Oak Aila</span>
+                              <span className="text-emerald-600"> — AI lesson planner, pre-filled for this lesson</span>
+                            </span>
+                          </div>
+                          <Icon name="open_in_new" size="sm" className="text-emerald-500 group-hover:text-emerald-700 transition-colors shrink-0" />
+                        </a>
+                      )
+                    })()
+                  )}
+
                   {/* Date & time */}
                   <div>
                     <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Date & Time</h3>

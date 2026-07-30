@@ -20,9 +20,7 @@ export const metadata: Metadata = {
     site:    '@OmnisEducation',
     creator: '@OmnisEducation',
   },
-  alternates: {
-    canonical: 'https://omnis.education/marketing/home',
-  },
+  // Canonical set per-page — each marketing page exports its own alternates.canonical
 }
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {

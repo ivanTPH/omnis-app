@@ -163,9 +163,11 @@ export default function ClassRosterTab({
                 </span>
               )}
             </div>
-            <Link href="/senco/dashboard" className="text-[11px] text-blue-500 hover:text-blue-700 mt-0.5 inline-block">
-              View SEND dashboard →
-            </Link>
+            {['SENCO', 'SLT', 'SCHOOL_ADMIN', 'HEAD_OF_YEAR'].includes(userRole) && (
+              <Link href="/senco/dashboard" className="text-[11px] text-blue-500 hover:text-blue-700 mt-0.5 inline-block">
+                View SEND dashboard →
+              </Link>
+            )}
           </div>
         </div>
       )}

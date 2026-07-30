@@ -9,6 +9,8 @@ import { getSoWTopicsForClass } from '@/app/actions/year-group-plans'
 import type { ClassFormatInsight } from '@/app/actions/adaptive-learning'
 import { HomeworkType } from '@prisma/client'
 import IlpTargetHomeworkPanel from './IlpTargetHomeworkPanel'
+import type { ProposalResult } from '@/lib/homework-helpers'
+import { streamAiRequest } from '@/lib/ai-stream'
 
 type ObjectiveEntry = {
   id:              string
@@ -57,6 +59,8 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
   const [suggestedIlpTargets, setSuggestedIlpTargets] = useState<string[]>([])
   const [formatInsight,       setFormatInsight]        = useState<ClassFormatInsight | null>(null)
   const [loadingInsight,      setLoadingInsight]       = useState(false)
+  const [streamedResult, setStreamedResult] = useState<ProposalResult | null>(null)
+  const [genMessage,     setGenMessage]     = useState('')
   const [loading, setLoading] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [error, setError] = useState('')
@@ -127,34 +131,63 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
     setStep(2)
   }
 
+  /** Map the 11 variant-type strings to Prisma HomeworkType enum values accepted by the streaming route */
+  function variantToHomeworkType(variant: string): HomeworkType {
+    if (variant === 'multiple_choice') return HomeworkType.MCQ_QUIZ
+    if (variant === 'essay' || variant === 'mind_map' || variant === 'research_task' || variant === 'creative') return HomeworkType.EXTENDED_WRITING
+    return HomeworkType.SHORT_ANSWER
+  }
+
   async function handleGenerate() {
     if (!extraction) return
-    setLoading(true); setError(''); setGenElapsed(0)
+    setLoading(true); setError(''); setGenElapsed(0); setStreamedResult(null); setGenMessage('')
     const startedAt = Date.now()
     const timer = setInterval(() => setGenElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000)
     try {
       const cls = selectedLesson?.class ?? classes.find(c => c.id === selectedClassId)
-      const editedObjectives = objectives.length > 0
-        ? objectives.map(o => o.text).filter(Boolean)
-        : extraction.learningObjectives
-      const additionalContext = objectives
-        .filter(o => !o.fromLesson && o.sourceMaterial?.trim())
-        .map(o => `Objective: ${o.text}\n${o.sourceMaterial}`)
-        .join('\n\n') || undefined
-      const gen = await generateHomeworkContent({
-        homeworkVariantType: selectedType,
-        subject: cls?.subject ?? 'Unknown',
-        yearGroup: cls?.yearGroup ?? 10,
-        learningObjectives: editedObjectives,
-        bloomsLevel: extraction.bloomsLevel,
-        keyTopics: extraction.keyTopics,
-        durationMins: extraction.suggestedDurationMins,
-        ilpTargets: suggestedIlpTargets.length > 0 ? suggestedIlpTargets : undefined,
-        additionalContext,
-      })
-      setGenerated(gen)
-      setEditedTitle(gen.title)
-      setEditedInstructions(gen.instructions)
+
+      if (selectedLesson) {
+        // Rich path — stream from /api/ai/generate-homework with Oak lesson data + SEND context
+        const hwType = variantToHomeworkType(selectedType)
+        const result = await streamAiRequest<ProposalResult>(
+          '/api/ai/generate-homework',
+          { lessonId: selectedLesson.id, forceType: hwType },
+          (message) => setGenMessage(message),
+        )
+        setStreamedResult(result)
+        const derivedTitle = `${cls?.subject ?? 'Homework'} — ${selectedLesson.title}`
+        setGenerated({
+          title: derivedTitle,
+          instructions: result.instructions,
+          structuredContent: {},
+          differentiationNotes: '',
+        })
+        setEditedTitle(derivedTitle)
+        setEditedInstructions(result.instructions)
+      } else {
+        // Fallback path — manual entry (no lesson / Oak context)
+        const editedObjectives = objectives.length > 0
+          ? objectives.map(o => o.text).filter(Boolean)
+          : extraction.learningObjectives
+        const additionalContext = objectives
+          .filter(o => !o.fromLesson && o.sourceMaterial?.trim())
+          .map(o => `Objective: ${o.text}\n${o.sourceMaterial}`)
+          .join('\n\n') || undefined
+        const gen = await generateHomeworkContent({
+          homeworkVariantType: selectedType,
+          subject: cls?.subject ?? 'Unknown',
+          yearGroup: cls?.yearGroup ?? 10,
+          learningObjectives: editedObjectives,
+          bloomsLevel: extraction.bloomsLevel,
+          keyTopics: extraction.keyTopics,
+          durationMins: extraction.suggestedDurationMins,
+          ilpTargets: suggestedIlpTargets.length > 0 ? suggestedIlpTargets : undefined,
+          additionalContext,
+        })
+        setGenerated(gen)
+        setEditedTitle(gen.title)
+        setEditedInstructions(gen.instructions)
+      }
       setStep(4)
     } catch (e) {
       const msg = (e as Error).message ?? ''
@@ -178,11 +211,16 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
         classId,
         title:     editedTitle,
         instructions: editedInstructions,
-        type:      HomeworkType.SHORT_ANSWER,
+        // Use type/questionsJson/gradingBands from streamed result when available (Oak-enriched path)
+        type:          streamedResult ? streamedResult.type : HomeworkType.SHORT_ANSWER,
+        modelAnswer:   streamedResult?.modelAnswer,
+        gradingBands:  streamedResult?.gradingBands,
+        questionsJson: streamedResult?.questionsJson,
         setAt:     new Date().toISOString(),
         dueAt:     new Date(dueDate).toISOString(),
         homeworkVariantType: selectedType,
-        structuredContent:   generated.structuredContent,
+        // Only pass structuredContent on the fallback (manual) path
+        structuredContent:   streamedResult ? undefined : generated.structuredContent,
         learningObjectives:  extraction.learningObjectives,
         bloomsLevel:         extraction.bloomsLevel,
         ilpTargetIds:        linkedIlpTargetIds,
@@ -216,7 +254,8 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
           <div className="sticky top-[73px] z-10 bg-blue-50 border-b border-blue-100 px-6 py-2 flex items-center gap-2">
             <Icon name="refresh" size="sm" className="animate-spin text-blue-600 shrink-0" />
             <span className="text-[13px] text-blue-700 font-medium">
-              {genElapsed < 10 ? 'Generating homework…'
+              {genMessage && genElapsed < 5 ? genMessage
+               : genElapsed < 10 ? (genMessage || 'Generating homework…')
                : genElapsed < 30 ? `Generating… (${genElapsed}s)`
                : genElapsed < 60 ? `Still working… (${genElapsed}s)`
                : `Almost there… (${genElapsed}s)`}

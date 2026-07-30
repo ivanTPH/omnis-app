@@ -141,7 +141,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                 <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-3">
                   {data.hasIlp && (
                     <Link
-                      href={`/send/ilp/${data.ilpStudentId}`}
+                      href={`/students/${studentId}?tab=Plans`}
                       onClick={onClose}
                       className="inline-flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
                     >
@@ -151,7 +151,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                   )}
                   {data.hasEhcp && (
                     <Link
-                      href={`/senco/ehcp`}
+                      href={`/students/${studentId}?tab=Plans`}
                       onClick={onClose}
                       className="inline-flex items-center gap-1.5 text-[12px] text-purple-600 hover:text-purple-800 font-medium"
                     >

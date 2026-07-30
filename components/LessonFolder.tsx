@@ -1890,9 +1890,6 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <div className="px-7 py-4 bg-blue-50/60 border-b border-blue-100 flex items-center gap-2">
                       <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
                       <span className="text-[12px] font-semibold text-blue-800">{sendStudents.length} student{sendStudents.length !== 1 ? 's' : ''} with SEND needs</span>
-                      <Link href="/senco/ilp" target="_blank" rel="noopener noreferrer" className="ml-auto flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium">
-                        <Icon name="open_in_new" size="sm" />Full ILP list
-                      </Link>
                     </div>
 
                     {/* Per-student rows */}

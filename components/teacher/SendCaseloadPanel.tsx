@@ -247,7 +247,7 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
             </Link>
             {student.ilpId && (
               <Link
-                href={`/send/ilp/${student.id}`}
+                href={`/students/${student.id}?tab=SEND`}
                 className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 rounded-lg text-[11px] text-blue-700 font-medium transition-colors"
               >
                 <Icon name="task_alt" size="sm" /> View ILP
@@ -326,9 +326,7 @@ export default function SendCaseloadPanel({ data }: Props) {
               {noIlpStudents.map(s => `${s.firstName} ${s.lastName}`).join(', ')} — contact the SENCO to create one.
             </p>
           </div>
-          <Link href="/senco/concerns" className="shrink-0 text-[11px] text-amber-700 hover:text-amber-900 font-semibold underline">
-            Raise concern
-          </Link>
+          <p className="shrink-0 text-[11px] text-amber-600">Expand a student below to raise a concern.</p>
         </div>
       )}
 
@@ -395,8 +393,8 @@ export default function SendCaseloadPanel({ data }: Props) {
         <Link href="/classes" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
           <Icon name="groups" size="sm" /> My Classes
         </Link>
-        <Link href="/senco/ilp" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
-          <Icon name="task_alt" size="sm" /> ILP Records
+        <Link href="/my-send-students" className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+          <Icon name="task_alt" size="sm" /> My SEND Students
         </Link>
       </div>
     </div>

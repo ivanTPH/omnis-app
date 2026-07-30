@@ -19,7 +19,9 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       // All external API calls are server-side only; browser only needs self + Sentry
       "connect-src 'self' https://*.sentry.io",
-      "frame-src 'none'",
+      // Allow Google Slides/Drive embeds and self (uploaded file previews via /api/resource-file/).
+      // frame-ancestors 'none' (below) still prevents Omnis itself from being embedded anywhere.
+      "frame-src 'self' https://docs.google.com https://drive.google.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

@@ -477,10 +477,10 @@
 > lesson title, keyStage (derived from yearGroup: Y7–9=ks3, Y10–11=ks4, Y12–13=ks5), and
 > subject slug via existing `toOakSubjectSlug()`. Only renders when lesson has class+subject+yearGroup.
 > Oak Open API migration deferred — invite-only alpha, requires API key from open-api.thenational.academy.
-> **Latest commit:** 61f6dd5 (fix: silence crons.yml false-failure on push events). Pushed to Coolify.
-> crons.yml false-failure fix: GitHub evaluates all workflow files on every push even for
-> schedule-only workflows; added `noop-on-push` job so push-triggered runs succeed silently
-> instead of emailing "No jobs were run" on every commit.
+> **Latest commit:** afd6ad0 (docs: update CLAUDE.md). E2E: **452 passed, 4 flaky/retry, 1 cold-start flake on Coolify (2026-07-30). Exit 0 on subsequent run.**
+> crons.yml false-failure fix (61f6dd5): GitHub evaluates all workflow files on every push even
+> for schedule-only workflows; added `noop-on-push` job so push-triggered runs succeed silently
+> instead of emailing "No jobs were run" on every commit. Confirmed: 3 subsequent runs all green.
 >
 > July 2026 Security audit + fixes (2026-07-28):
 > Full security review across auth, API routes, cron endpoints, XSS, open redirects, raw SQL, rate

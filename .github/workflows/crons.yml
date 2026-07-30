@@ -31,6 +31,14 @@ env:
   BASE: https://omnis.education
 
 jobs:
+  # GitHub evaluates all workflow files on push, even schedule-only workflows.
+  # Without this, every push produces a "No jobs were run" failure email.
+  noop-on-push:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Cron jobs run on schedule only — skipping on push."
+
   oak-sync:
     if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

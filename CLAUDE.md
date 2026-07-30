@@ -476,11 +476,22 @@
 > card inserted between SEND actions card and Date & Time section. Pre-fills Aila URL with
 > lesson title, keyStage (derived from yearGroup: Y7–9=ks3, Y10–11=ks4, Y12–13=ks5), and
 > subject slug via existing `toOakSubjectSlug()`. Only renders when lesson has class+subject+yearGroup.
-> Oak Open API migration deferred — invite-only alpha, requires API key from open-api.thenational.academy.
-> **Latest commit:** afd6ad0 (docs: update CLAUDE.md). E2E: **452 passed, 4 flaky/retry, 1 cold-start flake on Coolify (2026-07-30). Exit 0 on subsequent run.**
+> Oak Open API bulk sync (2026-07-30, commit 6404de1):
+> Replaced fragile web-scraping delta sync with official Oak bulk download API. `lib/oak-bulk-sync.ts`:
+> `runBulkSync()` — (1) GET /api/v0/subjects → 17 subject slugs; (2) POST /api/bulk {subjects:
+> ["english-secondary"]} per subject → ZIP file → unzip with jszip → BulkData JSON; (3) upsert
+> OakSubject → OakUnit → OakLesson (FK order). ~17 API calls total vs ~11,000 individual requests
+> in old scraper. `transcript_sentences` from bulk API is a raw string — split on '\n' before
+> storing as transcriptSentences Json[]. `app/api/cron/oak-sync/route.ts` updated: auto-selects
+> bulk vs delta based on `OAK_API_KEY` env var presence — no breaking change, fallback preserved.
+> Scheduled via existing Sunday 02:00 UTC cron; all data cached in Supabase; `unstable_cache` in
+> searchOakLessons() provides 5-min app-level cache busted after each sync. Env var
+> `OAK_API_KEY=b6b84659-9098-46fe-99d9-ab920b3990f0` added to `.env.local`; must also be added
+> to Coolify env vars for production sync to use bulk path.
 > crons.yml false-failure fix (61f6dd5): GitHub evaluates all workflow files on every push even
 > for schedule-only workflows; added `noop-on-push` job so push-triggered runs succeed silently
 > instead of emailing "No jobs were run" on every commit. Confirmed: 3 subsequent runs all green.
+> **Latest commit:** 6404de1 (feat: Oak bulk sync via official API). E2E: **452 passed, 4 flaky/retry, 1 cold-start flake on Coolify (2026-07-30). Exit 0 on subsequent run.**
 >
 > July 2026 Security audit + fixes (2026-07-28):
 > Full security review across auth, API routes, cron endpoints, XSS, open redirects, raw SQL, rate
@@ -969,7 +980,8 @@ tail -f /tmp/omnis-dev.log
 | `lib/pdf/lesson-plan-template.ts` / `homework-template.ts` / `revision-timetable-template.ts` / `homework-summary-template.ts` / `academy-report-template.ts` / `apdr-template.ts` | PDF HTML templates |
 | `lib/wonde-client.ts` | Typed Wonde API client — paginated fetch for all entity types. Interfaces: WondePeriod (day/day_number fields), WondeTimetableEntry (period/employee as flat strings), WondeContact (relationship as nested object) |
 | `lib/wonde-sync.ts` | Full sync engine — upserts employees, students, contacts, groups, classes, periods, timetable. Inner try/catch per student contact so one bad record doesn't abort all |
-| `lib/oak-delta-sync.ts` | Oak delta sync logic |
+| `lib/oak-delta-sync.ts` | Oak delta sync logic (web-scraping fallback — used when OAK_API_KEY absent) |
+| `lib/oak-bulk-sync.ts` | Oak bulk sync via official API — `runBulkSync()` downloads ZIP per subject-phase, upserts Subject/Unit/Lesson; ~17 API calls vs ~11,000 in delta scraper; used when OAK_API_KEY is set |
 | `lib/revision/analysis-engine.ts` | `analyseClassPerformance()` |
 | `lib/revision/content-generator.ts` | `generateRevisionTask()` with SEND adaptations + ILP integration |
 | `lib/design-tokens.ts` | Design system constants — `colors`, `badges`, `buttons` objects. Source of truth for Tailwind class strings. Use when building new components. |

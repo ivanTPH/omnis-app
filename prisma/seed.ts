@@ -397,6 +397,17 @@ async function main() {
     { id: 'demo-res-aic-resp-ms',    lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET,'label': 'GCSE Mark Scheme Descriptors (AIC).pdf',         url: DEMO_PDF_URL },
     { id: 'demo-res-aic-resp-bbc',   lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK,     label: 'BBC Bitesize — AIC Themes & Context',             url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/4' },
     { id: 'demo-res-aic-resp-video', lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.VIDEO,    label: 'AIC — Themes of Responsibility Explained (YouTube)', url: 'https://www.youtube.com/watch?v=aic-responsibility' },
+    // Oak National Academy resources (oakContentId enables AI homework enrichment with KLPs/quizzes/misconceptions)
+    { id: 'oak-res-10e-d0-hawk',     lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK, label: 'Oak: Analysing Power in "Hawk Roosting" (Hughes)',        url: 'https://classroom.thenational.academy/lessons/analysing-hawk-roosting',                            oakContentId: 'analysing-hawk-roosting' },
+    { id: 'oak-res-10e-d0-ozy',      lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK, label: 'Oak: Analysing Power in "Ozymandias" (Shelley)',           url: 'https://classroom.thenational.academy/lessons/analysing-the-poem-ozymandias',                     oakContentId: 'analysing-the-poem-ozymandias' },
+    { id: 'oak-res-10e-d3-dulce',    lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK, label: 'Oak: Analysing "Dulce et Decorum Est" (Owen)',              url: 'https://classroom.thenational.academy/lessons/analysing-dulce-et-decorum-est',                    oakContentId: 'analysing-dulce-et-decorum-est' },
+    { id: 'oak-res-10e-d3-sonnet43', lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK, label: 'Oak: Analysing Love in "Sonnet 43" (Browning)',             url: 'https://classroom.thenational.academy/lessons/analysing-sonnet-43',                               oakContentId: 'analysing-sonnet-43' },
+    { id: 'oak-res-11e-d1-plan',     lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.LINK, label: 'Oak: Planning Descriptive Writing from an Image',           url: 'https://classroom.thenational.academy/lessons/planning-a-description-based-on-an-image',          oakContentId: 'planning-a-description-based-on-an-image' },
+    { id: 'oak-res-11e-d2-article',  lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK, label: 'Oak: Analysing and Writing a Social Media Article',         url: 'https://classroom.thenational.academy/lessons/writing-an-article-about-social-media',             oakContentId: 'writing-an-article-about-social-media' },
+    { id: 'oak-res-11e-d2-compare',  lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK, label: "Oak: Writing a Concise Comparison of Writers' Attitudes",   url: 'https://classroom.thenational.academy/lessons/writing-a-concise-comparison-of-writers-attitudes', oakContentId: 'writing-a-concise-comparison-of-writers-attitudes' },
+    { id: 'oak-res-9e-d0-war',       lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK, label: 'Oak: Comparing Poets on the Experience of War',             url: 'https://classroom.thenational.academy/lessons/comparing-how-poets-explore-the-experience-of-war', oakContentId: 'comparing-how-poets-explore-the-experience-of-war' },
+    { id: 'oak-res-9e-d2-ozy',       lessonKey: 'demo-lesson-9E-d2-h9',   type: ResourceType.LINK, label: 'Oak: Analysing Power in "Ozymandias" (Shelley)',           url: 'https://classroom.thenational.academy/lessons/analysing-the-poem-ozymandias',                     oakContentId: 'analysing-the-poem-ozymandias' },
+    { id: 'oak-res-9e-d4-dulce',     lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK, label: 'Oak: Analysing "Dulce et Decorum Est" (Owen)',              url: 'https://classroom.thenational.academy/lessons/analysing-dulce-et-decorum-est',                    oakContentId: 'analysing-dulce-et-decorum-est' },
   ]
 
   for (const r of allResources) {
@@ -405,7 +416,7 @@ async function main() {
       update: {},
       create: {
         id: r.id, schoolId: school.id, lessonId: lessonIds[r.lessonKey],
-        type: r.type, label: r.label, url: r.url, createdBy: teacherId,
+        type: r.type, label: r.label, url: r.url, oakContentId: (r as any).oakContentId, createdBy: teacherId,
       },
     })
   }
@@ -1084,11 +1095,12 @@ async function main() {
     { id: 'demo-7A-res-wordbank',  type: ResourceType.WORKSHEET, label: 'Sensory Word Bank & Sentence Starters.pdf',     url: DEMO_PDF_URL },
     { id: 'demo-7A-res-bbc',       type: ResourceType.LINK,      label: 'BBC Bitesize — Descriptive Writing Techniques', url: 'https://www.bbc.co.uk/bitesize/topics/zfkk6yc' },
     { id: 'demo-7A-res-video',     type: ResourceType.VIDEO,     label: 'How to Write Descriptively — GCSE Tips (YouTube)', url: 'https://www.youtube.com/watch?v=descriptive-writing' },
+    { id: 'oak-res-7a-eng-desc',   type: ResourceType.LINK,      label: 'Oak: Planning Descriptive Writing from an Image',   url: 'https://classroom.thenational.academy/lessons/planning-a-description-based-on-an-image', oakContentId: 'planning-a-description-based-on-an-image' },
   ]
   for (const r of engResources) {
     await prisma.resource.upsert({
       where:  { id: r.id }, update: {},
-      create: { id: r.id, schoolId: school.id, lessonId: engLesson.id, type: r.type, label: r.label, url: r.url, createdBy: created['j.patel'].id },
+      create: { id: r.id, schoolId: school.id, lessonId: engLesson.id, type: r.type, label: r.label, url: r.url, oakContentId: (r as any).oakContentId, createdBy: created['j.patel'].id },
     })
   }
   // SEND review on the English slides
@@ -1115,12 +1127,13 @@ async function main() {
     { id: 'demo-7B-res-worked',    type: ResourceType.WORKSHEET, label: 'Worked Examples — Finding LCM.pdf',          url: DEMO_PDF_URL },
     { id: 'demo-7B-res-ws',        type: ResourceType.WORKSHEET, label: 'Fraction Practice Grid (Task 1 & 2).pdf',    url: DEMO_PDF_URL },
     { id: 'demo-7B-res-bbc',       type: ResourceType.LINK,      label: 'BBC Bitesize — Adding Fractions',            url: 'https://www.bbc.co.uk/bitesize/topics/zt9n9ty/articles/zx73o9q' },
-    { id: 'demo-7B-res-video',     type: ResourceType.VIDEO,     label: 'Adding Fractions Step-by-Step (YouTube)',    url: 'https://www.youtube.com/watch?v=fractions-lcm' },
+    { id: 'demo-7B-res-video',       type: ResourceType.VIDEO, label: 'Adding Fractions Step-by-Step (YouTube)',                        url: 'https://www.youtube.com/watch?v=fractions-lcm' },
+    { id: 'oak-res-7b-ma-fractions', type: ResourceType.LINK,  label: 'Oak: Add and Subtract Fractions with Different Denominators',    url: 'https://classroom.thenational.academy/lessons/add-and-subtract-non-related-fractions-with-different-denominators', oakContentId: 'add-and-subtract-non-related-fractions-with-different-denominators' },
   ]
   for (const r of mathResources) {
     await prisma.resource.upsert({
       where:  { id: r.id }, update: {},
-      create: { id: r.id, schoolId: school.id, lessonId: mathLesson.id, type: r.type, label: r.label, url: r.url, createdBy: kwright.id },
+      create: { id: r.id, schoolId: school.id, lessonId: mathLesson.id, type: r.type, label: r.label, url: r.url, oakContentId: (r as any).oakContentId, createdBy: kwright.id },
     })
   }
   console.log('  ✓ Lesson resources')

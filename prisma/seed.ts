@@ -372,15 +372,15 @@ async function main() {
     // ── An Inspector Calls — Act 1 Introduction ───────────────────────────
     { id: 'demo-res-aic1-plan',      lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.PLAN,      label: 'AIC Act 1 — Lesson Plan.pdf' },
     { id: 'demo-res-aic1-ws',        lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.WORKSHEET, label: 'Act 1 Reading Guide & Annotation Sheet.pdf' },
-    { id: 'demo-res-aic1-bbc',       lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK,      label: 'BBC Bitesize — An Inspector Calls Overview',      url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/1' },
-    { id: 'demo-res-aic1-context',   lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK,      label: 'Priestley & the 1945 Context — Revision Notes',   url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/2' },
+    { id: 'demo-res-aic1-bbc',       lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK,      label: 'AQA GCSE English Literature — Specification & Teaching Resources', url: 'https://www.aqa.org.uk/subjects/english/gcse/english-literature-8702' },
+    { id: 'demo-res-aic1-context',   lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK,      label: 'LitCharts — An Inspector Calls: Historical Context & Background',  url: 'https://www.litcharts.com/lit/an-inspector-calls/context' },
     { id: 'demo-res-aic1-video',     lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.VIDEO,     label: 'An Inspector Calls — Plot & Themes Introduction (YouTube)', url: 'https://www.youtube.com/watch?v=aic-intro' },
 
     // ── Macbeth — Ambition and Power ──────────────────────────────────────
     { id: 'demo-res-macbeth-plan',      lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.PLAN,      label: 'Macbeth Act 1 — Lesson Plan.pdf' },
     { id: 'demo-res-macbeth-worksheet', lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.WORKSHEET, label: 'PEE Paragraph Scaffold — Ambition.pdf' },
-    { id: 'demo-res-macbeth-bbc',       lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK,      label: 'BBC Bitesize — Macbeth Themes',                   url: 'https://www.bbc.co.uk/bitesize/guides/z8vgdmn/revision/1' },
-    { id: 'demo-res-macbeth-sparknotes',lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK,      label: 'BBC Bitesize — Macbeth Key Quotes',               url: 'https://www.bbc.co.uk/bitesize/guides/z8vgdmn/revision/3' },
+    { id: 'demo-res-macbeth-bbc',       lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK,      label: 'RSC — Macbeth: About the Play (Themes & Context)', url: 'https://www.rsc.org.uk/macbeth/about-the-play' },
+    { id: 'demo-res-macbeth-sparknotes',lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK,      label: 'SparkNotes — Macbeth Key Quotes & Analysis',      url: 'https://www.sparknotes.com/shakespeare/macbeth/quotes/' },
     { id: 'demo-res-macbeth-video',     lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.VIDEO,     label: 'RSC — Macbeth: Ambition Explained (YouTube)',      url: 'https://www.youtube.com/watch?v=macbeth-rsc' },
 
     // ── Paper 1 Unseen Fiction Practice ───────────────────────────────────
@@ -393,7 +393,7 @@ async function main() {
     // ── An Inspector Calls — Character Study ──────────────────────────────
     { id: 'demo-res-aic-char-plan',  lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.PLAN,      label: 'AIC Character Study — Lesson Plan.pdf' },
     { id: 'demo-res-aic-char-ws',    lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.WORKSHEET, label: 'Character Tracking Grid — AIC.pdf' },
-    { id: 'demo-res-aic-char-bbc',   lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.LINK,      label: 'BBC Bitesize — AIC Characters',                   url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/3' },
+    { id: 'demo-res-aic-char-bbc',   lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.LINK,      label: 'SparkNotes — An Inspector Calls: Character Analysis', url: 'https://www.sparknotes.com/drama/an-inspector-calls/characters/' },
     { id: 'demo-res-aic-char-video', lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.VIDEO,     label: 'AIC — Character Analysis Deep Dive (YouTube)',    url: 'https://www.youtube.com/watch?v=aic-characters' },
 
     // ── Paper 2 Non-Fiction — Language Analysis ───────────────────────────
@@ -406,7 +406,7 @@ async function main() {
     // ── Macbeth — Soliloquy Analysis ──────────────────────────────────────
     { id: 'demo-res-mac-sol-plan', lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.PLAN,      label: 'Macbeth Soliloquy Analysis — Lesson Plan.pdf' },
     { id: 'demo-res-mac-sol-ws',   lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.WORKSHEET, label: 'Soliloquy Close Reading Frame.pdf' },
-    { id: 'demo-res-mac-sol-bbc',  lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK,      label: 'BBC Bitesize — Macbeth Soliloquies',              url: 'https://www.bbc.co.uk/bitesize/guides/z8vgdmn/revision/2' },
+    { id: 'demo-res-mac-sol-bbc',  lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK,      label: 'LitCharts — Macbeth: Soliloquies & Language Analysis', url: 'https://www.litcharts.com/lit/macbeth' },
     { id: 'demo-res-mac-sol-rsc',  lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK,      label: "RSC — Understanding Macbeth's Soliloquies",        url: 'https://www.rsc.org.uk/macbeth/about-the-play/soliloquies' },
     { id: 'demo-res-mac-sol-video',lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.VIDEO,     label: 'RSC — "Is This a Dagger" Performance (YouTube)',   url: 'https://www.youtube.com/watch?v=macbeth-dagger' },
 
@@ -414,7 +414,7 @@ async function main() {
     { id: 'demo-res-aic-resp-plan', lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.PLAN,      label: 'AIC Responsibility Theme — Lesson Plan.pdf' },
     { id: 'demo-res-aic-resp-ws',   lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET, label: 'Timed Exam Response Frame — AIC Themes.pdf' },
     { id: 'demo-res-aic-resp-ms',   lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET, label: 'GCSE Mark Scheme Descriptors (AIC).pdf' },
-    { id: 'demo-res-aic-resp-bbc',  lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK,      label: 'BBC Bitesize — AIC Themes & Context',             url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/4' },
+    { id: 'demo-res-aic-resp-bbc',  lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK,      label: 'LitCharts — An Inspector Calls: Themes & Responsibility', url: 'https://www.litcharts.com/lit/an-inspector-calls/themes' },
     { id: 'demo-res-aic-resp-video',lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.VIDEO,     label: 'AIC — Themes of Responsibility Explained (YouTube)', url: 'https://www.youtube.com/watch?v=aic-responsibility' },
     // Oak National Academy resources for Year 11 AQA English (Paper 1 & 2 skills)
     // Note: Oak's English content is Eduqas (Welsh board) — only Y10/Y11 writing skills lessons

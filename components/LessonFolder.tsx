@@ -820,7 +820,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               className="flex-1 text-[13px] text-blue-600 hover:underline truncate"
                             >{r.label}</a>
                           ) : (
-                            <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
+                            <span
+                              className="flex-1 text-[13px] text-gray-400 truncate"
+                              title="No file attached — go to Resources tab to upload a file"
+                            >
+                              {r.label}
+                              <span className="text-[11px] ml-1">(no file)</span>
+                            </span>
                           )}
                           {r.review && (
                             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${scoreColor(r.review.sendScore)}`}>
@@ -1543,7 +1549,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     {r.label}
                                   </button>
                                 ) : (
-                                  <span className="flex-1 text-[13px] text-gray-800 truncate">{r.label}</span>
+                                  <span
+                                    className="flex-1 text-[13px] text-gray-400 truncate"
+                                    title="No file attached — upload a file above or add a URL via the edit button"
+                                  >
+                                    {r.label}
+                                    <span className="text-[11px] ml-1">(no file)</span>
+                                  </span>
                                 )
                               })()}
                               {r.fileKey && !r.url && (
@@ -1660,10 +1672,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           if (!lessonId) return
                           setGeneratingSlides(true)
                           try {
-                            await generateAiLessonSlides(lessonId)
+                            const { resourceId } = await generateAiLessonSlides(lessonId)
                             await refreshLesson()
+                            // Auto-open the preview so the teacher can see the slides immediately
+                            setPreviewUrl(`/api/resource-file/${resourceId}`)
+                            setPreviewLabel(`${lesson?.title ?? 'Lesson'} — AI Lesson Plan`)
                           } catch (err) {
                             console.error('AI slide generation failed', err)
+                            toast('Slide generation failed — please try again')
                           } finally {
                             setGeneratingSlides(false)
                           }

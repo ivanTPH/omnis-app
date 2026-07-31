@@ -1647,8 +1647,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </button>
                   )}
 
-                  {/* Generate AI Slides — shown when no SLIDES resource exists */}
-                  {lesson && !lesson.resources.some(r => r.type === 'SLIDES') && lesson.class && (
+                  {/* Generate AI Slides — shown when no SLIDES resource with real content exists */}
+                  {lesson && !lesson.resources.some(r => r.type === 'SLIDES' && r.url) && lesson.class && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
                       <Icon name="auto_awesome" size="md" className="text-amber-600 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">

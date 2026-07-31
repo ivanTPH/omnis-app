@@ -342,13 +342,14 @@ async function main() {
   // label shows in the list without a broken stub preview.
 
   // Remove any legacy stub SLIDES resources that may be in the DB from prior seeds
-  await prisma.resource.deleteMany({
-    where: { id: { in: [
-      'demo-res-aic-slides', 'demo-res-aic-char-slides', 'demo-res-aic-resp-slides',
-      'demo-res-macbeth-slides', 'demo-res-mac-sol-slides',
-      'demo-res-p1-slides', 'demo-res-p2-slides',
-    ]}},
-  })
+  const stubSlideIds = [
+    'demo-res-aic-slides', 'demo-res-aic-char-slides', 'demo-res-aic-resp-slides',
+    'demo-res-macbeth-slides', 'demo-res-mac-sol-slides',
+    'demo-res-p1-slides', 'demo-res-p2-slides',
+  ]
+  // Delete dependent ResourceReviews first (no cascade on this FK)
+  await prisma.resourceReview.deleteMany({ where: { resourceId: { in: stubSlideIds } } })
+  await prisma.resource.deleteMany({ where: { id: { in: stubSlideIds } } })
 
   type ResourceSeed = { id: string; lessonKey: string; type: ResourceType; label: string; url?: string | null }
 
@@ -1090,54 +1091,39 @@ async function main() {
   })
   console.log('  ✓ Lessons: Descriptive Writing (7A/En1) + Fractions (7B/Ma1)')
 
-  // Lesson resources — English
+  // Lesson resources — English (SLIDES omitted — Generate AI Slides button handles them)
   const engResources = [
-    { id: 'demo-7A-res-plan',      type: ResourceType.PLAN,      label: 'Descriptive Writing Lesson Plan.pdf',          url: DEMO_PDF_URL },
-    { id: 'demo-7A-res-slides',    type: ResourceType.SLIDES,    label: 'Sensory Language — Lesson Slides.pptx',         url: DEMO_PDF_URL },
-    { id: 'demo-7A-res-extract',   type: ResourceType.WORKSHEET, label: 'Model Text Extract — The Storm.pdf',            url: DEMO_PDF_URL },
-    { id: 'demo-7A-res-ws',        type: ResourceType.WORKSHEET, label: 'Sensory Language Annotation Frame.pdf',         url: DEMO_PDF_URL },
-    { id: 'demo-7A-res-wordbank',  type: ResourceType.WORKSHEET, label: 'Sensory Word Bank & Sentence Starters.pdf',     url: DEMO_PDF_URL },
-    { id: 'demo-7A-res-bbc',       type: ResourceType.LINK,      label: 'BBC Bitesize — Descriptive Writing Techniques', url: 'https://www.bbc.co.uk/bitesize/topics/zfkk6yc' },
-    { id: 'demo-7A-res-video',     type: ResourceType.VIDEO,     label: 'How to Write Descriptively — GCSE Tips (YouTube)', url: 'https://www.youtube.com/watch?v=descriptive-writing' },
+    { id: 'demo-7A-res-plan',     type: ResourceType.PLAN,      label: 'Descriptive Writing Lesson Plan.pdf' },
+    { id: 'demo-7A-res-extract',  type: ResourceType.WORKSHEET, label: 'Model Text Extract — The Storm.pdf' },
+    { id: 'demo-7A-res-ws',       type: ResourceType.WORKSHEET, label: 'Sensory Language Annotation Frame.pdf' },
+    { id: 'demo-7A-res-wordbank', type: ResourceType.WORKSHEET, label: 'Sensory Word Bank & Sentence Starters.pdf' },
+    { id: 'demo-7A-res-bbc',      type: ResourceType.LINK,      label: 'BBC Bitesize — Descriptive Writing Techniques', url: 'https://www.bbc.co.uk/bitesize/topics/zfkk6yc' },
+    { id: 'demo-7A-res-video',    type: ResourceType.VIDEO,     label: 'How to Write Descriptively — GCSE Tips (YouTube)', url: 'https://www.youtube.com/watch?v=descriptive-writing' },
     { id: 'oak-res-7a-eng-desc',   type: ResourceType.LINK,      label: 'Oak: Planning Descriptive Writing from an Image',   url: 'https://classroom.thenational.academy/lessons/planning-a-description-based-on-an-image', oakContentId: 'planning-a-description-based-on-an-image' },
   ]
   for (const r of engResources) {
     await prisma.resource.upsert({
-      where:  { id: r.id }, update: {},
-      create: { id: r.id, schoolId: school.id, lessonId: engLesson.id, type: r.type, label: r.label, url: r.url, oakContentId: (r as any).oakContentId, createdBy: created['j.patel'].id },
+      where:  { id: r.id }, update: { url: (r as any).url ?? null, label: r.label },
+      create: { id: r.id, schoolId: school.id, lessonId: engLesson.id, type: r.type, label: r.label, url: (r as any).url ?? null, oakContentId: (r as any).oakContentId, createdBy: created['j.patel'].id },
     })
   }
-  // SEND review on the English slides
-  await prisma.resourceReview.upsert({
-    where:  { resourceId: 'demo-7A-res-slides' },
-    update: {},
-    create: {
-      resourceId: 'demo-7A-res-slides', sendScore: 61,
-      suggestions: [
-        { text: 'Instructions on slide 3 contain 4 steps in one sentence — split into numbered list', accepted: false },
-        { text: 'Key vocabulary not pre-taught before task — add a glossary slide', accepted: false },
-        { text: 'Task 2 prompt uses abstract language ("create atmosphere") — rephrase with concrete example', accepted: false },
-        { text: 'No visual scaffold for the writing frame — add a labelled example paragraph', accepted: false },
-        { text: 'Slide 5 has dense body text (>80 words) — reduce or chunk', accepted: false },
-      ],
-      accepted: false,
-    },
-  })
+  // Delete legacy stub English slides resource if present
+  await prisma.resourceReview.deleteMany({ where: { resourceId: 'demo-7A-res-slides' } })
+  await prisma.resource.deleteMany({ where: { id: { in: ['demo-7A-res-slides', 'demo-7B-res-slides'] } } })
 
-  // Lesson resources — Maths
+  // Lesson resources — Maths (SLIDES omitted — Generate AI Slides button handles them)
   const mathResources = [
-    { id: 'demo-7B-res-plan',      type: ResourceType.PLAN,      label: 'Fractions Lesson Plan.pdf',                  url: DEMO_PDF_URL },
-    { id: 'demo-7B-res-slides',    type: ResourceType.SLIDES,    label: 'LCM & Adding Fractions — Slides.pptx',       url: DEMO_PDF_URL },
-    { id: 'demo-7B-res-worked',    type: ResourceType.WORKSHEET, label: 'Worked Examples — Finding LCM.pdf',          url: DEMO_PDF_URL },
-    { id: 'demo-7B-res-ws',        type: ResourceType.WORKSHEET, label: 'Fraction Practice Grid (Task 1 & 2).pdf',    url: DEMO_PDF_URL },
+    { id: 'demo-7B-res-plan',   type: ResourceType.PLAN,      label: 'Fractions Lesson Plan.pdf' },
+    { id: 'demo-7B-res-worked', type: ResourceType.WORKSHEET, label: 'Worked Examples — Finding LCM.pdf' },
+    { id: 'demo-7B-res-ws',     type: ResourceType.WORKSHEET, label: 'Fraction Practice Grid (Task 1 & 2).pdf' },
     { id: 'demo-7B-res-bbc',       type: ResourceType.LINK,      label: 'BBC Bitesize — Adding Fractions',            url: 'https://www.bbc.co.uk/bitesize/topics/zt9n9ty/articles/zx73o9q' },
     { id: 'demo-7B-res-video',       type: ResourceType.VIDEO, label: 'Adding Fractions Step-by-Step (YouTube)',                        url: 'https://www.youtube.com/watch?v=fractions-lcm' },
     { id: 'oak-res-7b-ma-fractions', type: ResourceType.LINK,  label: 'Oak: Add and Subtract Fractions with Different Denominators',    url: 'https://classroom.thenational.academy/lessons/add-and-subtract-non-related-fractions-with-different-denominators', oakContentId: 'add-and-subtract-non-related-fractions-with-different-denominators' },
   ]
   for (const r of mathResources) {
     await prisma.resource.upsert({
-      where:  { id: r.id }, update: {},
-      create: { id: r.id, schoolId: school.id, lessonId: mathLesson.id, type: r.type, label: r.label, url: r.url, oakContentId: (r as any).oakContentId, createdBy: kwright.id },
+      where:  { id: r.id }, update: { url: (r as any).url ?? null, label: r.label },
+      create: { id: r.id, schoolId: school.id, lessonId: mathLesson.id, type: r.type, label: r.label, url: (r as any).url ?? null, oakContentId: (r as any).oakContentId, createdBy: kwright.id },
     })
   }
   console.log('  ✓ Lesson resources')

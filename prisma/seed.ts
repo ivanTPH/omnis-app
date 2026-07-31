@@ -351,6 +351,21 @@ async function main() {
   await prisma.resourceReview.deleteMany({ where: { resourceId: { in: stubSlideIds } } })
   await prisma.resource.deleteMany({ where: { id: { in: stubSlideIds } } })
 
+  // Remove mismatched Oak resources: Eduqas (Welsh board) poetry lessons wrongly linked to
+  // AQA Macbeth and AIC lessons — curriculum-inaccurate for English schools.
+  // Oak's English content is Eduqas-only; there are no AQA Macbeth/AIC lessons in Oak DB.
+  const mismatchedOakIds = [
+    'oak-res-10e-d0-hawk',     // Hawk Roosting (Eduqas poetry) on Macbeth Ambition lesson
+    'oak-res-10e-d0-ozy',      // Ozymandias (Eduqas poetry) on Macbeth Ambition lesson
+    'oak-res-10e-d3-dulce',    // Dulce et Decorum Est (Eduqas poetry) on Macbeth Soliloquy
+    'oak-res-10e-d3-sonnet43', // Sonnet 43 (Eduqas poetry) on Macbeth Soliloquy
+    'oak-res-9e-d0-war',       // War poetry comparison (Eduqas) on AIC Act 1 lesson
+    'oak-res-9e-d2-ozy',       // Ozymandias (Eduqas poetry) on AIC Character Study
+    'oak-res-9e-d4-dulce',     // Dulce et Decorum Est (Eduqas poetry) on AIC Responsibility
+  ]
+  await prisma.resourceReview.deleteMany({ where: { resourceId: { in: mismatchedOakIds } } })
+  await prisma.resource.deleteMany({ where: { id: { in: mismatchedOakIds } } })
+
   type ResourceSeed = { id: string; lessonKey: string; type: ResourceType; label: string; url?: string | null }
 
   const allResources: ResourceSeed[] = [
@@ -401,17 +416,12 @@ async function main() {
     { id: 'demo-res-aic-resp-ms',   lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET, label: 'GCSE Mark Scheme Descriptors (AIC).pdf' },
     { id: 'demo-res-aic-resp-bbc',  lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK,      label: 'BBC Bitesize — AIC Themes & Context',             url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/4' },
     { id: 'demo-res-aic-resp-video',lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.VIDEO,     label: 'AIC — Themes of Responsibility Explained (YouTube)', url: 'https://www.youtube.com/watch?v=aic-responsibility' },
-    // Oak National Academy resources (oakContentId enables AI homework enrichment with KLPs/quizzes/misconceptions)
-    { id: 'oak-res-10e-d0-hawk',     lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK, label: 'Oak: Analysing Power in "Hawk Roosting" (Hughes)',        url: 'https://classroom.thenational.academy/lessons/analysing-hawk-roosting',                            oakContentId: 'analysing-hawk-roosting' },
-    { id: 'oak-res-10e-d0-ozy',      lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK, label: 'Oak: Analysing Power in "Ozymandias" (Shelley)',           url: 'https://classroom.thenational.academy/lessons/analysing-the-poem-ozymandias',                     oakContentId: 'analysing-the-poem-ozymandias' },
-    { id: 'oak-res-10e-d3-dulce',    lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK, label: 'Oak: Analysing "Dulce et Decorum Est" (Owen)',              url: 'https://classroom.thenational.academy/lessons/analysing-dulce-et-decorum-est',                    oakContentId: 'analysing-dulce-et-decorum-est' },
-    { id: 'oak-res-10e-d3-sonnet43', lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK, label: 'Oak: Analysing Love in "Sonnet 43" (Browning)',             url: 'https://classroom.thenational.academy/lessons/analysing-sonnet-43',                               oakContentId: 'analysing-sonnet-43' },
+    // Oak National Academy resources for Year 11 AQA English (Paper 1 & 2 skills)
+    // Note: Oak's English content is Eduqas (Welsh board) — only Y10/Y11 writing skills lessons
+    // are board-neutral enough to link to AQA Paper 1/2 lessons.
     { id: 'oak-res-11e-d1-plan',     lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.LINK, label: 'Oak: Planning Descriptive Writing from an Image',           url: 'https://classroom.thenational.academy/lessons/planning-a-description-based-on-an-image',          oakContentId: 'planning-a-description-based-on-an-image' },
     { id: 'oak-res-11e-d2-article',  lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK, label: 'Oak: Analysing and Writing a Social Media Article',         url: 'https://classroom.thenational.academy/lessons/writing-an-article-about-social-media',             oakContentId: 'writing-an-article-about-social-media' },
     { id: 'oak-res-11e-d2-compare',  lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK, label: "Oak: Writing a Concise Comparison of Writers' Attitudes",   url: 'https://classroom.thenational.academy/lessons/writing-a-concise-comparison-of-writers-attitudes', oakContentId: 'writing-a-concise-comparison-of-writers-attitudes' },
-    { id: 'oak-res-9e-d0-war',       lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK, label: 'Oak: Comparing Poets on the Experience of War',             url: 'https://classroom.thenational.academy/lessons/comparing-how-poets-explore-the-experience-of-war', oakContentId: 'comparing-how-poets-explore-the-experience-of-war' },
-    { id: 'oak-res-9e-d2-ozy',       lessonKey: 'demo-lesson-9E-d2-h9',   type: ResourceType.LINK, label: 'Oak: Analysing Power in "Ozymandias" (Shelley)',           url: 'https://classroom.thenational.academy/lessons/analysing-the-poem-ozymandias',                     oakContentId: 'analysing-the-poem-ozymandias' },
-    { id: 'oak-res-9e-d4-dulce',     lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK, label: 'Oak: Analysing "Dulce et Decorum Est" (Owen)',              url: 'https://classroom.thenational.academy/lessons/analysing-dulce-et-decorum-est',                    oakContentId: 'analysing-dulce-et-decorum-est' },
   ]
 
   for (const r of allResources) {
@@ -721,18 +731,10 @@ async function main() {
     },
   })
 
-  // Aiden submitted Macbeth homework — force SUBMITTED on re-seed to reset any demo marking
-  await prisma.submission.upsert({
-    where: { homeworkId_studentId: { homeworkId: macbethHW.id, studentId: created['a.hughes'].id } },
-    update: { status: SubmissionStatus.SUBMITTED, grade: null, feedback: null, markedAt: null, teacherScore: null, finalScore: null },
-    create: {
-      schoolId:    school.id,
-      homeworkId:  macbethHW.id,
-      studentId:   created['a.hughes'].id,
-      content:     'Shakespeare presents ambition as a deeply destructive force in Act 1 of Macbeth. When Macbeth says "Stars, hide your fires; / Let not light see my black and deep desires", Shakespeare uses the imagery of darkness to suggest that ambition forces Macbeth to conceal his true nature. The word "black" connotes evil and corruption, implying that ambition has already morally tainted Macbeth before he has committed any crime. In a Jacobean context, the audience would have been acutely aware of the divine right of kings, making Macbeth\'s ambitions not just personally destructive but cosmically transgressive. Furthermore, Lady Macbeth\'s invocation to "unsex me here" shows how ambition corrupts those around Macbeth, infecting even his closest relationship.',
-      status:      SubmissionStatus.SUBMITTED,
-      submittedAt: daysAgo(1),
-    },
+  // Aiden Hughes (Year 9, 9E/En1) should NOT have a Macbeth submission — Macbeth is Year 10.
+  // Delete any legacy submission from prior seeds.
+  await prisma.submission.deleteMany({
+    where: { homeworkId: macbethHW.id, studentId: created['a.hughes'].id },
   })
   console.log('  ✓ Submissions')
 

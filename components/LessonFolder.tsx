@@ -6,7 +6,7 @@ import UITooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives, suggestStudentLessonAdaptation } from '@/app/actions/lessons'
+import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives, suggestStudentLessonAdaptation, generateAiLessonSlides } from '@/app/actions/lessons'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 import { createHomework } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion, ProposalResult } from '@/lib/homework-helpers'
@@ -182,6 +182,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [editLabel,         setEditLabel]         = useState('')
   const [editUrl,           setEditUrl]           = useState('')
   const [editSaving,        startEditSave]        = useTransition()
+  const [generatingSlides,  setGeneratingSlides]  = useState(false)
 
   // Homework wizard state
   const [typeStore,       setTypeStore]       = useState<Partial<Record<HomeworkType, TypeState>>>({})
@@ -773,10 +774,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 <div className="space-y-2">
                   <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Resources added</p>
                   {lesson!.resources.map(r => (
-                    <div key={r.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div key={r.id} className={`flex items-center gap-3 p-3 bg-gray-50 rounded-xl border ${(r as any).isAiGenerated ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${RESOURCE_TYPE_COLORS[r.type] ?? 'bg-gray-100 text-gray-600'}`}>
                         {RESOURCE_TYPE_LABELS[r.type] ?? r.type}
                       </span>
+                      {(r as any).isAiGenerated && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 shrink-0 flex items-center gap-0.5">
+                          <Icon name="auto_awesome" size="sm" />AI
+                        </span>
+                      )}
                       {editingResourceId === r.id ? (
                         <div className="flex-1 flex items-center gap-2">
                           <input
@@ -820,6 +826,18 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${scoreColor(r.review.sendScore)}`}>
                               SEND {r.review.sendScore}/10
                             </span>
+                          )}
+                          {r.url && (
+                            <a
+                              title="Download"
+                              href={r.url.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url}
+                              download={r.label}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-green-100 text-gray-300 hover:text-green-700 transition-colors"
+                            >
+                              <Icon name="download" size="sm" />
+                            </a>
                           )}
                           <button
                             title="Edit"
@@ -1475,10 +1493,15 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {lesson?.resources && lesson.resources.length > 0 ? (
                     <div className="space-y-2">
                       {lesson.resources.map(r => (
-                        <div key={r.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                        <div key={r.id} className={`flex items-center gap-3 p-3 rounded-xl border ${(r as any).isAiGenerated ? 'bg-amber-50 border-amber-300' : 'bg-gray-50 border-gray-200'}`}>
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${RESOURCE_TYPE_COLORS[r.type] ?? 'bg-gray-100 text-gray-600'}`}>
                             {RESOURCE_TYPE_LABELS[r.type] ?? r.type}
                           </span>
+                          {(r as any).isAiGenerated && (
+                            <span title="AI generated — review before use" className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-200 text-amber-800 shrink-0 flex items-center gap-0.5">
+                              <Icon name="auto_awesome" size="sm" />AI
+                            </span>
+                          )}
                           {editingResourceId === r.id ? (
                             <div className="flex-1 flex items-center gap-2 flex-wrap">
                               <input
@@ -1529,16 +1552,28 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 </span>
                               )}
                               {r.url && (
-                                <button
-                                  title="Open file"
-                                  onClick={() => {
-                                    const viewUrl = r.url!.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url!
-                                    setPreviewUrl(viewUrl); setPreviewLabel(r.label)
-                                  }}
-                                  className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-blue-100 text-gray-300 hover:text-blue-600 transition-colors"
-                                >
-                                  <Icon name="visibility" size="sm" />
-                                </button>
+                                <>
+                                  <button
+                                    title="Preview"
+                                    onClick={() => {
+                                      const viewUrl = r.url!.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url!
+                                      setPreviewUrl(viewUrl); setPreviewLabel(r.label)
+                                    }}
+                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-blue-100 text-gray-300 hover:text-blue-600 transition-colors"
+                                  >
+                                    <Icon name="visibility" size="sm" />
+                                  </button>
+                                  <a
+                                    title="Download"
+                                    href={r.url.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url}
+                                    download={r.label}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-green-100 text-gray-300 hover:text-green-700 transition-colors"
+                                  >
+                                    <Icon name="download" size="sm" />
+                                  </a>
+                                </>
                               )}
                               {r.review && (
                                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${scoreColor(r.review.sendScore)}`}>
@@ -1610,6 +1645,37 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         }}
                       />
                     </button>
+                  )}
+
+                  {/* Generate AI Slides — shown when no SLIDES resource exists */}
+                  {lesson && !lesson.resources.some(r => r.type === 'SLIDES') && lesson.class && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                      <Icon name="auto_awesome" size="md" className="text-amber-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-amber-800">No presentation slides yet</p>
+                        <p className="text-[11px] text-amber-700 mt-0.5">Generate AI lesson slides grounded in Oak National Academy curriculum content, or upload your own above.</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!lessonId) return
+                          setGeneratingSlides(true)
+                          try {
+                            await generateAiLessonSlides(lessonId)
+                            await refreshLesson()
+                          } catch (err) {
+                            console.error('AI slide generation failed', err)
+                          } finally {
+                            setGeneratingSlides(false)
+                          }
+                        }}
+                        disabled={generatingSlides}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-[12px] font-semibold hover:bg-amber-700 disabled:opacity-40 shrink-0"
+                      >
+                        {generatingSlides
+                          ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>
+                          : <><Icon name="auto_awesome" size="sm" />Generate AI Slides</>}
+                      </button>
+                    </div>
                   )}
 
                   {/* Unified Oak + school library search */}

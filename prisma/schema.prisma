@@ -755,6 +755,7 @@ model Resource {
   fileKey       String?
   oakContentId  String?
   extractedText String?   // Plain text extracted from uploaded files (PPTX, PDF, etc.)
+  isAiGenerated Boolean  @default(false)
   createdBy    String
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

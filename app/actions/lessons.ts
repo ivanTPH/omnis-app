@@ -1549,3 +1549,224 @@ Return JSON only: {"suggestions": ["...", "..."]}`
     'Provide sentence starters or key vocabulary on a prompt card.',
   ]
 }
+
+// ── AI Lesson Slide Generation ────────────────────────────────────────────────
+
+import {
+  getOakLessonContent,
+  findOakDataForTopics,
+  extractKlps,
+  extractMisconceptions,
+  extractKeywords,
+  type OakLessonContent,
+} from '@/lib/oak-content'
+
+function toOakSubjectSlugLocal(subject: string): string {
+  const s = subject.toLowerCase().trim()
+  if (s.includes('math')) return 'maths'
+  if (s.includes('english lit')) return 'english'
+  if (s === 'english') return 'english'
+  if (s.includes('science')) return 'science'
+  if (s.includes('history')) return 'history'
+  if (s.includes('geography')) return 'geography'
+  if (s.includes('biology')) return 'biology'
+  if (s.includes('chemistry')) return 'chemistry'
+  if (s.includes('physics')) return 'physics'
+  if (s.includes('french')) return 'french'
+  if (s.includes('spanish')) return 'spanish'
+  if (s.includes('german')) return 'german'
+  if (s.includes('music')) return 'music'
+  if (s.includes('art')) return 'art-and-design'
+  if (s.includes('computing') || s.includes('computer')) return 'computing'
+  if (s.includes('physical') || s === 'pe') return 'physical-education'
+  if (s.includes('religious') || s === 'rs' || s === 're') return 'religious-education'
+  if (s.includes('drama')) return 'drama'
+  return s.replace(/\s+/g, '-')
+}
+
+function buildAiSlidesHtml(title: string, yearGroup: number | null, subject: string, slides: Array<{ type: string; title: string; content: string; duration: string }>, vocabulary: string[], learningObjective: string, teacherNotes: string, oakAlignment: string): string {
+  const typeColors: Record<string, string> = {
+    starter: '#2563eb', context: '#7c3aed', teaching: '#0891b2',
+    activity: '#059669', check: '#d97706', plenary: '#dc2626',
+  }
+  const slidesHtml = slides.map((s, i) => {
+    const color = typeColors[s.type] ?? '#374151'
+    return `
+      <div class="slide" style="border-left:4px solid ${color}">
+        <div class="slide-header" style="color:${color}">
+          <span class="slide-num">${i + 1}</span>
+          <span class="slide-type">${s.type.charAt(0).toUpperCase() + s.type.slice(1)}</span>
+          <span class="slide-title">${s.title}</span>
+          <span class="slide-dur">${s.duration}</span>
+        </div>
+        <div class="slide-content">${s.content.replace(/\n/g, '<br>')}</div>
+      </div>`
+  }).join('')
+
+  const vocabHtml = vocabulary.length > 0
+    ? `<div class="section"><h3>Key Vocabulary</h3><ul>${vocabulary.map(v => `<li>${v}</li>`).join('')}</ul></div>`
+    : ''
+
+  return `<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; background: #f8fafc; color: #1e293b; font-size: 14px; }
+  .ai-banner { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 12px; color: #92400e; font-weight: 600; }
+  .ai-icon { font-size: 16px; }
+  .header { background: #1e3a5f; color: white; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  .header h1 { margin: 0 0 4px; font-size: 20px; }
+  .header .meta { font-size: 12px; opacity: 0.8; }
+  .objective { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; }
+  .objective strong { color: #1d4ed8; }
+  .slide { background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .slide-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .slide-num { background: currentColor; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .slide-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  .slide-title { font-weight: 600; font-size: 14px; color: #1e293b; flex: 1; }
+  .slide-dur { font-size: 11px; color: #94a3b8; background: #f1f5f9; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
+  .slide-content { font-size: 13px; line-height: 1.6; color: #374151; }
+  .section { background: white; border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .section h3 { margin: 0 0 10px; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: .06em; }
+  .section ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: #374151; }
+  .teacher-notes { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 14px 18px; font-size: 12px; color: #78350f; }
+  .teacher-notes strong { color: #92400e; }
+  .oak-align { font-size: 11px; color: #6b7280; background: #f3f4f6; border-radius: 6px; padding: 8px 12px; margin-top: 14px; }
+  @media print { body { background: white; padding: 0; } .ai-banner { display: none; } }
+</style>
+</head>
+<body>
+<div class="ai-banner">
+  <span class="ai-icon">✨</span>
+  AI GENERATED — Review and adapt before use. Content is based on Oak National Academy curriculum frameworks and best practice.
+</div>
+<div class="header">
+  <h1>${title}</h1>
+  <div class="meta">${subject}${yearGroup ? ` · Year ${yearGroup}` : ''}</div>
+</div>
+${learningObjective ? `<div class="objective"><strong>Learning Objective:</strong> ${learningObjective}</div>` : ''}
+${slidesHtml}
+${vocabHtml}
+${teacherNotes ? `<div class="section"><div class="teacher-notes"><strong>Teacher Notes:</strong> ${teacherNotes.replace(/\n/g, '<br>')}</div></div>` : ''}
+${oakAlignment ? `<div class="oak-align">🍃 Oak alignment: ${oakAlignment}</div>` : ''}
+</body>
+</html>`
+}
+
+export async function generateAiLessonSlides(lessonId: string): Promise<{ resourceId: string }> {
+  const { schoolId, id: userId } = await requireAuth([
+    'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SENCO',
+  ])
+
+  const lesson = await prisma.lesson.findFirst({
+    where: { id: lessonId, schoolId },
+    include: {
+      class: { select: { subject: true, yearGroup: true } },
+      resources: { where: { oakContentId: { not: null } }, select: { oakContentId: true } },
+    },
+  })
+  if (!lesson) throw new Error('Lesson not found')
+
+  // Gather Oak data from linked resources
+  const oakData: OakLessonContent[] = []
+  for (const r of lesson.resources) {
+    if (r.oakContentId) {
+      const d = await getOakLessonContent(r.oakContentId!)
+      if (d) oakData.push(d)
+    }
+  }
+
+  // Fallback: find by topic keywords when no linked Oak resources
+  if (oakData.length === 0 && lesson.class?.subject) {
+    const subjectSlug = toOakSubjectSlugLocal(lesson.class.subject)
+    const keywords = lesson.title
+      .replace(/[—\-–:]/g, ' ')
+      .split(' ')
+      .map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(w => w.length > 3 && !['with','from','that','this','their','have','been'].includes(w))
+      .slice(0, 4)
+    if (keywords.length > 0 && subjectSlug) {
+      const found = await findOakDataForTopics(keywords, subjectSlug)
+      oakData.push(...found.slice(0, 3))
+    }
+  }
+
+  const klps          = extractKlps(oakData).slice(0, 8)
+  const misconceptions = extractMisconceptions(oakData).slice(0, 4)
+  const vocab         = extractKeywords(oakData).slice(0, 10)
+  const yearGroup     = lesson.class?.yearGroup ?? null
+  const subject       = lesson.class?.subject ?? 'Subject'
+
+  const systemPrompt = `You are an expert UK secondary school curriculum designer. Generate a complete, detailed lesson plan in JSON.
+Use accurate subject knowledge appropriate for Year ${yearGroup ?? 'secondary'} ${subject} students.
+Follow EEF evidence on explicit instruction: clear learning objectives, worked examples, guided practice, independent practice, retrieval.
+Produce content that is educationally rigorous, engaging, and differentiated.`
+
+  const userPrompt = `Lesson title: "${lesson.title}"
+Subject: ${subject}  Year: ${yearGroup ?? 'secondary'}
+
+${klps.length > 0 ? `Oak curriculum key learning points:\n${klps.map((k, i) => `${i + 1}. ${k}`).join('\n')}\n` : ''}
+${misconceptions.length > 0 ? `Common misconceptions to address:\n${misconceptions.join('\n')}\n` : ''}
+${vocab.length > 0 ? `Curriculum vocabulary: ${vocab.join(', ')}\n` : ''}
+
+Generate a complete lesson plan JSON with exactly this structure:
+{
+  "learningObjective": "Students will be able to...",
+  "slides": [
+    { "type": "starter", "title": "Hook / Retrieval Practice", "content": "...", "duration": "5 min" },
+    { "type": "context", "title": "Background / Prior Knowledge", "content": "...", "duration": "8 min" },
+    { "type": "teaching", "title": "Direct Teaching / Worked Example", "content": "...", "duration": "15 min" },
+    { "type": "activity", "title": "Guided / Independent Practice", "content": "...", "duration": "15 min" },
+    { "type": "check", "title": "Retrieval Check / Exit Ticket", "content": "...", "duration": "7 min" }
+  ],
+  "vocabulary": ["term: definition", "term: definition"],
+  "teacherNotes": "Differentiation tips, common errors to watch for, extension ideas",
+  "oakAlignment": "Brief note on how this links to Oak National Academy curriculum frameworks"
+}
+
+Make content highly specific to "${lesson.title}" — not generic. Each slide content should be 3-6 sentences with specific examples, quotes (if literature), methods (if maths/science), or tasks.
+Return ONLY valid JSON, no markdown fences.`
+
+  const client = new Anthropic()
+  const msg = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2500,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+
+  const raw = msg.content[0]?.type === 'text' ? msg.content[0].text : ''
+  let slideData: { slides: Array<{ type: string; title: string; content: string; duration: string }>; vocabulary: string[]; learningObjective: string; teacherNotes: string; oakAlignment: string }
+
+  try {
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+    slideData = JSON.parse(cleaned)
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) throw new Error('AI returned unparseable content')
+    slideData = JSON.parse(match[0])
+  }
+
+  const html    = buildAiSlidesHtml(lesson.title, yearGroup, subject, slideData.slides ?? [], slideData.vocabulary ?? [], slideData.learningObjective ?? '', slideData.teacherNotes ?? '', slideData.oakAlignment ?? '')
+  const dataUrl = `data:text/html;base64,${Buffer.from(html).toString('base64')}`
+
+  const resource = await prisma.resource.create({
+    data: {
+      schoolId,
+      lessonId,
+      type:         ResourceType.SLIDES,
+      label:        `${lesson.title} — AI Lesson Plan`,
+      url:          dataUrl,
+      isAiGenerated: true,
+      createdBy:    userId,
+    },
+  })
+
+  await writeAudit({ schoolId, actorId: userId, action: 'RESOURCE_UPLOADED', targetType: 'Resource', targetId: resource.id, metadata: { aiGenerated: true, lessonTitle: lesson.title } })
+  revalidatePath('/dashboard')
+
+  return { resourceId: resource.id }
+}

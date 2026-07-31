@@ -906,6 +906,7 @@ export type ClassRosterRow = {
   needArea:            string | null
   hasIlp:              boolean
   hasEhcp:             boolean
+  hasKPlan:            boolean  // K Plan (Learning Passport) exists for this student
   hasLearningProfile:  boolean
   latestScore:         number | null
   maxScore:            number | null
@@ -939,6 +940,7 @@ async function fetchClassRosterFromDb(classId: string, schoolId: string): Promis
           },
           settings: { select: { profilePictureUrl: true } },
           learningProfile: { select: { id: true } },
+          kPlan: { select: { id: true } },
         },
       },
     },
@@ -961,6 +963,7 @@ async function fetchClassRosterFromDb(classId: string, schoolId: string): Promis
       needArea:            e.user.sendStatus?.needArea ?? null,
       hasIlp:              e.user.studentIlps.length > 0,
       hasEhcp:             status === 'EHCP',
+      hasKPlan:            e.user.kPlan != null,
       hasLearningProfile:  e.user.learningProfile != null,
       latestScore:         score,
       maxScore:            sub ? maxFromBandsServer(sub.homework?.gradingBands) : null,

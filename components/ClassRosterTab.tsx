@@ -107,10 +107,12 @@ export default function ClassRosterTab({
 
   // ── Derived counts ─────────────────────────────────────────────────────────
 
-  const senSupportCount = rows.filter(r => r.sendStatus === 'SEN_SUPPORT').length
-  const ehcpCount       = rows.filter(r => r.sendStatus === 'EHCP').length
-  const sendCount       = senSupportCount + ehcpCount
-  const ilpCount        = rows.filter(r => r.hasIlp && (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP')).length
+  const senSupportCount  = rows.filter(r => r.sendStatus === 'SEN_SUPPORT').length
+  const ehcpCount        = rows.filter(r => r.sendStatus === 'EHCP').length
+  const sendCount        = senSupportCount + ehcpCount
+  const ilpCount         = rows.filter(r => r.hasIlp && (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP')).length
+  const noPlanCount      = rows.filter(r => (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP') && !r.hasIlp).length
+  const noPassportCount  = rows.filter(r => (r.sendStatus === 'SEN_SUPPORT' || r.sendStatus === 'EHCP') && !r.hasKPlan).length
 
   // ── Row filter ────────────────────────────────────────────────────────────
 
@@ -125,7 +127,7 @@ export default function ClassRosterTab({
     } else {
       matchesSend = sendFilter === 'ALL' ? true
         : sendFilter === 'NO_PLAN'     ? (row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP') && !row.hasIlp
-        : sendFilter === 'NO_PASSPORT' ? !row.hasLearningProfile
+        : sendFilter === 'NO_PASSPORT' ? (row.sendStatus === 'SEN_SUPPORT' || row.sendStatus === 'EHCP') && !row.hasKPlan
         : row.sendStatus === sendFilter
     }
     return matchesSend && (!q || `${row.firstName} ${row.lastName}`.toLowerCase().includes(q.toLowerCase()))
@@ -199,7 +201,11 @@ export default function ClassRosterTab({
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {f === 'ALL' ? 'All' : f === 'SEN_SUPPORT' ? 'SEN Support' : f === 'EHCP' ? 'EHCP' : f === 'NO_PLAN' ? 'No Plan' : 'No Passport'}
+            {f === 'ALL'         ? `All (${rows.length})`
+              : f === 'SEN_SUPPORT' ? `SEN Support (${senSupportCount})`
+              : f === 'EHCP'        ? `EHCP (${ehcpCount})`
+              : f === 'NO_PLAN'     ? `No Plan (${noPlanCount})`
+              :                       `No Passport (${noPassportCount})`}
           </button>
         ))}
         <span className="text-[11px] px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full font-medium ml-auto">

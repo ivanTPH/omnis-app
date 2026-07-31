@@ -26,6 +26,7 @@ const HomeworkDetailPanel   = dynamic(() => import('@/components/homework/Homewo
 import ExportPdfButton   from '@/components/ExportPdfButton'
 import { addUploadedResource } from '@/app/actions/lessons'
 import { toast } from '@/components/ui/Toast'
+import RaiseConcernButton from '@/components/send-support/RaiseConcernButton'
 
 // Extract plain text from a PPTX file (ZIP containing XML slide files)
 async function extractPptxText(file: File): Promise<string> {
@@ -2096,10 +2097,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 <p className="text-[12px] text-gray-400 italic">No active ILP targets or EHCP outcomes on file.</p>
                               )}
 
-                              {/* Link to full SEND profile */}
-                              <Link href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-                                View full SEND profile <Icon name="chevron_right" size="sm" />
-                              </Link>
+                              {/* Actions row */}
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <Link href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                  View full SEND profile <Icon name="chevron_right" size="sm" />
+                                </Link>
+                                <RaiseConcernButton studentId={studentId} studentName={name} />
+                              </div>
 
                               {/* Suggest adaptation button */}
                               {lessonId && (

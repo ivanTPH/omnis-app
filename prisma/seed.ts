@@ -336,61 +336,65 @@ async function main() {
   }
 
   // ── Resources ─────────────────────────────────────────────────────────────
+  // Minimal valid PDF stored as a data URL — served via /api/resource-file/[id].
+  // Used in place of fake cdn.example.com URLs so preview/download actually works.
+  const DEMO_PDF_URL = 'data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PgplbmRvYmoKMiAwIG9iago8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PgplbmRvYmoKMyAwIG9iago8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL01lZGlhQm94WzAgMCA1OTUgODQyXS9Db250ZW50cyA0IDAgUi9SZXNvdXJjZXM8PC9Gb250PDwvRjEgNSAwIFI+Pj4+Pj4KZW5kb2JqCjQgMCBvYmoKPDwvTGVuZ3RoIDg0Pj4Kc3RyZWFtCkJUIC9GMSAxMiBUZiA3MiA3ODAgVGQgKERlbW8gUmVzb3VyY2UgLSBwcm92aWRlZCBieSBzY2hvb2wgaW4gZnVsbCBkZXBsb3ltZW50KSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwvVHlwZS9Gb250L1N1YnR5cGUvVHlwZTEvQmFzZUZvbnQvSGVsdmV0aWNhPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU0IDAwMDAwIG4gCjAwMDAwMDAxMDUgMDAwMDAgbiAKMDAwMDAwMDIxNyAwMDAwMCBuIAowMDAwMDAwMzQ5IDAwMDAwIG4gCnRyYWlsZXIKPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNDEyCiUlRU9GCg=='
+
   type ResourceSeed = { id: string; lessonKey: string; type: ResourceType; label: string; url: string }
 
   const allResources: ResourceSeed[] = [
     // ── An Inspector Calls — Act 1 Introduction ───────────────────────────
-    { id: 'demo-res-aic1-plan',      lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.PLAN,      label: 'AIC Act 1 — Lesson Plan.pdf',                    url: 'https://cdn.example.com/aic-act1-lesson-plan.pdf' },
-    { id: 'demo-res-aic-slides',     lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.SLIDES,    label: 'An Inspector Calls — Act 1 Slides.pptx',          url: 'https://cdn.example.com/aic-slides.pptx' },
-    { id: 'demo-res-aic1-ws',        lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.WORKSHEET, label: 'Act 1 Reading Guide & Annotation Sheet.pdf',      url: 'https://cdn.example.com/aic-act1-reading-guide.pdf' },
+    { id: 'demo-res-aic1-plan',      lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.PLAN,      label: 'AIC Act 1 — Lesson Plan.pdf',                    url: DEMO_PDF_URL },
+    { id: 'demo-res-aic-slides',     lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.SLIDES,    label: 'An Inspector Calls — Act 1 Slides.pptx',          url: DEMO_PDF_URL },
+    { id: 'demo-res-aic1-ws',        lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.WORKSHEET, label: 'Act 1 Reading Guide & Annotation Sheet.pdf',      url: DEMO_PDF_URL },
     { id: 'demo-res-aic1-bbc',       lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK,      label: 'BBC Bitesize — An Inspector Calls Overview',      url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/1' },
     { id: 'demo-res-aic1-context',   lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.LINK,      label: 'Priestley & the 1945 Context — Revision Notes',   url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/2' },
     { id: 'demo-res-aic1-video',     lessonKey: 'demo-lesson-9E-d0-h9',   type: ResourceType.VIDEO,     label: 'An Inspector Calls — Plot & Themes Introduction (YouTube)', url: 'https://www.youtube.com/watch?v=aic-intro' },
 
     // ── Macbeth — Ambition and Power ──────────────────────────────────────
-    { id: 'demo-res-macbeth-plan',   lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.PLAN,      label: 'Macbeth Act 1 — Lesson Plan.pdf',                 url: 'https://cdn.example.com/macbeth-lesson-plan.pdf' },
-    { id: 'demo-res-macbeth-slides', lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.SLIDES,    label: 'Macbeth Ambition & Power — Slides.pptx',          url: 'https://cdn.example.com/macbeth-slides.pptx' },
-    { id: 'demo-res-macbeth-worksheet', lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.WORKSHEET, label: 'PEE Paragraph Scaffold — Ambition.pdf',        url: 'https://cdn.example.com/macbeth-pee-scaffold.pdf' },
+    { id: 'demo-res-macbeth-plan',   lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.PLAN,      label: 'Macbeth Act 1 — Lesson Plan.pdf',                 url: DEMO_PDF_URL },
+    { id: 'demo-res-macbeth-slides', lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.SLIDES,    label: 'Macbeth Ambition & Power — Slides.pptx',          url: DEMO_PDF_URL },
+    { id: 'demo-res-macbeth-worksheet', lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.WORKSHEET, label: 'PEE Paragraph Scaffold — Ambition.pdf',        url: DEMO_PDF_URL },
     { id: 'demo-res-macbeth-bbc',    lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK,      label: 'BBC Bitesize — Macbeth Themes',                   url: 'https://www.bbc.co.uk/bitesize/guides/z8vgdmn/revision/1' },
     { id: 'demo-res-macbeth-sparknotes', lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.LINK,  label: 'BBC Bitesize — Macbeth Key Quotes',               url: 'https://www.bbc.co.uk/bitesize/guides/z8vgdmn/revision/3' },
     { id: 'demo-res-macbeth-video',  lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.VIDEO,     label: 'RSC — Macbeth: Ambition Explained (YouTube)',      url: 'https://www.youtube.com/watch?v=macbeth-rsc' },
 
     // ── Paper 1 Unseen Fiction Practice ───────────────────────────────────
-    { id: 'demo-res-p1-plan',        lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.PLAN,      label: 'Paper 1 Unseen Fiction — Lesson Plan.pdf',        url: 'https://cdn.example.com/p1-lesson-plan.pdf' },
-    { id: 'demo-res-p1-slides',      lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.SLIDES,    label: 'AQA Paper 1 Question 4 — Exam Skills Slides.pptx',url: 'https://cdn.example.com/p1-slides.pptx' },
-    { id: 'demo-res-p1-ws',          lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.WORKSHEET, label: 'Unseen Fiction Response Frame (Q4).pdf',          url: 'https://cdn.example.com/p1-response-frame.pdf' },
-    { id: 'demo-res-p1-extract',     lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.WORKSHEET, label: 'Timed Practice Extract — Gothic Fiction.pdf',     url: 'https://cdn.example.com/p1-extract-gothic.pdf' },
+    { id: 'demo-res-p1-plan',        lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.PLAN,      label: 'Paper 1 Unseen Fiction — Lesson Plan.pdf',        url: DEMO_PDF_URL },
+    { id: 'demo-res-p1-slides',      lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.SLIDES,    label: 'AQA Paper 1 Question 4 — Exam Skills Slides.pptx',url: DEMO_PDF_URL },
+    { id: 'demo-res-p1-ws',          lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.WORKSHEET, label: 'Unseen Fiction Response Frame (Q4).pdf',          url: DEMO_PDF_URL },
+    { id: 'demo-res-p1-extract',     lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.WORKSHEET, label: 'Timed Practice Extract — Gothic Fiction.pdf',     url: DEMO_PDF_URL },
     { id: 'demo-res-p1-bbc',         lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.LINK,      label: 'BBC Bitesize — AQA English Language Paper 1',     url: 'https://www.bbc.co.uk/bitesize/examspecs/z9xchbk' },
     { id: 'demo-res-p1-video',       lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.VIDEO,     label: 'How to Ace Paper 1 Q4 — Exam Walkthrough (YouTube)', url: 'https://www.youtube.com/watch?v=p1-q4-guide' },
 
     // ── An Inspector Calls — Character Study ──────────────────────────────
-    { id: 'demo-res-aic-char-plan',  lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.PLAN,      label: 'AIC Character Study — Lesson Plan.pdf',           url: 'https://cdn.example.com/aic-char-lesson-plan.pdf' },
-    { id: 'demo-res-aic-char-slides',lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.SLIDES,    label: 'AIC Characters — Birling Family Slides.pptx',     url: 'https://cdn.example.com/aic-characters-slides.pptx' },
-    { id: 'demo-res-aic-char-ws',    lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.WORKSHEET, label: 'Character Tracking Grid — AIC.pdf',               url: 'https://cdn.example.com/aic-character-grid.pdf' },
+    { id: 'demo-res-aic-char-plan',  lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.PLAN,      label: 'AIC Character Study — Lesson Plan.pdf',           url: DEMO_PDF_URL },
+    { id: 'demo-res-aic-char-slides',lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.SLIDES,    label: 'AIC Characters — Birling Family Slides.pptx',     url: DEMO_PDF_URL },
+    { id: 'demo-res-aic-char-ws',    lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.WORKSHEET, label: 'Character Tracking Grid — AIC.pdf',               url: DEMO_PDF_URL },
     { id: 'demo-res-aic-char-bbc',   lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.LINK,      label: 'BBC Bitesize — AIC Characters',                   url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/3' },
     { id: 'demo-res-aic-char-video', lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.VIDEO,     label: 'AIC — Character Analysis Deep Dive (YouTube)',    url: 'https://www.youtube.com/watch?v=aic-characters' },
 
     // ── Paper 2 Non-Fiction — Language Analysis ───────────────────────────
-    { id: 'demo-res-p2-plan',        lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.PLAN,     label: 'Paper 2 Language Analysis — Lesson Plan.pdf',     url: 'https://cdn.example.com/p2-lesson-plan.pdf' },
-    { id: 'demo-res-p2-slides',      lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.SLIDES,   label: 'Non-Fiction Language Techniques — Slides.pptx',   url: 'https://cdn.example.com/p2-slides.pptx' },
-    { id: 'demo-res-p2-ws',          lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.WORKSHEET,'label': 'Comparative Analysis Frame (Q4).pdf',            url: 'https://cdn.example.com/p2-comparative-frame.pdf' },
-    { id: 'demo-res-p2-source-a',    lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.WORKSHEET,'label': 'Source A — 19th Century Travel Writing Extract.pdf', url: 'https://cdn.example.com/p2-source-a.pdf' },
+    { id: 'demo-res-p2-plan',        lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.PLAN,     label: 'Paper 2 Language Analysis — Lesson Plan.pdf',     url: DEMO_PDF_URL },
+    { id: 'demo-res-p2-slides',      lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.SLIDES,   label: 'Non-Fiction Language Techniques — Slides.pptx',   url: DEMO_PDF_URL },
+    { id: 'demo-res-p2-ws',          lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.WORKSHEET,'label': 'Comparative Analysis Frame (Q4).pdf',            url: DEMO_PDF_URL },
+    { id: 'demo-res-p2-source-a',    lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.WORKSHEET,'label': 'Source A — 19th Century Travel Writing Extract.pdf', url: DEMO_PDF_URL },
     { id: 'demo-res-p2-bbc',         lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK,     label: 'BBC Bitesize — AQA Paper 2 Language',             url: 'https://www.bbc.co.uk/bitesize/examspecs/z9xchbk' },
     { id: 'demo-res-p2-video',       lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.VIDEO,    label: 'Paper 2 Q4 — How to Compare Perspectives (YouTube)', url: 'https://www.youtube.com/watch?v=p2-compare' },
 
     // ── Macbeth — Soliloquy Analysis ──────────────────────────────────────
-    { id: 'demo-res-mac-sol-plan',   lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.PLAN,     label: 'Macbeth Soliloquy Analysis — Lesson Plan.pdf',    url: 'https://cdn.example.com/macbeth-soliloquy-plan.pdf' },
-    { id: 'demo-res-mac-sol-slides', lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.SLIDES,   label: 'Macbeth — Key Soliloquies Annotated Slides.pptx', url: 'https://cdn.example.com/macbeth-soliloquy-slides.pptx' },
-    { id: 'demo-res-mac-sol-ws',     lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.WORKSHEET,'label': 'Soliloquy Close Reading Frame.pdf',              url: 'https://cdn.example.com/macbeth-soliloquy-frame.pdf' },
+    { id: 'demo-res-mac-sol-plan',   lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.PLAN,     label: 'Macbeth Soliloquy Analysis — Lesson Plan.pdf',    url: DEMO_PDF_URL },
+    { id: 'demo-res-mac-sol-slides', lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.SLIDES,   label: 'Macbeth — Key Soliloquies Annotated Slides.pptx', url: DEMO_PDF_URL },
+    { id: 'demo-res-mac-sol-ws',     lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.WORKSHEET,'label': 'Soliloquy Close Reading Frame.pdf',              url: DEMO_PDF_URL },
     { id: 'demo-res-mac-sol-bbc',    lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK,     label: 'BBC Bitesize — Macbeth Soliloquies',              url: 'https://www.bbc.co.uk/bitesize/guides/z8vgdmn/revision/2' },
     { id: 'demo-res-mac-sol-rsc',    lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.LINK,     label: 'RSC — Understanding Macbeth\'s Soliloquies',      url: 'https://www.rsc.org.uk/macbeth/about-the-play/soliloquies' },
     { id: 'demo-res-mac-sol-video',  lessonKey: 'demo-lesson-10E-d3-h11', type: ResourceType.VIDEO,    label: 'RSC — "Is This a Dagger" Performance (YouTube)',  url: 'https://www.youtube.com/watch?v=macbeth-dagger' },
 
     // ── An Inspector Calls — Responsibility Theme ─────────────────────────
-    { id: 'demo-res-aic-resp-plan',  lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.PLAN,     label: 'AIC Responsibility Theme — Lesson Plan.pdf',      url: 'https://cdn.example.com/aic-responsibility-plan.pdf' },
-    { id: 'demo-res-aic-resp-slides',lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.SLIDES,   label: 'AIC — Responsibility & Social Class Slides.pptx', url: 'https://cdn.example.com/aic-responsibility-slides.pptx' },
-    { id: 'demo-res-aic-resp-ws',    lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET,'label': 'Timed Exam Response Frame — AIC Themes.pdf',     url: 'https://cdn.example.com/aic-exam-frame.pdf' },
-    { id: 'demo-res-aic-resp-ms',    lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET,'label': 'GCSE Mark Scheme Descriptors (AIC).pdf',         url: 'https://cdn.example.com/aic-mark-scheme.pdf' },
+    { id: 'demo-res-aic-resp-plan',  lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.PLAN,     label: 'AIC Responsibility Theme — Lesson Plan.pdf',      url: DEMO_PDF_URL },
+    { id: 'demo-res-aic-resp-slides',lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.SLIDES,   label: 'AIC — Responsibility & Social Class Slides.pptx', url: DEMO_PDF_URL },
+    { id: 'demo-res-aic-resp-ws',    lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET,'label': 'Timed Exam Response Frame — AIC Themes.pdf',     url: DEMO_PDF_URL },
+    { id: 'demo-res-aic-resp-ms',    lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.WORKSHEET,'label': 'GCSE Mark Scheme Descriptors (AIC).pdf',         url: DEMO_PDF_URL },
     { id: 'demo-res-aic-resp-bbc',   lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.LINK,     label: 'BBC Bitesize — AIC Themes & Context',             url: 'https://www.bbc.co.uk/bitesize/guides/zqpfcwx/revision/4' },
     { id: 'demo-res-aic-resp-video', lessonKey: 'demo-lesson-9E-d4-h14',  type: ResourceType.VIDEO,    label: 'AIC — Themes of Responsibility Explained (YouTube)', url: 'https://www.youtube.com/watch?v=aic-responsibility' },
   ]
@@ -1073,11 +1077,11 @@ async function main() {
 
   // Lesson resources — English
   const engResources = [
-    { id: 'demo-7A-res-plan',      type: ResourceType.PLAN,      label: 'Descriptive Writing Lesson Plan.pdf',          url: 'https://cdn.example.com/7a-desc-plan.pdf' },
-    { id: 'demo-7A-res-slides',    type: ResourceType.SLIDES,    label: 'Sensory Language — Lesson Slides.pptx',         url: 'https://cdn.example.com/7a-desc-slides.pptx' },
-    { id: 'demo-7A-res-extract',   type: ResourceType.WORKSHEET, label: 'Model Text Extract — The Storm.pdf',            url: 'https://cdn.example.com/7a-storm-extract.pdf' },
-    { id: 'demo-7A-res-ws',        type: ResourceType.WORKSHEET, label: 'Sensory Language Annotation Frame.pdf',         url: 'https://cdn.example.com/7a-annotation-frame.pdf' },
-    { id: 'demo-7A-res-wordbank',  type: ResourceType.WORKSHEET, label: 'Sensory Word Bank & Sentence Starters.pdf',     url: 'https://cdn.example.com/7a-wordbank.pdf' },
+    { id: 'demo-7A-res-plan',      type: ResourceType.PLAN,      label: 'Descriptive Writing Lesson Plan.pdf',          url: DEMO_PDF_URL },
+    { id: 'demo-7A-res-slides',    type: ResourceType.SLIDES,    label: 'Sensory Language — Lesson Slides.pptx',         url: DEMO_PDF_URL },
+    { id: 'demo-7A-res-extract',   type: ResourceType.WORKSHEET, label: 'Model Text Extract — The Storm.pdf',            url: DEMO_PDF_URL },
+    { id: 'demo-7A-res-ws',        type: ResourceType.WORKSHEET, label: 'Sensory Language Annotation Frame.pdf',         url: DEMO_PDF_URL },
+    { id: 'demo-7A-res-wordbank',  type: ResourceType.WORKSHEET, label: 'Sensory Word Bank & Sentence Starters.pdf',     url: DEMO_PDF_URL },
     { id: 'demo-7A-res-bbc',       type: ResourceType.LINK,      label: 'BBC Bitesize — Descriptive Writing Techniques', url: 'https://www.bbc.co.uk/bitesize/topics/zfkk6yc' },
     { id: 'demo-7A-res-video',     type: ResourceType.VIDEO,     label: 'How to Write Descriptively — GCSE Tips (YouTube)', url: 'https://www.youtube.com/watch?v=descriptive-writing' },
   ]
@@ -1106,10 +1110,10 @@ async function main() {
 
   // Lesson resources — Maths
   const mathResources = [
-    { id: 'demo-7B-res-plan',      type: ResourceType.PLAN,      label: 'Fractions Lesson Plan.pdf',                  url: 'https://cdn.example.com/7b-frac-plan.pdf' },
-    { id: 'demo-7B-res-slides',    type: ResourceType.SLIDES,    label: 'LCM & Adding Fractions — Slides.pptx',       url: 'https://cdn.example.com/7b-frac-slides.pptx' },
-    { id: 'demo-7B-res-worked',    type: ResourceType.WORKSHEET, label: 'Worked Examples — Finding LCM.pdf',          url: 'https://cdn.example.com/7b-lcm-worked.pdf' },
-    { id: 'demo-7B-res-ws',        type: ResourceType.WORKSHEET, label: 'Fraction Practice Grid (Task 1 & 2).pdf',    url: 'https://cdn.example.com/7b-frac-practice.pdf' },
+    { id: 'demo-7B-res-plan',      type: ResourceType.PLAN,      label: 'Fractions Lesson Plan.pdf',                  url: DEMO_PDF_URL },
+    { id: 'demo-7B-res-slides',    type: ResourceType.SLIDES,    label: 'LCM & Adding Fractions — Slides.pptx',       url: DEMO_PDF_URL },
+    { id: 'demo-7B-res-worked',    type: ResourceType.WORKSHEET, label: 'Worked Examples — Finding LCM.pdf',          url: DEMO_PDF_URL },
+    { id: 'demo-7B-res-ws',        type: ResourceType.WORKSHEET, label: 'Fraction Practice Grid (Task 1 & 2).pdf',    url: DEMO_PDF_URL },
     { id: 'demo-7B-res-bbc',       type: ResourceType.LINK,      label: 'BBC Bitesize — Adding Fractions',            url: 'https://www.bbc.co.uk/bitesize/topics/zt9n9ty/articles/zx73o9q' },
     { id: 'demo-7B-res-video',     type: ResourceType.VIDEO,     label: 'Adding Fractions Step-by-Step (YouTube)',    url: 'https://www.youtube.com/watch?v=fractions-lcm' },
   ]

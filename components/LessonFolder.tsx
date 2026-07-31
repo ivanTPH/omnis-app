@@ -113,7 +113,14 @@ function getEmbedUrl(url: string): string {
   if (gSlides) return `https://docs.google.com/presentation/d/${gSlides[1]}/embed`
   const gDrive  = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/)
   if (gDrive)  return `https://drive.google.com/file/d/${gDrive[1]}/preview`
+  // Convert YouTube watch URLs to privacy-enhanced embed format
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+  if (ytMatch) return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`
   return url
+}
+
+function isYouTubeUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be/.test(url)
 }
 
 interface Props {
@@ -2391,14 +2398,25 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             Back to Resources
           </button>
           <p className="text-sm font-semibold text-gray-900 truncate mx-4 flex-1 text-center">{previewLabel}</p>
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-1 text-xs text-blue-600 hover:underline shrink-0"
-          >
-            <Icon name="open_in_new" size="sm" /> Open in new tab
-          </a>
+          <div className="flex items-center gap-2 shrink-0">
+            {previewUrl.startsWith('/api/resource-file/') && (
+              <a
+                href={previewUrl}
+                download
+                className="flex items-center gap-1 text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+              >
+                <Icon name="download" size="sm" /> Download
+              </a>
+            )}
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+            >
+              <Icon name="open_in_new" size="sm" /> Open in new tab
+            </a>
+          </div>
         </div>
         {/.(?:pptx?|docx?|xlsx?|ppt)$/i.test(previewLabel) ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 gap-6">
@@ -2414,6 +2432,24 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
               >
                 <Icon name="download" size="sm" /> Download file
+              </a>
+            </div>
+          </div>
+        ) : isYouTubeUrl(previewUrl) ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center">
+              <Icon name="play_circle" size="lg" className="text-red-600" />
+            </div>
+            <div className="text-center">
+              <p className="text-base font-semibold text-gray-900 mb-1">{previewLabel}</p>
+              <p className="text-sm text-gray-500 mb-4">Click below to watch this video on YouTube.</p>
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                <Icon name="play_arrow" size="sm" /> Watch on YouTube
               </a>
             </div>
           </div>

@@ -62,6 +62,18 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
+      {
+        // Override framing headers for the resource-file proxy so AI slides and uploaded
+        // files can be previewed in the LessonFolder iframe on the same origin.
+        // The global X-Frame-Options: DENY + frame-ancestors 'none' would block this
+        // even from our own origin. SAMEORIGIN + frame-ancestors 'self' allows only
+        // same-origin embedding — external sites still cannot embed these files.
+        source: '/api/resource-file/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
+        ],
+      },
     ]
   },
 };

@@ -285,6 +285,7 @@ export default function UnifiedResourceSearch({
   const [results,          setResults]          = useState<CombinedResult[]>([])
   const [loading,          setLoading]          = useState(false)
   const [broadened,        setBroadened]        = useState(false)
+  const [browseMode,       setBrowseMode]       = useState(false)
   const [addingId,         setAddingId]         = useState<string | null>(null)
   const [addedIds,         setAddedIds]         = useState<Set<string>>(new Set())
   const [previewSlug,      setPreviewSlug]      = useState<string | null>(null)
@@ -310,6 +311,7 @@ export default function UnifiedResourceSearch({
     const gen = ++searchGenRef.current
     setLoading(true)
     setBroadened(false)
+    setBrowseMode(false)
     try {
       // First pass: AND terms + year group (all keywords must match — precise)
       // eslint-disable-next-line prefer-const
@@ -334,6 +336,22 @@ export default function UnifiedResourceSearch({
           if (gen !== searchGenRef.current) return   // check again after awaits
           setBroadened(true)
         }
+      }
+
+      // Fourth pass: keyword search found nothing — browse available Oak content for this subject/year.
+      // This surfaces Oak lessons even when the lesson title doesn't match Oak content
+      // (e.g. "Macbeth" lessons can still browse the Eduqas poetry anthology available for English Y10).
+      if (oakResults.length === 0 && subjectSlug) {
+        const browse = await searchOakLessons({ subjectSlug, yearGroup, limit: 20 })
+        if (browse.length === 0 && yearGroup) {
+          // Drop year filter — some subjects only have one year band in Oak
+          const browseAll = await searchOakLessons({ subjectSlug, limit: 20 })
+          if (browseAll.length > 0) { oakResults = browseAll; setBrowseMode(true) }
+        } else if (browse.length > 0) {
+          oakResults = browse
+          setBrowseMode(true)
+        }
+        if (gen !== searchGenRef.current) return
       }
 
       if (gen !== searchGenRef.current) return   // discard stale result
@@ -429,9 +447,15 @@ export default function UnifiedResourceSearch({
       </div>
 
       {/* Broadened year notice */}
-      {broadened && yearGroup && (
+      {broadened && yearGroup && !browseMode && (
         <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
           Showing resources across all year groups — fewer than 3 exact Year {yearGroup} matches found
+        </p>
+      )}
+      {/* Browse-mode notice: topic not in Oak, showing available subject content */}
+      {browseMode && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+          No Oak content matched this lesson topic — showing available Oak resources for this subject to browse and add
         </p>
       )}
 

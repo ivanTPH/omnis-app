@@ -501,24 +501,44 @@ export async function getTeacherTimetable(): Promise<TeacherTimetableDay[]> {
   }
 
   // ── 2. Fallback: build timetable from lessons in the DB ────────────────────
-  // Find lessons taught by this teacher in the past 14 days + next 7 days
-  const windowStart = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)
-  const windowEnd   = new Date(Date.now() +  7 * 24 * 60 * 60 * 1000)
+  // Prefer this week's lessons; fall back to last week if this week has none.
+  const now   = new Date()
+  const dow   = now.getDay() // 0=Sun … 6=Sat
+  const daysToMon = dow === 0 ? -6 : 1 - dow
+  const thisMonday = new Date(now)
+  thisMonday.setDate(now.getDate() + daysToMon)
+  thisMonday.setHours(0, 0, 0, 0)
+  const thisFriday = new Date(thisMonday)
+  thisFriday.setDate(thisMonday.getDate() + 4)
+  thisFriday.setHours(23, 59, 59, 999)
 
-  const lessons = await prisma.lesson.findMany({
-    where: {
-      schoolId,
-      scheduledAt: { gte: windowStart, lte: windowEnd },
-      OR: [
-        { createdBy: userId },
-        { class: { teachers: { some: { userId } } } },
-      ],
-    },
-    include: { class: true },
-    orderBy: { scheduledAt: 'asc' },
-  })
+  const fetchLessons = async (start: Date, end: Date) =>
+    prisma.lesson.findMany({
+      where: {
+        schoolId,
+        scheduledAt: { gte: start, lte: end },
+        OR: [
+          { createdBy: userId },
+          { class: { teachers: { some: { userId } } } },
+        ],
+      },
+      include: { class: true },
+      orderBy: { scheduledAt: 'asc' },
+    })
 
-  // Group by day-of-week (1=Mon…5=Fri); deduplicate by class+time
+  let lessons = await fetchLessons(thisMonday, thisFriday)
+  if (lessons.length === 0) {
+    // Nothing this week — look at last week
+    const lastMonday = new Date(thisMonday)
+    lastMonday.setDate(thisMonday.getDate() - 7)
+    const lastFriday = new Date(thisFriday)
+    lastFriday.setDate(thisFriday.getDate() - 7)
+    lessons = await fetchLessons(lastMonday, lastFriday)
+  }
+
+  // Group by day-of-week (1=Mon…5=Fri); deduplicate by class name only
+  // (one slot per class per day — avoids duplicate entries when same class
+  //  appears at different times across historical weeks)
   const byDay = new Map<number, TeacherTimetableLesson[]>()
   const seen  = new Set<string>()
 
@@ -531,7 +551,7 @@ export async function getTeacherTimetable(): Promise<TeacherTimetableDay[]> {
     const end   = l.endsAt ?? new Date(start.getTime() + 60 * 60 * 1000)
     const startStr = start.toTimeString().slice(0, 5)
     const endStr   = end.toTimeString().slice(0, 5)
-    const key   = `${day}|${(l as any).class?.name ?? 'Lesson'}|${startStr}`
+    const key   = `${day}|${(l as any).class?.name ?? l.title}`
     if (seen.has(key)) continue
     seen.add(key)
 

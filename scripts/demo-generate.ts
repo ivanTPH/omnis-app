@@ -481,7 +481,7 @@ async function phase3_studentSubmissions(
           status:             SubmissionStatus.RETURNED,
           structuredResponse: { answers },
           autoScore:          numCorrect,
-          finalScore:         gcseGrade,    // stored as GCSE grade 1–9
+          finalScore:         numCorrect,   // raw score (0–numQuestions); GCSE grade derived at display via gradingBands
           autoFeedback:       feedback,
           feedback,
           autoMarked:         true,

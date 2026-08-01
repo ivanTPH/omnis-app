@@ -405,6 +405,20 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     setKPlanOpen(false)
   }
 
+  // Auto-initialise per-question scores for MCQ when switching to a student.
+  // Compares structuredResponse.answers[i] against structuredContent.questions[i].correct.
+  useEffect(() => {
+    if (!selectedId || perQScores[selectedId]) return
+    const mcqQs = ((hw as any).structuredContent as { questions?: Array<{ correct?: string }> } | null)?.questions
+    if (!mcqQs?.length || !mcqQs.every(q => q.correct != null)) return
+    const answers = (selectedSub?.structuredResponse as { answers?: string[] } | null)?.answers ?? []
+    const scores = mcqQs.map((q, i) =>
+      answers[i] != null ? (answers[i] === q.correct ? '1' : '0') : ''
+    )
+    setPerQScores(prev => ({ ...prev, [selectedId]: scores }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId])
+
   // Structured questions
   const questions = (hw.questions ?? []) as Array<{
     id: string; orderIndex: number; type: string; prompt: string
@@ -1292,15 +1306,18 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           onScoreChange={() => {}}
                         />
                       ))
-                    : structuredContent!.questions!.map((q, i) => (
+                    : structuredContent!.questions!.map((q, i) => {
+                        const qAny = q as any
+                        const isMcq = Array.isArray(qAny.options)
+                        return (
                         <QuestionCard
                           key={i}
                           index={i + 1}
                           total={structuredContent!.questions!.length}
                           prompt={q.question}
-                          type="SHORT_ANSWER"
-                          optionsJson={null}
-                          correctAnswerJson={q.modelAnswer ?? null}
+                          type={isMcq ? 'MCQ_QUIZ' : 'SHORT_ANSWER'}
+                          optionsJson={isMcq ? qAny.options : null}
+                          correctAnswerJson={qAny.correct ?? q.modelAnswer ?? null}
                           rubricJson={null}
                           explanationText={null}
                           maxScore={q.marks ?? 1}
@@ -1308,7 +1325,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           score=""
                           onScoreChange={() => {}}
                         />
-                      ))
+                        )
+                      })
                   }
                 </div>
               ) : (
@@ -1459,15 +1477,18 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                             onScoreChange={v => handlePerQScore(i, v)}
                           />
                         ))
-                      : structuredContent!.questions!.map((q, i) => (
+                      : structuredContent!.questions!.map((q, i) => {
+                          const qAny = q as any
+                          const isMcq = Array.isArray(qAny.options)
+                          return (
                           <QuestionCard
                             key={i}
                             index={i + 1}
                             total={structuredContent!.questions!.length}
                             prompt={q.question}
-                            type="SHORT_ANSWER"
-                            optionsJson={null}
-                            correctAnswerJson={(q as any).answer ?? q.modelAnswer ?? null}
+                            type={isMcq ? 'MCQ_QUIZ' : 'SHORT_ANSWER'}
+                            optionsJson={isMcq ? qAny.options : null}
+                            correctAnswerJson={qAny.correct ?? qAny.answer ?? q.modelAnswer ?? null}
                             rubricJson={null}
                             explanationText={null}
                             maxScore={q.marks ?? 1}
@@ -1475,7 +1496,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                             score={perQScores[selectedId!]?.[i] ?? ''}
                             onScoreChange={v => handlePerQScore(i, v)}
                           />
-                        ))
+                          )
+                        })
                     }
                   </div>
                   {/* Per-question running total */}

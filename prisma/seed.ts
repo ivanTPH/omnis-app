@@ -395,7 +395,7 @@ async function main() {
     { id: 'demo-res-macbeth-video',     lessonKey: 'demo-lesson-10E-d0-h11', type: ResourceType.VIDEO,     label: 'RSC — Macbeth: Ambition Explained (YouTube)',      url: 'https://www.youtube.com/results?search_query=macbeth+ambition+GCSE+English+literature+RSC' },
 
     // ── Paper 1 Unseen Fiction Practice ───────────────────────────────────
-    { id: 'demo-res-p1-bbc',     lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.LINK,      label: 'BBC Bitesize — AQA English Language Paper 1',     url: 'https://www.bbc.co.uk/bitesize/examspecs/z9xchbk' },
+    { id: 'demo-res-p1-bbc',     lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.LINK,      label: 'AQA GCSE English Language — Paper 1 Revision (BBC Bitesize)', url: 'https://www.bbc.co.uk/bitesize/topics/z63tt39' },
     { id: 'demo-res-p1-video',   lessonKey: 'demo-lesson-11E-d1-h10', type: ResourceType.VIDEO,     label: 'How to Ace Paper 1 Q4 — Exam Walkthrough (YouTube)', url: 'https://www.youtube.com/results?search_query=AQA+English+Language+Paper+1+Question+4+GCSE+exam+technique' },
 
     // ── An Inspector Calls — Character Study ──────────────────────────────
@@ -403,7 +403,7 @@ async function main() {
     { id: 'demo-res-aic-char-video', lessonKey: 'demo-lesson-9E-d2-h9',  type: ResourceType.VIDEO,     label: 'AIC — Character Analysis Deep Dive (YouTube)',    url: 'https://www.youtube.com/results?search_query=an+inspector+calls+character+analysis+Birling+Sheila+GCSE' },
 
     // ── Paper 2 Non-Fiction — Language Analysis ───────────────────────────
-    { id: 'demo-res-p2-bbc',      lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK,      label: 'BBC Bitesize — AQA Paper 2 Language',             url: 'https://www.bbc.co.uk/bitesize/examspecs/z9xchbk' },
+    { id: 'demo-res-p2-bbc',      lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.LINK,      label: 'AQA GCSE English Language — Paper 2 Revision (BBC Bitesize)', url: 'https://www.bbc.co.uk/bitesize/topics/zkdpyt' },
     { id: 'demo-res-p2-video',    lessonKey: 'demo-lesson-11E-d2-h13', type: ResourceType.VIDEO,     label: 'Paper 2 Q4 — How to Compare Perspectives (YouTube)', url: 'https://www.youtube.com/results?search_query=AQA+English+Language+Paper+2+comparing+perspectives+GCSE' },
 
     // ── Macbeth — Soliloquy Analysis ──────────────────────────────────────

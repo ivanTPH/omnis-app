@@ -147,38 +147,95 @@ type McqQuestion = {
 
 // ── Phase 1: AI HTML lesson slides ───────────────────────────────────────────
 
+// Fixed CSS template — provided to Claude so it only generates body content (not CSS).
+// This avoids the previous bug where max_tokens=3000 was consumed entirely by CSS,
+// leaving no room for actual slide HTML.
+const SLIDE_CSS = `body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#f1f5f9;color:#1e293b}
+.slide{background:#fff;max-width:900px;margin:24px auto;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);overflow:hidden}
+.sh{background:#1d4ed8;color:#fff;padding:24px 36px 20px}
+.sh h1{margin:0 0 6px;font-size:2rem;line-height:1.2}
+.sh h2{margin:0 0 4px;font-size:1.25rem}
+.sh p,.sh small{margin:0;opacity:.85;font-size:.9rem}
+.sb{padding:28px 36px 32px}
+.badge{display:inline-block;background:rgba(255,255,255,.18);border-radius:20px;padding:3px 12px;font-size:.8rem;margin-bottom:12px}
+.obj{background:#eff6ff;border-left:4px solid #1d4ed8;border-radius:0 8px 8px 0;padding:16px 20px;margin-top:8px}
+.obj h3{color:#1d4ed8;margin:0 0 10px;font-size:.95rem;text-transform:uppercase;letter-spacing:.5px}
+.obj ol{margin:0;padding-left:18px}
+.obj li{margin-bottom:7px;font-size:.95rem;line-height:1.4}
+.card{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:16px 20px;margin-bottom:14px}
+.card h4{margin:0 0 8px;color:#1d4ed8;font-size:.95rem}
+.card p,.card ul,.card ol{margin:0;font-size:.92rem;line-height:1.6}
+.card ul,.card ol{padding-left:16px}
+.hl{background:#eff6ff;border:2px solid #1d4ed8;border-radius:8px;padding:16px 20px;margin-bottom:14px}
+.hl h4{color:#1d4ed8;margin:0 0 8px;font-size:.95rem}
+.qb{background:#1e293b;color:#e2e8f0;border-radius:8px;padding:16px 20px;margin:14px 0;font-style:italic;font-size:1rem;line-height:1.6}
+.qb::before{content:'"';font-size:2.5rem;color:#1d4ed8;float:left;line-height:1;margin-right:10px}
+.timer{background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:12px 18px;font-weight:bold;color:#92400e;margin-bottom:14px;font-size:.9rem}
+.sc{background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;padding:16px 20px;margin-top:14px}
+.sc h4{color:#166534;margin:0 0 10px;font-size:.9rem;text-transform:uppercase;letter-spacing:.4px}
+.sc ul{margin:0;padding-left:16px}
+.sc li{margin-bottom:6px;font-size:.9rem;color:#166534;line-height:1.4}
+.tkb{background:#1d4ed8;color:#fff;border-radius:8px;padding:16px 20px;display:flex;gap:14px;align-items:flex-start;margin-bottom:12px}
+.tbn{background:rgba(255,255,255,.22);border-radius:50%;min-width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:.9rem;flex-shrink:0}
+.tbc h5{margin:0 0 3px;font-size:.92rem}
+.tbc p{margin:0;font-size:.85rem;opacity:.88}
+.lbl{text-transform:uppercase;font-size:.72rem;letter-spacing:1px;color:#1d4ed8;font-weight:bold;margin-bottom:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.tag{display:inline-block;background:#dbeafe;color:#1d4ed8;border-radius:12px;padding:2px 10px;font-size:.76rem;font-weight:bold;margin-right:5px;margin-bottom:3px}`
+
+function wrapSlideHtml(title: string, subject: string, yearGroup: number, bodyContent: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${title} | Year ${yearGroup} ${subject}</title>
+<style>${SLIDE_CSS}</style>
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`
+}
+
 async function generateHtmlSlides(spec: typeof LESSON_SLIDE_SPECS[0]): Promise<string> {
   const msg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 3000,
-    system: `You are an expert UK secondary school teacher. Create professional lesson slides as a single self-contained HTML page.
-Use clean design: white background, blue accents (#1d4ed8), clear sans-serif typography (Arial/Helvetica).
-Each slide is a full-width section separated by a horizontal rule. Inline CSS only — no external links, no JavaScript.
-Make content educationally rigorous and curriculum-appropriate.`,
+    max_tokens: 4000,
+    system: `You are an expert UK secondary school teacher. Generate lesson slide HTML content for Year ${spec.yearGroup} ${spec.subject} (AQA).
+CSS is already provided — output ONLY the slide <div> elements for the <body>. No DOCTYPE, no <html>, no <head>, no <style>, no <body> tags.
+Use these CSS classes: .slide .sh (slide header) .sb (slide body) .badge .obj .card .hl .qb .timer .sc .tkb .tbn .tbc .lbl .grid2 .tag
+Keep each slide focused and curriculum-appropriate. Include real quotes, examples, and exam-style tasks.`,
     messages: [{
       role: 'user',
-      content: `Create lesson slides for:
+      content: `Generate slide divs for:
 Title: ${spec.title}
-Subject: ${spec.subject}, Year ${spec.yearGroup}, AQA Exam Board
 Topic: ${spec.topic}
 Learning Objectives:
 ${spec.objectives.map((o, i) => `${i + 1}. ${o}`).join('\n')}
 
-Include these 6 slides:
-1. Title slide (title, learning objectives, date: "Term 1 2025-26")
-2. Starter activity (retrieval question or engaging hook — 3 minutes)
-3. Key Knowledge (main content: key facts, quotes, or concepts — include at least one direct quote or example)
-4. Deeper Analysis (worked example or analytical explanation)
-5. Your Task (exam-style question with success criteria)
-6. Plenary (3 key takeaways + homework reminder)
+Output exactly 6 <div class="slide"> blocks:
+1. Title slide — lesson title, subject/year/board badge, learning objectives in .obj
+2. Starter — .timer "⏱ 3 minutes", retrieval question or hook, 2–3 options or a think prompt in .card
+3. Key Knowledge — .lbl label, key facts/quotes in .card and .qb blocks with source attribution
+4. Deeper Analysis — worked example or analytical model in .card, step-by-step in .hl
+5. Your Task — exam-style question in .hl, success criteria in .sc
+6. Plenary — 3 key takeaways each in .tkb, homework reminder
 
-Return complete, valid HTML. No markdown, no code fences — pure HTML starting with <!DOCTYPE html>.`,
+Return ONLY the 6 <div class="slide"> elements. No preamble. No closing text. Start immediately with <div class="slide">.`,
     }],
   })
 
-  const html = (msg.content[0] as any).text as string
-  const cleaned = html.replace(/^```html?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-  return Buffer.from(cleaned).toString('base64')
+  const raw = (msg.content[0] as any).text as string
+  const bodyContent = raw.replace(/^```html?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+
+  // Validate we got actual slide divs
+  if (!bodyContent.includes('<div') || !bodyContent.includes('slide')) {
+    throw new Error('Response missing slide div elements')
+  }
+
+  const fullHtml = wrapSlideHtml(spec.title, spec.subject, spec.yearGroup, bodyContent)
+  return Buffer.from(fullHtml).toString('base64')
 }
 
 async function phase1_lessonResources(schoolId: string, teacherId: string): Promise<void> {
@@ -187,11 +244,19 @@ async function phase1_lessonResources(schoolId: string, teacherId: string): Prom
   for (const spec of LESSON_SLIDE_SPECS) {
     const existing = await prisma.resource.findFirst({
       where: { lessonId: spec.id, isAiGenerated: true, type: 'SLIDES' },
-      select: { id: true },
+      select: { id: true, url: true },
     })
     if (existing) {
-      console.log(`  ✓ ${spec.title} — AI slides already exist`)
-      continue
+      // Check if the stored HTML has actual body content (not CSS-only truncation)
+      const b64 = existing.url?.split(',')[1] ?? ''
+      const html = Buffer.from(b64, 'base64').toString('utf8')
+      if (html.includes('<body')) {
+        console.log(`  ✓ ${spec.title} — AI slides already exist`)
+        continue
+      }
+      // Broken slide (CSS-only) — delete and regenerate
+      console.log(`  ⚠ ${spec.title} — broken (CSS-only), regenerating...`)
+      await prisma.resource.delete({ where: { id: existing.id } })
     }
 
     const lesson = await prisma.lesson.findUnique({ where: { id: spec.id }, select: { id: true } })

@@ -425,7 +425,7 @@ export default function DashboardMorningView({
               label="TODAY'S LESSONS"
               value={data.todaysLessons.length}
               trend={nextLesson}
-              anchor="today-lessons"
+              href="/calendar"
             />
             <StatCard
               icon="assignment"
@@ -462,7 +462,7 @@ export default function DashboardMorningView({
           {!data ? (
             <StudentListSkeleton />
           ) : data.todaysLessons.length === 0 ? (
-            <EmptyState icon="calendar_today" title="No lessons today" size="sm" />
+            <div className="text-center pt-6 pb-2"><EmptyState icon="calendar_today" title="No lessons today" size="sm" /><Link href="/calendar" className="inline-flex items-center gap-1 mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium"><Icon name="calendar_today" size="sm" />View this week</Link></div>
           ) : (
             <div>
               {data.todaysLessons.map(lesson => (

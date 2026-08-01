@@ -224,6 +224,18 @@ async function phase1_lessonResources(schoolId: string, teacherId: string): Prom
 
 // ── Phase 2: Historical MCQ homework ─────────────────────────────────────────
 
+// Pre-written fallback questions for topics where Claude consistently mis-encodes JSON.
+// Used only when all 3 API attempts fail.
+const FALLBACK_QUESTIONS: Record<string, McqQuestion[]> = {
+  'Paper 1 — Language Techniques (Q2)': [
+    { id: 'q1', question: 'In AQA Paper 1 Q2, which technique attributes human qualities to non-human things?', options: ['Metaphor', 'Personification', 'Alliteration', 'Onomatopoeia'], correct: 'Personification', marks: 1, scaffolding_hint: 'Think about which technique gives human characteristics to objects or nature.', ehcp_adaptation: 'Things acting like people = personification.' },
+    { id: 'q2', question: 'What does the term semantic field mean in language analysis?', options: ['A group of words related by topic or theme', 'Words that sound similar', 'Words with opposite meanings', 'Words borrowed from another language'], correct: 'A group of words related by topic or theme', marks: 1, scaffolding_hint: 'Semantic relates to meaning. Think: what kind of group of words shares a theme?', ehcp_adaptation: 'Semantic field = words that all relate to the same idea, e.g. words about water.' },
+    { id: 'q3', question: 'How many marks is AQA Paper 1 Q2 worth and approximately how long should you spend on it?', options: ['4 marks, 5 minutes', '8 marks, 10 minutes', '8 marks, 20 minutes', '16 marks, 30 minutes'], correct: '8 marks, 10 minutes', marks: 1, scaffolding_hint: 'Check the AQA Paper 1 mark allocation. The question focuses on a specific extract.', ehcp_adaptation: 'Q2 = 8 marks. Roughly 1 mark per minute plus planning time.' },
+    { id: 'q4', question: 'Which of the following best explains the effect of short sentences in a fiction extract?', options: ['They confuse the reader', 'They slow the pace and create a reflective tone', 'They create tension and urgency', 'They show the character is educated'], correct: 'They create tension and urgency', marks: 1, scaffolding_hint: 'Think about how sentence length affects the pace of reading.', ehcp_adaptation: 'Short sentences = fast pace = tension or excitement for the reader.' },
+    { id: 'q5', question: 'What does the term connotation mean in the context of language analysis?', options: ['The dictionary definition of a word', 'The associations or ideas a word suggests beyond its literal meaning', 'A word that sounds like what it describes', 'A comparison using like or as'], correct: 'The associations or ideas a word suggests beyond its literal meaning', marks: 1, scaffolding_hint: 'Denotation = literal meaning. What does the word suggest or imply beyond that?', ehcp_adaptation: 'Connotation = the feelings or ideas a word brings to mind, e.g. crimson suggests danger.' },
+  ],
+}
+
 function parseJsonSafely(raw: string): McqQuestion[] {
   let s = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
   s = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
@@ -257,7 +269,14 @@ Return ONLY this exact JSON structure:
       if (Array.isArray(questions) && questions.length > 0) return questions
       throw new Error('Empty questions array')
     } catch (err) {
-      if (attempt === 3) throw err
+      if (attempt === 3) {
+        const fallback = FALLBACK_QUESTIONS[hw.title]
+        if (fallback) {
+          console.log(` (using fallback questions)`)
+          return fallback
+        }
+        throw err
+      }
       console.log(` (retry ${attempt})`)
       await sleep(1000)
     }

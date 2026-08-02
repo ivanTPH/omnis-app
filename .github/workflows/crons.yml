@@ -24,6 +24,7 @@ on:
     - cron: '30 8 * * 1'   # apdr-review        — Mon 08:30 UTC
     - cron: '0 9 * * 3'    # concern-stale      — Wed 09:00 UTC
     - cron: '30 7 * * 4'   # weekly-parent-summary — Thu 07:30 UTC
+    - cron: '0 0 * * 1'    # demo-advance          — Mon 00:00 UTC
     - cron: '30 0 * * 1'   # demo-refresh          — Mon 00:30 UTC
     - cron: '30 9 * * *'   # trial-onboarding      — daily 09:30 UTC
   workflow_dispatch:
@@ -153,6 +154,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: curl -sf "$BASE/api/cron/weekly-parent-summary" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+
+  demo-advance:
+    if: github.event.schedule == '0 0 * * 1' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sf --max-time 310 "$BASE/api/cron/demo-advance" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
   demo-refresh:
     if: github.event.schedule == '30 0 * * 1' || github.event_name == 'workflow_dispatch'

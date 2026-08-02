@@ -183,10 +183,14 @@ const MCQ_GRADING_BANDS = { '0': 'Grade 3', '1': 'Grade 4', '2': 'Grade 5', '3':
 // ── Weekly timetable slots for each demo English class ────────────────────────
 // day: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri; hour: lesson start hour (24h)
 type TimetableSlot = { day: number; hour: number; durationMins: number }
+// UTC hours derived from seed scheduledAt values (BST lessons stored as UTC-1):
+//   9E Mon h9 BST=08:00 UTC, Wed h9 BST=08:00 UTC, Fri h14 BST=13:00 UTC
+//   10E Mon h11 BST=10:00 UTC, Thu h11 BST=10:00 UTC
+//   11E Tue h10 BST=09:00 UTC, Wed h13 BST=12:00 UTC
 const CLASS_TIMETABLE: Record<string, TimetableSlot[]> = {
-  'demo-class-9E-En1':  [{ day: 1, hour: 9, durationMins: 60 }, { day: 3, hour: 9, durationMins: 60 }, { day: 5, hour: 14, durationMins: 60 }],
-  'demo-class-10E-En2': [{ day: 1, hour: 11, durationMins: 60 }, { day: 4, hour: 11, durationMins: 60 }],
-  'demo-class-11E-En1': [{ day: 2, hour: 10, durationMins: 60 }, { day: 3, hour: 13, durationMins: 60 }],
+  'demo-class-9E-En1':  [{ day: 1, hour: 8, durationMins: 60 }, { day: 3, hour: 8, durationMins: 60 }, { day: 5, hour: 13, durationMins: 60 }],
+  'demo-class-10E-En2': [{ day: 1, hour: 10, durationMins: 60 }, { day: 4, hour: 10, durationMins: 60 }],
+  'demo-class-11E-En1': [{ day: 2, hour: 9, durationMins: 60 }, { day: 3, hour: 12, durationMins: 60 }],
 }
 
 /** Return a Date for day-of-week (1=Mon) + hour in the current week */

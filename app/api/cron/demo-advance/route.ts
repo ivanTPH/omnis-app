@@ -389,13 +389,15 @@ export async function GET(req: NextRequest) {
   friday.setHours(23, 59, 0, 0)
 
   // ── Phase B.1: Create lesson records for this week ───────────────────────────
-  // Each class gets one lesson per timetable slot. The first slot of the week
-  // is treated as the "primary" lesson and will be linked to the homework.
-  const primaryLessonByClass = new Map<string, string>()  // classId → lessonId
+  // Each class gets one lesson per timetable slot. The first NEWLY CREATED slot
+  // is used as the primary lesson linked to the homework. We intentionally do NOT
+  // link to pre-existing seed lessons (demo-future-*) because those may already
+  // have other homework attached and would be collapsed by the student list dedup.
+  const primaryLessonByClass = new Map<string, string>()  // classId → newly created lessonId
 
   for (const hw of weeklyTopics) {
     const slots = CLASS_TIMETABLE[hw.classId] ?? []
-    let firstLessonId: string | null = null
+    let firstNewLessonId: string | null = null
 
     for (const slot of slots) {
       const scheduledAt = slotDate(monday, slot.day, slot.hour)
@@ -406,10 +408,7 @@ export async function GET(req: NextRequest) {
         where: { schoolId, classId: hw.classId, scheduledAt },
         select: { id: true },
       })
-      if (existingLesson) {
-        if (!firstLessonId) firstLessonId = existingLesson.id
-        continue
-      }
+      if (existingLesson) continue
 
       try {
         const lesson = await prisma.lesson.create({
@@ -430,14 +429,14 @@ export async function GET(req: NextRequest) {
             createdBy:  teacherId,
           },
         })
-        if (!firstLessonId) firstLessonId = lesson.id
+        if (!firstNewLessonId) firstNewLessonId = lesson.id
         lessonsCreated++
       } catch (err) {
         console.error(`[demo-advance] lesson ${hw.classId} slot d${slot.day}h${slot.hour} failed:`, err)
       }
     }
 
-    if (firstLessonId) primaryLessonByClass.set(hw.classId, firstLessonId)
+    if (firstNewLessonId) primaryLessonByClass.set(hw.classId, firstNewLessonId)
   }
 
   // ── Phase B.2: Generate MCQ homework and link to primary lesson ───────────────

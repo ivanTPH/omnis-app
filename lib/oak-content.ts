@@ -8,11 +8,14 @@
  * invocations when the container is warm — avoid redundant DB round-trips.
  *
  * Public API:
- *   getOakLessonContent(slug)          → full content for one Oak lesson
- *   getOakDataForLesson(lessonId)      → Oak content via lesson → resource join
- *   findOakDataForTopics(topics, subj) → Oak lessons relevant to a set of topic strings
- *   extractMisconceptions(lessons)     → flat list of misconception strings
- *   extractKeywords(lessons)           → flat list of "word: definition" strings
+ *   getOakLessonContent(slug)                        → full content for one Oak lesson
+ *   getOakDataForLesson(lessonId)                    → Oak content via lesson → resource join
+ *   findOakDataForTopics(topics, subj)               → Oak lessons relevant to a set of topic strings
+ *   getOakPedagogicalContext(subjectSlug, yearGroup) → richest Oak lessons for subject/year
+ *                                                       used as pedagogical quality template
+ *                                                       when topic-specific content is unavailable
+ *   extractMisconceptions(lessons)                   → flat list of misconception strings
+ *   extractKeywords(lessons)                         → flat list of "word: definition" strings
  */
 
 import { prisma } from '@/lib/prisma'
@@ -177,4 +180,76 @@ export function extractKlps(lessons: OakLessonContent[]): string[] {
       return ((p as Record<string, unknown>).keyLearningPoint ?? '') as string
     }).filter(Boolean)
   })
+}
+
+// ── Layer A: pedagogical quality context ──────────────────────────────────────
+
+export type OakPedagogicalContext = {
+  /** Key learning point strings sampled from the richest lessons for this subject/year */
+  klps:           string[]
+  /** "keyword: definition" strings at the appropriate curriculum level */
+  vocabulary:     string[]
+  /** Common misconception strings — helps AI anticipate pupil errors */
+  misconceptions: string[]
+  /** Example pupilLessonOutcome strings — sets the right outcome-framing style */
+  outcomePatterns: string[]
+  /** How many Oak lessons contributed to this context */
+  lessonCount:    number
+}
+
+function yearGroupToKeystage(yearGroup: number): string {
+  if (yearGroup <= 9)  return 'ks3'
+  if (yearGroup <= 11) return 'ks4'
+  return 'ks5'
+}
+
+function richness(l: OakLessonContent): number {
+  return (
+    (Array.isArray(l.keyLearningPoints) ? l.keyLearningPoints.length : 0) +
+    (Array.isArray(l.lessonKeywords) ? l.lessonKeywords.length : 0) +
+    (Array.isArray(l.misconceptionsAndCommonMistakes) ? l.misconceptionsAndCommonMistakes.length : 0)
+  )
+}
+
+/**
+ * Layer A fallback: fetches the richest available Oak lessons for a subject and
+ * year group, regardless of topic. Returns aggregated KLPs, vocabulary,
+ * misconceptions, and learning-outcome patterns that can be injected into AI
+ * prompts as a pedagogical quality and curriculum-level benchmark when no
+ * topic-specific Oak content exists.
+ *
+ * Uses keystage derived from yearGroup (7–9=ks3, 10–11=ks4, 12–13=ks5).
+ * If yearGroup is null, fetches across all year groups for the subject.
+ */
+export async function getOakPedagogicalContext(
+  subjectSlug: string,
+  yearGroup:   number | null,
+  limit = 8,
+): Promise<OakPedagogicalContext> {
+  const rows = await prisma.oakLesson.findMany({
+    where: {
+      subjectSlug,
+      ...(yearGroup != null ? { keystage: yearGroupToKeystage(yearGroup) } : {}),
+    },
+    select: SELECT,
+    take:   limit * 5, // over-fetch; we sort by richness below
+  })
+
+  const lessons = (rows as OakLessonContent[])
+    .sort((a, b) => richness(b) - richness(a))
+    .slice(0, limit)
+
+  // Populate per-slug cache while we have the data
+  lessons.forEach(set)
+
+  return {
+    klps:           extractKlps(lessons).slice(0, 10),
+    vocabulary:     extractKeywords(lessons).slice(0, 12),
+    misconceptions: extractMisconceptions(lessons).slice(0, 6),
+    outcomePatterns: lessons
+      .map(l => l.pupilLessonOutcome)
+      .filter((s): s is string => typeof s === 'string' && s.length > 0)
+      .slice(0, 4),
+    lessonCount: lessons.length,
+  }
 }

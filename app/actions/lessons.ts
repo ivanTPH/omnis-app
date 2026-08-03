@@ -1558,10 +1558,12 @@ Return JSON only: {"suggestions": ["...", "..."]}`
 import {
   getOakLessonContent,
   findOakDataForTopics,
+  getOakPedagogicalContext,
   extractKlps,
   extractMisconceptions,
   extractKeywords,
   type OakLessonContent,
+  type OakPedagogicalContext,
 } from '@/lib/oak-content'
 
 function toOakSubjectSlugLocal(subject: string): string {
@@ -1682,7 +1684,8 @@ export async function generateAiLessonSlides(lessonId: string): Promise<{ resour
     }
   }
 
-  // Fallback: find by topic keywords when no linked Oak resources
+  // Tier 1 fallback: keyword search in Oak
+  let pedagogicalCtx: OakPedagogicalContext | null = null
   if (oakData.length === 0 && lesson.class?.subject) {
     const subjectSlug = toOakSubjectSlugLocal(lesson.class.subject)
     const keywords = lesson.title
@@ -1695,6 +1698,12 @@ export async function generateAiLessonSlides(lessonId: string): Promise<{ resour
       const found = await findOakDataForTopics(keywords, subjectSlug)
       oakData.push(...found.slice(0, 3))
     }
+
+    // Tier 2 (Layer A): if topic search still empty, fetch richest Oak lessons for
+    // this subject+year as a pedagogical quality/level template
+    if (oakData.length === 0 && subjectSlug) {
+      pedagogicalCtx = await getOakPedagogicalContext(subjectSlug, lesson.class.yearGroup ?? null)
+    }
   }
 
   const klps          = extractKlps(oakData).slice(0, 8)
@@ -1702,6 +1711,27 @@ export async function generateAiLessonSlides(lessonId: string): Promise<{ resour
   const vocab         = extractKeywords(oakData).slice(0, 10)
   const yearGroup     = lesson.class?.yearGroup ?? null
   const subject       = lesson.class?.subject ?? 'Subject'
+
+  // Build Layer A template section (only when topic-specific Oak content is absent)
+  const layerASection = pedagogicalCtx && pedagogicalCtx.lessonCount > 0
+    ? [
+        `Oak ${subject} curriculum quality benchmark (Year ${yearGroup ?? 'secondary'}):`,
+        pedagogicalCtx.klps.length > 0
+          ? `Learning point depth examples:\n${pedagogicalCtx.klps.slice(0, 6).map((k, i) => `${i + 1}. ${k}`).join('\n')}`
+          : '',
+        pedagogicalCtx.vocabulary.length > 0
+          ? `Subject vocabulary level: ${pedagogicalCtx.vocabulary.slice(0, 8).join(', ')}`
+          : '',
+        pedagogicalCtx.misconceptions.length > 0
+          ? `Misconception patterns to watch for: ${pedagogicalCtx.misconceptions.slice(0, 3).join(' | ')}`
+          : '',
+        pedagogicalCtx.outcomePatterns.length > 0
+          ? `Example learning outcome style: "${pedagogicalCtx.outcomePatterns[0]}"`
+          : '',
+        '',
+        `Apply this same curriculum rigour, analytical depth, and vocabulary level to "${lesson.title}". The above is a quality template, not the topic — generate content specific to the lesson title.`,
+      ].filter(Boolean).join('\n')
+    : ''
 
   const systemPrompt = `You are an expert UK secondary school curriculum designer. Generate a complete, detailed lesson plan in JSON.
 Use accurate subject knowledge appropriate for Year ${yearGroup ?? 'secondary'} ${subject} students.
@@ -1714,7 +1744,8 @@ Subject: ${subject}  Year: ${yearGroup ?? 'secondary'}
 ${klps.length > 0 ? `Oak curriculum key learning points:\n${klps.map((k, i) => `${i + 1}. ${k}`).join('\n')}\n` : ''}
 ${misconceptions.length > 0 ? `Common misconceptions to address:\n${misconceptions.join('\n')}\n` : ''}
 ${vocab.length > 0 ? `Curriculum vocabulary: ${vocab.join(', ')}\n` : ''}
-
+${layerASection ? `${layerASection}\n` : ''}
+${!klps.length && !layerASection ? `No Oak topic match found — use your expert knowledge of the UK secondary ${subject} curriculum, exam specifications (AQA/Edexcel/OCR), and evidence-based pedagogy.\n` : ''}
 Generate a complete lesson plan JSON with exactly this structure:
 {
   "learningObjective": "Students will be able to...",
@@ -1884,6 +1915,8 @@ export async function generateAiLessonResource(
       if (d) oakData.push(d)
     }
   }
+
+  let pedagogicalCtx: OakPedagogicalContext | null = null
   if (oakData.length === 0 && lesson.class?.subject) {
     const subjectSlug = toOakSubjectSlugLocal(lesson.class.subject)
     const keywords = lesson.title
@@ -1896,6 +1929,12 @@ export async function generateAiLessonResource(
       const found = await findOakDataForTopics(keywords, subjectSlug)
       oakData.push(...found.slice(0, 3))
     }
+
+    // Layer A: if topic search still empty, use richest subject/year Oak lessons
+    // as a pedagogical quality and vocabulary-level benchmark
+    if (oakData.length === 0 && subjectSlug) {
+      pedagogicalCtx = await getOakPedagogicalContext(subjectSlug, lesson.class.yearGroup ?? null)
+    }
   }
 
   const klps   = extractKlps(oakData).slice(0, 6)
@@ -1903,9 +1942,31 @@ export async function generateAiLessonResource(
   const yearGroup = lesson.class?.yearGroup ?? null
   const subject   = lesson.class?.subject ?? 'Subject'
 
+  // Layer A template section — only when no topic-specific Oak data found
+  const layerASection = pedagogicalCtx && pedagogicalCtx.lessonCount > 0
+    ? [
+        `Oak ${subject} curriculum quality benchmark (Year ${yearGroup ?? 'secondary'}):`,
+        pedagogicalCtx.klps.length > 0
+          ? `Learning depth examples: ${pedagogicalCtx.klps.slice(0, 5).join(' | ')}`
+          : '',
+        pedagogicalCtx.vocabulary.length > 0
+          ? `Subject vocabulary level: ${pedagogicalCtx.vocabulary.slice(0, 8).join(', ')}`
+          : '',
+        pedagogicalCtx.misconceptions.length > 0
+          ? `Typical pupil misconceptions: ${pedagogicalCtx.misconceptions.slice(0, 3).join(' | ')}`
+          : '',
+        pedagogicalCtx.outcomePatterns.length > 0
+          ? `Outcome framing style: "${pedagogicalCtx.outcomePatterns[0]}"`
+          : '',
+        '',
+        `Apply the same analytical depth, vocabulary level, and curriculum rigour to the resource you are creating for "${lesson.title}". The above is a quality template — generate content specific to the lesson topic.`,
+      ].filter(Boolean).join('\n')
+    : ''
+
   const oakSection = [
     klps.length  > 0 ? `Oak curriculum key learning points:\n${klps.map((k, i) => `${i + 1}. ${k}`).join('\n')}` : '',
     vocab.length > 0 ? `Curriculum vocabulary: ${vocab.join(', ')}` : '',
+    layerASection,
   ].filter(Boolean).join('\n\n')
 
   const userPrompt = [
@@ -1913,7 +1974,7 @@ export async function generateAiLessonResource(
     `Year Group: ${yearGroup ? `Year ${yearGroup}` : 'Secondary'}`,
     `Topic / Lesson title: "${lesson.title}"`,
     oakSection,
-    oakSection ? '' : 'No Oak National Academy content is available for this specific topic — use your expert knowledge of the UK secondary curriculum, relevant exam specifications (AQA/Edexcel/OCR), and best practice pedagogy.',
+    !oakSection ? 'No Oak National Academy content is available for this specific topic — use your expert knowledge of the UK secondary curriculum, relevant exam specifications (AQA/Edexcel/OCR), and best practice pedagogy.' : '',
     '',
     meta.prompt,
     '',

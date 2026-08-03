@@ -6,7 +6,8 @@ import UITooltip from '@/components/ui/Tooltip'
 import SendBadge from '@/components/ui/SendBadge'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives, suggestStudentLessonAdaptation, generateAiLessonSlides } from '@/app/actions/lessons'
+import { getLessonDetails, updateLessonOverview, removeResource, updateResource, deleteLesson, rescheduleLesson, generateLessonObjectives, suggestStudentLessonAdaptation, generateAiLessonSlides, generateAiLessonResource } from '@/app/actions/lessons'
+import type { AiResourceType } from '@/app/actions/lessons'
 import { getTeacherDefaults } from '@/app/actions/analytics'
 import { createHomework } from '@/app/actions/homework'
 import type { MCQQuestion, SAQuestion, ProposalResult } from '@/lib/homework-helpers'
@@ -191,6 +192,9 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
   const [editUrl,           setEditUrl]           = useState('')
   const [editSaving,        startEditSave]        = useTransition()
   const [generatingSlides,  setGeneratingSlides]  = useState(false)
+  const [slideError,        setSlideError]        = useState<string | null>(null)
+  const [generatingResType, setGeneratingResType] = useState<AiResourceType | null>(null)
+  const [resGenError,       setResGenError]       = useState<string | null>(null)
 
   // Homework wizard state
   const [typeStore,       setTypeStore]       = useState<Partial<Record<HomeworkType, TypeState>>>({})
@@ -1667,38 +1671,97 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </button>
                   )}
 
-                  {/* Generate AI Slides — shown when no SLIDES resource with real content exists */}
-                  {lesson && !lesson.resources.some(r => r.type === 'SLIDES' && r.url) && lesson.class && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                      <Icon name="auto_awesome" size="md" className="text-amber-600 shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-amber-800">No presentation slides yet</p>
-                        <p className="text-[11px] text-amber-700 mt-0.5">Generate AI lesson slides grounded in Oak National Academy curriculum content, or upload your own above.</p>
+                  {/* Generate AI Resources — shown when lesson is assigned to a class */}
+                  {lesson && lesson.class && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Icon name="auto_awesome" size="md" className="text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-amber-800">Generate resources with AI</p>
+                          <p className="text-[11px] text-amber-700 mt-0.5">
+                            AI uses Oak National Academy curriculum content where available, then falls back to UK subject knowledge.
+                          </p>
+                        </div>
                       </div>
-                      <button
-                        onClick={async () => {
-                          if (!lessonId) return
-                          setGeneratingSlides(true)
-                          try {
-                            const { resourceId } = await generateAiLessonSlides(lessonId)
-                            await refreshLesson()
-                            // Auto-open the preview so the teacher can see the slides immediately
-                            setPreviewUrl(`/api/resource-file/${resourceId}`)
-                            setPreviewLabel(`${lesson?.title ?? 'Lesson'} — AI Lesson Plan`)
-                          } catch (err) {
-                            console.error('AI slide generation failed', err)
-                            toast('Slide generation failed — please try again')
-                          } finally {
-                            setGeneratingSlides(false)
-                          }
-                        }}
-                        disabled={generatingSlides}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-[12px] font-semibold hover:bg-amber-700 disabled:opacity-40 shrink-0"
-                      >
-                        {generatingSlides
-                          ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>
-                          : <><Icon name="auto_awesome" size="sm" />Generate AI Slides</>}
-                      </button>
+
+                      {/* Resource type buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {/* Slides — separate action */}
+                        {!lesson.resources.some(r => r.type === 'SLIDES' && r.url) && (
+                          <button
+                            onClick={async () => {
+                              if (!lessonId) return
+                              setGeneratingSlides(true)
+                              setSlideError(null)
+                              try {
+                                const { resourceId } = await generateAiLessonSlides(lessonId)
+                                await refreshLesson()
+                                setPreviewUrl(`/api/resource-file/${resourceId}`)
+                                setPreviewLabel(`${lesson?.title ?? 'Lesson'} — AI Lesson Plan`)
+                              } catch (err) {
+                                const msg = err instanceof Error ? err.message : 'Generation failed — please try again'
+                                setSlideError(msg)
+                                console.error('AI slide generation failed', err)
+                              } finally {
+                                setGeneratingSlides(false)
+                              }
+                            }}
+                            disabled={generatingSlides || !!generatingResType}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-[12px] font-semibold hover:bg-amber-700 disabled:opacity-40"
+                          >
+                            {generatingSlides
+                              ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>
+                              : <><Icon name="slideshow" size="sm" />Lesson Slides</>}
+                          </button>
+                        )}
+
+                        {/* Other resource types */}
+                        {([
+                          { type: 'WORKSHEET',    label: 'Worksheet',     icon: 'description' },
+                          { type: 'HANDOUT',      label: 'Pupil Handout', icon: 'article' },
+                          { type: 'TEACHER_NOTES',label: 'Teacher Notes', icon: 'sticky_note_2' },
+                          { type: 'QUIZ',         label: 'Quiz',          icon: 'quiz' },
+                          { type: 'EXIT_TICKET',  label: 'Exit Ticket',   icon: 'fact_check' },
+                        ] as { type: AiResourceType; label: string; icon: string }[]).map(({ type, label, icon }) => (
+                          <button
+                            key={type}
+                            onClick={async () => {
+                              if (!lessonId) return
+                              setGeneratingResType(type)
+                              setResGenError(null)
+                              try {
+                                const { resourceId, label: resLabel } = await generateAiLessonResource(lessonId, type)
+                                await refreshLesson()
+                                setPreviewUrl(`/api/resource-file/${resourceId}`)
+                                setPreviewLabel(resLabel)
+                              } catch (err) {
+                                const msg = err instanceof Error ? err.message : 'Generation failed — please try again'
+                                setResGenError(msg)
+                                console.error('AI resource generation failed', err)
+                              } finally {
+                                setGeneratingResType(null)
+                              }
+                            }}
+                            disabled={generatingSlides || !!generatingResType}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-300 text-amber-800 rounded-lg text-[12px] font-semibold hover:bg-amber-100 disabled:opacity-40"
+                          >
+                            {generatingResType === type
+                              ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>
+                              : <><Icon name={icon} size="sm" />{label}</>}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Inline error display */}
+                      {(slideError || resGenError) && (
+                        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-2.5 text-[12px] text-red-700">
+                          <Icon name="error_outline" size="sm" className="shrink-0 mt-0.5" />
+                          <span>{slideError ?? resGenError}</span>
+                          <button onClick={() => { setSlideError(null); setResGenError(null) }} className="ml-auto shrink-0 text-red-400 hover:text-red-600">
+                            <Icon name="close" size="sm" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 

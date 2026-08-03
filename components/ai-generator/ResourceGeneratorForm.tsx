@@ -12,11 +12,14 @@ import type { GenerateInput, GeneratedResourceData } from '@/app/actions/ai-gene
 import { useTeacherProfile } from '@/lib/teacherProfileContext'
 
 const RESOURCE_TYPES = [
-  { value: 'worksheet',          label: 'Worksheet'          },
-  { value: 'powerpoint_outline', label: 'PowerPoint Outline' },
-  { value: 'quiz',               label: 'Quiz'               },
-  { value: 'reading_passage',    label: 'Reading Passage'    },
-  { value: 'vocabulary_list',    label: 'Vocabulary List'    },
+  { value: 'worksheet',           label: 'Worksheet'           },
+  { value: 'handout',             label: 'Pupil Handout'       },
+  { value: 'teacher_notes',       label: 'Teacher Notes'       },
+  { value: 'powerpoint_outline',  label: 'PowerPoint Outline'  },
+  { value: 'quiz',                label: 'Quiz'                },
+  { value: 'exit_ticket',         label: 'Exit Ticket'         },
+  { value: 'reading_passage',     label: 'Reading Passage'     },
+  { value: 'vocabulary_list',     label: 'Vocabulary List'     },
   { value: 'knowledge_organiser', label: 'Knowledge Organiser' },
 ]
 

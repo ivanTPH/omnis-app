@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-07-30. Authoritative reference for Claude sessions.
+> Last updated: 2026-08-03. Authoritative reference for Claude sessions.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
@@ -601,6 +601,41 @@
 > so app is completely unaffected. Advisory downgraded from ERROR `rls_disabled_in_public`
 > to INFO `rls_enabled_no_policy` (correct state for a Prisma-only app). Site verified 200
 > immediately after change. No code or schema migration needed — this is a DB security config.
+
+> August 2026 Demo-advance cron + MCQ grading fixes (2026-08-03):
+> (1) MCQ grading fixes (commit 575be39): `normalizeScoreForForm` was returning 0 for valid
+> scores — fixed by checking `typeof score === 'number'` before computing the percentage.
+> Per-question score inputs in HomeworkMarkingView were rendering blank — fixed by reading
+> from `autoScore` when `questionScores` map is empty. Homework detail panel was rendering
+> MCQ content as SHORT_ANSWER when `structuredContent.questions` existed — added fallback
+> to parse `structuredContent` for rendering.
+> (2) BBC Bitesize revision URL fixes (commit 575be39): Paper 1 URL corrected to
+> `/bitesize/topics/z63tt39`; Paper 2 URL corrected to `/bitesize/topics/zkdpyt` in the
+> revision content generator.
+> (3) Calendar/timetable dedup fix (commit 575be39): Weekly calendar was deduplicating lessons
+> by date+classId including time, causing multiple lessons on the same day for the same class
+> to collapse. Fixed to dedup only by date (YYYY-MM-DD) + classId, keeping the earliest slot.
+> Also scoped to current week only to avoid future seed lessons polluting the current view.
+> (4) demo-advance cron — `/api/cron/demo-advance` (Mon 00:00 UTC) — demo-school-only cron
+> (scoped to `Omnis Demo School` by email lookup; real schools unaffected). 3 phases:
+>   Phase A: Heal broken AI-generated lesson slides (revalidate stale LessonContent records).
+>   Phase B.1: Create Lesson records for the current week's timetable slots. CLASS_TIMETABLE
+>   maps classId → TimetableSlot[] (day: 1=Mon…5=Fri, hour: UTC matching BST seed values —
+>   9am BST = 08:00 UTC). `slotDate(monday, day, hour)` builds `scheduledAt`. Idempotent:
+>   `prisma.lesson.findFirst({ where: { schoolId, classId, scheduledAt } })` skips existing.
+>   Only *newly created* lesson IDs go into `primaryLessonByClass` map — pre-existing seed
+>   lessons are skipped so student homework dedup (`key = hw.lessonId ?? hw.id`) is unaffected.
+>   Phase B.2: Generate 3 MCQ homeworks (one per class: 9E/10E/11E) linked to newly created
+>   lessons only (`lessonId: lessonId ?? null`). Title derived from weekly topic. Due Friday 15:00.
+>   Idempotent: `prisma.homework.findFirst({ where: { schoolId, classId, title, dueAt: { gte: monday } } })`.
+>   Phase C: Create student Submission records for enrolled students using `StudentLearningProfile
+>   .workingAtGrade` to determine score; seeds realistic grade distribution. Idempotent.
+>   Response JSON: `{ lessonsCreated, hwCreated, hwSkipped, subsCreated }`.
+> (5) crons.yml: `demo-advance` job added (`0 0 * * 1`, `--max-time 310`).
+> **Key architectural notes:** BST lessons in DB are stored at UTC-1 (9am BST = 08:00 UTC).
+> The `primaryLessonByClass` map must NOT include pre-existing seed lessons — only new IDs —
+> or the student homework list dedup collapses new homework with older seed homework.
+> **Commits:** 575be39 (MCQ + Bitesize + calendar fixes), eb1aa5c, 30b4ec9, c06e8d6 (demo-advance phases).
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

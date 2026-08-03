@@ -43,6 +43,7 @@ export type GenerateInput = {
 const VALID_RESOURCE_TYPES = [
   'worksheet', 'powerpoint_outline', 'quiz',
   'reading_passage', 'vocabulary_list', 'knowledge_organiser',
+  'handout', 'teacher_notes', 'exit_ticket',
 ] as const
 
 const GenerateInputSchema = z.object({
@@ -76,6 +77,12 @@ const RESOURCE_TYPE_PROMPTS: Record<string, string> = {
     'Create a comprehensive vocabulary list with: term, definition, example sentence, and a matching exercise at the end.',
   knowledge_organiser:
     'Create a knowledge organiser with key vocabulary, key concepts, key people/dates (if relevant), and a self-quiz section.',
+  handout:
+    'Create a pupil handout that summarises the key content, includes annotated diagrams or structured notes, and has 2–3 consolidation questions at the end. Suitable for sticking into an exercise book.',
+  teacher_notes:
+    'Create detailed teacher notes for this topic covering: learning objectives, subject-knowledge background, common misconceptions to watch for, suggested discussion questions, differentiation strategies (stretch + support), and links to relevant exam skills.',
+  exit_ticket:
+    'Create a 5-question exit ticket for the end of the lesson. Include 3 recall questions, 1 application question, and 1 "muddiest point" self-assessment prompt. Provide an answer key.',
 }
 
 const SEND_ADAPTATION_PROMPTS: Record<string, string> = {

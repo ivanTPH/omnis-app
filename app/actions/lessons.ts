@@ -1773,3 +1773,187 @@ Return ONLY valid JSON, no markdown fences.`
 
   return { resourceId: resource.id }
 }
+
+// ─── Supported non-slides AI resource types ───────────────────────────────────
+
+export type AiResourceType = 'WORKSHEET' | 'HANDOUT' | 'TEACHER_NOTES' | 'QUIZ' | 'EXIT_TICKET'
+
+const AI_RESOURCE_TYPE_META: Record<AiResourceType, { label: string; prismType: ResourceType; prompt: string }> = {
+  WORKSHEET: {
+    label: 'Worksheet',
+    prismType: ResourceType.WORKSHEET,
+    prompt: 'Create a classroom worksheet with clear instructions, scaffolded tasks (starter → main → extension), and a mark scheme.',
+  },
+  HANDOUT: {
+    label: 'Pupil Handout',
+    prismType: ResourceType.WORKSHEET,
+    prompt: 'Create a pupil handout summarising the key content, including annotated diagrams or structured notes, and 2–3 consolidation questions at the end. Suitable for sticking into an exercise book.',
+  },
+  TEACHER_NOTES: {
+    label: 'Teacher Notes',
+    prismType: ResourceType.PLAN,
+    prompt: 'Create detailed teacher notes covering: learning objectives, subject-knowledge background, common misconceptions to watch for, suggested discussion questions, differentiation strategies (stretch + support), and links to relevant exam skills. Be thorough and practical.',
+  },
+  QUIZ: {
+    label: 'Quiz',
+    prismType: ResourceType.WORKSHEET,
+    prompt: 'Create a 10-question quiz with a mix of multiple choice and short answer questions. Include an answer key at the end.',
+  },
+  EXIT_TICKET: {
+    label: 'Exit Ticket',
+    prismType: ResourceType.WORKSHEET,
+    prompt: 'Create a 5-question exit ticket for the end of the lesson. Include 3 recall questions, 1 application question, and 1 "muddiest point" self-assessment prompt. Provide an answer key.',
+  },
+}
+
+/** Converts markdown-style AI text to simple styled HTML for inline display. */
+function buildAiResourceHtml(title: string, yearGroup: number | null, subject: string, resourceType: string, content: string): string {
+  // Basic markdown → HTML: bold, headings, bullet lists
+  const body = content
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+
+  return `<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 24px; background: #f8fafc; color: #1e293b; font-size: 14px; line-height: 1.65; }
+  .ai-banner { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 20px; font-size: 12px; color: #92400e; font-weight: 600; }
+  .header { background: #1e3a5f; color: white; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; }
+  .header h1 { margin: 0 0 4px; font-size: 18px; }
+  .header .meta { font-size: 12px; opacity: 0.8; }
+  .content { background: white; border-radius: 10px; padding: 20px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  h1,h2,h3 { color: #1e3a5f; margin: 16px 0 8px; }
+  h1 { font-size: 18px; } h2 { font-size: 15px; } h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 4px; }
+  strong { color: #1e293b; }
+  @media print { body { background: white; padding: 0; } .ai-banner { display: none; } }
+</style>
+</head>
+<body>
+<div class="ai-banner">✨ AI GENERATED — Review and adapt before use. Based on UK curriculum knowledge.</div>
+<div class="header">
+  <h1>${title} — ${resourceType}</h1>
+  <div class="meta">${subject}${yearGroup ? ` · Year ${yearGroup}` : ''}</div>
+</div>
+<div class="content"><p>${body}</p></div>
+</body>
+</html>`
+}
+
+/**
+ * Generate a non-slides AI resource (worksheet, handout, teacher notes, quiz, exit ticket)
+ * and attach it directly to the lesson as a Resource record.
+ */
+export async function generateAiLessonResource(
+  lessonId: string,
+  resourceType: AiResourceType,
+): Promise<{ resourceId: string; label: string }> {
+  const { schoolId, id: userId } = await requireAuth([
+    'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SENCO',
+  ])
+
+  const meta = AI_RESOURCE_TYPE_META[resourceType]
+  if (!meta) throw new Error('Invalid resource type')
+
+  const lesson = await prisma.lesson.findFirst({
+    where: { id: lessonId, schoolId },
+    include: {
+      class: { select: { subject: true, yearGroup: true } },
+      resources: { where: { oakContentId: { not: null } }, select: { oakContentId: true } },
+    },
+  })
+  if (!lesson) throw new Error('Lesson not found')
+
+  // Gather Oak data — linked resources first, then keyword fallback
+  const oakData: OakLessonContent[] = []
+  for (const r of lesson.resources) {
+    if (r.oakContentId) {
+      const d = await getOakLessonContent(r.oakContentId!)
+      if (d) oakData.push(d)
+    }
+  }
+  if (oakData.length === 0 && lesson.class?.subject) {
+    const subjectSlug = toOakSubjectSlugLocal(lesson.class.subject)
+    const keywords = lesson.title
+      .replace(/[—\-–:]/g, ' ')
+      .split(' ')
+      .map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''))
+      .filter(w => w.length > 3 && !['with','from','that','this','their','have','been'].includes(w))
+      .slice(0, 4)
+    if (keywords.length > 0 && subjectSlug) {
+      const found = await findOakDataForTopics(keywords, subjectSlug)
+      oakData.push(...found.slice(0, 3))
+    }
+  }
+
+  const klps   = extractKlps(oakData).slice(0, 6)
+  const vocab  = extractKeywords(oakData).slice(0, 8)
+  const yearGroup = lesson.class?.yearGroup ?? null
+  const subject   = lesson.class?.subject ?? 'Subject'
+
+  const oakSection = [
+    klps.length  > 0 ? `Oak curriculum key learning points:\n${klps.map((k, i) => `${i + 1}. ${k}`).join('\n')}` : '',
+    vocab.length > 0 ? `Curriculum vocabulary: ${vocab.join(', ')}` : '',
+  ].filter(Boolean).join('\n\n')
+
+  const userPrompt = [
+    `Subject: ${subject}`,
+    `Year Group: ${yearGroup ? `Year ${yearGroup}` : 'Secondary'}`,
+    `Topic / Lesson title: "${lesson.title}"`,
+    oakSection,
+    oakSection ? '' : 'No Oak National Academy content is available for this specific topic — use your expert knowledge of the UK secondary curriculum, relevant exam specifications (AQA/Edexcel/OCR), and best practice pedagogy.',
+    '',
+    meta.prompt,
+    '',
+    'Respond in clean markdown. Start immediately with a # heading — no preamble.',
+  ].filter(s => s !== undefined).join('\n')
+
+  const systemPrompt = `You are an expert UK secondary school teacher and curriculum designer.
+You create high-quality, classroom-ready resources aligned to the UK National Curriculum and common UK exam specifications (AQA, Edexcel, OCR).
+Your resources are accurate, well-structured, and immediately usable.
+Respond in clean markdown — no preamble, no explanation, just the resource itself starting with a # Title.`
+
+  const client = new Anthropic()
+  const msg = await client.messages.create({
+    model:      'claude-sonnet-4-6',
+    max_tokens: 2000,
+    system:     systemPrompt,
+    messages:   [{ role: 'user', content: userPrompt }],
+  })
+
+  const content = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : ''
+  if (!content) throw new Error('AI returned empty content — please try again')
+
+  const label = `${lesson.title} — ${meta.label}`
+  const html  = buildAiResourceHtml(lesson.title, yearGroup, subject, meta.label, content)
+  const dataUrl = `data:text/html;base64,${Buffer.from(html).toString('base64')}`
+
+  const resource = await prisma.resource.create({
+    data: {
+      schoolId,
+      lessonId,
+      type:          meta.prismType,
+      label,
+      url:           dataUrl,
+      isAiGenerated: true,
+      createdBy:     userId,
+    },
+  })
+
+  await writeAudit({ schoolId, actorId: userId, action: 'RESOURCE_UPLOADED', targetType: 'Resource', targetId: resource.id, metadata: { aiGenerated: true, lessonTitle: lesson.title, resourceType } })
+  revalidatePath('/dashboard')
+
+  return { resourceId: resource.id, label }
+}

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Icon from '@/components/ui/Icon'
-import { getSchoolCohortInsights, type CohortContext } from '@/app/actions/cohort'
+import { getSchoolCohortInsights } from '@/app/actions/cohort'
+import type { CohortContext } from '@/lib/cohort-aggregate'
 
 const BLOOMS_ORDER = ['remember', 'understand', 'apply', 'analyse', 'evaluate', 'create']
 

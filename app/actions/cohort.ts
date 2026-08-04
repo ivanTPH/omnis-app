@@ -1,9 +1,8 @@
 'use server'
 
 import { requireAuth } from '@/lib/session'
-import { getSchoolCohortContext, type CohortContext } from '@/lib/cohort-aggregate'
-
-export type { CohortContext }
+import { getSchoolCohortContext } from '@/lib/cohort-aggregate'
+import type { CohortContext } from '@/lib/cohort-aggregate'
 
 /**
  * Returns the school-level cohort aggregate for the SENCO dashboard, SLT

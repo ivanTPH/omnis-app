@@ -224,12 +224,15 @@ export async function getSchoolCohortContext(
   schoolId:  string,
   yearGroup?: number,
 ): Promise<CohortContext | null> {
+  // yearGroup must be a concrete Int in the @@unique key — null is not valid
+  if (yearGroup == null) return null
+
   const row = await (prisma.schoolCohortAggregate as any).findUnique({
     where: {
       schoolId_subject_yearGroup: {
         schoolId,
         subject:   'ALL',
-        yearGroup: yearGroup ?? null,
+        yearGroup,
       },
     },
   })

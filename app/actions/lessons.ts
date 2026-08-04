@@ -1767,21 +1767,35 @@ Return ONLY valid JSON, no markdown fences.`
   const client = new Anthropic()
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2500,
+    max_tokens: 3000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   })
 
   const raw = msg.content[0]?.type === 'text' ? msg.content[0].text : ''
-  let slideData: { slides: Array<{ type: string; title: string; content: string; duration: string }>; vocabulary: string[]; learningObjective: string; teacherNotes: string; oakAlignment: string }
 
+  // Robust multi-strategy JSON extraction — handles markdown fences, embedded
+  // raw newlines in string values, and other control characters
+  let slideData: { slides: Array<{ type: string; title: string; content: string; duration: string }>; vocabulary: string[]; learningObjective: string; teacherNotes: string; oakAlignment: string }
+  const extractSlidesJson = (text: string) => {
+    // 1. Strip markdown fences and clean control chars
+    let t = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
+    t = t.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+    // 2. Direct parse
+    try { return JSON.parse(t) } catch { /* continue */ }
+    // 3. Extract first {...} block
+    const m = t.match(/\{[\s\S]*\}/)
+    if (!m) throw new Error('AI returned no JSON object')
+    try { return JSON.parse(m[0]) } catch { /* continue */ }
+    // 4. Escape unescaped newlines inside string values and retry
+    const escaped = m[0].replace(/"(?:[^"\\]|\\.)*"/g,
+      s => s.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t'))
+    return JSON.parse(escaped)
+  }
   try {
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
-    slideData = JSON.parse(cleaned)
+    slideData = extractSlidesJson(raw)
   } catch {
-    const match = raw.match(/\{[\s\S]*\}/)
-    if (!match) throw new Error('AI returned unparseable content')
-    slideData = JSON.parse(match[0])
+    throw new Error('AI returned unparseable content — please try again')
   }
 
   const html    = buildAiSlidesHtml(lesson.title, yearGroup, subject, slideData.slides ?? [], slideData.vocabulary ?? [], slideData.learningObjective ?? '', slideData.teacherNotes ?? '', slideData.oakAlignment ?? '')

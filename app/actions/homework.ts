@@ -12,6 +12,7 @@ import { sendHomeworkReminderEmail, sendNewHomeworkEmail, sendGradeBelowTargetEm
 import { markDirty }            from '@/lib/agents/snapshot'
 import { AgentType }            from '@prisma/client'
 import { checkAiRateLimit }     from '@/lib/kv'
+import { getOakPedagogicalContext } from '@/lib/oak-content'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -766,6 +767,38 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
     }
   } catch { /* best-effort */ }
 
+  // Layer A: Oak pedagogical quality context — inject when no Oak resources are linked
+  // Fetches richest Oak lessons for subject+yearGroup as a curriculum-level quality benchmark
+  let layerASection = ''
+  if (oakDetails.length === 0) {
+    try {
+      const subjectSlugForOak = subject.toLowerCase().trim()
+        .replace(/math.*/, 'maths')
+        .replace(/english lit.*/, 'english')
+        .replace(/.*science.*/, 'science')
+        .replace(/physical.*|^pe$/, 'physical-education')
+        .replace(/religious.*|^r[se]$/, 'religious-education')
+        .replace(/computer.*|computing/, 'computing')
+        .replace(/\s+/g, '-')
+      const ctx = await getOakPedagogicalContext(subjectSlugForOak, yearGroup)
+      if (ctx.lessonCount > 0) {
+        const parts: string[] = [
+          `\nOAK NATIONAL ACADEMY — CURRICULUM QUALITY BENCHMARK (Year ${yearGroup} ${subject})`,
+          `Use this as a quality and depth guide — questions must reach this curriculum standard.`,
+        ]
+        if (ctx.klps.length > 0)
+          parts.push(`Key learning points at this level:\n${ctx.klps.slice(0, 6).map(k => `  • ${k}`).join('\n')}`)
+        if (ctx.vocabulary.length > 0)
+          parts.push(`Subject vocabulary at this level:\n${ctx.vocabulary.slice(0, 8).map(v => `  • ${v}`).join('\n')}`)
+        if (ctx.misconceptions.length > 0)
+          parts.push(`Common misconceptions to address:\n${ctx.misconceptions.slice(0, 4).map(m => `  • ${m}`).join('\n')}`)
+        if (ctx.outcomePatterns.length > 0)
+          parts.push(`Example learning outcomes (match this depth and specificity):\n${ctx.outcomePatterns.slice(0, 3).map(o => `  • ${o}`).join('\n')}`)
+        layerASection = parts.join('\n') + '\n'
+      }
+    } catch { /* best-effort */ }
+  }
+
   // P1-8: Rate limit — max 10 AI homework generations per teacher per calendar day.
   // Checked against AuditLog so it's durable across server restarts.
   const generatingUserId = userId
@@ -808,7 +841,7 @@ ${objectivesContext}
 
 LESSON RESOURCES — source material for questions:
 ${resourceContext}
-${sendContextBlock}${ygPlanContext}
+${sendContextBlock}${ygPlanContext}${layerASection}
 TASK
 ====
 ${taskInstruction}
@@ -819,30 +852,32 @@ ${typePrompt}`
     const client  = new Anthropic({ apiKey })
     const message = await client.messages.create({
       model:      'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 4000,
       system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
       messages:   [{ role: 'user', content: prompt }],
     })
     const raw     = (message.content[0] as any).text.trim()
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
 
+    // Multi-strategy JSON extractor — handles control chars, missing braces, unescaped newlines
+    const extractJson = (text: string) => {
+      let t = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+      t = t.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+      try { return JSON.parse(t) } catch { /* continue */ }
+      const m = t.match(/\{[\s\S]*\}/)
+      if (!m) throw new Error('no JSON object found')
+      try { return JSON.parse(m[0]) } catch { /* continue */ }
+      const escaped = m[0].replace(/"(?:[^"\\]|\\.)*"/g,
+        (s: string) => s.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t'))
+      return JSON.parse(escaped)
+    }
 
     let parsed: any
     try {
-      parsed = JSON.parse(cleaned)
+      parsed = extractJson(cleaned)
     } catch {
-      // Repair: literal newlines inside JSON string values break JSON.parse.
-      // Fix only the chars inside quoted strings, not the structural whitespace.
-      try {
-        const repaired = cleaned.replace(
-          /"(?:[^"\\]|\\.|\n|\r)*"/g,
-          (m: string) => m.replace(/\n/g, '\\n').replace(/\r/g, '\\r'),
-        )
-        parsed = JSON.parse(repaired)
-      } catch (parseErr) {
-        console.error('[generateHomeworkFromResources] JSON parse FAILED (raw first 300):', cleaned.slice(0, 300))
-        return noApiKeyFallback(type, lesson.title, subject)
-      }
+      console.error('[generateHomeworkFromResources] JSON parse FAILED:', cleaned.slice(0, 300))
+      return noApiKeyFallback(type, lesson.title, subject)
     }
 
     // Validate questionsJson for structured types
@@ -853,7 +888,7 @@ ${typePrompt}`
       // Retry once with a more directive prompt
       const retryMsg = await client.messages.create({
         model:      'claude-sonnet-4-6',
-        max_tokens: 8000,
+        max_tokens: 4000,
         system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
         messages:   [
           { role: 'user',      content: prompt },
@@ -863,7 +898,7 @@ ${typePrompt}`
       })
       const retryRaw     = (retryMsg.content[0] as any).text.trim()
       const retryCleaned = retryRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-      try { parsed = JSON.parse(retryCleaned) } catch { /* use original parsed */ }
+      try { parsed = extractJson(retryCleaned) } catch { /* use original parsed */ }
     }
 
     // Defensive: Claude sometimes returns questions at root level instead of inside questionsJson

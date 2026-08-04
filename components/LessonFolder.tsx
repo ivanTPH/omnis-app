@@ -308,23 +308,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
       .finally(() => setAnalyticsClassesLoaded(true))
   }, [analyticsClassesLoaded])
 
-  // Auto-generate homework when wizard reaches step 5
-  useEffect(() => {
-    if (wizardStep !== 5 || !lessonId) return
-    // Don't re-generate if this type already has content
-    if (typeStore[hwType]?.instructions) return
-    setHwYesNo('yes')
-    triggerHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
-  }, [wizardStep])  // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-regenerate when homework type changes mid-wizard
-  useEffect(() => {
-    if (wizardStep !== 5 || !lessonId || hwYesNo !== 'yes') return
-    if (typeStore[hwType]?.instructions) return   // already have content for this type
-    triggerHwGeneration(lessonId, hwType) // eslint-disable-line react-hooks/immutability
-  }, [hwType])  // eslint-disable-line react-hooks/exhaustive-deps
-
   // Auto-open homework wizard when Homework tab clicked, no homework exists, lesson has content
+  // Shows type selector + dates immediately — teacher clicks "Generate with AI" explicitly
   useEffect(() => {
     if (activeTab !== 'Homework' || wizardStep !== null || !lessonId || !lesson) return
     if ((lesson.homework?.length ?? 0) > 0) return
@@ -341,6 +326,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
     setSaQuestions([])
     setGenSource(null)
     setAiDecision(null)
+    setHwYesNo('yes')
     setWizardStep(5)
   }, [activeTab, lesson?.id])  // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -902,7 +888,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               {hwYesNo === null && !generatingHw && (
                 <div className="flex gap-3">
                   <button
-                    onClick={() => { setHwYesNo('yes'); if (lessonId) triggerHwGeneration(lessonId, hwType) }}
+                    onClick={() => setHwYesNo('yes')}
                     className="flex-1 py-3 border-2 border-blue-600 text-blue-700 font-semibold rounded-xl text-[13px] hover:bg-blue-50 transition-colors"
                   >
                     Yes, set homework
@@ -921,8 +907,17 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                   {/* ── Type selector + AI controls ─────────────────── */}
                   <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div>
-                      <label className="block text-[12px] font-medium text-gray-500 mb-1.5">Assessment type</label>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-[12px] font-medium text-gray-500">Assessment type</label>
+                        <button
+                          type="button"
+                          onClick={() => { router.refresh(); onClose() }}
+                          className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          Skip — no homework
+                        </button>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {HW_TYPES.map(t => (
                           <button

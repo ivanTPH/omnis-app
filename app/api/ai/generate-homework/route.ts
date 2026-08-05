@@ -20,6 +20,7 @@ function emit(controller: ReadableStreamDefaultController<Uint8Array>, event: ob
 export async function POST(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let resultEmitted = false
       try {
         // ── Auth ────────────────────────────────────────────────────────────
         const { schoolId, id: generatingUserId } = await requireAuth()
@@ -186,6 +187,7 @@ export async function POST(request: Request) {
         } catch { /* best-effort */ }
 
         // ── Layer A: Oak pedagogical context (when no Oak resources linked) ──
+        emit(controller, { type: 'progress', message: 'Loading curriculum context…', pct: 38 })
         let layerASection = ''
         if (oakDetails.length === 0) {
           try {
@@ -362,10 +364,18 @@ ${buildTypePrompt(type, subject, qualification)}`
         }
 
         emit(controller, { type: 'done', data: result })
+        resultEmitted = true
       } catch (err) {
-        emit(controller, { type: 'error', message: err instanceof Error ? err.message : 'Generation failed — please try again.' })
+        try {
+          emit(controller, { type: 'error', message: err instanceof Error ? err.message : 'Generation failed — please try again.' })
+          resultEmitted = true
+        } catch { /* controller may already be closed */ }
       } finally {
-        controller.close()
+        // Safety net: if nothing was emitted (emit itself threw), send a fallback error
+        if (!resultEmitted) {
+          try { emit(controller, { type: 'error', message: 'Generation failed — please try again.' }) } catch { }
+        }
+        try { controller.close() } catch { /* already closed */ }
       }
     },
   })

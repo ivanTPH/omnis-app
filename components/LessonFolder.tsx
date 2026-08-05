@@ -733,10 +733,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         {/* Wizard progress bar */}
         {wizardStep !== null && (
           <div className="flex items-center gap-3 px-7 py-3 border-b border-gray-200 shrink-0 bg-blue-50">
-            <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setWizardStep(null); setActiveTab('Resources') }}
+              className="flex items-center gap-2 hover:opacity-70 transition-opacity"
+            >
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 4 ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-700'}`}>1</div>
               <span className={`text-[12px] font-medium ${wizardStep === 4 ? 'text-blue-700' : 'text-blue-400'}`}>Add Resources</span>
-            </div>
+            </button>
             <Icon name="chevron_right" size="sm" className="text-blue-300" />
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
@@ -986,9 +989,24 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {hwGenerationError && !generatingHw && (
                     <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-medium text-amber-800">{hwGenerationError}</p>
-                        <p className="text-[11px] text-amber-600 mt-0.5">Switch to the Resources tab to add lesson materials, then return here.</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <button
+                            type="button"
+                            onClick={handleRegenerateHw}
+                            className="text-[11px] text-amber-700 underline hover:text-amber-900"
+                          >
+                            Try again
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setWizardStep(null); setActiveTab('Resources') }}
+                            className="text-[11px] text-amber-700 underline hover:text-amber-900"
+                          >
+                            ← Back to Resources
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

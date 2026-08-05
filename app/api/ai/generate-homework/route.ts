@@ -7,6 +7,7 @@ import {
   noApiKeyFallback,
   type ProposalResult,
 } from '@/lib/homework-helpers'
+import { getOakPedagogicalContext } from '@/lib/oak-content'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -184,6 +185,37 @@ export async function POST(request: Request) {
           if (ygPlan) ygPlanContext = `\nSCHEME OF WORK — use this to ensure homework aligns with the curriculum plan:\n${ygPlan.slice(0, 800)}\n`
         } catch { /* best-effort */ }
 
+        // ── Layer A: Oak pedagogical context (when no Oak resources linked) ──
+        let layerASection = ''
+        if (oakDetails.length === 0) {
+          try {
+            const subjectSlugForOak = subject.toLowerCase().trim()
+              .replace(/math.*/, 'maths')
+              .replace(/english lit.*/, 'english')
+              .replace(/.*science.*/, 'science')
+              .replace(/physical.*|^pe$/, 'physical-education')
+              .replace(/religious.*|^r[se]$/, 'religious-education')
+              .replace(/computer.*|computing/, 'computing')
+              .replace(/\s+/g, '-')
+            const ctx = await getOakPedagogicalContext(subjectSlugForOak, yearGroup)
+            if (ctx.lessonCount > 0) {
+              const parts: string[] = [
+                `\nOAK NATIONAL ACADEMY — CURRICULUM QUALITY BENCHMARK (Year ${yearGroup} ${subject})`,
+                `Use this as a quality and depth guide — questions must reach this curriculum standard.`,
+              ]
+              if (ctx.klps.length > 0)
+                parts.push(`Key learning points at this level:\n${ctx.klps.slice(0, 6).map(k => `  • ${k}`).join('\n')}`)
+              if (ctx.vocabulary.length > 0)
+                parts.push(`Subject vocabulary at this level:\n${ctx.vocabulary.slice(0, 8).map(v => `  • ${v}`).join('\n')}`)
+              if (ctx.misconceptions.length > 0)
+                parts.push(`Common misconceptions to address:\n${ctx.misconceptions.slice(0, 4).map(m => `  • ${m}`).join('\n')}`)
+              if (ctx.outcomePatterns.length > 0)
+                parts.push(`Example learning outcomes (match this depth and specificity):\n${ctx.outcomePatterns.slice(0, 3).map(o => `  • ${o}`).join('\n')}`)
+              layerASection = parts.join('\n') + '\n'
+            }
+          } catch { /* best-effort */ }
+        }
+
         // ── Rate limit ──────────────────────────────────────────────────────
         emit(controller, { type: 'progress', message: 'Checking generation limits…', pct: 42 })
 
@@ -223,7 +255,7 @@ ${objectivesContext}
 
 LESSON RESOURCES — source material for questions:
 ${resourceContext}
-${sendContextBlock}${ygPlanContext}
+${sendContextBlock}${ygPlanContext}${layerASection}
 TASK
 ====
 ${taskInstruction}
@@ -256,19 +288,25 @@ ${buildTypePrompt(type, subject, qualification)}`
 
         emit(controller, { type: 'progress', message: 'Processing response…', pct: 88 })
 
-        // ── Parse JSON ───────────────────────────────────────────────────────
-        const cleaned = accumulated.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+        // ── Parse JSON (multi-strategy extractor) ───────────────────────────
+        const extractJson = (text: string) => {
+          let t = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
+          t = t.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
+          try { return JSON.parse(t) } catch { /* continue */ }
+          const m = t.match(/\{[\s\S]*\}/)
+          if (!m) throw new Error('no JSON object found')
+          try { return JSON.parse(m[0]) } catch { /* continue */ }
+          const escaped = m[0].replace(/"(?:[^"\\]|\\.)*"/g,
+            (s: string) => s.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t'))
+          return JSON.parse(escaped)
+        }
+
         let parsed: any
         try {
-          parsed = JSON.parse(cleaned)
+          parsed = extractJson(accumulated)
         } catch {
-          try {
-            const repaired = cleaned.replace(/"(?:[^"\\]|\\.|\n|\r)*"/g, (m: string) => m.replace(/\n/g, '\\n').replace(/\r/g, '\\r'))
-            parsed = JSON.parse(repaired)
-          } catch {
-            emit(controller, { type: 'done', data: noApiKeyFallback(type, lesson.title, subject) })
-            return
-          }
+          emit(controller, { type: 'done', data: noApiKeyFallback(type, lesson.title, subject) })
+          return
         }
 
         // ── Validate questionsJson — retry once if needed ────────────────────
@@ -281,17 +319,16 @@ ${buildTypePrompt(type, subject, qualification)}`
           try {
             const retryMsg = await client.messages.create({
               model:    'claude-sonnet-4-6',
-              max_tokens: 8000,
+              max_tokens: 4000,
               system:   'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
               messages: [
                 { role: 'user',      content: prompt },
-                { role: 'assistant', content: cleaned },
+                { role: 'assistant', content: accumulated.slice(0, 2000) },
                 { role: 'user',      content: 'The questionsJson field is missing or has too few questions. Please resend the complete JSON with questionsJson containing all required questions. Return ONLY valid JSON, no extra text.' },
               ],
             })
-            const retryRaw     = (retryMsg.content[0] as any).text.trim()
-            const retryCleaned = retryRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-            try { parsed = JSON.parse(retryCleaned) } catch { /* keep original */ }
+            const retryRaw = (retryMsg.content[0] as any).text.trim()
+            try { parsed = extractJson(retryRaw) } catch { /* keep original */ }
           } catch { /* keep original */ }
         }
 

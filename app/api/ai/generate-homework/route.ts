@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         })
         if (!lesson) {
           emit(controller, { type: 'error', message: 'Lesson not found' })
+          resultEmitted = true
           return
         }
 
@@ -227,12 +228,14 @@ export async function POST(request: Request) {
         })
         if (todayCount >= 10) {
           emit(controller, { type: 'error', message: 'Daily AI generation limit reached (10 per day). Try again tomorrow.' })
+          resultEmitted = true
           return
         }
 
         const apiKey = process.env.ANTHROPIC_API_KEY
         if (!apiKey) {
           emit(controller, { type: 'done', data: noApiKeyFallback(type, lesson.title, subject) })
+          resultEmitted = true
           return
         }
 
@@ -270,7 +273,7 @@ ${buildTypePrompt(type, subject, qualification)}`
         const client      = new Anthropic({ apiKey })
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
-          max_tokens: 4000,
+          max_tokens: 6000,
           system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
           messages:   [{ role: 'user', content: prompt }],
         })
@@ -308,6 +311,7 @@ ${buildTypePrompt(type, subject, qualification)}`
           parsed = extractJson(accumulated)
         } catch {
           emit(controller, { type: 'done', data: noApiKeyFallback(type, lesson.title, subject) })
+          resultEmitted = true
           return
         }
 
@@ -321,7 +325,7 @@ ${buildTypePrompt(type, subject, qualification)}`
           try {
             const retryMsg = await client.messages.create({
               model:    'claude-sonnet-4-6',
-              max_tokens: 4000,
+              max_tokens: 6000,
               system:   'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
               messages: [
                 { role: 'user',      content: prompt },

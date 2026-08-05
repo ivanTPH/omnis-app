@@ -733,13 +733,20 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         {/* Wizard progress bar */}
         {wizardStep !== null && (
           <div className="flex items-center gap-3 px-7 py-3 border-b border-gray-200 shrink-0 bg-blue-50">
-            <button
-              onClick={() => { setWizardStep(null); setActiveTab('Resources') }}
-              className="flex items-center gap-2 hover:opacity-70 transition-opacity"
-            >
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 4 ? 'bg-blue-600 text-white' : 'bg-blue-200 text-blue-700'}`}>1</div>
-              <span className={`text-[12px] font-medium ${wizardStep === 4 ? 'text-blue-700' : 'text-blue-400'}`}>Add Resources</span>
-            </button>
+            {wizardStep === 5 ? (
+              <button
+                onClick={() => setWizardStep(4)}
+                className="flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <Icon name="arrow_back" size="sm" />
+                Resources
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold bg-blue-600 text-white">1</div>
+                <span className="text-[12px] font-medium text-blue-700">Add Resources</span>
+              </div>
+            )}
             <Icon name="chevron_right" size="sm" className="text-blue-300" />
             <div className="flex items-center gap-2">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
@@ -2319,12 +2326,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             (hwType !== 'MCQ_QUIZ' && hwType !== 'SHORT_ANSWER' && !!activeHw.instructions)
           return (
           <div className="shrink-0 border-t border-gray-200 px-7 py-4 flex items-center justify-between bg-white">
-            <button
-              onClick={() => setWizardStep(4)}
-              className="flex items-center gap-1 text-[12px] text-gray-500 hover:text-gray-700"
-            >
-              ← Back
-            </button>
+            <div />
             <button
               disabled={hwSaving || generatingHw || !hasContent || !hwDueDate}
               onClick={() => startHwSave(async () => {

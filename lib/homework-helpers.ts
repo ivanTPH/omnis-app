@@ -56,17 +56,18 @@ Return this exact JSON structure (questionsJson is required):
 }`
 
     case 'SHORT_ANSWER':
-      return `Generate exactly 6 short-answer questions directly testing the learning objectives above.
+      return `Generate exactly 4 short-answer questions directly testing the learning objectives above.
 Spread questions across Bloom's taxonomy with explicit cognitive demands:
-- Q1–Q2: Knowledge/recall (define, identify, describe key facts — 2–3 marks each)
-- Q3–Q4: Understanding/application (explain why, how, give examples — 3–4 marks each)
-- Q5–Q6: Analysis/evaluation (assess, compare, evaluate significance — 4–6 marks each)
-Each question should require a proportionate response (recall: 2–3 sentences; analysis: 5–8 sentences) and include a detailed mark scheme.
+- Q1: Knowledge/recall (define, identify, describe key facts — 2–3 marks)
+- Q2: Understanding/application (explain why, how, give examples — 3–4 marks)
+- Q3: Analysis (analyse, compare, interpret — 4–5 marks)
+- Q4: Evaluation (assess, evaluate significance, argue — 5–6 marks)
+Each question should require a proportionate response (recall: 2–3 sentences; analysis/evaluation: 4–6 sentences) and include a concise mark scheme.
 
-For EVERY question provide all four accessibility fields:
-- scaffolding_hint: a sentence starter or step-by-step scaffold for SEN Support students (e.g. "Think about... / Start with: The main reason was...")
-- ehcp_adaptation: a simplified version of the question in plain, short sentences for EHCP students (same mark scheme applies — lower reading demand, same thinking demand)
-- vocab_support: array of exactly 5 key terms with simple one-sentence definitions relevant to this question
+For EVERY question provide all four accessibility fields (be concise — 1–2 sentences each):
+- scaffolding_hint: a sentence starter or step-by-step scaffold for SEN Support students
+- ehcp_adaptation: a simplified version of the question in plain, short sentences (same cognitive demand, lower reading level)
+- vocab_support: array of exactly 3 key terms with simple one-sentence definitions
 
 Return this exact JSON structure (questionsJson is required):
 {
@@ -79,17 +80,15 @@ Return this exact JSON structure (questionsJson is required):
     "questions": [
       {
         "q": "Standard question text",
-        "modelAnswer": "Full model answer for this question",
+        "modelAnswer": "Full model answer for this question (2–6 sentences).",
         "markScheme": "Award 1 mark for... Award 2 marks for...",
         "marks": 4,
         "scaffolding_hint": "Think about... / Start your answer with: The key...",
-        "ehcp_adaptation": "Simpler version of the question using shorter sentences and plain words.",
+        "ehcp_adaptation": "Simpler version using shorter sentences.",
         "vocab_support": [
           {"term": "Key term 1", "definition": "Simple one-sentence definition"},
           {"term": "Key term 2", "definition": "Simple one-sentence definition"},
-          {"term": "Key term 3", "definition": "Simple one-sentence definition"},
-          {"term": "Key term 4", "definition": "Simple one-sentence definition"},
-          {"term": "Key term 5", "definition": "Simple one-sentence definition"}
+          {"term": "Key term 3", "definition": "Simple one-sentence definition"}
         ]
       }
     ]

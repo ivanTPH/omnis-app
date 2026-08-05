@@ -274,7 +274,7 @@ ${buildTypePrompt(type, subject, qualification)}`
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
           max_tokens: 6000,
-          system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
+          system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values. Keep all SEND adaptation fields (scaffolding_hint, ehcp_adaptation) to 1–2 concise sentences. Keep per-question modelAnswer under 120 words.',
           messages:   [{ role: 'user', content: prompt }],
         })
 
@@ -317,7 +317,7 @@ ${buildTypePrompt(type, subject, qualification)}`
 
         // ── Validate questionsJson — retry once if needed ────────────────────
         const needsQuestions = type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER'
-        const minQuestions   = type === 'SHORT_ANSWER' ? 5 : 4
+        const minQuestions   = type === 'SHORT_ANSWER' ? 3 : 4
         const hasQuestions   = parsed.questionsJson?.questions && Array.isArray(parsed.questionsJson.questions) && parsed.questionsJson.questions.length >= minQuestions
 
         if (needsQuestions && !hasQuestions) {
@@ -326,7 +326,7 @@ ${buildTypePrompt(type, subject, qualification)}`
             const retryMsg = await client.messages.create({
               model:    'claude-sonnet-4-6',
               max_tokens: 6000,
-              system:   'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
+              system:   'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values. Keep all SEND adaptation fields (scaffolding_hint, ehcp_adaptation) to 1–2 concise sentences. Keep per-question modelAnswer under 120 words.',
               messages: [
                 { role: 'user',      content: prompt },
                 { role: 'assistant', content: accumulated.slice(0, 2000) },

@@ -326,7 +326,7 @@ export async function getClassList(_schoolId?: string): Promise<ClassRow[]> {
   const classes = await prisma.schoolClass.findMany({
     where:   { schoolId },
     include: {
-      teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+      teachers: { select: { user: { select: { firstName: true, lastName: true } } } },
       _count:   { select: { enrolments: true } },
     },
     orderBy: [{ subject: 'asc' }, { yearGroup: 'asc' }, { name: 'asc' }],
@@ -596,8 +596,8 @@ export async function getClassDetail(classId: string): Promise<ClassDetailForAdm
   const cls = await prisma.schoolClass.findFirst({
     where:   { id: classId, schoolId },
     include: {
-      teachers:   { include: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
-      enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true, yearGroup: true } } } },
+      teachers:   { select: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+      enrolments: { select: { classId: true, userId: true, user: { select: { id: true, firstName: true, lastName: true, yearGroup: true } } } },
     },
   })
   if (!cls) return null

@@ -33,7 +33,7 @@ export default async function SltAnalyticsPage() {
     prisma.schoolClass.findMany({
       where: { schoolId },
       include: {
-        teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+        teachers: { select: { user: { select: { firstName: true, lastName: true } } } },
         _count:   { select: { enrolments: true } },
       },
     }),

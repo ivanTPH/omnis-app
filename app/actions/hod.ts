@@ -92,7 +92,7 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
   const deptClasses = await prisma.schoolClass.findMany({
     where: { schoolId, ...deptFilter },
     include: {
-      teachers:   { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+      teachers:   { select: { user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
       _count:     { select: { enrolments: true } },
     },
   })

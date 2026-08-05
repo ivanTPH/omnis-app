@@ -216,7 +216,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
     <aside className="w-60 bg-white border-r border-gray-200 flex flex-col h-dvh shrink-0">
 
       {/* Logo */}
-      <div className="px-4 py-4 border-b border-gray-100 shrink-0">
+      <div className="px-4 py-3 border-b border-gray-100 shrink-0">
         <OmnisLogo variant="sidebar" />
         {schoolName && (
           <div className="text-[10px] text-gray-400 truncate mt-0.5 pl-[52px]">{schoolName}</div>
@@ -231,11 +231,11 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-auto py-2 px-2">
+      <nav className="flex-1 overflow-auto py-1 px-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}>
         {nav.map((item, i) => {
           if ('divider' in item) {
             return (
-              <div key={`d-${i}`} className="pt-3 pb-1 px-2">
+              <div key={`d-${i}`} className="pt-2 pb-0.5 px-2">
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</span>
               </div>
             )
@@ -246,7 +246,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
               key={item.href}
               href={item.href}
               onClick={onClose}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+              className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
                 active
                   ? 'bg-blue-700 text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -266,7 +266,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         <Link
           href="/help"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+          className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
             pathname === '/help'
               ? 'bg-blue-700 text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -277,7 +277,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         <Link
           href="/settings"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+          className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
             pathname.startsWith('/settings') && !pathname.startsWith('/settings/accessibility')
               ? 'bg-blue-700 text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -288,7 +288,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         <Link
           href="/settings/accessibility"
           onClick={onClose}
-          className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+          className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
             pathname === '/settings/accessibility'
               ? 'bg-blue-700 text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -299,7 +299,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
       </div>
 
       {/* User chip + sign out */}
-      <div className="px-4 py-4 border-t border-gray-100 shrink-0">
+      <div className="px-4 py-3 border-t border-gray-100 shrink-0">
         <Link href="/settings" className="flex items-center gap-2.5 mb-3 hover:opacity-80 transition-opacity">
           {avatarUrl ? (
             <img src={avatarUrl} alt={`${firstName} ${lastName}`} className="w-8 h-8 rounded-full object-cover shrink-0" />

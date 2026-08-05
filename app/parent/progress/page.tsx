@@ -19,10 +19,12 @@ export default async function ParentProgressPage() {
       child: {
         include: {
           enrolments: {
-            include: {
+            select: {
+              classId: true,
+              userId:  true,
               class: {
                 include: {
-                  teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+                  teachers: { select: { user: { select: { firstName: true, lastName: true } } } },
                 },
               },
             },

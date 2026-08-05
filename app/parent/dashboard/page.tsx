@@ -17,7 +17,7 @@ export default async function ParentDashboardPage() {
     include: {
       child: {
         include: {
-          enrolments: { include: { class: true } },
+          enrolments: { select: { classId: true, userId: true, class: true } },
         },
       },
     },

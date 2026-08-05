@@ -30,7 +30,7 @@ export async function GET(
   const schoolClass = await prisma.schoolClass.findFirst({
     where: { id: classId, schoolId: user.schoolId },
     include: {
-      teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+      teachers: { select: { userId: true, user: { select: { firstName: true, lastName: true } } } },
     },
   })
   if (!schoolClass) {

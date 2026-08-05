@@ -165,8 +165,8 @@ export async function getLessonDetails(lessonId: string) {
       class: {
         include: {
           _count: { select: { enrolments: true } },
-          teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
-          enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true } } }, orderBy: [{ user: { lastName: 'asc' } }] },
+          teachers: { select: { user: { select: { firstName: true, lastName: true } } } },
+          enrolments: { select: { classId: true, userId: true, user: { select: { id: true, firstName: true, lastName: true } } }, orderBy: [{ user: { lastName: 'asc' } }] },
         },
       },
       resources: {

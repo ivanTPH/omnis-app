@@ -198,7 +198,7 @@ export default async function HoyDashboardPage() {
       },
       select: {
         id: true, name: true, subject: true, yearGroup: true,
-        teachers: { include: { user: { select: { firstName: true, lastName: true } } }, take: 1 },
+        teachers: { select: { user: { select: { firstName: true, lastName: true } } }, take: 1 },
         _count: { select: { enrolments: true } },
       },
       orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }],

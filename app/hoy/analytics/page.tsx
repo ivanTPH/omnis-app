@@ -29,8 +29,8 @@ export default async function HoyAnalyticsPage() {
       ...(myYearGroup ? { yearGroup: myYearGroup } : {}),
     },
     include: {
-      teachers:   { include: { user: { select: { firstName: true, lastName: true } } } },
-      enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+      teachers:   { select: { user: { select: { firstName: true, lastName: true } } } },
+      enrolments: { select: { classId: true, userId: true, user: { select: { id: true, firstName: true, lastName: true } } } },
       homework:   { select: { id: true } },
     },
     orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }],

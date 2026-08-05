@@ -67,7 +67,7 @@ export async function analyseClassPerformance(
     // 2. Fetch class info and enrolled students
     const schoolClass = await prisma.schoolClass.findFirst({
       where: { id: classId, schoolId },
-      select: { subject: true, enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true } } } } },
+      select: { subject: true, enrolments: { select: { classId: true, userId: true, user: { select: { id: true, firstName: true, lastName: true } } } } },
     })
     if (!schoolClass) return EMPTY_ANALYSIS(classId)
 

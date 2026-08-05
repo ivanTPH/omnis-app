@@ -44,7 +44,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
       include: {
         class: {
           include: {
-            teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+            teachers: { select: { user: { select: { firstName: true, lastName: true } } } },
           },
         },
       },

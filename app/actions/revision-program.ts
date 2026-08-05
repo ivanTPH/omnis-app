@@ -119,7 +119,7 @@ export async function createRevisionProgram(input: {
     // Get class info
     const schoolClass = await prisma.schoolClass.findFirst({
       where: { id: input.classId, schoolId: user.schoolId },
-      include: { enrolments: { include: { user: { select: { id: true, firstName: true, lastName: true } } } } },
+      include: { enrolments: { select: { classId: true, userId: true, user: { select: { id: true, firstName: true, lastName: true } } } } },
     })
     if (!schoolClass) throw new Error('Class not found')
 

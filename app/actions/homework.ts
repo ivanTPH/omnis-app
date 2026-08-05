@@ -163,10 +163,10 @@ export async function getSubmissionForMarking(submissionId: string) {
           class: {
             include: {
               enrolments: {
-                include: { user: { select: { id: true, firstName: true, lastName: true } } },
+                select: { classId: true, userId: true, user: { select: { id: true, firstName: true, lastName: true } } },
                 orderBy:  [{ user: { lastName: 'asc' } }],
               },
-              teachers: { include: { user: { select: { firstName: true, lastName: true } } } },
+              teachers: { select: { user: { select: { firstName: true, lastName: true } } } },
             },
           },
           lesson:      { select: { id: true, title: true } },

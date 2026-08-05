@@ -637,6 +637,32 @@
 > or the student homework list dedup collapses new homework with older seed homework.
 > **Commits:** 575be39 (MCQ + Bitesize + calendar fixes), eb1aa5c, 30b4ec9, c06e8d6 (demo-advance phases).
 
+> August 2026 Homework generation UX + streaming fixes (2026-08-05):
+> (1) Oak DB fix: all 11,403 OakLesson records had `deletedAt` set from a failed June 7 sync run;
+> `searchOakLessons` filters `WHERE deletedAt IS NULL` so nothing was returned. Fixed via direct SQL
+> `UPDATE "OakLesson" SET "deletedAt" = NULL WHERE "deletedAt" IS NOT NULL`. Oak bulk sync re-run
+> locally against production DB populated 13,161 lessons including 33 Macbeth and 22 Inspector Calls.
+> Oak content now available for search, homework generation, and all agents (QUALITY, COACH, ENGAGE).
+> (2) LessonFolder homework wizard UX: auto-generation removed (no longer fires on Homework tab click);
+> teacher must click "Generate with AI" explicitly. Type selector shown before generation. Error state
+> shows "Try again" + "← Back to Resources" buttons instead of hardcoded text.
+> (3) SSE `resultEmitted` fix (7fc9d2d): four early-return paths in generate-homework route were
+> missing `resultEmitted = true` (lesson not found, rate limit, no API key, extractJson failure),
+> causing `finally` block to emit a spurious second error event after every generation.
+> (4) Token budget fix (b2b9c87): SHORT_ANSWER prompt reduced 6 questions → 4, vocab_support 5 → 3
+> terms, system prompt caps per-question modelAnswer at 120 words. Root cause: Claude was generating
+> ~7,300 tokens (25,600 chars) exceeding max_tokens:6000 → JSON truncation → extractJson failure →
+> noApiKeyFallback stub questions. `minQuestions` lowered 5 → 3.
+> (5) Gzip SSE buffering fix (e315179): Nginx was gzip-compressing the SSE response despite
+> `X-Accel-Buffering: no`. Gzip buffers ALL events until stream closes — browser's `reader.read()`
+> blocked for full generation duration, 45s stale-stream timer fired, "Stream ended without a result
+> event" shown. Fix: `Content-Encoding: identity` in response headers prevents Nginx applying gzip.
+> Confirmed via Playwright test headers (`content-encoding: gzip` before, absent after).
+> (6) Back button (e315179): step 2 wizard now shows `arrow_back` + "Resources" at top-left of
+> breadcrumb bar; bottom "← Back" text removed. Consistent with resource preview overlay style.
+> **Verified**: 4 real GCSE Macbeth questions (all SEND fields populated), single `done` event,
+> 37 SSE events, 1 passed (2.9m), exit 0. Deployed: omnis.education.
+
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
 ---

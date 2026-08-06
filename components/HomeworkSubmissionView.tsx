@@ -218,17 +218,26 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                 )}
               </div>
               {hw.homeworkVariantType && hw.structuredContent ? (
-                <HomeworkTypeRenderer
-                  type={hw.homeworkVariantType}
-                  structuredContent={hw.structuredContent}
-                  value={content}
-                  onChange={handleContentChange}
-                  disabled={textareaDisabled}
-                  showModelAnswer={isReturned}
-                  sendStatus={hw.sendStatus ?? 'NONE'}
-                  onSubmitRequest={multiQStepper && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
-                  submitting={isPending}
-                />
+                <>
+                  <HomeworkTypeRenderer
+                    type={hw.homeworkVariantType}
+                    structuredContent={hw.structuredContent}
+                    value={content}
+                    onChange={handleContentChange}
+                    disabled={textareaDisabled}
+                    showModelAnswer={isReturned}
+                    sendStatus={hw.sendStatus ?? 'NONE'}
+                    onSubmitRequest={multiQStepper && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
+                    submitting={isPending}
+                  />
+                  {/* Fallback: top-level model answer for older homework where q.modelAnswer is absent */}
+                  {isReturned && hw.modelAnswer && (() => {
+                    const qs = (sc?.questions as Array<{ modelAnswer?: string }> | undefined) ?? []
+                    return !qs.some(q => q.modelAnswer)
+                      ? <CollapsibleModelAnswer text={hw.modelAnswer!} className="mt-4" />
+                      : null
+                  })()}
+                </>
               ) : (
                 <>
                   <div className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50">

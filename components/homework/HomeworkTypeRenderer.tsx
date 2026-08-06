@@ -9,6 +9,7 @@ type Props = {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  showModelAnswer?: boolean  // show collapsible model answer per question (returned state)
   sendStatus?: string    // 'NONE' | 'SEN_SUPPORT' | 'EHCP'
   showScaffold?: boolean // legacy — treated as SEN_SUPPORT if sendStatus not provided
   onSubmitRequest?: () => void
@@ -26,6 +27,29 @@ type Question = {
   scaffolding_hint?: string
   ehcp_adaptation?: string
   vocab_support?: VocabEntry[]
+  modelAnswer?: string
+}
+
+function CollapsibleModelAnswer({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border border-purple-200 rounded-xl overflow-hidden mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 w-full px-4 py-2.5 text-left bg-purple-50 hover:bg-purple-100 transition"
+      >
+        <Icon name="star" size="sm" className="text-purple-500 shrink-0" />
+        <span className="text-[12px] font-semibold text-purple-700 flex-1">Model Answer</span>
+        <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" className="text-purple-400" />
+      </button>
+      {open && (
+        <div className="px-4 py-3 bg-white text-[13px] text-purple-900 leading-relaxed whitespace-pre-wrap border-t border-purple-100">
+          {text}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function VocabGlossary({ terms }: { terms: VocabEntry[] }) {
@@ -64,7 +88,7 @@ function getAnswerPlaceholder(question: Question): string {
 }
 
 export default function HomeworkTypeRenderer({
-  type, structuredContent, value, onChange, disabled,
+  type, structuredContent, value, onChange, disabled, showModelAnswer,
   sendStatus, showScaffold, onSubmitRequest, submitting,
 }: Props) {
   const content = structuredContent as { questions?: Question[]; prompt?: string; wordCount?: number; steps?: string[] } | null
@@ -356,6 +380,9 @@ export default function HomeworkTypeRenderer({
                   />
                 )}
                 {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
+                {showModelAnswer && q.modelAnswer && (
+                  <CollapsibleModelAnswer text={q.modelAnswer} />
+                )}
               </div>
             )
           })}
@@ -614,6 +641,9 @@ export default function HomeworkTypeRenderer({
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-y"
                   />
                 )}
+                {showModelAnswer && q.modelAnswer && (
+                  <CollapsibleModelAnswer text={q.modelAnswer} />
+                )}
               </div>
             )
           })}
@@ -657,6 +687,9 @@ export default function HomeworkTypeRenderer({
               className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 resize-y leading-relaxed"
             />
           )}
+          {showModelAnswer && content?.questions?.[0]?.modelAnswer && (
+            <CollapsibleModelAnswer text={content.questions[0].modelAnswer} />
+          )}
           <div className="flex justify-between text-xs text-gray-400">
             <span>{value.trim().split(/\s+/).filter(Boolean).length} words</span>
             {wordCount && <span>Target: ~{wordCount} words</span>}
@@ -697,6 +730,9 @@ export default function HomeworkTypeRenderer({
                     placeholder="Your answer…"
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-y"
                   />
+                )}
+                {showModelAnswer && q.modelAnswer && (
+                  <CollapsibleModelAnswer text={q.modelAnswer} />
                 )}
               </div>
             ))

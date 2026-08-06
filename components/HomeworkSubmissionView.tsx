@@ -191,21 +191,10 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
         </section>
       )}
 
-      {/* Model answer */}
-      {isReturned && hw.modelAnswer && (
-        <section>
-          <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <Icon name="star" size="sm" /> Model Answer
-          </h2>
-          <div className="bg-purple-50 border border-purple-100 rounded-xl p-5 text-[14px] text-purple-900 leading-relaxed whitespace-pre-wrap">
-            {hw.modelAnswer}
-          </div>
-        </section>
-      )}
-
       {/* Answer section */}
       {(() => {
         const sc = hw.structuredContent as { questions?: unknown[] } | undefined
+        const hasStructuredQuestions = (sc?.questions?.length ?? 0) > 0
         const STEPPER_TYPES = new Set([
           'short_answer', 'quiz', 'multiple_choice', 'retrieval_practice',
           'structured_task', 'problem_solving',
@@ -220,7 +209,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             <section>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-                  {isReturned ? 'Your Answer' : isAwaitingFeedback ? 'Your Submission' : 'Your Answer'}
+                  {isReturned ? 'Your Answers' : isAwaitingFeedback ? 'Your Submission' : 'Your Answer'}
                 </h2>
                 {!isAwaitingFeedback && !hw.homeworkVariantType && (
                   <span className="text-[11px] text-gray-400">
@@ -235,18 +224,21 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                   value={content}
                   onChange={handleContentChange}
                   disabled={textareaDisabled}
+                  showModelAnswer={isReturned}
                   sendStatus={hw.sendStatus ?? 'NONE'}
                   onSubmitRequest={multiQStepper && (!sub || canResubmit) && !submitted ? handleSubmit : undefined}
                   submitting={isPending}
                 />
               ) : (
-                <textarea
-                  className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition"
-                  placeholder="Write your answer here..."
-                  value={content}
-                  onChange={e => handleContentChange(e.target.value)}
-                  disabled={textareaDisabled}
-                />
+                <>
+                  <div className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50">
+                    {content || <span className="text-gray-400 italic">No answer provided</span>}
+                  </div>
+                  {/* Model answer for non-structured homework — collapsible below the answer */}
+                  {isReturned && hw.modelAnswer && !hasStructuredQuestions && (
+                    <CollapsibleModelAnswer text={hw.modelAnswer} className="mt-3" />
+                  )}
+                </>
               )}
             </section>
 
@@ -269,10 +261,72 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                 </button>
               </div>
             )}
+
+            {/* Bottom grade summary — shown after all answers when returned */}
+            {isReturned && sub!.grade && (() => {
+              const grade = Number(sub!.grade)
+              const pred  = hw.predictedGrade ?? null
+              const exceeded = pred !== null && grade > pred
+              const met      = pred !== null && grade === pred
+              return (
+                <div className={`rounded-2xl p-5 flex items-center gap-4 border ${
+                  exceeded ? 'bg-emerald-50 border-emerald-200' :
+                  met      ? 'bg-blue-50 border-blue-200' :
+                             'bg-gray-50 border-gray-200'
+                }`}>
+                  <span className="text-[36px] leading-none shrink-0">
+                    {exceeded ? '🎉' : met ? '👍' : '📚'}
+                  </span>
+                  <div className="flex-1">
+                    <p className={`text-[15px] font-bold ${exceeded ? 'text-emerald-800' : met ? 'text-blue-800' : 'text-gray-700'}`}>
+                      {exceeded
+                        ? `Well done! You exceeded your predicted grade.`
+                        : met
+                          ? `Great work! You met your predicted grade.`
+                          : `Keep going — review the model answers to improve.`}
+                    </p>
+                    {pred !== null && (
+                      <p className={`text-[13px] mt-0.5 ${exceeded ? 'text-emerald-600' : met ? 'text-blue-600' : 'text-gray-500'}`}>
+                        Predicted {gradeLabel(pred)} · You achieved {gradeLabel(grade)}
+                      </p>
+                    )}
+                  </div>
+                  <span className={`text-[22px] font-bold px-4 py-1 rounded-xl shrink-0 ${
+                    exceeded ? 'bg-emerald-100 text-emerald-700' :
+                    met      ? 'bg-blue-100 text-blue-700' :
+                               'bg-gray-200 text-gray-700'
+                  }`}>
+                    {gradeLabel(grade)}
+                  </span>
+                </div>
+              )
+            })()}
           </>
         )
       })()}
 
+    </div>
+  )
+}
+
+function CollapsibleModelAnswer({ text, className = '' }: { text: string; className?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className={`border border-purple-200 rounded-xl overflow-hidden ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 w-full px-4 py-3 text-left bg-purple-50 hover:bg-purple-100 transition"
+      >
+        <Icon name="star" size="sm" className="text-purple-500 shrink-0" />
+        <span className="text-[13px] font-semibold text-purple-700 flex-1">Model Answer</span>
+        <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" className="text-purple-400" />
+      </button>
+      {open && (
+        <div className="px-4 py-3 bg-white text-[14px] text-purple-900 leading-relaxed whitespace-pre-wrap border-t border-purple-100">
+          {text}
+        </div>
+      )}
     </div>
   )
 }

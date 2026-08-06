@@ -83,6 +83,7 @@ export async function getStudentHomework(homeworkId: string) {
       // Detect type from question structure: has options → MCQ/quiz; no options → short_answer
       const hasOptions = Array.isArray(firstQ?.options) && firstQ.options.length > 0
       const isQuiz = hasOptions || hw.type === 'MCQ_QUIZ' || resolvedVariantType === 'quiz' || resolvedVariantType === 'multiple_choice'
+      const isSubmissionReturned = submission?.status === 'RETURNED'
       if (isQuiz) {
         resolvedVariantType = 'quiz'
         resolvedStructuredContent = {
@@ -90,11 +91,13 @@ export async function getStudentHomework(homeworkId: string) {
             id:               String(i + 1),
             question:         q.q ?? q.question ?? '',
             options:          q.options,
-            // NOTE: 'correct' and 'explanation' intentionally omitted — never expose answers to students
+            // NOTE: 'correct' and 'explanation' intentionally omitted — never expose before marking
             marks:            q.marks ?? 1,
             scaffolding_hint: q.scaffolding_hint,
             ehcp_adaptation:  q.ehcp_adaptation,
             vocab_support:    q.vocab_support,
+            // Reveal per-question model answer only once work is returned
+            ...(isSubmissionReturned && q.modelAnswer ? { modelAnswer: q.modelAnswer } : {}),
           })),
         }
       } else {
@@ -108,7 +111,8 @@ export async function getStudentHomework(homeworkId: string) {
             scaffolding_hint: q.scaffolding_hint,
             ehcp_adaptation:  q.ehcp_adaptation,
             vocab_support:    q.vocab_support,
-            // NOTE: modelAnswer and markScheme intentionally omitted — never expose answers to students
+            // Reveal per-question model answer only once work is returned
+            ...(isSubmissionReturned && q.modelAnswer ? { modelAnswer: q.modelAnswer } : {}),
           })),
         }
       }

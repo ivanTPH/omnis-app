@@ -84,7 +84,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
 
   // Can resubmit if: returned AND maxAttempts allows it
   const canResubmit = isReturned && hw.maxAttempts > 1
-  const textareaDisabled = (isAwaitingFeedback && !submitted) || isPending
+  const textareaDisabled = isReturned || (isAwaitingFeedback && !submitted) || isPending
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-6">

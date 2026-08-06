@@ -322,29 +322,37 @@ export default function HomeworkTypeRenderer({
                 )}
                 {q.options ? (
                   <div className="space-y-1.5">
-                    {q.options.map((opt, j) => (
-                      <label key={j} className="flex items-start gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name={`q-${qId}`}
-                          value={opt}
-                          checked={answers[qId] === opt}
-                          onChange={() => updateAnswer(qId, opt)}
-                          disabled={disabled}
-                          className="mt-0.5"
-                        />
-                        <span className="text-sm text-gray-700">{opt}</span>
-                      </label>
-                    ))}
+                    {q.options.map((opt, j) => {
+                      const isSelected = answers[qId] === opt
+                      return disabled ? (
+                        <div key={j} className={`flex items-start gap-2 px-3 py-2 rounded-lg border ${isSelected ? 'border-indigo-300 bg-indigo-50' : 'border-gray-100 bg-gray-50'}`}>
+                          <div className={`w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 flex items-center justify-center ${isSelected ? 'border-indigo-500 bg-indigo-500' : 'border-gray-300'}`}>
+                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                          <span className={`text-sm ${isSelected ? 'text-indigo-900 font-medium' : 'text-gray-500'}`}>{opt}</span>
+                        </div>
+                      ) : (
+                        <label key={j} className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={`q-${qId}`}
+                            value={opt}
+                            checked={isSelected}
+                            onChange={() => updateAnswer(qId, opt)}
+                            className="mt-0.5"
+                          />
+                          <span className="text-sm text-gray-700">{opt}</span>
+                        </label>
+                      )
+                    })}
                   </div>
                 ) : (
                   <input
                     type="text"
                     value={answers[qId] ?? ''}
                     onChange={e => updateAnswer(qId, e.target.value)}
-                    disabled={disabled}
                     placeholder="Your answer…"
-                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 disabled:bg-gray-50"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                   />
                 )}
                 {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
@@ -593,14 +601,19 @@ export default function HomeworkTypeRenderer({
                   </div>
                 )}
 
-                <textarea
-                  value={answers[qId] ?? ''}
-                  onChange={e => updateAnswer(qId, e.target.value)}
-                  disabled={disabled}
-                  placeholder="Your answer…"
-                  rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none disabled:bg-gray-50"
-                />
+                {disabled ? (
+                  <div className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 whitespace-pre-wrap leading-relaxed min-h-[4rem]">
+                    {answers[qId] || <span className="text-gray-400 italic">No answer provided</span>}
+                  </div>
+                ) : (
+                  <textarea
+                    value={answers[qId] ?? ''}
+                    onChange={e => updateAnswer(qId, e.target.value)}
+                    placeholder="Your answer…"
+                    rows={4}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-y"
+                  />
+                )}
               </div>
             )
           })}
@@ -631,14 +644,19 @@ export default function HomeworkTypeRenderer({
             </div>
           )}
           {essayVocab && <VocabGlossary terms={essayVocab} />}
-          <textarea
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            disabled={disabled}
-            placeholder="Write your response here…"
-            rows={12}
-            className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 resize-none disabled:bg-gray-50 leading-relaxed"
-          />
+          {disabled ? (
+            <div className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 whitespace-pre-wrap leading-relaxed min-h-[8rem]">
+              {value || <span className="text-gray-400 italic">No answer provided</span>}
+            </div>
+          ) : (
+            <textarea
+              value={value}
+              onChange={e => onChange(e.target.value)}
+              placeholder="Write your response here…"
+              rows={12}
+              className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 resize-y leading-relaxed"
+            />
+          )}
           <div className="flex justify-between text-xs text-gray-400">
             <span>{value.trim().split(/\s+/).filter(Boolean).length} words</span>
             {wordCount && <span>Target: ~{wordCount} words</span>}
@@ -667,14 +685,19 @@ export default function HomeworkTypeRenderer({
             questions.map((q, i) => (
               <div key={q.id ?? i} className="space-y-1.5">
                 <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
-                <textarea
-                  value={answers[q.id ?? i] ?? ''}
-                  onChange={e => updateAnswer(String(q.id ?? i), e.target.value)}
-                  disabled={disabled}
-                  rows={4}
-                  placeholder="Your answer…"
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none disabled:bg-gray-50"
-                />
+                {disabled ? (
+                  <div className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 whitespace-pre-wrap leading-relaxed min-h-[4rem]">
+                    {answers[q.id ?? i] || <span className="text-gray-400 italic">No answer provided</span>}
+                  </div>
+                ) : (
+                  <textarea
+                    value={answers[q.id ?? i] ?? ''}
+                    onChange={e => updateAnswer(String(q.id ?? i), e.target.value)}
+                    rows={4}
+                    placeholder="Your answer…"
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-y"
+                  />
+                )}
               </div>
             ))
           ) : (

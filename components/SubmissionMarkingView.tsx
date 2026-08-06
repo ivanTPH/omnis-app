@@ -15,21 +15,12 @@ type MarkingData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/h
 
 function maxFromBands(bands: unknown): number {
   if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return 9
+  const keys = Object.keys(bands as Record<string, string>)
+  if (keys.length === 0) return 9
   return Math.max(
-    ...Object.keys(bands as Record<string, string>)
-      .flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))),
+    ...keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))),
     1,
   )
-}
-
-function suggestGrade(score: number, bands: unknown): string {
-  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return ''
-  for (const range of Object.keys(bands as Record<string, string>)) {
-    const parts = range.split(/[-–]/).map(Number)
-    const [lo, hi] = parts.length === 1 ? [parts[0], parts[0]] : [parts[0], parts[1]]
-    if (score >= lo && score <= hi) return range
-  }
-  return ''
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -57,8 +48,7 @@ export default function SubmissionMarkingView({
     const normScore = normalizeScoreForForm(data.finalScore, maxScore)
     if (normScore === '') return ''
     const n = Number(normScore)
-    return suggestGrade(n, hw.gradingBands) ||
-      String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
+    return String(percentToGcseGrade(Math.round((n / maxScore) * 100)))
   })
   const [feedback, setFeedback] = useState(data.feedback ?? (data as any).autoFeedback ?? '')
   const [showModelAnswer, setShowModelAnswer] = useState(false)
@@ -90,8 +80,7 @@ export default function SubmissionMarkingView({
     setScore(v)
     const n = Number(v)
     if (!isNaN(n) && v !== '') {
-      const suggested = suggestGrade(n, hw.gradingBands)
-      setGrade(suggested || String(percentToGcseGrade(Math.round((n / maxScore) * 100))))
+      setGrade(String(percentToGcseGrade(Math.round((n / maxScore) * 100))))
     }
   }
 
@@ -130,8 +119,7 @@ export default function SubmissionMarkingView({
     const isLegacyPct  = autoScore > maxScore && maxScore <= 20
     const gradeNum     = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
     const pctForGrade  = isLegacyPct ? autoScore : Math.round((autoScore / maxScore) * 100)
-    const gradeStr     = suggestGrade(gradeNum, hw.gradingBands) ||
-      String(percentToGcseGrade(pctForGrade))
+    const gradeStr     = String(percentToGcseGrade(pctForGrade))
     setError(null)
     startTransition(async () => {
       try {

@@ -19,21 +19,12 @@ type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homewo
 
 function maxFromBands(bands: unknown): number {
   if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return 9
+  const keys = Object.keys(bands as Record<string, string>)
+  if (keys.length === 0) return 9
   return Math.max(
-    ...Object.keys(bands as Record<string, string>)
-      .flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))),
+    ...keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))),
     1,
   )
-}
-
-function suggestGrade(score: number, bands: unknown): string {
-  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return ''
-  for (const range of Object.keys(bands as Record<string, string>)) {
-    const parts = range.split(/[-–]/).map(Number)
-    const [lo, hi] = parts.length === 1 ? [parts[0], parts[0]] : [parts[0], parts[1]]
-    if (score >= lo && score <= hi) return range
-  }
-  return String(score)
 }
 
 // ── status helpers ─────────────────────────────────────────────────────────────
@@ -346,8 +337,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
       }
       const feedbackValue = s.feedback ?? (s as any).autoFeedback ?? ''
       const autoGrade = normScore !== ''
-        ? (suggestGrade(Number(normScore), hw.gradingBands) ||
-           String(percentToGcseGrade(Math.round((Number(normScore) / maxScore) * 100))))
+        ? String(percentToGcseGrade(Math.round((Number(normScore) / maxScore) * 100)))
         : ''
       init[s.student.id] = {
         score:    normScore,
@@ -535,8 +525,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     const isLegacyPct  = autoScore > maxScore && maxScore <= 20
     const gradeNum     = isLegacyPct ? Math.round((autoScore / 100) * maxScore) : autoScore
     const pctForGrade = isLegacyPct ? autoScore : Math.round((autoScore / maxScore) * 100)
-    const gradeStr = suggestGrade(gradeNum, hw.gradingBands) ||
-      String(percentToGcseGrade(pctForGrade))
+    const gradeStr = String(percentToGcseGrade(pctForGrade))
     setError(null)
     startTransition(async () => {
       try {
@@ -1006,8 +995,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
         {/* Left: back + title */}
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/homework" className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
-            <Icon name="chevron_left" size="md" />
+          <Link href="/homework" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors shrink-0 text-[12px] font-medium">
+            <Icon name="chevron_left" size="sm" />
+            Back
           </Link>
           <div className="min-w-0">
             <h1 className="font-semibold text-gray-900 truncate text-sm">{hw.title}</h1>

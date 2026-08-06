@@ -4,6 +4,8 @@ import AppShell from '@/components/AppShell'
 import YearGroupPlansView from '@/components/plans/YearGroupPlansView'
 import { getYearGroupPlans } from '@/app/actions/year-group-plans'
 
+export const dynamic = 'force-dynamic'
+
 export default async function YearGroupPlansPage() {
   const { role, firstName, lastName, schoolName } = await requireAuth()
   const allowed = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'TEACHING_ASSISTANT']

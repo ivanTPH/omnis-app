@@ -19,7 +19,7 @@ export default async function AdminSubjectsPage() {
         <div className="mb-6">
           <h1 className="text-[22px] font-bold text-gray-900">Subjects &amp; Exam Boards</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
-            Set the default exam board for each subject. These defaults apply to classes that have no exam board set, and are used in AI homework generation and marking.
+            Set the exam board and qualification level (GCSE / A-Level / BTEC) per subject. For GCSE, also choose the tier (Foundation / Higher). Defaults apply to classes with no board set and drive AI homework generation and marking.
           </p>
         </div>
         <SubjectConfigPanel configs={configs} canEdit={canEdit} role={role} />

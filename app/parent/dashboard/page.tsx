@@ -8,9 +8,14 @@ import { PlanStatus } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ParentDashboardPage() {
+export default async function ParentDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ child?: string }>
+}) {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'PARENT') redirect('/dashboard')
+  const { child: selectedChildParam } = await searchParams
 
   const links = await prisma.parentStudentLink.findMany({
     where: { parentId: userId },
@@ -96,6 +101,11 @@ export default async function ParentDashboardPage() {
     return { child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }
   }))
 
+  // Determine selected child (URL param → first child default)
+  const selectedChildId = selectedChildParam && children.find(c => c.id === selectedChildParam)
+    ? selectedChildParam
+    : children[0]?.id ?? null
+
   const [unreadMsgs, activityFeed] = await Promise.all([
     prisma.parentConversation.count({
       where: {
@@ -174,6 +184,37 @@ export default async function ParentDashboardPage() {
             </div>
           )}
 
+          {/* Child switcher — only shown when parent has 2+ children */}
+          {children.length > 1 && (
+            <div className="mb-6">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">My Children</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {children.map(child => {
+                  const isSelected = child.id === selectedChildId
+                  return (
+                    <Link
+                      key={child.id}
+                      href={`/parent/dashboard?child=${child.id}`}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                      }`}
+                    >
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
+                        isSelected ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {(child as any).firstName[0]}{(child as any).lastName[0]}
+                      </div>
+                      <span className="text-[13px] font-semibold">{(child as any).firstName} {(child as any).lastName}</span>
+                      {isSelected && <Icon name="check" size="sm" className="text-blue-200" />}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {children.length === 0 && (
             <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl text-gray-400">
               <Icon name="assignment" size="lg" className="mx-auto mb-3 opacity-30" />
@@ -182,7 +223,9 @@ export default async function ParentDashboardPage() {
             </div>
           )}
 
-          {childData.map(({ child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }: any) => (
+          {childData
+            .filter(({ child }: any) => !selectedChildId || child.id === selectedChildId)
+            .map(({ child, homework, pending, awaiting, graded, completion, plan, learningProfile, subjectAverages }: any) => (
             <div key={child.id} className="mb-10">
 
               {/* Child header */}
@@ -386,6 +429,15 @@ export default async function ParentDashboardPage() {
 
             </div>
           ))}
+
+          {/* Link another child */}
+          <div className="mt-4 border border-dashed border-gray-200 rounded-xl px-5 py-4 flex items-start gap-3 bg-gray-50/60">
+            <Icon name="person_add" size="sm" className="text-gray-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-gray-700">Have another child at {schoolName}?</p>
+              <p className="text-[12px] text-gray-400 mt-0.5">Contact the school office and ask them to link your account. Additional children will appear here automatically.</p>
+            </div>
+          </div>
 
         </div>
       </main>

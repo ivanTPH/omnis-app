@@ -27,6 +27,8 @@ on:
     - cron: '0 0 * * 1'    # demo-advance          — Mon 00:00 UTC
     - cron: '30 0 * * 1'   # demo-refresh          — Mon 00:30 UTC
     - cron: '30 9 * * *'   # trial-onboarding      — daily 09:30 UTC
+  push:
+    branches: [main]
   workflow_dispatch:
 
 env:

@@ -330,7 +330,14 @@ export default function HomeworkTypeRenderer({
             const questionText = isEhcp && q.ehcp_adaptation ? q.ehcp_adaptation : q.question
             return (
               <div key={qId} className="space-y-2">
-                <p className="text-sm font-medium text-gray-800">{i + 1}. {questionText}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium text-gray-800 flex-1">{i + 1}. {questionText}</p>
+                  {q.marks != null && (
+                    <span className="shrink-0 inline-flex items-center text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                      {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
                 {isEhcp && q.ehcp_adaptation && q.ehcp_adaptation !== q.question && (
                   <p className="text-[11px] text-purple-500 italic">Simplified for accessibility</p>
                 )}
@@ -379,7 +386,6 @@ export default function HomeworkTypeRenderer({
                     className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"
                   />
                 )}
-                {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
                 {showModelAnswer && q.modelAnswer && (
                   <CollapsibleModelAnswer text={q.modelAnswer} />
                 )}
@@ -595,13 +601,19 @@ export default function HomeworkTypeRenderer({
 
             return (
               <div key={qId} className="space-y-1.5">
-                {isEhcp && q.ehcp_adaptation && isShowingOriginal ? (
-                  <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
-                ) : (
-                  <p className="text-sm font-medium text-gray-800">{i + 1}. {questionText}</p>
-                )}
+                <div className="flex items-start justify-between gap-3">
+                  {isEhcp && q.ehcp_adaptation && isShowingOriginal ? (
+                    <p className="text-sm font-medium text-gray-800 flex-1">{i + 1}. {q.question}</p>
+                  ) : (
+                    <p className="text-sm font-medium text-gray-800 flex-1">{i + 1}. {questionText}</p>
+                  )}
+                  {q.marks != null && (
+                    <span className="shrink-0 inline-flex items-center text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full whitespace-nowrap">
+                      {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
 
-                {q.marks && <p className="text-xs text-gray-400">[{q.marks} mark{q.marks !== 1 ? 's' : ''}]</p>}
                 {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
 
                 {isEhcp && (

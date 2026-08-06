@@ -90,26 +90,39 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
     <div className="max-w-3xl mx-auto px-4 sm:px-8 py-4 sm:py-8 space-y-6">
 
       {/* Status banner */}
-      {isReturned && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <Icon name="check_circle" size="lg" className="text-green-600 shrink-0" />
-          <div className="flex-1">
-            <p className="text-[13px] font-semibold text-green-800">Marked &amp; Returned</p>
-            <p className="text-[12px] text-green-600">
-              {sub!.markedAt
-                ? `Marked ${new Date(sub!.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
-                : 'Your work has been marked'}
-            </p>
+      {isReturned && (() => {
+        // Compute total available marks from questions
+        const sc = hw.structuredContent as { questions?: Array<{ marks?: number }> } | undefined
+        const totalMarks = sc?.questions?.reduce((sum, q) => sum + (q.marks ?? 0), 0) ?? 0
+        const rawScore = sub!.finalScore
+        const showRawScore = rawScore != null && totalMarks > 0 && rawScore <= totalMarks
+        return (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+            <Icon name="check_circle" size="lg" className="text-green-600 shrink-0" />
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold text-green-800">Marked &amp; Returned</p>
+              <p className="text-[12px] text-green-600">
+                {sub!.markedAt
+                  ? `Marked ${new Date(sub!.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+                  : 'Your work has been marked'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              {showRawScore && (
+                <div className="text-center">
+                  <p className="text-[18px] font-bold text-green-800">{rawScore}<span className="text-[13px] font-medium text-green-600">/{totalMarks}</span></p>
+                  <p className="text-[10px] text-green-600 uppercase tracking-wide font-semibold">marks</p>
+                </div>
+              )}
+              {sub!.grade && (
+                <span className="text-[22px] font-bold text-green-700 bg-green-100 px-4 py-1 rounded-xl">
+                  {gradeLabel(Number(sub!.grade))}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {sub!.grade && (
-              <span className="text-[22px] font-bold text-green-700 bg-green-100 px-4 py-1 rounded-xl">
-                {gradeLabel(Number(sub!.grade))}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Grade context strip — shown when returned and grade data is available */}
       {isReturned && (sub!.grade || hw.classAvgScore != null || hw.predictedGrade != null) && (

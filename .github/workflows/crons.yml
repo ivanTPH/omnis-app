@@ -1,32 +1,38 @@
 name: Cron Jobs
 
-# Replaces Vercel cron runner. Each job matches the schedule from the former vercel.json.
-# All jobs call the corresponding /api/cron/* endpoint on omnis.education with CRON_SECRET.
+# Replaces Vercel cron runner. Schedules match the former vercel.json entries.
+# All endpoints are called on omnis.education with CRON_SECRET.
+#
+# Structure: 2 jobs only.
+#   noop-on-push  -- runs on push, does nothing (prevents "no jobs" failure emails)
+#   run-cron      -- runs on schedule or workflow_dispatch; each step is gated to its
+#                    matching schedule so only the relevant endpoint fires per run.
+#                    On workflow_dispatch all steps run (useful for manual testing).
 
 on:
   schedule:
-    - cron: '0 2 * * 0'    # oak-sync          — Sun 02:00 UTC
-    - cron: '0 5 * * 0'    # platform-insights  — Sun 05:00 UTC
-    - cron: '0 6 * * 1-5'  # early-warning      — Mon–Fri 06:00 UTC
-    - cron: '30 2 * * *'   # agent-coach        — daily 02:30 UTC
-    - cron: '0 3 * * *'    # agent-quality      — daily 03:00 UTC
-    - cron: '30 3 * * *'   # agent-plan-synthesis — daily 03:30 UTC
-    - cron: '0 4 * * *'    # agent-engage       — daily 04:00 UTC
-    - cron: '0 1 1 9 *'    # year-rollover      — 1 Sep 01:00 UTC
-    - cron: '0 7 * * 1-5'  # review-due         — Mon–Fri 07:00 UTC
-    - cron: '30 7 * * 1'   # teacher-digest     — Mon 07:30 UTC
-    - cron: '0 7 * * 1'    # parent-hw-digest   — Mon 07:00 UTC
-    - cron: '0 8 1 * *'    # send-monthly       — 1st of month 08:00 UTC
-    - cron: '0 7 * * 3'    # overdue-alert      — Wed 07:00 UTC
-    - cron: '30 8 1 * *'   # engagement-digest  — 1st of month 08:30 UTC
-    - cron: '0 7 * * 5'    # slt-briefing       — Fri 07:00 UTC
-    - cron: '0 8 * * 1'    # parent-activation  — Mon 08:00 UTC
-    - cron: '30 8 * * 1'   # apdr-review        — Mon 08:30 UTC
-    - cron: '0 9 * * 3'    # concern-stale      — Wed 09:00 UTC
-    - cron: '30 7 * * 4'   # weekly-parent-summary — Thu 07:30 UTC
-    - cron: '0 0 * * 1'    # demo-advance          — Mon 00:00 UTC
-    - cron: '30 0 * * 1'   # demo-refresh          — Mon 00:30 UTC
-    - cron: '30 9 * * *'   # trial-onboarding      — daily 09:30 UTC
+    - cron: '0 2 * * 0'    # oak-sync              - Sun 02:00 UTC
+    - cron: '0 5 * * 0'    # platform-insights     - Sun 05:00 UTC
+    - cron: '0 6 * * 1-5'  # early-warning         - Mon-Fri 06:00 UTC
+    - cron: '30 2 * * *'   # agent-coach           - daily 02:30 UTC
+    - cron: '0 3 * * *'    # agent-quality         - daily 03:00 UTC
+    - cron: '30 3 * * *'   # agent-plan-synthesis  - daily 03:30 UTC
+    - cron: '0 4 * * *'    # agent-engage          - daily 04:00 UTC
+    - cron: '0 1 1 9 *'    # year-rollover         - 1 Sep 01:00 UTC
+    - cron: '0 7 * * 1-5'  # review-due            - Mon-Fri 07:00 UTC
+    - cron: '30 7 * * 1'   # teacher-digest        - Mon 07:30 UTC
+    - cron: '0 7 * * 1'    # parent-hw-digest      - Mon 07:00 UTC
+    - cron: '0 8 1 * *'    # send-monthly          - 1st of month 08:00 UTC
+    - cron: '0 7 * * 3'    # overdue-alert         - Wed 07:00 UTC
+    - cron: '30 8 1 * *'   # engagement-digest     - 1st of month 08:30 UTC
+    - cron: '0 7 * * 5'    # slt-briefing          - Fri 07:00 UTC
+    - cron: '0 8 * * 1'    # parent-activation     - Mon 08:00 UTC
+    - cron: '30 8 * * 1'   # apdr-review           - Mon 08:30 UTC
+    - cron: '0 9 * * 3'    # concern-stale         - Wed 09:00 UTC
+    - cron: '30 7 * * 4'   # weekly-parent-summary - Thu 07:30 UTC
+    - cron: '0 0 * * 1'    # demo-advance          - Mon 00:00 UTC
+    - cron: '30 0 * * 1'   # demo-refresh          - Mon 00:30 UTC
+    - cron: '30 9 * * *'   # trial-onboarding      - daily 09:30 UTC
   push:
     branches: [main]
   workflow_dispatch:
@@ -35,142 +41,100 @@ env:
   BASE: https://omnis.education
 
 jobs:
-  # GitHub evaluates all workflow files on push, even schedule-only workflows.
-  # Without this, every push produces a "No jobs were run" failure email.
   noop-on-push:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Cron jobs run on schedule only — skipping on push."
+      - run: echo "Cron jobs run on schedule only -- nothing to do on push."
 
-  oak-sync:
-    if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
+  run-cron:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - run: curl -sf "$BASE/api/cron/oak-sync" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: oak-sync
+        if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/oak-sync" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  platform-insights:
-    if: github.event.schedule == '0 5 * * 0' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/platform-insights" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: platform-insights
+        if: github.event.schedule == '0 5 * * 0' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/platform-insights" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  early-warning:
-    if: github.event.schedule == '0 6 * * 1-5' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/early-warning" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: early-warning
+        if: github.event.schedule == '0 6 * * 1-5' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/early-warning" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  agent-coach:
-    if: github.event.schedule == '30 2 * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/agent-coach" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: agent-coach
+        if: github.event.schedule == '30 2 * * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/agent-coach" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  agent-quality:
-    if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/agent-quality" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: agent-quality
+        if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/agent-quality" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  agent-plan-synthesis:
-    if: github.event.schedule == '30 3 * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: agent-plan-synthesis
+        if: github.event.schedule == '30 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  agent-engage:
-    if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: agent-engage
+        if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  year-rollover:
-    if: github.event.schedule == '0 1 1 9 *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/year-rollover" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: year-rollover
+        if: github.event.schedule == '0 1 1 9 *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/year-rollover" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  review-due:
-    if: github.event.schedule == '0 7 * * 1-5' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/review-due" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: review-due
+        if: github.event.schedule == '0 7 * * 1-5' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/review-due" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  teacher-digest:
-    if: github.event.schedule == '30 7 * * 1' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/teacher-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: teacher-digest
+        if: github.event.schedule == '30 7 * * 1' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/teacher-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  parent-hw-digest:
-    if: github.event.schedule == '0 7 * * 1' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/parent-hw-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: parent-hw-digest
+        if: github.event.schedule == '0 7 * * 1' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/parent-hw-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  send-monthly:
-    if: github.event.schedule == '0 8 1 * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/send-monthly" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: send-monthly
+        if: github.event.schedule == '0 8 1 * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/send-monthly" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  overdue-alert:
-    if: github.event.schedule == '0 7 * * 3' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/overdue-alert" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: overdue-alert
+        if: github.event.schedule == '0 7 * * 3' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/overdue-alert" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  engagement-digest:
-    if: github.event.schedule == '30 8 1 * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/engagement-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: engagement-digest
+        if: github.event.schedule == '30 8 1 * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/engagement-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  slt-briefing:
-    if: github.event.schedule == '0 7 * * 5' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/slt-briefing" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: slt-briefing
+        if: github.event.schedule == '0 7 * * 5' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/slt-briefing" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  parent-activation:
-    if: github.event.schedule == '0 8 * * 1' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/parent-activation" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: parent-activation
+        if: github.event.schedule == '0 8 * * 1' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/parent-activation" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  apdr-review:
-    if: github.event.schedule == '30 8 * * 1' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/apdr-review" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: apdr-review
+        if: github.event.schedule == '30 8 * * 1' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/apdr-review" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  concern-stale:
-    if: github.event.schedule == '0 9 * * 3' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/concern-stale" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: concern-stale
+        if: github.event.schedule == '0 9 * * 3' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/concern-stale" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  weekly-parent-summary:
-    if: github.event.schedule == '30 7 * * 4' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/weekly-parent-summary" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: weekly-parent-summary
+        if: github.event.schedule == '30 7 * * 4' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/weekly-parent-summary" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  demo-advance:
-    if: github.event.schedule == '0 0 * * 1' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf --max-time 310 "$BASE/api/cron/demo-advance" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: demo-advance
+        if: github.event.schedule == '0 0 * * 1' || github.event_name == 'workflow_dispatch'
+        run: curl -sf --max-time 310 "$BASE/api/cron/demo-advance" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  demo-refresh:
-    if: github.event.schedule == '30 0 * * 1' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/demo-refresh" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: demo-refresh
+        if: github.event.schedule == '30 0 * * 1' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/demo-refresh" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
 
-  trial-onboarding:
-    if: github.event.schedule == '30 9 * * *' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - run: curl -sf "$BASE/api/cron/trial-onboarding" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+      - name: trial-onboarding
+        if: github.event.schedule == '30 9 * * *' || github.event_name == 'workflow_dispatch'
+        run: curl -sf "$BASE/api/cron/trial-onboarding" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

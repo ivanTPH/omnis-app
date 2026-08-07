@@ -26,28 +26,35 @@ jobs:
 
       - name: oak-sync
         if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
-        run: curl -sf --max-time 310 "$BASE/api/cron/oak-sync" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf --max-time 310 "$BASE/api/cron/oak-sync" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: platform-insights
         if: github.event.schedule == '0 5 * * 0' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/platform-insights" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/platform-insights" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: early-warning
         if: github.event.schedule == '0 6 * * 1-5' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/early-warning" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/early-warning" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: agent-coach
         if: github.event.schedule == '30 2 * * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/agent-coach" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/agent-coach" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: agent-quality
         if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/agent-quality" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/agent-quality" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: agent-plan-synthesis
         if: github.event.schedule == '30 3 * * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: agent-engage
         if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer $CRON_SECRET"

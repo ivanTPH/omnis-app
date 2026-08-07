@@ -24,20 +24,25 @@ jobs:
 
       - name: send-monthly
         if: github.event.schedule == '0 8 1 * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/send-monthly" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/send-monthly" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: engagement-digest
         if: github.event.schedule == '30 8 1 * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/engagement-digest" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/engagement-digest" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: demo-advance
         if: github.event.schedule == '0 0 * * 1' || github.event_name == 'workflow_dispatch'
-        run: curl -sf --max-time 310 "$BASE/api/cron/demo-advance" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf --max-time 310 "$BASE/api/cron/demo-advance" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: demo-refresh
         if: github.event.schedule == '30 0 * * 1' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/demo-refresh" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/demo-refresh" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: trial-onboarding
         if: github.event.schedule == '30 9 * * *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/trial-onboarding" -H "Authorization: Bearer $CRON_SECRET"
+        run: |
+          curl -sf "$BASE/api/cron/trial-onboarding" -H "Authorization: Bearer $CRON_SECRET"

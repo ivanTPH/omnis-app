@@ -1,14 +1,11 @@
 name: Cron Jobs - Agents
 
 on:
+  schedule:
+    - cron: '30 2 * * *'
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '30 2 * * *'
-
-env:
-  BASE: https://omnis.education
 
 jobs:
   cron:
@@ -16,7 +13,7 @@ jobs:
     steps:
       - name: skip-on-push
         if: github.event_name == 'push'
-        run: echo "Push event -- nothing to do."
+        run: echo "ok"
       - name: agent-coach
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/agent-coach" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: echo "would run agent-coach"

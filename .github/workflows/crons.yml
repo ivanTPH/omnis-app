@@ -1,13 +1,9 @@
 name: Cron Jobs
 
-# Replaces Vercel cron runner. Schedules match the former vercel.json entries.
-# All endpoints are called on omnis.education with CRON_SECRET.
-#
-# Structure: 2 jobs only.
-#   noop-on-push  -- runs on push, does nothing (prevents "no jobs" failure emails)
-#   run-cron      -- runs on schedule or workflow_dispatch; each step is gated to its
-#                    matching schedule so only the relevant endpoint fires per run.
-#                    On workflow_dispatch all steps run (useful for manual testing).
+# Replaces Vercel cron runner. One job, no job-level if conditions.
+# Steps are individually gated so only the relevant endpoint fires.
+# On push: only the echo step runs. On schedule: only the matching step.
+# On workflow_dispatch: all cron steps run (manual testing).
 
 on:
   schedule:
@@ -41,16 +37,13 @@ env:
   BASE: https://omnis.education
 
 jobs:
-  noop-on-push:
-    if: github.event_name == 'push'
+  cron:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Cron jobs run on schedule only -- nothing to do on push."
+      - name: skip-on-push
+        if: github.event_name == 'push'
+        run: echo "Push event -- cron jobs run on schedule only."
 
-  run-cron:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
       - name: oak-sync
         if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
         run: curl -sf "$BASE/api/cron/oak-sync" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"

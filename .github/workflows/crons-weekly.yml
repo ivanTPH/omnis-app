@@ -16,12 +16,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  BASE: https://omnis.education
-
 jobs:
   cron:
     runs-on: ubuntu-latest
+    env:
+      BASE: https://omnis.education
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: skip-on-push
         if: github.event_name == 'push'
@@ -29,40 +29,40 @@ jobs:
 
       - name: year-rollover
         if: github.event.schedule == '0 1 1 9 *' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/year-rollover" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/year-rollover" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: review-due
         if: github.event.schedule == '0 7 * * 1-5' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/review-due" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/review-due" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: teacher-digest
         if: github.event.schedule == '30 7 * * 1' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/teacher-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/teacher-digest" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: parent-hw-digest
         if: github.event.schedule == '0 7 * * 1' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/parent-hw-digest" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/parent-hw-digest" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: overdue-alert
         if: github.event.schedule == '0 7 * * 3' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/overdue-alert" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/overdue-alert" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: slt-briefing
         if: github.event.schedule == '0 7 * * 5' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/slt-briefing" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/slt-briefing" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: parent-activation
         if: github.event.schedule == '0 8 * * 1' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/parent-activation" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/parent-activation" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: apdr-review
         if: github.event.schedule == '30 8 * * 1' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/apdr-review" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/apdr-review" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: concern-stale
         if: github.event.schedule == '0 9 * * 3' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/concern-stale" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/concern-stale" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: weekly-parent-summary
         if: github.event.schedule == '30 7 * * 4' || github.event_name == 'workflow_dispatch'
-        run: curl -sf "$BASE/api/cron/weekly-parent-summary" -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+        run: curl -sf "$BASE/api/cron/weekly-parent-summary" -H "Authorization: Bearer $CRON_SECRET"

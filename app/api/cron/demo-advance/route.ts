@@ -388,55 +388,68 @@ export async function GET(req: NextRequest) {
   friday.setDate(monday.getDate() + 4)
   friday.setHours(23, 59, 0, 0)
 
-  // ── Phase B.1: Create lesson records for this week ───────────────────────────
+  // Next Monday (for pre-creating next week's lessons so the calendar isn't empty)
+  const nextMonday = new Date(monday)
+  nextMonday.setDate(monday.getDate() + 7)
+
+  // ── Phase B.1: Create lesson records for this week AND next week ─────────────
   // Each class gets one lesson per timetable slot. The first NEWLY CREATED slot
-  // is used as the primary lesson linked to the homework. We intentionally do NOT
-  // link to pre-existing seed lessons (demo-future-*) because those may already
-  // have other homework attached and would be collapsed by the student list dedup.
+  // in the CURRENT week is used as the primary lesson linked to the homework.
+  // We intentionally do NOT link to pre-existing seed lessons (demo-future-*)
+  // because those may already have other homework attached and would be collapsed
+  // by the student list dedup.
   const primaryLessonByClass = new Map<string, string>()  // classId → newly created lessonId
 
-  for (const hw of weeklyTopics) {
-    const slots = CLASS_TIMETABLE[hw.classId] ?? []
-    let firstNewLessonId: string | null = null
+  for (const weekMonday of [monday, nextMonday]) {
+    const isCurrentWeek = weekMonday === monday
+    const nextWeekTopicIdx = ((weekIndex) % cycleLen)
+    const weekTopics = isCurrentWeek
+      ? weeklyTopics
+      : [AIC_POOL[nextWeekTopicIdx]!, MACBETH_POOL[nextWeekTopicIdx]!, PAPER_POOL[nextWeekTopicIdx]!]
 
-    for (const slot of slots) {
-      const scheduledAt = slotDate(monday, slot.day, slot.hour)
-      const endsAt      = new Date(scheduledAt.getTime() + slot.durationMins * 60_000)
+    for (const hw of weekTopics) {
+      const slots = CLASS_TIMETABLE[hw.classId] ?? []
+      let firstNewLessonId: string | null = null
 
-      // Idempotency: skip if a lesson already exists for this class at this exact time
-      const existingLesson = await prisma.lesson.findFirst({
-        where: { schoolId, classId: hw.classId, scheduledAt },
-        select: { id: true },
-      })
-      if (existingLesson) continue
+      for (const slot of slots) {
+        const scheduledAt = slotDate(weekMonday, slot.day, slot.hour)
+        const endsAt      = new Date(scheduledAt.getTime() + slot.durationMins * 60_000)
 
-      try {
-        const lesson = await prisma.lesson.create({
-          data: {
-            schoolId,
-            classId:    hw.classId,
-            title:      hw.title,
-            topic:      hw.topic.slice(0, 120),
-            examBoard:  hw.examBoard,
-            objectives: [
-              `Understand and analyse: ${hw.topic.split(':')[0].trim()}`,
-              'Apply knowledge using textual evidence and subject terminology',
-              'Practise exam-style writing under structured conditions',
-            ],
-            scheduledAt,
-            endsAt,
-            published:  true,
-            createdBy:  teacherId,
-          },
+        // Idempotency: skip if a lesson already exists for this class at this exact time
+        const existingLesson = await prisma.lesson.findFirst({
+          where: { schoolId, classId: hw.classId, scheduledAt },
+          select: { id: true },
         })
-        if (!firstNewLessonId) firstNewLessonId = lesson.id
-        lessonsCreated++
-      } catch (err) {
-        console.error(`[demo-advance] lesson ${hw.classId} slot d${slot.day}h${slot.hour} failed:`, err)
-      }
-    }
+        if (existingLesson) continue
 
-    if (firstNewLessonId) primaryLessonByClass.set(hw.classId, firstNewLessonId)
+        try {
+          const lesson = await prisma.lesson.create({
+            data: {
+              schoolId,
+              classId:    hw.classId,
+              title:      hw.title,
+              topic:      hw.topic.slice(0, 120),
+              examBoard:  hw.examBoard,
+              objectives: [
+                `Understand and analyse: ${hw.topic.split(':')[0].trim()}`,
+                'Apply knowledge using textual evidence and subject terminology',
+                'Practise exam-style writing under structured conditions',
+              ],
+              scheduledAt,
+              endsAt,
+              published:  true,
+              createdBy:  teacherId,
+            },
+          })
+          if (isCurrentWeek && !firstNewLessonId) firstNewLessonId = lesson.id
+          lessonsCreated++
+        } catch (err) {
+          console.error(`[demo-advance] lesson ${hw.classId} slot d${slot.day}h${slot.hour} failed:`, err)
+        }
+      }
+
+      if (isCurrentWeek && firstNewLessonId) primaryLessonByClass.set(hw.classId, firstNewLessonId)
+    }
   }
 
   // ── Phase B.2: Generate MCQ homework and link to primary lesson ───────────────

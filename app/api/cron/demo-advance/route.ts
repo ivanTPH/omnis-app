@@ -115,64 +115,87 @@ type HwTopic = {
   examBoard:  string
 }
 
+// Topic pools ordered to reflect natural curriculum progression:
+//   AIC:     context → form → core themes → character → extended themes → evaluation
+//   Macbeth: context → ambition arc → deception → masculinity → guilt → language
+//   Paper:   P1 Q1/Q2 → P1 Q3 → P1 Q4 → P2 Q4 → P2 Q3 → P2 Q5
+
 const AIC_POOL: HwTopic[] = [
-  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
-    title: 'AIC — The Inspector as a Socialist Voice',
-    topic: "How Priestley uses the Inspector as a mouthpiece for socialist ideology: his all-knowing authority, interrogation style, and final speech as a political message about collective responsibility" },
-  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
-    title: 'AIC — Guilt, Confession and Moral Responsibility',
-    topic: "How each character's response to guilt reveals their moral character: Sheila's genuine remorse, Arthur's defensiveness, and Eric's eventual acceptance of responsibility" },
-  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
-    title: 'AIC — Staging, Structure and Dramatic Tension',
-    topic: "Priestley's use of dramatic structure: the unities of time, place and action; the confined setting; the Inspector's exits and entrances as structural devices to build tension" },
-  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
-    title: "AIC — Sheila's Character Arc and Moral Growth",
-    topic: "Sheila Birling's transformation from a naive, privileged young woman into the play's moral compass — her growing consciousness of social responsibility across the three acts" },
-  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
-    title: 'AIC — The Ending: Ambiguity and Unresolved Guilt',
-    topic: "The significance of the ending: the Birlings' return to denial, the mysterious phone call, and how Priestley uses the open ending to challenge the audience to examine their own conscience" },
+  // Week 1 — Historical context before reading the play
   { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
     title: 'AIC — Edwardian Society: Class, Gender and Power',
     topic: "The historical context of 1912 Edwardian England: rigid class hierarchy, gender inequality, and how Priestley uses these social structures to critique complacency in the face of injustice" },
+  // Week 2 — Form and structure: how the play works
+  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
+    title: 'AIC — Staging, Structure and Dramatic Tension',
+    topic: "Priestley's use of dramatic structure: the unities of time, place and action; the confined setting; the Inspector's exits and entrances as structural devices to build tension" },
+  // Week 3 — Core theme of responsibility
+  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
+    title: 'AIC — Guilt, Confession and Moral Responsibility',
+    topic: "How each character's response to guilt reveals their moral character: Sheila's genuine remorse, Arthur's defensiveness, and Eric's eventual acceptance of responsibility" },
+  // Week 4 — The Inspector as political voice
+  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
+    title: 'AIC — The Inspector as a Socialist Voice',
+    topic: "How Priestley uses the Inspector as a mouthpiece for socialist ideology: his all-knowing authority, interrogation style, and final speech as a political message about collective responsibility" },
+  // Week 5 — Character study: Sheila's arc
+  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
+    title: "AIC — Sheila's Character Arc and Moral Growth",
+    topic: "Sheila Birling's transformation from a naive, privileged young woman into the play's moral compass — her growing consciousness of social responsibility across the three acts" },
+  // Week 6 — Evaluation: the ending and Priestley's purpose
+  { classId: 'demo-class-9E-En1', subject: 'English Literature', yearGroup: 9, examBoard: 'AQA',
+    title: 'AIC — The Ending: Ambiguity and Unresolved Guilt',
+    topic: "The significance of the ending: the Birlings' return to denial, the mysterious phone call, and how Priestley uses the open ending to challenge the audience to examine their own conscience" },
 ]
 
 const MACBETH_POOL: HwTopic[] = [
-  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
-    title: 'Macbeth — Corruption and the Abuse of Power',
-    topic: "How Shakespeare traces Macbeth's moral deterioration from heroic warrior to tyrannical king: key scenes showing his increasing willingness to murder, betray, and silence opposition" },
-  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
-    title: 'Macbeth — Appearance vs Reality: Deception and Disguise',
-    topic: "The theme of appearance vs reality throughout Macbeth: the witches' equivocation, Lady Macbeth's mask, and how characters who seem loyal or innocent are exposed as dangerous or deceived" },
-  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
-    title: 'Macbeth — Violence, Masculinity and Honour',
-    topic: "How Shakespeare interrogates ideas of masculinity through violence: Lady Macbeth's challenge to Macbeth's manhood, the culture of honour killing in Jacobean Scotland, and what constitutes true bravery" },
-  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
-    title: 'Macbeth — Guilt, Conscience and Psychological Decline',
-    topic: "Macbeth and Lady Macbeth's contrasting psychological responses to guilt: Macbeth's hallucinations and paranoia, Lady Macbeth's sleepwalking and mental collapse, and Shakespeare's portrayal of conscience as punishment" },
+  // Week 1 — Context: Jacobean kingship and divine right
   { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
     title: 'Macbeth — Kingship, Tyranny and the Divine Right',
     topic: "What constitutes legitimate versus illegitimate rule in Macbeth: the contrast between Duncan's benevolent kingship, Macbeth's tyranny, and Malcolm's qualities as future king — reflected through Jacobean political beliefs" },
+  // Week 2 — Ambition and the corruption arc (Acts 1–2)
+  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
+    title: 'Macbeth — Corruption and the Abuse of Power',
+    topic: "How Shakespeare traces Macbeth's moral deterioration from heroic warrior to tyrannical king: key scenes showing his increasing willingness to murder, betray, and silence opposition" },
+  // Week 3 — Appearance vs reality (runs throughout)
+  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
+    title: 'Macbeth — Appearance vs Reality: Deception and Disguise',
+    topic: "The theme of appearance vs reality throughout Macbeth: the witches' equivocation, Lady Macbeth's mask, and how characters who seem loyal or innocent are exposed as dangerous or deceived" },
+  // Week 4 — Masculinity and violence (Act 3 focus)
+  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
+    title: 'Macbeth — Violence, Masculinity and Honour',
+    topic: "How Shakespeare interrogates ideas of masculinity through violence: Lady Macbeth's challenge to Macbeth's manhood, the culture of honour killing in Jacobean Scotland, and what constitutes true bravery" },
+  // Week 5 — Guilt and psychological decline (Acts 3–5)
+  { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
+    title: 'Macbeth — Guilt, Conscience and Psychological Decline',
+    topic: "Macbeth and Lady Macbeth's contrasting psychological responses to guilt: Macbeth's hallucinations and paranoia, Lady Macbeth's sleepwalking and mental collapse, and Shakespeare's portrayal of conscience as punishment" },
+  // Week 6 — Language analysis: blood imagery (synthesis/revision)
   { classId: 'demo-class-10E-En2', subject: 'English Literature', yearGroup: 10, examBoard: 'AQA',
     title: 'Macbeth — Blood, Imagery and Language of Violence',
     topic: "Shakespeare's sustained use of blood imagery from the opening battle to the final confrontation: how repeated metaphors of blood, darkness and unnatural events create a world where violence corrupts everything it touches" },
 ]
 
 const PAPER_POOL: HwTopic[] = [
+  // Week 1 — Paper 1 Q1/Q2: reading for information and language
   { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
     title: 'Paper 1 — Opening Descriptions: Setting and Atmosphere',
     topic: "AQA Paper 1 Q1/Q2: how writers use opening descriptions to establish setting and atmosphere — techniques including pathetic fallacy, sensory imagery, and the careful selection of specific detail to create mood" },
-  { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
-    title: 'Paper 2 — Non-Fiction Comparison: Strategy and Structure',
-    topic: "AQA Paper 2 Q4: comparing two non-fiction writers' perspectives — identifying differences in viewpoint, selecting evidence from both texts, and structuring a comparative response using connective language" },
-  { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
-    title: 'Paper 1 — Narrative Voice, Perspective and Unreliability',
-    topic: "How writers construct narrative voice in fiction: first-person vs third-person narration, free indirect discourse, unreliable narrators, and how perspective shapes the reader's sympathies in AQA Paper 1 extracts" },
-  { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
-    title: "Paper 2 — Writers' Attitudes: Bias, Rhetoric and Tone",
-    topic: "How non-fiction writers reveal attitude and bias: use of rhetorical questions, direct address, hyperbole, and emotive language to persuade — with reference to AQA Paper 2 Q3 comparing two source texts" },
+  // Week 2 — Paper 1 Q3: structural analysis
   { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
     title: 'Paper 1 — Structural Choices: Form, Sequence and Pacing',
     topic: "AQA Paper 1 Q3: how writers use structural devices — non-linear timelines, circular structure, shifts in focus, cliffhangers — to control pace, build tension, and guide the reader through a fiction text" },
+  // Week 3 — Paper 1 Q4: evaluation and narrative voice
+  { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
+    title: 'Paper 1 — Narrative Voice, Perspective and Unreliability',
+    topic: "How writers construct narrative voice in fiction: first-person vs third-person narration, free indirect discourse, unreliable narrators, and how perspective shapes the reader's sympathies in AQA Paper 1 extracts" },
+  // Week 4 — Paper 2 Q4: comparing non-fiction perspectives
+  { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
+    title: 'Paper 2 — Non-Fiction Comparison: Strategy and Structure',
+    topic: "AQA Paper 2 Q4: comparing two non-fiction writers' perspectives — identifying differences in viewpoint, selecting evidence from both texts, and structuring a comparative response using connective language" },
+  // Week 5 — Paper 2 Q3: language and attitude analysis
+  { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
+    title: "Paper 2 — Writers' Attitudes: Bias, Rhetoric and Tone",
+    topic: "How non-fiction writers reveal attitude and bias: use of rhetorical questions, direct address, hyperbole, and emotive language to persuade — with reference to AQA Paper 2 Q3 comparing two source texts" },
+  // Week 6 — Paper 2 Q5: persuasive writing techniques (synthesis)
   { classId: 'demo-class-11E-En1', subject: 'English Language', yearGroup: 11, examBoard: 'AQA',
     title: 'Paper 2 — Rhetoric and Persuasive Language in Non-Fiction',
     topic: "How persuasive writers use rhetoric across non-fiction forms: speech, article, letter — analysing the rule of three, anaphora, ethos/logos/pathos, and counter-argument strategies in AQA Paper 2 sources" },

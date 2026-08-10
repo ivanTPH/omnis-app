@@ -16,6 +16,7 @@ import { prisma }                   from '@/lib/prisma'
 import { HomeworkStatus, SubmissionStatus, AgentType } from '@prisma/client'
 import Anthropic                    from '@anthropic-ai/sdk'
 import { markDirty }                from '@/lib/agents/snapshot'
+import { checkILPEvidenceMatch }    from '@/app/actions/ilp-evidence'
 
 export const maxDuration = 300
 
@@ -477,7 +478,7 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Phase B.2: Generate MCQ homework and link to primary lesson ───────────────
-  const newHwMap = new Map<string, { hwId: string; questions: McqQuestion[] }>()
+  const newHwMap = new Map<string, { hwId: string; questions: McqQuestion[]; title: string; subject: string }>()
 
   for (const hw of weeklyTopics) {
     // Idempotency: skip if this exact title already exists for this class (any week)
@@ -492,7 +493,7 @@ export async function GET(req: NextRequest) {
     })
     if (existing) {
       const qs = (existing.structuredContent as any)?.questions as McqQuestion[] ?? []
-      newHwMap.set(hw.classId, { hwId: existing.id, questions: qs })
+      newHwMap.set(hw.classId, { hwId: existing.id, questions: qs, title: hw.title, subject: hw.subject })
       hwSkipped++
       continue
     }
@@ -523,7 +524,7 @@ export async function GET(req: NextRequest) {
           estimatedMins:       15,
         },
       })
-      newHwMap.set(hw.classId, { hwId: homework.id, questions })
+      newHwMap.set(hw.classId, { hwId: homework.id, questions, title: hw.title, subject: hw.subject })
       hwCreated++
     } catch (err) {
       console.error(`[demo-advance] homework ${hw.title} failed:`, err)
@@ -533,7 +534,28 @@ export async function GET(req: NextRequest) {
   // ── Phase C: Student submissions for new homework ─────────────────────────────
   const dirtyStudents = new Set<string>()  // collect students who got new submissions
 
-  for (const [classId, { hwId, questions }] of newHwMap.entries()) {
+  // Pre-fetch active ILP targets for SEND students so we can fire evidence-match checks
+  const sendIlpMap = new Map<string, Array<{ id: string; description: string }>>()
+  if (ai) {
+    const sendIlps = await prisma.individualLearningPlan.findMany({
+      where: {
+        schoolId,
+        status: 'active',
+        student: { sendStatus: { activeStatus: { not: 'NONE' } } },
+      },
+      select: {
+        studentId: true,
+        targets: { where: { status: 'active' }, select: { id: true, target: true } },
+      },
+    })
+    for (const ilp of sendIlps) {
+      if (ilp.targets.length > 0) {
+        sendIlpMap.set(ilp.studentId, ilp.targets.map(t => ({ id: t.id, description: t.target })))
+      }
+    }
+  }
+
+  for (const [classId, { hwId, questions, title: hwTitle, subject: hwSubject }] of newHwMap.entries()) {
     if (!questions.length) continue
 
     const enrolments = await prisma.enrolment.findMany({
@@ -584,7 +606,7 @@ export async function GET(req: NextRequest) {
         : `You scored ${numCorrect}/${questions.length}. This topic needs more revision. Use the scaffolding hints when you review your answers.`
 
       try {
-        await prisma.submission.create({
+        const sub = await prisma.submission.create({
           data: {
             schoolId,
             homeworkId:         hwId,
@@ -604,6 +626,23 @@ export async function GET(req: NextRequest) {
         })
         dirtyStudents.add(student.id)
         subsCreated++
+
+        // Fire-and-forget ILP evidence matching for SEND students with active ILPs
+        const ilpTargets = sendIlpMap.get(student.id)
+        if (ilpTargets && ai) {
+          const gcseGrade = (MCQ_GRADING_BANDS[String(numCorrect) as keyof typeof MCQ_GRADING_BANDS] ?? 'Grade 3').replace('Grade ', '')
+          void checkILPEvidenceMatch({
+            submissionId: sub.id,
+            studentId:    student.id,
+            ilpTargets,
+            homeworkTitle: hwTitle,
+            subject:       hwSubject,
+            grade:         gcseGrade,
+            schoolId,
+            teacherId,
+            homeworkId:    hwId,
+          }).catch(() => {})
+        }
       } catch (err) {
         console.error(`[demo-advance] submission ${student.id} failed:`, err)
       }

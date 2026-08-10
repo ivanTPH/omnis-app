@@ -13,8 +13,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                   from '@/lib/prisma'
-import { HomeworkStatus, SubmissionStatus } from '@prisma/client'
+import { HomeworkStatus, SubmissionStatus, AgentType } from '@prisma/client'
 import Anthropic                    from '@anthropic-ai/sdk'
+import { markDirty }                from '@/lib/agents/snapshot'
 
 export const maxDuration = 300
 
@@ -530,6 +531,8 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Phase C: Student submissions for new homework ─────────────────────────────
+  const dirtyStudents = new Set<string>()  // collect students who got new submissions
+
   for (const [classId, { hwId, questions }] of newHwMap.entries()) {
     if (!questions.length) continue
 
@@ -599,11 +602,21 @@ export async function GET(req: NextRequest) {
             markedAt,
           },
         })
+        dirtyStudents.add(student.id)
         subsCreated++
       } catch (err) {
         console.error(`[demo-advance] submission ${student.id} failed:`, err)
       }
     }
+  }
+
+  // Signal COACH + QUALITY + EVIDENCE agents that new marked submissions exist
+  if (dirtyStudents.size > 0) {
+    void Promise.allSettled(
+      [...dirtyStudents].map(studentId =>
+        markDirty(studentId, schoolId, [AgentType.COACH, AgentType.QUALITY, AgentType.EVIDENCE])
+      )
+    ).catch(() => {})
   }
 
   console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated}`)

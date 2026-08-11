@@ -664,17 +664,21 @@ export async function GET(req: NextRequest) {
   let concernsRaised      = 0
   let messagesAdded       = 0
   let behaviourLogged     = 0
-  let concernsProgressed  = 0
-  let notificationsCleared = 0
-  let taNotesAdded        = 0
-  let ilpEntriesLinked    = 0
+  let concernsProgressed      = 0
+  let notificationsCleared    = 0
+  let taNotesAdded            = 0
+  let ilpEntriesLinked        = 0
   let negativeBehaviourLogged = 0
-  let receiptsMarkedRead  = 0
+  let receiptsMarkedRead      = 0
+  let teacherRepliesAdded     = 0
+  let apdrUpdated             = 0
+  let revisionSessionsAdded   = 0
 
-  const [senco, demoParent, ta] = await Promise.all([
-    prisma.user.findFirst({ where: { email: 'r.morris@omnisdemo.school' },         select: { id: true } }),
-    prisma.user.findFirst({ where: { email: 'l.hughes@parents.omnisdemo.school' }, select: { id: true } }),
-    prisma.user.findFirst({ where: { email: 'j.taylor@omnisdemo.school' },         select: { id: true } }),
+  const [senco, demoParent, ta, demoStudent] = await Promise.all([
+    prisma.user.findFirst({ where: { email: 'r.morris@omnisdemo.school' },                   select: { id: true } }),
+    prisma.user.findFirst({ where: { email: 'l.hughes@parents.omnisdemo.school' },           select: { id: true } }),
+    prisma.user.findFirst({ where: { email: 'j.taylor@omnisdemo.school' },                   select: { id: true } }),
+    prisma.user.findFirst({ where: { email: 'a.hughes@students.omnisdemo.school' },          select: { id: true } }),
   ])
 
   const phaseDHwIds = [...newHwMap.values()].map(v => v.hwId)
@@ -1032,7 +1036,148 @@ export async function GET(req: NextRequest) {
     } catch (err) { console.error('[demo-advance] D.11 receipts:', err) }
   }
 
-  console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated} insightsReviewed=${insightsReviewed} submissionsReviewed=${submissionsReviewed} concernsRaised=${concernsRaised} messagesAdded=${messagesAdded} behaviourLogged=${behaviourLogged} concernsProgressed=${concernsProgressed} notificationsCleared=${notificationsCleared} taNotesAdded=${taNotesAdded} ilpEntriesLinked=${ilpEntriesLinked} negativeBehaviourLogged=${negativeBehaviourLogged} receiptsMarkedRead=${receiptsMarkedRead}`)
+  // ── D.12: Teacher reply to parent message (~1 day after parent sent) ─────────
+  const TEACHER_REPLIES = [
+    'Thanks for your message. Alex is showing real promise with the context material — the key is connecting context to specific quotations in each paragraph. I\'ll keep you updated on progress.',
+    'Many thanks for getting in touch. The dramatic unities can be tricky — I\'d recommend the GCSE revision guide for a clear breakdown. Happy to discuss further at the next parents\' evening.',
+    'Thank you for your message. Alex\'s engagement with the responsibility theme is very encouraging. Asking "why does the author include this?" when reading at home really develops analytical thinking.',
+    'Thanks for checking in. Alex is making good progress. A calm 20-minute revision slot each evening — even just re-reading class notes — makes a real difference at GCSE level.',
+    'Thank you — Alex\'s efforts are genuinely reflected in the work. I\'ll share detailed feedback directly on the homework so Alex can see exactly where the strengths lie.',
+    'Many thanks for your message. I\'ll share a model paragraph structure in the next lesson. One analytical paragraph a day as home practice would be excellent preparation for the exam.',
+  ]
+  if (demoParent) {
+    try {
+      const parentThreads = await prisma.msgThread.findMany({
+        where: { schoolId, participants: { some: { userId: demoParent.id } } },
+        select: { id: true, participants: { select: { userId: true } } },
+      })
+      const shared = parentThreads.find(t => t.participants.some(p => p.userId === teacherId))
+      if (shared) {
+        const lastParentMsg = await prisma.msgMessage.findFirst({
+          where: { threadId: shared.id, senderId: demoParent.id },
+          orderBy: { sentAt: 'desc' },
+          select: { sentAt: true },
+        })
+        if (lastParentMsg) {
+          const replied = await prisma.msgMessage.findFirst({
+            where: { threadId: shared.id, senderId: teacherId, sentAt: { gt: lastParentMsg.sentAt } },
+          })
+          if (!replied) {
+            const replyAt = new Date(lastParentMsg.sentAt.getTime() + 23 * 3600_000)
+            await prisma.msgMessage.create({
+              data: {
+                threadId: shared.id,
+                senderId: teacherId,
+                body:     TEACHER_REPLIES[topicIdx] ?? TEACHER_REPLIES[0]!,
+                sentAt:   replyAt,
+              },
+            })
+            teacherRepliesAdded++
+          }
+        }
+      }
+    } catch (err) { console.error('[demo-advance] D.12 teacher reply:', err) }
+  }
+
+  // ── D.13: Update active APDR Do section with aggregated evidence ──────────────
+  try {
+    const activeApdr = await prisma.assessPlanDoReview.findFirst({
+      where: { schoolId, status: 'ACTIVE' },
+      select: { id: true, studentId: true, createdAt: true },
+    })
+    if (activeApdr) {
+      const [evidenceEntries, taNotes] = await Promise.all([
+        prisma.ilpEvidenceEntry.findMany({
+          where: { schoolId, studentId: activeApdr.studentId, createdAt: { gte: activeApdr.createdAt } },
+          select: { homeworkTitle: true, evidenceType: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        }),
+        prisma.taNote.findMany({
+          where: { schoolId, studentId: activeApdr.studentId, createdAt: { gte: activeApdr.createdAt } },
+          select: { content: true, createdAt: true, isUrgent: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        }),
+      ])
+      if (evidenceEntries.length > 0 || taNotes.length > 0) {
+        const lines: string[] = ['Evidence gathered this cycle:']
+        if (evidenceEntries.length > 0) {
+          lines.push('\nHomework evidence:')
+          for (const e of evidenceEntries) {
+            const label = e.evidenceType === 'PROGRESS' ? '✓ Progress' : e.evidenceType === 'CONCERN' ? '⚠ Concern' : '– Neutral'
+            lines.push(`• ${label}: ${e.homeworkTitle} (${e.createdAt.toLocaleDateString('en-GB')})`)
+          }
+        }
+        if (taNotes.length > 0) {
+          lines.push('\nTA observations:')
+          for (const n of taNotes) {
+            const urgent = n.isUrgent ? ' [URGENT]' : ''
+            lines.push(`• ${n.createdAt.toLocaleDateString('en-GB')}${urgent}: ${n.content.slice(0, 120)}${n.content.length > 120 ? '…' : ''}`)
+          }
+        }
+        await prisma.assessPlanDoReview.update({
+          where: { id: activeApdr.id },
+          data:  { doContent: lines.join('\n') },
+        })
+        apdrUpdated++
+      }
+    }
+  } catch (err) { console.error('[demo-advance] D.13 APDR do section:', err) }
+
+  // ── D.14: Revision session for demo student (a.hughes) ───────────────────────
+  const REVISION_NOTES = [
+    'Revised Edwardian context — used flashcard method, felt confident on key dates and class hierarchy.',
+    'Worked through dramatic structure notes — the unities concept is now much clearer after drawing a timeline.',
+    'Revised responsibility theme — created a spider diagram linking characters to their moral responses.',
+    "Re-read the Inspector's final speech — annotated key phrases and practised explaining Priestley's purpose.",
+    "Studied Sheila's character arc — timed response plan completed in 10 minutes, good progress.",
+    'Reviewed the ending and its ambiguity — drafted an evaluative paragraph; feeling more confident on exam approach.',
+  ]
+  if (demoStudent) {
+    try {
+      let exam = await prisma.revisionExam.findFirst({
+        where: { studentId: demoStudent.id, subject: 'English Literature' },
+      })
+      if (!exam) {
+        exam = await prisma.revisionExam.create({
+          data: {
+            studentId:    demoStudent.id,
+            subject:      'English Literature',
+            examBoard:    'AQA',
+            paperName:    'Paper 2: Modern Texts and Poetry',
+            examDate:     new Date(Date.UTC(2027, 4, 20, 9, 0, 0)), // 20 May 2027
+            durationMins: 105,
+          },
+        })
+      }
+      const existingSession = await prisma.revisionSession.findFirst({
+        where: { studentId: demoStudent.id, scheduledAt: { gte: monday } },
+      })
+      if (!existingSession) {
+        // Wednesday 4pm of the current school week
+        const sessionAt = new Date(monday)
+        sessionAt.setDate(monday.getDate() + 2)
+        sessionAt.setHours(16, 0, 0, 0)
+        await prisma.revisionSession.create({
+          data: {
+            studentId:    demoStudent.id,
+            examId:       exam.id,
+            subject:      'English Literature',
+            topic:        (AIC_POOL[topicIdx]?.topic ?? 'An Inspector Calls').split(':')[0].trim(),
+            scheduledAt:  sessionAt,
+            durationMins: 45,
+            status:       'completed',
+            confidence:   topicIdx % 3 === 0 ? 3 : topicIdx % 3 === 1 ? 4 : 3,
+            notes:        REVISION_NOTES[topicIdx] ?? REVISION_NOTES[0]!,
+          },
+        })
+        revisionSessionsAdded++
+      }
+    } catch (err) { console.error('[demo-advance] D.14 revision session:', err) }
+  }
+
+  console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated} insightsReviewed=${insightsReviewed} submissionsReviewed=${submissionsReviewed} concernsRaised=${concernsRaised} messagesAdded=${messagesAdded} behaviourLogged=${behaviourLogged} concernsProgressed=${concernsProgressed} notificationsCleared=${notificationsCleared} taNotesAdded=${taNotesAdded} ilpEntriesLinked=${ilpEntriesLinked} negativeBehaviourLogged=${negativeBehaviourLogged} receiptsMarkedRead=${receiptsMarkedRead} teacherRepliesAdded=${teacherRepliesAdded} apdrUpdated=${apdrUpdated} revisionSessionsAdded=${revisionSessionsAdded}`)
 
   return NextResponse.json({
     ok: true,
@@ -1053,5 +1198,8 @@ export async function GET(req: NextRequest) {
     ilpEntriesLinked,
     negativeBehaviourLogged,
     receiptsMarkedRead,
+    teacherRepliesAdded,
+    apdrUpdated,
+    revisionSessionsAdded,
   })
 }

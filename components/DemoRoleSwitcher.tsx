@@ -101,7 +101,7 @@ export default function DemoRoleSwitcher() {
   const isOnKnownDemo = currentEmail ? allDemoEmails.includes(currentEmail) : false
 
   return (
-    <div ref={panelRef} className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-2">
+    <div ref={panelRef} className="fixed bottom-20 right-6 z-[60] flex flex-col items-end gap-2">
       {open && (
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-72 overflow-hidden">
           {/* Header */}

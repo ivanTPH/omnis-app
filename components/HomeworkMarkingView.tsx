@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
-import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, bulkApproveAiMarks, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries } from '@/app/actions/homework'
+import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, bulkApproveAiMarks, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, autoMarkSubmission } from '@/app/actions/homework'
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
@@ -290,6 +290,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   const [ilpClassifications, setIlpClassifications] = useState<IlpClassification[] | null>(null)
   const [ilpSaving,         setIlpSaving]         = useState(false)
   const [ilpSaved,          setIlpSaved]          = useState(false)
+  // On-demand AI feedback generation
+  const [generatingAi,      setGeneratingAi]      = useState(false)
+  const [aiGenError,        setAiGenError]        = useState<string | null>(null)
   // Grade-drop AI recommendation
   type GradeDrop = { studentId: string; studentName: string; previousGrade: number; newGrade: number; drop: number; suggestion: string }
   const [gradeDrop,         setGradeDrop]         = useState<GradeDrop | null>(null)
@@ -554,6 +557,20 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         toast('Failed to approve mark', 'error')
       }
     })
+  }
+
+  async function handleGenerateAiFeedback() {
+    if (!selectedSub) return
+    setGeneratingAi(true)
+    setAiGenError(null)
+    try {
+      await autoMarkSubmission(selectedSub.id)
+      router.refresh()
+    } catch (err) {
+      setAiGenError(err instanceof Error ? err.message : 'Failed to generate feedback')
+    } finally {
+      setGeneratingAi(false)
+    }
   }
 
   function handleRemind(studentId: string) {
@@ -1948,6 +1965,25 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       placeholder="Write constructive feedback for the student…"
                     />
                   </div>
+
+                  {/* Generate AI Feedback — shown when no autoScore and not MCQ */}
+                  {selectedAutoScore == null && !selectedAutoMarked && selectedSub?.status !== 'RETURNED' && hw.type !== 'MCQ_QUIZ' && (
+                    <div className="flex items-center gap-3 py-1">
+                      <button
+                        onClick={handleGenerateAiFeedback}
+                        disabled={generatingAi}
+                        className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                      >
+                        {generatingAi
+                          ? <Icon name="refresh" size="sm" className="animate-spin" />
+                          : <Icon name="auto_fix_high" size="sm" />
+                        }
+                        {generatingAi ? 'Generating…' : 'Generate AI Feedback'}
+                      </button>
+                      <span className="text-[11px] text-gray-400">AI will suggest a grade and feedback for this submission</span>
+                      {aiGenError && <span className="text-[11px] text-rose-600">{aiGenError}</span>}
+                    </div>
+                  )}
 
                   {/* error */}
                   {error && (

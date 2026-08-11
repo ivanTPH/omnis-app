@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                   from '@/lib/prisma'
-import { HomeworkStatus, SubmissionStatus, AgentType } from '@prisma/client'
+import { HomeworkStatus, SubmissionStatus, AgentType, AgentReviewOutcome } from '@prisma/client'
 import Anthropic                    from '@anthropic-ai/sdk'
 import { markDirty }                from '@/lib/agents/snapshot'
 import { checkILPEvidenceMatch }    from '@/app/actions/ilp-evidence'
@@ -658,7 +658,220 @@ export async function GET(req: NextRequest) {
     ).catch(() => {})
   }
 
-  console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated}`)
+  // ── Phase D: Demo realism — agent insights, teacher reviews, SEND concern, messages, behaviour ──
+  let insightsReviewed  = 0
+  let submissionsReviewed = 0
+  let concernsRaised    = 0
+  let messagesAdded     = 0
+  let behaviourLogged   = 0
+
+  const [senco, demoParent] = await Promise.all([
+    prisma.user.findFirst({ where: { email: 'r.morris@omnisdemo.school' },         select: { id: true } }),
+    prisma.user.findFirst({ where: { email: 'l.hughes@parents.omnisdemo.school' }, select: { id: true } }),
+  ])
+
+  const phaseDHwIds = [...newHwMap.values()].map(v => v.hwId)
+
+  // ── D.1: Auto-confirm 4 + dismiss 1 oldest unreviewed agent insights ──────────
+  if (senco) {
+    try {
+      const pending = await prisma.agentAuditEntry.findMany({
+        where: { schoolId, reviewedAt: null, createdAt: { lt: new Date(Date.now() - 6 * 3600_000) } },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+        take: 6,
+      })
+      for (const [i, entry] of pending.entries()) {
+        const isDismiss = i >= 4
+        await prisma.agentAuditEntry.update({
+          where: { id: entry.id },
+          data: {
+            reviewedById: senco.id,
+            reviewedAt:   new Date(),
+            reviewOutcome: isDismiss ? AgentReviewOutcome.DISMISSED : AgentReviewOutcome.CONFIRMED,
+            ...(isDismiss ? { reviewNote: 'Noted — monitoring. No immediate action required this cycle.' } : {}),
+          },
+        })
+        insightsReviewed++
+      }
+    } catch (err) { console.error('[demo-advance] D.1 agent insights:', err) }
+  }
+
+  // ── D.2: Teacher-review top 2 submissions + 1 SEND submission, add notes ──────
+  const TEACHER_NOTES: Record<string, string[]> = {
+    'demo-class-9E-En1': [
+      'Excellent historical awareness — your connection to Edwardian class structure shows real depth. Keep weaving context through every paragraph.',
+      'Strong structural commentary. Push for shorter, more precise embedded quotations — two well-chosen words can do more analytical work than a full line.',
+      'Thoughtful exploration of guilt. Now practise comparing the generations\' contrasting responses within a single paragraph for higher marks.',
+      'Outstanding grasp of the Inspector\'s political purpose. Ensure every AO3 point links back to Priestley\'s post-war message to the audience.',
+      'Very perceptive character analysis of Sheila. Apply this same level of insight to Arthur Birling in your next timed response.',
+      'Excellent engagement with the ambiguity of the ending — this kind of evaluative reading will score very highly under exam conditions.',
+    ],
+    'demo-class-10E-En2': [
+      'Clear, confident grasp of kingship. Work on integrating AO3 context — one sentence on Jacobean beliefs per paragraph will push this to Grade 7.',
+      'Solid analysis of the corruption arc. More precise language analysis would lift this — focus on individual word choices rather than full quotations.',
+      'Good exploration of deception — the "Fair is foul" analysis is perceptive. Develop this into a point about dramatic irony for the audience.',
+      'Strong commentary on masculinity. Consider how Shakespeare challenges these values, not just presents them — a more evaluative approach.',
+      'Excellent on guilt and psychological decline. Your comparison of Macbeth and Lady Macbeth shows real analytical depth — keep this up in timed work.',
+      'Outstanding blood imagery analysis — this reads like Grade 8 thinking. Channel this precision into your next full timed essay.',
+    ],
+    'demo-class-11E-En1': [
+      'Well-structured Paper 1 opening. For Q2 develop your points about the effect on the reader, not just the technique itself.',
+      'Good Q3 structural analysis. Sequence your points — start, middle, end of the extract — rather than moving back and forth through the text.',
+      'Perceptive on narrative voice. Use tentative evaluative language in Q4: "perhaps", "arguably", "it could be suggested" — signals higher-level thinking.',
+      'Strong comparative framework for Q4. Develop the contrast in tone between the two writers more explicitly — this is where marks are awarded.',
+      'Excellent rhetorical analysis for Q3. Always name the specific technique before analysing its effect, then link effect to the writer\'s purpose.',
+      'Outstanding precision on persuasive techniques — this shows real command of Paper 2. Apply this rigour under timed conditions this week.',
+    ],
+  }
+
+  if (phaseDHwIds.length > 0) {
+    try {
+      const hwIdToClassId = new Map([...newHwMap.entries()].map(([classId, v]) => [v.hwId, classId]))
+      const candidates = await prisma.submission.findMany({
+        where: { homeworkId: { in: phaseDHwIds }, schoolId, finalScore: { not: null } },
+        select: {
+          id: true, studentId: true, finalScore: true, homeworkId: true,
+          student: { select: { sendStatus: { select: { activeStatus: true } } } },
+        },
+        orderBy: { finalScore: 'desc' },
+      })
+      const top2 = candidates.slice(0, 2)
+      const sendSub = candidates.find(
+        s => !top2.some(t => t.id === s.id) && !!s.student.sendStatus?.activeStatus && s.student.sendStatus.activeStatus !== 'NONE'
+      )
+      const toReview = [...top2, ...(sendSub ? [sendSub] : [])]
+
+      for (const sub of toReview) {
+        const existing = await prisma.teacherPlanNote.findFirst({
+          where: { planType: 'homework_submission', planId: sub.id },
+        })
+        if (existing) continue
+        const classId = hwIdToClassId.get(sub.homeworkId) ?? ''
+        const note = (TEACHER_NOTES[classId] ?? [])[topicIdx] ?? 'Good effort this week — keep developing your analytical precision.'
+        await prisma.teacherPlanNote.create({
+          data: { planType: 'homework_submission', planId: sub.id, teacherId, schoolId, note },
+        })
+        await prisma.submission.update({ where: { id: sub.id }, data: { teacherReviewed: true } })
+        submissionsReviewed++
+      }
+    } catch (err) { console.error('[demo-advance] D.2 teacher reviews:', err) }
+  }
+
+  // ── D.3: Raise a SEND concern for the lowest-scoring SEND student this week ───
+  if (senco && phaseDHwIds.length > 0) {
+    try {
+      const sendSubs = await prisma.submission.findMany({
+        where: {
+          homeworkId: { in: phaseDHwIds }, schoolId, finalScore: { not: null },
+          student: { sendStatus: { activeStatus: { not: 'NONE' } } },
+        },
+        select: { studentId: true, finalScore: true, homeworkId: true },
+        orderBy: { finalScore: 'asc' },
+      })
+      const lowest = sendSubs[0]
+      if (lowest) {
+        const existing = await prisma.sendConcern.findFirst({
+          where: { schoolId, studentId: lowest.studentId, createdAt: { gte: monday } },
+        })
+        if (!existing) {
+          const hwEntry = [...newHwMap.values()].find(v => v.hwId === lowest.homeworkId)
+          const pct     = Math.round(((lowest.finalScore ?? 0) / 5) * 100)
+          await prisma.sendConcern.create({
+            data: {
+              schoolId,
+              studentId:    lowest.studentId,
+              raisedBy:     senco.id,
+              source:       'system',
+              category:     'literacy',
+              description:  `Early warning: student scored ${lowest.finalScore}/5 (${pct}%) on "${hwEntry?.title ?? "this week's homework"}". Performance is below expected level for their SEND profile. Review ILP targets and consider adjusting support strategies.`,
+              evidenceNotes: 'Auto-flagged by weekly performance monitoring.',
+              status:       'open',
+            },
+          })
+          concernsRaised++
+        }
+      }
+    } catch (err) { console.error('[demo-advance] D.3 SEND concern:', err) }
+  }
+
+  // ── D.4: Parent→teacher weekly check-in message ───────────────────────────────
+  if (demoParent) {
+    try {
+      const PARENT_MESSAGES = [
+        "Hi Mr Patel, just checking in on Alex's progress. The An Inspector Calls context work looks challenging but Alex is engaging with it at home — any revision tips would be welcome.",
+        "Hello, Alex wasn't sure about the dramatic 'unities' from this week's homework. Would a revision guide or model paragraph be possible? Thank you.",
+        "Hi Mr Patel, Alex found the responsibility theme work really interesting this week. Is there anything extra we can do at home to support GCSE preparation?",
+        "Hello, just a quick message — Alex mentioned the Inspector's role homework and seemed genuinely engaged. Please let us know if there are any concerns.",
+        "Hi, wondering if you could share any feedback on Alex's recent homework. We're keen to support at home as the GCSE year progresses.",
+        "Hello Mr Patel, wanted to say Alex is working hard on the essay planning this week. Any model answers or mark scheme guidance for home use would be brilliant.",
+      ]
+      const alreadySent = await prisma.msgMessage.findFirst({
+        where: { senderId: demoParent.id, sentAt: { gte: monday }, thread: { schoolId } },
+      })
+      if (!alreadySent) {
+        // Find or create a thread between parent and teacher
+        const parentThreads = await prisma.msgThread.findMany({
+          where: { schoolId, participants: { some: { userId: demoParent.id } } },
+          select: { id: true, participants: { select: { userId: true } } },
+        })
+        const shared = parentThreads.find(t => t.participants.some(p => p.userId === teacherId))
+        const threadId = shared?.id ?? (await prisma.msgThread.create({
+          data: {
+            schoolId,
+            subject:    'Year 9 English — Alex Hughes',
+            context:    'general',
+            createdBy:  demoParent.id,
+            participants: { create: [{ userId: demoParent.id }, { userId: teacherId }] },
+          },
+        })).id
+        await prisma.msgMessage.create({
+          data: { threadId, senderId: demoParent.id, body: PARENT_MESSAGES[topicIdx] ?? PARENT_MESSAGES[0] },
+        })
+        messagesAdded++
+      }
+    } catch (err) { console.error('[demo-advance] D.4 parent message:', err) }
+  }
+
+  // ── D.5: Positive behaviour record for the top scorer this week ──────────────
+  if (phaseDHwIds.length > 0) {
+    try {
+      const topSub = await prisma.submission.findFirst({
+        where: { homeworkId: { in: phaseDHwIds }, schoolId, finalScore: { not: null } },
+        orderBy: { finalScore: 'desc' },
+        select: { studentId: true },
+      })
+      if (topSub) {
+        const existing = await prisma.behaviourRecord.findFirst({
+          where: { schoolId, studentId: topSub.studentId, type: 'positive', recordDate: { gte: monday } },
+        })
+        if (!existing) {
+          const BEHAVIOUR_DESCRIPTIONS = [
+            'Excellent effort on this week\'s English homework — demonstrated thorough engagement with the historical context. A credit to the class.',
+            'Outstanding analytical thinking shown in this week\'s homework submission — highly impressive level of structural awareness.',
+            'Impressive depth of textual evidence in this week\'s homework — clearly working hard with the material outside of lessons.',
+            'Exceptional commitment to English this week — the response showed real sophistication of argument and evidence selection.',
+            'Brilliant character analysis in this week\'s homework — exactly the level of precision expected at GCSE.',
+            'Superb language analysis this week — the kind of precision that distinguishes Grade 7+ responses. Well done.',
+          ]
+          await prisma.behaviourRecord.create({
+            data: {
+              schoolId,
+              studentId:   topSub.studentId,
+              authorId:    teacherId,
+              type:        'positive',
+              category:    'academic',
+              description: BEHAVIOUR_DESCRIPTIONS[topicIdx] ?? BEHAVIOUR_DESCRIPTIONS[0],
+              points:      2,
+            },
+          })
+          behaviourLogged++
+        }
+      }
+    } catch (err) { console.error('[demo-advance] D.5 behaviour record:', err) }
+  }
+
+  console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated} insightsReviewed=${insightsReviewed} submissionsReviewed=${submissionsReviewed} concernsRaised=${concernsRaised} messagesAdded=${messagesAdded} behaviourLogged=${behaviourLogged}`)
 
   return NextResponse.json({
     ok: true,
@@ -668,5 +881,10 @@ export async function GET(req: NextRequest) {
     hwCreated,
     hwSkipped,
     subsCreated,
+    insightsReviewed,
+    submissionsReviewed,
+    concernsRaised,
+    messagesAdded,
+    behaviourLogged,
   })
 }

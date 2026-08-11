@@ -663,6 +663,33 @@
 > **Verified**: 4 real GCSE Macbeth questions (all SEND fields populated), single `done` event,
 > 37 SSE events, 1 passed (2.9m), exit 0. Deployed: omnis.education.
 
+> August 2026 Demo realism + agent dirty-flag fixes (2026-08-11):
+> (1) Agent dirty-flag audit: confirmed `markDirty()` / `saveSnapshot()` / `getDueSnapshots()` system
+> works correctly — agents skip unchanged students (dirtyAt=null AND nextReviewAt in future). Weekly
+> full-refresh via `nextReviewAt = inOneWeek()` is the main driver, not missed dirty flags.
+> (2) demo-advance Phase C fix: `prisma.submission.create` in Phase C bypassed `markDirty`. Fixed:
+> track `dirtyStudents` Set during Phase C loop, call `markDirty(COACH, QUALITY, EVIDENCE)` after
+> loop so nightly agents pick up new demo submissions automatically.
+> (3) demo-advance ILP evidence: pre-fetch SEND students' active `IlpTarget` records before Phase C
+> loop; fire `checkILPEvidenceMatch` fire-and-forget after each new submission for a SEND student
+> (single Haiku call, idempotent by linkHref). `IlpTarget.target` field maps to `description` param.
+> (4) demo-advance Phase D — 5 weekly demo realism sub-phases (commit 96b8fc9):
+>   D.1: Auto-confirms 4 oldest unreviewed agent insights + dismisses the 5th — clears backlog so
+>     `/senco/agent-insights` shows a managed feed, not an unreviewed pile. Uses `AgentReviewOutcome`
+>     enum (CONFIRMED/DISMISSED). Only processes entries older than 6 hours.
+>   D.2: Teacher-reviews top 2 submissions by score + 1 SEND submission each week. Creates
+>     `TeacherPlanNote` + sets `Submission.teacherReviewed = true`. Notes from topic-keyed pools
+>     (6 entries per class: 9E/10E/11E, indexed by weekIndex % 6).
+>   D.3: Raises a new `SendConcern` (source: 'system', category: 'literacy', status: 'open') for
+>     the lowest-scoring SEND student. Idempotent: skips if concern already raised this week.
+>   D.4: Adds a parent→teacher message to the `l.hughes@parents` ↔ `j.patel@omnisdemo.school`
+>     thread (finds existing thread or creates new). Message from 6-entry weekly pool.
+>   D.5: Adds a positive behaviour record (type: 'positive', category: 'academic', points: 2)
+>     for the top-scoring student of the week.
+>   Response JSON extended with: `insightsConfirmed`, `insightsDismissed`, `submissionsReviewed`,
+>     `concernsRaised`, `messagesAdded`, `behaviourRecordsAdded`.
+> **Commit:** 96b8fc9. **E2E: 458/458 passed on Coolify (2026-08-11). Exit 0.**
+
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
 ---

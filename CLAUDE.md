@@ -690,6 +690,28 @@
 >     `concernsRaised`, `messagesAdded`, `behaviourRecordsAdded`.
 > **Commit:** 96b8fc9. **E2E: 458/458 passed on Coolify (2026-08-11). Exit 0.**
 
+> August 2026 Demo realism phases D.6–D.11 (2026-08-11, commit a52f182):
+> All scoped to demo school `schoolId` — real schools are completely unaffected.
+>   D.6: SEND concern lifecycle — open concerns 7–14 days old → `under_review`; open/under_review
+>     14+ days old → `closed` with `reviewNotes` set. Prevents concern list growing indefinitely.
+>   D.7: Mark all school notifications older than 3 days as `read: true`. Keeps the notification
+>     bell count manageable across all demo roles.
+>   D.8: `j.taylor@omnisdemo.school` (TA) adds a weekly `TaNote` for every SEND-registered student
+>     in the demo school (6-entry topic-keyed pool, idempotent by week start date).
+>   D.9: Direct `IlpEvidenceEntry` creation per SEND student per new homework submission —
+>     guarantees the ILP evidence timeline grows each week regardless of Anthropic API availability.
+>     `evidenceType` = PROGRESS (score≥4) / CONCERN (score≤1) / NEUTRAL otherwise. Catches P2002
+>     silently (@@unique[submissionId, ilpTargetId]).
+>   D.10: Negative `BehaviourRecord` (type: 'negative', category: 'homework', points: -1) for the
+>     lowest-scoring non-SEND student this week. Makes the behaviour trend chart show both bars.
+>   D.11: Marks `CommunicationReceipt.readAt` for demo parent receipts older than 1 day so the
+>     parent inbox looks actively managed.
+>   New response JSON fields: `concernsProgressed`, `notificationsCleared`, `taNotesAdded`,
+>     `ilpEntriesLinked`, `negativeBehaviourLogged`, `receiptsMarkedRead`.
+> **Key schema notes:** `SendConcern` uses status `'closed'` (not `'resolved'`) — no `resolvedAt` field;
+> use `reviewedAt` + `reviewNotes` instead. `SendStatus` has no `schoolId` — scope via `student: { schoolId }`.
+> **E2E: 458/458 passed on Coolify (2026-08-11). Exit 0.**
+
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
 ---

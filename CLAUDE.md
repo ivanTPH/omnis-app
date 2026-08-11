@@ -712,6 +712,24 @@
 > use `reviewedAt` + `reviewNotes` instead. `SendStatus` has no `schoolId` — scope via `student: { schoolId }`.
 > **E2E: 458/458 passed on Coolify (2026-08-11). Exit 0.**
 
+> August 2026 Demo realism phases D.12–D.14 (2026-08-11, commit 0ab53ef):
+> All scoped to demo school only — handler exits 404 if Omnis Demo School not found; all writes use its schoolId.
+>   D.12: j.patel replies to the parent message from D.4 approximately 23 hours later. Looks up the
+>     shared `MsgThread` between `l.hughes@parents` and `j.patel`, finds the last parent `MsgMessage`,
+>     checks no teacher reply since then, then creates one with `sentAt = parentMsg.sentAt + 23h`.
+>     Pool of 6 topic-keyed teacher reply texts. `MsgMessage.sentAt` has `@default(now())` so can be
+>     overridden on create.
+>   D.13: Finds the first `ACTIVE` `AssessPlanDoReview` cycle in the demo school. Aggregates up to 10
+>     `IlpEvidenceEntry` + 5 `TaNote` records since the cycle's `createdAt`. Formats as a bullet-point
+>     evidence log and writes to `doContent` (field name is `doContent`, NOT `doSection`). Only updates
+>     if at least one evidence or TA note record exists.
+>   D.14: Looks up `a.hughes@students.omnisdemo.school`. Finds or creates a `RevisionExam` (English
+>     Literature, AQA, Paper 2, 20 May 2027, 105 min). Creates one `RevisionSession` per week
+>     (Wednesday 16:00, 45 min, status:'completed', confidence 3–4, notes from 6-entry pool) if none
+>     already exists for the current week. `RevisionSession.examId` FK links to the exam.
+>   New response JSON fields: `teacherRepliesAdded`, `apdrUpdated`, `revisionSessionsAdded`.
+> **E2E: 458/458 passed on Coolify (2026-08-11). Exit 0.**
+
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 
 ---

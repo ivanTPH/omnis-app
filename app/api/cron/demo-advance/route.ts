@@ -659,15 +659,22 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Phase D: Demo realism — agent insights, teacher reviews, SEND concern, messages, behaviour ──
-  let insightsReviewed  = 0
+  let insightsReviewed    = 0
   let submissionsReviewed = 0
-  let concernsRaised    = 0
-  let messagesAdded     = 0
-  let behaviourLogged   = 0
+  let concernsRaised      = 0
+  let messagesAdded       = 0
+  let behaviourLogged     = 0
+  let concernsProgressed  = 0
+  let notificationsCleared = 0
+  let taNotesAdded        = 0
+  let ilpEntriesLinked    = 0
+  let negativeBehaviourLogged = 0
+  let receiptsMarkedRead  = 0
 
-  const [senco, demoParent] = await Promise.all([
+  const [senco, demoParent, ta] = await Promise.all([
     prisma.user.findFirst({ where: { email: 'r.morris@omnisdemo.school' },         select: { id: true } }),
     prisma.user.findFirst({ where: { email: 'l.hughes@parents.omnisdemo.school' }, select: { id: true } }),
+    prisma.user.findFirst({ where: { email: 'j.taylor@omnisdemo.school' },         select: { id: true } }),
   ])
 
   const phaseDHwIds = [...newHwMap.values()].map(v => v.hwId)
@@ -871,7 +878,161 @@ export async function GET(req: NextRequest) {
     } catch (err) { console.error('[demo-advance] D.5 behaviour record:', err) }
   }
 
-  console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated} insightsReviewed=${insightsReviewed} submissionsReviewed=${submissionsReviewed} concernsRaised=${concernsRaised} messagesAdded=${messagesAdded} behaviourLogged=${behaviourLogged}`)
+  // ── D.6: Progress/close old SEND concerns ────────────────────────────────────
+  // 7–14 days old open → under_review; 14+ days old open/under_review → closed
+  try {
+    const oneWeekAgo  = new Date(Date.now() - 7  * 86_400_000)
+    const twoWeeksAgo = new Date(Date.now() - 14 * 86_400_000)
+    const [r1, r2] = await Promise.all([
+      prisma.sendConcern.updateMany({
+        where: { schoolId, status: 'open', createdAt: { gte: twoWeeksAgo, lt: oneWeekAgo } },
+        data: { status: 'under_review' },
+      }),
+      prisma.sendConcern.updateMany({
+        where: { schoolId, status: { in: ['open', 'under_review'] }, createdAt: { lt: twoWeeksAgo } },
+        data: { status: 'closed', reviewedAt: new Date(), reviewNotes: 'Concern reviewed and closed following monitoring period.' },
+      }),
+    ])
+    concernsProgressed = r1.count + r2.count
+  } catch (err) { console.error('[demo-advance] D.6 concern progress:', err) }
+
+  // ── D.7: Mark notifications older than 3 days as read ────────────────────────
+  try {
+    const threeDaysAgo = new Date(Date.now() - 3 * 86_400_000)
+    const result = await prisma.notification.updateMany({
+      where: { schoolId, read: false, createdAt: { lt: threeDaysAgo } },
+      data: { read: true },
+    })
+    notificationsCleared = result.count
+  } catch (err) { console.error('[demo-advance] D.7 notifications:', err) }
+
+  // ── D.8: TA notes for SEND students ──────────────────────────────────────────
+  const TA_NOTES = [
+    'Alex engaged well in this session — used scaffolding cards effectively for the context task. Will monitor independent working in the next lesson.',
+    'Checked in during group work — Alex needed prompting to begin but showed good understanding once started. Shared sentence frames for the analytical paragraph.',
+    'Alex made good progress on the responsibility question with TA support. Read-aloud strategy is helping — recommend continuing at home.',
+    'Quiet session but Alex responded well to one-to-one check-in. Breaking the essay task into steps was effective. Model answers reviewed together.',
+    "Alex's confidence in class discussion is improving. Reminded to use the point–evidence–explain structure — applied it independently in last 10 minutes.",
+    'Alex completed the language analysis task with minimal prompts. Highlighted two key quotations independently — a real step forward.',
+  ]
+  if (ta) {
+    try {
+      const sendStudents = await prisma.sendStatus.findMany({
+        where: { student: { schoolId }, activeStatus: { not: 'NONE' } },
+        select: { studentId: true },
+      })
+      for (const { studentId } of sendStudents) {
+        const exists = await prisma.taNote.findFirst({
+          where: { schoolId, studentId, authorId: ta.id, createdAt: { gte: monday } },
+        })
+        if (exists) continue
+        await prisma.taNote.create({
+          data: {
+            schoolId,
+            studentId,
+            authorId:  ta.id,
+            content:   TA_NOTES[topicIdx] ?? TA_NOTES[0]!,
+            isUrgent:  false,
+          },
+        })
+        taNotesAdded++
+      }
+    } catch (err) { console.error('[demo-advance] D.8 TA notes:', err) }
+  }
+
+  // ── D.9: Direct ILP evidence entries for SEND students ───────────────────────
+  // Guarantees the ILP evidence timeline grows regardless of Haiku API availability
+  try {
+    for (const [, { hwId, title: hwTitle, subject: hwSubject }] of newHwMap.entries()) {
+      for (const [studentId, targets] of sendIlpMap.entries()) {
+        const firstTarget = targets[0]
+        if (!firstTarget) continue
+        const sub = await prisma.submission.findFirst({
+          where: { homeworkId: hwId, studentId, schoolId },
+          select: { id: true, finalScore: true },
+        })
+        if (!sub) continue
+        const score       = sub.finalScore ?? 0
+        const evidenceType = score >= 4 ? 'PROGRESS' : score <= 1 ? 'CONCERN' : 'NEUTRAL'
+        try {
+          await prisma.ilpEvidenceEntry.create({
+            data: {
+              schoolId,
+              studentId,
+              ilpTargetId:   firstTarget.id,
+              submissionId:  sub.id,
+              homeworkTitle: hwTitle,
+              subject:       hwSubject,
+              score,
+              maxScore:      5,
+              evidenceType,
+              autoLinked:    true,
+              createdBy:     teacherId,
+            },
+          })
+          ilpEntriesLinked++
+        } catch { /* unique constraint — already linked */ }
+      }
+    }
+  } catch (err) { console.error('[demo-advance] D.9 ILP evidence:', err) }
+
+  // ── D.10: Negative behaviour record for lowest-scoring non-SEND student ───────
+  if (phaseDHwIds.length > 0) {
+    try {
+      const allSubs = await prisma.submission.findMany({
+        where: { homeworkId: { in: phaseDHwIds }, schoolId, finalScore: { not: null } },
+        select: {
+          studentId: true, finalScore: true,
+          student: { select: { sendStatus: { select: { activeStatus: true } } } },
+        },
+        orderBy: { finalScore: 'asc' },
+      })
+      const lowestNonSend = allSubs.find(
+        s => !s.student.sendStatus?.activeStatus || s.student.sendStatus.activeStatus === 'NONE'
+      )
+      if (lowestNonSend) {
+        const existingNeg = await prisma.behaviourRecord.findFirst({
+          where: { schoolId, studentId: lowestNonSend.studentId, type: 'negative', recordDate: { gte: monday } },
+        })
+        if (!existingNeg) {
+          const NEGATIVE_DESCRIPTIONS = [
+            'Homework submitted late this week — consistent effort with the context material is essential for exam success.',
+            'Homework completion was below standard this week. Please review the structural analysis notes and resubmit key points.',
+            'Incomplete homework submission this week. A full attempt at the responsibility question is needed before the next lesson.',
+            'Homework not completed to the required standard. Please revisit the Inspector analysis and ensure all questions are attempted.',
+            'Late submission this week — the character arc essay plan was due on Friday. Please ensure deadlines are met going forward.',
+            'Below-standard homework this week. The language analysis task needs a full attempt; use the SLAP technique for structure.',
+          ]
+          await prisma.behaviourRecord.create({
+            data: {
+              schoolId,
+              studentId:   lowestNonSend.studentId,
+              authorId:    teacherId,
+              type:        'negative',
+              category:    'homework',
+              description: NEGATIVE_DESCRIPTIONS[topicIdx] ?? NEGATIVE_DESCRIPTIONS[0]!,
+              points:      -1,
+            },
+          })
+          negativeBehaviourLogged++
+        }
+      }
+    } catch (err) { console.error('[demo-advance] D.10 negative behaviour:', err) }
+  }
+
+  // ── D.11: Mark old parent communication receipts as read ─────────────────────
+  if (demoParent) {
+    try {
+      const oneDayAgo = new Date(Date.now() - 86_400_000)
+      const result = await prisma.communicationReceipt.updateMany({
+        where: { parentId: demoParent.id, readAt: null, createdAt: { lt: oneDayAgo } },
+        data: { readAt: new Date() },
+      })
+      receiptsMarkedRead = result.count
+    } catch (err) { console.error('[demo-advance] D.11 receipts:', err) }
+  }
+
+  console.log(`[demo-advance] slidesHealed=${slidesHealed} slidesSkipped=${slidesSkipped} lessonsCreated=${lessonsCreated} hwCreated=${hwCreated} hwSkipped=${hwSkipped} subsCreated=${subsCreated} insightsReviewed=${insightsReviewed} submissionsReviewed=${submissionsReviewed} concernsRaised=${concernsRaised} messagesAdded=${messagesAdded} behaviourLogged=${behaviourLogged} concernsProgressed=${concernsProgressed} notificationsCleared=${notificationsCleared} taNotesAdded=${taNotesAdded} ilpEntriesLinked=${ilpEntriesLinked} negativeBehaviourLogged=${negativeBehaviourLogged} receiptsMarkedRead=${receiptsMarkedRead}`)
 
   return NextResponse.json({
     ok: true,
@@ -886,5 +1047,11 @@ export async function GET(req: NextRequest) {
     concernsRaised,
     messagesAdded,
     behaviourLogged,
+    concernsProgressed,
+    notificationsCleared,
+    taNotesAdded,
+    ilpEntriesLinked,
+    negativeBehaviourLogged,
+    receiptsMarkedRead,
   })
 }

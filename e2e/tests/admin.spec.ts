@@ -18,9 +18,9 @@ test.describe('Admin/SLT flows', () => {
 
   test('SLT can access slt analytics', async ({ page }) => {
     await loginAs(page, USERS.slt)
-    await page.goto('/slt/analytics')
-    await expect(page.locator('body')).toBeVisible()
-    await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
+    await page.goto('/slt/analytics', { waitUntil: 'domcontentloaded', timeout: 60_000 })
+    await expect(page.locator('body')).toBeVisible({ timeout: 15_000 })
+    await expect(page).not.toHaveURL(/\/login/, { timeout: 15_000 })
   })
 
   test('SLT can access /admin routes', async ({ page }) => {

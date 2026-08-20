@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-08-03. Authoritative reference for Claude sessions.
+> Last updated: 2026-08-12. Authoritative reference for Claude sessions.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.
@@ -729,6 +729,20 @@
 >     already exists for the current week. `RevisionSession.examId` FK links to the exam.
 >   New response JSON fields: `teacherRepliesAdded`, `apdrUpdated`, `revisionSessionsAdded`.
 > **E2E: 458/458 passed on Coolify (2026-08-11). Exit 0.**
+
+> August 2026 Marking + demo polish fixes (2026-08-12, commits 5e6e727, 942aed5):
+> (1) `HomeworkMarkingView` — new "Generate AI Feedback" button (purple, `auto_fix_high` icon) shown
+> when the selected submission has no `autoScore`/`autoFeedback`, is not `RETURNED`, and homework
+> type is not `MCQ_QUIZ`. Calls `autoMarkSubmission(selectedSub.id)` then `router.refresh()` so the
+> AI grade suggestion panel appears immediately without a full page reload. Fixes seed submissions
+> (e.g. Ethan Clarke) that were created directly by the demo-advance cron's Phase C and were never
+> auto-marked, leaving teachers with no AI suggestion to approve.
+> (2) `DemoRoleSwitcher` floating button repositioned `bottom-6` → `bottom-20` so it no longer
+> overlaps the "Mark & Return" action button in the homework marking panel footer.
+> (3) E2E: `admin.spec.ts` SLT analytics test — replaced bare `page.goto()` (60s default timeout,
+> fails on cold Coolify containers) with `waitUntil: 'domcontentloaded'` + explicit 15s body
+> visibility wait + 15s URL assertion, matching the polling pattern used elsewhere in the suite.
+> **Latest commits:** 942aed5 (e2e cold-start fix), 5e6e727 (Generate AI Feedback + DemoRoleSwitcher reposition). Deployed: omnis.education.
 
 > **MANDATORY:** Run `npx tsc --noEmit && npm run build` before every `git push`. Both must exit with code 0. Never push if either fails.
 

@@ -131,6 +131,11 @@ interface Props {
   defaultTab?: FolderTab
   wizardMode?: boolean
   inline?:     boolean
+  // Whether this instance is rendered as the full-page route (/lessons/[id])
+  // or as a drawer over the calendar — threaded down to "View full SEND
+  // plan/profile" links so the student page's back link can reopen the
+  // right context.
+  origin?:     'drawer' | 'page'
 }
 
 
@@ -163,7 +168,7 @@ const HW_TYPES: { value: HomeworkType; label: string }[] = [
   { value: 'UPLOAD',           label: 'Upload (photo/scan)' },
 ]
 
-export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode, inline = false }: Props) {
+export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode, inline = false, origin = 'page' }: Props) {
   const router = useRouter()
   const [activeTab, setActiveTab]   = useState<Tab>('Overview')
   const [lesson,    setLesson]      = useState<LessonData | null>(null)
@@ -1985,7 +1990,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                     {/* Student roster with SEND badges + expandable ILP/EHCP */}
                     <div className="px-7 py-5">
-                      <ClassRosterTab classId={lesson.class.id} lessonId={lessonId ?? undefined} />
+                      <ClassRosterTab classId={lesson.class.id} lessonId={lessonId ?? undefined} origin={origin} />
                     </div>
 
                     {/* Analytics / insights panel */}
@@ -2182,7 +2187,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                               {/* Actions row */}
                               <div className="flex items-center gap-3 flex-wrap">
-                                <Link href={`/students/${studentId}?tab=Plans${lessonId ? `&lessonId=${lessonId}&returnTab=${encodeURIComponent('SEND & Inclusion')}` : ''}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                <Link href={`/students/${studentId}?tab=Plans${lessonId ? `&lessonId=${lessonId}&returnTab=${encodeURIComponent('SEND & Inclusion')}&origin=${origin}` : ''}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
                                   View full SEND profile <Icon name="chevron_right" size="sm" />
                                 </Link>
                                 <RaiseConcernButton studentId={studentId} studentName={name} />

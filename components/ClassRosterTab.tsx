@@ -57,6 +57,7 @@ const EXPANDED_TABS: { key: ExpandedTabKey; label: string }[] = [
 export default function ClassRosterTab({
   classId,
   lessonId,
+  origin = 'page',
   externalSearch,
   externalSendFilter,
   showCheckboxes,
@@ -66,6 +67,10 @@ export default function ClassRosterTab({
   // When rendered inside a lesson's Class tab, passing the lesson id lets
   // "View full SEND plan" send the teacher back to this exact lesson.
   lessonId?: string
+  // Whether this lesson is being viewed as a full page (/lessons/[id]) or as
+  // a drawer over the calendar — lets the "back" link on the student page
+  // reopen the right context instead of always landing on the full page.
+  origin?: 'drawer' | 'page'
   externalSearch?: string
   externalSendFilter?: string
   showCheckboxes?: boolean
@@ -801,7 +806,7 @@ export default function ClassRosterTab({
                             </section>
                           )}
                           {isSend && (
-                            <Link href={`/students/${row.id}?tab=Plans${lessonId ? `&lessonId=${lessonId}&returnTab=${encodeURIComponent('Class')}` : ''}`}
+                            <Link href={`/students/${row.id}?tab=Plans${lessonId ? `&lessonId=${lessonId}&returnTab=${encodeURIComponent('Class')}&origin=${origin}` : ''}`}
                               className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
                               View full SEND plan <Icon name="chevron_right" size="sm" />
                             </Link>

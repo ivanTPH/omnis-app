@@ -9,20 +9,25 @@ export default async function StudentFilePage({
   searchParams,
 }: {
   params: Promise<{ studentId: string }>
-  searchParams: Promise<{ lessonId?: string; returnTab?: string }>
+  searchParams: Promise<{ lessonId?: string; returnTab?: string; origin?: string }>
 }) {
   const { role, firstName, lastName, schoolName } = await requireAuth(['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN'])
 
   const { studentId } = await params
-  const { lessonId, returnTab } = await searchParams
+  const { lessonId, returnTab, origin } = await searchParams
   const data = await getStudentFile(studentId)
   if (!data) redirect('/dashboard')
 
   // When we arrived here from a lesson's Class / SEND & Inclusion tab, send
   // the teacher straight back to that lesson — and that same tab — rather
-  // than to the dashboard.
+  // than to the dashboard. If the lesson was open as a calendar drawer
+  // (origin=drawer) rather than the full /lessons/[id] page, route back to
+  // the calendar so it can reopen its own drawer in the same spot, instead
+  // of always landing on the full-page view.
   const backHref = lessonId
-    ? `/lessons/${lessonId}${returnTab ? `?tab=${encodeURIComponent(returnTab)}` : ''}`
+    ? origin === 'drawer'
+      ? `/calendar?openLesson=${lessonId}${returnTab ? `&tab=${encodeURIComponent(returnTab)}` : ''}`
+      : `/lessons/${lessonId}${returnTab ? `?tab=${encodeURIComponent(returnTab)}` : ''}`
     : undefined
 
   return (

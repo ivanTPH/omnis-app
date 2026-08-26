@@ -17,6 +17,7 @@ export default function LessonPageView({ lessonId, defaultTab }: { lessonId: str
         defaultTab={resolvedTab}
         onClose={() => router.push('/dashboard')}
         inline
+        origin="page"
       />
     </div>
   )

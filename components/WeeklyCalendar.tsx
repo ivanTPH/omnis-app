@@ -2,9 +2,9 @@
 import { useState, useEffect, useTransition, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import LessonSlideOver, { type SlideOverClass } from './LessonSlideOver'
-import LessonFolder from './LessonFolder'
+import LessonFolder, { type FolderTab } from './LessonFolder'
 import { rescheduleLesson, getWeekLessons } from '@/app/actions/lessons'
 
 // ── Time grid config ──────────────────────────────────────────────────────────
@@ -92,6 +92,7 @@ export default function WeeklyCalendar({
 }: Props) {
   const today        = new Date()
   const router       = useRouter()
+  const searchParams = useSearchParams()
   const [, startReschedule] = useTransition()
 
   // Current-week start (stable reference)
@@ -101,6 +102,23 @@ export default function WeeklyCalendar({
   // Client-fetched lessons for non-current weeks; null = use server prop
   const [fetchedLessons,  setFetchedLessons]  = useState<CalendarLesson[] | null>(null)
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
+  const [selectedTab, setSelectedTab] = useState<FolderTab | undefined>(undefined)
+
+  // Reopen the drawer when arriving via a "back to lesson" link from
+  // elsewhere (e.g. a student's SEND profile) with ?openLesson=<id>&tab=<tab>
+  // in the URL — restores the same view the teacher started from instead of
+  // always landing on the full-page /lessons/[id] route.
+  useEffect(() => {
+    const openLesson = searchParams.get('openLesson')
+    if (!openLesson) return
+    const tab = searchParams.get('tab')
+    setSelectedLessonId(openLesson)
+    setSelectedTab((tab as FolderTab) ?? undefined)
+    // Strip the params so a refresh or the browser back button doesn't
+    // reopen the drawer again, without triggering a Next.js navigation.
+    window.history.replaceState(null, '', window.location.pathname)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync server prop → state when on current week (after router.refresh())
   useEffect(() => {
@@ -517,13 +535,15 @@ export default function WeeklyCalendar({
         <div className="fixed inset-y-0 right-0 z-50 flex">
           <div
             className="fixed inset-0 bg-black/30"
-            onClick={() => setSelectedLessonId(null)}
+            onClick={() => { setSelectedLessonId(null); setSelectedTab(undefined) }}
           />
           <div className="relative ml-auto w-full max-w-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
             <LessonFolder
               lessonId={selectedLessonId}
-              onClose={() => setSelectedLessonId(null)}
+              defaultTab={selectedTab}
+              onClose={() => { setSelectedLessonId(null); setSelectedTab(undefined) }}
               inline
+              origin="drawer"
             />
           </div>
         </div>

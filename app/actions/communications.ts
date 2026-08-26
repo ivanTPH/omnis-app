@@ -59,7 +59,7 @@ export async function sendCommunication(data: {
     parentIds = [...new Set(links.map(l => l.parentId))]
   } else if (data.recipientScope.startsWith('CLASS_') && data.classId) {
     const enrolments = await prisma.enrolment.findMany({
-      where: { classId: data.classId },
+      where: { classId: data.classId, class: { schoolId: user.schoolId } },
       select: { userId: true },
     })
     const studentIds = enrolments.map(e => e.userId)

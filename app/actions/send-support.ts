@@ -1484,9 +1484,10 @@ export async function getIlpAuditLog(ilpId: string): Promise<IlpAuditEntryRow[]>
   // SENCO tier: all entries unrestricted.
   // Teacher tier: all approved/applied entries from anyone, PLUS only their own PENDING or REJECTED entries.
   const where = fullAccess
-    ? { ilpId }
+    ? { ilpId, ilp: { schoolId: user.schoolId } }
     : {
         ilpId,
+        ilp: { schoolId: user.schoolId },
         OR: [
           { changeType: { notIn: ['PENDING_EDIT', 'REJECTED'] } },
           { changeType: { in: ['PENDING_EDIT', 'REJECTED'] }, userId: user.id },
@@ -2722,7 +2723,7 @@ export async function getAPDRAuditLog(apdrId: string): Promise<ApdrAuditEntryRow
 
   const fullAccess = ['SENCO', 'SLT', 'SCHOOL_ADMIN'].includes(user.role)
   const entries = await prisma.apdrAuditEntry.findMany({
-    where: { apdrId, ...(fullAccess ? {} : { userId: user.id }) },
+    where: { apdrId, apdr: { schoolId: user.schoolId }, ...(fullAccess ? {} : { userId: user.id }) },
     orderBy: { createdAt: 'desc' },
   })
 

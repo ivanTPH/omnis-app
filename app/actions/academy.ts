@@ -7,7 +7,26 @@ import { prisma } from '@/lib/prisma'
 async function requireAcademy() {
   const u = await requireAuth()
   if (!['ACADEMY_ADMIN', 'PLATFORM_ADMIN'].includes(u.role)) redirect('/dashboard')
-  return u
+
+  // ACADEMY_ADMIN must be scoped to their own Multi-Academy Trust so one trust
+  // can never see another trust's (or a standalone school's) SEND/EHCP/
+  // safeguarding data. PLATFORM_ADMIN is the only genuinely cross-platform role.
+  let schoolGroupId: string | null = null
+  if (u.role === 'ACADEMY_ADMIN') {
+    const school = await prisma.school.findUnique({ where: { id: u.schoolId }, select: { schoolGroupId: true } })
+    schoolGroupId = school?.schoolGroupId ?? null
+  }
+  return { ...u, schoolGroupId }
+}
+
+/** Prisma `School` where-clause scoping an academy user to their own trust
+ * (or, if they aren't in a trust, to just their own school) — never to the
+ * whole platform unless they're PLATFORM_ADMIN. */
+function academyScopeWhere(u: { role: string; schoolId: string; schoolGroupId: string | null }) {
+  if (u.role === 'PLATFORM_ADMIN') return { isActive: true }
+  return u.schoolGroupId
+    ? { isActive: true, schoolGroupId: u.schoolGroupId }
+    : { isActive: true, id: u.schoolId }
 }
 
 export type AcademyStats = {
@@ -36,27 +55,30 @@ export type AcademySchoolRow = {
 }
 
 export async function getAcademyStats(): Promise<AcademyStats> {
-  await requireAcademy()
+  const u = await requireAcademy()
+  const scopeWhere = academyScopeWhere(u)
+  const scopedSchools = await prisma.school.findMany({ where: scopeWhere, select: { id: true } })
+  const schoolIds = scopedSchools.map(s => s.id)
 
   const [totalSchools, totalStudents, totalStaff, onboardedSchools, totalActiveIlps, totalEhcps, openConcerns] =
     await Promise.all([
-      prisma.school.count({ where: { isActive: true } }),
-      prisma.user.count({ where: { role: 'STUDENT', isActive: true } }),
-      prisma.user.count({ where: { role: { notIn: ['STUDENT', 'PARENT'] }, isActive: true } }),
-      prisma.school.count({ where: { isActive: true, onboardedAt: { not: null } } }),
-      prisma.individualLearningPlan.count({ where: { status: 'active' } }),
-      prisma.ehcpPlan.count({ where: { status: { in: ['active', 'under_review'] } } }),
-      prisma.sendConcern.count({ where: { status: { in: ['open', 'under_review', 'escalated'] } } }),
+      prisma.school.count({ where: scopeWhere }),
+      prisma.user.count({ where: { schoolId: { in: schoolIds }, role: 'STUDENT', isActive: true } }),
+      prisma.user.count({ where: { schoolId: { in: schoolIds }, role: { notIn: ['STUDENT', 'PARENT'] }, isActive: true } }),
+      prisma.school.count({ where: { ...scopeWhere, onboardedAt: { not: null } } }),
+      prisma.individualLearningPlan.count({ where: { schoolId: { in: schoolIds }, status: 'active' } }),
+      prisma.ehcpPlan.count({ where: { schoolId: { in: schoolIds }, status: { in: ['active', 'under_review'] } } }),
+      prisma.sendConcern.count({ where: { schoolId: { in: schoolIds }, status: { in: ['open', 'under_review', 'escalated'] } } }),
     ])
 
   return { totalSchools, totalStudents, totalStaff, onboardedSchools, totalActiveIlps, totalEhcps, openConcerns }
 }
 
 export async function getAcademySchools(): Promise<AcademySchoolRow[]> {
-  await requireAcademy()
+  const u = await requireAcademy()
 
   const schools = await prisma.school.findMany({
-    where: { isActive: true },
+    where: academyScopeWhere(u),
     include: {
       _count: {
         select: {

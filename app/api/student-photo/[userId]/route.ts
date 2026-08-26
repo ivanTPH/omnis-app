@@ -44,15 +44,17 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const session = await auth()
-  if (!session) {
+  const caller = session?.user as { schoolId?: string } | undefined
+  if (!caller?.schoolId) {
     return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
   }
 
   const { userId } = await params
 
-  // ── 1. Read User.avatarUrl + names directly ───────────────────────────────
-  const user = await prisma.user.findUnique({
-    where:  { id: userId },
+  // ── 1. Read User.avatarUrl + names directly — scoped to the caller's own
+  // school so one school can never fetch another school's student/staff photos ─
+  const user = await prisma.user.findFirst({
+    where:  { id: userId, schoolId: caller.schoolId },
     select: { avatarUrl: true, firstName: true, lastName: true },
   })
 

@@ -497,7 +497,13 @@ async function notifyCoverSupervisor(
 }
 
 export async function updateAssignmentStatus(assignmentId: string, status: string) {
-  await requireAdminOrSlt()
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId as string
+
+  // Security: scope update to admin's school to prevent cross-tenant writes
+  const assignment = await prisma.coverAssignment.findFirst({ where: { id: assignmentId, schoolId } })
+  if (!assignment) throw new Error('Assignment not found')
+
   const updated = await prisma.coverAssignment.update({
     where: { id: assignmentId },
     data: { status },

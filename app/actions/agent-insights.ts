@@ -25,10 +25,12 @@ export type AgentInsights = {
 }
 
 export async function getAgentInsights(studentId: string): Promise<AgentInsights> {
-  await requireAuth()
+  // Staff-only — this returns AI Coach/Quality/Plan-Synthesis knowledge (gap
+  // analysis, retention scores, risk flags), not something students/parents see.
+  const user = await requireAuth(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'TEACHING_ASSISTANT'])
 
   const snaps = await prisma.agentSnapshot.findMany({
-    where:  { studentId, agentType: { in: [AgentType.COACH, AgentType.QUALITY, AgentType.PLAN_SYNTHESIS] } },
+    where:  { studentId, schoolId: user.schoolId, agentType: { in: [AgentType.COACH, AgentType.QUALITY, AgentType.PLAN_SYNTHESIS] } },
     select: { agentType: true, knowledgeJson: true, lastRunAt: true },
   })
 

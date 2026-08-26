@@ -1234,10 +1234,10 @@ export type SubmissionForEvidence = {
 export async function getStudentSubmissionsForEvidence(
   studentId: string,
 ): Promise<SubmissionForEvidence[]> {
-  await requireSencoOrStaff()
+  const user = await requireSencoOrStaff()
 
   const subs = await prisma.submission.findMany({
-    where:   { studentId, status: { in: ['MARKED', 'RETURNED'] } },
+    where:   { studentId, schoolId: user.schoolId, status: { in: ['MARKED', 'RETURNED'] } },
     select: {
       id:          true,
       finalScore:  true,
@@ -1276,6 +1276,7 @@ export async function getEhcpAuditLog(ehcpId: string): Promise<EhcpAuditEntryRow
   const entries = await prisma.ehcpAuditEntry.findMany({
     where: {
       ehcpId,
+      ehcp: { schoolId: user.schoolId },
       ...(fullAccess ? {} : { userId: user.id }),
     },
     orderBy: { createdAt: 'desc' },
@@ -1315,10 +1316,10 @@ export type PendingEvidenceSuggestion = {
 export async function getPendingEvidenceSuggestions(
   studentId: string,
 ): Promise<PendingEvidenceSuggestion[]> {
-  await requireSencoOrStaff()
+  const user = await requireSencoOrStaff()
 
   const ehcp = await prisma.ehcpPlan.findFirst({
-    where:  { studentId },
+    where:  { studentId, schoolId: user.schoolId },
     select: { id: true },
   })
   if (!ehcp) return []
@@ -1365,10 +1366,10 @@ export async function getPendingEvidenceSuggestions(
 
 /** SENCO confirms an AI-suggested evidence link — moves reviewStatus to "confirmed" */
 export async function confirmEvidenceSuggestion(evidenceId: string): Promise<void> {
-  const { id: actorId, firstName, lastName, role } = await requireSencoOrStaff()
+  const { id: actorId, firstName, lastName, role, schoolId } = await requireSencoOrStaff()
 
-  const row = await prisma.homeworkEhcpEvidence.findUnique({
-    where:  { id: evidenceId },
+  const row = await prisma.homeworkEhcpEvidence.findFirst({
+    where:  { id: evidenceId, outcome: { ehcp: { schoolId } } },
     select: { outcomeId: true, reviewStatus: true, outcome: { select: { ehcpId: true } } },
   })
   if (!row || row.reviewStatus !== 'pending') return
@@ -1400,10 +1401,10 @@ export async function confirmEvidenceSuggestion(evidenceId: string): Promise<voi
 
 /** SENCO dismisses an AI-suggested evidence link — moves reviewStatus to "dismissed" */
 export async function dismissEvidenceSuggestion(evidenceId: string): Promise<void> {
-  await requireSencoOrStaff()
+  const { schoolId } = await requireSencoOrStaff()
 
-  const row = await prisma.homeworkEhcpEvidence.findUnique({
-    where:  { id: evidenceId },
+  const row = await prisma.homeworkEhcpEvidence.findFirst({
+    where:  { id: evidenceId, outcome: { ehcp: { schoolId } } },
     select: { reviewStatus: true },
   })
   if (!row || row.reviewStatus !== 'pending') return

@@ -2233,7 +2233,7 @@ function PastoralNotesTab({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function StudentFilePanel({ data, role, onClose }: { data: StudentFileData; role: string; onClose?: () => void }) {
+export default function StudentFilePanel({ data, role, onClose, backHref }: { data: StudentFileData; role: string; onClose?: () => void; backHref?: string }) {
   const [activeTab, setActiveTab] = useState<Tab>('Overview')
   // Deep-link support: /students/[id]?tab=APDR
   useEffect(() => {
@@ -2325,6 +2325,15 @@ export default function StudentFilePanel({ data, role, onClose }: { data: Studen
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
+      {backHref && (
+        <Link
+          href={backHref}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 w-fit mb-3"
+        >
+          <Icon name="arrow_back" size="sm" />
+          <span>Back to lesson</span>
+        </Link>
+      )}
       {/* Compact header — just name + avatar */}
       <div className="flex items-center gap-3 mb-5">
         <StudentAvatar

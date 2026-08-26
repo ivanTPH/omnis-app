@@ -1985,7 +1985,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                     {/* Student roster with SEND badges + expandable ILP/EHCP */}
                     <div className="px-7 py-5">
-                      <ClassRosterTab classId={lesson.class.id} />
+                      <ClassRosterTab classId={lesson.class.id} lessonId={lessonId ?? undefined} />
                     </div>
 
                     {/* Analytics / insights panel */}
@@ -2182,7 +2182,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                               {/* Actions row */}
                               <div className="flex items-center gap-3 flex-wrap">
-                                <Link href={`/student/${studentId}/send`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                <Link href={`/students/${studentId}?tab=Plans${lessonId ? `&lessonId=${lessonId}&returnTab=${encodeURIComponent('SEND & Inclusion')}` : ''}`} className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
                                   View full SEND profile <Icon name="chevron_right" size="sm" />
                                 </Link>
                                 <RaiseConcernButton studentId={studentId} studentName={name} />

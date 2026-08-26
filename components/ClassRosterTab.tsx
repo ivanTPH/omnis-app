@@ -56,12 +56,16 @@ const EXPANDED_TABS: { key: ExpandedTabKey; label: string }[] = [
 
 export default function ClassRosterTab({
   classId,
+  lessonId,
   externalSearch,
   externalSendFilter,
   showCheckboxes,
   onSelectionChange,
 }: {
   classId: string
+  // When rendered inside a lesson's Class tab, passing the lesson id lets
+  // "View full SEND plan" send the teacher back to this exact lesson.
+  lessonId?: string
   externalSearch?: string
   externalSendFilter?: string
   showCheckboxes?: boolean
@@ -797,10 +801,10 @@ export default function ClassRosterTab({
                             </section>
                           )}
                           {isSend && (
-                            <a href={`/student/${row.id}/send`}
+                            <Link href={`/students/${row.id}?tab=Plans${lessonId ? `&lessonId=${lessonId}&returnTab=${encodeURIComponent('Class')}` : ''}`}
                               className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
                               View full SEND plan <Icon name="chevron_right" size="sm" />
-                            </a>
+                            </Link>
                           )}
                         </>
                       )

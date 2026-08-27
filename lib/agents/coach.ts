@@ -438,7 +438,7 @@ Rules for last 3 fields (only if student has SEND need; use "" if no SEND):
 // ── Write AgentAuditEntry ─────────────────────────────────────────────────────
 
 async function writeAuditEntry({
-  studentId, schoolId, skillId, outputSummary, decision, confidence,
+  studentId, schoolId, skillId, outputSummary, decision, confidence, inputRefs,
 }: {
   studentId:     string
   schoolId:      string
@@ -446,6 +446,12 @@ async function writeAuditEntry({
   outputSummary: string
   decision:      string
   confidence:    number
+  /** What the agent actually based this on -- submission ids, topics considered,
+   *  etc. Consumed by dspy-service/data.py's ResourceVersion join (when it holds
+   *  a resourceId) and rendered in the AI Journey tab's "based on..." sentence
+   *  (components/students/AiDecisionExplanation.tsx). Optional -- most COACH
+   *  entries are topic-level analysis, not a single edited resource. */
+  inputRefs?: Record<string, unknown>
 }) {
   assertSkillPermitted(AgentType.COACH, skillId)
   await prisma.agentAuditEntry.create({
@@ -459,6 +465,7 @@ async function writeAuditEntry({
       outputSummary,
       decision,
       confidence,
+      ...(inputRefs ? { inputRefs } : {}),
     },
   })
 }
@@ -534,6 +541,11 @@ export async function runCoachForStudent(
       outputSummary: summaryNarrative,
       decision:      interleaveSuggestion,
       confidence:    gaps.weakTopics.length > 0 || gaps.retentionRisks.length > 0 ? 80 : 95,
+      inputRefs: {
+        submissionIds:       gaps.newSubmissionIds,
+        weakTopics:          gaps.weakTopics.map(t => t.topic),
+        retentionRiskTopics: gaps.retentionRisks.map(t => t.topic),
+      },
     }),
     gaps.weakTopics.length > 0
       ? writeAuditEntry({
@@ -546,6 +558,10 @@ export async function runCoachForStudent(
             ? `Next homework should include higher-order questions for: ${bloomsGaps.join(', ')}`
             : 'Current question distribution is appropriate.',
           confidence: 70,
+          inputRefs: {
+            weakTopics: gaps.weakTopics.map(t => t.topic),
+            bloomsGaps,
+          },
         })
       : Promise.resolve(),
   ])

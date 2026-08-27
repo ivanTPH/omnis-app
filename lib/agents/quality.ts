@@ -364,7 +364,14 @@ async function writeAuditEntries(
 ) {
   const entries: Parameters<typeof prisma.agentAuditEntry.create>[0]['data'][] = []
 
-  const push = async (skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number) => {
+  // inputRefs is optional -- most of these entries are aggregate analysis
+  // (a Bloom's distribution, a curriculum-alignment check) with no single
+  // submission it's "about"; MARKING_CONSISTENCY and FEEDBACK_QUALITY do have
+  // real submissionIds available and pass them through (see call sites below).
+  const push = async (
+    skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number,
+    inputRefs?: Record<string, unknown>,
+  ) => {
     assertSkillPermitted(AgentType.QUALITY, skillId)
     entries.push({
       studentId,
@@ -376,6 +383,7 @@ async function writeAuditEntries(
       outputSummary,
       decision,
       confidence,
+      ...(inputRefs ? { inputRefs } : {}),
     })
   }
 
@@ -421,6 +429,7 @@ async function writeAuditEntries(
       `Marking discrepancies: ${markingProblems.map(m => `${m.discrepancyLevel} — ${m.summary}`).join('; ')}`,
       'Teacher notified. Recommend reviewing mark scheme guidance for affected submissions.',
       65,
+      { submissionIds: markingProblems.map(m => m.submissionId) },
     )
   }
 
@@ -431,6 +440,7 @@ async function writeAuditEntries(
       `Feedback quality low on ${poorFeedback.length} submission(s). Flags: ${poorFeedback.flatMap(f => f.flags).join(', ')}`,
       'Encourage use of feed-forward model: specific next step referencing student\'s actual answer.',
       70,
+      { submissionIds: poorFeedback.map(f => f.submissionId) },
     )
   }
 

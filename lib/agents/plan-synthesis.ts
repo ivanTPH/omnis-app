@@ -509,7 +509,10 @@ async function writeAuditEntries(
   preChecks: PreCheckResult,
   hasSendStatus: boolean,
 ) {
-  const push = async (skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number) => {
+  const push = async (
+    skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number,
+    inputRefs?: Record<string, unknown>,
+  ) => {
     assertSkillPermitted(AgentType.PLAN_SYNTHESIS, skillId)
     return prisma.agentAuditEntry.create({
       data: {
@@ -522,6 +525,7 @@ async function writeAuditEntries(
         outputSummary,
         decision,
         confidence,
+        ...(inputRefs ? { inputRefs } : {}),
       },
     })
   }
@@ -538,7 +542,11 @@ async function writeAuditEntries(
   const apdrDecision = analysis.suggestions.slice(0, 2).join('; ') || 'No immediate action required.'
   const apdrConfidence = analysis.ilpCoherence === 'URGENT' || analysis.ehcpCoherence === 'URGENT' ? 90 : 75
 
-  const entries = [push(AgentSkillId.APDR_CYCLE, apdrSummary, apdrDecision, apdrConfidence)]
+  const entries = [push(AgentSkillId.APDR_CYCLE, apdrSummary, apdrDecision, apdrConfidence, {
+    targetsWithoutEvidence: preChecks.targetsWithoutEvidence,
+    missingKPlanCoverage:   preChecks.missingKPlanCoverage,
+    staleStrategies:        preChecks.staleStrategies,
+  })]
 
   if (hasSendStatus) {
     const sendSummary = analysis.conflicts.length > 0
@@ -549,6 +557,7 @@ async function writeAuditEntries(
       sendSummary,
       analysis.conflicts.length > 0 ? 'Resolve plan contradictions before next ILP review.' : 'Continue monitoring provision implementation.',
       70,
+      { conflicts: analysis.conflicts },
     ))
   }
 

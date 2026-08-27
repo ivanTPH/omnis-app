@@ -261,6 +261,7 @@ async function writeEngageAuditEntries(
       `Vocab: ${pkg.preTeachVocab.slice(0, 3).join('; ')}`,
     ].join(' | ').slice(0, 500),
     confidence:       72,
+    inputRefs:        { topic: pkg.topic },
   }))
 
   await Promise.allSettled(
@@ -281,6 +282,7 @@ async function writeEngageAuditEntries(
         outputSummary:    narrative,
         decision:         `${packages.length} engagement package(s) generated for weak topics. Interleave one per homework cycle.`,
         confidence:       78,
+        inputRefs:        { topics: packages.map(p => p.topic) },
       },
     }).catch(() => {})
   }

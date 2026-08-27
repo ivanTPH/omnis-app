@@ -19,12 +19,14 @@
  */
 
 import Anthropic             from '@anthropic-ai/sdk'
-import { AgentType }         from '@prisma/client'
+import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma }            from '@/lib/prisma'
 import {
   getSnapshot, saveSnapshot, markDirty, getDirtyStudentIds, inOneWeek,
   type EvidenceKnowledge, type EvidenceMatch,
 } from './snapshot'
+import { resolveSkillVersion } from './skill-prompt'
+import { assertSkillPermitted, ALL_STANDARDS } from './skills'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -246,6 +248,9 @@ If no meaningful matches: {"matches": []}`
   // ── 5. Persist pending evidence records ──────────────────────────────────
 
   if (newMatches.length > 0) {
+    assertSkillPermitted(AgentType.EVIDENCE, AgentSkillId.APDR_CYCLE)
+    const evidenceSkillVersion = await resolveSkillVersion(AgentType.EVIDENCE, AgentSkillId.APDR_CYCLE)
+
     for (const match of newMatches) {
       try {
         if (match.type === 'EHCP') {
@@ -290,6 +295,20 @@ If no meaningful matches: {"matches": []}`
             update: {}, // don't overwrite confirmed entries
           })
         }
+        await prisma.agentAuditEntry.create({
+          data: {
+            studentId,
+            schoolId,
+            agentType:        AgentType.EVIDENCE,
+            skillId:          AgentSkillId.APDR_CYCLE,
+            skillVersion:     evidenceSkillVersion,
+            standardsApplied: ALL_STANDARDS[AgentSkillId.APDR_CYCLE],
+            inputRefs:        { targetId: match.targetId, submissionId: match.submissionId, planType: match.type },
+            outputSummary:    `Linked a homework submission as evidence toward ${match.type === 'EHCP' ? 'an EHCP outcome' : 'an ILP target'}.`,
+            decision:         match.rationale,
+            confidence:       match.confidence === 'HIGH' ? 90 : match.confidence === 'MEDIUM' ? 65 : 40,
+          },
+        }).catch(err => console.error('[evidence-agent] AgentAuditEntry write failed', err))
       } catch (err) {
         // Unique constraint violation = already exists — safe to ignore
         if (!(err as { code?: string }).code?.includes('P2002')) {

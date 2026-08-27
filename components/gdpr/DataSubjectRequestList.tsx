@@ -142,6 +142,17 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
                           Export
                         </Link>
                       )}
+                      {['access', 'portability'].includes(d.requestType) && d.studentId && (
+                        <Link
+                          href={`/api/export/ai-journey-pdf/${d.id}`}
+                          target="_blank"
+                          className="flex items-center gap-1 text-[11px] font-semibold text-purple-600 hover:text-purple-700 border border-purple-200 hover:border-purple-300 px-2 py-1 rounded-md transition-colors"
+                          title="Download this student's full AI-assisted decision-support journey as a PDF"
+                        >
+                          <Icon name="psychology" size="sm" />
+                          AI Journey PDF
+                        </Link>
+                      )}
                     </div>
                   </td>
                 </tr>

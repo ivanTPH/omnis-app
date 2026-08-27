@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { getStudentAiJourney } from '@/app/actions/agent-insights'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -337,6 +338,10 @@ export async function exportStudentData(dsrId: string): Promise<Record<string, u
     }),
   ])
 
+  // AI-assisted decision-support journey (dspy-service/XAI.md build scope item 4) --
+  // best-effort: a failure here shouldn't block the rest of the DSAR export.
+  const aiJourney = await getStudentAiJourney(studentId).catch(() => null)
+
   // Mark DSR as completed
   await prisma.dataSubjectRequest.update({
     where: { id: dsrId },
@@ -375,7 +380,8 @@ export async function exportStudentData(dsrId: string): Promise<Record<string, u
     taNotes:      taNotes,
     revisionSessions: revisionSessions,
     messagesSent: messages.map(m => ({ body: m.body, sentAt: m.sentAt })),
-    notice:       'SEND records (ILP targets, EHCP provisions) are retained under DfE 7-year statutory obligation and are not included in portability exports.',
+    aiJourney:    aiJourney ?? { note: 'AI journey data unavailable' },
+    notice:       'SEND records (ILP targets, EHCP provisions) are retained under DfE 7-year statutory obligation and are not included in portability exports. A formatted PDF of the AI-assisted decision-support journey is also available via /api/export/ai-journey-pdf/[dsrId].',
   }
 }
 

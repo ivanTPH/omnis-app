@@ -13,6 +13,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { getPlanCoherenceAlerts } from '@/app/actions/agent-insights'
 import { findOakDataForTopics, extractKeywords } from '@/lib/oak-content'
+import { summarizeEdit } from '@/lib/text-diff'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1340,6 +1341,7 @@ export async function updateIlpDraft(
 
   const ilp = await prisma.individualLearningPlan.findFirst({
     where: { id: ilpId, schoolId, status: 'under_review' },
+    select: { id: true, currentStrengths: true, areasOfNeed: true, successCriteria: true, strategies: true },
   })
   if (!ilp) throw new Error('ILP not found or not in draft state')
 
@@ -1352,6 +1354,48 @@ export async function updateIlpDraft(
       ...(data.strategies       !== undefined ? { strategies:       data.strategies       } : {}),
     },
   })
+
+  // Edit-tracking for DSPy weekly optimization (dspy-service/INTEGRATION.md, Step 1).
+  // Each changed field on the draft becomes its own ResourceVersion, keyed
+  // "<ilpId>:<field>" so a field's edit history stays distinguishable from its
+  // siblings (see schema.prisma's ResourceVersion.resourceId comment -- this is
+  // a loose reference, not a Resource foreign key).
+  const fieldEdits: { field: string; before: string; after: string }[] = []
+  if (data.currentStrengths !== undefined && data.currentStrengths !== (ilp.currentStrengths ?? '')) {
+    fieldEdits.push({ field: 'currentStrengths', before: ilp.currentStrengths ?? '', after: data.currentStrengths })
+  }
+  if (data.areasOfNeed !== undefined && data.areasOfNeed !== (ilp.areasOfNeed ?? '')) {
+    fieldEdits.push({ field: 'areasOfNeed', before: ilp.areasOfNeed ?? '', after: data.areasOfNeed })
+  }
+  if (data.successCriteria !== undefined && data.successCriteria !== (ilp.successCriteria ?? '')) {
+    fieldEdits.push({ field: 'successCriteria', before: ilp.successCriteria ?? '', after: data.successCriteria })
+  }
+  if (data.strategies !== undefined) {
+    const before = (ilp.strategies ?? []).join('\n')
+    const after  = data.strategies.join('\n')
+    if (before !== after) fieldEdits.push({ field: 'strategies', before, after })
+  }
+
+  if (fieldEdits.length > 0) {
+    void Promise.all(fieldEdits.map(async ({ field, before, after }) => {
+      const resourceId = `${ilpId}:${field}`
+      const { editDistance, diffSummary } = summarizeEdit(before, after)
+      const lastVersion = await prisma.resourceVersion.aggregate({
+        where: { resourceId },
+        _max:  { version: true },
+      })
+      return prisma.resourceVersion.create({
+        data: {
+          resourceId,
+          version:    (lastVersion._max.version ?? 0) + 1,
+          createdBy:  user.id,
+          editSource: 'teacher_edit',
+          editDistance,
+          diffSummary,
+        },
+      })
+    })).catch(err => console.error('[updateIlpDraft] ResourceVersion write failed:', err))
+  }
 
   revalidatePath('/senco/ilp')
 }
@@ -1386,6 +1430,28 @@ export async function updateIlpTargetText(
     where: { id: targetId },
     data: { [prismaField]: newValue },
   })
+
+  // Edit-tracking for DSPy weekly optimization (dspy-service/INTEGRATION.md, Step 1) --
+  // records how much the SENCO changed this AI-suggested field before saving it.
+  // resourceId here is the IlpTarget's own id (see schema.prisma's ResourceVersion
+  // comment -- resourceId is a loose reference, not a Resource foreign key).
+  if (previousValue !== newValue) {
+    const { editDistance, diffSummary } = summarizeEdit(previousValue ?? '', newValue)
+    const lastVersion = await prisma.resourceVersion.aggregate({
+      where: { resourceId: targetId },
+      _max:  { version: true },
+    })
+    void prisma.resourceVersion.create({
+      data: {
+        resourceId:   targetId,
+        version:      (lastVersion._max.version ?? 0) + 1,
+        createdBy:    user.id,
+        editSource:   'teacher_edit',
+        editDistance,
+        diffSummary,
+      },
+    }).catch(err => console.error('[updateIlpTargetText] ResourceVersion write failed:', err))
+  }
 
   // Audit trail — only after SENCO approval
   if (current.ilp.approvedBySenco) {

@@ -1,0 +1,103 @@
+import { pdfShell, escHtml } from './templates'
+import type { AiJourneySummary, AiJourneyEntry } from '@/app/actions/agent-insights'
+
+export type AiJourneyPdfData = {
+  studentName: string
+  schoolName:  string
+  journey:     AiJourneySummary
+}
+
+function fmtDate(d: Date | string) {
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function outcomeLabel(outcome: AiJourneyEntry['reviewOutcome']): string {
+  if (outcome === 'CONFIRMED')  return 'Confirmed as-is'
+  if (outcome === 'OVERRIDDEN') return 'Edited before use'
+  if (outcome === 'DISMISSED')  return 'Dismissed — no action taken'
+  return 'Not yet reviewed'
+}
+
+function entryRow(entry: AiJourneyEntry): string {
+  return `
+    <div class="card ${entry.reviewOutcome ? 'card-blue' : 'card-amber'}" style="margin-bottom:8pt;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <div>
+          <span class="badge">${escHtml(entry.agentLabel)}</span>
+          <span class="badge" style="background:#f3f4f6;color:#374151;">${escHtml(entry.skillLabel)}</span>
+          <span class="text-sm text-muted">v${entry.skillVersion}</span>
+        </div>
+        <span class="text-sm text-muted">${fmtDate(entry.createdAt)}</span>
+      </div>
+      <p style="margin-top:6pt;">${escHtml(entry.outputSummary)}</p>
+      ${entry.standardsApplied.length > 0
+        ? `<p class="text-sm text-muted" style="margin-top:2pt;">Standards applied: ${escHtml(entry.standardsApplied.join('; '))}</p>`
+        : ''}
+      <p class="text-sm" style="margin-top:6pt;">
+        <strong>Confidence:</strong> ${entry.confidence}% &nbsp;·&nbsp;
+        <strong>Reviewer:</strong> ${outcomeLabel(entry.reviewOutcome)}${entry.reviewedByName ? ` — ${escHtml(entry.reviewedByName)}${entry.reviewedAt ? ` on ${fmtDate(entry.reviewedAt)}` : ''}` : ''}
+      </p>
+      ${entry.reviewNote ? `<p class="text-sm text-muted" style="margin-top:2pt;font-style:italic;">"${escHtml(entry.reviewNote)}"</p>` : ''}
+    </div>`
+}
+
+export function aiJourneyPdf(data: AiJourneyPdfData): string {
+  const { journey } = data
+  const c = journey.consent
+
+  const body = `
+    <h1 style="font-size:15pt;">AI-Assisted Decision Support — ${escHtml(data.studentName)}</h1>
+    <p class="text-sm text-muted" style="margin-bottom:14pt;">
+      A full accounting of every AI-assisted suggestion produced for this student, when it was
+      generated, what it was based on, and how a member of staff reviewed it — produced under
+      UK GDPR Article 22 and the ICO's "Explaining decisions made with AI" guidance.
+    </p>
+
+    <h2>Consent basis</h2>
+    ${c.purposeActive
+      ? `<p>"${escHtml(c.purposeTitle ?? 'AI-assisted decision support')}" is active for this school${c.lawfulBasis ? ` (lawful basis: ${escHtml(c.lawfulBasis.replace(/_/g, ' '))})` : ''}.</p>
+         <p class="text-sm text-muted">${c.studentRecordExists
+            ? `A student-specific consent record exists (decision: ${escHtml(c.studentRecordDecision ?? '')}).`
+            : 'No student-specific consent record exists — this school relies on its school-level lawful basis for this purpose rather than per-pupil consent.'}</p>`
+      : `<p>No active "AI-assisted decision support" consent purpose was found for this school.</p>`}
+
+    <h2>Summary</h2>
+    <div class="two-col" style="margin-bottom:10pt;">
+      <div class="card">
+        <p class="text-sm text-muted" style="margin:0;">Total AI-assisted touchpoints</p>
+        <p style="font-size:20pt;font-weight:700;margin:0;">${journey.totalEntries}</p>
+      </div>
+      <div class="card">
+        <p class="text-sm text-muted" style="margin:0 0 4pt;">Review outcomes</p>
+        <p class="text-sm" style="margin:0;">
+          Confirmed: ${journey.reviewOutcomeCounts.confirmed} &nbsp;·&nbsp;
+          Edited: ${journey.reviewOutcomeCounts.overridden} &nbsp;·&nbsp;
+          Dismissed: ${journey.reviewOutcomeCounts.dismissed} &nbsp;·&nbsp;
+          Awaiting review: ${journey.reviewOutcomeCounts.unreviewed}
+        </p>
+      </div>
+    </div>
+
+    ${journey.byAgentSkill.length > 0 ? `
+    <table>
+      <thead><tr><th>Agent</th><th>Skill</th><th>Touchpoints</th></tr></thead>
+      <tbody>
+        ${journey.byAgentSkill.map(s => `<tr><td>${escHtml(s.agentLabel)}</td><td>${escHtml(s.skillLabel)}</td><td>${s.count}</td></tr>`).join('')}
+      </tbody>
+    </table>` : ''}
+
+    <h2>Timeline</h2>
+    ${journey.entries.length > 0
+      ? journey.entries.map(entryRow).join('')
+      : '<p class="text-muted">No AI agent has produced a suggestion for this student.</p>'}
+
+    <hr class="divider" />
+    <p class="text-sm text-muted">
+      This export claims that every listed suggestion is traceable and was reviewed by a member of
+      staff — it does not claim every suggestion was correct. Those are different guarantees.
+      Generated by Omnis on ${fmtDate(new Date())}.
+    </p>
+  `
+
+  return pdfShell(body, 'AI-Assisted Decision Support Record', data.schoolName)
+}

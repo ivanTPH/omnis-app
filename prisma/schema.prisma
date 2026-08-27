@@ -770,7 +770,14 @@ model Resource {
 
 model ResourceVersion {
   id         String   @id @default(cuid())
-  resource   Resource @relation(fields: [resourceId], references: [id])
+  /// Loose reference to whatever content record this version tracks an edit of --
+  /// Resource.id for AI-generated/adapted resources, IlpTarget.id or
+  /// IndividualLearningPlan.id for K Plan/ILP edits, etc. Deliberately NOT a DB-level
+  /// foreign key (dropped 2026-08-27, see migration
+  /// 20260827140000_generalize_resourceversion_edit_tracking) -- this table tracks
+  /// edits across several source models, and dspy-service/data.py only ever joins to
+  /// it loosely via AgentAuditEntry.inputRefs->>'resourceId', never enforces referential
+  /// integrity against Resource. See dspy-service/INTEGRATION.md, "Record teacher edits".
   resourceId String
   version    Int
   url        String?
@@ -783,7 +790,7 @@ model ResourceVersion {
   editSource   String?
   /// String-distance between this version and the previous one (null for the first version).
   editDistance Int?
-  /// Structured diff (e.g. from the `diff` npm package) between this version and the previous one.
+  /// Structured diff summary between this version and the previous one (see lib/text-diff.ts).
   diffSummary  Json?
 
   @@index([resourceId])

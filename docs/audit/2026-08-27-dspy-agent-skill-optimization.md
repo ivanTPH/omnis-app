@@ -2,11 +2,14 @@
 
 Wiring an already-built, standalone DSPy weekly-optimization pipeline (Python service, separate from this repo) into the Next.js app, plus the explainability (XAI) layer it enables. Full design rationale lives in the Claude Project doc `dspy-optimization-and-xai-design.md`; this file tracks integration status against the pipeline's own `INTEGRATION.md`, which specifies three required app-side changes.
 
-## STATUS: All three INTEGRATION.md steps are now done (Step 1 scoped to ILP edits, per Ivan's choice). evidence-agent.ts audit gap fixed. XAI build scope complete (tab + DSAR PDF). Everything committed locally on `main`, not yet pushed — needs `npx prisma generate` (schema changed again) then `git push` from Ivan's own terminal, same as the previous round.
+## STATUS: All three INTEGRATION.md steps done. evidence-agent.ts audit gap fixed. XAI build scope complete (tab + DSAR PDF). inputRefs now populated across all 4 agents. Everything committed locally on `main`, 2 commits not yet pushed — needs `npx prisma generate` then `git push` from Ivan's own terminal.
 
-### Prerequisite — schema reconciliation (done, now spans 4 migration files)
+### A mistake made and fixed this round, flagged plainly
 
-The DSPy tables, the `ResourceVersion` edit-tracking columns, `School.isDemo`, and (this round) the `ResourceVersion.resourceId` FK relaxation were all applied directly to the production Supabase DB via the Supabase MCP tool, then reconciled into migration files:
+Dropping `ResourceVersion.resourceId`'s foreign key (to make it usable for ILP edits, see below) required also removing `Resource.versions ResourceVersion[]` — the reverse side of that same relation. That second half was missed initially, got committed (`5f0f526`) and pushed to `main` before the mistake was caught (a Prisma schema validation error surfaced when Ivan ran `npx prisma generate` locally). **This briefly left `main` in a state where `prisma generate` would fail** — a real risk if a deploy pipeline runs it at build time. Fixed immediately in `f5e4ff4`, one commit later, same session. Worth knowing: this is the second schema-adjacent slip this session (the first was catching the FK issue itself before it shipped) — the underlying process gap is that `npx prisma generate`/`prisma validate` can't be run from this session's device-bridge shell (no network route to Prisma's engine-checksum CDN from that sandboxed VM, confirmed by a 403), so schema changes made through the bridge go un-validated until Ivan's own terminal catches them. Something to watch for in future schema-touching work — validate via Ivan's terminal (or ask him to run `npx prisma validate`) before or immediately after any schema.prisma edit, not only at the end of a batch.
+
+### Prerequisite — schema reconciliation (4 migration files now)
+
 - `20260826150000_add_dspy_agent_skill_optimization`
 - `20260827130000_add_school_is_demo`
 - `20260827140000_generalize_resourceversion_edit_tracking`
@@ -15,54 +18,44 @@ The DSPy tables, the `ResourceVersion` edit-tracking columns, `School.isDemo`, a
 
 ### Step 1 — Record teacher edits: DONE (scoped to ILP, per Ivan's choice)
 
-**A real schema gap was found and fixed first:** `ResourceVersion.resourceId` had a hard foreign key to `Resource`, but `INTEGRATION.md`'s own spec writes it for K Plan/ILP edits too (`resourceId: resource.id` in its example is really "whatever got edited", not literally always a `Resource` row). Writing an `IlpTarget.id` there would have violated the FK. Fixed: dropped the FK constraint (table was empty, zero rows, safe) — `resourceId` is now a loose reference, documented in `schema.prisma`.
+Fixed a real schema gap first: `ResourceVersion.resourceId` had a hard FK to `Resource` only; `INTEGRATION.md`'s own spec needs it for ILP/K-Plan edits too. Dropped the FK (table was empty — safe), documented as a loose reference in `schema.prisma`.
 
-Implemented:
-- `lib/text-diff.ts` — dependency-free `levenshtein()` (char-level, matching how `dspy-service/data.py` normalises `editDistance`) and `summarizeEdit()` (before/after snapshot + distance, not a full line-level diff — sufficient for DSPy's fast metric, which only ever reads `editDistance` itself).
-- `updateIlpTargetText()` in `app/actions/send-support.ts` — writes a `ResourceVersion` (keyed by the `IlpTarget.id`) whenever the saved value actually changed.
-- `updateIlpDraft()` — writes one `ResourceVersion` per changed field (`currentStrengths`, `areasOfNeed`, `successCriteria`, `strategies`), keyed `"<ilpId>:<field>"` so each field's edit history stays distinguishable.
+- `lib/text-diff.ts` — dependency-free `levenshtein()` + `summarizeEdit()` (before/after snapshot + char distance).
+- `updateIlpTargetText()` and `updateIlpDraft()` in `app/actions/send-support.ts` now write `ResourceVersion` rows on real changes.
 
-**Not instrumented this round (deferred, per Ivan's scoping choice):** K Plan (`upsertKPlan()`), homework question editor, "Suggest adaptation" acceptance, resource regeneration — no existing edit-and-save surface for most of these yet.
+**Not instrumented (deferred):** K Plan, homework question editor, resource adaptation/regeneration.
 
-**Important caveat found, not yet fixed:** none of the four agent files (`coach.ts`, `quality.ts`, `plan-synthesis.ts`, `engage.ts`) ever populate `AgentAuditEntry.inputRefs` — every entry has always been written with the schema default `{}`. This means `dspy-service/data.py`'s join (`ResourceVersion.resourceId = AgentAuditEntry.inputRefs->>'resourceId'`) has nothing to connect to yet, even now that `ResourceVersion` rows exist for ILP edits — and the `AiDecisionExplanation` component's "based on this student's..." sentence never renders (no `inputRefs` to describe) for any existing agent. `lib/agents/evidence-agent.ts`'s new audit entries (below) are the one exception — they do populate `inputRefs`, since they were written from scratch this round. **This is a new, separate follow-up item, not something in scope for Step 1 as originally written** — populating `inputRefs` meaningfully means deciding, per skill/call-site across 4 files, what identifier actually represents "what the agent was given," which is a bigger piece of work than instrumenting edits. Flagged for a future pass.
+### `lib/agents/evidence-agent.ts` — FIXED
 
-### Step 2 — Consume the optimized prompt: DONE (previous round)
+Now writes an `AgentAuditEntry` under `(EVIDENCE, APDR_CYCLE)` for every evidence match it persists, with `inputRefs` (`targetId`, `submissionId`, `planType`) populated from the start — it's new code, so it didn't inherit the gap below.
 
-No change this round.
+### `AgentAuditEntry.inputRefs` — the gap found last round, now fixed for all 4 agents
 
-### `lib/agents/evidence-agent.ts` — FIXED (was the flagged gap)
+**What was wrong:** none of `coach.ts`, `quality.ts`, `plan-synthesis.ts`, `engage.ts` had ever populated `inputRefs` — every existing audit entry has the schema default `{}`. Consequences: `dspy-service/data.py`'s `ResourceVersion` join had nothing to connect to, and `AiDecisionExplanation.tsx`'s "based on this student's..." sentence never rendered anything for any pre-existing entry.
 
-Previously wrote zero `AgentAuditEntry` rows. Now, for every evidence match it persists (submission ↔ EHCP outcome or ILP target), it writes an `AgentAuditEntry` under `(EVIDENCE, APDR_CYCLE)` — matching the file's own docstring citations (SEND CoP 2015 §6.72 evidence base, §9.2 EHCP outcome evidence trails) — with `skillVersion` resolved via `resolveSkillVersion()` and `inputRefs` populated (`targetId`, `submissionId`, `planType`).
+**What was fixed:** every `writeAuditEntry`/`push` call site across all 4 files now takes an optional `inputRefs` param and passes through whatever identifying context is genuinely available there — submission ids (`coach.ts` RETRIEVAL_SPACING/BLOOMS_ANALYSIS, `quality.ts` MARKING_CONSISTENCY/FEEDBACK_QUALITY), topics (`coach.ts`, `engage.ts` ENGAGEMENT_DESIGN/RETRIEVAL_SPACING), and descriptive text arrays where no id exists yet (`plan-synthesis.ts` APDR_CYCLE/SEND_DIFFERENTIATION — `preChecks` only tracks ILP-target *descriptions*, not ids, at that point in the code).
 
-**Deliberately not done:** injecting the resolved `APDR_CYCLE` skill fragment into the matching prompt. `APDR_CYCLE_SKILL`'s fragment is templated for `plan-synthesis.ts`'s whole-package coherence review (placeholders like `{sendStatus}`), not this file's submission-to-outcome matching task — and there's nothing to inject yet regardless (version 0 until the optimizer's first promoted run for this pair). Revisit once there's an actual optimized instruction set and a decision on how to reshape the matching prompt around it.
+**Deliberately NOT done — and worth understanding why before touching this again:** `dspy-service/signatures.py`'s actual `dspy.InputField` names per skill (e.g. `RetrievalSpacing` wants `weak_topic` + `prior_attempt_summary` as two *scalar* fields, not an array) don't match what got wired in here, and can't cleanly — several of these audit entries are one aggregated write per agent run (e.g. one `RETRIEVAL_SPACING` entry covering *all* weak topics at once), while the DSPy signature wants one example *per topic*. Properly aligning the two means restructuring several agents to write one audit entry per instance rather than one per run — a bigger, riskier change than populating `inputRefs` with best-available context, deliberately not attempted this round. What's shipped now is a real improvement (the XAI sentence renders, and `data.py`'s per-string-field extraction picks up whatever scalar fields exist) but not the final shape.
 
 ### XAI explainability — StudentAiJourney tab + DSAR PDF: DONE
 
-Tab (previous round): `getStudentAiJourney()`, `lib/agents/labels.ts`, `AiDecisionExplanation.tsx`, `AiJourneyTab.tsx`, wired into the student file page.
+Tab (`getStudentAiJourney()`, `lib/agents/labels.ts`, `AiDecisionExplanation.tsx`, `AiJourneyTab.tsx`) plus DSAR PDF export (`lib/pdf/ai-journey-template.ts`, `app/api/export/ai-journey-pdf/[dsrId]/route.ts`, wired into `DataSubjectRequestList.tsx` and folded into the existing JSON export in `app/actions/gdpr.ts`).
 
-This round — DSAR PDF export (`XAI.md` build-scope item 4):
-- `lib/pdf/ai-journey-template.ts` — renders the same `AiJourneySummary` data as an HTML document, following this repo's existing `pdfShell`/`escHtml` PDF-template convention (the same one used by attendance letters, EHCP reviews, etc.).
-- `app/api/export/ai-journey-pdf/[dsrId]/route.ts` — resolves the `DataSubjectRequest` → student → `getStudentAiJourney()` → renders via the existing `lib/pdf/generator.ts` puppeteer pipeline (already used by every other PDF export in the app — no new dependency needed).
-- Wired into `components/gdpr/DataSubjectRequestList.tsx` as a second "AI Journey PDF" link next to the existing JSON export button, available independent of the DSR's completion status (it's a supplementary artifact, not the act that fulfils the request).
-- `app/actions/gdpr.ts`'s `exportStudentData()` (the existing JSON export) now also folds in the full `getStudentAiJourney()` result under an `aiJourney` key, best-effort (a failure there doesn't block the rest of the export).
+### Step 3 — Wire `weekly_run.py` into a scheduled job: DONE
 
-**Note:** the existing DSAR flow only ever produced JSON before this round — there was no PDF export of any kind for GDPR requests specifically (other PDF exports in the app are for unrelated purposes — attendance letters, EHCP reviews). This is a genuinely new capability, not a reuse of an existing PDF flow, though it does reuse the app's existing PDF *infrastructure*.
+`.github/workflows/crons-agents.yml` updated and pushed; `DATABASE_URL`/`ANTHROPIC_API_KEY` secrets set.
 
-### Step 3 — Wire `weekly_run.py` into a scheduled job: DONE (previous round)
+### Demo data excluded from DSPy training: DONE
 
-`.github/workflows/crons-agents.yml` updated and pushed; `DATABASE_URL`/`ANTHROPIC_API_KEY` secrets set on the repo.
+`School.isDemo` + `dspy-service/data.py` filters.
 
-### Demo data excluded from DSPy training: DONE (previous round)
+## Commit / push state (2026-08-27, round 3)
 
-No change this round.
-
-## Commit / push state (2026-08-27, round 2)
-
-One new commit on `main`, local only: `322f5d6` — ILP edit tracking, evidence-agent audit fix, DSAR PDF export. Schema changed again (`ResourceVersion` FK dropped), so **`npx prisma generate` needs to run again** before the pre-push hook's `tsc` check will pass, same as the previous round.
+`main` is 2 commits ahead of `origin/main`: `f5e4ff4` (schema fix) and `2d8ae24` (inputRefs). Needs `npx prisma generate` then `git push` from Ivan's terminal.
 
 ## Next steps
 
-1. From Ivan's own terminal: `npx prisma generate`, then `git push`.
-2. Decide whether to tackle the newly-found `inputRefs` gap (all 4 agent files write `{}` — breaks the `ResourceVersion` join and the XAI "based on..." sentence for everything except the new `evidence-agent.ts` entries).
+1. Push (see above).
+2. Decide whether to take on the harder inputRefs-to-signature-field-name alignment (would change audit-write granularity in several agents).
 3. Decide whether to extend Step 1 to K Plan / homework / resource-adaptation edit surfaces.
-4. Optional: reshape `evidence-agent.ts`'s matching prompt to actually consume an optimized `APDR_CYCLE` instruction set, once one exists.
+4. Continue the hardening phase: resilience audit (error handling / fallback behaviour across agents and crons), performance audit (query profiling), or a fresh security re-sweep — none started yet.

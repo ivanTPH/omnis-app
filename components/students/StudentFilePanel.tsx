@@ -33,12 +33,14 @@ import {
   type AssessmentRow,
 } from '@/app/actions/assessments'
 import { updateClassroomStrategies, saveLearningFormatNotes } from '@/app/actions/students'
+import { getStudentAiJourney, type AiJourneySummary } from '@/app/actions/agent-insights'
+import AiJourneyTab from './AiJourneyTab'
 import { ASSESSMENT_TYPES } from '@/lib/assessment-types'
 import { getSubmissionReadOnly, type SubmissionReadOnly } from '@/app/actions/homework'
 
 // ── Tab type ─────────────────────────────────────────────────────────────────
-type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour' | 'Safeguarding' | 'Pastoral'
-const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour', 'Safeguarding', 'Pastoral']
+type Tab = 'Overview' | 'Plans' | 'APDR' | 'Homework' | 'Assessments' | 'Notes' | 'Contact' | 'Behaviour' | 'Safeguarding' | 'Pastoral' | 'AI Journey'
+const TABS: Tab[] = ['Overview', 'Plans', 'APDR', 'Homework', 'Assessments', 'Notes', 'Contact', 'Behaviour', 'Safeguarding', 'Pastoral', 'AI Journey']
 const TAB_ICONS: Record<Tab, string> = {
   Overview:      'person',
   Plans:         'description',
@@ -50,6 +52,7 @@ const TAB_ICONS: Record<Tab, string> = {
   Behaviour:     'emoji_events',
   Safeguarding:  'shield',
   Pastoral:      'eco',
+  'AI Journey':  'psychology',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -2271,6 +2274,11 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
   const [pastoralLoaded, setPastoralLoaded]   = useState(false)
   const [pastoralLoading, setPastoralLoading] = useState(false)
 
+  // AI Journey tab state (XAI explainability — see dspy-service/XAI.md)
+  const [aiJourney, setAiJourney]             = useState<AiJourneySummary | null>(null)
+  const [aiJourneyLoaded, setAiJourneyLoaded] = useState(false)
+  const [aiJourneyLoading, setAiJourneyLoading] = useState(false)
+
   useEffect(() => {
     if (activeTab === 'Safeguarding' && !sfgLoaded) {
       setSfgLoading(true)
@@ -2288,6 +2296,15 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
       }).finally(() => setPastoralLoading(false))
     }
   }, [activeTab, pastoralLoaded, student.id])
+
+  useEffect(() => {
+    if (activeTab === 'AI Journey' && !aiJourneyLoaded) {
+      setAiJourneyLoading(true)
+      getStudentAiJourney(student.id).then(r => {
+        setAiJourney(r); setAiJourneyLoaded(true)
+      }).finally(() => setAiJourneyLoading(false))
+    }
+  }, [activeTab, aiJourneyLoaded, student.id])
 
   useEffect(() => {
     if (activeTab === 'Behaviour' && !bhvLoaded) {
@@ -3001,6 +3018,14 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
           role={role}
           onAdded={note => setPastoralNotes(prev => [note, ...prev])}
           onDeleted={id => setPastoralNotes(prev => prev.filter(n => n.id !== id))}
+        />
+      )}
+
+      {activeTab === 'AI Journey' && (
+        <AiJourneyTab
+          studentId={student.id}
+          data={aiJourney}
+          loading={aiJourneyLoading}
         />
       )}
     </div>

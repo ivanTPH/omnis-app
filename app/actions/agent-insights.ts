@@ -10,7 +10,8 @@
 
 import { requireAuth }  from '@/lib/session'
 import { prisma }       from '@/lib/prisma'
-import { AgentType }    from '@prisma/client'
+import { AgentType, AgentSkillId, AgentReviewOutcome } from '@prisma/client'
+import { AGENT_TYPE_LABELS, AGENT_SKILL_LABELS } from '@/lib/agents/labels'
 import type { CoachKnowledge, QualityKnowledge, PlanKnowledge } from '@/lib/agents/snapshot'
 
 export type AgentInsights = {
@@ -219,4 +220,153 @@ export async function reviewAgentRecommendation(
     targetType: 'AgentAuditEntry',
     metadata:   { agentType: entry.agentType, studentId: entry.studentId },
   })
+}
+
+// ── XAI: student AI-journey explanation ───────────────────────────────────────
+// See dspy-service/XAI.md and docs/audit/2026-08-27-dspy-agent-skill-optimization.md.
+// Assembles every AgentAuditEntry for one student into the explanation surfaces
+// XAI.md specifies: a per-decision explanation and a full chronological journey,
+// suitable for a SENCo justifying a decision, a parent query, or a DSAR export.
+// Deliberately template-rendered from existing rows, not LLM-narrated after the
+// fact — an explanation of a decision is itself a second thing that could be
+// wrong; a rendered-from-data explanation can't drift from what actually happened.
+
+export type AiJourneyEntry = {
+  id:               string
+  agentType:        AgentType
+  agentLabel:       string
+  skillId:          AgentSkillId
+  skillLabel:       string
+  skillVersion:     number
+  createdAt:        Date
+  standardsApplied: string[]
+  inputRefs:        Record<string, unknown>
+  outputSummary:    string
+  decision:         string
+  confidence:       number
+  reviewedByName:   string | null
+  reviewedAt:       Date | null
+  reviewOutcome:    AgentReviewOutcome | null
+  reviewNote:       string | null
+  skillVersionInstructions: string | null
+}
+
+export type AiJourneySummary = {
+  studentId: string
+  totalEntries: number
+  byAgentSkill: {
+    agentType: AgentType
+    agentLabel: string
+    skillId: AgentSkillId
+    skillLabel: string
+    count: number
+  }[]
+  reviewOutcomeCounts: {
+    confirmed: number
+    overridden: number
+    dismissed: number
+    unreviewed: number
+  }
+  consent: {
+    purposeActive: boolean
+    purposeTitle: string | null
+    lawfulBasis: string | null
+    studentRecordExists: boolean
+    studentRecordDecision: string | null
+  }
+  entries: AiJourneyEntry[]
+}
+
+export async function getStudentAiJourney(studentId: string): Promise<AiJourneySummary> {
+  const user = await requireAuth(['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'])
+  const { schoolId } = user
+
+  const student = await prisma.user.findFirst({
+    where:  { id: studentId, schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Not found')
+
+  const rows = await prisma.agentAuditEntry.findMany({
+    where:   { studentId, schoolId },
+    orderBy: { createdAt: 'desc' },
+    include: { reviewedBy: { select: { firstName: true, lastName: true } } },
+  })
+
+  const versions = rows.length
+    ? await prisma.agentSkillVersion.findMany({
+        where:  { OR: rows.map(r => ({ agentType: r.agentType, skillId: r.skillId, version: r.skillVersion })) },
+        select: { agentType: true, skillId: true, version: true, instructions: true },
+      })
+    : []
+  const versionMap = new Map(versions.map(v => [`${v.agentType}::${v.skillId}::${v.version}`, v.instructions]))
+
+  const [purpose, consentRecord] = await Promise.all([
+    prisma.consentPurpose.findUnique({
+      where: { schoolId_slug: { schoolId, slug: 'ai-decision-support' } },
+    }),
+    prisma.consentRecord.findFirst({
+      where:   { studentId, purpose: { schoolId, slug: 'ai-decision-support' } },
+      orderBy: { recordedAt: 'desc' },
+    }),
+  ])
+
+  const entries: AiJourneyEntry[] = rows.map(r => ({
+    id:               r.id,
+    agentType:        r.agentType,
+    agentLabel:       AGENT_TYPE_LABELS[r.agentType],
+    skillId:          r.skillId,
+    skillLabel:       AGENT_SKILL_LABELS[r.skillId],
+    skillVersion:     r.skillVersion,
+    createdAt:        r.createdAt,
+    standardsApplied: r.standardsApplied,
+    inputRefs:        (r.inputRefs as Record<string, unknown>) ?? {},
+    outputSummary:    r.outputSummary,
+    decision:         r.decision,
+    confidence:       r.confidence,
+    reviewedByName:   r.reviewedBy ? `${r.reviewedBy.firstName} ${r.reviewedBy.lastName}` : null,
+    reviewedAt:       r.reviewedAt,
+    reviewOutcome:    r.reviewOutcome,
+    reviewNote:       r.reviewNote,
+    skillVersionInstructions: versionMap.get(`${r.agentType}::${r.skillId}::${r.skillVersion}`) ?? null,
+  }))
+
+  const byAgentSkillMap = new Map<string, { agentType: AgentType; skillId: AgentSkillId; count: number }>()
+  for (const e of entries) {
+    const key = `${e.agentType}::${e.skillId}`
+    const existing = byAgentSkillMap.get(key)
+    if (existing) existing.count++
+    else byAgentSkillMap.set(key, { agentType: e.agentType, skillId: e.skillId, count: 1 })
+  }
+  const byAgentSkill = Array.from(byAgentSkillMap.values())
+    .map(v => ({
+      agentType:  v.agentType,
+      agentLabel: AGENT_TYPE_LABELS[v.agentType],
+      skillId:    v.skillId,
+      skillLabel: AGENT_SKILL_LABELS[v.skillId],
+      count:      v.count,
+    }))
+    .sort((a, b) => b.count - a.count)
+
+  const reviewOutcomeCounts = {
+    confirmed:   entries.filter(e => e.reviewOutcome === 'CONFIRMED').length,
+    overridden:  entries.filter(e => e.reviewOutcome === 'OVERRIDDEN').length,
+    dismissed:   entries.filter(e => e.reviewOutcome === 'DISMISSED').length,
+    unreviewed:  entries.filter(e => e.reviewOutcome === null).length,
+  }
+
+  return {
+    studentId,
+    totalEntries: entries.length,
+    byAgentSkill,
+    reviewOutcomeCounts,
+    consent: {
+      purposeActive:          purpose?.isActive ?? false,
+      purposeTitle:           purpose?.title ?? null,
+      lawfulBasis:            purpose?.lawfulBasis ?? null,
+      studentRecordExists:    !!consentRecord,
+      studentRecordDecision:  consentRecord?.decision ?? null,
+    },
+    entries,
+  }
 }

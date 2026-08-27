@@ -74,7 +74,14 @@ export async function upsertYearGroupPlan(input: {
   }
 
   if (input.id) {
-    await prisma.yearGroupPlan.update({ where: { id: input.id }, data })
+    // Scope by schoolId too -- without it, passing another school's plan id would both
+    // edit that school's plan content and re-parent it to this school via data.schoolId.
+    const existing = await prisma.yearGroupPlan.findFirst({
+      where:  { id: input.id, schoolId: user.schoolId },
+      select: { id: true },
+    })
+    if (!existing) throw new Error('Plan not found')
+    await prisma.yearGroupPlan.update({ where: { id: existing.id }, data })
   } else {
     await prisma.yearGroupPlan.upsert({
       where: { schoolId_yearGroup_subject: { schoolId: user.schoolId, yearGroup: input.yearGroup, subject: input.subject } },

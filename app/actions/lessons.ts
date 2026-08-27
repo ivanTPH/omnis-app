@@ -84,6 +84,11 @@ export type CreateLessonInput = {
 export async function createLesson(input: CreateLessonInput) {
   const { schoolId, id: userId } = await requireAuth()
 
+  if (input.classId) {
+    const cls = await prisma.schoolClass.findFirst({ where: { id: input.classId, schoolId }, select: { id: true } })
+    if (!cls) throw new Error('Class not found')
+  }
+
   const lesson = await prisma.lesson.create({
     data: {
       schoolId,
@@ -512,8 +517,8 @@ export async function getSchoolResourceLibrary(forLessonId?: string) {
   // Resolve the calling lesson's subject + yearGroup for contextual filtering
   let contextSubject: string | undefined
   if (forLessonId) {
-    const ctx = await prisma.lesson.findUnique({
-      where:  { id: forLessonId },
+    const ctx = await prisma.lesson.findFirst({
+      where:  { id: forLessonId, schoolId },
       select: { class: { select: { subject: true } } },
     })
     contextSubject = ctx?.class?.subject ?? undefined
@@ -660,6 +665,9 @@ export async function addUrlResource(
 ): Promise<{ resourceId: string; review: ReviewResult }> {
   const { schoolId, id: userId } = await requireAuth()
 
+  const lesson = await prisma.lesson.findFirst({ where: { id: lessonId, schoolId }, select: { id: true } })
+  if (!lesson) throw new Error('Lesson not found')
+
   const resource = await prisma.resource.create({
     data: {
       schoolId,
@@ -705,6 +713,9 @@ export async function addUploadedResource(
   input: { label: string; type: ResourceType; fileName: string; description?: string; extractedText?: string; dataUrl?: string }
 ): Promise<{ resourceId: string; review: ReviewResult }> {
   const { schoolId, id: userId } = await requireAuth()
+
+  const lesson = await prisma.lesson.findFirst({ where: { id: lessonId, schoolId }, select: { id: true } })
+  if (!lesson) throw new Error('Lesson not found')
 
   const resource = await prisma.resource.create({
     data: {
@@ -752,6 +763,9 @@ export async function addLibraryResource(
   sourceResourceId: string
 ): Promise<void> {
   const { schoolId, id: userId } = await requireAuth()
+
+  const lesson = await prisma.lesson.findFirst({ where: { id: lessonId, schoolId }, select: { id: true } })
+  if (!lesson) throw new Error('Lesson not found')
 
   const source = await prisma.resource.findFirst({
     where:   { id: sourceResourceId, schoolId },

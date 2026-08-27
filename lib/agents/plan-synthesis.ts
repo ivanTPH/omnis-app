@@ -229,8 +229,10 @@ type PreCheckResult = {
   ehcpReviewOverdue:      boolean
   daysToEhcpReview:       number | null
   targetsWithoutEvidence: string[]
+  targetsWithoutEvidenceIds: string[]
   concernEscalationRisk:  boolean
   missingKPlanCoverage:   string[]   // ILP target descriptions with no K Plan strategy
+  missingKPlanCoverageIds: string[]
   staleStrategies:        string[]
   hasAnythingToReview:    boolean
 }
@@ -274,9 +276,10 @@ function runPreChecks(data: PlanSynthesisData): PreCheckResult {
     evidenceByTarget.set(entry.ilpTargetId, (evidenceByTarget.get(entry.ilpTargetId) ?? 0) + 1)
   }
   const activeTargets           = (data.ilp?.targets ?? []).filter(t => !t.achieved)
-  const targetsWithoutEvidence  = activeTargets
+  const targetsWithoutEvidenceTargets = activeTargets
     .filter(t => (evidenceByTarget.get(t.id) ?? 0) < EVIDENCE_MIN_PER_TARGET)
-    .map(t => t.description)
+  const targetsWithoutEvidence    = targetsWithoutEvidenceTargets.map(t => t.description)
+  const targetsWithoutEvidenceIds = targetsWithoutEvidenceTargets.map(t => t.id)
 
   // Concern escalation risk
   const concernCount    = data.recentConcerns.filter(c => c.status !== 'resolved').length
@@ -284,12 +287,14 @@ function runPreChecks(data: PlanSynthesisData): PreCheckResult {
 
   // K Plan strategy coverage — each active ILP target should have ≥1 strategy
   const strategies      = data.kPlan?.strategies ?? []
-  const missingKPlanCoverage = activeTargets.filter(t => {
+  const missingKPlanCoverageTargets = activeTargets.filter(t => {
     const targetKeywords  = t.description.toLowerCase().split(/\s+/).filter(w => w.length > 4)
     return !strategies.some(s =>
       targetKeywords.some(kw => s.strategyText.toLowerCase().includes(kw))
     )
-  }).map(t => t.description)
+  })
+  const missingKPlanCoverage    = missingKPlanCoverageTargets.map(t => t.description)
+  const missingKPlanCoverageIds = missingKPlanCoverageTargets.map(t => t.id)
 
   // Stale strategies — use Plan.updatedAt as the freshness proxy (no per-strategy timestamp)
   const staleThreshold  = new Date(now - STALE_STRATEGY_WEEKS * msPerWeek)
@@ -306,8 +311,8 @@ function runPreChecks(data: PlanSynthesisData): PreCheckResult {
   return {
     ilpReviewOverdue, daysSinceIlpReview,
     ehcpReviewDueSoon, ehcpReviewOverdue, daysToEhcpReview,
-    targetsWithoutEvidence, concernEscalationRisk,
-    missingKPlanCoverage, staleStrategies,
+    targetsWithoutEvidence, targetsWithoutEvidenceIds, concernEscalationRisk,
+    missingKPlanCoverage, missingKPlanCoverageIds, staleStrategies,
     hasAnythingToReview,
   }
 }
@@ -543,9 +548,10 @@ async function writeAuditEntries(
   const apdrConfidence = analysis.ilpCoherence === 'URGENT' || analysis.ehcpCoherence === 'URGENT' ? 90 : 75
 
   const entries = [push(AgentSkillId.APDR_CYCLE, apdrSummary, apdrDecision, apdrConfidence, {
-    targetsWithoutEvidence: preChecks.targetsWithoutEvidence,
-    missingKPlanCoverage:   preChecks.missingKPlanCoverage,
-    staleStrategies:        preChecks.staleStrategies,
+    // Ids only -- never the raw target/strategy free text. See note above writeAuditEntries.
+    targetsWithoutEvidenceIds: preChecks.targetsWithoutEvidenceIds,
+    missingKPlanCoverageIds:   preChecks.missingKPlanCoverageIds,
+    staleStrategyCount:        preChecks.staleStrategies.length,
   })]
 
   if (hasSendStatus) {
@@ -557,7 +563,9 @@ async function writeAuditEntries(
       sendSummary,
       analysis.conflicts.length > 0 ? 'Resolve plan contradictions before next ILP review.' : 'Continue monitoring provision implementation.',
       70,
-      { conflicts: analysis.conflicts },
+      // Count only -- analysis.conflicts is LLM-generated prose explicitly instructed to
+      // cite specific plan wording, so it carries the same free-text-leak risk as above.
+      { conflictCount: analysis.conflicts.length },
     ))
   }
 

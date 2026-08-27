@@ -6,11 +6,16 @@ import { prisma }       from '@/lib/prisma'
 import { generatePdf }  from '@/lib/pdf/generator'
 import { homeworkSheetPdf } from '@/lib/pdf/homework-template'
 
+const ALLOWED = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SENCO']
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ homeworkId: string }> },
 ) {
   const user = await requireAuth()
+  if (!ALLOWED.includes(user.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { homeworkId } = await params
 

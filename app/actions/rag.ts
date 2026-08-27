@@ -258,8 +258,14 @@ export async function getClassRagData(
 
 // ── upsertTeacherPrediction ────────────────────────────────────────────────────
 
+const TEACHER_PREDICTION_ROLES = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN']
+
 export async function upsertTeacherPrediction(input: SavePredictionInput): Promise<void> {
-  const { schoolId, id: teacherId } = await requireAuth()
+  const { schoolId, id: teacherId, role } = await requireAuth()
+  if (!TEACHER_PREDICTION_ROLES.includes(role)) throw new Error('Forbidden')
+
+  const student = await prisma.user.findFirst({ where: { id: input.studentId, schoolId }, select: { id: true } })
+  if (!student) throw new Error('Student not found')
 
   await prisma.teacherPrediction.upsert({
     where: {
@@ -310,7 +316,14 @@ export type ConfirmPredictionInput = {
  * Notifies HODs in the school and writes an audit entry.
  */
 export async function confirmGradePrediction(input: ConfirmPredictionInput): Promise<void> {
-  const { schoolId, id: teacherId, firstName, lastName } = await requireAuth()
+  const { schoolId, id: teacherId, firstName, lastName, role } = await requireAuth()
+  if (!TEACHER_PREDICTION_ROLES.includes(role)) throw new Error('Forbidden')
+
+  const confirmedStudent = await prisma.user.findFirst({
+    where:  { id: input.studentId, schoolId },
+    select: { firstName: true, lastName: true },
+  })
+  if (!confirmedStudent) throw new Error('Student not found')
 
   // Upsert the prediction with confirmation commentary
   await prisma.teacherPrediction.upsert({
@@ -355,11 +368,8 @@ export async function confirmGradePrediction(input: ConfirmPredictionInput): Pro
   })
 
   // Notify all HODs in the school
-  const [student, hods] = await Promise.all([
-    prisma.user.findUnique({ where: { id: input.studentId }, select: { firstName: true, lastName: true } }),
-    prisma.user.findMany({ where: { schoolId, role: 'HEAD_OF_DEPT', isActive: true }, select: { id: true } }),
-  ])
-  const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+  const hods = await prisma.user.findMany({ where: { schoolId, role: 'HEAD_OF_DEPT', isActive: true }, select: { id: true } })
+  const studentName = `${confirmedStudent.firstName} ${confirmedStudent.lastName}`
   const teacherName = `${firstName} ${lastName}`
 
   if (hods.length > 0) {

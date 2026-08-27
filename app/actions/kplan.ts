@@ -47,6 +47,14 @@ export async function upsertKPlan(
 ): Promise<KPlanData> {
   const user = await requireSenco()
 
+  // studentId is the upsert's unique key, so without this check a caller could
+  // pass another school's studentId and silently overwrite that school's KPlan.
+  const student = await prisma.user.findFirst({
+    where:  { id: studentId, schoolId: user.schoolId },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Student not found')
+
   const kplan = await prisma.kPlan.upsert({
     where: { studentId },
     create: {

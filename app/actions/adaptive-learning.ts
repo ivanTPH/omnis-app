@@ -378,6 +378,9 @@ export async function getAdaptiveHomeworkSuggestions(
   const user = await requireStaff()
   const schoolId = user.schoolId
 
+  const student = await prisma.user.findFirst({ where: { id: studentId, schoolId }, select: { id: true } })
+  if (!student) throw new Error('Student not found')
+
   const [profile, sendStatus, ilpTargets, hw] = await Promise.all([
     prisma.studentLearningProfile.findUnique({ where: { studentId } }),
     prisma.sendStatus.findUnique({ where: { studentId } }),
@@ -432,9 +435,12 @@ export async function getAdaptiveHomeworkSuggestions(
 
 // ─── ILP Evidence Dashboard ───────────────────────────────────────────────────
 
-export async function getIlpEvidenceDashboard(schoolId: string) {
+export async function getIlpEvidenceDashboard(_schoolId: string) {
+  // The schoolId param is legacy/unused for scoping -- always derive it from the
+  // authenticated session so a caller can't pass an arbitrary school's id.
   const session = await auth()
   if (!session) redirect('/login')
+  const schoolId = (session.user as { schoolId: string }).schoolId
 
   const now = new Date()
 

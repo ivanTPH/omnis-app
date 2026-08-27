@@ -330,7 +330,20 @@ export async function createHomework(input: {
   differentiationNotes?: string
   estimatedMins?:        number
 }): Promise<{ id: string }> {
-  const { schoolId, id: userId } = await requireAuth()
+  const { schoolId, id: userId } = await requireAuth([
+    'TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN', 'SENCO',
+  ])
+
+  // Verify the class and lesson belong to this school before creating homework
+  // against them or looking up enrolments — without this, a caller could pass
+  // another school's classId and both create cross-tenant homework and trigger
+  // notification emails to that school's real students/parents.
+  const [cls, lesson] = await Promise.all([
+    prisma.schoolClass.findFirst({ where: { id: input.classId, schoolId }, select: { id: true } }),
+    prisma.lesson.findFirst({ where: { id: input.lessonId, schoolId }, select: { id: true } }),
+  ])
+  if (!cls) throw new Error('Class not found')
+  if (!lesson) throw new Error('Lesson not found')
 
   const hw = await prisma.homework.create({
     data: {
@@ -1729,15 +1742,16 @@ export async function resendHomeworkReminder(homeworkId: string, studentId: stri
   })
   if (!hw) throw new Error('Homework not found')
 
-  const student = await prisma.user.findUnique({
-    where:  { id: studentId },
-    select: { email: true, firstName: true },
+  const student = await prisma.user.findFirst({
+    where:  { id: studentId, schoolId },
+    select: { id: true, email: true, firstName: true },
   })
+  if (!student) throw new Error('Student not found')
 
   await prisma.notification.create({
     data: {
       schoolId,
-      userId:   studentId,
+      userId:   student.id,
       type:     'HOMEWORK_SET',
       title:    `Reminder: "${hw.title}" is due`,
       body:     hw.dueAt
@@ -1748,7 +1762,7 @@ export async function resendHomeworkReminder(homeworkId: string, studentId: stri
   })
 
   // Fire-and-forget email — never blocks the response
-  if (student?.email) {
+  if (student.email) {
     const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
     void sendHomeworkReminderEmail({
       to:               student.email,
@@ -2025,8 +2039,8 @@ export async function saveIlpEvidenceEntries(
       if (hasProgress) {
         const progressTargetIds = entries.filter(e => e.evidenceType === 'PROGRESS').map(e => e.ilpTargetId)
         for (const targetId of progressTargetIds) {
-          const target = await prisma.ilpTarget.findUnique({
-            where: { id: targetId },
+          const target = await prisma.ilpTarget.findFirst({
+            where: { id: targetId, ilp: { schoolId } },
             select: { id: true, status: true, ilpId: true, target: true },
           })
           if (!target || target.status !== 'active') continue
@@ -2036,9 +2050,9 @@ export async function saveIlpEvidenceEntries(
           })
           if (progressCount < 3) continue
 
-          // Auto-transition to achieved
+          // Auto-transition to achieved (target already verified above to belong to this school)
           await prisma.ilpTarget.update({
-            where: { id: targetId },
+            where: { id: target.id },
             data:  { status: 'achieved', reviewedAt: new Date() },
           })
 
@@ -2310,13 +2324,13 @@ export async function getGradeCalibrationReport(): Promise<GradeCalibrationRepor
 export async function suggestHomeworkGrade(
   submissionId: string,
 ): Promise<{ grade: string; rationale: string; feedback: string; confidence: 'high' | 'medium' | 'low' }> {
-  const { role } = await requireAuth()
+  const { role, schoolId } = await requireAuth()
   if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) {
     return { grade: '', rationale: 'Not authorized', feedback: '', confidence: 'low' as const }
   }
 
-  const sub = await prisma.submission.findUnique({
-    where: { id: submissionId },
+  const sub = await prisma.submission.findFirst({
+    where: { id: submissionId, schoolId },
     select: {
       content:  true,
       homework: {

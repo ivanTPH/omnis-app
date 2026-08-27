@@ -33,6 +33,7 @@
 import Anthropic                 from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }    from '@/lib/prisma'
+import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
 import {
   getSnapshot, saveSnapshot, inOneWeek,
   type QualityKnowledge,
@@ -277,16 +278,24 @@ async function runQualityAnalysis(data: StudentQualityData): Promise<QualityAnal
   const client  = new Anthropic({ apiKey })
   const payload = buildReviewPayload(data, oakKlpMap)
 
+  const [bloomsPrompt, curriculumPrompt, sendDiffPrompt, markingPrompt, feedbackPrompt] = await Promise.all([
+    resolveSkillFragment(AgentType.QUALITY, AgentSkillId.BLOOMS_ANALYSIS, BLOOMS_ANALYSIS_SKILL.systemPromptFragment),
+    resolveSkillFragment(AgentType.QUALITY, AgentSkillId.CURRICULUM_ALIGNMENT, CURRICULUM_ALIGNMENT_SKILL.systemPromptFragment),
+    resolveSkillFragment(AgentType.QUALITY, AgentSkillId.SEND_DIFFERENTIATION, SEND_DIFFERENTIATION_SKILL.systemPromptFragment),
+    resolveSkillFragment(AgentType.QUALITY, AgentSkillId.MARKING_CONSISTENCY, MARKING_CONSISTENCY_SKILL.systemPromptFragment),
+    resolveSkillFragment(AgentType.QUALITY, AgentSkillId.FEEDBACK_QUALITY, FEEDBACK_QUALITY_SKILL.systemPromptFragment),
+  ])
+
   const systemPrompt = [
-    BLOOMS_ANALYSIS_SKILL.systemPromptFragment,
+    bloomsPrompt.fragment,
     '\n\n---\n',
-    CURRICULUM_ALIGNMENT_SKILL.systemPromptFragment,
+    curriculumPrompt.fragment,
     '\n\n---\n',
-    SEND_DIFFERENTIATION_SKILL.systemPromptFragment,
+    sendDiffPrompt.fragment,
     '\n\n---\n',
-    MARKING_CONSISTENCY_SKILL.systemPromptFragment,
+    markingPrompt.fragment,
     '\n\n---\n',
-    FEEDBACK_QUALITY_SKILL.systemPromptFragment,
+    feedbackPrompt.fragment,
     `\n\n---\n
 You are reviewing a batch of recent homework submissions for a single student.
 Apply ALL five quality skills across the batch.
@@ -355,14 +364,14 @@ async function writeAuditEntries(
 ) {
   const entries: Parameters<typeof prisma.agentAuditEntry.create>[0]['data'][] = []
 
-  const push = (skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number) => {
+  const push = async (skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number) => {
     assertSkillPermitted(AgentType.QUALITY, skillId)
     entries.push({
       studentId,
       schoolId,
       agentType:        AgentType.QUALITY,
       skillId,
-      skillVersion:     1,
+      skillVersion:     await resolveSkillVersion(AgentType.QUALITY, skillId),
       standardsApplied: ALL_STANDARDS[skillId],
       outputSummary,
       decision,
@@ -374,7 +383,7 @@ async function writeAuditEntries(
     .map(([l, c]) => `${l}:${c}`)
     .join(', ')
 
-  push(
+  await push(
     AgentSkillId.BLOOMS_ANALYSIS,
     bloomLevels || 'No question distribution data',
     analysis.bloomsBalance['Analyse'] || analysis.bloomsBalance['Evaluate']
@@ -383,7 +392,7 @@ async function writeAuditEntries(
     75,
   )
 
-  push(
+  await push(
     AgentSkillId.CURRICULUM_ALIGNMENT,
     analysis.curriculumIssues.length > 0
       ? `Curriculum issues: ${analysis.curriculumIssues.join('; ')}`
@@ -395,7 +404,7 @@ async function writeAuditEntries(
   )
 
   if (analysis.sendAdaptationScore < 100) {
-    push(
+    await push(
       AgentSkillId.SEND_DIFFERENTIATION,
       `SEND adaptation score: ${analysis.sendAdaptationScore}/100. ${analysis.sendAdaptationIssues.join('; ')}`,
       analysis.sendAdaptationScore < SEND_ADAPTATION_WARN
@@ -407,7 +416,7 @@ async function writeAuditEntries(
 
   const markingProblems = analysis.markingIssues.filter(m => MARKING_WARN_LEVELS.has(m.discrepancyLevel))
   if (markingProblems.length > 0) {
-    push(
+    await push(
       AgentSkillId.MARKING_CONSISTENCY,
       `Marking discrepancies: ${markingProblems.map(m => `${m.discrepancyLevel} — ${m.summary}`).join('; ')}`,
       'Teacher notified. Recommend reviewing mark scheme guidance for affected submissions.',
@@ -417,7 +426,7 @@ async function writeAuditEntries(
 
   const poorFeedback = analysis.feedbackIssues.filter(f => f.overallScore < 60)
   if (poorFeedback.length > 0) {
-    push(
+    await push(
       AgentSkillId.FEEDBACK_QUALITY,
       `Feedback quality low on ${poorFeedback.length} submission(s). Flags: ${poorFeedback.flatMap(f => f.flags).join(', ')}`,
       'Encourage use of feed-forward model: specific next step referencing student\'s actual answer.',

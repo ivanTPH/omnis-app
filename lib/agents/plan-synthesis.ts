@@ -36,6 +36,7 @@
 import Anthropic               from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }  from '@/lib/prisma'
+import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
 import {
   getSnapshot, saveSnapshot, inOneMonth,
   type PlanKnowledge,
@@ -389,10 +390,15 @@ async function runSynthesisAnalysis(
     },
   }
 
+  const [apdrPrompt, sendDiffPrompt] = await Promise.all([
+    resolveSkillFragment(AgentType.PLAN_SYNTHESIS, AgentSkillId.APDR_CYCLE, APDR_CYCLE_SKILL.systemPromptFragment),
+    resolveSkillFragment(AgentType.PLAN_SYNTHESIS, AgentSkillId.SEND_DIFFERENTIATION, SEND_DIFFERENTIATION_SKILL.systemPromptFragment),
+  ])
+
   const systemPrompt = [
-    APDR_CYCLE_SKILL.systemPromptFragment,
+    apdrPrompt.fragment,
     '\n\n---\n',
-    SEND_DIFFERENTIATION_SKILL.systemPromptFragment,
+    sendDiffPrompt.fragment,
     `\n\n---\n
 You are the Plan Synthesis agent. Evaluate the coherence of this student's full SEND support package.
 
@@ -503,7 +509,7 @@ async function writeAuditEntries(
   preChecks: PreCheckResult,
   hasSendStatus: boolean,
 ) {
-  const push = (skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number) => {
+  const push = async (skillId: AgentSkillId, outputSummary: string, decision: string, confidence: number) => {
     assertSkillPermitted(AgentType.PLAN_SYNTHESIS, skillId)
     return prisma.agentAuditEntry.create({
       data: {
@@ -511,7 +517,7 @@ async function writeAuditEntries(
         schoolId,
         agentType:        AgentType.PLAN_SYNTHESIS,
         skillId,
-        skillVersion:     1,
+        skillVersion:     await resolveSkillVersion(AgentType.PLAN_SYNTHESIS, skillId),
         standardsApplied: ALL_STANDARDS[skillId],
         outputSummary,
         decision,

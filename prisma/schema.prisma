@@ -282,6 +282,7 @@ model School {
   localAuthority String?
   region        String?
   isActive      Boolean  @default(true)
+  isDemo        Boolean  @default(false)  // true for the synthetic demo/trial school -- excluded from DSPy training data (see dspy-service/data.py)
   onboardedAt   DateTime?
 
   // Timetable / out-of-hours config (hours in 24h)
@@ -303,6 +304,7 @@ model School {
   createdAt DateTime @default(now())
 
   @@index([isActive])
+  @@index([isDemo])
 
   users                 User[]
   classes               SchoolClass[]
@@ -775,6 +777,14 @@ model ResourceVersion {
   fileKey    String?
   createdBy  String
   createdAt  DateTime @default(now())
+
+  /// "ai_generated" | "teacher_edit" — set by the DSPy weekly-optimization pipeline's
+  /// data collector to distinguish the original AI output from a teacher's edited save.
+  editSource   String?
+  /// String-distance between this version and the previous one (null for the first version).
+  editDistance Int?
+  /// Structured diff (e.g. from the `diff` npm package) between this version and the previous one.
+  diffSummary  Json?
 
   @@index([resourceId])
 }
@@ -3010,6 +3020,48 @@ model AgentAuditEntry {
   @@index([schoolId, agentType, createdAt])
   @@index([studentId, skillId, createdAt])
   @@index([schoolId, reviewOutcome])           // system insight: confirmation rate by school
+}
+
+// ─── DSPy weekly prompt-optimization pipeline ─────────────────────────────────
+// Written by the standalone Python DSPy service (see omnis-dspy/), not by the
+// Next.js app. The app only reads AgentSkillVersion (to resolve the active
+// optimized prompt for a given agentType+skillId) and writes nothing here.
+
+model AgentOptimizationRun {
+  id             String    @id @default(cuid())
+  triggeredBy    String
+  status         String    @default("running")
+  skillsTargeted Json
+  summary        Json?
+  errorMessage   String?
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+
+  skillVersions  AgentSkillVersion[]
+}
+
+model AgentSkillVersion {
+  id                   String                @id @default(cuid())
+  agentType            AgentType
+  skillId              AgentSkillId
+  version              Int
+  instructions         String
+  demonstrations       Json                  @default("[]")
+  metricScore          Float?
+  metricBreakdown      Json?
+  trainingExampleCount Int                   @default(0)
+  optimizerRun         AgentOptimizationRun? @relation(fields: [optimizerRunId], references: [id])
+  optimizerRunId       String?
+  /// Only one version per (agentType, skillId) should be active at a time —
+  /// enforced app-side, not by a DB constraint, so a promotion is a plain
+  /// two-row flip (old isActive=false, new isActive=true) rather than a
+  /// migration. See resolveSkillFragment()/resolveSkillVersion() in lib/agents/skill-prompt.ts.
+  isActive             Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  promotedAt           DateTime?
+
+  @@unique([agentType, skillId, version])
+  @@index([agentType, skillId, isActive])
 }
 
 // ─── Agent Snapshots (AI coach / quality / plan-synthesis knowledge cache) ───

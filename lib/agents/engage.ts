@@ -33,6 +33,7 @@ import Anthropic         from '@anthropic-ai/sdk'
 import { createHash }    from 'crypto'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }   from '@/lib/prisma'
+import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
 import {
   getSnapshot,
   saveSnapshot,
@@ -165,10 +166,16 @@ async function generateEngagePackages(
     oakKlps:           oakContext.klps.slice(0, 10),
   }
 
+  const engagementDesignPrompt = await resolveSkillFragment(
+    AgentType.ENGAGE,
+    AgentSkillId.ENGAGEMENT_DESIGN,
+    ENGAGEMENT_DESIGN_SKILL.systemPromptFragment,
+  )
+
   const response = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 2000,
-    system: `${ENGAGEMENT_DESIGN_SKILL.systemPromptFragment}
+    system: `${engagementDesignPrompt.fragment}
 
 You are generating engagement-optimised homework packages for a UK secondary school student who has weak performance on specific topics.
 
@@ -238,12 +245,14 @@ async function writeEngageAuditEntries(
 ): Promise<void> {
   assertSkillPermitted(AgentType.ENGAGE, AgentSkillId.ENGAGEMENT_DESIGN)
 
+  const engagementDesignVersion = await resolveSkillVersion(AgentType.ENGAGE, AgentSkillId.ENGAGEMENT_DESIGN)
+
   const entries = packages.map(pkg => ({
     studentId,
     schoolId,
     agentType:        AgentType.ENGAGE,
     skillId:          AgentSkillId.ENGAGEMENT_DESIGN,
-    skillVersion:     1,
+    skillVersion:     engagementDesignVersion,
     standardsApplied: [...ENGAGEMENT_DESIGN_SKILL.standards],
     outputSummary:    `Engagement package for "${pkg.topic}": ${pkg.mcqQuestions.length} MCQ questions, ${pkg.preTeachVocab.length} vocab terms, core + challenge tasks, SEND adaptation.`,
     decision:         [
@@ -267,7 +276,7 @@ async function writeEngageAuditEntries(
         schoolId,
         agentType:        AgentType.ENGAGE,
         skillId:          AgentSkillId.RETRIEVAL_SPACING,
-        skillVersion:     1,
+        skillVersion:     await resolveSkillVersion(AgentType.ENGAGE, AgentSkillId.RETRIEVAL_SPACING),
         standardsApplied: ALL_STANDARDS[AgentSkillId.RETRIEVAL_SPACING],
         outputSummary:    narrative,
         decision:         `${packages.length} engagement package(s) generated for weak topics. Interleave one per homework cycle.`,

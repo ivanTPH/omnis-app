@@ -36,6 +36,7 @@ import {
   type CachedCoachSendAdvice,
 } from '@/lib/omnis-inference'
 import { RETRIEVAL_SPACING_SKILL, assertSkillPermitted, ALL_STANDARDS } from './skills'
+import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
 import { findOakDataForTopics, extractMisconceptions } from '@/lib/oak-content'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -353,10 +354,16 @@ async function generateRecommendation(
     maxFocusTopics: MAX_FOCUS_TOPICS,
   }
 
+  const retrievalSpacingPrompt = await resolveSkillFragment(
+    AgentType.COACH,
+    AgentSkillId.RETRIEVAL_SPACING,
+    RETRIEVAL_SPACING_SKILL.systemPromptFragment,
+  )
+
   const response = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 1200,
-    system: `${RETRIEVAL_SPACING_SKILL.systemPromptFragment}
+    system: `${retrievalSpacingPrompt.fragment}
 
 You are also applying the Bloom's Analysis skill to classify any Bloom's gaps across topics.${sendAdviceBlock}${oakMisconceptionsBlock}
 
@@ -447,7 +454,7 @@ async function writeAuditEntry({
       schoolId,
       agentType:        AgentType.COACH,
       skillId,
-      skillVersion:     1,
+      skillVersion:     await resolveSkillVersion(AgentType.COACH, skillId),
       standardsApplied: ALL_STANDARDS[skillId],
       outputSummary,
       decision,

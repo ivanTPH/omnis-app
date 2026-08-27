@@ -96,17 +96,29 @@ def main():
             continue
 
         promote = result["promote"] and not args.dry_run
-        version_id = data.write_skill_version(
-            skill_id=skill_id,
-            agent_type=agent_type,
-            instructions=result["instructions"],
-            demonstrations=result["demonstrations"],
-            metric_score=result["metric_score"],
-            metric_breakdown=result["metric_breakdown"],
-            training_example_count=result["training_example_count"],
-            optimizer_run_id=run_id,
-            promote=promote,
-        )
+        # write_skill_version() is its own try/except -- this is the moment right after
+        # a (potentially expensive, minutes-long) MIPROv2 compile, and a transient DB/
+        # pooler blip here previously crashed the whole process, abandoning every
+        # remaining pair in `targets` even though only this one write failed. A failure
+        # here is now isolated exactly like an optimize_skill() failure above: recorded,
+        # flagged, and the loop continues to the next pair.
+        try:
+            version_id = data.write_skill_version(
+                skill_id=skill_id,
+                agent_type=agent_type,
+                instructions=result["instructions"],
+                demonstrations=result["demonstrations"],
+                metric_score=result["metric_score"],
+                metric_breakdown=result["metric_breakdown"],
+                training_example_count=result["training_example_count"],
+                optimizer_run_id=run_id,
+                promote=promote,
+            )
+        except Exception as e:
+            had_failure = True
+            summary[key] = {"error": f"optimize_skill succeeded but write_skill_version failed: {e}"}
+            print(f"FAILED (write_skill_version): {e}\n{traceback.format_exc()}")
+            continue
         print(f"score={result['metric_score']:.3f} "
               f"(baseline={result['metric_breakdown']['baseline_score']:.3f}, "
               f"active={result['metric_breakdown']['active_score']}) "
@@ -125,7 +137,17 @@ def main():
     _check_last_promotion_regression(summary)
 
     status = "succeeded" if not had_failure else "partial_failure"
-    data.finish_optimization_run(run_id, status=status, summary=summary)
+    # finish_optimization_run() is the run's only transition out of status='running' --
+    # if this write itself fails (DB blip right at the end), the row is otherwise
+    # indistinguishable from "still executing" days later. Catch it, log loudly to
+    # stderr so the GitHub Actions job shows a failure, and always exit non-zero in
+    # that case regardless of had_failure, since the run's outcome went unrecorded.
+    try:
+        data.finish_optimization_run(run_id, status=status, summary=summary)
+    except Exception as e:
+        print(f"FAILED to write final run status ({status}) for {run_id}: {e}\n{traceback.format_exc()}",
+              file=sys.stderr)
+        return 1
     print(f"\nAgentOptimizationRun {run_id}: {status}")
     return 1 if had_failure else 0
 

@@ -8,8 +8,10 @@
  * Schedule: nightly at 02:30 UTC (after early-warning at 02:00).
  *
  * SECURITY:
- *  - Requires Authorization: Bearer <CRON_SECRET> when env var is set.
- *  - In dev (no CRON_SECRET): unauthenticated requests are allowed.
+ *  - Requires Authorization: Bearer <CRON_SECRET>. An unset CRON_SECRET denies all
+ *    requests (matching agent-quality/agent-plan-synthesis/agent-engage) rather than
+ *    falling open -- a misconfigured/missing env var must never leave this endpoint
+ *    publicly callable.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -20,11 +22,9 @@ export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret) {
-    const auth = request.headers.get('authorization')
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  const auth = request.headers.get('authorization')
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const startTime = Date.now()
@@ -63,14 +63,19 @@ export async function GET(request: NextRequest) {
       `${grandGaps} gaps found, ${grandErrors} errors across ${schools.length} schools in ${durationMs}ms`
     )
 
+    // Nothing succeeded but errors were recorded (e.g. every call failed the same way --
+    // a revoked ANTHROPIC_API_KEY is the classic case) -- that's a systemic failure, not a
+    // few bad students. Return non-2xx so the GitHub Actions cron's `curl -sf` fails loudly
+    // instead of a 200 with the failure buried in the JSON body that nothing ever reads.
+    const systemicFailure = grandProcessed === 0 && grandErrors > 0
     return NextResponse.json({
-      success: true,
+      success: !systemicFailure,
       grandProcessed,
       grandErrors,
       grandGaps,
       schools: results,
       durationMs,
-    })
+    }, { status: systemicFailure ? 502 : 200 })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[agent-coach cron] FATAL:', err)

@@ -58,12 +58,17 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // See app/api/cron/agent-coach/route.ts's identical guard: nothing succeeded but
+  // errors were recorded means a systemic failure (e.g. a revoked API key), not a few
+  // bad students -- return non-2xx so the cron's `curl -sf` actually fails instead of a
+  // silently-buried 200.
+  const systemicFailure = grandProcessed === 0 && grandErrors > 0
   return NextResponse.json({
-    ok:             true,
+    ok:             !systemicFailure,
     grandProcessed,
     grandErrors,
     grandUrgent,
     schools:        schoolResults,
     durationMs:     Date.now() - started,
-  })
+  }, { status: systemicFailure ? 502 : 200 })
 }

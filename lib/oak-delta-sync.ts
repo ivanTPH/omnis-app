@@ -77,8 +77,31 @@ async function getBuildId(): Promise<string> {
   return match[1]
 }
 
+// A real sitemap has ~10,000+ lesson entries (see dspy-service docs). If a bad HTTP
+// response, an Oak-side outage, or a sitemap-format change ever makes getLessonEntries()
+// return a near-empty list, the delete-reconciliation steps in runDeltaSync() below would
+// otherwise read that as "nothing exists anymore" and soft-delete the entire Oak catalogue
+// in one run. This floor is the guard against that -- see runDeltaSync()'s check right
+// after calling getLessonEntries().
+const MIN_EXPECTED_LESSON_ENTRIES = 1000
+
 async function getLessonEntries(): Promise<LessonEntry[]> {
-  const xml     = await fetch(`${OAK_BASE}/teachers/sitemap-1.xml`).then(r => r.text())
+  let xml = ''
+  let lastErr: unknown
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(`${OAK_BASE}/teachers/sitemap-1.xml`, { headers: { 'User-Agent': 'Omnis-Oak-DeltaSync/1.0' } })
+      if (!res.ok) throw new Error(`HTTP ${res.status} fetching Oak sitemap`)
+      xml = await res.text()
+      lastErr = undefined
+      break
+    } catch (err) {
+      lastErr = err
+      if (attempt < 3) await sleep(attempt * 800)
+    }
+  }
+  if (lastErr) throw lastErr instanceof Error ? lastErr : new Error(String(lastErr))
+
   const pattern = /\/teachers\/programmes\/([^/]+)\/units\/([^/]+)\/lessons\/([^/<]+)/g
   const entries: LessonEntry[] = []
   let m: RegExpExecArray | null
@@ -297,6 +320,16 @@ export async function runDeltaSync(): Promise<{ counts: DeltaSyncCounts; duratio
   try {
     const buildId = await getBuildId()
     const entries = await getLessonEntries()
+
+    // Safety floor -- see the comment above MIN_EXPECTED_LESSON_ENTRIES. A near-empty
+    // entries list here almost certainly means a bad fetch, not a real empty catalogue,
+    // so abort before any of the delete-reconciliation updateMany() calls below run.
+    if (entries.length < MIN_EXPECTED_LESSON_ENTRIES) {
+      throw new Error(
+        `Oak sitemap returned only ${entries.length} lesson entries (expected ${MIN_EXPECTED_LESSON_ENTRIES}+) -- ` +
+        `aborting delta sync before reconciliation to avoid mass-deleting the Oak catalogue.`
+      )
+    }
 
     const programmeMap     = new Map<string, ProgrammeMeta>()
     const seenSubjectSlugs = new Set<string>()

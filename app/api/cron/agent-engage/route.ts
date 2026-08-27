@@ -66,15 +66,19 @@ export async function GET(request: NextRequest) {
       `${grandErrors} errors across ${schools.length} schools in ${durationMs}ms`
     )
 
+    // See agent-coach's identical guard: nothing succeeded but errors were recorded means
+    // a systemic failure (e.g. a revoked API key), not a few bad students -- return non-2xx
+    // so the cron's `curl -sf` actually fails instead of a silently-buried 200.
+    const systemicFailure = grandProcessed === 0 && grandErrors > 0
     return NextResponse.json({
-      success: true,
+      success: !systemicFailure,
       grandProcessed,
       grandErrors,
       grandPackages,
       grandCacheHits,
       schools: results,
       durationMs,
-    })
+    }, { status: systemicFailure ? 502 : 200 })
   } catch (err) {
     const durationMs = Date.now() - startTime
     console.error('[agent-engage cron] FATAL:', err)

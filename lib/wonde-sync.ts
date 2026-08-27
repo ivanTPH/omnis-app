@@ -68,10 +68,26 @@ function yearCodeToInt(code: string | undefined): number | null {
   return isNaN(n) ? null : n
 }
 
-/** Run `fn` over `items` in parallel chunks of `size`. */
+/**
+ * Run `fn` over `items` in parallel chunks of `size`.
+ *
+ * Uses Promise.allSettled rather than Promise.all so one item's failure (a bad
+ * record, a constraint violation) doesn't reject the whole chunk and abort every
+ * remaining chunk in this phase -- previously, e.g. employee #245 of 500 failing
+ * meant employees 250-500 were silently skipped for the run while 1-240 already
+ * persisted (no transaction wraps these upserts). A rejected item is logged and
+ * skipped; the batch keeps going. Earlier writes in the batch are unaffected
+ * either way, since each upsert is already its own independent statement.
+ */
 async function inBatches<T>(items: T[], fn: (item: T) => Promise<void>, size = 10): Promise<void> {
   for (let i = 0; i < items.length; i += size) {
-    await Promise.all(items.slice(i, i + size).map(fn))
+    const chunk   = items.slice(i, i + size)
+    const results = await Promise.allSettled(chunk.map(fn))
+    results.forEach((r, idx) => {
+      if (r.status === 'rejected') {
+        console.error('[wonde-sync] item failed, skipping:', chunk[idx], r.reason)
+      }
+    })
   }
 }
 

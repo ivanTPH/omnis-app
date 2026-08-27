@@ -9,6 +9,7 @@ on:
     - cron: '0 3 * * *'
     - cron: '30 3 * * *'
     - cron: '0 4 * * *'
+    - cron: '30 2 * * 0'
   push:
     branches: [main]
   workflow_dispatch:
@@ -58,3 +59,24 @@ jobs:
         if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
         run: |
           curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer $CRON_SECRET"
+
+      # DSPy weekly skill optimization -- runs 30 min after oak-sync (Sundays 02:30 UTC)
+      # so CURRICULUM_ALIGNMENT judging happens against freshly-synced Oak content.
+      - name: checkout-for-dspy
+        if: github.event.schedule == '30 2 * * 0' || github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: setup-python-for-dspy
+        if: github.event.schedule == '30 2 * * 0' || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: dspy-weekly-optimize
+        if: github.event.schedule == '30 2 * * 0' || github.event_name == 'workflow_dispatch'
+        run: |
+          pip install -r dspy-service/requirements.txt
+          python dspy-service/weekly_run.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

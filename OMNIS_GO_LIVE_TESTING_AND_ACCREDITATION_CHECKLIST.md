@@ -22,8 +22,8 @@ tells you what to drop in it.
 
 | Phase | Area | Status | Blocks Go-Live? | Owner |
 |---|---|---|---|---|
-| 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next) | YES | You + Claude |
-| 6 | Load, resilience & failure testing | 🟡 Scripts/plan prepared, not yet run — 🔴 confirmed Free tier, upgrade deferred but required before go-live | YES | You + Claude |
+| 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed — see below, still not the full ~47-file read-through | YES | You + Claude |
+| 6 | Load, resilience & failure testing | 🟡 Scripts/plan prepared, not yet run (6.1) — 27 Aug: scenario 1 (Wonde downtime) and part of scenario 3 (DB connection loss) got real code fixes plus real unplanned production evidence, see below — 🔴 confirmed Free tier, upgrade deferred but required before go-live (6.3, unchanged) | YES | You + Claude |
 | 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
 | 8 | Data protection & Children's Code compliance | 🟡 Partial (Children's Code section added 10 Jul 2026 — 4 of 15 standards need product fixes: 4, 7, 11, 15, see 8.1) | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
@@ -81,20 +81,29 @@ students' worth of submissions, not just 32?
   reviews and records agreement rate).
 ```
 
-**5.4 Multi-tenancy isolation audit — 🟡 first pass done 10 Jul 2026**
+**5.4 Multi-tenancy isolation audit — 🟡 broader pass done 27 Aug 2026, not yet exhaustive**
 ```
-Static audit complete for the 5 lowest schoolId-ratio files in app/actions/
-(see evidence/phase5-mis-synthetic-data/tenancy-isolation.md). Result: 4
-false positives (correctly scoped by ownership/design, not literal
-schoolId), 1 real but low-severity finding — getAccessibilitySettings()
-in accessibility.ts has no internal auth check (not currently exploitable
-via any UI path, but should be hardened to match the pattern already used
-elsewhere in the codebase).
+10 Jul 2026: static audit of the 5 lowest schoolId-ratio files in app/actions/
+(see evidence/phase5-mis-synthetic-data/tenancy-isolation.md). 4 false
+positives, 1 real low-severity finding (accessibility.ts) — fixed same day.
+
+27 Aug 2026: separate, larger sweep covered ~24 more app/actions/ files plus
+13 dynamic export routes previously flagged as unreviewed. 12 confirmed
+findings, including 1 CRITICAL (createHomework() — no role check, could
+create homework against another school and email its real students/
+parents). All fixed same day. Full detail:
+docs/audit/2026-08-27-hardening-security-sweep.md. Cross-referenced against
+this item's own prioritised list in the evidence file's 27 Aug update.
 
 Still outstanding:
-- [ ] Extend the same manual read-through to the remaining ~47 files in
-      app/actions/, prioritising send-support.ts, safeguarding.ts, ehcp.ts,
-      students.ts given data sensitivity
+- [ ] send-support.ts, safeguarding.ts, students.ts (3 of the 4 files this
+      item originally prioritised) still haven't been the specific target
+      of a dedicated read-through — ehcp.ts (the 4th) got 5 fixes in the
+      26 Aug audit instead
+- [ ] The ~70 non-dynamic app/api/export/** routes remain unreviewed
+- [ ] The original scan's broader "540 REVIEW" bucket (schoolId present in
+      the function but not verifiably tied to the specific id) remains
+      largely unreviewed beyond the samples checked across all three passes
 - [x] Fixed 10 Jul 2026 — getAccessibilitySettings() now ignores the passed
       userId and calls requireAuth(), matching saveAccessibilitySettings()
 - [ ] Live cross-tenant test: seed two synthetic schools side by side, log
@@ -153,10 +162,47 @@ Read CLAUDE.md. Simulate and document behaviour for:
   a white screen or silent failure. Record in /evidence/failure-tests.md.
 ```
 
-**6.2 Failure/chaos testing — 🟡 plan prepared 10 Jul 2026, not yet executed**
+**6.2 Failure/chaos testing — 🟡 2 of 4 scenarios got real code hardening 27 Aug 2026, none formally executed as a drill**
 See `evidence/phase6-load-resilience/failure-test-plan.md` for the 4 scenarios
 (Wonde downtime, AI timeout, DB connection loss, concurrent grade edits) and
-exact simulation steps. Blocked on the same isolated-environment need as 6.1.
+exact simulation steps. Formal drill execution is still blocked on the same
+isolated-environment need as 6.1 — none of the below was run as a scripted
+chaos test. What changed this session, from the resilience audit at
+`docs/audit/2026-08-27-resilience-audit.md` (6 findings fixed, commit `f99e715`):
+
+- **Scenario 1 (Wonde downtime) — real code fix.** `lib/wonde-sync.ts`'s
+  `inBatches()` used `Promise.all`, so one bad record aborted every remaining
+  chunk in that sync phase. Now uses `Promise.allSettled` — a failed record
+  is logged and skipped, the rest of the phase completes.
+- **Scenario 3 (DB connection loss) — partially covered, plus real production
+  evidence.** Today's deploy also produced an actual unplanned incident:
+  two consecutive Coolify deploys failed on Prisma connection-pool
+  exhaustion (`connection_limit: 5`) while `e2e.yml` hit production
+  concurrently — see `docs/audit/2026-08-27-hardening-security-sweep.md`'s
+  "Deployment incident" section. Fixed live via `connection_limit=20`
+  (headroom, not a structural fix — see below). Related hardening from the
+  same audit: DSPy's `weekly_run.py` no longer crashes the whole optimizer
+  run if a single DB write fails mid-loop; all four agent cron routes
+  (`agent-coach`, `agent-quality`, `agent-plan-synthesis`, `agent-engage`)
+  now return `502` instead of a silent `200` when every attempt in a run
+  fails, so a total outage (e.g. a revoked `ANTHROPIC_API_KEY`) actually
+  shows red in GitHub Actions instead of going unnoticed.
+- **Scenario 2 (AI provider timeout) and Scenario 4 (concurrent grade
+  edits) — not addressed this round.** No changes made; still open.
+
+Also fixed as part of the same pass, not one of the 4 listed scenarios but a
+related data-loss risk: `lib/oak-delta-sync.ts` could have mass-deleted the
+entire Oak curriculum catalogue (10,000+ lessons) on a single bad HTTP
+response from the Oak sitemap — no `res.ok` check, no retry, and an empty
+result set was treated as "nothing exists anymore" by the reconciliation
+logic. Now retries 3x with backoff and refuses to reconcile at all if the
+entry count looks implausibly low (<1,000).
+
+**Still open, unresolved by design:** the underlying e2e/production coupling
+that caused the connection-pool incident above. Three options are written up
+in the resilience audit doc (point E2E at the existing second Vercel project;
+decouple the E2E trigger from the deploy trigger; give E2E's DB connection
+its own separate pool) — none implemented, pending your call.
 
 **6.3 Backup & recovery drill — 🔴 confirmed Free tier, upgrade deferred**
 - [x] Confirmed 10 Jul 2026 (by you): Supabase project "Ivan Omnis"

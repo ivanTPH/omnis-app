@@ -80,6 +80,30 @@ remaining files, prioritising ones handling SEND/EHCP/safeguarding data
 sensitivity, even though their schoolId ratios looked healthy in the triage
 scan.
 
+## 27 August 2026 update — broader sweep, different file list
+
+Two rounds of subagent-driven review that day covered a mostly-disjoint set
+of files from this one: a cross-tenant IDOR sweep against ~24 `app/actions/`
+files (`plans.ts`, `kplan.ts`, `year-group-plans.ts`, `homework.ts`,
+`lessons.ts`, `rag.ts`, `adaptive-learning.ts`, and others left unreviewed
+by the 26 August audit), plus 13 previously-unchecked dynamic export routes.
+Result: 12 confirmed findings (1 CRITICAL — `createHomework()` had no role
+check and could create homework against another school's class, emailing
+that school's real students/parents; 5 HIGH; 4 MEDIUM; 2 LOW) plus a 2-route
+auth gap on the export side, all fixed same day. Full writeup:
+`docs/audit/2026-08-27-hardening-security-sweep.md`.
+
+Between the two passes (10 July's 5 files here + 27 August's ~24 files),
+`send-support.ts`/`safeguarding.ts`/`students.ts` — three of the four files
+this section explicitly prioritised — still haven't been the *specific*
+target of a dedicated read-through under this checklist item, though
+`ehcp.ts` (the fourth) did get 5 fixed findings in the separate 26 August
+audit (`docs/audit/2026-08-26-schoolid-tenant-scoping-audit.md`). The ~70
+non-dynamic export routes and the original scan's broader "540 REVIEW"
+bucket (schoolId present in the function but not verifiably tied to the
+specific id) remain unreviewed either way — see the hardening-sweep doc's
+"Not covered" section for the exact remaining gap.
+
 ## Live cross-tenant test
 
 Not yet run — requires two seeded synthetic schools side by side (see item

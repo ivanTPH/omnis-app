@@ -53,11 +53,11 @@ Tab (`getStudentAiJourney()`, `lib/agents/labels.ts`, `AiDecisionExplanation.tsx
 
 ## Commit / push state (2026-08-27, round 4)
 
-`main` is 3 commits ahead of `origin/main`: `f5e4ff4` (schema fix), `2d8ae24` (inputRefs), and `7a6503c` (14 cross-tenant fixes + inputRefs free-text strip — see `2026-08-27-hardening-security-sweep.md`). No schema changes in `7a6503c`, but `npx prisma generate` still needs to run once for `f5e4ff4`/earlier if it hasn't already; then run `npx tsc --noEmit` (not yet verified for `7a6503c` — the device-bridge shell can't complete a full `tsc` pass within its command timeout) before `git push`.
+`f5e4ff4`, `2d8ae24`, and `e067d5f` were pushed and confirmed live on `origin/main` earlier this session. `main` is now 2 further commits ahead: `7a6503c` (14 cross-tenant fixes + inputRefs free-text strip — see `2026-08-27-hardening-security-sweep.md`) and `74065e8` (this doc update). No schema changes in either, so `prisma generate` isn't required for these two specifically, but `npx tsc --noEmit` has NOT been verified for `7a6503c` — the device-bridge shell can't complete a full `tsc` pass within its command timeout (confirmed: killed at 40s with no output) — and only the pre-commit hook's `eslint` ran automatically.
 
 ## Next steps
 
-1. From Ivan's terminal: `npx prisma generate`, `npx tsc --noEmit` (fix anything it surfaces), then `git push`.
+1. From Ivan's terminal: `npx tsc --noEmit` (fix anything it surfaces), then `git push`.
 2. Decide whether to take on the harder inputRefs-to-signature-field-name alignment (would change audit-write granularity in several agents).
 3. Decide whether to extend Step 1 to K Plan / homework / resource-adaptation edit surfaces.
 4. Decide whether to add a denormalized `schoolId` column to `ResourceVersion` (flagged, not yet exploitable — see the hardening sweep doc's structural note).

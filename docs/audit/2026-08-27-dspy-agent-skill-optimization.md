@@ -51,14 +51,13 @@ Tab (`getStudentAiJourney()`, `lib/agents/labels.ts`, `AiDecisionExplanation.tsx
 
 `School.isDemo` + `dspy-service/data.py` filters.
 
-## Commit / push state (2026-08-27, round 4)
+## Commit / push state (2026-08-27, round 4) — DONE, deployed
 
-`f5e4ff4`, `2d8ae24`, and `e067d5f` were pushed and confirmed live on `origin/main` earlier this session. `main` is now 2 further commits ahead: `7a6503c` (14 cross-tenant fixes + inputRefs free-text strip — see `2026-08-27-hardening-security-sweep.md`) and `74065e8` (this doc update). No schema changes in either, so `prisma generate` isn't required for these two specifically, but `npx tsc --noEmit` has NOT been verified for `7a6503c` — the device-bridge shell can't complete a full `tsc` pass within its command timeout (confirmed: killed at 40s with no output) — and only the pre-commit hook's `eslint` ran automatically.
+`tsc --noEmit` came back clean from Ivan's terminal, `main` pushed through `487d778`, and confirmed live in production via Coolify (deployment `487d778`, Success, 16:48–17:00 UTC — the first two deploy attempts failed on an unrelated production connection-pool issue, diagnosed and fixed same session; full writeup in `2026-08-27-hardening-security-sweep.md`).
 
 ## Next steps
 
-1. From Ivan's terminal: `npx tsc --noEmit` (fix anything it surfaces), then `git push`.
-2. Decide whether to take on the harder inputRefs-to-signature-field-name alignment (would change audit-write granularity in several agents).
-3. Decide whether to extend Step 1 to K Plan / homework / resource-adaptation edit surfaces.
-4. Decide whether to add a denormalized `schoolId` column to `ResourceVersion` (flagged, not yet exploitable — see the hardening sweep doc's structural note).
-5. Continue the hardening phase: resilience audit (error handling / fallback behaviour across agents and crons), performance audit (query profiling) — neither started yet; security/compliance is now closed out for this round.
+1. Decide whether to take on the harder inputRefs-to-signature-field-name alignment (would change audit-write granularity in several agents).
+2. Decide whether to extend Step 1 to K Plan / homework / resource-adaptation edit surfaces.
+3. Decide whether to add a denormalized `schoolId` column to `ResourceVersion` (flagged, not yet exploitable — see the hardening sweep doc's structural note).
+4. Continue the hardening phase: resilience audit (error handling / fallback behaviour across agents and crons — now also including the e2e-against-production architecture flagged during this round's deploy incident) and performance audit (query profiling) — neither started yet; security/compliance is now closed out for this round.

@@ -2,7 +2,7 @@
 
 Wiring an already-built, standalone DSPy weekly-optimization pipeline (Python service, separate from this repo) into the Next.js app, plus the explainability (XAI) layer it enables. Full design rationale lives in the Claude Project doc `dspy-optimization-and-xai-design.md`; this file tracks integration status against the pipeline's own `INTEGRATION.md`, which specifies three required app-side changes.
 
-## STATUS: All three INTEGRATION.md steps done. evidence-agent.ts audit gap fixed. XAI build scope complete (tab + DSAR PDF). inputRefs now populated across all 4 agents. Everything committed locally on `main`, 2 commits not yet pushed — needs `npx prisma generate` then `git push` from Ivan's own terminal.
+## STATUS: All three INTEGRATION.md steps done. evidence-agent.ts audit gap fixed. XAI build scope complete (tab + DSAR PDF). inputRefs now populated across all 4 agents (and, as of round 4, narrowed for plan-synthesis.ts to strip free text — see below and `docs/audit/2026-08-27-hardening-security-sweep.md`). Everything committed locally on `main`, 3 commits not yet pushed — needs `npx prisma generate` (no new schema changes this round, but re-run anyway) then `npx tsc --noEmit` then `git push` from Ivan's own terminal.
 
 ### A mistake made and fixed this round, flagged plainly
 
@@ -37,6 +37,8 @@ Now writes an `AgentAuditEntry` under `(EVIDENCE, APDR_CYCLE)` for every evidenc
 
 **Deliberately NOT done — and worth understanding why before touching this again:** `dspy-service/signatures.py`'s actual `dspy.InputField` names per skill (e.g. `RetrievalSpacing` wants `weak_topic` + `prior_attempt_summary` as two *scalar* fields, not an array) don't match what got wired in here, and can't cleanly — several of these audit entries are one aggregated write per agent run (e.g. one `RETRIEVAL_SPACING` entry covering *all* weak topics at once), while the DSPy signature wants one example *per topic*. Properly aligning the two means restructuring several agents to write one audit entry per instance rather than one per run — a bigger, riskier change than populating `inputRefs` with best-available context, deliberately not attempted this round. What's shipped now is a real improvement (the XAI sentence renders, and `data.py`'s per-string-field extraction picks up whatever scalar fields exist) but not the final shape.
 
+**Round 4 correction (2026-08-27, security sweep):** the `plan-synthesis.ts` version of this fix shipped a real problem — `APDR_CYCLE`/`SEND_DIFFERENTIATION`'s `inputRefs` carried raw ILP target descriptions, K Plan strategy text, and LLM-generated conflict prose (special-category SEND free text). Because DSPy pools training examples across all schools and a promoted skill's `demonstrations` get injected verbatim into every school's live prompt (`skill-prompt.ts:78-79`), this was a real — if indirect — path for one school's SEND data to reach another school's agent prompts. Fixed in commit `7a6503c`: `plan-synthesis.ts`'s `inputRefs` now carries only ids and counts (`targetsWithoutEvidenceIds`, `missingKPlanCoverageIds`, `staleStrategyCount`, `conflictCount`), never the underlying text. `coach.ts`/`quality.ts`/`engage.ts`'s `inputRefs` were reviewed in the same pass and left as-is — they only ever held ids or short curriculum-topic strings, not personal/special-category content. Full writeup: `docs/audit/2026-08-27-hardening-security-sweep.md`.
+
 ### XAI explainability — StudentAiJourney tab + DSAR PDF: DONE
 
 Tab (`getStudentAiJourney()`, `lib/agents/labels.ts`, `AiDecisionExplanation.tsx`, `AiJourneyTab.tsx`) plus DSAR PDF export (`lib/pdf/ai-journey-template.ts`, `app/api/export/ai-journey-pdf/[dsrId]/route.ts`, wired into `DataSubjectRequestList.tsx` and folded into the existing JSON export in `app/actions/gdpr.ts`).
@@ -49,13 +51,14 @@ Tab (`getStudentAiJourney()`, `lib/agents/labels.ts`, `AiDecisionExplanation.tsx
 
 `School.isDemo` + `dspy-service/data.py` filters.
 
-## Commit / push state (2026-08-27, round 3)
+## Commit / push state (2026-08-27, round 4)
 
-`main` is 2 commits ahead of `origin/main`: `f5e4ff4` (schema fix) and `2d8ae24` (inputRefs). Needs `npx prisma generate` then `git push` from Ivan's terminal.
+`main` is 3 commits ahead of `origin/main`: `f5e4ff4` (schema fix), `2d8ae24` (inputRefs), and `7a6503c` (14 cross-tenant fixes + inputRefs free-text strip — see `2026-08-27-hardening-security-sweep.md`). No schema changes in `7a6503c`, but `npx prisma generate` still needs to run once for `f5e4ff4`/earlier if it hasn't already; then run `npx tsc --noEmit` (not yet verified for `7a6503c` — the device-bridge shell can't complete a full `tsc` pass within its command timeout) before `git push`.
 
 ## Next steps
 
-1. Push (see above).
+1. From Ivan's terminal: `npx prisma generate`, `npx tsc --noEmit` (fix anything it surfaces), then `git push`.
 2. Decide whether to take on the harder inputRefs-to-signature-field-name alignment (would change audit-write granularity in several agents).
 3. Decide whether to extend Step 1 to K Plan / homework / resource-adaptation edit surfaces.
-4. Continue the hardening phase: resilience audit (error handling / fallback behaviour across agents and crons), performance audit (query profiling), or a fresh security re-sweep — none started yet.
+4. Decide whether to add a denormalized `schoolId` column to `ResourceVersion` (flagged, not yet exploitable — see the hardening sweep doc's structural note).
+5. Continue the hardening phase: resilience audit (error handling / fallback behaviour across agents and crons), performance audit (query profiling) — neither started yet; security/compliance is now closed out for this round.

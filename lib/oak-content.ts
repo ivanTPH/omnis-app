@@ -41,8 +41,20 @@ const MAX_CACHE_SIZE = 500
 const TTL_MS         = 24 * 60 * 60 * 1_000  // 24 h
 
 type CacheEntry = { data: OakLessonContent; expiresAt: number }
-const bySlug      = new Map<string, CacheEntry>()   // slug → content
-const byLessonId  = new Map<string, string | null>() // lessonId → slug | null
+const bySlug        = new Map<string, CacheEntry>()   // slug → content
+const byLessonId    = new Map<string, string | null>() // lessonId → slug | null
+
+// findOakDataForTopics() is called once per eligible student in the coach/engage
+// crons, and students in the same class/subject very often share the same weak
+// topics -- without this, every student re-ran the same ILIKE scan over the Oak
+// table. Keyed on the normalised (topics, subjectSlug, limit) tuple, separate
+// from bySlug/byLessonId since a topic query can match multiple lessons.
+type TopicCacheEntry = { data: OakLessonContent[]; expiresAt: number }
+const byTopicQuery = new Map<string, TopicCacheEntry>()
+
+function topicCacheKey(topics: string[], subjectSlug: string, limit: number): string {
+  return `${subjectSlug}::${limit}::${[...topics].map(t => t.trim().toLowerCase()).sort().join('|')}`
+}
 
 function get(slug: string): OakLessonContent | null {
   const entry = bySlug.get(slug)
@@ -116,6 +128,13 @@ export async function findOakDataForTopics(
 ): Promise<OakLessonContent[]> {
   if (topics.length === 0) return []
 
+  const cacheKey = topicCacheKey(topics, subjectSlug, limit)
+  const cached = byTopicQuery.get(cacheKey)
+  if (cached) {
+    if (Date.now() <= cached.expiresAt) return cached.data
+    byTopicQuery.delete(cacheKey)
+  }
+
   // Build OR clauses — search title and pupilLessonOutcome per topic
   const terms = topics.flatMap(t => t.split(/\s+/).filter(w => w.length > 3))
   if (terms.length === 0) return []
@@ -136,6 +155,13 @@ export async function findOakDataForTopics(
 
   const results = rows as OakLessonContent[]
   results.forEach(r => set(r))
+
+  if (byTopicQuery.size >= MAX_CACHE_SIZE) {
+    const first = byTopicQuery.keys().next().value
+    if (first) byTopicQuery.delete(first)
+  }
+  byTopicQuery.set(cacheKey, { data: results, expiresAt: Date.now() + TTL_MS })
+
   return results
 }
 

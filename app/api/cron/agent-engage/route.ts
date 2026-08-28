@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                    from '@/lib/prisma'
 import { runEngageBatchForSchool }   from '@/lib/agents/engage'
 import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
+import { runBounded } from '@/lib/batch'
 
 export const maxDuration = 300
 
@@ -46,7 +47,9 @@ export async function GET(request: NextRequest) {
 
     let grandProcessed = 0, grandErrors = 0, grandPackages = 0, grandCacheHits = 0
 
-    for (const school of schools) {
+    // Bounded concurrency (3 schools at a time) -- see agent-coach's identical
+    // comment; sequential per-school processing risked exceeding the 300s cap.
+    await runBounded(schools, async (school) => {
       try {
         const r = await runEngageBatchForSchool(school.id)
         results.push({ schoolId: school.id, name: school.name, ...r })
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
         results.push({ schoolId: school.id, name: school.name, processed: 0, skipped: 0, errors: 1, totalPackages: 0, cacheHits: 0 })
         grandErrors++
       }
-    }
+    }, 3)
 
     const durationMs = Date.now() - startTime
     console.log(

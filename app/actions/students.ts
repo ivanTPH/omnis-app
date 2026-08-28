@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
 import type { ApdrRow } from '@/app/actions/send-support'
 import { getAgentInsights } from '@/app/actions/agent-insights'
+import { runBounded } from '@/lib/batch'
 
 // ── Auth helpers ────────────────────────────────────────────────────────────
 
@@ -1101,11 +1102,17 @@ export async function bulkGenerateLearningPassports(
   const existingSet = new Set(existing.map(e => e.studentId))
 
   let generated = 0, skipped = 0, errors = 0
-  for (const { userId } of enrolments) {
-    if (existingSet.has(userId)) { skipped++; continue }
+  const toGenerate = enrolments.filter(({ userId }) => !existingSet.has(userId))
+  skipped += enrolments.length - toGenerate.length
+
+  // Bounded concurrency (3 at a time) instead of one-at-a-time -- each call is
+  // a real Anthropic request, so this stays conservative rather than firing
+  // the whole class at once, but a 30-student class no longer serialises to
+  // 30x a single generation's latency.
+  await runBounded(toGenerate, async ({ userId }) => {
     const result = await generateLearningPassport(userId)
     if (result.ok) generated++; else errors++
-  }
+  }, 3)
   return { generated, skipped, errors }
 }
 
@@ -1123,13 +1130,17 @@ export async function generatePassportsForStudents(
   const existingSet = new Set(existing.map(e => e.studentId))
 
   let created = 0, skipped = 0, errors = 0
-  for (const studentId of studentIds) {
-    if (existingSet.has(studentId)) { skipped++; continue }
+  const toGenerate = studentIds.filter(id => !existingSet.has(id))
+  skipped += studentIds.length - toGenerate.length
+
+  // Bounded concurrency (3 at a time) instead of a sequential loop with a
+  // fixed 500ms inter-call delay -- keeps the same rate-limiting caution
+  // (concurrency capped low, not unbounded) while no longer serialising a
+  // large multi-select to one generation's latency times the student count.
+  await runBounded(toGenerate, async (studentId) => {
     const result = await generateLearningPassport(studentId)
     if (result.ok) created++; else errors++
-    // Small delay to avoid rate limiting
-    await new Promise(r => setTimeout(r, 500))
-  }
+  }, 3)
   return { created, skipped, errors }
 }
 

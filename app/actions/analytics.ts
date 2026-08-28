@@ -362,11 +362,24 @@ export async function getStudentPerformance(filters: AnalyticsFilters): Promise<
   const subMap = new Map<string, typeof submissions[0]>()
   for (const s of submissions) subMap.set(`${s.studentId}:${s.homeworkId}`, s)
 
+  // homeworkId → Homework, and classId → Homework[] -- both built once up
+  // front so the loops below are O(1) lookups instead of re-scanning the
+  // full `homeworks` array per submission / per student. At 1,500 students
+  // this was previously an O(submissions × homeworks) scan followed by an
+  // O(students × homeworks) filter on every dashboard load.
+  const homeworkById = new Map(homeworks.map(h => [h.id, h]))
+  const homeworksByClassId = new Map<string, typeof homeworks>()
+  for (const hw of homeworks) {
+    const arr = homeworksByClassId.get(hw.classId) ?? []
+    arr.push(hw)
+    homeworksByClassId.set(hw.classId, arr)
+  }
+
   // Class avg score in-memory
   const classScoreMap = new Map<string, number[]>()
   for (const sub of submissions) {
     if (sub.finalScore != null) {
-      const hw = homeworks.find(h => h.id === sub.homeworkId)
+      const hw = homeworkById.get(sub.homeworkId)
       if (hw) {
         const arr = classScoreMap.get(hw.classId) ?? []
         arr.push(sub.finalScore)
@@ -381,7 +394,7 @@ export async function getStudentPerformance(filters: AnalyticsFilters): Promise<
 
   const studentRows: StudentData[] = students.map(student => {
     const enrolledClasses = classIdsByStudent.get(student.id) ?? new Set()
-    const assignedHws     = homeworks.filter(h => enrolledClasses.has(h.classId))
+    const assignedHws     = [...enrolledClasses].flatMap(cid => homeworksByClassId.get(cid) ?? [])
     const send            = sendByStudent.get(student.id)
 
     const hwRows: HomeworkRow[] = assignedHws

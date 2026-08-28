@@ -11,6 +11,7 @@ This folder is the canonical home for pre-launch and ongoing audit reports — s
 | 2026-08-27 | DSPy weekly-optimization + XAI integration | In progress — see file for step-by-step status | [`2026-08-27-dspy-agent-skill-optimization.md`](./2026-08-27-dspy-agent-skill-optimization.md) |
 | 2026-08-27 | Hardening-phase security/compliance sweep (exports, actions, DSPy inputRefs) | 14 findings fixed, deployed (commit `487d778`) | [`2026-08-27-hardening-security-sweep.md`](./2026-08-27-hardening-security-sweep.md) |
 | 2026-08-27 | Resilience audit (agent crons, DSPy weekly run, Oak/Wonde sync error handling) | 6 findings fixed, commit `f99e715`; e2e/production architecture question open, needs a decision | [`2026-08-27-resilience-audit.md`](./2026-08-27-resilience-audit.md) |
+| 2026-08-28 | Performance/efficiency sweep (agent cron concurrency, Oak cache, CSV import, bulk AI gen, analytics dashboard) | 5 findings fixed; analytics dashboard's DB-side aggregation rewrite deliberately deferred, needs dedicated pass | [`2026-08-28-performance-efficiency-sweep.md`](./2026-08-28-performance-efficiency-sweep.md) |
 
 ## Conventions
 

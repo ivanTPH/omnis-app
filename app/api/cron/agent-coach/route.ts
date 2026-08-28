@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                    from '@/lib/prisma'
 import { runCoachBatchForSchool }    from '@/lib/agents/coach'
 import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
+import { runBounded } from '@/lib/batch'
 
 export const maxDuration = 300
 
@@ -44,7 +45,13 @@ export async function GET(request: NextRequest) {
 
     let grandProcessed = 0, grandErrors = 0, grandGaps = 0
 
-    for (const school of schools) {
+    // Schools run with bounded concurrency (3 at a time) rather than one at a
+    // time -- sequential processing risked exceeding the 300s cap once the
+    // school count grew, silently leaving schools later in the list without a
+    // run that night. Concurrency is kept low (not unbounded) since each
+    // school's batch already does its own internal concurrent DB + Anthropic
+    // calls -- see docs/audit/2026-08-28-performance-efficiency-sweep.md.
+    await runBounded(schools, async (school) => {
       try {
         const r = await runCoachBatchForSchool(school.id)
         results.push({ schoolId: school.id, name: school.name, ...r })
@@ -56,7 +63,7 @@ export async function GET(request: NextRequest) {
         results.push({ schoolId: school.id, name: school.name, processed: 0, skipped: 0, errors: 1, totalGaps: 0 })
         grandErrors++
       }
-    }
+    }, 3)
 
     const durationMs = Date.now() - startTime
     console.log(

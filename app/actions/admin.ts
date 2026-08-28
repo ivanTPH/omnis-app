@@ -8,6 +8,7 @@ import { Role, Prisma } from '@prisma/client'
 import { AUDIT_CATEGORIES } from '@/lib/audit-categories'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
+import { runBounded } from '@/lib/batch'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -1258,6 +1259,17 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
   const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
   const result: ImportResult = { created: 0, skipped: 0, errors: [] }
 
+  // Account creation (DB writes) stays a sequential for-loop -- each row's
+  // dedupe check + writes are cheap and the ordering doesn't matter for
+  // correctness. What used to be wrong was awaiting a live email send inside
+  // this same loop: for a whole-school import (the realistic use case) that
+  // serialised minutes of pure network latency, AND a failed send caused the
+  // row to be reported as an error even though the account had already been
+  // created -- misleading, since the account genuinely exists, it just didn't
+  // get its welcome email. Emails are now queued here and sent afterwards
+  // with bounded concurrency, with their own separate success/failure tracking.
+  const emailJobs: Array<{ to: string; firstName: string; activateUrl: string; label: string }> = []
+
   for (const row of rows) {
     try {
       const email = row.email.toLowerCase().trim()
@@ -1304,13 +1316,11 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
         data: { userId: newUser.id, tokenHash: hash, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
       })
 
-      const { sendWelcomeAccountEmail } = await import('@/lib/email')
-      await sendWelcomeAccountEmail({
+      emailJobs.push({
         to:          email,
         firstName:   row.firstName.trim(),
-        role:        'student',
-        schoolName:  school.name,
         activateUrl: `${baseUrl}/reset-password?token=${raw}`,
+        label:       `${row.firstName} ${row.lastName}`,
       })
 
       await writeAudit({
@@ -1323,6 +1333,23 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
     } catch (err) {
       result.errors.push(`${row.firstName} ${row.lastName}: ${String(err)}`)
     }
+  }
+
+  if (emailJobs.length > 0) {
+    const { sendWelcomeAccountEmail } = await import('@/lib/email')
+    await runBounded(emailJobs, async (job) => {
+      try {
+        await sendWelcomeAccountEmail({
+          to:          job.to,
+          firstName:   job.firstName,
+          role:        'student',
+          schoolName:  school.name,
+          activateUrl: job.activateUrl,
+        })
+      } catch (err) {
+        result.errors.push(`${job.label}: account created, but welcome email failed to send: ${String(err)}`)
+      }
+    }, 5)
   }
 
   revalidatePath('/admin/users')

@@ -12,6 +12,7 @@ import { NextRequest, NextResponse }       from 'next/server'
 import { prisma }                           from '@/lib/prisma'
 import { runPlanSynthesisBatchForSchool }   from '@/lib/agents/plan-synthesis'
 import { reportBatchItemFailure, reportSystemicFailure }   from '@/lib/monitoring'
+import { runBounded }                                       from '@/lib/batch'
 
 export const maxDuration = 300
 
@@ -42,7 +43,9 @@ export async function GET(req: NextRequest) {
     urgent:    number
   }> = []
 
-  for (const school of schools) {
+  // Bounded concurrency (3 schools at a time) -- see agent-coach's identical
+  // comment; sequential per-school processing risked exceeding the 300s cap.
+  await runBounded(schools, async (school) => {
     try {
       const result = await runPlanSynthesisBatchForSchool(school.id)
       grandProcessed += result.processed
@@ -57,7 +60,7 @@ export async function GET(req: NextRequest) {
         processed: 0, skipped: 0, errors: 1, urgent: 0,
       })
     }
-  }
+  }, 3)
 
   // See app/api/cron/agent-coach/route.ts's identical guard: nothing succeeded but
   // errors were recorded means a systemic failure (e.g. a revoked API key), not a few

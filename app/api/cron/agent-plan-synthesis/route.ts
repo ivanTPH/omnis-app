@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse }       from 'next/server'
 import { prisma }                           from '@/lib/prisma'
 import { runPlanSynthesisBatchForSchool }   from '@/lib/agents/plan-synthesis'
+import { reportBatchItemFailure, reportSystemicFailure }   from '@/lib/monitoring'
 
 export const maxDuration = 300
 
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
       schoolResults.push({ schoolId: school.id, name: school.name, ...result })
     } catch (err) {
       grandErrors++
-      console.error(`[agent-plan-synthesis] School ${school.id} failed:`, err)
+      reportBatchItemFailure('agent-plan-synthesis', school.id, err, { schoolName: school.name })
       schoolResults.push({
         schoolId: school.id, name: school.name,
         processed: 0, skipped: 0, errors: 1, urgent: 0,
@@ -63,6 +64,9 @@ export async function GET(req: NextRequest) {
   // bad students -- return non-2xx so the cron's `curl -sf` actually fails instead of a
   // silently-buried 200.
   const systemicFailure = grandProcessed === 0 && grandErrors > 0
+  if (systemicFailure) {
+    reportSystemicFailure('agent-plan-synthesis', `all ${schools.length} schools failed, 0 processed`, { grandErrors, schoolCount: schools.length })
+  }
   return NextResponse.json({
     ok:             !systemicFailure,
     grandProcessed,

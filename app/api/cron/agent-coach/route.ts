@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                    from '@/lib/prisma'
 import { runCoachBatchForSchool }    from '@/lib/agents/coach'
+import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
 
 export const maxDuration = 300
 
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
         grandErrors    += r.errors
         grandGaps      += r.totalGaps
       } catch (err) {
-        console.error(`[agent-coach cron] Error for school ${school.id}:`, err)
+        reportBatchItemFailure('agent-coach', school.id, err, { schoolName: school.name })
         results.push({ schoolId: school.id, name: school.name, processed: 0, skipped: 0, errors: 1, totalGaps: 0 })
         grandErrors++
       }
@@ -68,6 +69,9 @@ export async function GET(request: NextRequest) {
     // few bad students. Return non-2xx so the GitHub Actions cron's `curl -sf` fails loudly
     // instead of a 200 with the failure buried in the JSON body that nothing ever reads.
     const systemicFailure = grandProcessed === 0 && grandErrors > 0
+    if (systemicFailure) {
+      reportSystemicFailure('agent-coach', `all ${schools.length} schools failed, 0 processed`, { grandErrors, schoolCount: schools.length })
+    }
     return NextResponse.json({
       success: !systemicFailure,
       grandProcessed,
@@ -78,7 +82,7 @@ export async function GET(request: NextRequest) {
     }, { status: systemicFailure ? 502 : 200 })
   } catch (err) {
     const durationMs = Date.now() - startTime
-    console.error('[agent-coach cron] FATAL:', err)
+    reportFatalError('agent-coach', err, { durationMs })
     return NextResponse.json(
       { success: false, error: String(err), durationMs },
       { status: 500 },

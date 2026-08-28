@@ -58,7 +58,11 @@ export async function POST() {
 
     revalidatePath('/admin/wonde')
     revalidateTag('class-rosters', 'default')  // Wonde sync can change enrolments — bust all roster caches
-    return NextResponse.json({ success: true, result, logId: log.id })
+    // The sync log's own status ('partial'/'success') was already correct --
+    // this response's `success` flag wasn't reflecting it, so an admin
+    // reading the API response directly (rather than the log) could see
+    // "success: true" on a run that actually had per-phase errors.
+    return NextResponse.json({ success: result.errors.length === 0, result, logId: log.id })
   } catch (err) {
     await prisma.wondeSyncLog.update({
       where: { id: log.id },

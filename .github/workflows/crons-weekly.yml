@@ -12,6 +12,7 @@ on:
     - cron: '30 8 * * 1'
     - cron: '0 9 * * 3'
     - cron: '30 7 * * 4'
+    - cron: '0 9 * * 1'
   push:
     branches: [main]
   workflow_dispatch:
@@ -76,3 +77,8 @@ jobs:
         if: github.event.schedule == '30 7 * * 4' || github.event_name == 'workflow_dispatch'
         run: |
           curl -sf "$BASE/api/cron/weekly-parent-summary" -H "Authorization: Bearer $CRON_SECRET"
+
+      - name: low-attendance
+        if: github.event.schedule == '0 9 * * 1' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf "$BASE/api/cron/low-attendance" -H "Authorization: Bearer $CRON_SECRET"

@@ -16,6 +16,7 @@ import { computeSchoolCohortAggregate } from '@/lib/cohort-aggregate'
 import { runEvidenceAgentBatch } from '@/lib/agents/evidence-agent'
 import { purgeExpiredInferenceCache } from '@/lib/omnis-inference'
 import { prisma } from '@/lib/prisma'
+import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
 
 export const maxDuration = 300
 
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     let totalFlags = 0
     let totalIlpReviewNotifications = 0
     let totalEhcpReviewNotifications = 0
+    let patternErrors = 0, ilpErrors = 0, ehcpErrors = 0
     const results: { schoolId: string; name: string; newFlags: number }[] = []
 
     for (const school of schools) {
@@ -47,7 +49,8 @@ export async function GET(request: NextRequest) {
         totalFlags += newFlags
         results.push({ schoolId: school.id, name: school.name, newFlags })
       } catch (err) {
-        console.error(`[early-warning cron] Error for school ${school.id}:`, err)
+        patternErrors++
+        reportBatchItemFailure('early-warning:patterns', school.id, err, { schoolName: school.name })
         results.push({ schoolId: school.id, name: school.name, newFlags: -1 })
       }
 
@@ -56,7 +59,8 @@ export async function GET(request: NextRequest) {
         const n = await checkIlpTargetReviewsDue(school.id)
         totalIlpReviewNotifications += n
       } catch (err) {
-        console.error(`[early-warning cron] ILP review check error for school ${school.id}:`, err)
+        ilpErrors++
+        reportBatchItemFailure('early-warning:ilp-review', school.id, err, { schoolName: school.name })
       }
 
       // Check for EHCP plans with review date within 30 days and notify SENCOs
@@ -64,7 +68,8 @@ export async function GET(request: NextRequest) {
         const n = await checkEhcpReviewsDue(school.id)
         totalEhcpReviewNotifications += n
       } catch (err) {
-        console.error(`[early-warning cron] EHCP review check error for school ${school.id}:`, err)
+        ehcpErrors++
+        reportBatchItemFailure('early-warning:ehcp-review', school.id, err, { schoolName: school.name })
       }
     }
 
@@ -72,6 +77,7 @@ export async function GET(request: NextRequest) {
     // Runs after flag analysis so profile data is fresh for SENCO dashboards.
     // Processes in batches of 5 with a 500ms pause to avoid DB connection spikes.
     let totalProfiles = 0
+    let profileErrors = 0
     for (const school of schools) {
       try {
         const students = await prisma.user.findMany({
@@ -90,30 +96,35 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (err) {
-        console.error(`[early-warning cron] Profile refresh error for school ${school.id}:`, err)
+        profileErrors++
+        reportBatchItemFailure('early-warning:profile-refresh', school.id, err, { schoolName: school.name })
       }
     }
 
     // Roll up per-student profiles into school cohort aggregates.
     // Runs after all individual profiles are fresh so aggregates reflect today's data.
     let totalCohortRows = 0
+    let cohortErrors = 0
     for (const school of schools) {
       try {
         const rows = await computeSchoolCohortAggregate(school.id)
         totalCohortRows += rows
       } catch (err) {
-        console.error(`[early-warning cron] Cohort aggregate error for school ${school.id}:`, err)
+        cohortErrors++
+        reportBatchItemFailure('early-warning:cohort-aggregate', school.id, err, { schoolName: school.name })
       }
     }
 
     // Run Evidence Agent batch for each school — retroactively link homework evidence to SEND plans
     let totalEvidenceStudents = 0
+    let evidenceErrors = 0
     for (const school of schools) {
       try {
         const n = await runEvidenceAgentBatch(school.id)
         totalEvidenceStudents += n
       } catch (err) {
-        console.error(`[early-warning cron] Evidence agent error for school ${school.id}:`, err)
+        evidenceErrors++
+        reportBatchItemFailure('early-warning:evidence-agent', school.id, err, { schoolName: school.name })
       }
     }
 
@@ -128,10 +139,35 @@ export async function GET(request: NextRequest) {
     const durationMs = Date.now() - startTime
     console.log(`[early-warning cron] Complete — ${totalFlags} new flags, ${totalIlpReviewNotifications} ILP review notifications, ${totalEhcpReviewNotifications} EHCP review notifications, ${totalProfiles} profiles refreshed, ${totalCohortRows} cohort aggregate rows upserted, ${totalEvidenceStudents} evidence students processed, ${purgedInferenceEntries} inference cache entries purged across ${schools.length} schools in ${durationMs}ms`)
 
-    return NextResponse.json({ success: true, totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications, totalProfiles, totalCohortRows, totalEvidenceStudents, purgedInferenceEntries, schools: results, durationMs })
+    // This route runs 5 largely-independent phases (pattern analysis, ILP/EHCP
+    // review checks, adaptive profiles, cohort aggregates, evidence linking).
+    // Rather than one grandProcessed/grandErrors pair, each phase is checked
+    // for total failure separately -- a phase failing for every school (not
+    // just one bad school) is the "silently stopped working" case worth
+    // surfacing loudly; a school here and there erroring is normal batch noise.
+    const phaseFailures: string[] = []
+    if (schools.length > 0) {
+      if (patternErrors  === schools.length) phaseFailures.push('pattern-analysis')
+      if (ilpErrors      === schools.length) phaseFailures.push('ilp-review-check')
+      if (ehcpErrors     === schools.length) phaseFailures.push('ehcp-review-check')
+      if (profileErrors  === schools.length) phaseFailures.push('profile-refresh')
+      if (cohortErrors   === schools.length) phaseFailures.push('cohort-aggregate')
+      if (evidenceErrors === schools.length) phaseFailures.push('evidence-agent')
+    }
+    if (phaseFailures.length > 0) {
+      reportSystemicFailure('early-warning', `phase(s) failed for all ${schools.length} schools: ${phaseFailures.join(', ')}`, { phaseFailures, schoolCount: schools.length })
+    }
+
+    return NextResponse.json({
+      success: phaseFailures.length === 0,
+      totalFlags, totalIlpReviewNotifications, totalEhcpReviewNotifications,
+      totalProfiles, totalCohortRows, totalEvidenceStudents, purgedInferenceEntries,
+      phaseFailures,
+      schools: results, durationMs,
+    }, { status: phaseFailures.length > 0 ? 502 : 200 })
   } catch (err) {
     const durationMs = Date.now() - startTime
-    console.error('[early-warning cron] FATAL:', err)
+    reportFatalError('early-warning', err, { durationMs })
     return NextResponse.json(
       { success: false, error: String(err), durationMs },
       { status: 500 },

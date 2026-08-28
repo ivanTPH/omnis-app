@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Resend email client — no-ops gracefully when RESEND_API_KEY is absent
@@ -12,13 +13,29 @@ const FROM = 'Omnis <notifications@omnis.education>'
 
 // ─── Shared send helper ──────────────────────────────────────────────────────
 
-async function send(to: string, subject: string, html: string): Promise<void> {
-  if (!resend) return   // no-op in dev/CI
+// `send()` deliberately never throws -- every caller across ~13 cron routes
+// and various server actions relies on "email delivery must not break the
+// caller." The problem that created (found in the 2026-08-28 silent-failure
+// sweep, docs/audit/2026-08-28-silent-failure-sweep.md): a revoked
+// RESEND_API_KEY or a full Resend outage was previously invisible everywhere
+// -- no thrown error, no rejected promise, nothing -- which meant every
+// caller's own error handling (including the per-item try/catch some cron
+// routes already have) could never detect a total email outage, because the
+// failure never reached them. Reporting to Sentry here, at the one place
+// every email send funnels through, fixes that without changing the
+// no-throw contract any caller depends on.
+async function send(to: string, subject: string, html: string): Promise<boolean> {
+  if (!resend) return true   // no-op in dev/CI -- not a failure
   try {
     await resend.emails.send({ from: FROM, to, subject, html })
+    return true
   } catch (err) {
-    // Log but never throw — email delivery must not break server actions
     console.error('[email] send failed:', err)
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+      tags: { job: 'email-send' },
+      extra: { to, subject },
+    })
+    return false
   }
 }
 

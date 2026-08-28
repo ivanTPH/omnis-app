@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma, writeAudit } from '@/lib/prisma'
+import { reportSystemicFailure } from '@/lib/monitoring'
 
 export const maxDuration = 300
 
@@ -78,7 +79,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, results, errors })
+  // This fires once a year and mutates real state (year-group promotion,
+  // Year 13 deactivation) for every school -- a silent full failure here
+  // leaves every school's students in the wrong year group for a full year
+  // with no audit trail and no alert, which is the worst version of the
+  // "people think it happened but it didn't" failure this route could have.
+  const allFailed = schools.length > 0 && errors.length === schools.length
+  if (allFailed) {
+    reportSystemicFailure('year-rollover', `all ${schools.length} schools failed`, { errors })
+  }
+  return NextResponse.json(
+    { ok: errors.length === 0, results, errors },
+    { status: allFailed ? 502 : 200 },
+  )
 }
 
 // Export helper so the manual-trigger route can reuse it

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                    from '@/lib/prisma'
 import { sendStaleConcernAlertEmail } from '@/lib/email'
+import { reportSystemicFailure }       from '@/lib/monitoring'
 
 export const maxDuration = 60
 
@@ -84,11 +85,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const allFailed = bySchool.size > 0 && errors.length === bySchool.size
+  if (allFailed) {
+    reportSystemicFailure('concern-stale', `all ${bySchool.size} schools failed`, { errors })
+  }
   return NextResponse.json({
     ok:       errors.length === 0,
     sent,
     schools:  bySchool.size,
     concerns: concerns.length,
     errors:   errors.length > 0 ? errors : undefined,
-  })
+  }, { status: allFailed ? 502 : 200 })
 }

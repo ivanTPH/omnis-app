@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendIlpReviewDueEmail, sendEhcpReviewDueEmail } from '@/lib/email'
+import { reportSystemicFailure } from '@/lib/monitoring'
 
 export const maxDuration = 120
 
@@ -115,5 +116,17 @@ export async function GET(request: NextRequest) {
     errors.push(`EHCP query: ${String(err)}`)
   }
 
-  return NextResponse.json({ ok: true, ilpsSent, ehcpsSent, errors })
+  // Statutory ILP/EHCP review reminders -- a run that hit errors on every
+  // attempted item (not just one bad record) is the "silently stopped
+  // working" case worth a non-200 + Sentry report, distinct from the normal
+  // one-bad-record-in-a-batch noise `errors` already tracked correctly.
+  const attempted = ilpsSent + ehcpsSent + errors.length
+  const allFailed = attempted > 0 && ilpsSent === 0 && ehcpsSent === 0 && errors.length === attempted
+  if (allFailed) {
+    reportSystemicFailure('review-due', `all ${attempted} attempted reminders failed`, { errors })
+  }
+  return NextResponse.json(
+    { ok: errors.length === 0, ilpsSent, ehcpsSent, errors },
+    { status: allFailed ? 502 : 200 },
+  )
 }

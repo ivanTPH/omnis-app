@@ -12,7 +12,8 @@ action is sensitive?
 
 ## STATUS: 12 findings fixed in send-support.ts + students.ts. `safeguarding.ts` read in full — clean,
 no findings. Verified via `npx tsc --noEmit` (clean) and a full production `npm run build` (exit 0,
-no errors). Not yet pushed/deployed — commit hash to be added once pushed.
+no errors). Committed as `ce77169` ("fix: close 12 cross-tenant IDOR/missing-role-check gaps in
+send-support.ts and students.ts"). Not yet pushed/deployed.
 
 ## `safeguarding.ts` — clean
 

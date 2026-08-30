@@ -25,6 +25,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG COMMIT_SHA=local
 ENV NEXT_PUBLIC_COMMIT_SHA=${COMMIT_SHA}
 
+# NEXT_PUBLIC_* vars are inlined into the client JS bundle at build time, not read
+# at container runtime — so the client Sentry DSN must be passed in as a build arg
+# (Coolify: Build Variables, marked "available at buildtime"), same mechanism as
+# COMMIT_SHA above. Without this, Sentry.init() sees dsn=undefined in production
+# and silently disables itself, even with the runtime env var set correctly.
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ENV NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
+
 # Sentry source-map upload is optional; silenced in next.config.ts when
 # SENTRY_AUTH_TOKEN is absent, so the build never fails without it.
 RUN npm run build

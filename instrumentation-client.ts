@@ -17,3 +17,8 @@ Sentry.init({
     /^Script error/,
   ],
 })
+
+// Reports errors that occur during client-side route/page transitions
+// (e.g. a lazy-loaded route chunk or nested layout throwing mid-navigation),
+// which the plain Sentry.init() above does not instrument on its own.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

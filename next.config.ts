@@ -86,4 +86,9 @@ export default withSentryConfig(nextConfig, {
   // Only upload source maps when SENTRY_AUTH_TOKEN is set
   authToken: process.env.SENTRY_AUTH_TOKEN,
   widenClientFileUpload: false,
+  // Proxy client-side Sentry events through our own domain (/monitoring) instead of
+  // sending them straight to *.sentry.io. Ad blockers and school-network content
+  // filters commonly block direct requests to sentry.io, silently dropping browser
+  // error reports — tunnelling through same-origin avoids that.
+  tunnelRoute: '/monitoring',
 })

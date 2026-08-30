@@ -284,6 +284,13 @@ export async function raiseConcern(data: {
   const validated = RaiseConcernSchema.parse(data)
   const schoolId = user.schoolId
 
+  // Verify the student belongs to this school before creating any record referencing them
+  const student = await prisma.user.findFirst({
+    where: { id: validated.studentId, schoolId, role: 'STUDENT' },
+    select: { firstName: true, lastName: true },
+  })
+  if (!student) throw new Error('Student not found')
+
   const concern = await prisma.sendConcern.create({
     data: {
       schoolId,
@@ -310,11 +317,6 @@ export async function raiseConcern(data: {
   const sencos = await prisma.user.findMany({
     where: { schoolId, role: 'SENCO', isActive: true },
     select: { id: true },
-  })
-
-  const student = await prisma.user.findUnique({
-    where: { id: validated.studentId },
-    select: { firstName: true, lastName: true },
   })
 
   const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
@@ -832,6 +834,13 @@ export async function createIlp(data: {
 
   const validated = CreateIlpSchema.parse(data)
 
+  // Verify the student belongs to this school before touching any SEND data
+  const student = await prisma.user.findFirst({
+    where: { id: validated.studentId, schoolId, role: 'STUDENT' },
+    select: { firstName: true, lastName: true },
+  })
+  if (!student) throw new Error('Student not found')
+
   // Guard: only SEND-registered students may have ILPs
   const sendCheck = await prisma.sendStatus.findUnique({
     where:  { studentId: validated.studentId },
@@ -900,11 +909,7 @@ export async function createIlp(data: {
     ...hoys.map(h => h.id),
   ])]
 
-  const student = await prisma.user.findUnique({
-    where: { id: validated.studentId },
-    select: { firstName: true, lastName: true },
-  })
-  const studentName = student ? `${student.firstName} ${student.lastName}` : 'a student'
+  const studentName = `${student.firstName} ${student.lastName}`
 
   if (notifyIds.length > 0) {
     await prisma.sendNotification.createMany({
@@ -1265,6 +1270,7 @@ export async function updateIlpTarget(
       ilp: { select: { approvedBySenco: true, studentId: true, schoolId: true } },
     },
   })
+  if (!current || current.ilp.schoolId !== user.schoolId) throw new Error('Target not found')
 
   await prisma.ilpTarget.update({
     where: { id: targetId },
@@ -1860,6 +1866,8 @@ export async function triggerEarlyWarningAnalysis(): Promise<{ flagsCreated: num
 /** Called by a class teacher to confirm they have taken an intervention action for a flagged student. */
 export async function logTeacherIntervention(studentId: string, note: string): Promise<void> {
   const user = await requireAuth()
+  const allowedRoles = ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN', 'COVER_MANAGER']
+  if (!allowedRoles.includes(user.role)) throw new Error('Forbidden')
   const schoolId = user.schoolId
 
   const student = await prisma.user.findFirst({
@@ -2468,12 +2476,20 @@ const APDR_FIELD_LABELS: Record<string, string> = {
   reviewContent:  'Review',
 }
 
-/** Internal helper — creates an APDR cycle from existing ILP/EHCP data. No auth check. */
+/** Internal helper — creates an APDR cycle from existing ILP/EHCP data. No auth check —
+ *  callers must ensure `studentId` belongs to `schoolId` before calling. */
 async function generateAPDRInternal(
   studentId: string,
   createdByUserId: string,
   schoolId: string,
 ): Promise<void> {
+  // Verify student belongs to this school before reading/writing any SEND data
+  const studentInSchool = await prisma.user.findFirst({
+    where: { id: studentId, schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!studentInSchool) return
+
   // Skip if an ACTIVE APDR already exists
   const existing = await prisma.assessPlanDoReview.findFirst({
     where: { studentId, schoolId, status: 'ACTIVE' },
@@ -3080,7 +3096,8 @@ studentCommitments: 4–6 items written in first person ("I will..."). Written a
 
 /**
  * Internal helper — generates or regenerates a LearnerPassport (K Plan) from
- * the student's latest ILP, EHCP and APDR cycle. No auth — called by triggers.
+ * the student's latest ILP, EHCP and APDR cycle. No auth — called by triggers,
+ * so it verifies `studentId` belongs to `schoolId` itself rather than trusting callers.
  */
 export async function generateLearnerPassportInternal(
   studentId: string,
@@ -3088,8 +3105,8 @@ export async function generateLearnerPassportInternal(
   schoolId: string,
 ): Promise<void> {
   const [student, ilp, ehcp, apdr] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: studentId },
+    prisma.user.findFirst({
+      where: { id: studentId, schoolId, role: 'STUDENT' },
       select: { firstName: true, lastName: true, yearGroup: true, sendStatus: { select: { needArea: true } } },
     }),
     prisma.individualLearningPlan.findFirst({
@@ -3885,6 +3902,13 @@ export async function generateIlpGoalsForStudent(
   }
 
   try {
+  // Verify the student belongs to this school before reading any SEND/academic data
+  const studentCheck = await prisma.user.findFirst({
+    where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!studentCheck) return { ok: false, error: 'Student not found' }
+
   // ── 1. Fetch student data ───────────────────────────────────────────────────
   const [student, sendStatus, baselines, learningProfile, recentSubmissions] = await Promise.all([
     prisma.user.findUnique({

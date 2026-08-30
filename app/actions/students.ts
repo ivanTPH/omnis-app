@@ -647,6 +647,11 @@ export async function updateClassroomStrategies(
   strategies: string[],
 ): Promise<void> {
   const user = await requireStaff()
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Student not found')
   const existing = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
   if (existing) {
     await prisma.studentLearningProfile.update({
@@ -715,6 +720,11 @@ export async function getStudentOwnPassport(): Promise<{
 export async function saveStudentNote(studentId: string, content: string): Promise<void> {
   const user = await requireStaff()
   if (!content.trim()) return
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Student not found')
   await prisma.studentQuickNote.create({
     data: { studentId, schoolId: user.schoolId, authorId: user.id, content: content.trim() },
   })
@@ -774,6 +784,12 @@ export async function addPassportRecommendation(
   suggestion: string,
 ): Promise<void> {
   const staff = await requireStaff()
+
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId: staff.schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Student not found')
 
   const existing = await prisma.studentLearningProfile.findUnique({
     where:  { studentId },
@@ -1085,10 +1101,10 @@ export async function generateLearningPassport(studentId: string): Promise<{ ok:
 export async function bulkGenerateLearningPassports(
   classId: string,
 ): Promise<{ generated: number; skipped: number; errors: number }> {
-  await requireStaff()
+  const staff = await requireStaff()
 
   const enrolments = await prisma.enrolment.findMany({
-    where:    { classId },
+    where:    { classId, class: { schoolId: staff.schoolId } },
     select:   { userId: true },
     distinct: ['userId'],
   })
@@ -1119,19 +1135,27 @@ export async function bulkGenerateLearningPassports(
 export async function generatePassportsForStudents(
   studentIds: string[],
 ): Promise<{ created: number; skipped: number; errors: number }> {
-  await requireStaff()
+  const staff = await requireStaff()
   if (studentIds.length === 0) return { created: 0, skipped: 0, errors: 0 }
+
+  // Only operate on students that actually belong to this school
+  const validStudents = await prisma.user.findMany({
+    where:  { id: { in: studentIds }, schoolId: staff.schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  const validIds = validStudents.map(s => s.id)
+  const crossTenantSkipped = studentIds.length - validIds.length
 
   // Check which students already have a profile
   const existing = await prisma.studentLearningProfile.findMany({
-    where:  { studentId: { in: studentIds } },
+    where:  { studentId: { in: validIds } },
     select: { studentId: true },
   })
   const existingSet = new Set(existing.map(e => e.studentId))
 
-  let created = 0, skipped = 0, errors = 0
-  const toGenerate = studentIds.filter(id => !existingSet.has(id))
-  skipped += studentIds.length - toGenerate.length
+  let created = 0, skipped = crossTenantSkipped, errors = 0
+  const toGenerate = validIds.filter(id => !existingSet.has(id))
+  skipped += validIds.length - toGenerate.length
 
   // Bounded concurrency (3 at a time) instead of a sequential loop with a
   // fixed 500ms inter-call delay -- keeps the same rate-limiting caution
@@ -1346,6 +1370,11 @@ export async function saveLearningFormatNotes(
   notes: string,
 ): Promise<void> {
   const user = await requireStaff()
+  const student = await prisma.user.findFirst({
+    where: { id: studentId, schoolId: user.schoolId, role: 'STUDENT' },
+    select: { id: true },
+  })
+  if (!student) throw new Error('Student not found')
   const trimmed = notes.trim() || null
   const existing = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
   if (existing) {

@@ -22,7 +22,7 @@ tells you what to drop in it.
 
 | Phase | Area | Status | Blocks Go-Live? | Owner |
 |---|---|---|---|---|
-| 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed — see below, still not the full ~47-file read-through | YES | You + Claude |
+| 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 Scripts/plan prepared, not yet run (6.1) — 27 Aug: scenario 1 (Wonde downtime) and part of scenario 3 (DB connection loss) got real code fixes plus real unplanned production evidence, see below — 🔴 confirmed Free tier, upgrade deferred but required before go-live (6.3, unchanged) | YES | You + Claude |
 | 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
 | 8 | Data protection & Children's Code compliance | 🟡 Partial (Children's Code section added 10 Jul 2026 — 4 of 15 standards need product fixes: 4, 7, 11, 15, see 8.1) | YES | You + Claude |
@@ -81,7 +81,7 @@ students' worth of submissions, not just 32?
   reviews and records agreement rate).
 ```
 
-**5.4 Multi-tenancy isolation audit — 🟡 broader pass done 27 Aug 2026, not yet exhaustive**
+**5.4 Multi-tenancy isolation audit — 🟡 broader pass done 27 Aug 2026, dedicated 4th-file pass done 30 Aug 2026, not yet exhaustive**
 ```
 10 Jul 2026: static audit of the 5 lowest schoolId-ratio files in app/actions/
 (see evidence/phase5-mis-synthetic-data/tenancy-isolation.md). 4 false
@@ -95,15 +95,26 @@ parents). All fixed same day. Full detail:
 docs/audit/2026-08-27-hardening-security-sweep.md. Cross-referenced against
 this item's own prioritised list in the evidence file's 27 Aug update.
 
+30 Aug 2026: dedicated read-through of the 3 files this item originally
+prioritised but that hadn't yet been the specific target of a full pass —
+send-support.ts, safeguarding.ts, students.ts (ehcp.ts, the 4th, was
+covered by the 26 Aug audit instead). 12 confirmed findings across
+send-support.ts (11) and students.ts (6, some shared shape) — 2 CRITICAL
+(generateIlpGoalsForStudent() returning another school's real SEND record
+to the caller via an AI prompt with zero schoolId check; updateIlpTarget()
+a write-level IDOR letting any staff role mutate any school's ILP target),
+plus HIGH cross-tenant K-Plan/ILP generation and overwrite findings. All
+fixed same day, tsc + build both clean. safeguarding.ts read in full — no
+findings, already correctly scoped throughout. Full detail:
+docs/audit/2026-08-30-security-review-send-safeguarding-students.md.
+
 Still outstanding:
-- [ ] send-support.ts, safeguarding.ts, students.ts (3 of the 4 files this
-      item originally prioritised) still haven't been the specific target
-      of a dedicated read-through — ehcp.ts (the 4th) got 5 fixes in the
-      26 Aug audit instead
+- [x] send-support.ts, safeguarding.ts, students.ts — dedicated read-through
+      done 30 Aug 2026, 12 findings fixed (see above)
 - [ ] The ~70 non-dynamic app/api/export/** routes remain unreviewed
 - [ ] The original scan's broader "540 REVIEW" bucket (schoolId present in
       the function but not verifiably tied to the specific id) remains
-      largely unreviewed beyond the samples checked across all three passes
+      largely unreviewed beyond the samples checked across all four passes
 - [x] Fixed 10 Jul 2026 — getAccessibilitySettings() now ignores the passed
       userId and calls requireAuth(), matching saveAccessibilitySettings()
 - [ ] Live cross-tenant test: seed two synthetic schools side by side, log

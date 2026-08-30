@@ -25,7 +25,7 @@ tells you what to drop in it.
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 Scripts/plan prepared, not yet run (6.1) — 27 Aug: scenario 1 (Wonde downtime) and part of scenario 3 (DB connection loss) got real code fixes plus real unplanned production evidence, see below — 🔴 confirmed Free tier, upgrade deferred but required before go-live (6.3, unchanged) | YES | You + Claude |
 | 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
-| 8 | Data protection & Children's Code compliance | 🟡 Partial (Children's Code section added 10 Jul 2026 — 4 of 15 standards need product fixes: 4, 7, 11, 15, see 8.1) | YES | You + Claude |
+| 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) and 8.3 (retention/leaver-deletion live test) still open | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
 | 10 | Operational go-live readiness | ⬜ Not started | YES | You + Claude |
 
@@ -298,33 +298,62 @@ evidence/phase7-security/access-control-retest.md.
 
 ### Goal: Omnis's data protection posture holds up to ICO scrutiny, specifically around children's data
 
-**8.1 Update the DPIA against the ICO Children's Code — ✅ done 10 Jul 2026**
+**8.1 Update the DPIA against the ICO Children's Code — ✅ done 10 Jul 2026, product items closed 30 Aug 2026**
 ```
 Section 13 added to Omnis_DPIA_and_GDPR_Governance_Document.docx, assessing
-Omnis against all 15 Children's Code standards. Result: 6 standards Met
-outright, 4 Not Applicable (geolocation, connected toys), 5 Partial —
-these are real product gaps, not paperwork, and are the actual remaining
-work for this phase:
+Omnis against all 15 Children's Code standards. Result at the time: 6
+standards Met outright, 4 Not Applicable (geolocation, connected toys), 5
+Partial — real product gaps, not paperwork.
 
-- [ ] Standard 4 (Transparency): age-appropriate "bite-sized" data notice
-      surfaced at first login / first AI-generated homework — not yet built
-- [ ] Standard 7 (Default settings): audit UserSettings,
-      UserAccessibilitySettings and messaging defaults for "high privacy
-      by default" — not yet audited
-- [ ] Standard 11 (Parental controls): add a visible "shared with your
-      parent/carer" indicator in student-facing UI — not yet built
-- [ ] Standard 15 (Online tools): add a simple student-facing "how your
-      data is used / who to ask" link routed to the school DPO — not yet built
+30 Aug 2026: all 4 outstanding product items (Standards 4, 7, 11, 15) built
+and verified against the live demo school (student + SCHOOL_ADMIN logins,
+screenshots + a real DB-layer check for the Standard 7 schema-default fix).
+DPIA Section 13.1/13.2 updated in place — all four standards now read "Met."
+Full evidence in evidence/phase8-childrens-code/.
+
+- [x] Standard 4 (Transparency): bite-sized, dismissible, one-time data
+      notice (ChildTransparencyNotice) shown in the shared app shell for
+      STUDENT accounts — covers both the first-login and first-homework
+      trigger points since it renders on whichever page a student lands on
+      first. Links to /student/privacy for full detail. Acknowledgement
+      timestamp on User.childNoticeAckAt. Evidence:
+      evidence/phase8-childrens-code/standard-4-transparency-notice.md.
+- [x] Standard 7 (Default settings): audited UserSettings,
+      UserAccessibilitySettings and messaging defaults field by field.
+      allowAnalyticsInsights / profileVisibleToColleagues /
+      profileVisibleToAdmins were opt-out (@default(true)) — flipped to
+      opt-in (@default(false)). Messaging's MsgThread.isPrivate default
+      confirmed cosmetic only (real access control is MsgParticipant
+      membership) — no change needed there. Verified via the actual
+      account-creation code path against a real demo account, not just
+      schema inspection. Evidence:
+      evidence/phase8-childrens-code/standard-7-default-settings-audit.md.
+- [x] Standard 11 (Parental controls): "Visible to your parent" badge on
+      student homework + grades views, gated on a real ParentStudentLink
+      check per student (never shown to a student without a linked parent
+      account). Deliberately not added to student Messages — traced what
+      parents actually see and confirmed that channel isn't shared, so
+      badging it would have been inaccurate. Evidence:
+      evidence/phase8-childrens-code/standard-11-parent-visibility-indicator.md.
+- [x] Standard 15 (Online tools): new /student/privacy page, linked from
+      the sidebar on every student page (always-reachable, not buried in
+      an unrelated view). Shows a per-school configurable DPO contact
+      (School.dpoName/dpoEmail, editable any time from the admin dashboard
+      — not locked behind the one-time onboarding wizard), falling back to
+      a generic "ask your school office" prompt when unset. Verified the
+      full configure → read round-trip live (SCHOOL_ADMIN sets contact →
+      student page reflects it immediately). Evidence:
+      evidence/phase8-childrens-code/standard-15-student-data-rights-link.md.
 - [x] Standard 3 (Age appropriate application): formally recorded —
       DPIA Section 13.1 now documents the age-assurance methodology
       (school-provisioned accounts, no self-service signup, age set via
       MIS year-group data) as the standing governance record. Closed
       10 Jul 2026.
 
-Read CLAUDE.md and work through these four product items (Standards 4, 7,
-11, 15) as normal feature tickets, then flip Phase 8 to ✅ in the Status
-Tracker once all five checkboxes above are closed with evidence in
-/evidence/childrens-code/.
+All five checkboxes above are closed with evidence in
+evidence/phase8-childrens-code/. Phase 8 flipped to ✅ in the Status
+Tracker below — 8.2 and 8.3 remain open (contractual DPA template
+confirmation and the retention/leaver-deletion live test).
 ```
 
 **8.2 Confirm controller/processor position per contract**

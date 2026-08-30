@@ -274,6 +274,19 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
         >
           <Icon name="help_outline" size="sm" className="shrink-0" />Help Centre
         </Link>
+        {role === 'STUDENT' && (
+          <Link
+            href="/student/privacy"
+            onClick={onClose}
+            className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors mb-0.5 ${
+              pathname === '/student/privacy'
+                ? 'bg-blue-700 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <Icon name="shield" size="sm" className="shrink-0" />How your data is used
+          </Link>
+        )}
         <Link
           href="/settings"
           onClick={onClose}

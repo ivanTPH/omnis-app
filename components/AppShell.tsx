@@ -19,6 +19,7 @@ import TrialBanner from '@/components/TrialBanner'
 import DemoRoleSwitcher from '@/components/DemoRoleSwitcher'
 import SentryUserContext from '@/components/SentryUserContext'
 import { getSessionIdentity } from '@/app/actions/settings'
+import ChildTransparencyNotice from '@/components/student/ChildTransparencyNotice'
 import Link from 'next/link'
 
 /** Roles that have assigned classes and benefit from teacher-profile defaults */
@@ -168,6 +169,7 @@ export default function AppShell({
       {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
       <SessionTimeout />
       <DemoRoleSwitcher />
+      <ChildTransparencyNotice role={role} />
       {sentryIdentity && <SentryUserContext {...sentryIdentity} />}
     </TeacherProfileContext.Provider>
     </NotificationCountContext.Provider>

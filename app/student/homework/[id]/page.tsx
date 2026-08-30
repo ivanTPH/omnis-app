@@ -3,16 +3,20 @@ import { redirect, notFound } from 'next/navigation'
 import AppShell from '@/components/AppShell'
 import HomeworkSubmissionView from '@/components/HomeworkSubmissionView'
 import TopicConfidencePanel from '@/components/homework/TopicConfidencePanel'
-import { getStudentHomework } from '@/app/actions/student'
+import { getStudentHomework, getMyParentShareStatus } from '@/app/actions/student'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
+import SharedWithParentBadge from '@/components/student/SharedWithParentBadge'
 
 export default async function StudentHomeworkPage({ params }: { params: Promise<{ id: string }> }) {
   const { role, firstName, lastName, schoolName } = await requireAuth()
   if (role !== 'STUDENT') redirect('/dashboard')
 
   const { id } = await params
-  const hw = await getStudentHomework(id)
+  const [hw, shareStatus] = await Promise.all([
+    getStudentHomework(id),
+    getMyParentShareStatus(),
+  ])
   if (!hw) notFound()
 
   const isOverdue  = new Date(hw.dueAt) < new Date() && !hw.submission
@@ -51,6 +55,7 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
                 {isOverdue && (
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600">Overdue</span>
                 )}
+                {shareStatus.hasLinkedParent && <SharedWithParentBadge />}
               </div>
             </div>
           </div>

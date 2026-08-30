@@ -6,6 +6,7 @@ import { getAdminDashboardData, getSchoolSettings, getActivationBreakdown, type 
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import YearRolloverPanel from '@/components/admin/YearRolloverPanel'
 import ActivationPanel from '@/components/admin/ActivationPanel'
+import DpoContactCard from '@/components/admin/DpoContactCard'
 import Icon from '@/components/ui/Icon'
 
 const QUICK_LINKS = [
@@ -86,6 +87,14 @@ export default async function AdminDashboardPage() {
           {/* Year rollover */}
           <div className="mb-8">
             <YearRolloverPanel />
+          </div>
+
+          {/* Data protection */}
+          <div className="mb-8">
+            <DpoContactCard
+              initialDpoName={settings?.dpoName ?? ''}
+              initialDpoEmail={settings?.dpoEmail ?? ''}
+            />
           </div>
 
           {/* Exports */}

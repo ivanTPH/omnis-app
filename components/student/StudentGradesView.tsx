@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon'
 import { gradeLabel, gradePillClass } from '@/lib/grading'
 import type { SubjectGradeSummary, GradeHistorySubmission, TopicWeakness, TopicSummary, FormatBreakdown } from '@/app/actions/student'
 import { getAiRevisionSuggestions } from '@/app/actions/student'
+import SharedWithParentBadge from '@/components/student/SharedWithParentBadge'
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 
@@ -482,7 +483,7 @@ function AdaptiveProfilePanel({ profile }: { profile: NonNullable<SubjectGradeSu
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function StudentGradesView({ summaries }: { summaries: SubjectGradeSummary[] }) {
+export default function StudentGradesView({ summaries, hasLinkedParent }: { summaries: SubjectGradeSummary[]; hasLinkedParent?: boolean }) {
   if (summaries.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -506,7 +507,10 @@ export default function StudentGradesView({ summaries }: { summaries: SubjectGra
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-page-title mb-1">My Grades</h1>
+      <div className="flex items-center gap-2 flex-wrap mb-1">
+        <h1 className="text-page-title">My Grades</h1>
+        {hasLinkedParent && <SharedWithParentBadge />}
+      </div>
       <p className="text-[13px] text-gray-400 mb-6">
         {totalPieces} piece{totalPieces !== 1 ? 's' : ''} marked across {summaries.length} subject{summaries.length !== 1 ? 's' : ''}
       </p>

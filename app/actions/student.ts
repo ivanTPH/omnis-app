@@ -731,3 +731,38 @@ Reply with ONLY a JSON array of strings: ["tip 1", "tip 2", "tip 3", "tip 4"]`
     return { tips: [] }
   }
 }
+
+// ─── ICO Children's Code — Standards 11 & 15 ──────────────────────────────────
+
+/** Standard 11 (Parental controls): does the calling student have a linked
+ *  parent/carer account? Used to gate the "Visible to your parent" badge so
+ *  it never shows a claim that isn't true for that student. */
+export async function getMyParentShareStatus(): Promise<{ hasLinkedParent: boolean }> {
+  const { id: userId, role } = await requireAuth()
+  if (role !== 'STUDENT') return { hasLinkedParent: false }
+
+  const link = await prisma.parentStudentLink.findFirst({
+    where:  { studentId: userId },
+    select: { parentId: true },
+  })
+  return { hasLinkedParent: !!link }
+}
+
+/** Standard 15 (Online tools): student-facing "who to ask about my data" contact.
+ *  Falls back to a generic prompt when the school hasn't set a named DPO yet. */
+export async function getDpoContact(): Promise<{
+  schoolName: string
+  dpoName:    string | null
+  dpoEmail:   string | null
+}> {
+  const { schoolId, schoolName } = await requireAuth()
+  const school = await prisma.school.findUnique({
+    where:  { id: schoolId },
+    select: { dpoName: true, dpoEmail: true },
+  })
+  return {
+    schoolName,
+    dpoName:  school?.dpoName  ?? null,
+    dpoEmail: school?.dpoEmail ?? null,
+  }
+}

@@ -226,6 +226,7 @@ enum AuditAction {
   SAFEGUARDING_LOGGED
   SAFEGUARDING_REFERRED
   COMMUNICATION_SENT
+  CHILD_NOTICE_ACKNOWLEDGED
 }
 
 enum ContactMethod {
@@ -297,6 +298,10 @@ model School {
   // School-level Data Processing Agreement signing
   orgDpaSignedAt DateTime?    // Timestamp when SCHOOL_ADMIN accepted the org-level DPA
   orgDpaSignedBy String?      // userId of SCHOOL_ADMIN who signed
+
+  // ICO Children's Code Standard 15 — student-facing "who to ask" contact
+  dpoName  String?  // Data Protection Officer's name, set by SCHOOL_ADMIN/SLT
+  dpoEmail String?  // Data Protection Officer's contact email
 
   schoolGroupId String?
   schoolGroup   SchoolGroup? @relation(fields: [schoolGroupId], references: [id])
@@ -503,6 +508,7 @@ model User {
   activatedAt  DateTime?                    // Set on first login — null means never logged in
   dpaAcceptedAt   DateTime?                  // Set on first DPA acknowledgement — staff only
   termsAcceptedAt DateTime?                  // Set on first T&C/AUP acceptance — parent + student
+  childNoticeAckAt DateTime?                 // Set on first dismissal of the bite-sized children's-code data notice — student only (ICO Children's Code Standard 4)
   trialEndsAt    DateTime?                  // Set on beta/demo signups; null = no trial restriction
   trialNudgeSent Int       @default(0)     // Onboarding email sequence: 0=none, 1=day1, 3=day3, 7=day7 sent
   createdAt    DateTime @default(now())
@@ -1761,11 +1767,14 @@ model UserSettings {
   teachingModules    String[]
 
   // Privacy & Notifications
+  // Standard 7 (ICO Children's Code) audit, 30 Aug 2026: these three flipped from
+  // opt-out (@default(true)) to opt-in (@default(false)) — "high privacy by default"
+  // per evidence/childrens-code/standard-7-default-settings-audit.md.
   allowEmailNotifications    Boolean @default(true)
   allowSmsNotifications      Boolean @default(false)
-  allowAnalyticsInsights     Boolean @default(true)
-  profileVisibleToColleagues Boolean @default(true)
-  profileVisibleToAdmins     Boolean @default(true)
+  allowAnalyticsInsights     Boolean @default(false)
+  profileVisibleToColleagues Boolean @default(false)
+  profileVisibleToAdmins     Boolean @default(false)
 
   // Lesson Sharing & AI
   lessonSharing      LessonSharingLevel @default(PRIVATE)

@@ -1131,6 +1131,8 @@ export type SchoolSettings = {
   phase:       string
   urn:         string
   emailDomain: string
+  dpoName:     string
+  dpoEmail:    string
   onboardedAt: Date | null
 }
 
@@ -1138,9 +1140,12 @@ export async function getSchoolSettings(): Promise<SchoolSettings> {
   const { schoolId } = await requireAdminOrSlt()
   const s = await prisma.school.findUniqueOrThrow({
     where: { id: schoolId as string },
-    select: { id: true, name: true, phase: true, urn: true, emailDomain: true, onboardedAt: true },
+    select: { id: true, name: true, phase: true, urn: true, emailDomain: true, dpoName: true, dpoEmail: true, onboardedAt: true },
   })
-  return { id: s.id, name: s.name, phase: s.phase ?? '', urn: s.urn ?? '', emailDomain: s.emailDomain ?? '', onboardedAt: s.onboardedAt }
+  return {
+    id: s.id, name: s.name, phase: s.phase ?? '', urn: s.urn ?? '', emailDomain: s.emailDomain ?? '',
+    dpoName: s.dpoName ?? '', dpoEmail: s.dpoEmail ?? '', onboardedAt: s.onboardedAt,
+  }
 }
 
 export async function saveSchoolSettings(data: Partial<Omit<SchoolSettings, 'id' | 'onboardedAt'>>): Promise<void> {
@@ -1152,6 +1157,8 @@ export async function saveSchoolSettings(data: Partial<Omit<SchoolSettings, 'id'
       ...(data.phase       != null ? { phase: data.phase || null }      : {}),
       ...(data.urn         != null ? { urn: data.urn || null }          : {}),
       ...(data.emailDomain != null ? { emailDomain: data.emailDomain || null } : {}),
+      ...(data.dpoName     != null ? { dpoName: data.dpoName || null }  : {}),
+      ...(data.dpoEmail    != null ? { dpoEmail: data.dpoEmail || null } : {}),
     },
   })
   await writeAudit({ schoolId: schoolId as string, actorId, action: 'SCHOOL_SETTINGS_UPDATED', targetType: 'school', targetId: schoolId as string, metadata: data })

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { DsrRow, StudentOption } from '@/app/actions/gdpr'
@@ -35,6 +36,7 @@ type Props = {
 }
 
 export default function DataSubjectRequestList({ dsrs, students }: Props) {
+  const router = useRouter()
   const [updating, startUpdate]       = useTransition()
   const [updatingId, setUpdatingId]   = useState<string | null>(null)
   const [showNewModal, setShowNew]    = useState(false)
@@ -168,7 +170,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
       {showNewModal && (
         <NewDsrModal
           students={students}
-          onClose={() => setShowNew(false)}
+          onClose={() => { setShowNew(false); router.refresh() }}
         />
       )}
 

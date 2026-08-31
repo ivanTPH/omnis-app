@@ -2040,7 +2040,7 @@ model ConsentPurpose {
 model ConsentRecord {
   id          String   @id @default(cuid())
   purposeId   String
-  studentId   String   // WondeStudent.id
+  studentId   String   // User.id of the child (see recordConsent()/acceptTerms.ts — always a User.id, never a WondeStudent.id)
   responderId String   // User.id (parent or guardian)
   decision    String   // "granted" | "withdrawn"
   method      String   // "portal" | "paper" | "verbal" | "imported"

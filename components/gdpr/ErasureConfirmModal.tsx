@@ -18,20 +18,26 @@ const DELETED_DATA = [
   'SEND concerns and early warning flags',
   'Student learning profile and AI snapshots',
   'Revision sessions, exams, and confidence ratings',
-  'Messaging history',
+  'Messaging history (including parent-teacher conversations)',
   'Class enrolments and subject options',
   'Consent records',
   'Account settings and login credentials',
   'K Plan / Learning Passport',
+  'Parent home-progress notes on ILP targets',
+  'Academic integrity case records',
+  'Teacher grade predictions',
   'User PII (name anonymised to "[Deleted User]", email to erased-…@erased.local)',
 ]
 
 const RETAINED_DATA = [
-  'ILP and ILP targets — 7-year DfE retention obligation',
+  'ILP and ILP targets (including legacy SEND plan records) — 7-year DfE retention obligation',
   'EHCP plans and outcomes — 7-year DfE retention obligation',
   'APDR cycles — 7-year DfE retention obligation',
-  'Audit log entries — audit trail integrity',
   'SEND status record — safeguarding obligation',
+  'SEND review logs — tied to SEND status retention above',
+  'Safeguarding records — retained per KCSIE safeguarding guidance',
+  'Behavioural records (detentions, exclusions, pastoral notes) — retained per school behavioural-records policy',
+  'Audit log entries — audit trail integrity',
   'This data subject request record — GDPR compliance evidence',
 ]
 

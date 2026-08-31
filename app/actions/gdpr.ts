@@ -556,6 +556,14 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
     await tx.earlyWarningFlag.deleteMany({ where: { studentId } })
     await tx.sendNotification.deleteMany({ where: { recipientId: studentId } })
     await tx.notification.deleteMany({ where: { userId: studentId } })
+    // Parent's own home-progress notes / meeting requests on an ILP — third-party
+    // content in the same vein as ParentMessage below, not a statutory record.
+    await tx.ilpParentResponse.deleteMany({ where: { studentId } })
+    // Academic integrity case (suspected-cheating pattern review) — no statutory
+    // retention requirement, unlike behavioural/exclusion records below.
+    await tx.integrityPatternCase.deleteMany({ where: { studentId } })
+    // Teacher's predicted-grade record — ordinary academic data, no retention basis.
+    await tx.teacherPrediction.deleteMany({ where: { studentId } })
 
     // 3. Learning profile & agent data
     await tx.studentLearningProfile.deleteMany({ where: { studentId } })
@@ -573,6 +581,18 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
     await tx.msgMessage.deleteMany({ where: { senderId: studentId } })
     await tx.msgParticipant.deleteMany({ where: { userId: studentId } })
 
+    // Parent-teacher conversation channel — same "messaging history" category as
+    // above, just a separate model. Delete messages before the conversation they
+    // belong to (ParentMessage has no onDelete: Cascade from ParentConversation).
+    const parentConversations = await tx.parentConversation.findMany({
+      where: { studentId }, select: { id: true },
+    })
+    const parentConversationIds = parentConversations.map(c => c.id)
+    if (parentConversationIds.length > 0) {
+      await tx.parentMessage.deleteMany({ where: { conversationId: { in: parentConversationIds } } })
+      await tx.parentConversation.deleteMany({ where: { id: { in: parentConversationIds } } })
+    }
+
     // 6. Enrolment & relationships
     await tx.enrolment.deleteMany({ where: { userId: studentId } })
     await tx.studentSubject.deleteMany({ where: { studentId } })
@@ -589,8 +609,21 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
     await tx.kPlan.deleteMany({ where: { studentId } })
     await tx.learnerPassport.deleteMany({ where: { studentId } })
 
-    // NOTE: IndividualLearningPlan, EhcpPlan, AssessPlanDoReview, SendStatus, and
-    // AuditLog are intentionally retained under DfE 7-year retention obligation.
+    // NOTE — intentionally retained, not deleted here:
+    // - IndividualLearningPlan, EhcpPlan, AssessPlanDoReview, SendStatus, and the
+    //   legacy Plan/PlanTarget/PlanStrategy/PlanReviewCycle and ILP/ILPTarget/ILPNote
+    //   models (same category of SEND plan record as their modern replacements) —
+    //   DfE 7-year retention obligation.
+    // - SafeguardingRecord — retained per KCSIE safeguarding guidance.
+    // - SendReviewLog, SendStatusReview — SEND review logs tied to SendStatus, follow
+    //   its retention above.
+    // - PastoralNote, BehaviourRecord, Detention, Exclusion — retained per school
+    //   behavioural-records policy.
+    // - AuditLog — audit trail integrity.
+    // Reviewed and left as-is pending a product decision, not yet retained on any
+    // stated policy: AgentAuditEntry (append-only by design, the same rationale as
+    // AuditLog above, but not yet formally added to that policy — see
+    // evidence/retention-test.md).
 
     // 9. Anonymise User PII — keep row for audit trail integrity
     await tx.user.update({

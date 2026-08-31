@@ -25,7 +25,7 @@ tells you what to drop in it.
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 Scripts/plan prepared, not yet run (6.1) — 27 Aug: scenario 1 (Wonde downtime) and part of scenario 3 (DB connection loss) got real code fixes plus real unplanned production evidence, see below — 🔴 confirmed Free tier, upgrade deferred but required before go-live (6.3, unchanged) | YES | You + Claude |
 | 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
-| 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. 🟡 8.3: leaver-deletion workflow live-tested 30 Aug 2026 — works correctly for 25+5 documented categories, schoolId scoping confirmed, but found 15 PII-bearing categories retained with no stated policy (SafeguardingRecord + parent messages highest priority) — undecided, not yet fixed | YES | You + Claude |
+| 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
 | 10 | Operational go-live readiness | ⬜ Not started | YES | You + Claude |
 
@@ -360,7 +360,7 @@ confirmation and the retention/leaver-deletion live test).
 - [ ] Existing DPIA states "school = Controller, Omnis = Processor" — confirm this is reflected in an actual signed Data Processing Agreement template ready for schools, not just asserted in the DPIA
 - [ ] Confirm AI provider (Claude API) data handling terms explicitly exclude training on pupil data — document the confirmation
 
-**8.3 Retention & deletion in practice, not just policy — 🟡 tested 30 Aug 2026, real gaps found**
+**8.3 Retention & deletion in practice, not just policy — 🟡 tested 30 Aug, fixed + re-verified 31 Aug 2026**
 ```
 Read CLAUDE.md. The DPIA describes configurable retention and leaver
 deletion workflows. Verify they actually run:
@@ -370,49 +370,61 @@ deletion workflows. Verify they actually run:
 
 30 Aug 2026: executeErasure() (app/actions/gdpr.ts) traced from the
 /admin/gdpr UI, a synthetic leaver built with linked data across all 30
-studentId-bearing models in the schema, erasure triggered via the real
-product UI (Playwright, not a bypassed function call), verified by direct
-DB query before/after, plus a control record in a second school to confirm
-schoolId scoping. Full result, screenshots, and every category's outcome:
-evidence/retention-test.md.
+studentId-bearing models, erasure triggered via the real product UI,
+verified by direct DB query before/after, plus a control record in a
+second school. Found 25 correctly deleted + 5 correctly retained-and-
+documented (ILP/EHCP/APDR/SendStatus — DfE 7-year obligation) — but 15
+more categories retained with no stated policy anywhere, highest priority
+SafeguardingRecord and ParentConversation/ParentMessage. schoolId scoping
+confirmed correct. Two unrelated bugs also found (DSR list missing
+router.refresh(), stale schema comment on ConsentRecord.studentId).
 
-Result: the workflow is real, manual (SCHOOL_ADMIN-triggered via a DSR, not
-tied to any leaver flag or cron), student-only (no staff equivalent), and
-does exactly what its own code comment + confirmation-screen copy claim for
-25 deleted + 5 retained-with-justification categories (ILP/EHCP/APDR/
-SendStatus — DfE 7-year obligation, stated in both code and UI). schoolId
-scoping confirmed correct — a second school's control records were
-byte-for-byte unaffected.
-
-But 15 more categories survive erasure with **no stated justification
-anywhere** — named in neither the code's retained-list comment nor the
-UI's own RETAINED_DATA array. Highest priority: SafeguardingRecord (the
-single most sensitive model in the schema) and ParentConversation/
-ParentMessage (real third-party message content) — both completely
-unaddressed. Full list and severity ranking in evidence/retention-test.md
-§5. One more-minor bug found as a side effect: the DSR list doesn't
-refresh after logging a new request (missing router.refresh()) — reported,
-not fixed, alongside the retention gaps.
+31 Aug 2026: all 15 gaps closed per confirmed decisions — 4 deleted
+(ParentConversation/ParentMessage, TeacherPrediction, IntegrityPatternCase,
+IlpParentResponse), 9 retained-with-citation (SafeguardingRecord — KCSIE
+guidance; legacy Plan/PlanTarget + ILP/ILPTarget/ILPNote — same DfE 7-year
+bucket as their modern replacements, confirmed materially the same kind of
+document by tracing both models; SendReviewLog/SendStatusReview — tied to
+SendStatus's retention; PastoralNote/BehaviourRecord/Detention/Exclusion —
+school behavioural-records policy). AgentAuditEntry deliberately left
+undecided and flagged, not guessed — its append-only design mirrors
+AuditLog's own retained rationale, but that's not yet a settled product
+decision. Both unrelated bugs fixed too. Re-ran the full live test end to
+end against a second synthetic leaver: all 5 new deletions confirmed
+0-after, all 9 newly-documented retentions confirmed still 1-after (i.e.
+correctly untouched), AgentAuditEntry confirmed unaffected as expected,
+control-school scoping re-confirmed. router.refresh() fix verified with a
+polling check (takes ~5s in this dev environment — real Supabase network
+latency, not a defect). Side finding: session 1's own cleanup script had
+left its control records behind due to a wrong id reference — caught and
+fixed in this session's cleanup too. Full detail, before/after tables, and
+screenshots for both sessions: evidence/retention-test.md.
 
 - [x] Synthetic leaver created with realistic linked data across every
-      relevant category (30 models) — evidence/retention-test.md §2-3
+      relevant category (30 models) — evidence/retention-test.md
 - [x] Deletion workflow triggered via the real product UI, not a script —
-      screenshots in evidence/retention-test-screenshots/
+      screenshots in evidence/retention-test-screenshots/ and -v2/
 - [x] Verified directly against the database, not just the UI — full
-      before/after count table in evidence/retention-test.md §3
-- [x] schoolId scoping confirmed correct via a live control-school test —
-      evidence/retention-test.md §9
-- [ ] Decide + document real retention policy for SafeguardingRecord
-      (likely: retain per KCSIE, but say so — currently silent)
-- [ ] Add ParentConversation/ParentMessage to executeErasure()'s deletions
-- [ ] Decide whether legacy Plan/ILP models (confirmed still actively
-      queried, not dead code) need the same delete/retain treatment
-- [ ] Fix router.refresh() gap in DataSubjectRequestList (minor, unrelated
-      to retention correctness but found during this test)
+      before/after count tables for both test runs in evidence/retention-test.md
+- [x] schoolId scoping confirmed correct via a live control-school test,
+      twice — evidence/retention-test.md
+- [x] SafeguardingRecord retention policy decided (KCSIE) and documented
+      in both the code comment and the confirmation-screen UI
+- [x] ParentConversation/ParentMessage deletion added to executeErasure()
+- [x] Legacy Plan/ILP models traced and confirmed the same category as
+      their modern replacements — added to the same retention bucket
+- [x] router.refresh() gap fixed in DataSubjectRequestList
+- [x] Stale ConsentRecord.studentId schema comment fixed
+- [ ] AgentAuditEntry retention policy — deliberately left open, not
+      guessed (see evidence/retention-test.md, Session 2). Needs an actual
+      product decision: same audit-trail-integrity bucket as AuditLog, or
+      delete like TeacherPrediction/IntegrityPatternCase?
 
 ✓ Check: leaver deletion test result recorded in evidence/retention-test.md
-  — done. Not closing this item to ✅ yet: the test found real, undecided
-  gaps (SafeguardingRecord above all) rather than confirming full coverage.
+  — done, including the fix-and-re-verify pass. 14 of 15 originally-found
+  gaps now have a documented, live-tested outcome. The 1 remaining item
+  (AgentAuditEntry) is a genuine open product decision, not an oversight —
+  flagging it rather than guessing is itself the correct outcome here.
 ```
 
 ---

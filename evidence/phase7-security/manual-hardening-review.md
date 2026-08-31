@@ -17,7 +17,7 @@ running the app and trying to break it.
 
 | # | Area | Result |
 |---|---|---|
-| 1 | Auth & session handling | 4 of 5 checks pass; **logout does not invalidate the session server-side** — confirmed live, architectural, not fixed this pass (see below) |
+| 1 | Auth & session handling | All 5 checks pass. **Logout not invalidating the session server-side was found and confirmed live — now fixed and re-verified live** (see below; `User.sessionsInvalidatedAt` + `lib/auth.ts` `jwt()` callback check) |
 | 2 | Rate limiting & abuse | Homework/ILP generation limits are robust (DB-based, no fail-open). Login/MFA/password-reset/contact limits are correctly built but **fail open if Upstash isn't configured** — could not confirm production Upstash config from this session; flagged for Ivan to verify |
 | 3 | Injection & input handling | SQL: clean (Prisma-parameterised throughout). XSS: **2 real stored-XSS gaps found and fixed** (resource upload, AI-generated HTML resources). Prompt injection: **1 real gap found and fixed** (unclamped AI-marking score) |
 | 4 | SSRF | Clean — no user-controllable server-side fetch found anywhere in the app |
@@ -173,6 +173,66 @@ request, which *can* be revoked server-side on logout).
 the current risk given the mitigating factors) — this is a real product
 decision (session-model architecture, DB load tradeoff), not something to
 silently pick for you.
+
+**Update, 31 Aug 2026 (later the same day) — fixed, option 2 chosen.**
+Ivan chose the lighter-weight revocation option over switching to
+database-backed sessions. Implemented: `User.sessionsInvalidatedAt
+DateTime?` (pushed to production via `prisma db push`); all 4 real
+sign-out call sites (`Sidebar.tsx`, `SessionTimeout.tsx` — both the
+inactivity auto-logout and the manual "Log out now" button,
+`DemoRoleSwitcher.tsx` — both the "return to own account" and
+role-switching branches, `app/demo/DemoRolePicker.tsx`) now call a new
+`recordSignOut()` server action (`app/actions/settings.ts`) that sets
+`sessionsInvalidatedAt = now()` for the current user, *before* calling
+`signOut()`; `lib/auth.ts`'s `jwt()` callback — which Auth.js's JWT-strategy
+`auth()`/`getSession()` internals confirmed (by reading `@auth/core`'s
+source) run on *every* `auth()` call, not just at sign-in — now compares
+the token's `iat` claim against a fresh DB read of `sessionsInvalidatedAt`
+on every re-validation of an existing token (skipped entirely at fresh
+sign-in, where `iat` isn't set yet), returning `null` to reject if the
+token predates the invalidation timestamp. Returning `null` from this
+callback is Auth.js's own documented mechanism for this — confirmed by
+reading `@auth/core`'s session-handling source directly: it skips building
+a session, and it actively clears the session cookie in the response.
+
+**Live re-tested end to end, replacing the "confirmed: no" result above:**
+1. Logged in normally.
+2. Clicked the real Sidebar "Sign out" button (exercising the actual
+   `recordSignOut()` → `signOut()` code path, not a simulated call) —
+   `/api/auth/session` in that browser correctly returns `null` afterward.
+3. **Replayed the pre-logout captured cookie in a brand-new browser
+   context** (the same reproduction that proved the original bug):
+   `/api/auth/session` → `null` (previously: the full valid session).
+   `GET /dashboard` → redirected to `/login?callbackUrl=...` (previously:
+   `200`, full access). The replay browser's cookie jar also had the old
+   cookie cleared, confirming the server actively told it to drop the
+   now-dead cookie, not just silently ignore it.
+4. **Confirmed normal login is unaffected**: a fresh sign-in as the same
+   account immediately after still works, session is valid, and a
+   subsequent navigation to another protected page succeeds normally.
+5. **Confirmed demo role-switching is unaffected** (the specific concern
+   raised when scoping this fix): signed out of one demo account and
+   immediately into a *different* one, in one continuous flow — matching
+   exactly what `DemoRoleSwitcher.switchTo()`/`DemoRolePicker.switchTo()`
+   do internally (sign out → sign in as a different `User` row). Ended up
+   correctly authenticated as the second account, not blocked or left
+   logged out — invalidating account A's sessions has no effect on account
+   B's fresh sign-in, since the check only ever compares a token's own
+   `iat` against its own user's `sessionsInvalidatedAt`.
+
+`npx tsc --noEmit` and `npm run build` both exit 0 after this change.
+Deliberately does not touch `auth.config.ts` (the separate, Prisma-free
+Edge-runtime config `middleware.ts` uses) — that file cannot import Prisma
+by design, so middleware itself does not pre-emptively block a
+since-revoked token at the edge. In practice this doesn't leave a gap:
+every real data-touching page and server action in the app calls
+`requireAuth()`/`auth()` from `lib/auth.ts` (where the new check lives) as
+part of its own rendering/execution — confirmed via `/dashboard`'s own
+`requireAuth()` call in the live test above — so a revoked token is
+rejected the moment it reaches any actual protected content, one layer
+later than middleware but before any data is read or written. This matches
+the two-layer model already documented as intentional elsewhere in this
+review (§1's access-control note) and in `access-control-retest.md`.
 
 ### Session cookie flags (confirmed live)
 `authjs.session-token`: `HttpOnly: true`, `SameSite: Lax`. `Secure: false`
@@ -690,11 +750,19 @@ server-side-only logging as a nice-to-have, but didn't judge this worth a
 | `app/actions/homework.ts` | `autoMarkSubmission()`'s AI-marking branch: clamped the returned score to `[0, maxScore]`, added a "treat student answer as data not instructions" line to the system prompt, added the missing `AI_ONE_SHOT_OPTS` timeout/retry options (missed by the prior Phase 6.2 Scenario 2 sweep) |
 | `package.json` / `package-lock.json` | Added `isomorphic-dompurify` |
 
-## Flagged for Ivan — not fixed this pass, needs a decision or infra check
+**Added in a follow-up pass the same day** (see the "Update, 31 Aug 2026"
+note under §1's Logout finding for full detail): `prisma/schema.prisma`
+(`User.sessionsInvalidatedAt`, pushed to production), `lib/auth.ts` (`jwt()`
+callback invalidation check), `app/actions/settings.ts` (new
+`recordSignOut()` action), and all 4 real sign-out call sites
+(`components/Sidebar.tsx`, `components/SessionTimeout.tsx`,
+`components/DemoRoleSwitcher.tsx`, `app/demo/DemoRolePicker.tsx`).
 
-1. **Logout doesn't invalidate the session server-side** (§1) — confirmed
-   live; architectural (NextAuth JWT strategy). Two remediation options
-   written up with their real costs; needs a decision, not a guess.
+## Flagged for Ivan — status
+
+1. ~~**Logout doesn't invalidate the session server-side**~~ — **fixed
+   31 Aug 2026, later the same day.** See the "Update" note under §1's
+   Logout finding above for the full implementation and live re-test.
 2. **Cannot confirm whether Upstash (`UPSTASH_REDIS_REST_URL`/
    `UPSTASH_REDIS_REST_TOKEN`) is configured in production** (§1 MFA, §2
    rate limiting) — this session has no non-demo production credentials to
@@ -702,15 +770,15 @@ server-side-only logging as a nice-to-have, but didn't judge this worth a
    and every Redis-backed rate limiter (login, password-reset,
    MFA-request, contact-form) are silently no-ops in production right now.
    Please confirm directly (Coolify env vars, and/or logging into your own
-   real staff account and checking for the OTP screen).
+   real staff account and checking for the OTP screen). **Still open.**
 3. **`X-Forwarded-For`-based IP rate limiting could theoretically be
    bypassed by header spoofing** if the Coolify/Nginx reverse proxy doesn't
    sanitise that header before forwarding (§2) — no visibility into the
-   actual proxy config from this session to confirm either way.
+   actual proxy config from this session to confirm either way. **Still open.**
 4. **CSP's `script-src 'unsafe-inline' 'unsafe-eval'`** provides no defence
    against inline-script XSS (§6) — real Next.js CSP tightening work,
    scoped separately from this pass since the actual injection vectors were
-   closed directly instead.
+   closed directly instead. **Still open.**
 
 ---
 

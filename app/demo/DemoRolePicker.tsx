@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { signIn, signOut } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import Icon from '@/components/ui/Icon'
+import { recordSignOut } from '@/app/actions/settings'
 
 const SCHOOL_ROLES = [
   { label: 'Teacher',            email: 'j.patel@omnisdemo.school',              icon: 'school' },
@@ -30,6 +31,7 @@ export default function DemoRolePicker({ firstName }: { firstName: string }) {
     setSwitchError(null)
     try {
       // Sign out of current session first so NextAuth replaces it cleanly
+      await recordSignOut()
       await signOut({ redirect: false })
       const result = await signIn('credentials', {
         email,

@@ -94,6 +94,26 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         if (!(u as any).rememberMe) {
           token.exp = Math.floor(Date.now() / 1000) + 4 * 60 * 60
         }
+      } else if (typeof token.iat === 'number' && token.id) {
+        // Re-validating an EXISTING token (not a fresh sign-in — `user` is only
+        // present at the moment authorize() succeeds, and a brand-new token has
+        // no `iat` yet at this point in the flow; jose's encode() sets `iat` only
+        // after this callback returns). NextAuth's JWT strategy is stateless by
+        // design — there's no server-side session store, so "sign out" alone
+        // can't revoke a token that's already been captured/replayed. This is
+        // the fix: every real sign-out call site sets User.sessionsInvalidatedAt
+        // to now(); any token issued before that timestamp is rejected here, on
+        // every request (this callback runs on every auth() call, not just at
+        // sign-in — see evidence/phase7-security/manual-hardening-review.md,
+        // "Auth & session handling", for the live-tested proof this was
+        // previously exploitable and the two options considered before this one).
+        const dbUser = await prisma.user.findUnique({
+          where:  { id: token.id as string },
+          select: { sessionsInvalidatedAt: true },
+        })
+        if (dbUser?.sessionsInvalidatedAt && dbUser.sessionsInvalidatedAt.getTime() > token.iat * 1000) {
+          return null // triggers Auth.js's built-in "clear the session cookie" path
+        }
       }
       return token
     },

@@ -2,6 +2,7 @@
 import Link     from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut }     from 'next-auth/react'
+import { recordSignOut } from '@/app/actions/settings'
 import Icon from '@/components/ui/Icon'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import UnreadBadge from '@/components/messaging/UnreadBadge'
@@ -327,7 +328,10 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
           </div>
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={async () => {
+            await recordSignOut()
+            await signOut({ callbackUrl: '/login' })
+          }}
           className="flex items-center gap-2 text-[12px] text-gray-400 hover:text-red-500 transition-colors"
         >
           <Icon name="logout" size="sm" />Sign out

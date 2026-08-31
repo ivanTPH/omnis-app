@@ -1,6 +1,7 @@
 'use server'
 
 import { requireAuth } from '@/lib/session'
+import { auth } from '@/lib/auth'
 import { prisma, writeAudit }  from '@/lib/prisma'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import bcrypt                  from 'bcryptjs'
@@ -308,6 +309,34 @@ export async function getSessionIdentity(): Promise<{ id: string; schoolId: stri
   } catch {
     return null
   }
+}
+
+/**
+ * Marks the current user's existing JWTs as invalid, going forward, from
+ * this moment. Must be called (and awaited) BEFORE next-auth/react's
+ * signOut() — every real sign-out call site does this
+ * (Sidebar.tsx, SessionTimeout.tsx, DemoRoleSwitcher.tsx,
+ * app/demo/DemoRolePicker.tsx). lib/auth.ts's jwt() callback checks the
+ * JWT's `iat` against this field on every subsequent request and rejects
+ * anything issued before it — this is what actually closes off a captured/
+ * replayed cookie once someone signs out, since the JWT session strategy
+ * itself has no server-side session store to revoke.
+ * See evidence/phase7-security/manual-hardening-review.md, "Auth & session
+ * handling".
+ *
+ * Deliberately uses auth() (not requireAuth()) — this can legitimately run
+ * against an already-borderline/about-to-be-cleared session right before
+ * sign-out, and a no-op when there's genuinely no session is the correct
+ * behaviour (nothing to invalidate), not a redirect/thrown error.
+ */
+export async function recordSignOut(): Promise<void> {
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return
+  await prisma.user.update({
+    where: { id: userId },
+    data:  { sessionsInvalidatedAt: new Date() },
+  })
 }
 
 export async function getMyAvatarUrl(): Promise<string | null> {

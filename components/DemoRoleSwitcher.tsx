@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { signIn, signOut } from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
 import { getDemoSessionEmail } from '@/app/actions/demo'
+import { recordSignOut } from '@/app/actions/settings'
 
 const OWNER_EMAIL = 'ivanyardley@me.com'
 const LS_KEY     = 'omnis-demo-owner'
@@ -71,6 +72,7 @@ export default function DemoRoleSwitcher() {
       // (owner must re-enter their real password — we don't store it)
       localStorage.removeItem(LS_KEY)
       try {
+        await recordSignOut()
         await signOut({ redirect: false })
       } catch { /* ignore */ }
       location.assign('/login')
@@ -78,6 +80,7 @@ export default function DemoRoleSwitcher() {
     }
     try {
       // Sign out first so NextAuth replaces the session cleanly
+      await recordSignOut()
       await signOut({ redirect: false })
       const result = await signIn('credentials', {
         email,

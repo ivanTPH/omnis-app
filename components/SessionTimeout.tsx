@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { signOut } from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
+import { recordSignOut } from '@/app/actions/settings'
 
 const WARN_AFTER_MS  = 25 * 60 * 1000  // 25 minutes — show warning
 const LOGOUT_AFTER_MS = 30 * 60 * 1000  // 30 minutes — force signout
@@ -41,8 +42,9 @@ export default function SessionTimeout() {
       }, 1000)
     }, WARN_AFTER_MS)
 
-    logoutTimer.current = setTimeout(() => {
-      signOut({ callbackUrl: '/login?reason=timeout' })
+    logoutTimer.current = setTimeout(async () => {
+      await recordSignOut()
+      await signOut({ callbackUrl: '/login?reason=timeout' })
     }, LOGOUT_AFTER_MS)
   }, [])
 
@@ -98,7 +100,10 @@ export default function SessionTimeout() {
           Stay Logged In
         </button>
         <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={async () => {
+            await recordSignOut()
+            await signOut({ callbackUrl: '/login' })
+          }}
           className="w-full py-2 text-sm text-gray-400 hover:text-gray-600"
         >
           Log out now

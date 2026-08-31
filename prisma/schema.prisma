@@ -511,6 +511,7 @@ model User {
   childNoticeAckAt DateTime?                 // Set on first dismissal of the bite-sized children's-code data notice — student only (ICO Children's Code Standard 4)
   trialEndsAt    DateTime?                  // Set on beta/demo signups; null = no trial restriction
   trialNudgeSent Int       @default(0)     // Onboarding email sequence: 0=none, 1=day1, 3=day3, 7=day7 sent
+  sessionsInvalidatedAt DateTime?          // Set to now() on explicit sign-out; JWTs issued before this are rejected server-side (lib/auth.ts jwt() callback) — poor-man's session revocation for the JWT session strategy, see evidence/phase7-security/manual-hardening-review.md
   createdAt    DateTime @default(now())
   avatarUrl            String?
   supportSnapshot      String?          // 1–2 sentence plain-English SEND summary for teachers

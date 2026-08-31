@@ -1,0 +1,36 @@
+version: 2
+
+updates:
+  # ─── npm dependencies ──────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Minor/patch bumps are low-risk — bundle them into one PR per ecosystem
+      # so they don't flood the repo. Major bumps are excluded from the group
+      # (via update-types below) so each one stays an individual PR requiring
+      # actual review — this repo pins a lot of major-version-sensitive
+      # packages (Next.js 16, React 19, Prisma 6) where a major bump can be a
+      # breaking change worth looking at on its own.
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # ─── GitHub Actions ────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    commit-message:
+      prefix: "chore(ci)"

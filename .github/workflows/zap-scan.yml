@@ -1,0 +1,68 @@
+name: ZAP Baseline Scan
+
+# Passive-only scan against the live production URL — spidering + passive
+# checks, NEVER an active/fuzzing scan. zap-baseline.py (what
+# zaproxy/action-baseline runs under the hood) never invokes ZAP's active
+# scanner regardless of flags — that's a structurally different script
+# (zap-full-scan.py). An active scan would submit forms and hit POST
+# endpoints (including the AI homework/ILP generation routes), which would
+# trigger real Anthropic API charges and could create junk data in the
+# production database. Do not switch this to action-full-scan.
+
+on:
+  schedule:
+    - cron: '0 4 * * 0'  # weekly, Sunday 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP baseline scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: 'https://omnis.education'
+          artifact_name: 'zap-baseline-report'
+          # -j: modern (client) spider in addition to the traditional
+          #     spider — still passive crawling, no form submission
+          # -I: don't fail this step on WARN-level findings; we gate on
+          #     High severity ourselves below so the job's pass/fail is
+          #     specifically about the thing we care about
+          cmd_options: '-j -I'
+          allow_issue_writing: false
+          fail_action: false
+          # Report is written to $GITHUB_WORKSPACE/report_{html,md,json}.*
+          # and uploaded automatically as a build artifact named
+          # 'zap-baseline-report' (via artifact_name above) — no separate
+          # upload-artifact step needed.
+
+      - name: Fail workflow on High-severity findings
+        if: always()
+        run: |
+          if [ -f report_json.json ]; then
+            HIGH_COUNT=$(node -e "
+              const r = require('./report_json.json');
+              const alerts = (r.site || []).flatMap(s => s.alerts || []);
+              const high = alerts.filter(a => a.riskcode === '3');
+              console.log(high.length);
+              if (high.length) {
+                console.error('High-severity ZAP findings:');
+                high.forEach(a => console.error('- ' + a.name + ' (' + (a.instances || []).length + ' instance(s))'));
+              }
+            ")
+            if [ "$HIGH_COUNT" -gt 0 ]; then
+              echo "::error::ZAP baseline scan found $HIGH_COUNT High-severity issue(s) — see the 'zap-baseline-report' artifact on this run."
+              exit 1
+            fi
+          else
+            echo "::warning::report_json.json not found — cannot verify High-severity findings, check the 'zap-baseline-report' artifact manually."
+          fi

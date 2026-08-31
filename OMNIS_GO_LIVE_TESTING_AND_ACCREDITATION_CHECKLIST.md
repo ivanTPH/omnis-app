@@ -24,7 +24,7 @@ tells you what to drop in it.
 |---|---|---|---|---|
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 6.2: all 4 failure scenarios now traced, live-tested, and fixed where a real gap existed (27 Aug: scenarios 1 + 3; 31 Aug: scenarios 2 + 4) — see below. 🔴 6.1 (load test) not run and 🔴 6.3 (backup tier upgrade) not done — both blocked on infra/environment decisions outside coding scope, not on more fixes | YES | You + Claude |
-| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
+| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline — free, no prod side effects, see below) — this is ongoing coverage, not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test | YES | You + Claude (external assessments still need an accredited third party) |
 | 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
 | 10 | Operational go-live readiness | 🟡 10.2 (incident response): runbook + comms template written in full, including safeguarding escalation — only on-call contact details/named humans remain (owned by Ivan). 10.1 (monitoring): `/api/health` endpoint added 31 Aug 2026 as the uptime-monitor target; Sentry alerting + uptime monitor signup still open, external service setup owned by Ivan, not code. 10.3/10.4 not started | YES | You + Claude |
@@ -315,7 +315,10 @@ commands in evidence/phase7-security/dependency-scan.md.
       exact-pinned range) — closes the middleware CVEs
 - [ ] Run `npx tsc --noEmit && npm run build` per CLAUDE.md's own rule, then
       the E2E suite, before committing
-- [ ] Add npm audit (or Dependabot/Snyk) to CI so this doesn't silently drift
+- [x] **Add npm audit (or Dependabot/Snyk) to CI so this doesn't silently
+      drift — done 31 Aug 2026.** `.github/dependabot.yml` added (weekly npm +
+      github-actions version-update PRs). See 7.5 below — this is one part
+      of a broader continuous-scanning setup, not just this one bullet.
 ```
 
 **7.4 Access control re-verification — 🟡 static review done 10 Jul 2026**
@@ -334,6 +337,38 @@ evidence/phase7-security/access-control-retest.md.
 - [ ] Re-confirm after the Next.js version bump in 7.3
 - [x] Added 10 Jul 2026 — code comment above ROLE_ROUTES documenting that
       array order matters and that unlisted prefixes fall through
+```
+
+**7.5 Continuous automated security scanning — ✅ done 31 Aug 2026**
+```
+Three free, zero-cost, no-production-side-effect tools now run on a
+schedule/on every push, giving ongoing automated coverage in between the
+periodic external assessments in 7.1/7.2 — this is explicitly ADDITIONAL to,
+not a replacement for, CE+ or an independent pen test. Full detail
+(what each covers, what it doesn't, where results show up) in
+evidence/phase7-security/continuous-monitoring.md.
+
+- [x] .github/dependabot.yml — weekly npm + github-actions version-update
+      PRs, minor/patch grouped, majors kept individual, 10-PR cap per
+      ecosystem. Note: this is version-update PRs only — the separate
+      "Dependabot alerts" (known-CVE scanning against what's already
+      installed) is a repo Settings toggle, not code, and still needs
+      enabling manually in Settings → Security → Dependabot alerts.
+- [x] .github/workflows/codeql.yml — CodeQL static analysis,
+      javascript-typescript + security-extended queries, on push to main,
+      on every PR, and weekly. Source-code-only, no live app involved.
+      Results: repo's Security → Code scanning alerts tab.
+- [x] .github/workflows/zap-scan.yml — OWASP ZAP **baseline** (passive-only
+      — spider + passive checks, never active/fuzzing) scan of
+      https://omnis.education, weekly. Deliberately NOT a full/active scan:
+      that would fuzz POST endpoints including /api/ai/generate-homework
+      and /api/ai/generate-ilp, triggering real Anthropic API charges and
+      possible junk data — baseline scanning structurally cannot submit
+      forms, so it's safe to run unattended against production. Fails the
+      workflow on any High-severity finding; full report (HTML/MD/JSON)
+      uploaded as the 'zap-baseline-report' artifact on every run.
+- [ ] Enable Dependabot alerts in repo Settings (the one manual step none
+      of the above does automatically)
 ```
 
 ---

@@ -6,6 +6,7 @@ import { LessonType, AudienceType, PlanStatus, ResourceType } from '@prisma/clie
 import { type ReviewResult } from '@/lib/sendReview'
 import { sendReviewCached } from '@/lib/sendReviewCached'
 import { updateSendInsight } from '@/lib/sendInsights'
+import { parseAndValidateDataUrl } from '@/lib/uploadValidation'
 import Anthropic from '@anthropic-ai/sdk'
 
 // ── CalendarLesson shape (mirrors WeeklyCalendar type) ────────────────────────
@@ -716,6 +717,17 @@ export async function addUploadedResource(
 
   const lesson = await prisma.lesson.findFirst({ where: { id: lessonId, schoolId }, select: { id: true } })
   if (!lesson) throw new Error('Lesson not found')
+
+  // The client declares a MIME type on the dataUrl it sends — that's just a
+  // string an attacker can set to anything in a raw request, not something
+  // Next.js verifies. /api/resource-file/[id] later serves resource.url's
+  // declared type as the HTTP Content-Type with Content-Disposition: inline
+  // — an unvalidated dataUrl here is a stored-XSS path (upload a "PDF" that's
+  // actually text/html, anyone who opens it gets it rendered inline as HTML
+  // from the app's own origin). See evidence/phase7-security/manual-hardening-review.md.
+  if (input.dataUrl) {
+    parseAndValidateDataUrl(input.dataUrl)
+  }
 
   const resource = await prisma.resource.create({
     data: {
@@ -1603,6 +1615,20 @@ function toOakSubjectSlugLocal(subject: string): string {
   return s.replace(/\s+/g, '-')
 }
 
+/**
+ * The AI-generated lesson resource HTML built below is stored as a
+ * data:text/html dataUrl and later served with Content-Disposition: inline
+ * from /api/resource-file/[id] — i.e. it renders as a real HTML page on the
+ * app's own origin. Every value interpolated into it (lesson title, class
+ * subject, AI-generated slide/vocab/notes text) must be escaped: the lesson
+ * title in particular is free text any teacher sets when creating a lesson,
+ * so an unescaped `<script>` there would be a self-service stored XSS with
+ * no AI involvement at all. See evidence/phase7-security/manual-hardening-review.md.
+ */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+}
+
 function buildAiSlidesHtml(title: string, yearGroup: number | null, subject: string, slides: Array<{ type: string; title: string; content: string; duration: string }>, vocabulary: string[], learningObjective: string, teacherNotes: string, oakAlignment: string): string {
   const typeColors: Record<string, string> = {
     starter: '#2563eb', context: '#7c3aed', teaching: '#0891b2',
@@ -1614,17 +1640,22 @@ function buildAiSlidesHtml(title: string, yearGroup: number | null, subject: str
       <div class="slide" style="border-left:4px solid ${color}">
         <div class="slide-header" style="color:${color}">
           <span class="slide-num">${i + 1}</span>
-          <span class="slide-type">${s.type.charAt(0).toUpperCase() + s.type.slice(1)}</span>
-          <span class="slide-title">${s.title}</span>
-          <span class="slide-dur">${s.duration}</span>
+          <span class="slide-type">${escapeHtml(s.type.charAt(0).toUpperCase() + s.type.slice(1))}</span>
+          <span class="slide-title">${escapeHtml(s.title)}</span>
+          <span class="slide-dur">${escapeHtml(s.duration)}</span>
         </div>
-        <div class="slide-content">${s.content.replace(/\n/g, '<br>')}</div>
+        <div class="slide-content">${escapeHtml(s.content).replace(/\n/g, '<br>')}</div>
       </div>`
   }).join('')
 
   const vocabHtml = vocabulary.length > 0
-    ? `<div class="section"><h3>Key Vocabulary</h3><ul>${vocabulary.map(v => `<li>${v}</li>`).join('')}</ul></div>`
+    ? `<div class="section"><h3>Key Vocabulary</h3><ul>${vocabulary.map(v => `<li>${escapeHtml(v)}</li>`).join('')}</ul></div>`
     : ''
+  title = escapeHtml(title)
+  subject = escapeHtml(subject)
+  learningObjective = escapeHtml(learningObjective)
+  teacherNotes = escapeHtml(teacherNotes)
+  oakAlignment = escapeHtml(oakAlignment)
 
   return `<!DOCTYPE html>
 <html lang="en-GB">
@@ -1867,6 +1898,9 @@ const AI_RESOURCE_TYPE_META: Record<AiResourceType, { label: string; prismType: 
 
 /** Converts markdown-style AI text to simple styled HTML for inline display. */
 function buildAiResourceHtml(title: string, yearGroup: number | null, subject: string, resourceType: string, content: string): string {
+  title   = escapeHtml(title)
+  subject = escapeHtml(subject)
+
   // Basic markdown → HTML: bold, headings, bullet lists
   const body = content
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

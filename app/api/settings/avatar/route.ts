@@ -2,6 +2,7 @@ import { prisma, writeAudit } from '@/lib/prisma'
 import { requireAuth } from '@/lib/session'
 import { NextRequest }        from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { bufferMatchesMimeType } from '@/lib/uploadValidation'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png']
 const MAX_BYTES     = 5 * 1024 * 1024   // 5 MB
@@ -21,6 +22,12 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'No file provided.' }, { status: 400 })
   }
 
+  // file.type is whatever Content-Type the client's multipart request
+  // declared for this part — trivially spoofable by anyone POSTing directly
+  // rather than through the real upload UI. Not itself proof the bytes are
+  // really a JPEG/PNG — the magic-byte check below on the actual buffer is
+  // what makes that claim mean something. See
+  // evidence/phase7-security/manual-hardening-review.md, "File handling".
   if (!ALLOWED_TYPES.includes(file.type)) {
     return Response.json({ error: 'Only JPG and PNG images are allowed.' }, { status: 400 })
   }
@@ -30,6 +37,11 @@ export async function POST(req: NextRequest) {
   }
 
   const buffer  = Buffer.from(await file.arrayBuffer())
+
+  if (!bufferMatchesMimeType(buffer, file.type)) {
+    return Response.json({ error: 'File content does not match its declared type.' }, { status: 400 })
+  }
+
   const dataUrl = `data:${file.type};base64,${buffer.toString('base64')}`
 
   const prev = await prisma.userSettings.findUnique({

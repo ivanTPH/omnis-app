@@ -24,7 +24,7 @@ tells you what to drop in it.
 |---|---|---|---|---|
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 6.2: all 4 failure scenarios now traced, live-tested, and fixed where a real gap existed (27 Aug: scenarios 1 + 3; 31 Aug: scenarios 2 + 4) — see below. 🔴 6.1 (load test) not run and 🔴 6.3 (backup tier upgrade) not done — both blocked on infra/environment decisions outside coding scope, not on more fixes | YES | You + Claude |
-| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline — free, no prod side effects, see below) — this is ongoing coverage, not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test | YES | You + Claude (external assessments still need an accredited third party) |
+| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline). 31 Aug: 7.6 manual internal hardening review — 5 real gaps found + fixed live (2 stored-XSS via file upload/AI-generated HTML, AI-marking prompt injection + unclamped score, bypassable regex sanitizer, avatar magic-byte check), 4 items flagged for Ivan (session/logout not server-invalidated — architectural, needs a decision; prod Upstash config unconfirmed; possible XFF spoofing; CSP unsafe-inline). All of 7.5/7.6 is ongoing/internal coverage, explicitly not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test | YES | You + Claude (external assessments still need an accredited third party) |
 | 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
 | 10 | Operational go-live readiness | 🟡 10.2 (incident response): runbook + comms template written in full, including safeguarding escalation — only on-call contact details/named humans remain (owned by Ivan). 10.1 (monitoring): `/api/health` endpoint added 31 Aug 2026 as the uptime-monitor target; Sentry alerting + uptime monitor signup still open, external service setup owned by Ivan, not code. 10.3/10.4 not started | YES | You + Claude |
@@ -369,6 +369,84 @@ evidence/phase7-security/continuous-monitoring.md.
       uploaded as the 'zap-baseline-report' artifact on every run.
 - [ ] Enable Dependabot alerts in repo Settings (the one manual step none
       of the above does automatically)
+```
+
+**7.6 Manual internal hardening review — ✅ done 31 Aug 2026, 5 real gaps found and fixed**
+```
+Systematic manual review + live testing (real dev server, real production curl
+checks, live-executed validation harnesses — not just code reading) across 7
+areas: auth/session, rate limiting, injection (SQL/XSS/prompt injection),
+SSRF, file handling, security headers, secrets/error exposure. This is
+internal hardening, NOT a substitute for 7.1 (CE+) or 7.2 (independent pen
+test) — both still require an accredited third party and remain open exactly
+as before. Full trace + live evidence in
+evidence/phase7-security/manual-hardening-review.md.
+
+- [x] **Critical: stored XSS via lesson resource upload, fixed.** A resource's
+      declared file type was trusted with zero server-side content
+      verification and served back with Content-Disposition: inline — any
+      authenticated user (no role restriction) could attach a resource
+      claiming to be an image/PDF while actually being HTML/script, which
+      then executed same-origin against anyone who opened it. Fixed with a
+      write-time MIME allowlist + magic-byte check (new lib/uploadValidation.ts)
+      and a serve-time defense-in-depth re-check in
+      /api/resource-file/[id]/route.ts that forces attachment/octet-stream
+      for anything not genuinely safe to render inline.
+- [x] **Second stored-XSS instance, found while investigating the first,
+      fixed.** The AI "Generate Lesson Slides"/"Generate Resource" features
+      interpolated the lesson title (free text any teacher sets, no AI
+      needed) and AI-generated content directly into HTML with zero
+      escaping. Fixed — every interpolated value now escaped.
+- [x] **AI-marking prompt injection / unclamped score, fixed.** autoMarkSubmission
+      embedded raw student answers into the grading prompt with no defensive
+      framing, and stored the AI's returned score with no bounds check
+      against maxScore — a precedented pattern already used correctly
+      elsewhere in the codebase (lib/revision/test-engine.ts) but missed
+      here. Fixed: clamped the score, added a "treat as data not
+      instructions" system-prompt line, added the AI_ONE_SHOT_OPTS
+      timeout/retry options this call site had been missed for in the prior
+      Phase 6.2 Scenario 2 sweep.
+- [x] **Bypassable regex HTML sanitizer, fixed.** lib/sanitizeHtml.ts (used
+      to render AI-generated content in the AI Generator) was hand-rolled
+      regex stripping, whose own comment admitted it wasn't a real XSS
+      solution. Replaced with isomorphic-dompurify + explicit allowlist,
+      live-verified against script/event-handler/javascript:-href payloads.
+- [x] **Avatar upload magic-byte check, fixed.** Client-declared file type
+      was trusted without verifying actual bytes — lower severity than the
+      resource-upload finding (always rendered via `<img>`'s image-decode
+      pipeline, not served as a raw inline HTTP response) but same
+      underlying gap; fixed with the same shared validation helper.
+- [x] Auth/session: no-session and tampered-cookie access both correctly
+      rejected (live-tested); MFA structurally cannot be bypassed to reach
+      a session (code-verified); session fixation not applicable (no
+      pre-auth session token exists to fixate).
+- [x] SSRF: every server-side fetch() traced — no user-controllable
+      destination found anywhere (resource URLs are never fetched
+      server-side at all; Wonde/Oak sync only ever fetch fixed trusted
+      bases; the student-photo proxy's DB-stored avatarUrl is written only
+      by the trusted Wonde sync, never user-settable).
+- [x] Security headers live-verified via curl against omnis.education — CSP/
+      HSTS/X-Frame-Options/X-Content-Type-Options/Permissions-Policy all
+      confirmed present on real production responses, not just configured
+      in code and never checked.
+- [x] Secrets/error exposure: 7 live malformed-request probes against
+      production, all returned clean generic errors — no stack traces, no
+      Prisma internals, no leaked secrets in any response body.
+- [ ] **Flagged for Ivan, not fixed this pass (see evidence doc for full
+      detail on each):** (1) logout does not invalidate the session
+      server-side — confirmed live; architectural NextAuth JWT-strategy
+      limitation; two remediation options written up, needs your decision.
+      (2) Cannot confirm from this session whether Upstash
+      (UPSTASH_REDIS_REST_URL/TOKEN) is configured in production — if not,
+      staff MFA and every Redis-backed rate limiter (login, password-reset,
+      MFA-request, contact-form) are silent no-ops right now; please verify
+      directly. (3) X-Forwarded-For-based login rate limiting could
+      theoretically be bypassed by header spoofing if the reverse proxy
+      doesn't sanitise that header — no visibility into the Coolify/Nginx
+      config from this session to confirm. (4) CSP's script-src
+      'unsafe-inline' 'unsafe-eval' provides no defence against inline-script
+      XSS — real, separately-scoped CSP tightening work, not attempted here
+      since the actual injection vectors were closed directly instead.
 ```
 
 ---

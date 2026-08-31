@@ -60,10 +60,14 @@ exists).
   as nearly happened during today's connection-pool incident). A free tier
   of UptimeRobot, Better Uptime, or Checkly pinging `/` or a dedicated
   `/api/health` endpoint every 1-5 minutes, alerting to the same
-  email/Slack, covers this. No such endpoint exists yet either —
-  worth adding a trivial `/api/health` route (200 OK + a DB ping) as the
-  monitored target rather than pointing an uptime check at the marketing
-  homepage.
+  email/Slack, covers this. **31 Aug 2026: `app/api/health/route.ts` now
+  exists** — unauthenticated (excluded from the auth middleware matcher
+  along with the rest of `/api`), returns `{ status: 'ok', timestamp }` with
+  a 200 on success, runs a trivial `SELECT 1` so it reflects real DB
+  reachability rather than just process liveness, and returns a 503 with
+  `{ status: 'error', ... }` (not a thrown exception) if the DB check fails.
+  This is the ready-to-target monitored endpoint — signing up for an uptime
+  monitor and pointing it here is still open, needs Ivan.
 - **No alert thresholds tied to the 6.1 performance targets** (roster <3s,
   analytics <5s, homework gen <30s, ILP gen <60s). Sentry's performance
   monitoring (`tracesSampleRate`, already set to 0.05 in prod) can alert on

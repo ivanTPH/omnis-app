@@ -27,7 +27,7 @@ tells you what to drop in it.
 | 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
 | 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
-| 10 | Operational go-live readiness | ⬜ Not started | YES | You + Claude |
+| 10 | Operational go-live readiness | 🟡 10.2 (incident response): runbook + comms template written in full, including safeguarding escalation — only on-call contact details/named humans remain (owned by Ivan). 10.1 (monitoring): `/api/health` endpoint added 31 Aug 2026 as the uptime-monitor target; Sentry alerting + uptime monitor signup still open, external service setup owned by Ivan, not code. 10.3/10.4 not started | YES | You + Claude |
 
 Update this table as you close items — it's the single source of truth for
 "are we actually ready."
@@ -491,14 +491,48 @@ this session.
 
 ## PHASE 10 — Operational Go-Live Readiness
 
-**10.1 Monitoring & alerting**
-- [ ] Error monitoring in production (e.g. Sentry) wired up and alerting to a real person
-- [ ] Uptime monitoring on the production URL
-- [ ] Alert thresholds tied to the performance targets in 6.1
+**10.1 Monitoring & alerting — 🟡 code-side pieces done, external service setup still open (needs Ivan)**
+- [x] `app/api/health/route.ts` added 31 Aug 2026 — unauthenticated (excluded
+      from the auth middleware matcher with the rest of `/api`), runs a
+      trivial `SELECT 1` DB check, returns `{ status: 'ok', timestamp }` /
+      200 on success or `{ status: 'error', ... }` / 503 if the DB is
+      unreachable (wrapped so a DB hiccup can't throw/crash the check
+      itself). This is the ready-to-target endpoint for external uptime
+      monitoring — see `evidence/phase10-operational/monitoring-setup.md`.
+- [ ] Error monitoring in production (e.g. Sentry) wired up and alerting to
+      a real person — **code-side instrumentation is largely done** (see
+      `monitoring-setup.md`: Sentry SDK already initialised, `lib/monitoring.ts`
+      wired into all 4 agent cron routes 27 Aug), but **no Sentry DSN exists
+      yet and no alert rule routes issues anywhere** — this is an external
+      Sentry account/project + env var + alert-rule setup, not code, still
+      open, owned by Ivan
+- [ ] Uptime monitoring on the production URL — endpoint to target now
+      exists (`/api/health`, above); signing up for an uptime monitor
+      (UptimeRobot/Better Uptime/Checkly, free tier) and pointing it there
+      is still open, owned by Ivan (external service configuration)
+- [ ] Alert thresholds tied to the performance targets in 6.1 — blocked on
+      6.1's load test actually running once to establish a real baseline
 
-**10.2 Incident response**
-- [ ] Written incident response runbook: who's on call, escalation path, safeguarding-specific escalation (given SEND/EHCP data involved)
-- [ ] Communication template ready for a data incident affecting a school
+**10.2 Incident response — 🟡 runbook + communication template written in full, only on-call contact details remain open**
+- [x] Written incident response runbook: severity levels, response steps,
+      **and** safeguarding-specific escalation (given SEND/EHCP data
+      involved) all written in full at
+      `evidence/phase10-operational/incident-response-runbook.md` (27 Aug
+      2026) — structure and content are ready to use as-is
+- [ ] **Only remaining gap:** the runbook's "On-call" section and two
+      TODOs inside "Safeguarding-specific escalation" need real values
+      filled in by Ivan — who is on call and how they're reached (phone/SMS,
+      not just email, so a Sev 1 pages someone at 2am), the actual
+      DPA-specified breach-notification deadline to affected schools, and
+      who at each school (SENCO/DPO) gets contacted. None of this is a
+      structural gap — it's named-human/contract-detail infill, explicitly
+      marked `TODO (Ivan)` in the runbook itself
+- [x] Communication template ready for a data incident affecting a school —
+      written in full in the same runbook file (subject line, plain-language
+      structure: what happened / what we've done / what this means for you /
+      what to do); the **only** remaining gap is the same on-call-adjacent
+      TODO — a named real contact to put in the "if you have questions"
+      line, plus ideally a DPA-handler review before it's ever sent for real
 
 **10.3 Pilot before full rollout**
 - [ ] Run a genuine but small-scale live pilot (1–2 schools) even after all phases above pass, with a defined rollback trigger and success criteria before wider rollout

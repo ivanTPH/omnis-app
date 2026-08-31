@@ -1,0 +1,10 @@
+data: {"type":"progress","message":"Checking limits…","pct":10}
+
+data: {"type":"progress","message":"Loading student data…","pct":20}
+
+data: {"type":"progress","message":"Loading cohort context…","pct":28}
+
+data: {"type":"progress","message":"Sending to AI…","pct":35}
+
+data: {"type":"error","message":"Request timed out."}
+

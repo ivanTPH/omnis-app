@@ -8,6 +8,7 @@ import {
   type ProposalResult,
 } from '@/lib/homework-helpers'
 import { getOakPedagogicalContext } from '@/lib/oak-content'
+import { AI_STREAM_OPTS } from '@/lib/ai-timeouts'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -270,7 +271,7 @@ ${buildTypePrompt(type, subject, qualification)}`
         // ── Anthropic streaming call ─────────────────────────────────────────
         emit(controller, { type: 'progress', message: 'Sending to AI…', pct: 50 })
 
-        const client      = new Anthropic({ apiKey })
+        const client      = new Anthropic({ apiKey, ...AI_STREAM_OPTS })
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
           max_tokens: 6000,

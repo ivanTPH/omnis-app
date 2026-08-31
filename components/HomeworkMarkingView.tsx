@@ -6,6 +6,13 @@ import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
 import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, bulkApproveAiMarks, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, autoMarkSubmission } from '@/app/actions/homework'
+import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
+
+/** True when markSubmission() rejected the save because someone else graded
+ *  this submission in the meantime (see GRADE_CONFLICT_PREFIX in homework.ts). */
+function isGradeConflict(err: unknown): boolean {
+  return err instanceof Error && err.message.startsWith(GRADE_CONFLICT_PREFIX)
+}
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
@@ -498,7 +505,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           teacherScore: scoreNum,
           feedback:     form.feedback,
           grade:        form.grade || undefined,
-        })
+        }, (selectedSub as any).markedAt ?? null)
         setSavedId(selectedId)
         toast('Grade saved')
         router.refresh()
@@ -514,9 +521,15 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           setGradeDrop(result.gradeDrop)
           setPassportAdded(false)
         }
-      } catch {
-        setError('Failed to save. Please try again.')
-        toast('Failed to save grade', 'error')
+      } catch (err) {
+        if (isGradeConflict(err)) {
+          setError('Someone else already graded this submission. Refreshing to show the latest grade…')
+          toast('This submission was already graded by someone else', 'error')
+          router.refresh()
+        } else {
+          setError('Failed to save. Please try again.')
+          toast('Failed to save grade', 'error')
+        }
       }
     })
   }
@@ -536,7 +549,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           teacherScore: gradeNum,
           feedback:     autoFeedback,
           grade:        gradeStr || undefined,
-        })
+        }, (selectedSub as any).markedAt ?? null)
         setSavedId(selectedId)
         toast('AI mark approved')
         router.refresh()
@@ -552,9 +565,15 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
           setGradeDrop(result.gradeDrop)
           setPassportAdded(false)
         }
-      } catch {
-        setError('Failed to save. Please try again.')
-        toast('Failed to approve mark', 'error')
+      } catch (err) {
+        if (isGradeConflict(err)) {
+          setError('Someone else already graded this submission. Refreshing to show the latest grade…')
+          toast('This submission was already graded by someone else', 'error')
+          router.refresh()
+        } else {
+          setError('Failed to save. Please try again.')
+          toast('Failed to approve mark', 'error')
+        }
       }
     })
   }

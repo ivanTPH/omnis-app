@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { prisma, writeEHCPAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import Anthropic from '@anthropic-ai/sdk'
+import { AI_ONE_SHOT_OPTS } from '@/lib/ai-timeouts'
 
 // ─── Guards ───────────────────────────────────────────────────────────────────
 
@@ -619,7 +620,7 @@ export async function generateIlpProgressReport(studentId: string): Promise<stri
   if (!apiKey) return AI_DISCLAIMER + `ILP Progress Report — ${student.firstName} ${student.lastName}\n\n[AI service unavailable — please review targets manually]\n\n${targetsSummary}`
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1000,
@@ -700,7 +701,7 @@ export async function generateEhcpAnnualReview(studentId: string): Promise<strin
   if (!apiKey) return AI_DISCLAIMER + `EHCP Annual Review — ${student.firstName} ${student.lastName}\n\n[AI service unavailable]\n\n${outcomesSummary}`
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1200,
@@ -1001,7 +1002,7 @@ export async function generateEHCPFromILP(
       student.school.name,
     )
 
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const msg = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 2000,

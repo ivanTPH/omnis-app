@@ -6,6 +6,7 @@ import { buildIlpPrompt } from '@/lib/ilp-helpers'
 import { getSchoolCohortContext } from '@/lib/cohort-aggregate'
 import { getPlatformInsightsForIlp } from '@/lib/platform-insight'
 import { lookupIlpStrategyRec } from '@/lib/omnis-inference'
+import { AI_STREAM_OPTS } from '@/lib/ai-timeouts'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -18,11 +19,13 @@ function emit(controller: ReadableStreamDefaultController<Uint8Array>, event: ob
 export async function POST(request: Request) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let resultEmitted = false
       try {
         // ── Auth — SENCO only ────────────────────────────────────────────────
         const user = await requireAuth()
         if (user.role !== 'SENCO') {
           emit(controller, { type: 'error', message: 'Only SENCOs can generate ILPs.' })
+          resultEmitted = true
           return
         }
         const { id: actorId, schoolId } = user
@@ -33,6 +36,7 @@ export async function POST(request: Request) {
         const apiKey = process.env.ANTHROPIC_API_KEY
         if (!apiKey) {
           emit(controller, { type: 'error', message: 'ANTHROPIC_API_KEY not configured' })
+          resultEmitted = true
           return
         }
 
@@ -45,6 +49,7 @@ export async function POST(request: Request) {
         })
         if (todayCount >= 20) {
           emit(controller, { type: 'error', message: 'Daily AI ILP generation limit reached (20 per day). Try again tomorrow.' })
+          resultEmitted = true
           return
         }
 
@@ -54,6 +59,7 @@ export async function POST(request: Request) {
         })
         if (existing) {
           emit(controller, { type: 'error', message: 'An active ILP already exists for this student.' })
+          resultEmitted = true
           return
         }
 
@@ -66,6 +72,7 @@ export async function POST(request: Request) {
         })
         if (!student) {
           emit(controller, { type: 'error', message: 'Student not found.' })
+          resultEmitted = true
           return
         }
 
@@ -75,6 +82,7 @@ export async function POST(request: Request) {
         })
         if (!sendStatus || sendStatus.activeStatus === 'NONE') {
           emit(controller, { type: 'error', message: 'ILPs can only be created for students on the SEND register.' })
+          resultEmitted = true
           return
         }
         const sendCategory = sendStatus.needArea ?? 'General Learning Support'
@@ -91,7 +99,7 @@ export async function POST(request: Request) {
         // ── Anthropic streaming call ─────────────────────────────────────────
         emit(controller, { type: 'progress', message: 'Sending to AI…', pct: 35 })
 
-        const client       = new Anthropic({ apiKey })
+        const client       = new Anthropic({ apiKey, ...AI_STREAM_OPTS })
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
           max_tokens: 1200,
@@ -119,6 +127,7 @@ export async function POST(request: Request) {
         const match = raw.match(/\{[\s\S]*\}/)
         if (!match) {
           emit(controller, { type: 'error', message: 'AI did not return valid JSON — please try again.' })
+          resultEmitted = true
           return
         }
         const gen = JSON.parse(match[0])
@@ -165,13 +174,21 @@ export async function POST(request: Request) {
         }).catch(() => {})
 
         emit(controller, { type: 'done', data: { success: true } })
+        resultEmitted = true
       } catch (err) {
-        emit(controller, {
-          type: 'error',
-          message: err instanceof Error ? err.message : 'ILP generation failed — please try again.',
-        })
+        try {
+          emit(controller, {
+            type: 'error',
+            message: err instanceof Error ? err.message : 'ILP generation failed — please try again.',
+          })
+          resultEmitted = true
+        } catch { /* controller may already be closed */ }
       } finally {
-        controller.close()
+        // Safety net: if nothing was emitted (emit itself threw), send a fallback error
+        if (!resultEmitted) {
+          try { emit(controller, { type: 'error', message: 'ILP generation failed — please try again.' }) } catch { }
+        }
+        try { controller.close() } catch { /* already closed */ }
       }
     },
   })
@@ -182,6 +199,7 @@ export async function POST(request: Request) {
       'Cache-Control':     'no-cache, no-transform',
       'Connection':        'keep-alive',
       'X-Accel-Buffering': 'no',
+      'Content-Encoding':  'identity',  // prevent Nginx gzip buffering SSE stream — see the same fix in generate-homework/route.ts
     },
   })
 }

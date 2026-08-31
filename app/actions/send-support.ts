@@ -14,6 +14,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getPlanCoherenceAlerts } from '@/app/actions/agent-insights'
 import { findOakDataForTopics, extractKeywords } from '@/lib/oak-content'
 import { summarizeEdit } from '@/lib/text-diff'
+import { AI_ONE_SHOT_OPTS } from '@/lib/ai-timeouts'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2253,7 +2254,7 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
   } catch { /* non-fatal — ILP generation continues without Oak vocab */ }
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     let msg
     try {
       msg = await client.messages.create({
@@ -2536,7 +2537,7 @@ async function generateAPDRInternal(
         : ''
 
       const { default: Anthropic } = await import('@anthropic-ai/sdk')
-      const client = new Anthropic({ apiKey })
+      const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
       const msg = await client.messages.create({
         model: 'claude-haiku-4-5-20251001', max_tokens: 600,
         system: 'You are a UK SENCO writing APDR cycle records. Return ONLY valid JSON, no markdown.',
@@ -3144,7 +3145,7 @@ export async function generateLearnerPassportInternal(
   if (apiKey) {
     try {
       const { default: Anthropic } = await import('@anthropic-ai/sdk')
-      const client = new Anthropic({ apiKey })
+      const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
       const ehcpSecs = ehcp?.sections as Record<string, string> | null
 
       const msg = await client.messages.create({
@@ -3589,7 +3590,7 @@ export async function getStudentSendDocuments(studentId: string): Promise<Studen
  * and persist it to user.supportSnapshot. Fire-and-forget safe.
  */
 async function generateSupportSnapshotInternal(studentId: string, schoolId: string): Promise<void> {
-  const client = new Anthropic()
+  const client = new Anthropic({ ...AI_ONE_SHOT_OPTS })
 
   // Gather context: approved K Plan + active ILP
   const [passport, ilp, student] = await Promise.all([
@@ -4038,7 +4039,7 @@ export async function generateIlpGoalsForStudent(
   }
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const prompt = `You are a UK SENCO with expertise in writing SMART Individual Learning Plan (ILP) targets.
 
 Student: ${studentName}
@@ -4296,7 +4297,7 @@ Return ONLY valid JSON (no markdown):
 }`
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     let msg
     try {
       msg = await client.messages.create({

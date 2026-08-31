@@ -7,6 +7,13 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import SendBadge from '@/components/ui/SendBadge'
 import StudentAvatar from '@/components/StudentAvatar'
 import { markSubmission, suggestHomeworkGrade } from '@/app/actions/homework'
+import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
+
+/** True when markSubmission() rejected the save because someone else graded
+ *  this submission in the meantime (see GRADE_CONFLICT_PREFIX in homework.ts). */
+function isGradeConflict(err: unknown): boolean {
+  return err instanceof Error && err.message.startsWith(GRADE_CONFLICT_PREFIX)
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -124,15 +131,17 @@ function MarkingPanel({
           teacherScore: grade === 'U' ? 0 : parseInt(grade),
           feedback:     note,
           grade,
-        })
+        }, (sub as any).markedAt ?? null)
         setSaved(true)
         setSuggestion(null)
         // Brief "Saved" flash before advancing
         setTimeout(() => {
           onGraded(sub.id, grade)
         }, 700)
-      } catch {
-        setError('Failed to save grade. Please try again.')
+      } catch (err) {
+        setError(isGradeConflict(err)
+          ? 'Someone else already graded this submission. Reload the page to see the latest grade.'
+          : 'Failed to save grade. Please try again.')
       }
     })
   }
@@ -146,14 +155,16 @@ function MarkingPanel({
           teacherScore: grade === 'U' ? 0 : parseInt(grade),
           feedback:     note,
           grade,
-        })
+        }, (sub as any).markedAt ?? null)
         setSaved(true)
         setSuggestion(null)
         setTimeout(() => {
           onGraded(sub.id, grade)
         }, 400)
-      } catch {
-        setError('Failed to save grade. Please try again.')
+      } catch (err) {
+        setError(isGradeConflict(err)
+          ? 'Someone else already graded this submission. Reload the page to see the latest grade.'
+          : 'Failed to save grade. Please try again.')
       }
     })
   }

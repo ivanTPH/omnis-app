@@ -1,0 +1,14 @@
+data: {"type":"progress","message":"Loading lesson…","pct":10}
+
+data: {"type":"progress","message":"Enriching resources…","pct":22}
+
+data: {"type":"progress","message":"Building class context…","pct":33}
+
+data: {"type":"progress","message":"Loading curriculum context…","pct":38}
+
+data: {"type":"progress","message":"Checking generation limits…","pct":42}
+
+data: {"type":"progress","message":"Sending to AI…","pct":50}
+
+data: {"type":"error","message":"Request timed out."}
+

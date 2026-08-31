@@ -23,7 +23,7 @@ tells you what to drop in it.
 | Phase | Area | Status | Blocks Go-Live? | Owner |
 |---|---|---|---|---|
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
-| 6 | Load, resilience & failure testing | 🟡 Scripts/plan prepared, not yet run (6.1) — 27 Aug: scenario 1 (Wonde downtime) and part of scenario 3 (DB connection loss) got real code fixes plus real unplanned production evidence, see below — 🔴 confirmed Free tier, upgrade deferred but required before go-live (6.3, unchanged) | YES | You + Claude |
+| 6 | Load, resilience & failure testing | 🟡 6.2: all 4 failure scenarios now traced, live-tested, and fixed where a real gap existed (27 Aug: scenarios 1 + 3; 31 Aug: scenarios 2 + 4) — see below. 🔴 6.1 (load test) not run and 🔴 6.3 (backup tier upgrade) not done — both blocked on infra/environment decisions outside coding scope, not on more fixes | YES | You + Claude |
 | 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. Still open: apply npm audit fixes locally, verify build, external CE/pen-test | YES | You + Claude (assessment itself is external) |
 | 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
@@ -173,23 +173,24 @@ Read CLAUDE.md. Simulate and document behaviour for:
   a white screen or silent failure. Record in /evidence/failure-tests.md.
 ```
 
-**6.2 Failure/chaos testing — 🟡 2 of 4 scenarios got real code hardening 27 Aug 2026, none formally executed as a drill**
+**6.2 Failure/chaos testing — 🟢 all 4 scenarios traced + live-tested + fixed, still no formal scripted drill**
 See `evidence/phase6-load-resilience/failure-test-plan.md` for the 4 scenarios
 (Wonde downtime, AI timeout, DB connection loss, concurrent grade edits) and
-exact simulation steps. Formal drill execution is still blocked on the same
-isolated-environment need as 6.1 — none of the below was run as a scripted
-chaos test. What changed this session, from the resilience audit at
-`docs/audit/2026-08-27-resilience-audit.md` (6 findings fixed, commit `f99e715`):
+exact simulation steps. Formal drill execution (a repeatable k6/chaos harness
+in CI) is still blocked on the same isolated-environment need as 6.1 — every
+fix below was proven by hand-written scripts hitting the real API/DB directly,
+not a scripted, repeatable chaos test. What changed:
 
-- **Scenario 1 (Wonde downtime) — real code fix.** `lib/wonde-sync.ts`'s
-  `inBatches()` used `Promise.all`, so one bad record aborted every remaining
-  chunk in that sync phase. Now uses `Promise.allSettled` — a failed record
-  is logged and skipped, the rest of the phase completes.
+- **Scenario 1 (Wonde downtime) — real code fix, 27 Aug 2026.**
+  `lib/wonde-sync.ts`'s `inBatches()` used `Promise.all`, so one bad record
+  aborted every remaining chunk in that sync phase. Now uses
+  `Promise.allSettled` — a failed record is logged and skipped, the rest of
+  the phase completes.
 - **Scenario 3 (DB connection loss) — partially covered, plus real production
-  evidence.** Today's deploy also produced an actual unplanned incident:
-  two consecutive Coolify deploys failed on Prisma connection-pool
-  exhaustion (`connection_limit: 5`) while `e2e.yml` hit production
-  concurrently — see `docs/audit/2026-08-27-hardening-security-sweep.md`'s
+  evidence, 27 Aug 2026.** That day's deploy also produced an actual
+  unplanned incident: two consecutive Coolify deploys failed on Prisma
+  connection-pool exhaustion (`connection_limit: 5`) while `e2e.yml` hit
+  production concurrently — see `docs/audit/2026-08-27-hardening-security-sweep.md`'s
   "Deployment incident" section. Fixed live via `connection_limit=20`
   (headroom, not a structural fix — see below). Related hardening from the
   same audit: DSPy's `weekly_run.py` no longer crashes the whole optimizer
@@ -198,10 +199,44 @@ chaos test. What changed this session, from the resilience audit at
   now return `502` instead of a silent `200` when every attempt in a run
   fails, so a total outage (e.g. a revoked `ANTHROPIC_API_KEY`) actually
   shows red in GitHub Actions instead of going unnoticed.
-- **Scenario 2 (AI provider timeout) and Scenario 4 (concurrent grade
-  edits) — not addressed this round.** No changes made; still open.
+- **Scenario 2 (AI provider timeout) — traced, live-tested, fixed, 31 Aug
+  2026.** No call site anywhere in the homework/ILP/EHCP/APDR generation
+  pipeline set an explicit timeout — every `new Anthropic(...)` relied on the
+  SDK's own 10-minute default and its own default 2-retry policy, unbounded
+  by any platform-level request cap on this deployment (Coolify, not
+  Vercel). New `lib/ai-timeouts.ts` gives every call site an explicit
+  timeout + `maxRetries: 1` (13 call sites total across
+  `app/actions/homework.ts`, `app/actions/send-support.ts`,
+  `app/actions/ehcp.ts`, and both AI SSE routes). Live-tested against the
+  real Anthropic API with an artificially short timeout: both SSE routes now
+  surface a clean `{"type":"error",...}` event in ~1.5–2.5s instead of
+  hanging. Also found and fixed on `/api/ai/generate-ilp/route.ts`
+  specifically: it was missing the same `Content-Encoding: identity`
+  Nginx-gzip-SSE-buffering fix already applied to the homework route on
+  5 Aug 2026, plus the `resultEmitted` double-emit guard and a safety-net
+  `finally` emit that the homework route already had. Full trace, live-test
+  numbers, and an honest scope note (the fixed `generateHomeworkContent` path
+  turned out to be dead code — no live caller — so that specific fix is
+  defensive, not a live-gap closure) in
+  `evidence/phase6-load-resilience/failure-tests.md`.
+- **Scenario 4 (concurrent grade edits) — traced, live-tested, fixed, 31 Aug
+  2026.** `markSubmission()` used a plain unconditional
+  `prisma.submission.update()` — no optimistic-concurrency check at all.
+  Reproduced live against a real submission in the production database: two
+  concurrent writes both resolved successfully, one silently discarded, zero
+  warning to either caller — a genuine data-loss bug, not theoretical. Fixed
+  with an atomic `updateMany({ where: { id, schoolId, markedAt: expected },
+  ... })` + `count === 0` conflict check (no schema migration — reuses the
+  existing `markedAt` field as the concurrency token), threaded through all
+  3 real marking UI components (`HomeworkMarkingView.tsx`,
+  `HomeworkMarkingV2.tsx`, `SubmissionMarkingView.tsx`, 6 call sites total)
+  with a clear "someone else already graded this" message instead of a
+  silent overwrite. Re-verified live after the fix: the exact same race now
+  gives one writer `count: 1` and the other `count: 0`, and a stale retry
+  after the fact is also correctly rejected. Full trace and both rounds of
+  live-test evidence in `evidence/phase6-load-resilience/failure-tests.md`.
 
-Also fixed as part of the same pass, not one of the 4 listed scenarios but a
+Also fixed as part of the 27 Aug pass, not one of the 4 listed scenarios but a
 related data-loss risk: `lib/oak-delta-sync.ts` could have mass-deleted the
 entire Oak curriculum catalogue (10,000+ lessons) on a single bad HTTP
 response from the Oak sitemap — no `res.ok` check, no retry, and an empty
@@ -214,6 +249,15 @@ that caused the connection-pool incident above. Three options are written up
 in the resilience audit doc (point E2E at the existing second Vercel project;
 decouple the E2E trigger from the deploy trigger; give E2E's DB connection
 its own separate pool) — none implemented, pending your call.
+
+**What 6.2 does NOT yet cover, so it isn't being overstated as "done":** none
+of the 4 scenarios has been run as a repeatable, scripted chaos-test harness
+(e.g. k6 fault injection wired into CI) — every fix above was proven correct
+by direct, hand-written reproduction scripts against the real API/DB, run
+once, by hand, this session. That's sufficient evidence the failure mode was
+real and the fix works, but it is not the same as an automated regression
+test that would catch a future re-introduction of either bug. 6.1's isolated
+environment, once it exists, is also the natural place to build that.
 
 **6.3 Backup & recovery drill — 🔴 confirmed Free tier, upgrade deferred**
 - [x] Confirmed 10 Jul 2026 (by you): Supabase project "Ivan Omnis"

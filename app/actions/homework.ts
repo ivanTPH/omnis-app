@@ -13,6 +13,8 @@ import { markDirty }            from '@/lib/agents/snapshot'
 import { AgentType }            from '@prisma/client'
 import { checkAiRateLimit }     from '@/lib/kv'
 import { getOakPedagogicalContext } from '@/lib/oak-content'
+import { AI_ONE_SHOT_OPTS } from '@/lib/ai-timeouts'
+import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
 
 // ── List / fetch helpers ──────────────────────────────────────────────────────
 
@@ -1209,7 +1211,7 @@ export async function generateHomeworkContent(input: {
   if (!apiKey) return fallback
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1500,
@@ -1236,8 +1238,15 @@ Return JSON:
     })
     const raw = (msg.content[0] as any).text.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '')
     return JSON.parse(raw) as GeneratedHomeworkContent
-  } catch {
-    return fallback
+  } catch (err) {
+    // Surface the failure instead of silently substituting generic fallback
+    // content dressed up as a successful generation — HomeworkCreatorV2.tsx
+    // already has timeout/network-aware error handling for this call, it
+    // just never used to fire because this always resolved "successfully."
+    const isTimeout = err instanceof Error && /timeout/i.test(err.message)
+    throw new Error(isTimeout
+      ? 'AI generation timed out — please try again.'
+      : 'Content generation failed. Please try again — if this persists, reduce the number of learning objectives.')
   }
 }
 
@@ -1349,11 +1358,23 @@ export async function bulkReturnSubmissions(homeworkId: string): Promise<{ count
 
 // ── Mark submission ───────────────────────────────────────────────────────────
 
-export async function markSubmission(submissionId: string, data: {
-  teacherScore: number
-  feedback:     string
-  grade?:       string
-}): Promise<{
+// GRADE_CONFLICT_PREFIX lives in lib/grade-conflict.ts, not here — a "use server"
+// file may only export async functions, so a plain const export breaks the build.
+
+export async function markSubmission(
+  submissionId: string,
+  data: {
+    teacherScore: number
+    feedback:     string
+    grade?:       string
+  },
+  // The submission's `markedAt` value as the caller last saw it (null if it
+  // was never marked). Required, not optional, so every call site is forced
+  // to thread it through — see evidence/phase6-load-resilience/failure-tests.md
+  // Scenario 4: without this, two teachers marking the same submission at
+  // once silently overwrote each other with zero warning to either party.
+  expectedMarkedAt: Date | string | null,
+): Promise<{
   ilpData: { studentId: string; ilpId: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> } | null
   gradeDrop: { studentId: string; studentName: string; previousGrade: number; newGrade: number; drop: number; suggestion: string } | null
 }> {
@@ -1363,8 +1384,17 @@ export async function markSubmission(submissionId: string, data: {
   const sub = await prisma.submission.findFirst({ where: { id: submissionId, schoolId } })
   if (!sub) throw new Error('Submission not found')
 
-  await prisma.submission.update({
-    where: { id: submissionId },
+  // Optimistic concurrency check, enforced atomically in the WHERE clause —
+  // updateMany (not update) so a mismatch fails silently-to-us (count: 0)
+  // instead of throwing a Prisma "record not found" error, letting us give a
+  // clear, specific message rather than a generic one.
+  const expected = expectedMarkedAt ? new Date(expectedMarkedAt) : null
+  const updateResult = await prisma.submission.updateMany({
+    where: {
+      id:       submissionId,
+      schoolId,
+      markedAt: expected,
+    },
     data: {
       teacherScore:      data.teacherScore,
       finalScore:        data.teacherScore,
@@ -1376,6 +1406,9 @@ export async function markSubmission(submissionId: string, data: {
       teacherReviewed:   true,
     },
   })
+  if (updateResult.count === 0) {
+    throw new Error(`${GRADE_CONFLICT_PREFIX} This submission was graded by someone else while you were working on it. Refresh to see the latest grade before saving again.`)
+  }
 
   // Check for active approved ILP with active targets (new IndividualLearningPlan model)
   const studentId = sub.studentId

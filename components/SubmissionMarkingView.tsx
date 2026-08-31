@@ -3,6 +3,13 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { markSubmission } from '@/app/actions/homework'
+import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
+
+/** True when markSubmission() rejected the save because someone else graded
+ *  this submission in the meantime (see GRADE_CONFLICT_PREFIX in homework.ts). */
+function isGradeConflict(err: unknown): boolean {
+  return err instanceof Error && err.message.startsWith(GRADE_CONFLICT_PREFIX)
+}
 import { percentToGcseGrade, normalizeScoreForForm, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import Icon from '@/components/ui/Icon'
 import SendBadge from '@/components/ui/SendBadge'
@@ -98,7 +105,7 @@ export default function SubmissionMarkingView({
           teacherScore: n,
           feedback,
           grade: grade || undefined,
-        })
+        }, (data as any).markedAt ?? null)
         setSaved(true)
         router.refresh()
         if (data.nav.next) {
@@ -106,8 +113,13 @@ export default function SubmissionMarkingView({
             router.push(`/homework/${homeworkId}/mark/${data.nav.next}`)
           }, 1200)
         }
-      } catch {
-        setError('Failed to save. Please try again.')
+      } catch (err) {
+        if (isGradeConflict(err)) {
+          setError('Someone else already graded this submission. Refreshing to show the latest grade…')
+          router.refresh()
+        } else {
+          setError('Failed to save. Please try again.')
+        }
       }
     })
   }
@@ -127,7 +139,7 @@ export default function SubmissionMarkingView({
           teacherScore: gradeNum,
           feedback:     autoFeedback,
           grade:        gradeStr || undefined,
-        })
+        }, (data as any).markedAt ?? null)
         setSaved(true)
         router.refresh()
         if (data.nav.next) {
@@ -135,8 +147,13 @@ export default function SubmissionMarkingView({
             router.push(`/homework/${homeworkId}/mark/${data.nav.next}`)
           }, 1200)
         }
-      } catch {
-        setError('Failed to save. Please try again.')
+      } catch (err) {
+        if (isGradeConflict(err)) {
+          setError('Someone else already graded this submission. Refreshing to show the latest grade…')
+          router.refresh()
+        } else {
+          setError('Failed to save. Please try again.')
+        }
       }
     })
   }

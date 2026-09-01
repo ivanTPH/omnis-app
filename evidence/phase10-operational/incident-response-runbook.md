@@ -6,12 +6,11 @@ severity/response content is ready to use now.
 
 ## On-call
 
-**TODO (Ivan):** who is on call, and how are they reached (phone/SMS, not just
-email — Sentry/uptime alerts should page a phone for Sev 1). At current team
-size this is likely just you; write that down explicitly rather than leaving
-it implicit, since "who's on call" needs an unambiguous answer at 2am, not an
-assumption. If/when a second person joins, add a rotation and a fallback if
-the primary doesn't acknowledge within a fixed window (e.g. 15 minutes).
+**On call: Ivan Yardley, SMS to mobile: 07966 289324.** At current team size
+this is the only person and the only channel — Sentry/uptime alerts for Sev 1
+should be configured to page this number, not just email. If/when a second
+person joins, add a rotation and a fallback if the primary doesn't acknowledge
+within a fixed window (e.g. 15 minutes).
 
 ## Severity levels
 

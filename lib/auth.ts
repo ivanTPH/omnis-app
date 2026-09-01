@@ -2,7 +2,7 @@ import NextAuth, { type Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { checkLoginRatelimit, mfaInfraAvailable, verifyAndConsumeMfaCode } from '@/lib/kv'
+import { checkLoginRatelimit, mfaInfraAvailable, verifyAndConsumeMfaCode, getClientIp } from '@/lib/kv'
 import { STAFF_ROLES } from '@/lib/roles'
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
@@ -25,9 +25,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
 
         // Rate limit by IP: 5 attempts per 15 min (no-ops when Upstash not configured)
         const req = request as Request | undefined
-        const ip  = req?.headers?.get('x-forwarded-for')?.split(',')[0]?.trim()
-               ??  req?.headers?.get('x-real-ip')
-               ??  'unknown'
+        const ip  = req?.headers ? getClientIp(req.headers) : 'unknown'
         const { success } = await checkLoginRatelimit(ip)
         if (!success) return null
 

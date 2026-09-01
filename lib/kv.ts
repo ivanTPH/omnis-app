@@ -15,6 +15,47 @@ function createRedis() {
 const redis = createRedis()
 
 /**
+ * Extracts the real client IP for per-IP rate limiting (login, password
+ * reset, contact forms) — the one piece of this a client must NOT be able
+ * to control, or every IP-keyed limiter below becomes trivially bypassable
+ * by sending a different fake value per request.
+ *
+ * This app runs on Coolify behind Traefik, with no CDN/WAF in front — DNS
+ * for omnis.education resolves directly to the app's own droplet, and the
+ * production response headers show no CDN fingerprint (checked directly,
+ * not assumed). That means exactly one reverse-proxy hop sits between any
+ * client and this app: client → Traefik → Next.js.
+ *
+ * Traefik's default behaviour (confirmed from Traefik's own entrypoint
+ * docs: `forwardedHeaders.notAppendXForwardedFor` defaults to `false`) is
+ * to APPEND the real, TCP-level connecting IP to whatever X-Forwarded-For
+ * value it received — it does not overwrite/replace an existing header.
+ * So a client can freely set `X-Forwarded-For: 1.2.3.4` and have it arrive
+ * here as `X-Forwarded-For: 1.2.3.4, <their real IP>` — Traefik's own
+ * append is always the LAST entry, and only that last entry is something
+ * the client cannot fake (spoofing it would require spoofing the source IP
+ * of the actual TCP connection to Traefik, a different and far more
+ * involved attack than sending an extra HTTP header). Taking the FIRST
+ * entry — what this code used to do — reads the attacker-controlled value
+ * every time. Taking the LAST entry is correct for exactly one trusted
+ * proxy hop; if a CDN/WAF is ever added in front of Traefik, this needs
+ * revisiting (trust N hops, not 1).
+ *
+ * Deliberately does NOT fall back to X-Real-Ip: Traefik does not set that
+ * header by default (it's not part of Traefik core — only available via a
+ * third-party community plugin), and there's no evidence one is installed
+ * here, so trusting it would mean trusting a header a client can set
+ * directly. See docs/audit/2026-09-01-xff-rate-limit-bypass.md for the
+ * full investigation, including what still needs confirming with Ivan.
+ */
+export function getClientIp(headers: Headers): string {
+  const xff = headers.get('x-forwarded-for')
+  if (!xff) return 'unknown'
+  const hops = xff.split(',').map(h => h.trim()).filter(Boolean)
+  return hops.at(-1) ?? 'unknown'
+}
+
+/**
  * Login rate limit: 5 attempts per 15 minutes per IP.
  * Returns { success: true } when no Redis is configured (fail-open).
  */

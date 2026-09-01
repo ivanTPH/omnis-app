@@ -24,7 +24,7 @@ tells you what to drop in it.
 |---|---|---|---|---|
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 6.2: all 4 failure scenarios now traced, live-tested, and fixed where a real gap existed (27 Aug: scenarios 1 + 3; 31 Aug: scenarios 2 + 4) — see below. 🔴 6.1 (load test) not run and 🔴 6.3 (backup tier upgrade) not done — both blocked on infra/environment decisions outside coding scope, not on more fixes | YES | You + Claude |
-| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline). 31 Aug: 7.6 manual internal hardening review — 6 real gaps found + fixed live (2 stored-XSS via file upload/AI-generated HTML, AI-marking prompt injection + unclamped score, bypassable regex sanitizer, avatar magic-byte check, and — fixed later the same day — session/logout not server-invalidated, via new User.sessionsInvalidatedAt + jwt() callback check, live re-tested). 3 items still flagged for Ivan (prod Upstash config unconfirmed; possible XFF spoofing; CSP unsafe-inline). All of 7.5/7.6 is ongoing/internal coverage, explicitly not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test | YES | You + Claude (external assessments still need an accredited third party) |
+| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline). 31 Aug–1 Sep: 7.6 manual internal hardening review — 7 real gaps found + fixed live (2 stored-XSS via file upload/AI-generated HTML, AI-marking prompt injection + unclamped score, bypassable regex sanitizer, avatar magic-byte check, session/logout not server-invalidated, and X-Forwarded-For rate-limit bypass — researched Traefik's real default behaviour + verified this deployment's actual topology directly rather than assuming). Separately, 1 Sep: production incident — staff MFA rejecting every correct code (Upstash type-coercion bug in lib/kv.ts), found/fixed/deployed same day, see docs/audit/2026-09-01-mfa-code-verification-bug.md. 2 items still flagged for Ivan (prod Upstash config unconfirmed; CSP unsafe-inline). All of 7.5/7.6 is ongoing/internal coverage, explicitly not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test | YES | You + Claude (external assessments still need an accredited third party) |
 | 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
 | 10 | Operational go-live readiness | 🟡 10.2 (incident response): runbook + comms template written in full, including safeguarding escalation — only on-call contact details/named humans remain (owned by Ivan). 10.1 (monitoring): `/api/health` endpoint added 31 Aug 2026 as the uptime-monitor target; Sentry alerting + uptime monitor signup still open, external service setup owned by Ivan, not code. 10.3/10.4 not started | YES | You + Claude |
@@ -444,18 +444,27 @@ evidence/phase7-security/manual-hardening-review.md.
       replayed pre-logout cookie now correctly rejected (previously: full
       access); fresh login and demo role-switching both confirmed still
       work normally. Full detail in the evidence doc's §1 "Update" note.
+- [x] **X-Forwarded-For rate-limit bypass — fixed 1 Sep 2026.** Confirmed
+      real: the code took the first (client-spoofable) hop of
+      X-Forwarded-For instead of the last (the one Traefik itself appends
+      based on the real TCP connection — confirmed from Traefik's own docs
+      that it appends rather than overwrites by default, and does not set
+      X-Real-Ip by default at all). Verified this deployment's actual
+      topology directly (DNS resolves straight to the droplet, no CDN in
+      front) rather than assuming it. New `getClientIp()` in lib/kv.ts
+      takes the last hop; the unconfirmed `x-real-ip` fallback removed.
+      Full investigation, including the one item still worth Ivan
+      double-checking (whether Coolify's generated Traefik config deviates
+      from defaults), in docs/audit/2026-09-01-xff-rate-limit-bypass.md.
 - [ ] **Flagged for Ivan, still open (see evidence doc for full
       detail on each):** (1) Cannot confirm from this session whether Upstash
       (UPSTASH_REDIS_REST_URL/TOKEN) is configured in production — if not,
       staff MFA and every Redis-backed rate limiter (login, password-reset,
       MFA-request, contact-form) are silent no-ops right now; please verify
-      directly. (2) X-Forwarded-For-based login rate limiting could
-      theoretically be bypassed by header spoofing if the reverse proxy
-      doesn't sanitise that header — no visibility into the Coolify/Nginx
-      config from this session to confirm. (3) CSP's script-src
-      'unsafe-inline' 'unsafe-eval' provides no defence against inline-script
-      XSS — real, separately-scoped CSP tightening work, not attempted here
-      since the actual injection vectors were closed directly instead.
+      directly. (2) CSP's script-src 'unsafe-inline' 'unsafe-eval' provides
+      no defence against inline-script XSS — real, separately-scoped CSP
+      tightening work, not attempted here since the actual injection
+      vectors were closed directly instead.
 ```
 
 ---

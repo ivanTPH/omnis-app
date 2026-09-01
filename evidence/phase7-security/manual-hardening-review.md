@@ -18,7 +18,7 @@ running the app and trying to break it.
 | # | Area | Result |
 |---|---|---|
 | 1 | Auth & session handling | All 5 checks pass. **Logout not invalidating the session server-side was found and confirmed live — now fixed and re-verified live** (see below; `User.sessionsInvalidatedAt` + `lib/auth.ts` `jwt()` callback check) |
-| 2 | Rate limiting & abuse | Homework/ILP generation limits are robust (DB-based, no fail-open). Login/MFA/password-reset/contact limits are correctly built but **fail open if Upstash isn't configured** — could not confirm production Upstash config from this session; flagged for Ivan to verify |
+| 2 | Rate limiting & abuse | Homework/ILP generation limits are robust (DB-based, no fail-open). **X-Forwarded-For IP-spoofing bypass of login/password-reset/contact limits found and fixed 1 Sep 2026** (see below). Login/MFA/password-reset/contact limits still **fail open if Upstash isn't configured** — could not confirm production Upstash config from this session; flagged for Ivan to verify |
 | 3 | Injection & input handling | SQL: clean (Prisma-parameterised throughout). XSS: **2 real stored-XSS gaps found and fixed** (resource upload, AI-generated HTML resources). Prompt injection: **1 real gap found and fixed** (unclamped AI-marking score) |
 | 4 | SSRF | Clean — no user-controllable server-side fetch found anywhere in the app |
 | 5 | File handling | **Critical stored-XSS gap found and fixed** — declared file type was trusted with no server-side content verification, served inline |
@@ -270,14 +270,27 @@ MFA question in §1 — **flagged for Ivan to confirm directly** (check
 Coolify's environment variables for both `UPSTASH_REDIS_REST_URL` and
 `UPSTASH_REDIS_REST_TOKEN`).
 
-**Secondary note, not verified either way:** `checkLoginRatelimit` keys on
-the first IP in `x-forwarded-for` (falling back to `x-real-ip`). If Omnis's
-Nginx/Coolify reverse-proxy layer doesn't strip/overwrite a client-supplied
-`X-Forwarded-For` header before forwarding to the Next.js app, an attacker
-could rotate a fake value per request to bypass the per-IP limit entirely
-even with Upstash configured. I have no visibility into the actual
-Coolify/Nginx proxy config from this session to confirm either way — flagged
-as worth confirming, not something to guess a fix for blind.
+**Update, 1 Sep 2026 — confirmed real, fixed.** The concern above (taking
+the first `x-forwarded-for` hop, falling back to an unconfirmed `x-real-ip`)
+was investigated properly: researched Traefik's actual default behaviour
+directly from its own docs (it *appends* the real connecting IP rather than
+overwriting the header — confirmed via the `forwardedHeaders
+.notAppendXForwardedFor` option defaulting to `false` — and does **not**
+set `X-Real-Ip` by default at all, that requires a third-party plugin with
+no evidence one's installed here), and verified this deployment's actual
+topology directly rather than assuming it (`dig` shows `omnis.education`
+resolves straight to the known droplet IP, and the live response headers
+show no CDN fingerprint — confirming exactly one reverse-proxy hop, no CDN
+in front). Fixed with a new `getClientIp()` in `lib/kv.ts` that takes the
+**last** hop of `X-Forwarded-For` (the one Traefik itself appends, not
+attacker-controlled) instead of the first, and drops the `x-real-ip`
+fallback entirely. Verified against representative header values including
+a simulated attacker rotating fake first-hop values across requests — the
+old code produced a fresh rate-limit bucket per request for the same real
+client (full bypass); the new code correctly collapses them to one. Full
+investigation, including the one item still worth Ivan confirming (whether
+Coolify's generated Traefik config deviates from Traefik's own defaults),
+in `docs/audit/2026-09-01-xff-rate-limit-bypass.md`.
 
 ### Homework/ILP AI generation — the "10/day" cap mentioned in the task brief
 Confirmed this is real and, importantly, **not** Upstash-dependent:
@@ -771,10 +784,19 @@ callback invalidation check), `app/actions/settings.ts` (new
    MFA-request, contact-form) are silently no-ops in production right now.
    Please confirm directly (Coolify env vars, and/or logging into your own
    real staff account and checking for the OTP screen). **Still open.**
-3. **`X-Forwarded-For`-based IP rate limiting could theoretically be
-   bypassed by header spoofing** if the Coolify/Nginx reverse proxy doesn't
-   sanitise that header before forwarding (§2) — no visibility into the
-   actual proxy config from this session to confirm either way. **Still open.**
+3. ~~**`X-Forwarded-For`-based IP rate limiting could theoretically be
+   bypassed by header spoofing**~~ — **fixed 1 Sep 2026.** Confirmed real:
+   the code took the first (client-controlled) hop of X-Forwarded-For
+   instead of the last (the one Traefik itself appends based on the real
+   TCP connection). Researched Traefik's actual default behaviour
+   (confirmed from its own docs: appends, doesn't overwrite) and verified
+   this deployment's real topology directly (DNS resolves straight to the
+   droplet, no CDN in front) rather than assuming either. New
+   `getClientIp()` in `lib/kv.ts` takes the last hop; the unconfirmed
+   `X-Real-Ip` fallback (Traefik doesn't set this by default) was removed
+   entirely. Full investigation and the one remaining thing worth Ivan
+   double-checking (whether Coolify's generated Traefik config deviates
+   from defaults) in `docs/audit/2026-09-01-xff-rate-limit-bypass.md`.
 4. **CSP's `script-src 'unsafe-inline' 'unsafe-eval'`** provides no defence
    against inline-script XSS (§6) — real Next.js CSP tightening work,
    scoped separately from this pass since the actual injection vectors were

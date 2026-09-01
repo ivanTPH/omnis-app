@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
-import { checkContactRateLimit } from '@/lib/kv'
+import { checkContactRateLimit, getClientIp } from '@/lib/kv'
 import { prisma } from '@/lib/prisma'
 import type { Role } from '@prisma/client'
 import { upsertHubspotContact } from '@/lib/hubspot'
@@ -51,7 +51,7 @@ async function assignDemoClasses(schoolId: string, userId: string): Promise<void
 }
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const ip = getClientIp(req.headers)
   const { success } = await checkContactRateLimit(ip)
   if (!success) return NextResponse.json({ error: 'Too many requests — please try again later' }, { status: 429 })
 

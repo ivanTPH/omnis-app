@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { sendPasswordResetEmail } from '@/lib/email'
-import { checkPasswordResetRateLimit } from '@/lib/kv'
+import { checkPasswordResetRateLimit, getClientIp } from '@/lib/kv'
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const ip = getClientIp(req.headers)
   const { success } = await checkPasswordResetRateLimit(ip)
   if (!success) return NextResponse.json({ ok: true }) // still 200 — don't reveal rate limiting
 

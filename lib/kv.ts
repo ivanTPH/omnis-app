@@ -72,11 +72,27 @@ export async function storeMfaCode(userId: string, code: string): Promise<void> 
   await redis.set(`mfa:${userId}`, code, { ex: MFA_CODE_TTL_SECONDS })
 }
 
-/** Verifies the code and deletes it on success (single use). */
+/**
+ * Verifies the code and deletes it on success (single use).
+ *
+ * `redis.get<string>()`'s type parameter is a TypeScript-only assertion —
+ * it does not affect the runtime value. The @upstash/redis client's default
+ * `automaticDeserialization` JSON.parses every GET result, and every MFA
+ * code is a 6-digit numeric string (generateCode() in app/actions/mfa.ts),
+ * which JSON.parse happily turns into a JS *number* (e.g. stored "482913"
+ * comes back as 482913, not "482913"). A strict `stored !== code` then
+ * compares a number against `code` (always a string, from the login form) —
+ * always unequal, so every correct code was being rejected. Coercing both
+ * sides through String() before comparing fixes this regardless of which
+ * type actually comes back. Confirmed live against production Upstash and
+ * with a real end-to-end sign-in — see
+ * scripts/test-mfa-code-roundtrip.mjs and the incident write-up this fix
+ * shipped with.
+ */
 export async function verifyAndConsumeMfaCode(userId: string, code: string): Promise<boolean> {
   if (!redis) return true // infra unavailable — treat as satisfied, matches mfaInfraAvailable() gate upstream
-  const stored = await redis.get<string>(`mfa:${userId}`)
-  if (!stored || stored !== code) return false
+  const stored = await redis.get<string | number>(`mfa:${userId}`)
+  if (stored == null || String(stored) !== code) return false
   await redis.del(`mfa:${userId}`)
   return true
 }

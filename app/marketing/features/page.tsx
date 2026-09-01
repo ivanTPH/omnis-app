@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 
 export const metadata: Metadata = {
   title: 'Platform Features — AI Homework, SEND Management & MIS Sync',
@@ -125,10 +126,11 @@ const colorMap: Record<string, { bg: string; border: string; icon: string; tag: 
   rose:   { bg: 'bg-rose-50',   border: 'border-rose-100',   icon: 'text-rose-700',   tag: 'bg-rose-100 text-rose-700' },
 }
 
-export default function FeaturesPage() {
+export default async function FeaturesPage() {
+  const nonce = (await headers()).get('x-nonce')
   return (
     <main className="max-w-6xl mx-auto px-6 py-16">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" nonce={nonce ?? undefined} dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Platform features</h1>
         <p className="text-gray-500 text-lg max-w-2xl mx-auto">

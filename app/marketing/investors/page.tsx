@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import InvestorsForm from './InvestorsForm'
+import { headers } from 'next/headers'
 
 export const metadata: Metadata = {
   title: 'Investors',
@@ -35,10 +36,11 @@ const jsonLd = {
   ],
 }
 
-export default function InvestorsPage() {
+export default async function InvestorsPage() {
+  const nonce = (await headers()).get('x-nonce')
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" nonce={nonce ?? undefined} dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <InvestorsForm />
     </>
   )

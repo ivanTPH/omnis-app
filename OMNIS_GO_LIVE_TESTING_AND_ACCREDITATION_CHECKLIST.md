@@ -24,7 +24,7 @@ tells you what to drop in it.
 |---|---|---|---|---|
 | 5 | MIS integration & synthetic data testing | 🟡 5.4 finding fixed (accessibility.ts), 5.2 decided (Arbor next). 27 Aug: broad security sweep covered ~24 more app/actions/ files, 12 confirmed cross-tenant findings fixed. 30 Aug: dedicated read-through of send-support.ts/safeguarding.ts/students.ts (the last 3 of the originally-prioritised 4), 12 more findings fixed incl. 2 CRITICAL — see below, still not the full ~47-file read-through | YES | You + Claude |
 | 6 | Load, resilience & failure testing | 🟡 6.2: all 4 failure scenarios now traced, live-tested, and fixed where a real gap existed (27 Aug: scenarios 1 + 3; 31 Aug: scenarios 2 + 4) — see below. 🔴 6.1 (load test) not run and 🔴 6.3 (backup tier upgrade) not done — both blocked on infra/environment decisions outside coding scope, not on more fixes | YES | You + Claude |
-| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline). 31 Aug–1 Sep: 7.6 manual internal hardening review — 7 real gaps found + fixed live (2 stored-XSS via file upload/AI-generated HTML, AI-marking prompt injection + unclamped score, bypassable regex sanitizer, avatar magic-byte check, session/logout not server-invalidated, and X-Forwarded-For rate-limit bypass — researched Traefik's real default behaviour + verified this deployment's actual topology directly rather than assuming). Separately, 1 Sep: production incident — staff MFA rejecting every correct code (Upstash type-coercion bug in lib/kv.ts), found/fixed/deployed same day, see docs/audit/2026-09-01-mfa-code-verification-bug.md. 2 items still flagged for Ivan (prod Upstash config unconfirmed; CSP unsafe-inline). All of 7.5/7.6 is ongoing/internal coverage, explicitly not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test | YES | You + Claude (external assessments still need an accredited third party) |
+| 7 | Security testing & certification | 🟡 MFA built (email OTP, staff-only) + ROLE_ROUTES comment done. 31 Aug: 7.5 continuous automated scanning added (Dependabot, CodeQL, ZAP baseline). 31 Aug–1 Sep: 7.6 manual internal hardening review — 8 real gaps found + fixed (2 stored-XSS via file upload/AI-generated HTML, AI-marking prompt injection + unclamped score, bypassable regex sanitizer, avatar magic-byte check, session/logout not server-invalidated, X-Forwarded-For rate-limit bypass, and CSP script-src unsafe-inline/unsafe-eval — replaced with a per-request nonce, implemented + extensively tested 1 Sep but **deliberately not deployed yet**, awaiting Ivan's review given the silent-failure risk). Separately, 1 Sep: production incident — staff MFA rejecting every correct code (Upstash type-coercion bug in lib/kv.ts), found/fixed/deployed same day, see docs/audit/2026-09-01-mfa-code-verification-bug.md. 1 item still flagged for Ivan (prod Upstash config unconfirmed). All of 7.5/7.6 is ongoing/internal coverage, explicitly not a substitute for the still-open external items. Still open: apply npm audit fixes locally, verify build, enable Dependabot alerts in repo Settings, external CE+/pen-test, deploy+monitor the CSP nonce change | YES | You + Claude (external assessments still need an accredited third party) |
 | 8 | Data protection & Children's Code compliance | ✅ 8.1 done — all 15 Children's Code standards now Met/N/A, Standards 4/7/11/15 product-built + verified 30 Aug 2026 (see 8.1). 🟡 8.2 (DPA template) still open. ✅ 8.3: leaver-deletion workflow live-tested 30 Aug, 15 undocumented-retention gaps found and closed 31 Aug 2026 — 4 now deleted, 9 retained-with-citation, re-verified end to end against a live database with a control-school scoping check; 1 item (AgentAuditEntry) deliberately left as an open product decision rather than guessed, see 8.3 | YES | You + Claude |
 | 9 | External accreditation & evaluation | ⬜ Not started | No (but expected by procurement) | You |
 | 10 | Operational go-live readiness | 🟡 10.2 (incident response): runbook + comms template written in full, including safeguarding escalation — only on-call contact details/named humans remain (owned by Ivan). 10.1 (monitoring): `/api/health` endpoint added 31 Aug 2026 as the uptime-monitor target; Sentry alerting + uptime monitor signup still open, external service setup owned by Ivan, not code. 10.3/10.4 not started | YES | You + Claude |
@@ -456,15 +456,27 @@ evidence/phase7-security/manual-hardening-review.md.
       Full investigation, including the one item still worth Ivan
       double-checking (whether Coolify's generated Traefik config deviates
       from defaults), in docs/audit/2026-09-01-xff-rate-limit-bypass.md.
+- [x] **Nonce-based CSP — implemented + tested 1 Sep 2026, awaiting Ivan's
+      review before deploy (not yet in production).** script-src's
+      'unsafe-inline'/'unsafe-eval' replaced with a per-request nonce
+      (middleware.ts generates it; Next.js App Router auto-applies it to
+      its own scripts; the 4 marketing pages' JSON-LD <script> tags —
+      the only hand-written <script> tags anywhere in the app — nonce'd
+      manually). Confirmed live in an actual production build (not just
+      dev) that script-src no longer contains either directive. Tested
+      across all 11 demo roles, every chart-rendering page, the AI
+      generator modal, and the demo role switcher's real click path, in
+      both dev and production build modes — 0 CSP violations, 0 page
+      errors. Deliberately not pushed — this class of bug fails silently
+      for a real user, so held for Ivan's review; recommended to deploy at
+      a quiet time and watch Sentry afterward. Full detail in
+      docs/audit/2026-09-01-csp-nonce.md.
 - [ ] **Flagged for Ivan, still open (see evidence doc for full
-      detail on each):** (1) Cannot confirm from this session whether Upstash
+      detail on each):** Cannot confirm from this session whether Upstash
       (UPSTASH_REDIS_REST_URL/TOKEN) is configured in production — if not,
       staff MFA and every Redis-backed rate limiter (login, password-reset,
       MFA-request, contact-form) are silent no-ops right now; please verify
-      directly. (2) CSP's script-src 'unsafe-inline' 'unsafe-eval' provides
-      no defence against inline-script XSS — real, separately-scoped CSP
-      tightening work, not attempted here since the actual injection
-      vectors were closed directly instead.
+      directly.
 ```
 
 ---

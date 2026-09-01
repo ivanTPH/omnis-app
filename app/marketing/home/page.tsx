@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 
 export const metadata: Metadata = {
   title: 'AI-Powered Learning & SEND Platform for UK Schools',
@@ -157,10 +158,11 @@ const faqs = [
   { q: 'How much does Omnis cost?', a: 'Free during the beta programme. Beta schools receive full access, dedicated onboarding, and direct input into the roadmap at no cost.' },
 ]
 
-export default function MarketingHomePage() {
+export default async function MarketingHomePage() {
+  const nonce = (await headers()).get('x-nonce')
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" nonce={nonce ?? undefined} dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Hero */}
       <section className="bg-gradient-to-br from-blue-900 via-blue-800 to-teal-700 text-white px-6 py-24 md:py-32">
         <div className="max-w-4xl mx-auto text-center">

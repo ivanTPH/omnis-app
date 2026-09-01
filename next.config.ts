@@ -8,25 +8,14 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-  {
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      // unsafe-inline required for Next.js App Router hydration scripts; unsafe-eval for Turbopack dev only
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-      "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-      "img-src 'self' data: blob: https:",
-      // All external API calls are server-side only; browser only needs self + Sentry
-      "connect-src 'self' https://*.sentry.io",
-      // Allow Google Slides/Drive embeds and self (uploaded file previews via /api/resource-file/).
-      // frame-ancestors 'none' (below) still prevents Omnis itself from being embedded anywhere.
-      "frame-src 'self' https://docs.google.com https://drive.google.com",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join('; '),
-  },
+  // Content-Security-Policy deliberately NOT set here — it's per-request
+  // nonce-based now (middleware.ts) so every inline script can be verified
+  // against a fresh, unguessable value instead of a blanket 'unsafe-inline'.
+  // A static header defined here can't carry a per-request nonce. Routes
+  // middleware doesn't cover (api/_next/static/etc — see middleware.ts's
+  // matcher) simply have no CSP header, matching normal practice for
+  // JSON/binary API responses that never render as an executable HTML
+  // document. See docs/audit/2026-09-01-csp-nonce.md.
 ]
 
 const nextConfig: NextConfig = {

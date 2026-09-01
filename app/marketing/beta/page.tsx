@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import BetaForm from './BetaForm'
+import { headers } from 'next/headers'
 
 export const metadata: Metadata = {
   title: 'Request Beta Access',
@@ -42,10 +43,11 @@ const jsonLd = {
   ],
 }
 
-export default function BetaPage() {
+export default async function BetaPage() {
+  const nonce = (await headers()).get('x-nonce')
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" nonce={nonce ?? undefined} dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <BetaForm />
     </>
   )

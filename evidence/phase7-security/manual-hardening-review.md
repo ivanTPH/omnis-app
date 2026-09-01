@@ -22,7 +22,7 @@ running the app and trying to break it.
 | 3 | Injection & input handling | SQL: clean (Prisma-parameterised throughout). XSS: **2 real stored-XSS gaps found and fixed** (resource upload, AI-generated HTML resources). Prompt injection: **1 real gap found and fixed** (unclamped AI-marking score) |
 | 4 | SSRF | Clean — no user-controllable server-side fetch found anywhere in the app |
 | 5 | File handling | **Critical stored-XSS gap found and fixed** — declared file type was trusted with no server-side content verification, served inline |
-| 6 | Security headers | Confirmed live on production — all present and correct, with one existing CSP weakening (`unsafe-inline`/`unsafe-eval`) noted as directly relevant to finding #3/#5 |
+| 6 | Security headers | Confirmed live on production — all present and correct. The one CSP weakening found (`unsafe-inline`/`unsafe-eval` in script-src, directly relevant to finding #3/#5) has a nonce-based replacement implemented and tested 1 Sep 2026 — see below, held for Ivan's review before deploy |
 | 7 | Secrets & error exposure | Clean — live-tested with malformed requests against production, no stack traces or internals leaked |
 
 **5 code fixes made this pass**, all "small, clearly-scoped" per the
@@ -797,10 +797,22 @@ callback invalidation check), `app/actions/settings.ts` (new
    entirely. Full investigation and the one remaining thing worth Ivan
    double-checking (whether Coolify's generated Traefik config deviates
    from defaults) in `docs/audit/2026-09-01-xff-rate-limit-bypass.md`.
-4. **CSP's `script-src 'unsafe-inline' 'unsafe-eval'`** provides no defence
-   against inline-script XSS (§6) — real Next.js CSP tightening work,
-   scoped separately from this pass since the actual injection vectors were
-   closed directly instead. **Still open.**
+4. **CSP's `script-src 'unsafe-inline' 'unsafe-eval'`** provided no defence
+   against inline-script XSS (§6). **Implemented and tested 1 Sep 2026,
+   not yet deployed** — replaced with a per-request nonce (middleware.ts
+   generates it, CSP now requires 'nonce-<value>' or 'strict-dynamic',
+   'unsafe-eval' only in dev). Confirmed live in a real production build
+   (not just dev mode) that script-src no longer contains 'unsafe-inline'
+   or 'unsafe-eval' at all. Tested across all 11 demo roles' dashboards and
+   deeper pages, every chart-rendering page, the homework/AI-generator
+   modal, and the demo role switcher's real click path, in both dev and
+   production build modes — 0 CSP violations, 0 page errors throughout.
+   Deliberately held back from deployment for Ivan's own review first —
+   this class of bug (a missing nonce) fails silently for a real user with
+   no visible error, so the standing recommendation is to deploy at a quiet
+   time and watch Sentry closely afterward. Full investigation, design
+   rationale, and the complete flow-by-flow test results in
+   `docs/audit/2026-09-01-csp-nonce.md`.
 
 ---
 

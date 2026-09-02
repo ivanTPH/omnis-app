@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import { SendStatusValue, HomeworkStatus, Role } from '@prisma/client'
 import { percentToGcseGrade } from '@/lib/grading'
+import { currentTermLabel, termLabelToDates } from '@/lib/termUtils'
 
 // ── Adaptive analytics ────────────────────────────────────────────────────────
 
@@ -1028,5 +1029,493 @@ export async function getStudentTopicBreakdown(
         : 'missing'
       return { topic: t.topic, homeworkId: t.homeworkId, myScore, classAvgScore: t.avgScore, myStatus }
     }),
+  }
+}
+
+// ── Inclusion Evidence Report ───────────────────────────────────────────────
+//
+// A filterable, exportable report (PDF + CSV) for school leaders pulling
+// together SEND/ILP/EHCP data — see docs/product/2026-09-02-ofsted-report-
+// build-prompt.md for the full spec. Deliberately does NOT claim
+// "Ofsted-compliant" anywhere — Ofsted doesn't certify products or
+// prescribe a report format; this surfaces the evidence a school already
+// holds, in one place.
+//
+// Reuses field names and query patterns already established and proven in
+// app/actions/slt-send.ts's getSltSendDashboard() and
+// app/actions/send-support.ts's getSendRegisterData() rather than
+// reinventing them. Uses the CURRENT ILP/EHCP model family
+// (IndividualLearningPlan / IlpTarget, lowercase-string status) — NOT the
+// legacy ILP / ILPTarget models (uppercase ILPStatus enum), which are a
+// separate, largely-deprecated schema family. Confirmed both exist and are
+// distinct by reading prisma/schema.prisma directly before writing this.
+
+const INCLUSION_REPORT_ROLES = ['SLT', 'SCHOOL_ADMIN', 'SENCO', 'HEAD_OF_YEAR']
+
+export type InclusionReportFilters = {
+  yearGroups?: number[]                                  // undefined/empty = all year groups
+  sendStatus?: 'NONE' | 'SEN_SUPPORT' | 'EHCP' | 'ALL'    // 'ALL' (default) = SEN_SUPPORT + EHCP, i.e. "the SEND register" — NOT literally including NONE, matching every other SEND report in this app. Select 'NONE' explicitly to see the non-SEND cohort (used for the Section 5 attainment comparison, or if a leader wants that view directly).
+  dateFrom?: string                                       // ISO date string; defaults to current term start
+  dateTo?: string                                         // ISO date string; defaults to current term end
+  studentId?: string                                      // single-student case-file mode (Section 7)
+}
+
+export type InclusionRegisterRow = {
+  studentId:        string
+  studentName:      string
+  yearGroup:        number | null
+  sendStatus:       string
+  needArea:         string | null
+  ilpStatus:        string | null
+  ilpApproved:      boolean
+  ilpReviewDate:    string | null
+  ehcpReviewDate:   string | null
+  openConcernCount: number
+}
+
+export type InclusionReportData = {
+  schoolName: string
+  generatedAt: string
+  filters: {
+    yearGroupsLabel: string
+    sendStatusLabel: string
+    periodLabel: string
+    priorPeriodLabel: string
+    studentName: string | null
+  }
+
+  section1Register: {
+    total: number
+    senSupport: number
+    ehcp: number
+    rollSize: number
+    pctOfRoll: number | null
+    newIdentificationsThisPeriod: number
+    newIdentificationsPriorPeriod: number
+  }
+
+  section2Responsiveness: {
+    avgDaysToApprovedIlp: number | null
+    matchedCaseCount: number
+  }
+
+  section3IlpCoverage: {
+    cohortSize: number
+    withApprovedIlp: number
+    coveragePct: number | null
+    overdueCount: number
+    overduePct: number | null
+    oldestOverdue: { studentId: string; studentName: string; reviewDate: string; daysOverdue: number } | null
+  }
+
+  section4EhcpCompliance: {
+    total: number
+    withinWindowCount: number
+    withinWindowPct: number | null
+    overdueCount: number
+    overdueList: { studentId: string; studentName: string; reviewDate: string; daysOverdue: number }[]
+  }
+
+  section5Evidence: {
+    attainmentByStatus: { status: string; label: string; avgScore: number | null; count: number }[]
+    evidenceCounts: { progress: number; concern: number; neutral: number; total: number }
+  }
+
+  section6Voice: {
+    parentResponseCount: number
+    meetingRequestedCount: number
+  }
+
+  section7CaseStudy: {
+    studentName: string
+    yearGroup: number | null
+    sendStatus: string
+    needArea: string | null
+    currentStrengths: string | null
+    areasOfNeed: string | null
+    strategies: string[]
+    targets: { target: string; strategy: string; successMeasure: string; status: string; targetDate: string }[]
+    evidenceTimeline: { date: string; type: string; homeworkTitle: string; summary: string | null }[]
+    parentVoice: { reviewedAt: string; homeProgress: string | null; meetingRequested: boolean }[]
+  } | null
+
+  registerRows: InclusionRegisterRow[]
+}
+
+function fullName(u: { firstName: string; lastName: string }): string {
+  return `${u.firstName} ${u.lastName}`
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.round((a.getTime() - b.getTime()) / 86_400_000)
+}
+
+export async function getInclusionEvidenceReport(
+  filters: InclusionReportFilters = {},
+): Promise<InclusionReportData> {
+  const { schoolId, schoolName, role } = await requireAuth()
+  if (!INCLUSION_REPORT_ROLES.includes(role)) {
+    throw new Error('Unauthorised')
+  }
+
+  const now = new Date()
+
+  // ── Resolve period (defaults to current academic term) ──────────────────
+  const defaultPeriod = termLabelToDates(currentTermLabel())
+  const periodFrom = filters.dateFrom ? new Date(filters.dateFrom) : defaultPeriod.from
+  const periodTo   = filters.dateTo   ? new Date(filters.dateTo)   : defaultPeriod.to
+  const periodLengthMs = Math.max(periodTo.getTime() - periodFrom.getTime(), 1)
+  const priorFrom = new Date(periodFrom.getTime() - periodLengthMs)
+  const priorTo   = new Date(periodFrom.getTime())
+
+  const yearGroups = filters.yearGroups && filters.yearGroups.length > 0 ? filters.yearGroups : null
+  const statusFilter = filters.sendStatus ?? 'ALL'
+
+  // ── Resolve the student cohort this report is scoped to ─────────────────
+  // 'ALL' = SEN_SUPPORT + EHCP (the SEND register) — see the type comment above.
+  // A single-student filter (case-study mode) overrides the status filter
+  // entirely — a leader picking a named student by definition wants that
+  // student's report regardless of what their current SEND status happens
+  // to be, not an empty result if it doesn't match the cohort filter.
+  const statusWhere: { in: SendStatusValue[] } | SendStatusValue | undefined = filters.studentId
+    ? undefined
+    : statusFilter === 'ALL'
+      ? { in: [SendStatusValue.SEN_SUPPORT, SendStatusValue.EHCP] }
+      : statusFilter === 'NONE'
+        ? SendStatusValue.NONE
+        : (statusFilter === 'SEN_SUPPORT' ? SendStatusValue.SEN_SUPPORT : SendStatusValue.EHCP)
+
+  const sendStatuses = await prisma.sendStatus.findMany({
+    where: {
+      student: {
+        schoolId,
+        isActive: true,
+        ...(yearGroups && !filters.studentId ? { yearGroup: { in: yearGroups } } : {}),
+        ...(filters.studentId ? { id: filters.studentId } : {}),
+      },
+      ...(statusWhere !== undefined ? { activeStatus: statusWhere } : {}),
+    },
+    select: {
+      studentId: true,
+      activeStatus: true,
+      needArea: true,
+      student: { select: { id: true, firstName: true, lastName: true, yearGroup: true } },
+    },
+    orderBy: [{ student: { yearGroup: 'asc' } }, { student: { lastName: 'asc' } }],
+  })
+
+  const cohortIds = sendStatuses.map(s => s.studentId)
+
+  const rollSize = await prisma.user.count({
+    where: {
+      schoolId,
+      role: 'STUDENT',
+      isActive: true,
+      ...(yearGroups ? { yearGroup: { in: yearGroups } } : {}),
+    },
+  })
+
+  // ── Section 1 — SEND register summary ────────────────────────────────────
+  const senSupportCount = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT').length
+  const ehcpCountS1     = sendStatuses.filter(s => s.activeStatus === 'EHCP').length
+
+  // "Trend" — there is no historical snapshot of SEND headcounts in this
+  // schema (SendStatus tracks current state only; AuditAction.SEND_STATUS_
+  // CHANGED is declared but never actually written by any code path,
+  // confirmed by grep before relying on it). Rather than fabricate a
+  // headcount-over-time comparison the data can't support, this compares
+  // new SEND identifications (by ILP creation date, a real, reliable
+  // timestamp) in the current period vs the immediately preceding period
+  // of the same length — an honest, computable proxy for "identification
+  // trend," clearly labelled as such in the PDF, not presented as a
+  // register-headcount trend.
+  const [newIdsThisPeriod, newIdsPriorPeriod] = await Promise.all([
+    prisma.individualLearningPlan.count({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, createdAt: { gte: periodFrom, lte: periodTo } },
+    }),
+    prisma.individualLearningPlan.count({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, createdAt: { gte: priorFrom, lt: priorTo } },
+    }),
+  ])
+
+  // ── Section 2 — identification & responsiveness ──────────────────────────
+  // For each cohort student with an APPROVED ILP, find their earliest
+  // SendConcern/EarlyWarningFlag and measure the gap to ILP approval.
+  // Only counts students where a concern/flag genuinely precedes the
+  // approval (a negative gap — ILP already existed before any concern in
+  // our records — is excluded rather than counted as "0 days" or dropped
+  // silently miscounted as fast response).
+  const [approvedIlps, concernsForCohort, flagsForCohort] = await Promise.all([
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, approvedBySenco: true, approvedAt: { not: null } },
+      select: { studentId: true, approvedAt: true },
+    }),
+    prisma.sendConcern.findMany({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined },
+      select: { studentId: true, createdAt: true },
+    }),
+    prisma.earlyWarningFlag.findMany({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined },
+      select: { studentId: true, createdAt: true },
+    }),
+  ])
+
+  const earliestSignalByStudent = new Map<string, Date>()
+  for (const c of [...concernsForCohort, ...flagsForCohort]) {
+    const existing = earliestSignalByStudent.get(c.studentId)
+    if (!existing || c.createdAt < existing) earliestSignalByStudent.set(c.studentId, c.createdAt)
+  }
+
+  const responseGapsDays: number[] = []
+  for (const ilp of approvedIlps) {
+    const signal = earliestSignalByStudent.get(ilp.studentId)
+    if (!signal || !ilp.approvedAt) continue
+    const gap = daysBetween(ilp.approvedAt, signal)
+    if (gap >= 0) responseGapsDays.push(gap)
+  }
+  const avgDaysToApprovedIlp = responseGapsDays.length
+    ? Math.round(responseGapsDays.reduce((a, b) => a + b, 0) / responseGapsDays.length)
+    : null
+
+  // ── Section 3 — ILP coverage & currency ──────────────────────────────────
+  const cohortIlps = await prisma.individualLearningPlan.findMany({
+    where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, status: { in: ['active', 'under_review'] } },
+    select: { studentId: true, approvedBySenco: true, reviewDate: true },
+  })
+  const withApprovedIlp = cohortIlps.filter(i => i.approvedBySenco).length
+  const overdueIlps = cohortIlps.filter(i => i.approvedBySenco && new Date(i.reviewDate) < now)
+
+  let oldestOverdue: InclusionReportData['section3IlpCoverage']['oldestOverdue'] = null
+  if (overdueIlps.length > 0) {
+    const oldest = overdueIlps.reduce((a, b) => (new Date(a.reviewDate) < new Date(b.reviewDate) ? a : b))
+    const student = sendStatuses.find(s => s.studentId === oldest.studentId)?.student
+    if (student) {
+      oldestOverdue = {
+        studentId: student.id,
+        studentName: fullName(student),
+        reviewDate: oldest.reviewDate.toISOString(),
+        daysOverdue: daysBetween(now, new Date(oldest.reviewDate)),
+      }
+    }
+  }
+
+  // ── Section 4 — EHCP compliance ───────────────────────────────────────────
+  // EhcpPlan.reviewDate is treated as the authoritative "next review due"
+  // date — the same convention already used consistently across
+  // getSltSendDashboard(), getSendRegisterData(), and getSendCaseloadCsv-
+  // equivalent routes elsewhere in this app (EhcpAnnualReview.newReviewDate
+  // is what updates it when a review completes). "Within the statutory
+  // 12-month window" (SEND Code of Practice 9.166) == not overdue against
+  // that date.
+  const ehcpStudentIds = statusFilter === 'NONE' ? [] : cohortIds // EHCP-specific section makes no sense for a NONE-status cohort
+  const cohortEhcps = await prisma.ehcpPlan.findMany({
+    where: { schoolId, studentId: ehcpStudentIds.length ? { in: ehcpStudentIds } : undefined, status: { in: ['active', 'under_review'] } },
+    select: { studentId: true, reviewDate: true },
+  })
+  const ehcpOverdue = cohortEhcps.filter(e => new Date(e.reviewDate) < now)
+  const overdueList = ehcpOverdue.map(e => {
+    const student = sendStatuses.find(s => s.studentId === e.studentId)?.student
+    return {
+      studentId: e.studentId,
+      studentName: student ? fullName(student) : 'Unknown',
+      reviewDate: e.reviewDate.toISOString(),
+      daysOverdue: daysBetween(now, new Date(e.reviewDate)),
+    }
+  }).sort((a, b) => b.daysOverdue - a.daysOverdue)
+
+  // ── Section 5 — evidence-backed progress ──────────────────────────────────
+  const since90 = new Date(now.getTime() - 90 * 86_400_000)
+
+  async function avgScoreFor(ids: string[]): Promise<number | null> {
+    if (!ids.length) return null
+    const agg = await prisma.submission.aggregate({
+      where: { schoolId, studentId: { in: ids }, finalScore: { not: null }, submittedAt: { gte: since90 } },
+      _avg: { finalScore: true },
+    })
+    return agg._avg.finalScore
+  }
+
+  // Whole-roll "NONE" cohort is queried separately — it's genuinely
+  // NONE-status students, not just "not in this filtered cohort" (the
+  // filtered cohort here is already the SEND cohort, never NONE, unless
+  // the leader deliberately picked the NONE filter — see statusWhere above).
+  const senSupportIds = sendStatuses.filter(s => s.activeStatus === SendStatusValue.SEN_SUPPORT).map(s => s.studentId)
+  const ehcpIds       = sendStatuses.filter(s => s.activeStatus === SendStatusValue.EHCP).map(s => s.studentId)
+  const noneStatuses  = await prisma.sendStatus.findMany({
+    where: { student: { schoolId, isActive: true, ...(yearGroups ? { yearGroup: { in: yearGroups } } : {}) }, activeStatus: SendStatusValue.NONE },
+    select: { studentId: true },
+  })
+  const noneIds = noneStatuses.map(s => s.studentId)
+
+  const [noneAvg, senSupportAvg, ehcpAvg] = await Promise.all([
+    avgScoreFor(noneIds),
+    avgScoreFor(senSupportIds),
+    avgScoreFor(ehcpIds),
+  ])
+
+  // Rounded to 1dp for display — gradeLabel() (lib/grading.ts) expects an
+  // integer grade for its letter lookup, so callers displaying a letter
+  // must Math.round() this again themselves; kept at 1dp here (rather than
+  // pre-rounded to an integer) so the underlying precision is still visible
+  // in the CSV/register data if ever surfaced there.
+  const round1 = (n: number | null) => n == null ? null : Math.round(n * 10) / 10
+  const attainmentByStatus: InclusionReportData['section5Evidence']['attainmentByStatus'] = [
+    { status: 'NONE',        label: 'No identified SEND', avgScore: round1(noneAvg),       count: noneIds.length },
+    { status: 'SEN_SUPPORT', label: 'SEN Support',         avgScore: round1(senSupportAvg), count: senSupportIds.length },
+    { status: 'EHCP',        label: 'EHCP',                avgScore: round1(ehcpAvg),       count: ehcpIds.length },
+  ]
+
+  const evidenceEntries = await prisma.ilpEvidenceEntry.findMany({
+    where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, createdAt: { gte: periodFrom, lte: periodTo } },
+    select: { evidenceType: true },
+  })
+  const evidenceCounts = {
+    progress: evidenceEntries.filter(e => e.evidenceType === 'PROGRESS').length,
+    concern:  evidenceEntries.filter(e => e.evidenceType === 'CONCERN').length,
+    neutral:  evidenceEntries.filter(e => e.evidenceType === 'NEUTRAL').length,
+    total:    evidenceEntries.length,
+  }
+
+  // ── Section 6 — parent & pupil voice ──────────────────────────────────────
+  const parentResponses = await prisma.ilpParentResponse.findMany({
+    where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, reviewedAt: { gte: periodFrom, lte: periodTo } },
+    select: { meetingRequested: true },
+  })
+
+  // ── Register rows (underlying data for both the on-screen table + CSV) ───
+  const [openConcerns, latestIlpByStudent, latestEhcpByStudent] = await Promise.all([
+    prisma.sendConcern.groupBy({
+      by: ['studentId'],
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, status: { in: ['open', 'under_review', 'escalated'] } },
+      _count: { _all: true },
+    }),
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, status: { not: 'archived' } },
+      select: { studentId: true, status: true, approvedBySenco: true, reviewDate: true },
+      orderBy: { updatedAt: 'desc' },
+    }),
+    prisma.ehcpPlan.findMany({
+      where: { schoolId, studentId: cohortIds.length ? { in: cohortIds } : undefined, status: { in: ['active', 'under_review'] } },
+      select: { studentId: true, reviewDate: true },
+      orderBy: { updatedAt: 'desc' },
+    }),
+  ])
+  const concernCountByStudent = new Map(openConcerns.map(c => [c.studentId, c._count._all]))
+  const ilpByStudent  = new Map<string, { status: string; approvedBySenco: boolean; reviewDate: Date }>()
+  for (const i of latestIlpByStudent) if (!ilpByStudent.has(i.studentId)) ilpByStudent.set(i.studentId, i)
+  const ehcpByStudent = new Map<string, Date>()
+  for (const e of latestEhcpByStudent) if (!ehcpByStudent.has(e.studentId)) ehcpByStudent.set(e.studentId, e.reviewDate)
+
+  const registerRows: InclusionRegisterRow[] = sendStatuses.map(s => {
+    const ilp = ilpByStudent.get(s.studentId)
+    return {
+      studentId:        s.studentId,
+      studentName:      fullName(s.student),
+      yearGroup:        s.student.yearGroup,
+      sendStatus:       s.activeStatus,
+      needArea:         s.needArea,
+      ilpStatus:        ilp?.status ?? null,
+      ilpApproved:      ilp?.approvedBySenco ?? false,
+      ilpReviewDate:    ilp ? ilp.reviewDate.toISOString() : null,
+      ehcpReviewDate:   ehcpByStudent.get(s.studentId)?.toISOString() ?? null,
+      openConcernCount: concernCountByStudent.get(s.studentId) ?? 0,
+    }
+  })
+
+  // ── Section 7 — single-student case study (only when filters.studentId set) ──
+  let section7CaseStudy: InclusionReportData['section7CaseStudy'] = null
+  if (filters.studentId && sendStatuses.length === 1) {
+    const s = sendStatuses[0]
+    const [ilpFull, evidenceTimeline, parentVoice] = await Promise.all([
+      prisma.individualLearningPlan.findFirst({
+        where: { schoolId, studentId: s.studentId, status: { not: 'archived' } },
+        orderBy: { updatedAt: 'desc' },
+        include: { targets: true },
+      }),
+      prisma.ilpEvidenceEntry.findMany({
+        where: { schoolId, studentId: s.studentId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { createdAt: true, evidenceType: true, homeworkTitle: true, aiSummary: true, teacherNote: true },
+      }),
+      prisma.ilpParentResponse.findMany({
+        where: { schoolId, studentId: s.studentId },
+        orderBy: { reviewedAt: 'desc' },
+        select: { reviewedAt: true, homeProgress: true, meetingRequested: true },
+      }),
+    ])
+
+    section7CaseStudy = {
+      studentName:      fullName(s.student),
+      yearGroup:        s.student.yearGroup,
+      sendStatus:       s.activeStatus,
+      needArea:         s.needArea,
+      currentStrengths: ilpFull?.currentStrengths ?? null,
+      areasOfNeed:      ilpFull?.areasOfNeed ?? null,
+      strategies:       ilpFull?.strategies ?? [],
+      targets: (ilpFull?.targets ?? []).map(t => ({
+        target: t.target, strategy: t.strategy, successMeasure: t.successMeasure,
+        status: t.status, targetDate: t.targetDate.toISOString(),
+      })),
+      evidenceTimeline: evidenceTimeline.map(e => ({
+        date: e.createdAt.toISOString(), type: e.evidenceType, homeworkTitle: e.homeworkTitle,
+        summary: e.aiSummary ?? e.teacherNote ?? null,
+      })),
+      parentVoice: parentVoice.map(p => ({
+        reviewedAt: p.reviewedAt.toISOString(), homeProgress: p.homeProgress, meetingRequested: p.meetingRequested,
+      })),
+    }
+  }
+
+  const dateLabel = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  return {
+    schoolName,
+    generatedAt: now.toISOString(),
+    filters: {
+      yearGroupsLabel: yearGroups ? `Year ${yearGroups.join(', ')}` : 'All year groups',
+      sendStatusLabel: statusFilter === 'ALL' ? 'SEN Support + EHCP' : statusFilter.replace('_', ' '),
+      periodLabel: `${dateLabel(periodFrom)} – ${dateLabel(periodTo)}`,
+      priorPeriodLabel: `${dateLabel(priorFrom)} – ${dateLabel(priorTo)}`,
+      studentName: section7CaseStudy?.studentName ?? null,
+    },
+    section1Register: {
+      total: sendStatuses.length,
+      senSupport: senSupportCount,
+      ehcp: ehcpCountS1,
+      rollSize,
+      pctOfRoll: rollSize > 0 ? Math.round((sendStatuses.length / rollSize) * 1000) / 10 : null,
+      newIdentificationsThisPeriod: newIdsThisPeriod,
+      newIdentificationsPriorPeriod: newIdsPriorPeriod,
+    },
+    section2Responsiveness: {
+      avgDaysToApprovedIlp,
+      matchedCaseCount: responseGapsDays.length,
+    },
+    section3IlpCoverage: {
+      cohortSize: sendStatuses.length,
+      withApprovedIlp,
+      coveragePct: sendStatuses.length > 0 ? Math.round((withApprovedIlp / sendStatuses.length) * 1000) / 10 : null,
+      overdueCount: overdueIlps.length,
+      overduePct: withApprovedIlp > 0 ? Math.round((overdueIlps.length / withApprovedIlp) * 1000) / 10 : null,
+      oldestOverdue,
+    },
+    section4EhcpCompliance: {
+      total: cohortEhcps.length,
+      withinWindowCount: cohortEhcps.length - ehcpOverdue.length,
+      withinWindowPct: cohortEhcps.length > 0 ? Math.round(((cohortEhcps.length - ehcpOverdue.length) / cohortEhcps.length) * 1000) / 10 : null,
+      overdueCount: ehcpOverdue.length,
+      overdueList,
+    },
+    section5Evidence: {
+      attainmentByStatus,
+      evidenceCounts,
+    },
+    section6Voice: {
+      parentResponseCount: parentResponses.length,
+      meetingRequestedCount: parentResponses.filter(p => p.meetingRequested).length,
+    },
+    section7CaseStudy,
+    registerRows,
   }
 }

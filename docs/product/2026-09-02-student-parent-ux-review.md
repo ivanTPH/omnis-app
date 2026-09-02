@@ -1,0 +1,26 @@
+## Student & parent interface — review and recommendations
+### 2 September 2026, following a read-through of the current code and a check against 2026 EdTech UX guidance
+
+**What's there today (read directly from the codebase, not guessed):**
+- Parent: `/parent/dashboard`, `/progress`, `/messages`, `/consent`, `/behaviour`, `/report`, `/communications` — genuinely solid data plumbing (per-child subject averages with trend arrows, ILP acknowledgement panel, unread-message banner, activity feed). Built as a standard responsive page, not a dedicated mobile component.
+- Student: `/student/dashboard` (uses a dedicated `StudentMobileDashboard` component — mobile-first, categorises homework into overdue/due-soon/upcoming/graded, shows today's timetable, subject progress, notifications), plus `/grades`, `/homework`, `/revision`, `/timetable`, `/support` (the SEND "My Support Plan" page — genuinely well done: calm colour coding, no stigmatising language, clear "talk to your SENCO" fallback).
+- No gamification anywhere yet (points/streaks/badges/leaderboards) on either side.
+
+**Against 2026 EdTech UX guidance**, three points are worth calling out directly because they cut against the instinct to "add gamification first":
+1. Research and product guides converge on **role-based design done well** (Omnis already has this — separate portals per role, not a generic one) and on **reliable, low-noise task/deadline surfacing** mattering more to engagement than game mechanics. Canvas Student's own app reviews are cited as a cautionary example — lots of notification types, but a persistent gap on the one that matters (due dates). Omnis already has several separate notification/email trigger systems (grade-below-target, new homework, ILP/EHCP review due, messages) — worth an audit for notification fatigue before adding more channels.
+2. **WCAG 2.1 AA accessibility has shifted from best-practice to a binding procurement gate** in current guidance — worth commissioning a formal accessibility audit of the student and parent apps specifically (there's already an `accessibility.ts` finding fixed per the go-live checklist, but that's not the same as a full WCAG AA pass). For a SEND-focused product this is both a compliance item and a genuine differentiator to lead with in sales conversations.
+3. **Mobile parity** is flagged as a common failure mode — features that exist on desktop silently degrade on mobile. Worth noting: the student side already got dedicated mobile-first treatment (`StudentMobileDashboard`); the parent side did not get an equivalent component. Given parents are checking in from a phone between other things far more than from a desktop, this asymmetry is worth closing.
+
+**Recommendations, parent side:**
+- Build a `ParentMobileDashboard` equivalent to the student one — the data is already there, this is a presentation-layer gap, not a data gap.
+- A "what does my child need from me this week" digest (upcoming deadlines needing support, an ILP review coming up, a message awaiting reply) rather than requiring a parent to piece that together across five separate pages.
+- Consolidate/prioritise notifications — a Sev-1-style tier (safeguarding-relevant, grade significantly below target, review overdue) versus routine, so the highest-value alerts don't get lost.
+- Light explainability on anything AI-touched that a parent sees (an AI-suggested ILP target, a differentiated homework adaptation) — "suggested by Omnis, reviewed and approved by [teacher name]" is a small addition that directly answers the "is a computer deciding things about my child" worry SEND parents in particular tend to have, and it rides on the XAI/explainability work already spec'd (`getStudentAiJourney`) rather than needing anything new invented.
+
+**Recommendations, student side:**
+- The mobile dashboard is a good foundation; the gap is a richer personal "my progress" view — something the student can look at and feel is theirs, distinct from the teacher/SLT analytics view of the same data.
+- On gamification specifically: the evidence is genuinely mixed, more so for SEND students, and generic points/leaderboards sit awkwardly against a product built around *individual* pathways. Recommend a personalised, opt-in layer rather than one universal mechanic — e.g. a private consistency indicator ("on-time homework 4 weeks running") rather than a ranked leaderboard, which tends to work better across a mixed cohort than head-to-head competition.
+- Age-appropriate transparency when a student is looking at an adapted version of a task — a brief, kind explanation of why (ties to the same XAI work as above), so a student with an EHCP doesn't just experience "my homework looks different" with no context.
+- A simple, guided way for a student to submit their own view ahead of an ILP/EHCP review. The SEND Code of Practice expects the child's voice in reviews, Ofsted's Inclusion evaluation area cares about the same thing, and right now that's a form nobody's built yet — small effort, meaningful on both the compliance and the "this genuinely centres the student" fronts.
+
+Sources: [EdTech App UX Design in 2026: Build Better Learning Platforms](https://thefinch.design/edtech-app-ux-2026/)

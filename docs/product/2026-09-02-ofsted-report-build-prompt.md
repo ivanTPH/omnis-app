@@ -15,11 +15,16 @@ Step 0 — Inventory before building (report back before writing new code):
   reuse and extend it rather than duplicating the query logic.
 - Does /api/export/send-register (mentioned in TODO.md) already exist?
   What format/library does it use for CSV? Reuse that pattern.
-- Is there an existing PDF-generation pattern anywhere in the app (the
-  DSAR PDF export mentioned in claude/dspy-optimization-and-xai-design.md
-  — check if it's built or still spec-only)? If yes, reuse it. If not,
-  puppeteer is already a project dependency — use it (render an HTML
-  template server-side, print to PDF) rather than adding a new library.
+- Is there an existing PDF-generation pattern anywhere in the app? YES —
+  confirmed live in production 2 Sep 2026: the parent Progress page's
+  "Progress Report" button hits
+  /api/export/student-progress/[studentId] and returns a per-student
+  PDF/export today. Read that route handler first and reuse its
+  generation approach (template, library, styling) rather than building
+  a second PDF pipeline. Also check the DSAR PDF export mentioned in
+  claude/dspy-optimization-and-xai-design.md (may be spec-only still)
+  and /api/export/send-register (CSV, mentioned in TODO.md) for the
+  CSV-side pattern.
 - Confirm the exact field names on ILP/ILPTarget, SendStatus, EhcpPlan/
   EhcpAnnualReview/EhcpOutcome, AssessPlanDoReview, IlpEvidenceEntry,
   EarlyWarningFlag — the schema has some near-duplicate model names

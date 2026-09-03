@@ -138,8 +138,9 @@ type HaikuEngageOutput = {
 async function buildOakContext(
   topics:      string[],
   subjectSlug: string,
+  examBoard?:  string | null,
 ): Promise<{ lessons: OakLessonContent[]; misconceptions: string[]; keywords: string[]; klps: string[] }> {
-  const lessons       = await findOakDataForTopics(topics, subjectSlug, 4)
+  const lessons       = await findOakDataForTopics(topics, subjectSlug, 4, examBoard)
   const misconceptions = extractMisconceptions(lessons)
   const keywords      = extractKeywords(lessons)
   const klps          = extractKlps(lessons)
@@ -344,8 +345,16 @@ export async function runEngageForStudent(
       needArea:   student.sendStatus?.needArea     ?? null,
     }
 
+    // Best-effort exam board via school's SubjectConfig — no specific class is available at
+    // this point (weak topics span classes), and SubjectConfig only carries a board for
+    // GCSE/A-level subjects, so this naturally stays a no-op for KS3-only subjects.
+    const subjectConfig = await prisma.subjectConfig.findUnique({
+      where:  { schoolId_subject: { schoolId, subject: primarySubject } },
+      select: { examBoard: true },
+    }).catch(() => null)
+
     // Build Oak context (module cache — no extra DB round-trips on warm container)
-    const oakCtx = await buildOakContext(topWeakTopics, subjectSlug)
+    const oakCtx = await buildOakContext(topWeakTopics, subjectSlug, subjectConfig?.examBoard ?? null)
 
     // Reconstruct weak topic structs for haiku
     const weakTopicStructs = topWeakTopics.map(t => ({

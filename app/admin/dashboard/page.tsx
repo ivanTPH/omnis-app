@@ -2,10 +2,11 @@ import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import AppShell from '@/components/AppShell'
-import { getAdminDashboardData, getSchoolSettings, getActivationBreakdown, type AdminDashboardData } from '@/app/actions/admin'
+import { getAdminDashboardData, getSchoolSettings, getActivationBreakdown, getSubjectsMissingExamBoard, type AdminDashboardData } from '@/app/actions/admin'
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats'
 import YearRolloverPanel from '@/components/admin/YearRolloverPanel'
 import ActivationPanel from '@/components/admin/ActivationPanel'
+import ExamBoardBanner from '@/components/admin/ExamBoardBanner'
 import DpoContactCard from '@/components/admin/DpoContactCard'
 import Icon from '@/components/ui/Icon'
 
@@ -28,12 +29,13 @@ export default async function AdminDashboardPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
-  const [data, settings, activationBreakdown] = await Promise.all([
+  const [data, settings, activationBreakdown, subjectsMissingExamBoard] = await Promise.all([
     getAdminDashboardData(schoolId).catch(() =>
       ({ studentCount: 0, staffCount: 0, classCount: 0, sendCount: 0, activeIlpCount: 0, openConcerns: 0, pendingActivation: 0 }) as AdminDashboardData
     ),
     getSchoolSettings().catch(() => null),
     getActivationBreakdown().catch(() => []),
+    getSubjectsMissingExamBoard().catch(() => []),
   ])
 
   return (
@@ -67,6 +69,9 @@ export default async function AdminDashboardPage() {
               </Link>
             </div>
           )}
+
+          {/* Exam board setup */}
+          <ExamBoardBanner subjects={subjectsMissingExamBoard} />
 
           {/* Stats */}
           <div className="mb-8">

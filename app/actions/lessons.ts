@@ -1714,11 +1714,17 @@ export async function generateAiLessonSlides(lessonId: string): Promise<{ resour
   const lesson = await prisma.lesson.findFirst({
     where: { id: lessonId, schoolId },
     include: {
-      class: { select: { subject: true, yearGroup: true } },
+      class: { select: { subject: true, yearGroup: true, examBoard: true } },
       resources: { where: { oakContentId: { not: null } }, select: { oakContentId: true } },
     },
   })
   if (!lesson) throw new Error('Lesson not found')
+
+  const lessonYearGroup = lesson.class?.yearGroup ?? null
+  // Exam board filtering only applies from GCSE (Year 10) upward — prefer lesson-level board, fall back to class
+  const lessonExamBoard = lessonYearGroup != null && lessonYearGroup >= 10
+    ? (lesson.examBoard ?? lesson.class?.examBoard ?? null)
+    : null
 
   // Gather Oak data from linked resources
   const oakData: OakLessonContent[] = []
@@ -1740,14 +1746,14 @@ export async function generateAiLessonSlides(lessonId: string): Promise<{ resour
       .filter(w => w.length > 3 && !['with','from','that','this','their','have','been'].includes(w))
       .slice(0, 4)
     if (keywords.length > 0 && subjectSlug) {
-      const found = await findOakDataForTopics(keywords, subjectSlug)
+      const found = await findOakDataForTopics(keywords, subjectSlug, 4, lessonExamBoard)
       oakData.push(...found.slice(0, 3))
     }
 
     // Tier 2 (Layer A): if topic search still empty, fetch richest Oak lessons for
     // this subject+year as a pedagogical quality/level template
     if (oakData.length === 0 && subjectSlug) {
-      pedagogicalCtx = await getOakPedagogicalContext(subjectSlug, lesson.class.yearGroup ?? null)
+      pedagogicalCtx = await getOakPedagogicalContext(subjectSlug, lessonYearGroup, 8, lessonExamBoard)
     }
   }
 
@@ -1963,11 +1969,17 @@ export async function generateAiLessonResource(
   const lesson = await prisma.lesson.findFirst({
     where: { id: lessonId, schoolId },
     include: {
-      class: { select: { subject: true, yearGroup: true } },
+      class: { select: { subject: true, yearGroup: true, examBoard: true } },
       resources: { where: { oakContentId: { not: null } }, select: { oakContentId: true } },
     },
   })
   if (!lesson) throw new Error('Lesson not found')
+
+  const lessonYearGroup = lesson.class?.yearGroup ?? null
+  // Exam board filtering only applies from GCSE (Year 10) upward — prefer lesson-level board, fall back to class
+  const lessonExamBoard = lessonYearGroup != null && lessonYearGroup >= 10
+    ? (lesson.examBoard ?? lesson.class?.examBoard ?? null)
+    : null
 
   // Gather Oak data — linked resources first, then keyword fallback
   const oakData: OakLessonContent[] = []
@@ -1988,14 +2000,14 @@ export async function generateAiLessonResource(
       .filter(w => w.length > 3 && !['with','from','that','this','their','have','been'].includes(w))
       .slice(0, 4)
     if (keywords.length > 0 && subjectSlug) {
-      const found = await findOakDataForTopics(keywords, subjectSlug)
+      const found = await findOakDataForTopics(keywords, subjectSlug, 4, lessonExamBoard)
       oakData.push(...found.slice(0, 3))
     }
 
     // Layer A: if topic search still empty, use richest subject/year Oak lessons
     // as a pedagogical quality and vocabulary-level benchmark
     if (oakData.length === 0 && subjectSlug) {
-      pedagogicalCtx = await getOakPedagogicalContext(subjectSlug, lesson.class.yearGroup ?? null)
+      pedagogicalCtx = await getOakPedagogicalContext(subjectSlug, lessonYearGroup, 8, lessonExamBoard)
     }
   }
 

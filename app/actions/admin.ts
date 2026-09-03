@@ -965,6 +965,24 @@ export async function applySubjectConfigToAllClasses(input: {
   return { ok: true, updated: result.count }
 }
 
+/**
+ * Distinct GCSE/A-level (Year 10+) subjects taught in this school with at least
+ * one class that has no exam board set. Used to prompt admins to complete exam
+ * board setup — without it, AI homework generation and marking fall back to
+ * board-agnostic conventions instead of the board students are actually sitting.
+ */
+export async function getSubjectsMissingExamBoard(): Promise<string[]> {
+  const { schoolId, role } = await requireAuth()
+  if (!SUBJECT_CONFIG_ROLES.includes(role)) throw new Error('Forbidden')
+
+  const rows = await prisma.schoolClass.groupBy({
+    by:    ['subject'],
+    where: { schoolId, yearGroup: { gte: 10 }, examBoard: null },
+  })
+
+  return rows.map(r => r.subject).sort()
+}
+
 // ─── Unified user management ──────────────────────────────────────────────────
 
 export type ManagedUser = {

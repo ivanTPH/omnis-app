@@ -10,12 +10,26 @@
  * Public API:
  *   getOakLessonContent(slug)                        → full content for one Oak lesson
  *   getOakDataForLesson(lessonId)                    → Oak content via lesson → resource join
- *   findOakDataForTopics(topics, subj)               → Oak lessons relevant to a set of topic strings
- *   getOakPedagogicalContext(subjectSlug, yearGroup) → richest Oak lessons for subject/year
+ *   findOakDataForTopics(topics, subj, limit, board)  → Oak lessons relevant to a set of topic strings
+ *   getOakPedagogicalContext(subjectSlug, yearGroup, limit, board)
+ *                                                     → richest Oak lessons for subject/year
  *                                                       used as pedagogical quality template
  *                                                       when topic-specific content is unavailable
  *   extractMisconceptions(lessons)                   → flat list of misconception strings
  *   extractKeywords(lessons)                         → flat list of "word: definition" strings
+ *
+ * Exam board awareness:
+ *   Both findOakDataForTopics() and getOakPedagogicalContext() accept an optional
+ *   `examBoard` parameter (school/class exam board, e.g. "AQA", "Edexcel" — any
+ *   casing). OakUnit/OakLesson.examBoard stores lowercase slugs ("aqa"/"edexcel"/
+ *   "ocr"/"wjec") per Oak's own convention, so callers' TitleCase values are
+ *   lowercased before comparison. When a board is given, results matching that
+ *   board are preferred; if too few match, board-agnostic results top up the
+ *   remainder — a board filter never reduces the result count to zero purely for
+ *   lack of a match, since KS3 content generally carries no board at all and
+ *   per-board coverage is uneven early in Oak's catalogue. Callers should only
+ *   pass examBoard for KS4/KS5 (GCSE/A-level) lookups — exam boards don't apply
+ *   pre-GCSE.
  */
 
 import { prisma } from '@/lib/prisma'
@@ -27,6 +41,7 @@ export type OakLessonContent = {
   title:                          string
   subjectSlug:                    string
   keystage:                       string | null
+  examBoard:                      string | null
   pupilLessonOutcome:             string | null
   keyLearningPoints:              unknown[]
   lessonKeywords:                 unknown[]
@@ -52,8 +67,9 @@ const byLessonId    = new Map<string, string | null>() // lessonId → slug | nu
 type TopicCacheEntry = { data: OakLessonContent[]; expiresAt: number }
 const byTopicQuery = new Map<string, TopicCacheEntry>()
 
-function topicCacheKey(topics: string[], subjectSlug: string, limit: number): string {
-  return `${subjectSlug}::${limit}::${[...topics].map(t => t.trim().toLowerCase()).sort().join('|')}`
+function topicCacheKey(topics: string[], subjectSlug: string, limit: number, examBoard?: string | null): string {
+  const boardKey = examBoard ? examBoard.trim().toLowerCase() : ''
+  return `${subjectSlug}::${limit}::${boardKey}::${[...topics].map(t => t.trim().toLowerCase()).sort().join('|')}`
 }
 
 function get(slug: string): OakLessonContent | null {
@@ -75,7 +91,7 @@ function set(data: OakLessonContent): void {
 // ── DB select shape ───────────────────────────────────────────────────────────
 
 const SELECT = {
-  slug: true, title: true, subjectSlug: true, keystage: true,
+  slug: true, title: true, subjectSlug: true, keystage: true, examBoard: true,
   pupilLessonOutcome: true, keyLearningPoints: true, lessonKeywords: true,
   misconceptionsAndCommonMistakes: true, transcriptSentences: true, teacherTips: true,
 } as const
@@ -120,15 +136,23 @@ export async function getOakDataForLesson(lessonId: string): Promise<OakLessonCo
 /**
  * Finds Oak lessons relevant to a set of topic/objective strings for a subject.
  * Uses title + outcome full-text matching. Returns up to `limit` lessons.
+ *
+ * When `examBoard` is given (KS4/KS5 lookups only — see module doc above), rows
+ * matching that board are fetched first and preferred; if fewer than `limit` are
+ * found, board-agnostic (and other-board) rows top up the remainder so a board
+ * mismatch never zeroes out the result set.
  */
 export async function findOakDataForTopics(
-  topics:     string[],
+  topics:      string[],
   subjectSlug: string,
   limit = 4,
+  examBoard?:  string | null,
 ): Promise<OakLessonContent[]> {
   if (topics.length === 0) return []
 
-  const cacheKey = topicCacheKey(topics, subjectSlug, limit)
+  const boardSlug = examBoard ? examBoard.trim().toLowerCase() : null
+
+  const cacheKey = topicCacheKey(topics, subjectSlug, limit, boardSlug)
   const cached = byTopicQuery.get(cacheKey)
   if (cached) {
     if (Date.now() <= cached.expiresAt) return cached.data
@@ -139,21 +163,45 @@ export async function findOakDataForTopics(
   const terms = topics.flatMap(t => t.split(/\s+/).filter(w => w.length > 3))
   if (terms.length === 0) return []
 
-  const rows = await prisma.oakLesson.findMany({
-    where: {
-      subjectSlug,
-      OR: terms.map(term => ({
-        OR: [
-          { title:              { contains: term, mode: 'insensitive' } },
-          { pupilLessonOutcome: { contains: term, mode: 'insensitive' } },
-        ],
-      })),
-    },
-    select: SELECT,
-    take:   limit,
-  })
+  const topicOr = terms.map(term => ({
+    OR: [
+      { title:              { contains: term, mode: 'insensitive' as const } },
+      { pupilLessonOutcome: { contains: term, mode: 'insensitive' as const } },
+    ],
+  }))
 
-  const results = rows as OakLessonContent[]
+  let results: OakLessonContent[]
+
+  if (boardSlug) {
+    const boardRows = await prisma.oakLesson.findMany({
+      where:  { subjectSlug, examBoard: boardSlug, OR: topicOr },
+      select: SELECT,
+      take:   limit,
+    })
+    results = boardRows as OakLessonContent[]
+
+    if (results.length < limit) {
+      const excludeSlugs = results.map(r => r.slug)
+      const fillerRows = await prisma.oakLesson.findMany({
+        where: {
+          subjectSlug,
+          OR: topicOr,
+          ...(excludeSlugs.length > 0 ? { slug: { notIn: excludeSlugs } } : {}),
+        },
+        select: SELECT,
+        take:   limit - results.length,
+      })
+      results = [...results, ...(fillerRows as OakLessonContent[])]
+    }
+  } else {
+    const rows = await prisma.oakLesson.findMany({
+      where:  { subjectSlug, OR: topicOr },
+      select: SELECT,
+      take:   limit,
+    })
+    results = rows as OakLessonContent[]
+  }
+
   results.forEach(r => set(r))
 
   if (byTopicQuery.size >= MAX_CACHE_SIZE) {
@@ -246,12 +294,20 @@ function richness(l: OakLessonContent): number {
  *
  * Uses keystage derived from yearGroup (7–9=ks3, 10–11=ks4, 12–13=ks5).
  * If yearGroup is null, fetches across all year groups for the subject.
+ *
+ * When `examBoard` is given (KS4/KS5 only), lessons matching that board are
+ * fetched alongside board-agnostic ones and ranked first by richness within
+ * their group — a board with thin Oak coverage still falls back to general
+ * content rather than returning nothing.
  */
 export async function getOakPedagogicalContext(
   subjectSlug: string,
   yearGroup:   number | null,
   limit = 8,
+  examBoard?:  string | null,
 ): Promise<OakPedagogicalContext> {
+  const boardSlug = examBoard ? examBoard.trim().toLowerCase() : null
+
   const rows = await prisma.oakLesson.findMany({
     where: {
       subjectSlug,
@@ -262,7 +318,14 @@ export async function getOakPedagogicalContext(
   })
 
   const lessons = (rows as OakLessonContent[])
-    .sort((a, b) => richness(b) - richness(a))
+    .sort((a, b) => {
+      if (boardSlug) {
+        const aMatch = a.examBoard === boardSlug
+        const bMatch = b.examBoard === boardSlug
+        if (aMatch !== bMatch) return aMatch ? -1 : 1
+      }
+      return richness(b) - richness(a)
+    })
     .slice(0, limit)
 
   // Populate per-slug cache while we have the data

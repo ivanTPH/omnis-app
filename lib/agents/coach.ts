@@ -77,7 +77,7 @@ type StudentCoachData = {
       type:               string
       gradingBands:       unknown
       questionsJson:      unknown
-      class: { subject: string } | null
+      class: { subject: string; yearGroup: number | null; examBoard: string | null } | null
     }
   }>
   revisionProgress: Array<{
@@ -133,7 +133,7 @@ async function fetchStudentData(
             type:               true,
             gradingBands:       true,
             questionsJson:      true,
-            class: { select: { subject: true } },
+            class: { select: { subject: true, yearGroup: true, examBoard: true } },
           },
         },
       },
@@ -278,9 +278,10 @@ function analyseGaps(matrix: Record<string, TopicRecord>, data: StudentCoachData
 // ── Claude haiku call — recommendation + Bloom's narrative ───────────────────
 
 async function generateRecommendation(
-  gaps:    GapAnalysis,
-  matrix:  Record<string, TopicRecord>,
-  student: StudentCoachData['student'],
+  gaps:        GapAnalysis,
+  matrix:      Record<string, TopicRecord>,
+  student:     StudentCoachData['student'],
+  submissions: StudentCoachData['submissions'],
 ): Promise<{ recommendedFocus: string[]; bloomsGaps: string[]; summaryNarrative: string; interleaveSuggestion: string; fromCache: boolean }> {
 
   if (gaps.weakTopics.length === 0 && gaps.retentionRisks.length === 0) {
@@ -331,7 +332,14 @@ async function generateRecommendation(
     const primarySubject = gaps.weakTopics[0]?.subject ?? 'english'
     // Convert subject name to Oak slug (e.g. "English" → "english")
     const subjectSlug    = primarySubject.toLowerCase().replace(/\s+/g, '-')
-    const oakLessons     = await findOakDataForTopics(topWeakTopics, subjectSlug)
+    // Best-effort exam board: most recent graded submission in this subject, GCSE/A-level only (Year 10+)
+    const boardMatch = [...submissions].reverse().find(
+      s => s.homework.class?.subject === primarySubject
+        && (s.homework.class?.yearGroup ?? 0) >= 10
+        && s.homework.class?.examBoard,
+    )
+    const examBoard   = boardMatch?.homework.class?.examBoard ?? null
+    const oakLessons  = await findOakDataForTopics(topWeakTopics, subjectSlug, 4, examBoard)
     const misconceptions = extractMisconceptions(oakLessons)
     if (misconceptions.length > 0) {
       oakMisconceptionsBlock = `\n\nOAK CURRICULUM — KNOWN MISCONCEPTIONS for these weak topics (probe with questions; address directly in recommendations):\n${misconceptions.slice(0, 6).map((m, i) => `${i + 1}. ${m}`).join('\n')}`
@@ -519,7 +527,7 @@ export async function runCoachForStudent(
   const matrix  = buildTopicMatrix(data)
   const gaps    = analyseGaps(matrix, data)
   const { recommendedFocus, bloomsGaps, summaryNarrative, interleaveSuggestion, fromCache: hitCache } =
-    await generateRecommendation(gaps, matrix, data.student)
+    await generateRecommendation(gaps, matrix, data.student, data.submissions)
 
   // Build new CoachKnowledge (merge with previous strong topics for continuity)
   const newKnowledge: CoachKnowledge = {

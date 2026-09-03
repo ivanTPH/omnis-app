@@ -795,7 +795,8 @@ ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support 
         .replace(/religious.*|^r[se]$/, 'religious-education')
         .replace(/computer.*|computing/, 'computing')
         .replace(/\s+/g, '-')
-      const ctx = await getOakPedagogicalContext(subjectSlugForOak, yearGroup)
+      // Exam board filtering only applies from GCSE (Year 10) upward
+      const ctx = await getOakPedagogicalContext(subjectSlugForOak, yearGroup, 8, yearGroup >= 10 ? (examBoard || null) : null)
       if (ctx.lessonCount > 0) {
         const parts: string[] = [
           `\nOAK NATIONAL ACADEMY — CURRICULUM QUALITY BENCHMARK (Year ${yearGroup} ${subject})`,
@@ -2394,7 +2395,7 @@ export async function suggestHomeworkGrade(
   const hw        = sub.homework
   const subject   = hw.class?.subject   ?? 'this subject'
   const year      = hw.class?.yearGroup ? `Year ${hw.class.yearGroup}` : 'GCSE'
-  const examBoard = hw.class?.examBoard ?? 'AQA'
+  const examBoard = hw.class?.examBoard ?? null
   const hwType    = hw.type ?? 'SHORT_ANSWER'
 
   const bandsText = hw.gradingBands
@@ -2416,7 +2417,7 @@ export async function suggestHomeworkGrade(
     }
   })()
 
-  const prompt = `You are an experienced UK secondary school teacher and examiner marking ${year} ${subject} homework for ${examBoard}.
+  const prompt = `You are an experienced UK secondary school teacher and examiner marking ${year} ${subject} homework${examBoard ? ` for ${examBoard}` : ', using general UK GCSE marking conventions (no exam board is set for this class — do not assume or name a specific board)'}.
 
 ## Task
 Assign a GCSE grade (1–9) to the student submission below. Apply the same rigour as a public examination — do not inflate grades.
@@ -2455,8 +2456,12 @@ ${sub.content || '(no response submitted — award Grade 1 or U)'}
 Respond with ONLY valid JSON — no markdown:
 {"grade": "7", "rationale": "One sentence: why this grade, referencing length and quality", "feedback": "3-4 sentence feedback written directly to the student", "confidence": "high"}`
 
+  const noBoardWarning = examBoard
+    ? ''
+    : 'This class has no exam board set — marking used general conventions, not board-specific ones. Set it in /admin/subjects. '
+
   try {
-    const client   = new Anthropic({ apiKey })
+    const client   = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const response = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 800,
@@ -2470,7 +2475,7 @@ Respond with ONLY valid JSON — no markdown:
     if (!valid.includes(parsed.grade)) throw new Error('bad grade')
     return {
       grade:      parsed.grade,
-      rationale:  String(parsed.rationale ?? '').slice(0, 300),
+      rationale:  `${noBoardWarning}${String(parsed.rationale ?? '')}`.slice(0, 300),
       feedback:   String(parsed.feedback ?? '').slice(0, 600),
       confidence: (['high', 'medium', 'low'] as const).includes(parsed.confidence) ? parsed.confidence : 'medium',
     }

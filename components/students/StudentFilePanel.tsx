@@ -2385,6 +2385,14 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 <Icon name="badge" size="sm" />
                 Report Card
               </a>
+              <Link
+                href={`/reports/narrative/${student.id}`}
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition"
+                title="AI-drafted narrative report — review and edit before exporting"
+              >
+                <Icon name="auto_awesome" size="sm" />
+                Narrative Report
+              </Link>
               <a
                 href={`/api/export/revision-progress/${student.id}`}
                 target="_blank"

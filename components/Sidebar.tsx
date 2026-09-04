@@ -9,8 +9,7 @@ import UnreadBadge from '@/components/messaging/UnreadBadge'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 import StudentSearch from '@/components/StudentSearch'
 import { useAvatarUrl } from '@/lib/avatarContext'
-
-const STAFF_ROLES = new Set(['TEACHER','HEAD_OF_DEPT','HEAD_OF_YEAR','SENCO','SLT','SCHOOL_ADMIN','COVER_MANAGER','TEACHING_ASSISTANT'])
+import { STAFF_ROLES } from '@/lib/staffRoles'
 
 type NavItem =
   | { label: string; href: string; icon: string }
@@ -40,6 +39,8 @@ const navByRole: Record<string, NavItem[]> = {
     { divider: true, label: 'Department' },
     { label: 'Staff Overview',       href: '/hod/staff',              icon: 'people'          },
     { label: 'Curriculum Map',       href: '/hod/curriculum',         icon: 'map'             },
+    { divider: true, label: 'Reporting' },
+    { label: 'Reporting Hub',        href: '/reports',                icon: 'assessment'      },
     { label: 'Classes & Analytics',  href: '/analytics',              icon: 'groups'          },
     { label: 'Teacher Analytics',    href: '/analytics/teacher',      icon: 'person_search'   },
     { label: 'Dept Analytics',       href: '/analytics/department',   icon: 'domain'          },
@@ -63,9 +64,12 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Calendar',             href: '/calendar',           icon: 'calendar_today' },
     { label: 'My Timetable',         href: '/timetable',          icon: 'event_note'     },
     { label: 'Homework',             href: '/homework',           icon: 'assignment'     },
+    { divider: true, label: 'Reporting' },
+    { label: 'Reporting Hub',        href: '/reports',            icon: 'assessment'     },
     { label: 'Classes & Analytics',  href: '/analytics',          icon: 'groups'         },
-    { label: 'Year Group Plans',     href: '/plans/year-group',   icon: 'menu_book'      },
     { label: 'Year Analytics',       href: '/hoy/analytics',      icon: 'bar_chart'      },
+    { label: 'Inclusion Report',     href: '/senco/inclusion-report', icon: 'summarize'  },
+    { label: 'Year Group Plans',     href: '/plans/year-group',   icon: 'menu_book'      },
     { divider: true, label: 'Pastoral' },
     { label: 'Welfare',              href: '/hoy/welfare',        icon: 'favorite'       },
     { label: 'Absence Hub',          href: '/hoy/absence',        icon: 'event_busy'     },
@@ -76,7 +80,6 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Integrity',            href: '/hoy/integrity',      icon: 'verified_user'  },
     { label: 'SEND Concerns',        href: '/senco/concerns',     icon: 'report_problem' },
     { label: 'ILP Records',          href: '/senco/ilp',          icon: 'description'    },
-    { label: 'Inclusion Report',     href: '/senco/inclusion-report', icon: 'summarize'  },
     { divider: true, label: 'Tools' },
     { label: 'Revision',             href: '/revision-program',   icon: 'bookmark'       },
     { label: 'AI Generator',         href: '/ai-generator',       icon: 'auto_fix_high'  },
@@ -94,12 +97,14 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Early Warning',   href: '/senco/early-warning',   icon: 'notifications'  },
     { label: 'AI Insights',     href: '/senco/agent-insights',  icon: 'psychology'     },
     { label: 'Interventions',   href: '/senco/interventions',   icon: 'people_alt'     },
+    { divider: true, label: 'Reporting' },
+    { label: 'Reporting Hub',   href: '/reports',               icon: 'assessment'     },
     { label: 'SEND Analytics',  href: '/senco/analytics',       icon: 'query_stats'    },
     { label: 'Inclusion Report', href: '/senco/inclusion-report', icon: 'summarize'    },
+    { label: 'Analytics',       href: '/analytics',             icon: 'analytics'      },
     { label: 'Year Group Plans', href: '/plans/year-group',     icon: 'menu_book'      },
     { label: 'Resource Scorer', href: '/send-scorer',           icon: 'auto_awesome'   },
     { label: 'AI Generator',    href: '/ai-generator',          icon: 'auto_fix_high'  },
-    { label: 'Analytics',       href: '/analytics',             icon: 'analytics'      },
     { label: 'Messages',        href: '/messages',              icon: 'chat'           },
   ],
   SCHOOL_ADMIN: [
@@ -116,9 +121,11 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Calendar',         href: '/admin/calendar',   icon: 'calendar_today'  },
     { divider: true, label: 'Management' },
     { label: 'SEND Overview',         href: '/admin/send-overview',       icon: 'favorite'           },
-    { label: 'Inclusion Report',      href: '/senco/inclusion-report',    icon: 'summarize'          },
     { label: 'Parent Engagement',     href: '/admin/parent-engagement',   icon: 'supervisor_account' },
+    { divider: true, label: 'Reporting' },
+    { label: 'Reporting Hub',    href: '/reports',          icon: 'assessment'      },
     { label: 'Analytics',        href: '/slt/analytics',    icon: 'bar_chart'       },
+    { label: 'Inclusion Report', href: '/senco/inclusion-report', icon: 'summarize' },
     { label: 'Attendance',       href: '/admin/attendance', icon: 'directions_run'  },
     { label: 'Behaviour',        href: '/hoy/behaviour',    icon: 'emoji_events'    },
     { label: 'Detentions',       href: '/hoy/detentions',   icon: 'timer'           },
@@ -137,13 +144,15 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Dashboard',          href: '/dashboard',        icon: 'dashboard'     },
     { label: 'Revision',           href: '/revision-program', icon: 'bookmark'      },
     { label: 'Year Group Plans',   href: '/plans/year-group', icon: 'menu_book'     },
+    { divider: true, label: 'Reporting' },
+    { label: 'Reporting Hub',      href: '/reports',                icon: 'assessment'    },
     { label: 'Analytics',          href: '/slt/analytics',          icon: 'bar_chart'     },
     { label: 'Teacher Analytics',  href: '/analytics/teacher',      icon: 'person_search' },
     { label: 'Dept Analytics',     href: '/analytics/department',   icon: 'domain'        },
+    { label: 'Inclusion Report',   href: '/senco/inclusion-report',  icon: 'summarize'    },
     { label: 'Staff Overview',     href: '/slt/staff',              icon: 'people'        },
     { label: 'Attendance',         href: '/admin/attendance',       icon: 'directions_run'},
     { label: 'SEND Reporting',     href: '/slt/send',               icon: 'favorite'      },
-    { label: 'Inclusion Report',   href: '/senco/inclusion-report',  icon: 'summarize'    },
     { label: 'Population',         href: '/slt/population',   icon: 'group'         },
     { label: 'Audit Log',          href: '/slt/audit',        icon: 'security'      },
     { label: 'AI Generator',       href: '/ai-generator',     icon: 'auto_fix_high' },

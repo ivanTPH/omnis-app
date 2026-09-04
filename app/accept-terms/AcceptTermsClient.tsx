@@ -33,7 +33,7 @@ function PlatformTermsPolicy() {
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Session Security</h3>
-        <p>Your session expires automatically after 4 hours. You will be warned after 25 minutes
+        <p>Your session expires automatically after 4 hours. You will be warned after 10 minutes
         of inactivity. Always log out when finished, particularly on a shared or public device.</p>
       </section>
     </>

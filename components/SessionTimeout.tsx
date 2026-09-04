@@ -5,8 +5,8 @@ import { signOut } from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
 import { recordSignOut } from '@/app/actions/settings'
 
-const WARN_AFTER_MS  = 25 * 60 * 1000  // 25 minutes — show warning
-const LOGOUT_AFTER_MS = 30 * 60 * 1000  // 30 minutes — force signout
+const WARN_AFTER_MS  = 10 * 60 * 1000  // 10 minutes — show warning
+const LOGOUT_AFTER_MS = 15 * 60 * 1000  // 15 minutes — force signout
 const EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'] as const
 
 export default function SessionTimeout() {

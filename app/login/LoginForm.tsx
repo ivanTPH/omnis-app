@@ -23,8 +23,11 @@ const PLATFORM_DEMOS = [
 
 export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolean }) {
   const [verified, setVerified] = useState(false)
+  const [timedOut, setTimedOut] = useState(false)
   useEffect(() => {
-    setVerified(new URLSearchParams(window.location.search).get('verified') === '1')
+    const params = new URLSearchParams(window.location.search)
+    setVerified(params.get('verified') === '1')
+    setTimedOut(params.get('reason') === 'timeout')
   }, [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,6 +95,20 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
               <span className="material-icons text-green-600 text-base">check_circle</span>
               Email verified — please sign in to access your account.
+            </div>
+          )}
+          {timedOut && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm mb-6 flex items-start gap-2">
+              <span className="material-icons text-amber-600 text-base">timer</span>
+              <span className="flex-1">You were signed out after a period of inactivity — please sign in again.</span>
+              <button
+                type="button"
+                onClick={() => setTimedOut(false)}
+                aria-label="Dismiss"
+                className="text-amber-500 hover:text-amber-700 shrink-0"
+              >
+                <span className="material-icons text-base">close</span>
+              </button>
             </div>
           )}
           {!mfaStep ? (

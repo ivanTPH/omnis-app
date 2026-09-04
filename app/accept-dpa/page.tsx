@@ -81,7 +81,7 @@ function StaffObligationsPolicy() {
         <h3 className="font-semibold text-gray-900 mb-2">Device &amp; Session Security</h3>
         <p>Lock your device whenever it is unattended. Log out of Omnis when you have finished.
         Do not access Omnis on public or unsecured Wi-Fi without a VPN. Your session will
-        automatically expire after 4 hours and will warn you after 25 minutes of inactivity.</p>
+        automatically expire after 4 hours and will warn you after 10 minutes of inactivity.</p>
       </section>
     </>
   )

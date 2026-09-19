@@ -43,22 +43,46 @@ jobs:
       - name: agent-coach
         if: github.event.schedule == '30 2 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sf "$BASE/api/cron/agent-coach" -H "Authorization: Bearer $CRON_SECRET"
+          http_code=$(curl -s -o /tmp/agent-coach-resp.json -w "%{http_code}" "$BASE/api/cron/agent-coach" -H "Authorization: Bearer $CRON_SECRET")
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "agent-coach failed with HTTP $http_code"
+            echo "Response body:"
+            cat /tmp/agent-coach-resp.json
+            exit 1
+          fi
 
       - name: agent-quality
         if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sf "$BASE/api/cron/agent-quality" -H "Authorization: Bearer $CRON_SECRET"
+          http_code=$(curl -s -o /tmp/agent-quality-resp.json -w "%{http_code}" "$BASE/api/cron/agent-quality" -H "Authorization: Bearer $CRON_SECRET")
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "agent-quality failed with HTTP $http_code"
+            echo "Response body:"
+            cat /tmp/agent-quality-resp.json
+            exit 1
+          fi
 
       - name: agent-plan-synthesis
         if: github.event.schedule == '30 3 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sf "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer $CRON_SECRET"
+          http_code=$(curl -s -o /tmp/agent-plan-synthesis-resp.json -w "%{http_code}" "$BASE/api/cron/agent-plan-synthesis" -H "Authorization: Bearer $CRON_SECRET")
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "agent-plan-synthesis failed with HTTP $http_code"
+            echo "Response body:"
+            cat /tmp/agent-plan-synthesis-resp.json
+            exit 1
+          fi
 
       - name: agent-engage
         if: github.event.schedule == '0 4 * * *' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sf "$BASE/api/cron/agent-engage" -H "Authorization: Bearer $CRON_SECRET"
+          http_code=$(curl -s -o /tmp/agent-engage-resp.json -w "%{http_code}" "$BASE/api/cron/agent-engage" -H "Authorization: Bearer $CRON_SECRET")
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "agent-engage failed with HTTP $http_code"
+            echo "Response body:"
+            cat /tmp/agent-engage-resp.json
+            exit 1
+          fi
 
       # DSPy weekly skill optimization -- runs 30 min after oak-sync (Sundays 02:30 UTC)
       # so CURRICULUM_ALIGNMENT judging happens against freshly-synced Oak content.

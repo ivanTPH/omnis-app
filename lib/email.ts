@@ -11,6 +11,43 @@ const resend = process.env.RESEND_API_KEY
 
 const FROM = 'Omnis <notifications@omnis.education>'
 
+// ─── Bounce guard — seeded demo/test recipients ─────────────────────────────
+// Resend was bouncing emails (cron-sent and otherwise) to seeded/synthetic
+// accounts -- these domains and addresses only ever exist in seed/demo/E2E
+// data, never real users. Kept as a single constant so the list has one home.
+export const BOUNCE_GUARD_RECIPIENTS = {
+  domains: [
+    'syn-001.school',
+    'syn-002.school',
+    'syn-003.school',
+    'syn-004.school',
+    'omnisdemo.school',   // also matches students.omnisdemo.school, parents.omnisdemo.school
+    'omnis-test.edu',
+    'oakfield.edu',        // also matches students.oakfield.edu
+    'greenfield.ac.uk',
+  ],
+  emails: [
+    'test.beta.e2e@gmail.com',
+    'sarah.johnson.test2026@gmail.com',
+  ],
+} as const
+
+/**
+ * True if `to` is a seeded/synthetic recipient that should never actually be
+ * emailed. Address is lower-cased and trimmed before any comparison so
+ * casing/whitespace from a caller never causes a false negative. Domain
+ * matching is label-anchored (`endsWith('.' + domain)`) so it only matches
+ * the listed domain and its subdomains -- never a lookalike/substring domain.
+ */
+export function isBounceGuardedRecipient(to: string): boolean {
+  const normalised = to.trim().toLowerCase()
+  if ((BOUNCE_GUARD_RECIPIENTS.emails as readonly string[]).includes(normalised)) return true
+
+  const domain = normalised.split('@')[1]
+  if (!domain) return false
+  return BOUNCE_GUARD_RECIPIENTS.domains.some(d => domain === d || domain.endsWith(`.${d}`))
+}
+
 // ─── Shared send helper ──────────────────────────────────────────────────────
 
 // `send()` deliberately never throws -- every caller across ~13 cron routes
@@ -26,6 +63,10 @@ const FROM = 'Omnis <notifications@omnis.education>'
 // no-throw contract any caller depends on.
 async function send(to: string, subject: string, html: string): Promise<boolean> {
   if (!resend) return true   // no-op in dev/CI -- not a failure
+  if (isBounceGuardedRecipient(to)) {
+    console.log('[email] skipped seeded/test recipient:', to)
+    return true   // not a failure -- matches the no-op contract above
+  }
   try {
     await resend.emails.send({ from: FROM, to, subject, html })
     return true

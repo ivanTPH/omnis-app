@@ -155,7 +155,7 @@ export default function PrivacyPage() {
 
       <div className="prose prose-gray max-w-none space-y-10">
         {SECTIONS.map((s) => (
-          <section key={s.title}>
+          <section key={s.title} id={s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} className="scroll-mt-24">
             <h2 className="text-xl font-semibold text-gray-900 mb-3">{s.title}</h2>
             <div className="text-gray-600 leading-relaxed whitespace-pre-line text-sm space-y-3">
               {s.content.split('\n\n').map((para, i) => {

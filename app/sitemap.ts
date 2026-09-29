@@ -11,5 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/marketing/investors`, lastModified, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${base}/marketing/privacy`,   lastModified, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${base}/marketing/terms`,     lastModified, changeFrequency: 'yearly',  priority: 0.3 },
+    { url: `${base}/marketing/security`,  lastModified, changeFrequency: 'monthly', priority: 0.4 },
   ]
 }

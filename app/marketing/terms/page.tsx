@@ -76,9 +76,12 @@ Omnis will:
 - Process personal data only on the School's instructions
 - Ensure staff with access to personal data are bound by confidentiality obligations
 - Implement appropriate technical and organisational security measures
-- Assist the School in meeting its obligations under UK GDPR (e.g., data subject requests, breach notifications)
+- Assist the School in meeting its obligations under UK GDPR (e.g., data subject requests and impact assessments)
+- Notify the School of a personal data breach without undue delay, and within 24 hours of becoming aware of it
 - Delete or return all personal data on termination of the agreement, as instructed by the School
-- Not engage sub-processors without the School's general or specific authorisation (a list of current sub-processors is maintained in our Privacy Policy)`,
+- Not engage sub-processors without the School's general or specific authorisation (the current list is published at omnis.education/security)
+
+The full Data Processing Agreement is available on request from privacy@omnis.education.`,
   },
   {
     title: '7. Intellectual property',
@@ -120,7 +123,7 @@ Schools remain solely responsible for decisions made using information or conten
 - Immediately if the other party commits a material breach and (where the breach is capable of remedy) fails to remedy it within 14 days of written notice
 - Immediately if the other party becomes insolvent, enters administration, or ceases to trade
 
-On termination, the School's access to the platform will be suspended. The School may request an export of its data within 30 days of termination, after which data will be securely deleted in accordance with our retention schedule.`,
+On termination, the School's access to the platform will be suspended. The School may request an export of its data within 30 days of termination. Omnis then securely deletes the School's data, including from backups, within 90 days of termination, unless the School instructs otherwise or UK law requires it to be kept.`,
   },
   {
     title: '11. Changes to these Terms',
@@ -149,7 +152,7 @@ export default function TermsPage() {
       <div className="mb-12">
         <p className="text-sm font-medium text-blue-700 uppercase tracking-wide mb-2">Legal</p>
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Terms of Service</h1>
-        <p className="text-gray-500 text-sm">Last updated: 12 June 2026 &nbsp;·&nbsp; Effective for all subscriptions from 12 June 2026</p>
+        <p className="text-gray-500 text-sm">Last updated: 29 September 2026 &nbsp;·&nbsp; Effective for all subscriptions from 29 September 2026</p>
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-lg px-5 py-4 mb-10 text-sm text-amber-800">
@@ -158,7 +161,7 @@ export default function TermsPage() {
 
       <div className="prose prose-gray max-w-none space-y-10">
         {SECTIONS.map((s) => (
-          <section key={s.title}>
+          <section key={s.title} id={s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')} className="scroll-mt-24">
             <h2 className="text-xl font-semibold text-gray-900 mb-3">{s.title}</h2>
             <div className="text-gray-600 leading-relaxed text-sm space-y-3">
               {s.content.split('\n\n').map((para, i) => {

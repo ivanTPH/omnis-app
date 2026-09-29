@@ -192,6 +192,13 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
             </>
           )}
         </div>
+        <p className="text-center text-xs text-blue-200">
+          <a href="/marketing/privacy" className="hover:underline">Privacy</a>
+          <span className="mx-2" aria-hidden="true">·</span>
+          <a href="/marketing/terms" className="hover:underline">Terms</a>
+          <span className="mx-2" aria-hidden="true">·</span>
+          <a href="/marketing/security" className="hover:underline">Security</a>
+        </p>
         {!mfaStep && showDemoProp && showDemo && (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-5 space-y-4">
             <p className="text-blue-100 text-sm font-medium">Demo accounts — password: <span className="font-mono bg-white/20 px-1.5 py-0.5 rounded">Demo1234!</span></p>

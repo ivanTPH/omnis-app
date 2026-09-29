@@ -45,6 +45,18 @@ const nextConfig: NextConfig = {
     '/api/export/**': ['./node_modules/@sparticuz/chromium/bin/**'],
   },
 
+  // Short, memorable public addresses for legal pages (used in documents sent
+  // to schools). Redirects run before middleware, so no sign-in is needed.
+  async redirects() {
+    return [
+      { source: '/privacy',       destination: '/marketing/privacy',  permanent: true },
+      { source: '/terms',         destination: '/marketing/terms',    permanent: true },
+      { source: '/security',      destination: '/marketing/security', permanent: true },
+      { source: '/subprocessors', destination: '/marketing/security#suppliers', permanent: true },
+      { source: '/cookies',       destination: '/marketing/privacy#10-cookies', permanent: true },
+    ]
+  },
+
   async headers() {
     return [
       {

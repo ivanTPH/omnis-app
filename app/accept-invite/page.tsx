@@ -16,14 +16,14 @@ function DataControllerSummary() {
     <>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Data Controller &amp; Processor</h3>
-        <p>Your school is the Data Controller for all pupil data. Omnis Education Ltd acts as
+        <p>Your school is the Data Controller for all pupil data. Omnis Education acts as
         Data Processor under a formal Data Processing Agreement. Anthropic (Claude AI) is an
-        AI sub-processor — it does not train models on your school&apos;s data.</p>
+        AI sub-processor — pupil names are replaced with codes before anything is sent, and it does not train models on your school&apos;s data.</p>
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Retention</h3>
-        <p>Pupil data is retained per your school&apos;s schedule (typically 7 years post-leaving;
-        25 years for child protection records). Subject Access Requests go to your DPO.</p>
+        <p>Pupil data is retained per your school&apos;s schedule (by default SEND files until
+        date of birth + 31 years; pupil record and child protection files until date of birth + 25 years). Subject Access Requests go to your DPO.</p>
       </section>
     </>
   )
@@ -52,7 +52,7 @@ function AuditAiSummary() {
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Access Logging</h3>
         <p>All access to Special Category data (SEND, safeguarding, health) is logged under
-        UK GDPR Article 9 and retained 7 years. Logs are available to your school&apos;s DPO.</p>
+        UK GDPR Article 9 and retained for 6 years. Logs are available to your school&apos;s DPO.</p>
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">AI-Generated Content</h3>
@@ -67,7 +67,7 @@ function AuditAiSummary() {
 const DPA_ITEMS: ConsentItem[] = [
   {
     id:           'data-controller',
-    label:        'I accept the Platform Terms of Use and understand that my school is the Data Controller, with Omnis Education Ltd acting as Data Processor under a formal Data Processing Agreement.',
+    label:        'I accept the Platform Terms of Use and understand that my school is the Data Controller, with Omnis Education acting as Data Processor under a formal Data Processing Agreement.',
     policyTitle:  'Data Controller & Processor Arrangement',
     policyContent: <DataControllerSummary />,
   },

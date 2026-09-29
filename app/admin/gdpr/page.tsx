@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import AppShell from '@/components/AppShell'
-import { getPurposes, getConsentMatrix, getDataSubjectRequests, getStudentsForDsr } from '@/app/actions/gdpr'
+import { getPurposes, getConsentMatrix, getDataSubjectRequests, getStudentsForDsr, getRetentionSettings } from '@/app/actions/gdpr'
 import GdprAdminShell from '@/components/gdpr/GdprAdminShell'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
@@ -10,11 +10,12 @@ export default async function AdminGdprPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
   if (!['SCHOOL_ADMIN', 'SLT'].includes(role)) redirect('/dashboard')
 
-  const [purposes, matrix, dsrs, studentOptions] = await Promise.all([
+  const [purposes, matrix, dsrs, studentOptions, retention] = await Promise.all([
     getPurposes(schoolId),
     getConsentMatrix(schoolId),
     getDataSubjectRequests(schoolId),
     getStudentsForDsr(),
+    getRetentionSettings(),
   ])
 
   return (
@@ -25,7 +26,7 @@ export default async function AdminGdprPage() {
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">GDPR &amp; Consent Management</h1>
               <p className="text-[13px] text-gray-400 mt-0.5">
-                Configure consent purposes, review the consent matrix and manage data subject requests
+                Configure consent purposes, review the consent matrix, manage data subject requests and set your retention schedule
               </p>
             </div>
             <Link
@@ -43,6 +44,8 @@ export default async function AdminGdprPage() {
             students={matrix.students}
             dsrs={dsrs}
             studentOptions={studentOptions}
+            retention={retention}
+            canEditRetention={role === 'SCHOOL_ADMIN'}
           />
         </div>
       </main>

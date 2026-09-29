@@ -6,6 +6,7 @@ import { executeErasure } from '@/app/actions/gdpr'
 
 type Props = {
   dsrId: string
+  studentId: string
   studentName: string
   onClose: () => void
   onDone: (name: string) => void
@@ -29,19 +30,24 @@ const DELETED_DATA = [
   'User PII (name anonymised to "[Deleted User]", email to erased-…@erased.local)',
 ]
 
-const RETAINED_DATA = [
-  'ILP and ILP targets (including legacy SEND plan records) — 7-year DfE retention obligation',
-  'EHCP plans and outcomes — 7-year DfE retention obligation',
-  'APDR cycles — 7-year DfE retention obligation',
-  'SEND status record — safeguarding obligation',
-  'SEND review logs — tied to SEND status retention above',
-  'Safeguarding records — retained per KCSIE safeguarding guidance',
-  'Behavioural records (detentions, exclusions, pastoral notes) — retained per school behavioural-records policy',
+// The pupil's statutory file — the school's record, not Omnis's. What happens
+// to it depends on the school's retention setting (GDPR admin → Retention).
+const STATUTORY_FILE = [
+  'ILP and ILP targets (including legacy SEND plan records)',
+  'EHCP plans and outcomes',
+  'APDR cycles',
+  'SEND status record and SEND review logs',
+  'Safeguarding records',
+  'Behavioural records (detentions, exclusions, pastoral notes)',
+  'AI decision-support log for this pupil',
+]
+
+const ALWAYS_RETAINED = [
   'Audit log entries — audit trail integrity',
   'This data subject request record — GDPR compliance evidence',
 ]
 
-export default function ErasureConfirmModal({ dsrId, studentName, onClose, onDone }: Props) {
+export default function ErasureConfirmModal({ dsrId, studentId, studentName, onClose, onDone }: Props) {
   const [confirmText, setConfirm] = useState('')
   const [error, setError]         = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -88,10 +94,37 @@ export default function ErasureConfirmModal({ dsrId, studentName, onClose, onDon
             </ul>
           </div>
 
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-[12px] font-semibold text-amber-900 mb-1">Step 1 — download the pupil&apos;s statutory file</p>
+            <p className="text-[12px] text-amber-800 mb-2">
+              These records belong to the school and must be kept under the school&apos;s retention schedule
+              (by default: SEND files until the pupil is 31, pupil record and safeguarding files until 25).
+              Download them first. If your school&apos;s setting is &ldquo;Export then delete&rdquo; (the default),
+              Omnis then deletes them; if it is &ldquo;Keep in Omnis&rdquo;, they stay until the retention period ends.
+            </p>
+            <ul className="space-y-1 mb-3">
+              {STATUTORY_FILE.map(item => (
+                <li key={item} className="flex items-start gap-2 text-[12px] text-amber-900">
+                  <Icon name="folder_open" size="sm" color="text-amber-600" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <a
+              href={`/api/export/leaver-file/${studentId}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-amber-900 border border-amber-300 bg-white hover:bg-amber-100 px-3 py-1.5 rounded-md"
+            >
+              <Icon name="download" size="sm" />
+              Download leaver file
+            </a>
+          </div>
+
           <div>
-            <p className="text-[12px] font-semibold text-gray-700 mb-2">Data that will be retained (legal obligation):</p>
+            <p className="text-[12px] font-semibold text-gray-700 mb-2">Always kept:</p>
             <ul className="space-y-1">
-              {RETAINED_DATA.map(item => (
+              {ALWAYS_RETAINED.map(item => (
                 <li key={item} className="flex items-start gap-2 text-[12px] text-gray-500">
                   <Icon name="lock" size="sm" color="text-amber-500" />
                   {item}

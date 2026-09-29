@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 const AI_PREFIX = '⚠️ AI-assisted analysis — must be reviewed by a qualified SENCO before any action is taken.\n\n'
 
@@ -62,7 +62,7 @@ export async function analyseConcernPattern(studentId: string, schoolId: string)
   }
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 600,

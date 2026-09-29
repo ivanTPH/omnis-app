@@ -2,7 +2,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 export async function getStudentHomework(homeworkId: string) {
   const { schoolId, id: userId, role } = await requireAuth()
@@ -267,7 +267,7 @@ async function screenSendRisk(
   // ── 1. Claude SEND screen (max_tokens: 200) ──────────────────────────────
   let sendRiskScore = 0
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 200,
@@ -715,8 +715,7 @@ Each tip should be 1–2 sentences. Be specific to the topic names, not generic.
 Reply with ONLY a JSON array of strings: ["tip 1", "tip 2", "tip 3", "tip 4"]`
 
   try {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 400,

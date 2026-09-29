@@ -7,7 +7,7 @@ import { type ReviewResult } from '@/lib/sendReview'
 import { sendReviewCached } from '@/lib/sendReviewCached'
 import { updateSendInsight } from '@/lib/sendInsights'
 import { parseAndValidateDataUrl } from '@/lib/uploadValidation'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 // ── CalendarLesson shape (mirrors WeeklyCalendar type) ────────────────────────
 export type CalendarLessonData = {
@@ -128,7 +128,7 @@ export async function createLesson(input: CreateLessonInput) {
         input.topic && `Topic: ${input.topic}`,
       ].filter(Boolean).join('. ')
 
-      const client   = new Anthropic({ apiKey })
+      const client   = new SafeAnthropic({ apiKey })
       const response = await client.messages.create({
         model:      'claude-haiku-4-5-20251001',
         max_tokens: 400,
@@ -485,7 +485,7 @@ Each objective must:
 Respond with ONLY a valid JSON array of exactly 3 strings and nothing else.
 Example: ["Students will be able to ...", "Students will be able to ...", "Students will be able to ..."]`
 
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const response = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 400,
@@ -1556,8 +1556,7 @@ Give exactly 2 short, practical, classroom-ready adaptation suggestions for this
 Return JSON only: {"suggestions": ["...", "..."]}`
 
   try {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 200,
@@ -1815,7 +1814,7 @@ Generate a complete lesson plan JSON with exactly this structure:
 Make content highly specific to "${lesson.title}" — not generic. Each slide content should be 3-6 sentences with specific examples, quotes (if literature), methods (if maths/science), or tasks.
 Return ONLY valid JSON, no markdown fences.`
 
-  const client = new Anthropic()
+  const client = new SafeAnthropic()
   const msg = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 3000,
@@ -2060,7 +2059,7 @@ You create high-quality, classroom-ready resources aligned to the UK National Cu
 Your resources are accurate, well-structured, and immediately usable.
 Respond in clean markdown — no preamble, no explanation, just the resource itself starting with a # Title.`
 
-  const client = new Anthropic()
+  const client = new SafeAnthropic()
   const msg = await client.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 2000,

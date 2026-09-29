@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { HomeworkType } from '@prisma/client'
 import {
   buildTypePrompt,
@@ -271,7 +271,7 @@ ${buildTypePrompt(type, subject, qualification)}`
         // ── Anthropic streaming call ─────────────────────────────────────────
         emit(controller, { type: 'progress', message: 'Sending to AI…', pct: 50 })
 
-        const client      = new Anthropic({ apiKey, ...AI_STREAM_OPTS })
+        const client      = new SafeAnthropic({ apiKey, ...AI_STREAM_OPTS })
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
           max_tokens: 6000,

@@ -347,7 +347,7 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
               </p>
               <p className="text-[12px] text-amber-800">
                 By completing onboarding, <strong>{school.name}</strong> enters into a Data Processing
-                Agreement with Omnis Education Ltd as set out in our{' '}
+                Agreement with Omnis Education as set out in our{' '}
                 <a href="/marketing/terms" target="_blank" rel="noopener noreferrer" className="underline">
                   Terms of Service
                 </a>

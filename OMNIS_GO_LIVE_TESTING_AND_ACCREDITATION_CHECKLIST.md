@@ -557,7 +557,12 @@ confirmation and the retention/leaver-deletion live test).
 
 **8.2 Confirm controller/processor position per contract**
 - [ ] Existing DPIA states "school = Controller, Omnis = Processor" — confirm this is reflected in an actual signed Data Processing Agreement template ready for schools, not just asserted in the DPIA
-- [ ] Confirm AI provider (Claude API) data handling terms explicitly exclude training on pupil data — document the confirmation
+- [x] Confirm AI provider (Claude API) data handling terms explicitly exclude training on pupil data — document the confirmation — confirmed (Anthropic commercial terms: no training, 30-day deletion).
+- [x] **29 Sep 2026: pupil names pseudonymised before any AI call** (`lib/ai/safe-anthropic.ts`, enforced by test).
+- [ ] Request zero data retention from Anthropic (Ivan)
+- [x] **29 Sep 2026: retention follows the school's schedule** (IRMS defaults, export-then-delete for leavers, weekly
+      review notice); privacy policy rewritten; DPA draft updated (suppliers, AI safeguards, retention, 24-hour
+      breach notice). See `docs/audit/2026-09-29-data-protection-changes.md`.
 
 **8.3 Retention & deletion in practice, not just policy — 🟡 tested 30 Aug, fixed + re-verified 31 Aug 2026**
 ```
@@ -614,7 +619,7 @@ screenshots for both sessions: evidence/retention-test.md.
       their modern replacements — added to the same retention bucket
 - [x] router.refresh() gap fixed in DataSubjectRequestList
 - [x] Stale ConsentRecord.studentId schema comment fixed
-- [ ] AgentAuditEntry retention policy — deliberately left open, not
+- [x] AgentAuditEntry retention policy — decided 29 Sep 2026: follows the SEND file (exported and deleted with it) — deliberately left open, not
       guessed (see evidence/retention-test.md, Session 2). Needs an actual
       product decision: same audit-trail-integrity bucket as AuditLog, or
       delete like TeacherPrediction/IntegrityPatternCase?

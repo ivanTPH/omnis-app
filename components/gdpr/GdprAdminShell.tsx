@@ -5,8 +5,10 @@ import type { ConsentPurposeData, ConsentMatrixStudent, DsrRow, StudentOption } 
 import ConsentPurposeList from './ConsentPurposeList'
 import ConsentMatrix from './ConsentMatrix'
 import DataSubjectRequestList from './DataSubjectRequestList'
+import RetentionSettings from './RetentionSettings'
+import type { SchoolRetention } from '@/lib/retention'
 
-type Tab = 'purposes' | 'matrix' | 'dsr'
+type Tab = 'purposes' | 'matrix' | 'dsr' | 'retention'
 
 type Props = {
   schoolId: string
@@ -15,15 +17,18 @@ type Props = {
   students: ConsentMatrixStudent[]
   dsrs: DsrRow[]
   studentOptions: StudentOption[]
+  retention: SchoolRetention
+  canEditRetention: boolean
 }
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'purposes', label: 'Consent Purposes' },
   { id: 'matrix',   label: 'Consent Matrix'   },
   { id: 'dsr',      label: 'Data Subject Requests' },
+  { id: 'retention', label: 'Retention' },
 ]
 
-export default function GdprAdminShell({ schoolId, purposes, matrixPurposes, students, dsrs, studentOptions }: Props) {
+export default function GdprAdminShell({ schoolId, purposes, matrixPurposes, students, dsrs, studentOptions, retention, canEditRetention }: Props) {
   const [tab, setTab] = useState<Tab>('purposes')
 
   return (
@@ -53,6 +58,9 @@ export default function GdprAdminShell({ schoolId, purposes, matrixPurposes, stu
       )}
       {tab === 'dsr' && (
         <DataSubjectRequestList dsrs={dsrs} students={studentOptions} />
+      )}
+      {tab === 'retention' && (
+        <RetentionSettings initial={retention} canEdit={canEditRetention} />
       )}
     </div>
   )

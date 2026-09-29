@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { percentToGcseGrade } from '@/lib/grading'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ Align to AQA, Edexcel, or OCR examination board standards as appropriate for ${s
 Return ONLY valid JSON with no markdown fences, matching exactly this structure:
 ${typeJsonSchema(type, difficulty)}`
 
-  const anthropic = new Anthropic()
+  const anthropic = new SafeAnthropic()
 
   try {
     const response = await anthropic.messages.create({
@@ -178,7 +178,7 @@ export async function evaluateAnswer(
     }
   }
 
-  const anthropic = new Anthropic()
+  const anthropic = new SafeAnthropic()
 
   const prompt = question.type === 'fill_blank'
     ? `Mark this fill-in-the-blank answer.

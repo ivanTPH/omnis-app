@@ -10,7 +10,7 @@ import { analyseConcernPattern } from '@/lib/send/concern-analyser'
 import { markDirty } from '@/lib/agents/snapshot'
 import { AgentType } from '@prisma/client'
 import { z } from 'zod'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { getPlanCoherenceAlerts } from '@/app/actions/agent-insights'
 import { findOakDataForTopics, extractKeywords } from '@/lib/oak-content'
 import { summarizeEdit } from '@/lib/text-diff'
@@ -2254,7 +2254,7 @@ export async function generateILPForStudent(studentId: string): Promise<{ succes
   } catch { /* non-fatal — ILP generation continues without Oak vocab */ }
 
   try {
-    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+    const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     let msg
     try {
       msg = await client.messages.create({
@@ -2536,8 +2536,7 @@ async function generateAPDRInternal(
         ? `\nEHCP Section B: ${ehcpSections.B ?? ''}\nEHCP Section F: ${ehcpSections.F ?? ''}`
         : ''
 
-      const { default: Anthropic } = await import('@anthropic-ai/sdk')
-      const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+      const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
       const msg = await client.messages.create({
         model: 'claude-haiku-4-5-20251001', max_tokens: 600,
         system: 'You are a UK SENCO writing APDR cycle records. Return ONLY valid JSON, no markdown.',
@@ -2945,8 +2944,7 @@ export async function suggestLessonAdaptations(
   }
 
   try {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const profile = sendStudents.map(s =>
       `${s.name}: ${s.status}${s.needArea ? `, ${s.needArea}` : ''}${s.strategies ? ` — ${s.strategies}` : ''}`
     ).join('\n')
@@ -3144,8 +3142,7 @@ export async function generateLearnerPassportInternal(
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (apiKey) {
     try {
-      const { default: Anthropic } = await import('@anthropic-ai/sdk')
-      const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+      const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
       const ehcpSecs = ehcp?.sections as Record<string, string> | null
 
       const msg = await client.messages.create({
@@ -3590,7 +3587,7 @@ export async function getStudentSendDocuments(studentId: string): Promise<Studen
  * and persist it to user.supportSnapshot. Fire-and-forget safe.
  */
 async function generateSupportSnapshotInternal(studentId: string, schoolId: string): Promise<void> {
-  const client = new Anthropic({ ...AI_ONE_SHOT_OPTS })
+  const client = new SafeAnthropic({ ...AI_ONE_SHOT_OPTS })
 
   // Gather context: approved K Plan + active ILP
   const [passport, ilp, student] = await Promise.all([
@@ -4039,7 +4036,7 @@ export async function generateIlpGoalsForStudent(
   }
 
   try {
-    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+    const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const prompt = `You are a UK SENCO with expertise in writing SMART Individual Learning Plan (ILP) targets.
 
 Student: ${studentName}
@@ -4297,7 +4294,7 @@ Return ONLY valid JSON (no markdown):
 }`
 
   try {
-    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+    const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     let msg
     try {
       msg = await client.messages.create({

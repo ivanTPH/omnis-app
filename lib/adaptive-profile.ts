@@ -2,9 +2,9 @@
  * Core adaptive profile computation — no auth dependency.
  * Called by updateLearningProfile (server action) and the early-warning cron.
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 import { prisma } from '@/lib/prisma'
-import Anthropic    from '@anthropic-ai/sdk'
 
 export type AdaptiveProfileResult = {
   id:                 string
@@ -177,7 +177,7 @@ export async function computeAndSaveAdaptiveProfile(
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (apiKey) {
       try {
-        const client = new Anthropic({ apiKey })
+        const client = new SafeAnthropic({ apiKey })
         const msg = await client.messages.create({
           model:      'claude-haiku-4-5-20251001',
           max_tokens: 400,

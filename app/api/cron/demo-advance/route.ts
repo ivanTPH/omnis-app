@@ -10,6 +10,7 @@
  * Fully idempotent — safe to re-run at any point in the same week.
  * Requires ANTHROPIC_API_KEY in environment; skips AI phases gracefully if absent.
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma }                   from '@/lib/prisma'
@@ -318,7 +319,7 @@ export async function GET(req: NextRequest) {
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
-  const ai     = apiKey ? new Anthropic({ apiKey }) : null
+  const ai     = apiKey ? new SafeAnthropic({ apiKey }) : null
 
   // Look up demo school + teacher
   const school = await prisma.school.findFirst({

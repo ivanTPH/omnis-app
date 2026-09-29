@@ -46,6 +46,66 @@ def _conn():
     return psycopg2.connect(_libpq_dsn(os.environ["DATABASE_URL"]))
 
 
+# ── Pseudonymisation ────────────────────────────────────────────────────────
+# Training examples go to the AI provider during optimisation, so person names
+# are replaced first — the same rule as lib/ai/safe-anthropic.ts in the app.
+# No restore step is needed here: optimised prompts and demonstrations are
+# better with a neutral "[name]" placeholder anyway.
+import re as _re
+
+_COMMON_WORD_NAMES = {
+    "Mark", "Will", "May", "June", "April", "August", "Grace", "Hope", "Faith", "Joy",
+    "Summer", "Autumn", "Winter", "Rose", "Lily", "Daisy", "Holly", "Ivy", "Iris", "Poppy",
+    "Ruby", "Amber", "Pearl", "Jade", "Dawn", "Eve", "Sky", "River", "Ray", "Miles",
+    "Chase", "Hunter", "Guy", "Frank", "Bill", "Art", "Sunny", "Star", "Angel", "Justice",
+    "Olive", "Sage", "Rowan", "Ash", "Grant", "Pat", "Don", "Drew", "Page", "Price", "Young",
+    "English", "French", "Year", "Term", "Unit", "Lesson", "Class", "Student", "Teacher",
+}
+_names_cache = None
+
+
+def _name_patterns():
+    global _names_cache
+    if _names_cache is None:
+        sql = """
+            select "firstName", "lastName" from "User"
+            union all select "firstName", "lastName" from "WondeStudent"
+            union all select "firstName", "lastName" from "WondeContact"
+            union all select "firstName", "lastName" from "WondeEmployee"
+        """
+        full, first = set(), set()
+        with _conn() as conn, conn.cursor() as cur:
+            cur.execute(sql)
+            for fn, ln in cur.fetchall():
+                fn, ln = (fn or "").strip(), (ln or "").strip()
+                if len(fn) >= 2 and fn[0].isupper():
+                    first.add(fn.split(" ")[0])
+                if fn and ln:
+                    full.add(f"{fn} {ln}")
+        full_re = _re.compile(r"(?<!\w)(" + "|".join(sorted(map(_re.escape, full), key=len, reverse=True)) + r")(?!\w)") if full else None
+        firsts = sorted(first - _COMMON_WORD_NAMES, key=len, reverse=True)
+        first_re = _re.compile(r"(?<!\w)(" + "|".join(map(_re.escape, firsts)) + r")(?!\w)") if firsts else None
+        _names_cache = (full_re, first_re)
+    return _names_cache
+
+
+_EMAIL_RE = _re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_PHONE_RE = _re.compile(r"(?:\+44\s?\(?0?\)?\s?|\b0)(?:\d[\s-]?){9,10}\b")
+
+
+def redact(text):
+    if not isinstance(text, str) or not text:
+        return text
+    full_re, first_re = _name_patterns()
+    out = _EMAIL_RE.sub("[email removed]", text)
+    out = _PHONE_RE.sub("[phone removed]", out)
+    if full_re:
+        out = full_re.sub("[name]", out)
+    if first_re:
+        out = first_re.sub("[name]", out)
+    return out
+
+
 def fetch_training_examples(skill_id: str, agent_type: str, since_run_id: str | None, limit: int = 2000) -> list[dspy.Example]:
     """
     Every reviewed AgentAuditEntry for this (skill_id, agent_type) pair becomes
@@ -85,8 +145,8 @@ def fetch_training_examples(skill_id: str, agent_type: str, since_run_id: str | 
         cur.execute(sql, (skill_id, agent_type, limit))
         for row in cur.fetchall():
             refs = row["inputRefs"] or {}
-            fields = {k: v for k, v in refs.items() if isinstance(v, str)}
-            ex = dspy.Example(**fields, gold_output=row["outputSummary"]).with_inputs(*fields.keys())
+            fields = {k: redact(v) for k, v in refs.items() if isinstance(v, str)}
+            ex = dspy.Example(**fields, gold_output=redact(row["outputSummary"])).with_inputs(*fields.keys())
             send_quality = None
             if row["readabilityScore"] is not None:
                 send_quality = {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { AI_ONE_SHOT_OPTS } from '@/lib/ai-timeouts'
 
 // Allow up to 300 seconds — bulk ILP generation calls Claude for every student
@@ -82,7 +82,7 @@ export async function POST() {
   let skipped   = 0
   const errors: string[] = []
 
-  const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+  const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
   const BATCH  = 5    // parallel Claude calls per round — conservative to stay clear of rate limits
 
   for (let i = 0; i < toProcess.length; i += BATCH) {

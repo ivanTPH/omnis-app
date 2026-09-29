@@ -29,8 +29,8 @@
  *   DfE SEND CoP 2015 · Ofqual Marking Standards 2023 · EEF 2021
  *   Hattie & Timperley (2007)
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
-import Anthropic                 from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }    from '@/lib/prisma'
 import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
@@ -275,7 +275,7 @@ async function runQualityAnalysis(data: StudentQualityData): Promise<QualityAnal
     }
   }
 
-  const client  = new Anthropic({ apiKey })
+  const client  = new SafeAnthropic({ apiKey })
   const payload = buildReviewPayload(data, oakKlpMap)
 
   const [bloomsPrompt, curriculumPrompt, sendDiffPrompt, markingPrompt, feedbackPrompt] = await Promise.all([

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 export type SendQualityScoreData = {
   id: string
@@ -56,7 +56,7 @@ async function scoreLessonWithAI(lesson: {
   if (!apiKey) return fallbackScore()
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
 
     const keywords = (lesson.lessonKeywords as Array<{ keyword: string; description?: string }> | null) ?? []
     const klp = (lesson.keyLearningPoints as Array<{ keyLearningPoint: string }> | null) ?? []

@@ -6,6 +6,7 @@ import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getStudentAiJourney } from '@/app/actions/agent-insights'
+import { getSchoolRetention, describeRetention, buildLeaverFile, RETENTION_DEFAULTS, type SchoolRetention } from '@/lib/retention'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -381,7 +382,7 @@ export async function exportStudentData(dsrId: string): Promise<Record<string, u
     revisionSessions: revisionSessions,
     messagesSent: messages.map(m => ({ body: m.body, sentAt: m.sentAt })),
     aiJourney:    aiJourney ?? { note: 'AI journey data unavailable' },
-    notice:       'SEND records (ILP targets, EHCP provisions) are retained under DfE 7-year statutory obligation and are not included in portability exports. A formatted PDF of the AI-assisted decision-support journey is also available via /api/export/ai-journey-pdf/[dsrId].',
+    notice:       'SEND records (ILP targets, EHCP provisions) form part of the school\'s statutory pupil file, kept under the school\'s retention schedule, and are not included in portability exports. A formatted PDF of the AI-assisted decision-support journey is also available via /api/export/ai-journey-pdf/[dsrId].',
   }
 }
 
@@ -529,6 +530,21 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
   if (!student) throw new Error('Student not found in this school')
   const studentName = `${student.firstName} ${student.lastName}`
 
+  // The SEND/safeguarding file belongs to the school (controller). Under the
+  // default EXPORT_THEN_DELETE policy the school must download it first
+  // (exportLeaverFile), then Omnis deletes it along with everything else.
+  const retention = await getSchoolRetention(schoolId)
+  const deleteStatutoryFile = retention.leaverRecordHandling === 'EXPORT_THEN_DELETE'
+  if (deleteStatutoryFile) {
+    const exported = await prisma.auditLog.findFirst({
+      where: { schoolId, action: 'LEAVER_FILE_EXPORTED', targetType: 'user', targetId: studentId },
+      select: { id: true },
+    })
+    if (!exported) {
+      throw new Error("Download the pupil's SEND and safeguarding file first (\"Download leaver file\"), so the school keeps a copy before Omnis deletes it.")
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     // 1. Submission chain — leaf to root
     const submissions = await tx.submission.findMany({ where: { studentId }, select: { id: true } })
@@ -609,21 +625,68 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
     await tx.kPlan.deleteMany({ where: { studentId } })
     await tx.learnerPassport.deleteMany({ where: { studentId } })
 
-    // NOTE — intentionally retained, not deleted here:
-    // - IndividualLearningPlan, EhcpPlan, AssessPlanDoReview, SendStatus, and the
-    //   legacy Plan/PlanTarget/PlanStrategy/PlanReviewCycle and ILP/ILPTarget/ILPNote
-    //   models (same category of SEND plan record as their modern replacements) —
-    //   DfE 7-year retention obligation.
-    // - SafeguardingRecord — retained per KCSIE safeguarding guidance.
-    // - SendReviewLog, SendStatusReview — SEND review logs tied to SendStatus, follow
-    //   its retention above.
-    // - PastoralNote, BehaviourRecord, Detention, Exclusion — retained per school
-    //   behavioural-records policy.
-    // - AuditLog — audit trail integrity.
-    // Reviewed and left as-is pending a product decision, not yet retained on any
-    // stated policy: AgentAuditEntry (append-only by design, the same rationale as
-    // AuditLog above, but not yet formally added to that policy — see
-    // evidence/retention-test.md).
+    // Statutory pupil file — the school's record (see lib/retention.ts):
+    // ILP/EHCP/APDR/SEND status and legacy plan models, SEND review logs,
+    // SafeguardingRecord, PastoralNote/BehaviourRecord/Detention/Exclusion, and
+    // AgentAuditEntry (the AI decision-support log for this pupil, decided
+    // 29 Sep 2026 to follow the SEND file it relates to).
+    // - EXPORT_THEN_DELETE (default): the school has already downloaded the
+    //   file (checked above), so delete it here.
+    // - RETAIN_IN_OMNIS: keep it until the school's retention period ends.
+    // AuditLog is always kept, for audit trail integrity.
+    if (deleteStatutoryFile) {
+      const scoped = { schoolId, studentId }
+      const ilps = await tx.individualLearningPlan.findMany({ where: scoped, select: { id: true } })
+      const ilpIds = ilps.map(i => i.id)
+      const ehcps = await tx.ehcpPlan.findMany({ where: scoped, select: { id: true } })
+      const ehcpIds = ehcps.map(e => e.id)
+      const apdrs = await tx.assessPlanDoReview.findMany({ where: scoped, select: { id: true } })
+      const apdrIds = apdrs.map(a => a.id)
+      const plans = await tx.plan.findMany({ where: scoped, select: { id: true } })
+      const planIds = plans.map(p => p.id)
+      const legacyIlps = await tx.iLP.findMany({ where: scoped, select: { id: true } })
+      const legacyIlpIds = legacyIlps.map(i => i.id)
+
+      if (ehcpIds.length) {
+        const outcomes = await tx.ehcpOutcome.findMany({ where: { ehcpId: { in: ehcpIds } }, select: { id: true } })
+        await tx.homeworkEhcpEvidence.deleteMany({ where: { outcomeId: { in: outcomes.map(o => o.id) } } })
+        await tx.ehcpOutcome.deleteMany({ where: { ehcpId: { in: ehcpIds } } })
+        await tx.ehcpAnnualReview.deleteMany({ where: { ehcpId: { in: ehcpIds } } })
+        await tx.ehcpAuditEntry.deleteMany({ where: { ehcpId: { in: ehcpIds } } })
+        await tx.ehcpPlan.deleteMany({ where: { id: { in: ehcpIds } } })
+      }
+      if (ilpIds.length) {
+        await tx.ilpTarget.deleteMany({ where: { ilpId: { in: ilpIds } } })
+        await tx.ilpAuditEntry.deleteMany({ where: { ilpId: { in: ilpIds } } })
+        await tx.individualLearningPlan.deleteMany({ where: { id: { in: ilpIds } } })
+      }
+      if (apdrIds.length) {
+        await tx.apdrAuditEntry.deleteMany({ where: { apdrId: { in: apdrIds } } })
+        await tx.assessPlanDoReview.deleteMany({ where: { id: { in: apdrIds } } })
+      }
+      if (planIds.length) {
+        await tx.planTarget.deleteMany({ where: { planId: { in: planIds } } })
+        await tx.planStrategy.deleteMany({ where: { planId: { in: planIds } } })
+        const cycles = await tx.planReviewCycle.findMany({ where: { planId: { in: planIds } }, select: { id: true } })
+        await tx.adaptationRecommendation.deleteMany({ where: { reviewCycleId: { in: cycles.map(c => c.id) } } })
+        await tx.planReviewCycle.deleteMany({ where: { planId: { in: planIds } } })
+        await tx.plan.deleteMany({ where: { id: { in: planIds } } })
+      }
+      if (legacyIlpIds.length) {
+        await tx.iLPTarget.deleteMany({ where: { ilpId: { in: legacyIlpIds } } })
+        await tx.iLPNote.deleteMany({ where: { ilpId: { in: legacyIlpIds } } })
+        await tx.iLP.deleteMany({ where: { id: { in: legacyIlpIds } } })
+      }
+      await tx.sendReviewLog.deleteMany({ where: scoped })
+      await tx.sendStatusReview.deleteMany({ where: { studentId } })
+      await tx.sendStatus.deleteMany({ where: { studentId } })
+      await tx.safeguardingRecord.deleteMany({ where: scoped })
+      await tx.pastoralNote.deleteMany({ where: scoped })
+      await tx.behaviourRecord.deleteMany({ where: scoped })
+      await tx.detention.deleteMany({ where: scoped })
+      await tx.exclusion.deleteMany({ where: scoped })
+      await tx.agentAuditEntry.deleteMany({ where: scoped })
+    }
 
     // 9. Anonymise User PII — keep row for audit trail integrity
     await tx.user.update({
@@ -655,7 +718,10 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
       data: {
         status: 'completed',
         resolvedAt: new Date(),
-        notes: `Erasure executed by ${user.firstName} ${user.lastName} on ${new Date().toLocaleDateString('en-GB')}. PII anonymised; SEND records retained per DfE 7-year obligation.`,
+        notes: `Erasure executed by ${user.firstName} ${user.lastName} on ${new Date().toLocaleDateString('en-GB')}. PII anonymised; ` +
+          (deleteStatutoryFile
+            ? 'statutory pupil file (SEND, safeguarding, behaviour) exported to the school and deleted from Omnis.'
+            : `statutory pupil file kept in Omnis under the school's retention schedule (${describeRetention(retention)}).`),
       },
     })
   }, { timeout: 30_000 })
@@ -667,4 +733,50 @@ export async function executeErasure(dsrId: string): Promise<{ studentName: stri
 
   revalidatePath('/admin/gdpr')
   return { studentName }
+}
+
+// ─── Leaver file & retention settings ─────────────────────────────────────────
+
+/** The pupil's statutory file (SEND, safeguarding, behaviour) as JSON, for the school to keep. */
+export async function exportLeaverFile(studentId: string): Promise<Record<string, unknown>> {
+  const user = await requireAdminOrSlt()
+  const schoolId = user.schoolId!
+  const file = await buildLeaverFile(schoolId, studentId)
+  if (!file) throw new Error('Student not found in this school')
+  await writeAudit({ schoolId, actorId: user.id, action: 'LEAVER_FILE_EXPORTED', targetType: 'user', targetId: studentId })
+  return file
+}
+
+export async function getRetentionSettings(): Promise<SchoolRetention> {
+  const user = await requireAdminOrSlt()
+  return getSchoolRetention(user.schoolId!)
+}
+
+const retentionSchema = z.object({
+  sendYears:            z.number().int().min(1).max(100),
+  pupilRecordYears:     z.number().int().min(1).max(100),
+  safeguardingYears:    z.number().int().min(1).max(100),
+  leaverRecordHandling: z.enum(['EXPORT_THEN_DELETE', 'RETAIN_IN_OMNIS']),
+})
+
+/** SCHOOL_ADMIN sets the school's retention schedule (the school is the controller). */
+export async function updateRetentionSettings(input: SchoolRetention): Promise<void> {
+  const user = await requireAdminOrSlt()
+  if (user.role !== 'SCHOOL_ADMIN') throw new Error('Only SCHOOL_ADMIN can change the retention schedule')
+  const v = retentionSchema.parse(input)
+  await prisma.school.update({
+    where: { id: user.schoolId! },
+    data: {
+      retentionSendYears:         v.sendYears,
+      retentionPupilRecordYears:  v.pupilRecordYears,
+      retentionSafeguardingYears: v.safeguardingYears,
+      leaverRecordHandling:       v.leaverRecordHandling,
+    },
+  })
+  await writeAudit({ schoolId: user.schoolId!, actorId: user.id, action: 'RETENTION_SCHEDULE_UPDATED', targetType: 'school', targetId: user.schoolId! })
+  revalidatePath('/admin/gdpr')
+}
+
+export async function getRetentionDefaults() {
+  return RETENTION_DEFAULTS
 }

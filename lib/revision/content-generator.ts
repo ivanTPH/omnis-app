@@ -1,6 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
-const client = new Anthropic()
+const client = new SafeAnthropic()
 
 export interface RevisionTaskContent {
   title: string

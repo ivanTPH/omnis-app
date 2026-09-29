@@ -1,8 +1,8 @@
 # 10.2 Incident response runbook
 
-**Status: first draft, 27 Aug 2026 — needs Ivan to fill in the on-call/escalation
-details marked TODO below before this counts as complete.** The structure and
-severity/response content is ready to use now.
+**Status: complete as of 29 Sep 2026.** On-call filled in 2 Sep; school
+notification deadline, school contacts and the customer-facing contact filled in
+29 Sep. Needs a review by whoever handles the DPA (solicitor) before first real use.
 
 ## On-call
 
@@ -66,15 +66,17 @@ data with real child-protection sensitivity, not just generic PII. Any Sev 1
 that is or might be a data safety issue involving this category of data needs
 an extra step beyond the generic response above:
 
-- **TODO (Ivan):** does your school-facing contract/DPA specify a notification
-  deadline to affected schools (commonly 72 hours is the GDPR/ICO reportable-breach
-  benchmark, but check what's actually in your agreements)? Confirm the real
-  number rather than assuming.
-- **TODO (Ivan):** who at each affected school needs to be told, and by whom —
-  probably the school's SENCO or Data Protection Officer, not a generic admin
-  contact. Is there a DPO/ICO contact path already documented anywhere in the
-  compliance docs (`evidence/phase7-security/`)? Worth checking rather than
-  inventing this from scratch here.
+- **Deadline to tell affected schools: within 24 hours of Omnis becoming aware**
+  of a personal data breach (decided 29 Sep 2026; stated in the privacy policy and
+  to go into the DPA). This leaves the school, as controller, time to meet its own
+  72-hour deadline to notify the ICO. Tell the school even if the facts are
+  incomplete; send updates as they are confirmed.
+- **Who is told, by whom:** Ivan Yardley contacts each affected school's
+  **Data Protection Officer** (School.dpoName/dpoEmail, set on the admin
+  dashboard) and **headteacher**. If safeguarding records may be involved, also
+  the school's **Designated Safeguarding Lead**. If a school has no DPO on file,
+  phone the school office and ask for the DPO. Record who was told and when in
+  the incident log. For the trial school, collect these contacts at onboarding.
 - Treat "which schools/students were actually affected" as its own triage
   question separate from "what broke" — multi-tenant `schoolId` scoping means
   most incidents should be provably contained to one school; confirm that
@@ -102,9 +104,9 @@ Subject: Important: data incident affecting your Omnis account — [date]
 > explicitly "no action needed" if genuinely true]
 >
 > We take this seriously given the sensitivity of SEND and safeguarding data
-> in particular. If you have questions, contact [TODO: real contact — Ivan to
-> fill in], and we'll follow up with [any promised further detail/report].
+> in particular. If you have questions, contact Ivan Yardley at
+> privacy@omnis.education, and we'll follow up with [any promised further detail/report].
 
-**TODO (Ivan):** this needs a named human contact filled in before it's usable
-for real, and ideally review from whoever handles your DPA obligations before
-it's ever sent for real — I've drafted the structure and tone, not legal sign-off.
+**Contact filled in 29 Sep 2026** (Ivan Yardley, privacy@omnis.education —
+check that this mailbox receives mail before the trial). Still worth a review
+by whoever handles the DPA before it is ever sent for real.

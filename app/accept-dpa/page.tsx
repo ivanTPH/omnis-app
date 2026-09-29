@@ -26,21 +26,24 @@ function DataControllerPolicy() {
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Data Processor</h3>
-        <p>Omnis Education Ltd acts as a Data Processor under a Data Processing Agreement (DPA)
+        <p>Omnis Education acts as a Data Processor under a Data Processing Agreement (DPA)
         with your school. We process data only on the school&apos;s documented instructions and
         do not use pupil data for any commercial purpose.</p>
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">AI Sub-processor</h3>
         <p>Anthropic (Claude AI) acts as a sub-processor for AI-assisted features (ILP goals,
-        homework feedback, SEND insights). All AI processing uses pseudonymised identifiers
-        where possible. Anthropic processes data under a Data Processing Agreement and does not
+        homework feedback, SEND insights). Before any request leaves Omnis, pupil, parent and
+        staff names are replaced with random codes and email addresses and phone numbers are
+        removed; the real names are only put back inside Omnis. Anthropic processes data under a Data Processing Agreement and does not
         train models on your school&apos;s data.</p>
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Retention</h3>
-        <p>Pupil data is retained in line with your school&apos;s retention schedule: typically
-        7 years post-leaving for most records, and 25 years for child protection records.
+        <p>Pupil data is retained in line with your school&apos;s retention schedule, which your
+        school sets in Omnis. The defaults follow the IRMS Academies Toolkit: SEND files until
+        the pupil&apos;s date of birth plus 31 years, and the pupil record and child protection
+        files until date of birth plus 25 years.
         Subject Access Requests or erasure requests should be directed to your school&apos;s
         Data Protection Officer.</p>
       </section>
@@ -94,7 +97,7 @@ function AuditAndAiPolicy() {
         <h3 className="font-semibold text-gray-900 mb-2">Access Logging</h3>
         <p>All access to Special Category data — including SEND records, safeguarding records,
         ILP/EHCP documents, and health information — is logged and attributed to your user
-        account. Logs are retained for 7 years in line with DfE guidance and are available
+        account. Logs are retained for 6 years and are available
         to your school&apos;s Data Protection Officer on request.</p>
         <p className="mt-2">By continuing, you consent to this monitoring as a condition of
         accessing Special Category data under UK GDPR Article 9.</p>
@@ -122,7 +125,7 @@ function AuditAndAiPolicy() {
 const CONSENT_ITEMS: ConsentItem[] = [
   {
     id:           'data-controller',
-    label:        'I accept the Platform Terms of Use and understand that my school is the Data Controller for all pupil data, with Omnis Education Ltd acting as Data Processor under a formal Data Processing Agreement.',
+    label:        'I accept the Platform Terms of Use and understand that my school is the Data Controller for all pupil data, with Omnis Education acting as Data Processor under a formal Data Processing Agreement.',
     policyTitle:  'Data Controller, Processor & Sub-processor Arrangement',
     policyContent: <DataControllerPolicy />,
   },

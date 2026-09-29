@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -274,7 +274,7 @@ export async function generateResource(
   const isPptOutline = validated.resourceType === 'powerpoint_outline'
 
   if (apiKey) {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
 
     try {
       if (isPptOutline) {

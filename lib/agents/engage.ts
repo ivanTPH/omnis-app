@@ -28,8 +28,8 @@
  *   EEF Metacognition 2018 · Rosenshine P1/P2/P6 · Oak Curriculum Licence
  *   SEND CoP 2015 §6.1–6.11 · Mayer Multimedia Learning (2009)
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
-import Anthropic         from '@anthropic-ai/sdk'
 import { createHash }    from 'crypto'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }   from '@/lib/prisma'
@@ -157,7 +157,7 @@ async function generateEngagePackages(
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return null
 
-  const client = new Anthropic({ apiKey })
+  const client = new SafeAnthropic({ apiKey })
 
   const payload = {
     student: { firstName: student.firstName, sendStatus: student.sendStatus, needArea: student.needArea },

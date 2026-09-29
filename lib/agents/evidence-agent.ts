@@ -17,8 +17,8 @@
  *   - DfE SEND Code of Practice 2015 §6.72 — evidence base for annual review
  *   - DfE SEND Code of Practice 2015 §9.2  — EHCP outcome evidence trails
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
-import Anthropic             from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma }            from '@/lib/prisma'
 import {
@@ -208,7 +208,7 @@ If no meaningful matches: {"matches": []}`
   const newMatches: EvidenceMatch[] = []
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 600,

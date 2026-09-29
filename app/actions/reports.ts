@@ -1,6 +1,6 @@
 'use server'
 
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
@@ -300,7 +300,7 @@ export async function generateReportNarrativeDraft(
   const data = await getReportSourceData(studentId)
 
   try {
-    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+    const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const response = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 900,

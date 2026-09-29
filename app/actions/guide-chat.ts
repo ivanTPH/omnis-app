@@ -1,9 +1,9 @@
 'use server'
 
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { requireAuth } from '@/lib/session'
 
-const client = new Anthropic()
+const client = new SafeAnthropic()
 
 const SYSTEM_PROMPT = `You are the Omnis platform guide — a friendly, concise assistant that helps UK secondary school staff and students use the Omnis platform.
 

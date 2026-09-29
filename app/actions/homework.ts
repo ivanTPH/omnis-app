@@ -1,10 +1,10 @@
 'use server'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { auth }            from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit, writeILPAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag, unstable_cache }  from 'next/cache'
 import { HomeworkType, HomeworkStatus } from '@prisma/client'
-import Anthropic           from '@anthropic-ai/sdk'
 import { updateLearningProfile } from '@/app/actions/adaptive-learning'
 import { checkILPEvidenceMatch, checkEhcpEvidenceMatch } from '@/app/actions/ilp-evidence'
 import { percentToGcseGrade }   from '@/lib/grading'
@@ -865,7 +865,7 @@ ${taskInstruction}
 ${typePrompt}`
 
   try {
-    const client  = new Anthropic({ apiKey })
+    const client  = new SafeAnthropic({ apiKey })
     const message = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 4000,
@@ -994,7 +994,7 @@ Respond ONLY with valid JSON, no markdown, no code fences:
 {"type":"${params.type}","instructions":"${params.instructions}","modelAnswer":"<model answer>","gradingBands":{},"targetWordCount":0}`
 
   try {
-    const client  = new Anthropic({ apiKey })
+    const client  = new SafeAnthropic({ apiKey })
     const message = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 2500,
@@ -1095,7 +1095,7 @@ export async function extractLearningFromLesson(lessonId: string): Promise<Learn
     : ''
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 800,
@@ -1139,7 +1139,7 @@ export async function extractLearningFromLabel(params: {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return fallback
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 400,
@@ -1212,7 +1212,7 @@ export async function generateHomeworkContent(input: {
   if (!apiKey) return fallback
 
   try {
-    const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+    const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1500,
@@ -1305,7 +1305,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (apiKey && response?.answers) {
       try {
-        const client = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+        const client = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
         const qaPairs = content.questions.map((q: any, i: number) =>
           `Q${i + 1}: ${q.question}\nModel answer: ${q.answer ?? q.modelAnswer}\nStudent answer: ${response.answers?.[i] ?? '(no answer)'}`
         ).join('\n\n')
@@ -1911,7 +1911,7 @@ Classify each goal as:
 Return ONLY JSON with no markdown: {"classifications":[{"targetId":"...","evidenceType":"PROGRESS"|"CONCERN"|"NEUTRAL","aiSummary":"one sentence"}]}`
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 300,
@@ -2461,7 +2461,7 @@ Respond with ONLY valid JSON — no markdown:
     : 'This class has no exam board set — marking used general conventions, not board-specific ones. Set it in /admin/subjects. '
 
   try {
-    const client   = new Anthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
+    const client   = new SafeAnthropic({ apiKey, ...AI_ONE_SHOT_OPTS })
     const response = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 800,

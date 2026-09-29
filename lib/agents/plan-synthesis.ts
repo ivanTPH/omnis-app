@@ -32,8 +32,8 @@
  *   - NASEN SMART Targets Guidance (2019)
  *   - Equality Act 2010 s.20
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
-import Anthropic               from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }  from '@/lib/prisma'
 import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
@@ -349,7 +349,7 @@ async function runSynthesisAnalysis(
     }
   }
 
-  const client  = new Anthropic({ apiKey })
+  const client  = new SafeAnthropic({ apiKey })
   const payload = {
     student: {
       firstName:  data.student.firstName,

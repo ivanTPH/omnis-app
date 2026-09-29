@@ -1,9 +1,9 @@
 'use server'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma }  from '@/lib/prisma'
-import Anthropic   from '@anthropic-ai/sdk'
 import { markDirty } from '@/lib/agents/snapshot'
 import { AgentType } from '@prisma/client'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
@@ -175,7 +175,7 @@ Rules:
   }
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,

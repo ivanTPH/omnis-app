@@ -46,7 +46,7 @@ function ParentPrivacyPolicy() {
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Data Controller</h3>
         <p>Your child&apos;s school is the Data Controller for all pupil data held within Omnis.
-        Omnis Education Ltd acts as Data Processor. Your personal data — name, email, and any
+        Omnis Education acts as Data Processor. Your personal data — name, email, and any
         messages you send — is held by the school under UK GDPR.</p>
       </section>
       <section>
@@ -66,8 +66,8 @@ function ParentPrivacyPolicy() {
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Retention</h3>
-        <p>Parent contact data is retained for 7 years after your child leaves the school, or
-        in line with your school&apos;s published retention schedule.</p>
+        <p>Parent contact data is retained in line with your school&apos;s published retention
+        schedule, which your school sets in Omnis.</p>
       </section>
     </>
   )
@@ -158,7 +158,7 @@ function StudentPrivacyPolicy() {
       </section>
       <section>
         <h3 className="font-semibold text-gray-900 mb-2">Data Controller</h3>
-        <p>Your school is the Data Controller for your personal data. Omnis Education Ltd acts
+        <p>Your school is the Data Controller for your personal data. Omnis Education acts
         as Data Processor. Your data is held under UK GDPR and the UK Data Protection Act 2018.</p>
       </section>
       <section>

@@ -6,7 +6,7 @@ export const metadata = {
 const SECTIONS = [
   {
     title: '1. Parties and agreement',
-    content: `These Terms of Service ("Terms") form a legally binding agreement between **Omnis Education Ltd** ("Omnis", "we", "us") and the school, trust, or local authority ("School") that subscribes to the Omnis platform.
+    content: `These Terms of Service ("Terms") form a legally binding agreement between **Omnis Education** ("Omnis", "we", "us") and the school, trust, or local authority ("School") that subscribes to the Omnis platform.
 
 By completing our onboarding form, accepting an invitation, or using the platform, the School agrees to these Terms on behalf of its authorised staff. Individual users (teachers, SENCO, administrators) use the platform under authority granted by their School.
 
@@ -83,7 +83,7 @@ Omnis will:
   {
     title: '7. Intellectual property',
     content: `**Omnis IP**
-The Omnis platform, including its source code, design, AI models, and documentation, is the exclusive property of Omnis Education Ltd. These Terms grant the School a limited, non-exclusive, non-transferable licence to use the platform during the subscription period.
+The Omnis platform, including its source code, design, AI models, and documentation, is the exclusive property of Omnis Education. These Terms grant the School a limited, non-exclusive, non-transferable licence to use the platform during the subscription period.
 
 **School content**
 Lesson plans, homework content, SEND records, and other materials created by School staff using the platform remain the property of the School. Omnis does not claim ownership of any content you create.
@@ -136,7 +136,7 @@ We are committed to resolving disputes informally wherever possible. Please cont
   },
   {
     title: '13. Contact',
-    content: `**Omnis Education Ltd**
+    content: `**Omnis Education** (limited company registration in progress; details will be added here once complete)
 Email: legal@omnis.education
 For data protection matters: privacy@omnis.education
 For support: support@omnis.education`,

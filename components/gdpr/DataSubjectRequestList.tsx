@@ -40,7 +40,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
   const [updating, startUpdate]       = useTransition()
   const [updatingId, setUpdatingId]   = useState<string | null>(null)
   const [showNewModal, setShowNew]    = useState(false)
-  const [erasureTarget, setErasure]   = useState<{ dsrId: string; studentName: string } | null>(null)
+  const [erasureTarget, setErasure]   = useState<{ dsrId: string; studentId: string; studentName: string } | null>(null)
   const [doneMessage, setDone]        = useState<string | null>(null)
 
   function handleStatusChange(id: string, status: string) {
@@ -54,7 +54,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
   function openErasure(dsr: DsrRow) {
     const student = students.find(s => s.id === dsr.studentId)
     const name = student ? `${student.firstName} ${student.lastName}` : 'Unknown student'
-    setErasure({ dsrId: dsr.id, studentName: name })
+    setErasure({ dsrId: dsr.id, studentId: dsr.studentId!, studentName: name })
   }
 
   return (
@@ -177,11 +177,12 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
       {erasureTarget && (
         <ErasureConfirmModal
           dsrId={erasureTarget.dsrId}
+          studentId={erasureTarget.studentId}
           studentName={erasureTarget.studentName}
           onClose={() => setErasure(null)}
           onDone={(name) => {
             setErasure(null)
-            setDone(`Erasure completed for ${name}. PII anonymised; SEND records retained per DfE 7-year obligation.`)
+            setDone(`Erasure completed for ${name}. Personal data anonymised; the statutory file was handled under the school's retention setting.`)
           }}
         />
       )}

@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth'
 import { requireAuth } from '@/lib/session'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 import { buildDiffSignature, lookupDiffResult, storeDiffResult } from '@/lib/omnis-inference'
 
@@ -821,7 +821,7 @@ Return a JSON object with:
 }`
 
     async function callAI(): Promise<{ adaptedContent: object; adaptationNotes: string }> {
-      const client = new Anthropic({ apiKey })
+      const client = new SafeAnthropic({ apiKey })
       const start = Date.now()
       const msg = await client.messages.create({
         model: 'claude-sonnet-4-6',
@@ -990,7 +990,7 @@ ${gradeContext}
 Write in plain English, teacher-to-teacher tone. Be specific and actionable, not generic. Do not use bullet points — write as connected sentences.`
 
   try {
-    const client = new Anthropic()
+    const client = new SafeAnthropic()
     const msg = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 200,

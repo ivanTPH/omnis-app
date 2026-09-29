@@ -2,7 +2,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import type { ApdrRow } from '@/app/actions/send-support'
 import { getAgentInsights } from '@/app/actions/agent-insights'
 import { runBounded } from '@/lib/batch'
@@ -1058,7 +1058,7 @@ export async function generateLearningPassport(studentId: string): Promise<{ ok:
   ].join('\n')
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg    = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 500,
@@ -1182,7 +1182,7 @@ export async function generateRevisionSuggestions(
 
   const lines = weak.map(s => `- ${s.subject}: avg ${s.avgScore ?? 'no score'}, predicted ${s.predictedScore ?? 'unknown'}`)
 
-  const client = new Anthropic({ apiKey })
+  const client = new SafeAnthropic({ apiKey })
   try {
     const msg = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',

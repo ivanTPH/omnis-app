@@ -24,8 +24,8 @@
  *  - EEF Cognitive Science Approaches (2021)
  *  - Anderson & Krathwohl — Revised Bloom's Taxonomy (2001)
  */
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
-import Anthropic                              from '@anthropic-ai/sdk'
 import { AgentType, AgentSkillId }            from '@prisma/client'
 import { prisma, writeAudit }                 from '@/lib/prisma'
 import { getSnapshot, saveSnapshot, inOneWeek, type CoachKnowledge } from './snapshot'
@@ -352,7 +352,7 @@ async function generateRecommendation(
     .filter(Boolean)
     .slice(0, 10)
 
-  const client  = new Anthropic({ apiKey })
+  const client  = new SafeAnthropic({ apiKey })
   const payload = {
     student:      { firstName: student.firstName, sendStatus: student.sendStatus, needArea: student.needArea },
     weakTopics:   gaps.weakTopics,

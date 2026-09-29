@@ -1,4 +1,5 @@
 'use server'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { requireAuth } from '@/lib/session'
 
 const SENCO_ROLES = ['SENCO', 'SLT', 'SCHOOL_ADMIN'] as const
@@ -182,8 +183,7 @@ Return exactly this JSON:
 }`
 
   try {
-    const { default: Anthropic } = await import('@anthropic-ai/sdk')
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg = await client.messages.create({
       model:      'claude-sonnet-4-6',
       max_tokens: 600,

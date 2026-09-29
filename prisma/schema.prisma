@@ -229,6 +229,8 @@ enum AuditAction {
   SAFEGUARDING_REFERRED
   COMMUNICATION_SENT
   CHILD_NOTICE_ACKNOWLEDGED
+  LEAVER_FILE_EXPORTED
+  RETENTION_SCHEDULE_UPDATED
 }
 
 enum ContactMethod {
@@ -304,6 +306,16 @@ model School {
   // ICO Children's Code Standard 15 — student-facing "who to ask" contact
   dpoName  String?  // Data Protection Officer's name, set by SCHOOL_ADMIN/SLT
   dpoEmail String?  // Data Protection Officer's contact email
+  // Retention schedule, set by the school as data controller (defaults: IRMS
+  // Academies Toolkit). Years are counted from the pupil's date of birth.
+  // See lib/retention.ts.
+  retentionSendYears         Int    @default(31) // SEND files: ILP, EHCP, APDR, SEND status
+  retentionPupilRecordYears  Int    @default(25) // pupil record incl. behaviour/exclusions
+  retentionSafeguardingYears Int    @default(25) // child protection files (then review)
+  // What happens to the SEND/safeguarding file on erasure of a leaver:
+  // EXPORT_THEN_DELETE — school downloads the file, then Omnis deletes it (default)
+  // RETAIN_IN_OMNIS    — Omnis keeps it until the retention period above ends
+  leaverRecordHandling       String @default("EXPORT_THEN_DELETE")
 
   schoolGroupId String?
   schoolGroup   SchoolGroup? @relation(fields: [schoolGroupId], references: [id])

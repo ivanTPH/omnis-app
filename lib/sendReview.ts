@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 export type ReviewResult = {
   score: number
@@ -37,7 +37,7 @@ export async function reviewResource({
   if (!apiKey) return fallbackScore(type)
 
   try {
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
 
     const contextLines: string[] = [
       `Resource type: ${type}`,

@@ -2,6 +2,13 @@
 
 > Last updated: 2026-09-29. Authoritative reference for Claude sessions.
 >
+> **29 Sep 2026 (later): data protection changes** (see `docs/audit/2026-09-29-data-protection-changes.md`):
+> **All AI calls must use `SafeAnthropic` from `lib/ai/safe-anthropic.ts`**, never `new Anthropic(`, which
+> `lib/ai/gateway.test.ts` enforces. It swaps person names for `[N1]`-style codes before sending, restores them after,
+> and fails closed. Retention: per-school schedule on `School` (IRMS defaults 31/25/25 years from DOB, `leaverRecordHandling`),
+> `lib/retention.ts`, `/api/export/leaver-file/[studentId]`, a Retention tab in /admin/gdpr, and the weekly `/api/cron/retention-review`
+> (notify only). There is no "DfE 7-year" rule; don't reintroduce it. The company is not yet registered: say "Omnis Education", not "Ltd".
+>
 > **29 Sep 2026: scheduled jobs and sync fixes** (see `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`):
 > early-warning cohort aggregates fixed (Prisma rejects `null` in compound-unique `where`, so use
 > findFirst plus update/create); nightly Wonde sync added (`/api/cron/wonde-sync`, 01:15 UTC) plus a shared

@@ -1,8 +1,8 @@
 'use server'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit }  from '@/lib/prisma'
-import Anthropic               from '@anthropic-ai/sdk'
 
 // ── Request ILP evidence from subject teachers ────────────────────────────────
 
@@ -149,7 +149,7 @@ Respond with ONLY valid JSON (no markdown, no explanation outside the JSON):
 
 If genuinely no connection at all: {"match": false, "targetIndices": [], "rationale": ""}`
 
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg    = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 200,
@@ -245,7 +245,7 @@ Respond with ONLY valid JSON (no markdown, no explanation outside the JSON):
 
 If genuinely no connection at all: {"match": false, "outcomeIndex": 0, "rationale": ""}`
 
-    const client = new Anthropic({ apiKey })
+    const client = new SafeAnthropic({ apiKey })
     const msg    = await client.messages.create({
       model:      'claude-haiku-4-5-20251001',
       max_tokens: 200,

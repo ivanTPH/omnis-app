@@ -66,7 +66,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <Link href="/marketing/terms" className="hover:text-gray-900 transition-colors">Terms</Link>
             <Link href="/login" className="hover:text-gray-900 transition-colors">Sign in</Link>
           </nav>
-          <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Omnis Education Ltd.</p>
+          <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Omnis Education.</p>
         </div>
       </footer>
     </div>

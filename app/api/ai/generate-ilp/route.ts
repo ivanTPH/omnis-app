@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
-import Anthropic from '@anthropic-ai/sdk'
+import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { revalidatePath } from 'next/cache'
 import { buildIlpPrompt } from '@/lib/ilp-helpers'
 import { getSchoolCohortContext } from '@/lib/cohort-aggregate'
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         // ── Anthropic streaming call ─────────────────────────────────────────
         emit(controller, { type: 'progress', message: 'Sending to AI…', pct: 35 })
 
-        const client       = new Anthropic({ apiKey, ...AI_STREAM_OPTS })
+        const client       = new SafeAnthropic({ apiKey, ...AI_STREAM_OPTS })
         const claudeStream = client.messages.stream({
           model:      'claude-sonnet-4-6',
           max_tokens: 1200,

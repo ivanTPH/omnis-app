@@ -76,6 +76,11 @@ export default async function StudentPrivacyPage() {
                 suggestions before they count — nothing an AI produces is final without a member of
                 staff reviewing it first.
               </p>
+              <p className="text-[13px] text-gray-600 leading-relaxed mt-2">
+                The AI service is run by a company called Anthropic, in the USA. Before anything is sent
+                to it, your name is swapped for a code, so the AI never sees who you are. Anthropic
+                does not use it to train its AI, and deletes it within 30 days.
+              </p>
             </section>
 
             <section className="bg-white border border-gray-200 rounded-xl p-5">

@@ -1,158 +1,146 @@
 export const metadata = {
   title: 'Privacy Policy — Omnis Education',
-  description: 'How Omnis Education Ltd collects, uses, and protects your personal data.',
+  description: 'How Omnis collects, uses and protects personal data.',
 }
 
 const SECTIONS = [
   {
-    title: '1. Who we are',
-    content: `Omnis Education Ltd ("Omnis", "we", "us") is the data controller for personal data collected through this website and the Omnis platform. We provide a learning and SEND intelligence platform to UK secondary schools.
+    title: '1. Who we are and our role',
+    content: `Omnis is a learning and SEND support platform for UK schools, available at omnis.education.
 
-Contact: privacy@omnis.education
-Registered in England and Wales.`,
+Omnis is operated by Omnis Education, which is being set up as a limited company registered in England and Wales. Company registration details will be added here once registration is complete.
+
+**For school data, the school is in charge.** Each school that uses Omnis is the data controller for its pupils', parents' and staff's personal data. Omnis is a data processor: we only use that data to provide the service, on the school's instructions, under a Data Processing Agreement with the school.
+
+**For our own business data, we are in charge.** Omnis is the data controller only for information about visitors to our website, enquiries sent to us, and our business contacts.
+
+Contact: privacy@omnis.education`,
   },
   {
-    title: '2. Data we collect',
-    content: `We collect and process the following categories of personal data:
+    title: '2. Data we process',
+    content: `**School staff (teachers, SENCOs, senior leaders, administrators)**
+- Name, school email address and role
+- What they do in the platform (lessons, homework set, marks entered)
+- Sign-in times and an audit log of significant actions
 
-**School staff (teachers, SENCO, SLT, administrators)**
-- Name, email address, professional role
-- Activity within the platform (lesson plans, homework created, marks entered)
-- Login timestamps and audit events
-
-**Students**
-- Name, year group, class, school email address
-- Homework submissions and grades
-- SEND status, ILP/EHCP/K Plan records (where applicable)
-- Revision session data and adaptive learning profile
-- Attendance data (where synced from MIS)
+**Pupils**
+- Name, year group, class and school email address
+- Homework, answers and grades
+- SEND status and SEND plans (ILP, EHCP, APDR, Learning Passport), where the school records them
+- Safeguarding, behaviour and pastoral records, where the school chooses to record them in Omnis
+- Revision and learning-profile information
+- Attendance and other information copied from the school's management information system (MIS) through Wonde
 
 **Parents and carers**
-- Name, email address, relationship to student
-- Consent records, messaging thread content
+- Name, email address and relationship to the pupil
+- Consent choices and messages with the school
 
-**Website visitors**
-- IP address, browser type, pages visited (via server logs only — we do not use third-party analytics trackers without consent)`,
+**Website visitors and enquiries**
+- Basic server logs (IP address, browser type, pages visited) and anything you send us. We do not use third-party analytics or advertising trackers.`,
   },
   {
-    title: '3. Lawful basis for processing',
-    content: `We rely on the following lawful bases under UK GDPR:
+    title: '3. Lawful basis',
+    content: `**For school data,** the school decides the lawful basis, because it is the controller. Schools usually rely on public task (UK GDPR Article 6(1)(e)) for their education functions, and on substantial public interest (Article 9(2)(g) with Schedule 1 of the Data Protection Act 2018) for SEND and safeguarding information. Your school's own privacy notice explains this.
 
-- **Contract** — to deliver the platform services agreed with your school under our Terms of Service
-- **Legitimate interests** — platform security, fraud prevention, service improvement, and usage analytics that do not override individual rights
-- **Legal obligation** — to comply with applicable UK law including the Data Protection Act 2018
-- **Consent** — for optional features such as marketing communications and non-essential cookies (you may withdraw consent at any time)
-
-For special category data (SEND information, educational needs), we rely on Article 9(2)(g) UK GDPR — substantial public interest — in conjunction with Schedule 1 of the DPA 2018 (education, training and employment purposes).`,
+**For our own business data,** we rely on legitimate interests (running and securing our website and replying to enquiries) and, for any marketing emails, consent, which you can withdraw at any time.`,
   },
   {
-    title: '4. How we use your data',
-    content: `We use personal data to:
+    title: '4. How the data is used',
+    content: `Omnis uses school data only to provide the service to the school:
+- Signing users in and keeping accounts secure
+- Setting, completing and marking homework, and tracking progress
+- Supporting SEND planning and review, with staff approving anything that matters
+- Copying pupil, staff and class information from the school's MIS through Wonde
+- Sending service emails (for example homework reminders, sign-in codes, review reminders)
+- Keeping an audit log of significant actions
 
-- Provide, operate, and improve the Omnis platform
-- Authenticate users and maintain platform security
-- Generate AI-powered lesson plans, homework, and SEND insights (processed via Anthropic Claude API — see section 6)
-- Sync student and staff records from your school MIS via Wonde
-- Send transactional emails (homework notifications, ILP review reminders, account activation)
-- Maintain an audit trail of significant actions for GDPR and safeguarding compliance
-- Detect early-warning patterns that may indicate a student needs support
-
-We do not use student personal data for advertising or sell data to third parties.`,
+We never sell data, use pupil data for advertising, or use it to train AI models.`,
   },
   {
-    title: '5. Data retention',
-    content: `We retain personal data for the following periods:
+    title: '5. How we use AI',
+    content: `Some features use an AI service, Claude, provided by Anthropic PBC in the USA. It helps draft homework, SEND plans and feedback. A member of staff always reviews AI output before it takes effect; no decision with legal or similarly significant effect is made by AI alone.
 
-| Category | Retention period |
+**Before any request leaves Omnis, pupil, parent and staff names are replaced with random codes, and email addresses and phone numbers are removed.** The key that links codes to names stays inside Omnis and is never sent. Information about a pupil's learning and needs is still sent where the feature needs it, so this coded information is still treated as personal data.
+
+Under Anthropic's commercial terms, Anthropic does not use this data to train its models and deletes it within 30 days. The transfer to the USA is protected by the UK International Data Transfer Addendum to the EU Standard Contractual Clauses in Anthropic's data processing terms.`,
+  },
+  {
+    title: '6. How long data is kept',
+    content: `**School data** is kept for as long as the school instructs. Each school sets its retention schedule in Omnis. The defaults follow the IRMS Academies Toolkit, which the Department for Education's Data Protection Toolkit for Schools relies on:
+
+| Record | Default retention |
 |---|---|
-| Active user accounts | Duration of the school's subscription + 12 months |
-| Student SEND records (ILP, EHCP, APDR) | 7 years from the student leaving the school (in line with DfE guidance) |
-| Audit logs | 3 years |
-| Homework submissions and grades | 3 years from submission |
-| TA and teacher notes | 3 years |
-| Parent contact logs | 7 years |
-| Website enquiry emails | 2 years |
+| SEND files (ILP, EHCP, APDR, SEND status) | Pupil's date of birth plus 31 years |
+| Pupil record, including behaviour and exclusions | Pupil's date of birth plus 25 years |
+| Safeguarding and child protection files | Pupil's date of birth plus 25 years, then review |
+| Homework, messages, learning profile | Deleted when the school erases a leaver's data |
+| Audit logs | 6 years |
 
-After the retention period, data is securely deleted or anonymised.`,
+When a pupil leaves, the school can download the pupil's SEND and safeguarding file to keep under its own procedures, and Omnis then deletes it. When a school stops using Omnis, we return its data in a usable format and then delete it, including from backups, within the period set out in the Data Processing Agreement.
+
+**Our own business data:** website enquiries are kept for 2 years.`,
   },
   {
-    title: '6. Third-party processors',
-    content: `We share data with the following sub-processors, all subject to data processing agreements:
+    title: '7. Who we share data with',
+    content: `We use the following suppliers (sub-processors) to run Omnis. Each is bound by data protection terms:
 
-| Processor | Purpose | Location |
+| Supplier | What it does | Where |
 |---|---|---|
-| **Supabase** | Database hosting (PostgreSQL) | EU (Frankfurt) |
-| **Vercel** | Application hosting and edge CDN | EU / Global |
-| **Anthropic** | AI content generation (Claude API) | USA — Standard Contractual Clauses apply |
-| **Wonde** | MIS data sync | UK |
-| **Resend** | Transactional email delivery | EU |
+| **DigitalOcean** | Runs the Omnis application | London, UK |
+| **Supabase** | Database | Frankfurt, Germany |
+| **Anthropic** | AI drafting and marking (names replaced with codes) | USA |
+| **Sentry** | Error monitoring | Germany |
+| **Upstash** | Sign-in codes and rate limiting | Confirmed in the Data Processing Agreement |
+| **Resend** | Sends service emails | Confirmed in the Data Processing Agreement |
+| **Wonde** | Copies data from the school's MIS | UK |
 
-We do not transfer personal data to countries without an adequacy decision or appropriate safeguards unless stated above.`,
+Schools are told before we add or change a supplier and can object.`,
   },
   {
-    title: '7. Your rights under UK GDPR',
-    content: `You have the following rights:
+    title: '8. Your rights',
+    content: `Under UK GDPR you can ask to see your data, correct it, delete it, restrict or object to its use, or receive a copy in a portable format.
 
-- **Right of access** — request a copy of the data we hold about you
-- **Right to rectification** — ask us to correct inaccurate data
-- **Right to erasure** — ask us to delete your data (subject to legal retention obligations)
-- **Right to restrict processing** — ask us to pause processing in certain circumstances
-- **Right to data portability** — receive your data in a structured, machine-readable format
-- **Right to object** — object to processing based on legitimate interests
-- **Rights related to automated decision-making** — we do not make solely automated decisions with legal or similarly significant effects
+**If your request is about school data** (you are a pupil, parent or member of staff), contact your school's Data Protection Officer. The school handles the request and we help it.
 
-To exercise any right, email privacy@omnis.education. We will respond within 30 days. You also have the right to lodge a complaint with the Information Commissioner's Office (ICO) at ico.org.uk.`,
-  },
-  {
-    title: '8. Schools as data controllers',
-    content: `Schools that use Omnis are independent data controllers for their students' personal data. Omnis acts as a data processor on behalf of the school under a Data Processing Agreement (DPA) included in our Terms of Service.
+**If your request is about our own business data,** email privacy@omnis.education. We will acknowledge your request within 5 working days and respond in full within one month.
 
-Schools are responsible for:
-- Obtaining appropriate consent or establishing lawful bases for processing student data
-- Ensuring students and parents are informed of how their data is used
-- Handling data subject requests from their own community
-- Ensuring staff use the platform in accordance with their own data protection policies
-
-If you are a student, parent, or staff member with a data request relating to your school's use of Omnis, please contact your school's Data Protection Officer in the first instance.`,
+You can also complain to the Information Commissioner's Office (ico.org.uk).`,
   },
   {
     title: '9. Security',
-    content: `We implement appropriate technical and organisational measures to protect personal data, including:
+    content: `We protect data with:
+- Encryption in transit (TLS) and at rest
+- Compulsory two-step sign-in for all staff accounts
+- Role-based access, so each person sees only what their role needs
+- Separation between schools, checked in every database request and tested regularly
+- An audit log of significant actions
+- Error monitoring and a written incident response plan
+- Regular internal security reviews and automated security scanning
 
-- All data encrypted in transit (TLS 1.2+) and at rest
-- Role-based access control — users can only access data appropriate to their role
-- All significant actions are audit-logged with timestamp and user identity
-- JWT-based authentication with short-lived session tokens
-- Regular security reviews and penetration testing (planned)
+We have completed a Cyber Essentials self-assessment. We will update this page when independent certification and penetration testing have been completed.
 
-In the event of a personal data breach that is likely to result in a risk to individuals' rights and freedoms, we will notify the ICO within 72 hours and affected schools without undue delay.`,
+If a personal data breach affects school data, we will tell the school without undue delay and within 24 hours of becoming aware of it, so the school can notify the ICO within 72 hours where required.`,
   },
   {
     title: '10. Cookies',
-    content: `We use the following cookies:
+    content: `We only use cookies that are needed for the service to work:
 
 | Cookie | Type | Purpose |
 |---|---|---|
-| next-auth.session-token | Essential | Authentication session |
-| next-auth.csrf-token | Essential | CSRF protection |
-| omnis-cookie-consent | Essential | Stores your cookie preference |
+| next-auth.session-token | Essential | Keeps you signed in |
+| next-auth.csrf-token | Essential | Protects forms against misuse |
+| omnis-cookie-consent | Essential | Remembers your cookie choice |
 
-We do not currently use analytics or advertising cookies. If we introduce non-essential cookies in future, we will request your consent first.
-
-You can manage cookie preferences via the banner displayed on your first visit, or by clearing your browser cookies.`,
+We do not use analytics or advertising cookies. If that changes, we will ask for your consent first.`,
   },
   {
     title: '11. Changes to this policy',
-    content: `We may update this Privacy Policy from time to time. Material changes will be notified to school administrators by email at least 30 days before taking effect. The "last updated" date at the top of this page will always reflect the current version.`,
+    content: `We will tell school administrators by email at least 30 days before any significant change. The date at the top of this page shows when it was last updated.`,
   },
   {
-    title: '12. Contact us',
-    content: `For any privacy-related query or to exercise your rights:
-
-**Email:** privacy@omnis.education
-**Post:** Omnis Education Ltd, Data Protection, [Registered Address]
-
-We aim to respond to all requests within 5 working days.`,
+    title: '12. Contact',
+    content: `**Email:** privacy@omnis.education
+**Post:** address to be added once the company is registered.`,
   },
 ]
 
@@ -162,7 +150,7 @@ export default function PrivacyPage() {
       <div className="mb-12">
         <p className="text-sm font-medium text-blue-700 uppercase tracking-wide mb-2">Legal</p>
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Privacy Policy</h1>
-        <p className="text-gray-500 text-sm">Last updated: 12 June 2026 &nbsp;·&nbsp; Applies to: omnis.education and omnis-app-ten.vercel.app</p>
+        <p className="text-gray-500 text-sm">Last updated: 29 September 2026 &nbsp;·&nbsp; Applies to: omnis.education</p>
       </div>
 
       <div className="prose prose-gray max-w-none space-y-10">
@@ -196,20 +184,28 @@ export default function PrivacyPage() {
                     </div>
                   )
                 }
-                // Render bullet lists
-                if (para.trim().startsWith('- ')) {
-                  const items = para.trim().split('\n').filter(l => l.startsWith('- '))
+                const bold = (t: string) => t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                const lines = para.trim().split('\n')
+                const items = lines.filter(l => l.startsWith('- '))
+                const intro = lines.filter(l => !l.startsWith('- '))
+                // Bullet lists, optionally with an intro line or heading above them
+                if (items.length > 0) {
                   return (
-                    <ul key={i} className="list-disc list-outside ml-4 space-y-1">
-                      {items.map((item, ii) => (
-                        <li key={ii} dangerouslySetInnerHTML={{ __html: item.slice(2).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
-                      ))}
-                    </ul>
+                    <div key={i}>
+                      {intro.length > 0 && (
+                        <p className="mb-1" dangerouslySetInnerHTML={{ __html: intro.map(bold).join('<br/>') }} />
+                      )}
+                      <ul className="list-disc list-outside ml-4 space-y-1">
+                        {items.map((item, ii) => (
+                          <li key={ii} dangerouslySetInnerHTML={{ __html: bold(item.slice(2)) }} />
+                        ))}
+                      </ul>
+                    </div>
                   )
                 }
-                // Regular paragraphs — bold via **text**
+                // Regular paragraphs — bold via **text**, single line breaks kept
                 return (
-                  <p key={i} dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
+                  <p key={i} dangerouslySetInnerHTML={{ __html: lines.map(bold).join('<br/>') }} />
                 )
               })}
             </div>

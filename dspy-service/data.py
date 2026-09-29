@@ -24,9 +24,26 @@ import dspy
 from metrics import ExampleOutcome
 
 
+# Query-string options that only Prisma understands. The app's DATABASE_URL
+# (shared via the same GitHub secret) carries e.g. ?pgbouncer=true&connection_limit=20,
+# which libpq rejects outright ("invalid URI query parameter: pgbouncer") -- this
+# made every weekly run fail before doing anything.
+_PRISMA_ONLY_PARAMS = {"pgbouncer", "connection_limit", "pool_timeout", "schema",
+                       "connect_timeout_ms", "socket_timeout", "statement_cache_size"}
+
+
+def _libpq_dsn(url: str) -> str:
+    from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+    parts = urlsplit(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True)
+             if k not in _PRISMA_ONLY_PARAMS]
+    return urlunsplit(parts._replace(query=urlencode(query)))
+
+
 def _conn():
-    dsn = os.environ["DATABASE_URL"]
-    return psycopg2.connect(dsn)
+    # Use the pooled DATABASE_URL: Supabase's direct host is IPv6-only, which
+    # GitHub-hosted runners cannot reach.
+    return psycopg2.connect(_libpq_dsn(os.environ["DATABASE_URL"]))
 
 
 def fetch_training_examples(skill_id: str, agent_type: str, since_run_id: str | None, limit: int = 2000) -> list[dspy.Example]:

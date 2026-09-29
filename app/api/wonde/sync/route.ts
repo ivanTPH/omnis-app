@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { runWondeSync } from '@/lib/wonde-sync'
-import { prisma } from '@/lib/prisma'
+import { resolveWondeTarget, runLoggedWondeSync } from '@/lib/wonde-sync-runner'
 import { revalidatePath, revalidateTag } from 'next/cache'
 
 // Allow up to 300 seconds on Vercel Pro / Enterprise
@@ -14,60 +13,22 @@ export async function POST() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const token      = process.env.WONDE_API_TOKEN
-  const wondeSchId = process.env.WONDE_SCHOOL_ID
-  const schoolId   = user.schoolId
-
-  if (!token || !wondeSchId || !schoolId) {
-    return NextResponse.json({ error: 'Wonde credentials not configured' }, { status: 500 })
+  // Only the school linked to the configured Wonde school may sync it —
+  // see lib/wonde-sync-runner.ts for why.
+  const target = await resolveWondeTarget(user.schoolId)
+  if (!target.ok) {
+    return NextResponse.json({ error: target.error }, { status: 403 })
   }
 
-  // Mark any stale "running" logs as failed before starting a new run
-  await prisma.wondeSyncLog.updateMany({
-    where:  { schoolId, status: 'running' },
-    data:   { status: 'failed', errors: ['Superseded by a new sync run'], completedAt: new Date() },
-  })
+  const run = await runLoggedWondeSync(target, 'full')
 
-  // Create sync log entry
-  const log = await prisma.wondeSyncLog.create({
-    data: { schoolId, syncType: 'full', status: 'running', startedAt: new Date() },
-  })
-
-  try {
-    const result = await runWondeSync(schoolId, wondeSchId, token)
-
-    const totalRecords =
-      result.employees.upserted +
-      result.students.upserted +
-      result.contacts.upserted +
-      result.groups.upserted +
-      result.classes.upserted +
-      result.enrolments.upserted +
-      result.periods.upserted +
-      result.timetable.upserted
-
-    await prisma.wondeSyncLog.update({
-      where: { id: log.id },
-      data: {
-        status:           result.errors.length > 0 ? 'partial' : 'success',
-        recordsProcessed: totalRecords,
-        errors:           result.errors,
-        completedAt:      new Date(),
-      },
-    })
-
-    revalidatePath('/admin/wonde')
-    revalidateTag('class-rosters', 'default')  // Wonde sync can change enrolments — bust all roster caches
-    // The sync log's own status ('partial'/'success') was already correct --
-    // this response's `success` flag wasn't reflecting it, so an admin
-    // reading the API response directly (rather than the log) could see
-    // "success: true" on a run that actually had per-phase errors.
-    return NextResponse.json({ success: result.errors.length === 0, result, logId: log.id })
-  } catch (err) {
-    await prisma.wondeSyncLog.update({
-      where: { id: log.id },
-      data: { status: 'failed', errors: [String(err)], completedAt: new Date() },
-    })
-    return NextResponse.json({ error: String(err), logId: log.id }, { status: 500 })
+  if (run.error) {
+    return NextResponse.json({ error: run.error, logId: run.logId }, { status: 500 })
   }
+
+  revalidatePath('/admin/wonde')
+  revalidateTag('class-rosters', 'default')  // Wonde sync can change enrolments — bust all roster caches
+  // `success` reflects per-phase errors too (log status 'partial'), not just
+  // whether the run threw.
+  return NextResponse.json({ success: run.success, result: run.result, logId: run.logId })
 }

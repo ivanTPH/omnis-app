@@ -1,7 +1,8 @@
 'use server'
 import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
-import { runWondeSync, type WondeSyncResult } from '@/lib/wonde-sync'
+import { type WondeSyncResult } from '@/lib/wonde-sync'
+import { resolveWondeTarget, runLoggedWondeSync } from '@/lib/wonde-sync-runner'
 import { fetchWondeSchool } from '@/lib/wonde-client'
 import { revalidatePath } from 'next/cache'
 
@@ -80,59 +81,14 @@ export async function triggerWondeSync(): Promise<{
   const { schoolId, role } = await requireAuth()
   requireAdminOrSlt(role)
 
-  const token       = process.env.WONDE_API_TOKEN
-  const wondeSchId  = process.env.WONDE_SCHOOL_ID
+  // Only the school linked to the configured Wonde school may sync it —
+  // see lib/wonde-sync-runner.ts for why.
+  const target = await resolveWondeTarget(schoolId)
+  if (!target.ok) return { success: false, error: target.error }
 
-  if (!token || !wondeSchId) {
-    return { success: false, error: 'Wonde credentials not configured' }
-  }
-
-  // Create sync log entry (in-progress)
-  const log = await prisma.wondeSyncLog.create({
-    data: {
-      schoolId,
-      syncType: 'full',
-      status:   'running',
-      startedAt: new Date(),
-    },
-  })
-
-  try {
-    const result = await runWondeSync(schoolId, wondeSchId, token)
-
-    const totalRecords =
-      result.employees.upserted +
-      result.students.upserted +
-      result.contacts.upserted +
-      result.groups.upserted +
-      result.classes.upserted +
-      result.enrolments.upserted +
-      result.periods.upserted +
-      result.timetable.upserted
-
-    await prisma.wondeSyncLog.update({
-      where: { id: log.id },
-      data: {
-        status:           result.errors.length > 0 ? 'partial' : 'success',
-        recordsProcessed: totalRecords,
-        errors:           result.errors,
-        completedAt:      new Date(),
-      },
-    })
-
-    revalidatePath('/admin/wonde')
-    return { success: true, result, logId: log.id }
-  } catch (err) {
-    await prisma.wondeSyncLog.update({
-      where: { id: log.id },
-      data: {
-        status:      'failed',
-        errors:      [String(err)],
-        completedAt: new Date(),
-      },
-    })
-    return { success: false, error: String(err), logId: log.id }
-  }
+  const run = await runLoggedWondeSync(target, 'full')
+  if (!run.error) revalidatePath('/admin/wonde')
+  return run
 }
 
 // ── Sync logs ─────────────────────────────────────────────────────────────────

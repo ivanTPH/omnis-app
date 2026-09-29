@@ -126,7 +126,9 @@ export default function OakSyncStatus({ logs: initialLogs }: Props) {
     setResult(null)
     start(async () => {
       const res = await triggerDeltaSync()
-      if (res.success) {
+      if (res.success && res.started) {
+        setResult('Sync started in the background. It takes about 45 minutes — refresh this page later to see the result in the log below.')
+      } else if (res.success) {
         setResult(`Sync completed in ${(res.durationMs / 1000).toFixed(1)}s. New lessons: ${res.counts?.newLessons ?? 0}.`)
       } else {
         setResult(`Sync failed: ${res.error}`)

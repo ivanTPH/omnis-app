@@ -55,6 +55,11 @@ record staff/student/class counts in /evidence/wonde-sync-results.md.
   schoolId scoping holds (no cross-school leakage — see 5.3).
 ```
 
+**5.1a Scheduled Wonde sync — ✅ added 29 Sep 2026.** Previously the sync only ran when an admin
+clicked a button (last run 11 Jun). It now runs nightly at 01:15 UTC via `/api/cron/wonde-sync`. The manual
+sync was also made tenant-safe (it could import the configured Wonde school into any admin's school).
+See `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md` §2.
+
 **5.2 Decide MIS breadth for launch — ✅ decided 10 Jul 2026**
 - [x] Target market confirmed: state schools / MATs
 - [x] Decision: Arbor is the next priority integration — free REST/GraphQL sandbox, SDKs, no licence cost
@@ -260,6 +265,10 @@ test that would catch a future re-introduction of either bug. 6.1's isolated
 environment, once it exists, is also the natural place to build that.
 
 **6.3 Backup & recovery drill — 🔴 confirmed Free tier, upgrade deferred**
+- **29 Sep 2026: re-confirmed still on Free** via the Supabase API. This is now a named blocker in the
+  DPIA readiness report (section 3.2) with two questions for the trial school. Supabase Pro ($25/month)
+  gives daily backups kept 7 days; point-in-time recovery is a separate add-on. See
+  `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md` §6.
 - [x] Confirmed 10 Jul 2026 (by you): Supabase project "Ivan Omnis"
       (`ppmckscpekgwfeofvjej`, `eu-central-1`, Postgres 17.6) is on the
       **Free tier** — no PITR, minimal backup retention. Decision: stay on
@@ -645,6 +654,9 @@ this session.
       unreachable (wrapped so a DB hiccup can't throw/crash the check
       itself). This is the ready-to-target endpoint for external uptime
       monitoring — see `evidence/phase10-operational/monitoring-setup.md`.
+- [x] **29 Sep 2026: Sentry confirmed live in production (EU region)**, issues arriving. Remaining
+      sub-item: confirm the alert rule routes new issues to Ivan. Cron/sync fixes from its first
+      findings are in `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`.
 - [ ] Error monitoring in production (e.g. Sentry) wired up and alerting to
       a real person — **code-side instrumentation is largely done** (see
       `monitoring-setup.md`: Sentry SDK already initialised, `lib/monitoring.ts`

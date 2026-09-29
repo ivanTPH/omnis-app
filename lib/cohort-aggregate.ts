@@ -196,12 +196,27 @@ export async function computeSchoolCohortAggregate(schoolId: string): Promise<nu
 
   let upsertCount = 0
 
-  // School-wide ALL rollup (yearGroup null = cross-year)
-  await (prisma.schoolCohortAggregate as any).upsert({
-    where:  { schoolId_subject_yearGroup: { schoolId, subject: 'ALL', yearGroup: null } },
-    update: bucketToUpsertData(schoolBucket, globalTopStrategies),
-    create: { schoolId, subject: 'ALL', yearGroup: null, ...bucketToUpsertData(schoolBucket, globalTopStrategies) },
+  // School-wide ALL rollup (yearGroup null = cross-year).
+  // Prisma does not accept null inside a compound-unique `where`, so upsert()
+  // cannot target this row (it threw PrismaClientValidationError on every
+  // nightly run and aborted the per-year rollups below). Postgres also treats
+  // NULLs as distinct in the @@unique, so look the row up explicitly and
+  // update/create by id instead.
+  const schoolWideData = bucketToUpsertData(schoolBucket, globalTopStrategies)
+  const existingSchoolWide = await prisma.schoolCohortAggregate.findFirst({
+    where:  { schoolId, subject: 'ALL', yearGroup: null },
+    select: { id: true },
   })
+  if (existingSchoolWide) {
+    await prisma.schoolCohortAggregate.update({
+      where: { id: existingSchoolWide.id },
+      data:  schoolWideData,
+    })
+  } else {
+    await prisma.schoolCohortAggregate.create({
+      data: { schoolId, subject: 'ALL', yearGroup: null, ...schoolWideData },
+    })
+  }
   upsertCount++
 
   // Per-year rollups

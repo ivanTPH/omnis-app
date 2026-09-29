@@ -17,7 +17,7 @@
  * - When CRON_SECRET is unset (dev only): unauthenticated requests are allowed.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { runDeltaSync }              from '@/lib/oak-delta-sync'
 import { runBulkSync }               from '@/lib/oak-bulk-sync'
 import { revalidateTag }             from 'next/cache'
@@ -35,43 +35,32 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const startTime = Date.now()
+  // The bulk sync takes 40-50 minutes (see OakSyncLog.durationMs), far longer
+  // than the GitHub Actions curl timeout, so the workflow step used to "fail"
+  // every week even though the sync itself completed on the server. Answer 202
+  // straight away and run the sync after the response instead; the result is
+  // recorded in OakSyncLog and failures go to Sentry.
+  const useBulk = !!process.env.OAK_API_KEY
 
-  try {
-    const useBulk = !!process.env.OAK_API_KEY
-    console.log(`[oak-sync] Using ${useBulk ? 'bulk API sync' : 'delta scrape sync'}`)
+  after(async () => {
+    const startTime = Date.now()
+    try {
+      console.log(`[oak-sync] Using ${useBulk ? 'bulk API sync' : 'delta scrape sync'}`)
+      const { counts } = useBulk ? await runBulkSync() : await runDeltaSync()
 
-    const { counts, durationMs } = useBulk
-      ? await runBulkSync()
-      : await runDeltaSync()
+      revalidateTag('oak-lessons', 'default')  // Bust cached searchOakLessons results after sync
 
-    revalidateTag('oak-lessons', 'default')  // Bust cached searchOakLessons results after sync
-
-    // Both sync paths track per-item errorCount without throwing (so one bad
-    // subject/lesson doesn't abort the whole sync) -- but that also means a
-    // total failure (API auth expired, schema drift) previously looked
-    // identical to "ran fine, nothing changed this week." Flag it when errors
-    // were recorded but literally nothing was created or updated anywhere.
-    const wroteNothing =
-      (counts.newSubjects ?? 0) === 0 && (counts.updatedSubjects ?? 0) === 0 &&
-      (counts.newUnits ?? 0)    === 0 && (counts.updatedUnits ?? 0)    === 0 &&
-      (counts.newLessons ?? 0)  === 0 && (counts.updatedLessons ?? 0)  === 0
-    const systemicFailure = (counts.errorCount ?? 0) > 0 && wroteNothing
-    if (systemicFailure) {
-      reportSystemicFailure('oak-sync', `${useBulk ? 'bulk' : 'delta'} sync recorded ${counts.errorCount} errors and wrote nothing`, { counts })
+      const wroteNothing =
+        (counts.newSubjects ?? 0) === 0 && (counts.updatedSubjects ?? 0) === 0 &&
+        (counts.newUnits ?? 0)    === 0 && (counts.updatedUnits ?? 0)    === 0 &&
+        (counts.newLessons ?? 0)  === 0 && (counts.updatedLessons ?? 0)  === 0
+      if ((counts.errorCount ?? 0) > 0 && wroteNothing) {
+        reportSystemicFailure('oak-sync', `${useBulk ? 'bulk' : 'delta'} sync recorded ${counts.errorCount} errors and wrote nothing`, { counts })
+      }
+    } catch (err) {
+      reportFatalError('oak-sync', err, { durationMs: Date.now() - startTime })
     }
+  })
 
-    return NextResponse.json({
-      success: !systemicFailure,
-      syncType: useBulk ? 'bulk' : 'delta',
-      counts, durationMs,
-    }, { status: systemicFailure ? 502 : 200 })
-  } catch (err) {
-    const durationMs = Date.now() - startTime
-    reportFatalError('oak-sync', err, { durationMs })
-    return NextResponse.json(
-      { success: false, error: String(err), durationMs },
-      { status: 500 },
-    )
-  }
+  return NextResponse.json({ accepted: true, syncType: useBulk ? 'bulk' : 'delta' }, { status: 202 })
 }

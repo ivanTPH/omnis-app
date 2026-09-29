@@ -10,6 +10,7 @@ on:
     - cron: '30 3 * * *'
     - cron: '0 4 * * *'
     - cron: '30 2 * * 0'
+    - cron: '15 1 * * *'
   push:
     branches: [main]
   workflow_dispatch:
@@ -25,10 +26,19 @@ jobs:
         if: github.event_name == 'push'
         run: echo "Push event -- nothing to do."
 
+      - name: wonde-sync
+        # Nightly MIS sync. The route answers 202 and runs the sync in the
+        # background; results are in WondeSyncLog (/admin/wonde) and Sentry.
+        if: github.event.schedule == '15 1 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sf --max-time 60 "$BASE/api/cron/wonde-sync" -H "Authorization: Bearer $CRON_SECRET"
+
       - name: oak-sync
+        # The bulk sync takes ~45 min, so the route answers 202 and runs it in
+        # the background; results are in OakSyncLog and Sentry.
         if: github.event.schedule == '0 2 * * 0' || github.event_name == 'workflow_dispatch'
         run: |
-          curl -sf --max-time 310 "$BASE/api/cron/oak-sync" -H "Authorization: Bearer $CRON_SECRET"
+          curl -sf --max-time 60 "$BASE/api/cron/oak-sync" -H "Authorization: Bearer $CRON_SECRET"
 
       - name: platform-insights
         if: github.event.schedule == '0 5 * * 0' || github.event_name == 'workflow_dispatch'

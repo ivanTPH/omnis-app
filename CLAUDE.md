@@ -1,6 +1,15 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-08-12. Authoritative reference for Claude sessions.
+> Last updated: 2026-09-29. Authoritative reference for Claude sessions.
+>
+> **29 Sep 2026: scheduled jobs and sync fixes** (see `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`):
+> early-warning cohort aggregates fixed (Prisma rejects `null` in compound-unique `where`, so use
+> findFirst plus update/create); nightly Wonde sync added (`/api/cron/wonde-sync`, 01:15 UTC) plus a shared
+> `lib/wonde-sync-runner.ts` that only syncs the school linked to `WONDE_SCHOOL_ID`; long syncs
+> (Oak ~45 min, Wonde) now answer 202 and run via `after()`; the DSPy job strips Prisma-only URL params.
+> Sentry is live (EU). **Supabase is still on the Free plan, so there are no usable backups until it is upgraded.**
+> Gotcha: GitHub Actions cron steps using `curl -sf` only fail on a non-2xx response; per-school errors
+> caught inside a route go to Sentry, not to the workflow status.
 >
 > **TRIAL STATUS: TRIAL-READY + POST-LAUNCH IMPROVEMENTS AS OF 2026-06-18.**
 > All phases of OMNIS_TRIAL_READINESS_PLAN.md complete (Phases 0–4). 16/16 smoke test checks pass.

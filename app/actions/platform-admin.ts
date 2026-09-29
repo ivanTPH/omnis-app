@@ -387,6 +387,7 @@ export async function getOakSyncLogs() {
 
 export async function triggerDeltaSync(): Promise<{
   success: boolean
+  started?: boolean
   counts?: Record<string, number>
   error?: string
   durationMs: number
@@ -401,9 +402,14 @@ export async function triggerDeltaSync(): Promise<{
   const start = Date.now()
   try {
     const res  = await fetch(`${baseUrl}/api/cron/oak-sync`, { headers })
-    const json = await res.json() as { success: boolean; counts?: Record<string, number>; error?: string; durationMs?: number }
+    const json = await res.json() as { success?: boolean; accepted?: boolean; counts?: Record<string, number>; error?: string; durationMs?: number }
+    // The cron route now answers 202 and runs the sync in the background
+    // (it takes 40+ minutes); progress shows in the sync log list.
+    if (res.status === 202 && json.accepted) {
+      return { success: true, started: true, durationMs: Date.now() - start }
+    }
     return {
-      success:    json.success,
+      success:    !!json.success,
       counts:     json.counts,
       error:      json.error,
       durationMs: json.durationMs ?? Date.now() - start,

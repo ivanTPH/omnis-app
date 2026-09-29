@@ -1,5 +1,12 @@
 # 10.1 Monitoring & alerting — status
 
+> **Update 29 Sep 2026: Sentry is live in production.** The live site's client bundle
+> reports to a Sentry project in the EU (Germany) region (`ingest.de.sentry.io`,
+> project `javascript-nextjs`), and issues are arriving; see
+> `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`. The "No Sentry project/DSN
+> exists yet" point below is out of date. Still to confirm in the Sentry dashboard:
+> an alert rule that emails Ivan when a new issue appears. Uptime monitoring is still open.
+
 ## What's wired in code (27 Aug 2026)
 
 **Sentry (`@sentry/nextjs`) was already installed and initialised** in

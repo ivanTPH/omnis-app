@@ -74,6 +74,9 @@ async function openFirstLesson(page: Page): Promise<boolean> {
 // STEP 1 — SENCO generates ILPs; at least 5 ILPs created
 // ─────────────────────────────────────────────────────────────────────────────
 test('Step 1 — SENCO generates ILPs; ≥5 ILPs created', async ({ page }) => {
+  // Generating ILPs calls the real AI service on the live site and costs money on
+  // every push. Only run it when explicitly asked: E2E_ALLOW_AI=1.
+  test.skip(process.env.E2E_ALLOW_AI !== '1', 'AI generation skipped (set E2E_ALLOW_AI=1 to run)')
   test.setTimeout(300_000) // AI ILP generation for a full class can take 2–3 min
 
   await loginSenco(page)
@@ -357,7 +360,8 @@ test('Step 5 — K Plan auto-generated; SENCO approves it', async ({ page }) => 
 
   // If "Generate K Plan" button exists, click it
   const genBtn = page.getByRole('button', { name: /generate k plan/i })
-  if (await genBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+  // Skipped unless E2E_ALLOW_AI=1: it calls the real AI service (see Step 1).
+  if (process.env.E2E_ALLOW_AI === '1' && await genBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await genBtn.click()
     // Wait for generation to complete
     await expect(page.getByText(/generating|draft/i).first()).toBeVisible({ timeout: 30_000 })
@@ -635,7 +639,8 @@ test('Step 12 — Teacher marks homework; K Plan sidebar; ILP evidence link', as
     ).first()
     const evidenceVisible = await evidenceBtn.isVisible({ timeout: 3_000 }).catch(() => false)
 
-    if (evidenceVisible) {
+    // Recording ILP evidence classifies the work with AI; skipped unless E2E_ALLOW_AI=1.
+    if (evidenceVisible && process.env.E2E_ALLOW_AI === '1') {
       await evidenceBtn.click()
       await page.waitForTimeout(1_000)
       const savedMsg = page.getByText(/evidence saved|linked|saved/i)

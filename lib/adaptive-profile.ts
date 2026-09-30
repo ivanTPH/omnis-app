@@ -173,8 +173,12 @@ export async function computeAndSaveAdaptiveProfile(
   // Uses claude-haiku (cheap) for batch cron updates.
   let profileSummary: string | null = null
   const existingProfile = await prisma.studentLearningProfile.findUnique({ where: { studentId } })
-  const needsAiUpdate   = !existingProfile?.profileUpdatedAt ||
-    new Date(existingProfile.profileUpdatedAt).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
+  // ...and only if there is new homework since the last summary: an unchanged
+  // record never triggers a new AI call.
+  const needsAiUpdate   = !existingProfile?.profileUpdatedAt || (
+    new Date(existingProfile.profileUpdatedAt).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000 &&
+    lastHomeworkAt != null && new Date(lastHomeworkAt) > new Date(existingProfile.profileUpdatedAt)
+  )
 
   if (needsAiUpdate && submittedCount >= 5 && opts.allowAi !== false) {
     const apiKey = process.env.ANTHROPIC_API_KEY

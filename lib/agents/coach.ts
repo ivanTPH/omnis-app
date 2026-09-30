@@ -28,7 +28,7 @@ import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 
 import { AgentType, AgentSkillId }            from '@prisma/client'
 import { prisma, writeAudit }                 from '@/lib/prisma'
-import { getSnapshot, saveSnapshot, inOneWeek, type CoachKnowledge } from './snapshot'
+import { getSnapshot, saveSnapshot, inOneWeek, markCheckedUnchanged, studentsWithSnapshot, type CoachKnowledge } from './snapshot'
 import {
   buildCoachSignature,
   lookupCoachAdvice,
@@ -521,6 +521,7 @@ export async function runCoachForStudent(
 
   // Nothing to process
   if (data.submissions.length === 0 && data.revisionProgress.length === 0) {
+    await markCheckedUnchanged(studentId, AgentType.COACH, inOneWeek())
     return { ran: false, weakTopics: 0, retentionRisks: 0, fromCache: false }
   }
 
@@ -623,7 +624,7 @@ export async function runCoachBatchForSchool(
   })
 
   // Also include active students who have NO snapshot yet (first-run)
-  const existing = new Set(dirty.map(d => d.studentId))
+  const existing = new Set([...dirty.map(d => d.studentId), ...await studentsWithSnapshot(schoolId, AgentType.COACH)])
   const newStudents = await prisma.user.findMany({
     where: {
       schoolId,

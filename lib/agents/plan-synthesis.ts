@@ -38,7 +38,7 @@ import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }  from '@/lib/prisma'
 import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
 import {
-  getSnapshot, saveSnapshot, inOneMonth,
+  getSnapshot, saveSnapshot, inOneMonth, fingerprint, markCheckedUnchanged, studentsWithSnapshot,
   type PlanKnowledge,
 } from './snapshot'
 import {
@@ -628,9 +628,27 @@ export async function runPlanSynthesisForStudent(
 
   // If student has sendStatus but no ILP, still run — flag missing ILP as an issue
   const preChecks = runPreChecks(data)
-  const analysis  = await runSynthesisAnalysis(data, preChecks)
+  const previous  = await getSnapshot(studentId, AgentType.PLAN_SYNTHESIS) as PlanKnowledge | null
 
-  const previous = await getSnapshot(studentId, AgentType.PLAN_SYNTHESIS) as PlanKnowledge | null
+  // Only call the AI when something has actually changed: the plans, evidence,
+  // concerns, or a review falling due/overdue. Day counts are left out so the
+  // fingerprint doesn't change just because a day has passed.
+  const inputHash = fingerprint({
+    student: data.student, ilp: data.ilp, ehcp: data.ehcp, kPlan: data.kPlan,
+    evidence: data.ilpEvidenceEntries, concerns: data.recentConcerns,
+    flags: {
+      ilpReviewOverdue:  preChecks.ilpReviewOverdue,
+      ehcpReviewDueSoon: preChecks.ehcpReviewDueSoon,
+      ehcpReviewOverdue: preChecks.ehcpReviewOverdue,
+      concernEscalationRisk: preChecks.concernEscalationRisk,
+    },
+  })
+  if (previous?.inputHash === inputHash) {
+    await markCheckedUnchanged(studentId, AgentType.PLAN_SYNTHESIS, inOneMonth())
+    return { ran: false, coherence: 'UNCHANGED', issueCount: 0 }
+  }
+
+  const analysis  = await runSynthesisAnalysis(data, preChecks)
 
   // Merge conflicts and suggestions with previous (rolling, max 15 each)
   const knowledge: PlanKnowledge = {
@@ -646,6 +664,7 @@ export async function runPlanSynthesisForStudent(
       ...(previous?.suggestions ?? []),
     ].slice(0, 15),
     summaryNarrative: analysis.summaryNarrative,
+    inputHash,
   }
 
   await writeAuditEntries(
@@ -706,7 +725,9 @@ export async function runPlanSynthesisBatchForSchool(
   })
 
   // First-run: students with active SEND status who have no snapshot yet
-  const existing = new Set(dirty.map(d => d.studentId))
+  // First-run means NO snapshot at all (previously this only excluded dirty
+  // ones, so every SEND pupil was re-analysed every night).
+  const existing = new Set([...dirty.map(d => d.studentId), ...await studentsWithSnapshot(schoolId, AgentType.PLAN_SYNTHESIS)])
   const sendStudents = await prisma.sendStatus.findMany({
     where: {
       student:      { schoolId, isActive: true },

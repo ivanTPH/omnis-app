@@ -10,6 +10,7 @@
  *  - Query which snapshots need processing (dirty or overdue)
  */
 
+import { createHash } from 'crypto'
 import { AgentType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
@@ -36,6 +37,7 @@ export type QualityKnowledge = {
 }
 
 export type PlanKnowledge = {
+  inputHash?:       string              // fingerprint of the plan data last analysed (see fingerprint())
   ilpCoherence:     'OK' | 'REVIEW_NEEDED' | 'URGENT'
   ehcpCoherence:    'OK' | 'REVIEW_NEEDED' | 'URGENT'
   kPlanCoherence:   'OK' | 'REVIEW_NEEDED' | 'URGENT'
@@ -136,6 +138,43 @@ export async function saveSnapshot(
       dirtyAt: null,
     },
   })
+}
+
+// ── Change detection ─────────────────────────────────────────────────────────
+
+/** Stable SHA-256 of any JSON-like value (object keys sorted, Dates as ISO). */
+export function fingerprint(value: unknown): string {
+  const norm = (v: unknown): unknown => {
+    if (v instanceof Date) return v.toISOString()
+    if (Array.isArray(v)) return v.map(norm)
+    if (v && typeof v === 'object') {
+      return Object.fromEntries(Object.keys(v as object).sort().map(k => [k, norm((v as Record<string, unknown>)[k])]))
+    }
+    return v
+  }
+  return createHash('sha256').update(JSON.stringify(norm(value))).digest('hex')
+}
+
+/**
+ * Nothing has changed since the last run: clear the dirty flag and push the
+ * next periodic check back, WITHOUT calling the AI or touching the knowledge.
+ * No-op if the student has no snapshot yet.
+ */
+export async function markCheckedUnchanged(
+  studentId: string,
+  agentType: AgentType,
+  nextReviewAt: Date,
+): Promise<void> {
+  await prisma.agentSnapshot.updateMany({
+    where: { studentId, agentType },
+    data:  { dirtyAt: null, nextReviewAt },
+  })
+}
+
+/** Students in a school who already have a snapshot for this agent (for first-run queries). */
+export async function studentsWithSnapshot(schoolId: string, agentType: AgentType): Promise<string[]> {
+  const rows = await prisma.agentSnapshot.findMany({ where: { schoolId, agentType }, select: { studentId: true } })
+  return rows.map(r => r.studentId)
 }
 
 // ── Cron query ───────────────────────────────────────────────────────────────

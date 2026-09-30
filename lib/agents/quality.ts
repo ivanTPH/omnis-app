@@ -35,7 +35,7 @@ import { AgentType, AgentSkillId } from '@prisma/client'
 import { prisma, writeAudit }    from '@/lib/prisma'
 import { resolveSkillFragment, resolveSkillVersion } from './skill-prompt'
 import {
-  getSnapshot, saveSnapshot, inOneWeek,
+  getSnapshot, saveSnapshot, inOneWeek, markCheckedUnchanged, studentsWithSnapshot,
   type QualityKnowledge,
 } from './snapshot'
 import {
@@ -531,7 +531,10 @@ export async function runQualityForStudent(
   const since     = lastRunAt ?? new Date(Date.now() - LOOK_BACK_DAYS * 86_400_000)
 
   const data = await fetchQualityData(studentId, schoolId, since)
-  if (data.submissions.length === 0) return { ran: false, issueCount: 0 }
+  if (data.submissions.length === 0) {
+    await markCheckedUnchanged(studentId, AgentType.QUALITY, inOneWeek())
+    return { ran: false, issueCount: 0 }
+  }
 
   const previous = await getSnapshot(studentId, AgentType.QUALITY) as QualityKnowledge | null
   const analysis = await runQualityAnalysis(data)
@@ -594,7 +597,7 @@ export async function runQualityBatchForSchool(
   })
 
   // Also first-run students (active students with no Quality snapshot yet)
-  const existing     = new Set(dirty.map(d => d.studentId))
+  const existing = new Set([...dirty.map(d => d.studentId), ...await studentsWithSnapshot(schoolId, AgentType.QUALITY)])
   const newStudents  = await prisma.user.findMany({
     where:  { schoolId, role: 'STUDENT', isActive: true, id: { notIn: [...existing] } },
     select: { id: true },

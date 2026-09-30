@@ -213,7 +213,10 @@ export async function runWondeSync(
     // ── 3a. Student accounts ────────────────────────────────────────────────
     // Accounts are created silently. NO email is sent from the sync: the school
     // admin sends invitations when the school is ready (/admin/invitations).
-    try {
+    // Demo schools keep their seeded sample pupils: MIS data is synced for
+    // display, but no accounts are created or linked from it.
+    const syncSchool = await prisma.school.findUnique({ where: { id: omnisSchoolId }, select: { isDemo: true } })
+    if (!syncSchool?.isDemo) try {
       let misEmails = new Map<string, string>()
       try {
         misEmails = await fetchWondeStudentEmails(wondeSchoolId, wondeToken)

@@ -8,6 +8,7 @@ import { PLACEHOLDER_EMAIL_DOMAIN, isUsableEmail } from '@/lib/accounts/placehol
 import { createActivationLink } from '@/lib/accounts/activation'
 import { sendWelcomeAccountEmail, sendParentRegistrationInviteEmail } from '@/lib/email'
 import { runBounded } from '@/lib/batch'
+import { AI_AGENTS_FLAG } from '@/lib/ai/agent-schools'
 
 const STAFF = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'COVER_MANAGER', 'TEACHER', 'TEACHING_ASSISTANT', 'SENCO']
 const ADMIN = ['SCHOOL_ADMIN', 'SLT']
@@ -45,6 +46,14 @@ export async function markSchoolLive(): Promise<void> {
   if (status.goLiveAt) return
   if (!status.readyToGoLive) throw new Error('Some required items are still outstanding.')
   await prisma.school.update({ where: { id: u.schoolId }, data: { goLiveAt: new Date(), goLiveBy: u.id } })
+  // Going live switches on the overnight AI for this school. It only analyses
+  // pupils whose records have changed, so it costs nothing until real work
+  // arrives. A platform admin can still switch it off per school.
+  await prisma.schoolFeatureFlag.upsert({
+    where:  { schoolId_flag: { schoolId: u.schoolId, flag: AI_AGENTS_FLAG } },
+    create: { schoolId: u.schoolId, flag: AI_AGENTS_FLAG, enabled: true, setBy: u.id },
+    update: { enabled: true, setAt: new Date(), setBy: u.id },
+  })
   await writeAudit({ schoolId: u.schoolId, actorId: u.id, action: 'SCHOOL_WENT_LIVE', targetType: 'school', targetId: u.schoolId })
   revalidatePath('/admin/go-live')
   revalidatePath('/admin/invitations')

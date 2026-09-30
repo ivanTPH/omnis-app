@@ -10,7 +10,7 @@ export default function GoLiveButton({ ready }: { ready: boolean }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
       <p className="text-[13px] text-gray-600 mb-3">
-        Going live lets you send invitations to pupils and open parent registration. It does not send anything by itself.
+        Going live lets you send invitations to pupils and open parent registration, and switches on Omnis’s overnight analysis (it only looks at pupils whose records have changed). It does not send anything by itself.
       </p>
       <button
         disabled={!ready || pending}

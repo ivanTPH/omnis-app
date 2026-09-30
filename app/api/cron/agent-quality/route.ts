@@ -8,8 +8,8 @@
  * when invoked via vercel.json cron, and manually below for non-Vercel callers).
  */
 
+import { getAiAgentSchools } from '@/lib/ai/agent-schools'
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma }                    from '@/lib/prisma'
 import { runQualityBatchForSchool }  from '@/lib/agents/quality'
 import { reportBatchItemFailure, reportSystemicFailure } from '@/lib/monitoring'
 import { runBounded }                                     from '@/lib/batch'
@@ -27,10 +27,8 @@ export async function GET(req: NextRequest) {
   const started = Date.now()
 
   // Fetch all active schools
-  const schools = await prisma.school.findMany({
-    where:  { isActive: true },
-    select: { id: true, name: true },
-  })
+  // Only schools with the "ai_agents" flag on — see lib/ai/agent-schools.ts
+  const schools = await getAiAgentSchools()
 
   let grandProcessed = 0
   let grandErrors    = 0

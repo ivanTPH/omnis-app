@@ -14,8 +14,8 @@
  *    publicly callable.
  */
 
+import { getAiAgentSchools } from '@/lib/ai/agent-schools'
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma }                    from '@/lib/prisma'
 import { runCoachBatchForSchool }    from '@/lib/agents/coach'
 import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
 import { runBounded } from '@/lib/batch'
@@ -32,7 +32,8 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    const schools = await prisma.school.findMany({ select: { id: true, name: true } })
+    // Only schools with the "ai_agents" flag on — see lib/ai/agent-schools.ts
+    const schools = await getAiAgentSchools()
 
     const results: Array<{
       schoolId:  string

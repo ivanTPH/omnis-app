@@ -25,6 +25,9 @@ export type AdaptiveProfileResult = {
 export async function computeAndSaveAdaptiveProfile(
   studentId: string,
   schoolId:  string,
+  // Overnight batches pass allowAi=false for schools without the "ai_agents"
+  // flag, so demo/test schools don't spend API credit (lib/ai/agent-schools.ts).
+  opts: { allowAi?: boolean } = {},
 ): Promise<AdaptiveProfileResult | null> {
   const student = await prisma.user.findFirst({
     where: { id: studentId, schoolId, role: 'STUDENT' },
@@ -173,7 +176,7 @@ export async function computeAndSaveAdaptiveProfile(
   const needsAiUpdate   = !existingProfile?.profileUpdatedAt ||
     new Date(existingProfile.profileUpdatedAt).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
 
-  if (needsAiUpdate && submittedCount >= 5) {
+  if (needsAiUpdate && submittedCount >= 5 && opts.allowAi !== false) {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (apiKey) {
       try {

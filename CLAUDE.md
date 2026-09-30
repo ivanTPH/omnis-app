@@ -2,6 +2,10 @@
 
 > Last updated: 2026-09-29. Authoritative reference for Claude sessions.
 >
+> **30 Sep 2026: overnight AI jobs are opt-in per school.** Use the `ai_agents` feature flag (Platform admin → Schools → Feature flags);
+> it is off by default. See `lib/ai/agent-schools.ts` and `docs/audit/2026-09-30-overnight-ai-cost.md`. The demo and test schools had
+> used about 99% of the API credit. `demo-advance` AI needs `DEMO_ADVANCE_AI=on`. New cron agents must use `getAiAgentSchools()`.
+>
 > **29 Sep 2026 (later): data protection changes** (see `docs/audit/2026-09-29-data-protection-changes.md`):
 > **All AI calls must use `SafeAnthropic` from `lib/ai/safe-anthropic.ts`**, never `new Anthropic(`, which
 > `lib/ai/gateway.test.ts` enforces. It swaps person names for `[N1]`-style codes before sending, restores them after,

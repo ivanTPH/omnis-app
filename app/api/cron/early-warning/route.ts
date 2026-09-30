@@ -14,6 +14,7 @@ import { analyseStudentPatterns, checkIlpTargetReviewsDue, checkEhcpReviewsDue }
 import { computeAndSaveAdaptiveProfile } from '@/lib/adaptive-profile'
 import { computeSchoolCohortAggregate } from '@/lib/cohort-aggregate'
 import { runEvidenceAgentBatch } from '@/lib/agents/evidence-agent'
+import { getAiAgentSchools } from '@/lib/ai/agent-schools'
 import { purgeExpiredInferenceCache } from '@/lib/omnis-inference'
 import { prisma } from '@/lib/prisma'
 import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
@@ -36,6 +37,9 @@ export async function GET(request: NextRequest) {
     const schools = await prisma.school.findMany({
       select: { id: true, name: true },
     })
+
+    // Schools allowed to use overnight AI (the rest get non-AI processing only).
+    const aiSchoolIds = new Set((await getAiAgentSchools()).map(s => s.id))
 
     let totalFlags = 0
     let totalIlpReviewNotifications = 0
@@ -88,7 +92,7 @@ export async function GET(request: NextRequest) {
         for (let i = 0; i < students.length; i += BATCH) {
           const batch = students.slice(i, i + BATCH)
           await Promise.allSettled(
-            batch.map(s => computeAndSaveAdaptiveProfile(s.id, school.id))
+            batch.map(s => computeAndSaveAdaptiveProfile(s.id, school.id, { allowAi: aiSchoolIds.has(school.id) }))
           )
           totalProfiles += batch.length
           if (i + BATCH < students.length) {
@@ -119,6 +123,9 @@ export async function GET(request: NextRequest) {
     let totalEvidenceStudents = 0
     let evidenceErrors = 0
     for (const school of schools) {
+      // The evidence agent is AI-only, so it runs just for schools with the
+      // "ai_agents" flag on (lib/ai/agent-schools.ts).
+      if (!aiSchoolIds.has(school.id)) continue
       try {
         const n = await runEvidenceAgentBatch(school.id)
         totalEvidenceStudents += n
@@ -152,7 +159,7 @@ export async function GET(request: NextRequest) {
       if (ehcpErrors     === schools.length) phaseFailures.push('ehcp-review-check')
       if (profileErrors  === schools.length) phaseFailures.push('profile-refresh')
       if (cohortErrors   === schools.length) phaseFailures.push('cohort-aggregate')
-      if (evidenceErrors === schools.length) phaseFailures.push('evidence-agent')
+      if (aiSchoolIds.size > 0 && evidenceErrors === aiSchoolIds.size) phaseFailures.push('evidence-agent')
     }
     if (phaseFailures.length > 0) {
       reportSystemicFailure('early-warning', `phase(s) failed for all ${schools.length} schools: ${phaseFailures.join(', ')}`, { phaseFailures, schoolCount: schools.length })

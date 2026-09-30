@@ -319,7 +319,9 @@ export async function GET(req: NextRequest) {
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY
-  const ai     = apiKey ? new SafeAnthropic({ apiKey }) : null
+  // AI-generated demo questions are off unless DEMO_ADVANCE_AI=on, so the
+  // weekly demo refresh doesn't spend API credit (falls back to templates).
+  const ai     = apiKey && process.env.DEMO_ADVANCE_AI === 'on' ? new SafeAnthropic({ apiKey }) : null
 
   // Look up demo school + teacher
   const school = await prisma.school.findFirst({

@@ -8,8 +8,8 @@
  * so the runtime and cost scale with the SEND caseload, not total enrolment.
  */
 
+import { getAiAgentSchools } from '@/lib/ai/agent-schools'
 import { NextRequest, NextResponse }       from 'next/server'
-import { prisma }                           from '@/lib/prisma'
 import { runPlanSynthesisBatchForSchool }   from '@/lib/agents/plan-synthesis'
 import { reportBatchItemFailure, reportSystemicFailure }   from '@/lib/monitoring'
 import { runBounded }                                       from '@/lib/batch'
@@ -26,10 +26,8 @@ export async function GET(req: NextRequest) {
 
   const started = Date.now()
 
-  const schools = await prisma.school.findMany({
-    where:  { isActive: true },
-    select: { id: true, name: true },
-  })
+  // Only schools with the "ai_agents" flag on — see lib/ai/agent-schools.ts
+  const schools = await getAiAgentSchools()
 
   let grandProcessed = 0
   let grandErrors    = 0

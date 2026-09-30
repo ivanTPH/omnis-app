@@ -17,11 +17,55 @@ type Section = {
   steps:   { heading: string; steps: Step[] }[]
   faqs:    FAQ[]
   links?:  { label: string; href: string }[]
+  /** Limit to these roles. Sections without it are for staff only. */
+  roles?:  string[]
 }
 
 // ── Content ───────────────────────────────────────────────────────────────────
 
 const SECTIONS: Section[] = [
+  {
+    id:    'parents',
+    title: 'Parents and carers',
+    icon:  'family_restroom',
+    roles: ['PARENT'],
+    intro: 'Omnis shows you your child\u2019s homework and progress, and lets you message their teachers. If you have more than one child at the school, you\u2019ll see each of them.',
+    steps: [
+      { heading: 'Finding your way around', steps: [
+        'Your dashboard shows what homework is due and how your child is getting on.',
+        'Progress shows marks and feedback over time.',
+        'Messages lets you contact your child\u2019s teachers and read messages from school.',
+        'Consent lets you see and change the choices you\u2019ve made about how your child\u2019s data is used.',
+      ] },
+    ],
+    faqs: [
+      { q: 'One of my children is missing.', a: 'Children are linked using the school\u2019s records. The school may hold a different email address for you on that child\u2019s record. Ask the school office to check it; the link is made overnight once it\u2019s corrected.' },
+      { q: 'I\u2019ve forgotten my password.', a: 'Sign out, then use \u201cForgot password\u201d on the sign-in page. We\u2019ll email you a link that works for one hour.' },
+      { q: 'I\u2019d like to talk about my child\u2019s support.', a: 'Please contact the school\u2019s SENCO or your child\u2019s form tutor. They can talk you through any support plan.' },
+      { q: 'Who do I contact with a question?', a: 'Contact the school first. They manage your account and can answer questions about your child.' },
+    ],
+    links: [{ label: 'Getting started and common problems', href: '/marketing/help' }],
+  },
+  {
+    id:    'pupils',
+    title: 'Pupils',
+    icon:  'school',
+    roles: ['STUDENT'],
+    intro: 'Omnis is where you find your homework, hand it in, and see your teachers\u2019 feedback. It also has revision activities to help before tests.',
+    steps: [
+      { heading: 'Doing your homework', steps: [
+        'Open Homework to see what\u2019s due, soonest first.',
+        'Click a piece of homework, answer the questions and press Submit.',
+        'When your teacher returns it, you\u2019ll see your mark and feedback.',
+      ] },
+    ],
+    faqs: [
+      { q: 'I pressed Submit by mistake.', a: 'Tell your teacher. They can return it to you so you can try again.' },
+      { q: 'I\u2019ve forgotten my password.', a: 'Use \u201cForgot password\u201d on the sign-in page and enter your school email address.' },
+      { q: 'Who can see my work?', a: 'Your teachers, and your parents or carers if they have an account. Other pupils cannot see your work. The \u201cHow your data is used\u201d page explains more.' },
+    ],
+    links: [{ label: 'Getting started and common problems', href: '/marketing/help' }],
+  },
   {
     id:    'getting-started',
     title: 'Getting Started',
@@ -377,9 +421,10 @@ export default function HelpView({ role }: { role: string }) {
   const STOPWORDS = new Set(['do','an','the','is','it','in','of','to','a','i','how','what','where','when','why','can'])
   const keywords = search.toLowerCase().trim().split(/\s+/).filter(w => w.length >= 2 && !STOPWORDS.has(w))
 
+  const visible = SECTIONS.filter(s => (s.roles ? s.roles.includes(role) : !['PARENT', 'STUDENT'].includes(role)))
   const sections = keywords.length === 0
-    ? SECTIONS
-    : SECTIONS.filter(s => {
+    ? visible
+    : visible.filter(s => {
         const haystack = [
           s.title,
           s.intro,
@@ -493,10 +538,20 @@ const ROLE_QUICKSTART: Record<string, { title: string; bullets: string[] }> = {
   SCHOOL_ADMIN: {
     title: 'Quick start — School Admin',
     bullets: [
-      'Sync your MIS data from Admin → MIS Sync (Wonde) to import staff, students, and classes.',
+      'Work through the Go-live checklist first: school details, DPO contact, Wonde, staff and a contact email for families.',
+      'Sync your MIS data from Admin → MIS Sync (Wonde) to import pupils, contacts and classes. No emails are sent by the sync.',
+      'When you are live and families have been told about Omnis, send invitations from Admin → Invitations, one year group at a time if you prefer.',
       'Manage GDPR consent records from Admin → GDPR & Consent.',
       'Review the Audit Log for a record of all significant system actions.',
       'Assign cover from Admin → Cover.',
+    ],
+  },
+  PARENT: {
+    title: 'Quick start — Parents and carers',
+    bullets: [
+      'Your dashboard shows homework and progress for each of your children.',
+      'Use Messages to contact teachers. Please allow a couple of school days for a reply.',
+      'If a child is missing, ask the school office to check the email address they hold for you.',
     ],
   },
   STUDENT: {

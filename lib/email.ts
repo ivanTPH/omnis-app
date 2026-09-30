@@ -25,6 +25,7 @@ export const BOUNCE_GUARD_RECIPIENTS = {
     'omnis-test.edu',
     'oakfield.edu',        // also matches students.oakfield.edu
     'greenfield.ac.uk',
+    'pending.omnis.invalid', // placeholder for pupils whose school email is not yet known (lib/accounts/placeholder.ts)
   ],
   emails: [
     'test.beta.e2e@gmail.com',
@@ -193,26 +194,87 @@ export async function sendStaffInvitationEmail(params: {
   )
 }
 
-/** Welcome email for a newly provisioned student or parent account. */
+const HELP_URL = 'https://omnis.education/support'
+const PRIVACY_URL = 'https://omnis.education/privacy'
+
+function contactLine(schoolName: string, contactEmail?: string | null): string {
+  return contactEmail
+    ? `If you have any questions, contact ${esc(schoolName)} at <a href="mailto:${esc(contactEmail)}">${esc(contactEmail)}</a>.`
+    : `If you have any questions, please contact ${esc(schoolName)}.`
+}
+
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function button(url: string, label: string): string {
+  return `<p><a href="${url}" style="background:#111827;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;display:inline-block;margin:8px 0;font-weight:600">${label}</a></p>`
+}
+
+function footer(schoolName: string): string {
+  return `<p style="color:#6b7280;font-size:12px;margin-top:28px;border-top:1px solid #e5e7eb;padding-top:12px">
+    Omnis is the learning platform used by ${esc(schoolName)}. Help: <a href="${HELP_URL}">omnis.education/support</a> ·
+    How we use data: <a href="${PRIVACY_URL}">omnis.education/privacy</a></p>`
+}
+
+/**
+ * Invitation to a pupil or parent/carer, sent only when the school admin
+ * chooses to (Invitations page). Never sent automatically by the MIS sync.
+ */
 export async function sendWelcomeAccountEmail(params: {
   to: string
   firstName: string
   role: 'student' | 'parent'
   schoolName: string
   activateUrl: string
-}): Promise<void> {
-  const { to, firstName, role, schoolName, activateUrl } = params
-  const roleLabel = role === 'parent' ? 'parent/carer' : 'student'
-  await send(
+  contactEmail?: string | null
+}): Promise<boolean> {
+  const { to, firstName, role, schoolName, activateUrl, contactEmail } = params
+  const body = role === 'student'
+    ? `
+    <p>Hi ${esc(firstName)},</p>
+    <p>${esc(schoolName)} now uses <strong>Omnis</strong> for homework, feedback and revision. Your account is ready.</p>
+    <p><strong>What to do now:</strong> click the button below and choose a password. It only takes a minute.</p>
+    ${button(activateUrl, 'Set up my account')}
+    <p>Once you're in, you'll see your homework, your teachers' feedback and revision activities in one place.</p>
+    <p style="color:#374151;font-size:14px">This link works for 7 days. If it runs out, go to <a href="https://omnis.education/forgot-password">omnis.education/forgot-password</a> and enter this email address to get a new one.</p>
+    <p style="color:#374151;font-size:14px">${contactLine(schoolName, contactEmail)}</p>`
+    : `
+    <p>Dear ${esc(firstName)},</p>
+    <p>${esc(schoolName)} uses <strong>Omnis</strong> to set homework and share progress with families. Your parent/carer account is ready.</p>
+    <p><strong>What to do now:</strong> click the button below and choose a password.</p>
+    ${button(activateUrl, 'Set up my account')}
+    <p>You'll be able to see your child's homework and progress, read messages from school and reply to teachers.</p>
+    <p style="color:#374151;font-size:14px">This link works for 7 days. If it runs out, go to <a href="https://omnis.education/forgot-password">omnis.education/forgot-password</a> and enter this email address to get a new one.</p>
+    <p style="color:#374151;font-size:14px">${contactLine(schoolName, contactEmail)}</p>`
+  return send(
     to,
-    `Your ${schoolName} Omnis account is ready`,
+    role === 'student' ? `Your ${schoolName} Omnis account is ready` : `Your parent account for ${schoolName} is ready`,
+    body + footer(schoolName),
+  )
+}
+
+/**
+ * Invitation to a parent/carer to register (they supply their own email at
+ * omnis.education/parents). Sent to the address the school holds on its MIS.
+ */
+export async function sendParentRegistrationInviteEmail(params: {
+  to: string
+  firstName: string
+  schoolName: string
+  contactEmail?: string | null
+}): Promise<boolean> {
+  const { to, firstName, schoolName, contactEmail } = params
+  return send(
+    to,
+    `Join ${schoolName} on Omnis`,
     `
-    <p>Hi ${firstName},</p>
-    <p>Your ${roleLabel} account on <strong>${schoolName}</strong>'s Omnis learning platform has been created.</p>
-    <p>Click below to activate your account and set a password. The link expires in 7 days.</p>
-    <p><a href="${activateUrl}" style="background:#1d4ed8;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Activate my account</a></p>
-    <p style="color:#9ca3af;font-size:12px;margin-top:24px">Omnis School Platform — ${schoolName}</p>
-    `,
+    <p>Dear ${esc(firstName)},</p>
+    <p>${esc(schoolName)} uses <strong>Omnis</strong> to set homework and share progress with families. You can now create your parent/carer account.</p>
+    <p><strong>What to do now:</strong> go to the page below and enter <strong>this email address</strong> (the one the school holds for you). We'll send you a link to choose a password.</p>
+    ${button('https://omnis.education/parents', 'Create my parent account')}
+    <p style="color:#374151;font-size:14px">If you'd like to use a different email address, ask the school office to update your details first.</p>
+    <p style="color:#374151;font-size:14px">${contactLine(schoolName, contactEmail)}</p>` + footer(schoolName),
   )
 }
 

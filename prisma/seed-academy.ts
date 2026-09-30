@@ -72,6 +72,8 @@ async function seedSchool(opts: {
       schoolGroupId: opts.groupId,
     },
   })
+  // Seeded schools are treated as live (go-live checklist: lib/go-live.ts)
+  await prisma.school.update({ where: { id: school.id }, data: { goLiveAt: new Date() } })
 
   // ── Staff ──
   const staffData: { email: string; firstName: string; lastName: string; role: Role }[] = []
@@ -189,6 +191,8 @@ async function main() {
       schoolGroupId: group.id,
     },
   })
+  // Seeded schools are treated as live (go-live checklist: lib/go-live.ts)
+  await prisma.school.update({ where: { id: hq.id }, data: { goLiveAt: new Date() } })
 
   const academyAdmin = await prisma.user.upsert({
     where:  { email: 'academy@omnis.edu' },

@@ -7,6 +7,7 @@ import OmnisLogo from '@/components/ui/OmnisLogo'
 function ResetPasswordForm() {
   const params   = useSearchParams()
   const token    = params.get('token') ?? ''
+  const welcome  = params.get('welcome') === '1'
 
   const [password,  setPassword]  = useState('')
   const [confirm,   setConfirm]   = useState('')
@@ -40,16 +41,16 @@ function ResetPasswordForm() {
           <div className="w-12 h-12 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <span className="material-icons text-green-600">check_circle</span>
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Password updated</h2>
-          <p className="text-sm text-gray-500 mb-6">Your password has been changed successfully.</p>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">{welcome ? 'Your account is ready' : 'Password updated'}</h2>
+          <p className="text-sm text-gray-500 mb-6">{welcome ? 'You can now sign in with your email address and the password you just chose.' : 'Your password has been changed successfully.'}</p>
           <Link href="/login" className="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-6 py-2.5 rounded-lg transition text-sm inline-block">
             Sign in
           </Link>
         </div>
       ) : (
         <>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Set a new password</h2>
-          <p className="text-sm text-gray-500 mb-6">Choose a strong password for your Omnis account.</p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{welcome ? 'Welcome to Omnis' : 'Set a new password'}</h2>
+          <p className="text-sm text-gray-500 mb-6">{welcome ? 'Choose a password to finish setting up your account. Use at least 8 characters, and don\u2019t reuse a password from another site.' : 'Choose a strong password for your Omnis account.'}</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
@@ -87,11 +88,13 @@ function ResetPasswordForm() {
               disabled={status === 'saving' || !token}
               className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-2.5 rounded-lg transition"
             >
-              {status === 'saving' ? 'Updating…' : 'Update password'}
+              {status === 'saving' ? 'Saving…' : welcome ? 'Set password' : 'Update password'}
             </button>
           </form>
           <p className="text-center text-sm text-gray-500 mt-4">
             <Link href="/forgot-password" className="text-blue-700 hover:underline">Request a new link</Link>
+            {' · '}
+            <Link href="/marketing/help" className="text-blue-700 hover:underline">Help signing in</Link>
           </p>
         </>
       )}

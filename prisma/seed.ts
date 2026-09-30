@@ -50,6 +50,8 @@ async function main() {
       extEndHour: 19,
     },
   })
+  // Seeded schools are treated as live (go-live checklist: lib/go-live.ts)
+  await prisma.school.update({ where: { id: school.id }, data: { goLiveAt: new Date() } })
 
   // ── Users ──────────────────────────────────────────────────────────────────
   const passwordHash = await bcrypt.hash('Demo1234!', 10)

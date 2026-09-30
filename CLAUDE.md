@@ -15,6 +15,8 @@
 >
 > **29 Sep 2026: scheduled jobs and sync fixes** (see `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`):
 > early-warning cohort aggregates fixed (Prisma rejects `null` in compound-unique `where`, so use
+> **30 Sep 2026 — invitations and go-live:** the Wonde sync no longer emails anyone. Pupils are matched by `User.wondeId`, never by name, and pupils without a known email get a `pending.omnis.invalid` placeholder. There is a go-live checklist (`lib/go-live.ts`, `/admin/go-live`, and a staff pop-up) and admin-triggered invitations (`/admin/invitations`). Parents self-register at `/parents`, checked against MIS contacts with parental responsibility. Details: `docs/audit/2026-09-30-invitations-and-go-live.md`.
+>
 > findFirst plus update/create); nightly Wonde sync added (`/api/cron/wonde-sync`, 01:15 UTC) plus a shared
 > `lib/wonde-sync-runner.ts` that only syncs the school linked to `WONDE_SCHOOL_ID`; long syncs
 > (Oak ~45 min, Wonde) now answer 202 and run via `after()`; the DSPy job strips Prisma-only URL params.

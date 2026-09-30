@@ -34,6 +34,8 @@ async function main() {
       isActive: true,
     },
   })
+  // Seeded schools are treated as live (go-live checklist: lib/go-live.ts)
+  await prisma.school.update({ where: { id: ps.id }, data: { goLiveAt: new Date() } })
   console.log(`✓ Platform school: ${ps.name} (${ps.id})`)
 
   // ── 2. Platform admin user ────────────────────────────────────────────────────

@@ -8,7 +8,6 @@ import { Role, Prisma } from '@prisma/client'
 import { AUDIT_CATEGORIES } from '@/lib/audit-categories'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
-import { runBounded } from '@/lib/batch'
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -1059,28 +1058,33 @@ export async function reactivateUser(userId: string): Promise<void> {
 }
 
 export async function resendWelcomeEmail(userId: string): Promise<void> {
-  const { schoolId } = await requireAdminOrSlt()
-  const user   = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, email: true, firstName: true, role: true, school: { select: { name: true } } } })
+  const { schoolId, id: actorId } = await requireAdminOrSlt()
+  const user   = await prisma.user.findFirst({ where: { id: userId, schoolId }, select: { id: true, email: true, firstName: true, role: true, school: { select: { name: true, goLiveAt: true, familyContactEmail: true } } } })
   if (!user) throw new Error('User not found')
+  if (user.role !== 'STUDENT' && user.role !== 'PARENT') {
+    throw new Error('Staff are invited from the staff invitation form, not from here.')
+  }
+  const { isPlaceholderEmail } = await import('@/lib/accounts/placeholder')
+  if (isPlaceholderEmail(user.email)) {
+    throw new Error('We do not have a real email address for this pupil yet. Add one (CSV import or Wonde contact details) before sending an invitation.')
+  }
+  if (!user.school.goLiveAt) {
+    throw new Error('Invitations can be sent once your school has completed the go-live checklist.')
+  }
 
-  // Invalidate previous tokens
-  await prisma.passwordResetToken.updateMany({ where: { userId, used: false }, data: { used: true } })
-
-  const raw  = crypto.randomBytes(32).toString('hex')
-  const hash = crypto.createHash('sha256').update(raw).digest('hex')
-  await prisma.passwordResetToken.create({
-    data: { userId, tokenHash: hash, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-  })
-
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  const { createActivationLink } = await import('@/lib/accounts/activation')
+  const activateUrl = await createActivationLink(userId)
   const { sendWelcomeAccountEmail } = await import('@/lib/email')
   await sendWelcomeAccountEmail({
-    to:          user.email,
-    firstName:   user.firstName,
-    role:        user.role === 'PARENT' ? 'parent' : 'student',
-    schoolName:  user.school.name,
-    activateUrl: `${baseUrl}/reset-password?token=${raw}`,
+    to:           user.email,
+    firstName:    user.firstName,
+    role:         user.role === 'PARENT' ? 'parent' : 'student',
+    schoolName:   user.school.name,
+    activateUrl,
+    contactEmail: user.school.familyContactEmail,
   })
+  await prisma.user.update({ where: { id: userId }, data: { invitedAt: new Date() } })
+  await writeAudit({ schoolId: schoolId as string, actorId, action: 'WELCOME_EMAIL_SENT', targetType: 'user', targetId: userId, metadata: { role: user.role } })
 }
 
 // ─── Item 5: Role + class assignment ─────────────────────────────────────────
@@ -1269,6 +1273,7 @@ export type ImportStudentRow = {
 export type ImportResult = {
   created: number
   skipped: number
+  updated?: number   // existing MIS pupils whose missing email was filled in
   errors:  string[]
 }
 
@@ -1281,19 +1286,10 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
   })
   if (!school) throw new Error('School not found')
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://omnis-app-ten.vercel.app'
   const result: ImportResult = { created: 0, skipped: 0, errors: [] }
 
-  // Account creation (DB writes) stays a sequential for-loop -- each row's
-  // dedupe check + writes are cheap and the ordering doesn't matter for
-  // correctness. What used to be wrong was awaiting a live email send inside
-  // this same loop: for a whole-school import (the realistic use case) that
-  // serialised minutes of pure network latency, AND a failed send caused the
-  // row to be reported as an error even though the account had already been
-  // created -- misleading, since the account genuinely exists, it just didn't
-  // get its welcome email. Emails are now queued here and sent afterwards
-  // with bounded concurrency, with their own separate success/failure tracking.
-  const emailJobs: Array<{ to: string; firstName: string; activateUrl: string; label: string }> = []
+  // Accounts are created without sending any email. The school admin sends
+  // invitations from /admin/invitations once the school has gone live.
 
   for (const row of rows) {
     try {
@@ -1305,6 +1301,28 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
 
       const existing = await prisma.user.findFirst({ where: { email } })
       if (existing) { result.skipped++; continue }
+
+      // A pupil already created from the MIS but without a real email: fill it in,
+      // but only when exactly one such pupil has this name (and year group, if given).
+      const pending = await prisma.user.findMany({
+        where: {
+          schoolId: schoolId as string, role: 'STUDENT',
+          firstName: { equals: row.firstName.trim(), mode: 'insensitive' },
+          lastName:  { equals: row.lastName.trim(),  mode: 'insensitive' },
+          email:     { endsWith: '@pending.omnis.invalid' },
+          ...(row.yearGroup ? { yearGroup: row.yearGroup } : {}),
+        },
+        select: { id: true },
+      })
+      if (pending.length === 1) {
+        await prisma.user.update({ where: { id: pending[0].id }, data: { email } })
+        result.updated = (result.updated ?? 0) + 1
+        continue
+      }
+      if (pending.length > 1) {
+        result.errors.push(`${row.firstName} ${row.lastName}: more than one pupil has this name; add the email in User Management instead`)
+        continue
+      }
 
       const placeholder = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
       const newUser = await prisma.user.create({
@@ -1334,19 +1352,7 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
         }
       }
 
-      // Create 7-day activation token
-      const raw  = crypto.randomBytes(32).toString('hex')
-      const hash = crypto.createHash('sha256').update(raw).digest('hex')
-      await prisma.passwordResetToken.create({
-        data: { userId: newUser.id, tokenHash: hash, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-      })
-
-      emailJobs.push({
-        to:          email,
-        firstName:   row.firstName.trim(),
-        activateUrl: `${baseUrl}/reset-password?token=${raw}`,
-        label:       `${row.firstName} ${row.lastName}`,
-      })
+      // No email here: invitations are sent from /admin/invitations when the school is ready.
 
       await writeAudit({
         schoolId: schoolId as string, actorId, action: 'USER_PROVISIONED',
@@ -1358,23 +1364,6 @@ export async function importStudents(rows: ImportStudentRow[]): Promise<ImportRe
     } catch (err) {
       result.errors.push(`${row.firstName} ${row.lastName}: ${String(err)}`)
     }
-  }
-
-  if (emailJobs.length > 0) {
-    const { sendWelcomeAccountEmail } = await import('@/lib/email')
-    await runBounded(emailJobs, async (job) => {
-      try {
-        await sendWelcomeAccountEmail({
-          to:          job.to,
-          firstName:   job.firstName,
-          role:        'student',
-          schoolName:  school.name,
-          activateUrl: job.activateUrl,
-        })
-      } catch (err) {
-        result.errors.push(`${job.label}: account created, but welcome email failed to send: ${String(err)}`)
-      }
-    }, 5)
   }
 
   revalidatePath('/admin/users')

@@ -54,6 +54,9 @@ const nextConfig: NextConfig = {
       { source: '/security',      destination: '/marketing/security', permanent: true },
       { source: '/subprocessors', destination: '/marketing/security#suppliers', permanent: true },
       { source: '/cookies',       destination: '/marketing/privacy#10-cookies', permanent: true },
+      { source: '/support',       destination: '/marketing/help',     permanent: true },
+      { source: '/help/start',    destination: '/marketing/help',     permanent: true },
+      { source: '/parents',       destination: '/marketing/parents',  permanent: true },
     ]
   },
 

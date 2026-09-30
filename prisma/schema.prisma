@@ -209,6 +209,9 @@ enum AuditAction {
   K_PLAN_UPDATED
   YEAR_ROLLOVER
   USER_PROVISIONED
+  INVITATIONS_SENT
+  SCHOOL_WENT_LIVE
+  PARENT_SELF_REGISTERED
   WELCOME_EMAIL_SENT
   USER_DATA_ERASED
   INTEGRITY_CASE_ESCALATED
@@ -296,7 +299,14 @@ model School {
   extStartHour Int @default(7)
   extEndHour   Int @default(19)
 
-  emailDomain String?           // e.g. "oakfield.sch.uk" — used to auto-generate student emails from Wonde
+  emailDomain String?           // school's own email domain (informational; student emails are no longer guessed from it)
+  // Go-live. Pupil and parent invitations can only be sent once the school
+  // admin has completed the required checklist and marked the school live
+  // (lib/go-live.ts). Existing schools were backfilled as live.
+  goLiveAt           DateTime?
+  goLiveBy           String?   // userId of the admin who marked the school live
+  parentSignupOpen   Boolean   @default(false) // parents may register at /parents
+  familyContactEmail String?   // school contact shown to pupils and parents in invitation emails
   allowAggregatedContribution Boolean @default(false)
 
   // School-level Data Processing Agreement signing
@@ -520,6 +530,8 @@ model User {
   dateOfBirth  DateTime?            // DOB — synced from Wonde
   isActive     Boolean  @default(true)
   activatedAt  DateTime?                    // Set on first login — null means never logged in
+  wondeId      String?  @unique             // Wonde student ID — the stable link to MIS data (never match on name)
+  invitedAt    DateTime?                    // When the school admin last sent this person an invitation
   dpaAcceptedAt   DateTime?                  // Set on first DPA acknowledgement — staff only
   termsAcceptedAt DateTime?                  // Set on first T&C/AUP acceptance — parent + student
   childNoticeAckAt DateTime?                 // Set on first dismissal of the bite-sized children's-code data notice — student only (ICO Children's Code Standard 4)

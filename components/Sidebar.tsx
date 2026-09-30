@@ -109,6 +109,8 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   SCHOOL_ADMIN: [
     { label: 'Dashboard',        href: '/admin/dashboard',  icon: 'dashboard'        },
+    { label: 'Go-live checklist', href: '/admin/go-live',   icon: 'rocket_launch'    },
+    { label: 'Invitations',      href: '/admin/invitations', icon: 'forward_to_inbox' },
     { label: 'Subjects & Boards', href: '/admin/subjects',  icon: 'school'           },
     { label: 'Revision',         href: '/revision-program', icon: 'bookmark'        },
     { label: 'Year Group Plans', href: '/plans/year-group', icon: 'menu_book'       },
@@ -142,6 +144,7 @@ const navByRole: Record<string, NavItem[]> = {
   ],
   SLT: [
     { label: 'Dashboard',          href: '/dashboard',        icon: 'dashboard'     },
+    { label: 'Go-live checklist',  href: '/admin/go-live',    icon: 'rocket_launch' },
     { label: 'Revision',           href: '/revision-program', icon: 'bookmark'      },
     { label: 'Year Group Plans',   href: '/plans/year-group', icon: 'menu_book'     },
     { divider: true, label: 'Reporting' },

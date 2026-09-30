@@ -21,8 +21,11 @@
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma, writeAudit } from '@/lib/prisma'
-import { sendWelcomeAccountEmail } from '@/lib/email'
+import { matchPupilsToAccounts } from '@/lib/accounts/student-matching'
+import { placeholderEmail, isPlaceholderEmail, isUsableEmail } from '@/lib/accounts/placeholder'
+import { linkParentToChildren } from '@/lib/accounts/parent-links'
 import {
+  fetchWondeStudentEmails,
   fetchWondeSchool,
   fetchWondeEmployees,
   fetchWondeStudents,
@@ -52,7 +55,7 @@ export interface WondeSyncResult {
   exclusions:  { upserted: number }
   assessments:  { upserted: number }
   baselines:    { upserted: number }
-  provisioned:  { students: number; parents: number }
+  provisioned: { students: number; parents: number; needsReview?: number }
   errors:       string[]
   durationMs:   number
 }
@@ -198,18 +201,85 @@ export async function runWondeSync(
     errors.push(`Employees: ${String(err)}`)
   }
 
+  // Wonde pupil ID → Omnis student account ID. Filled in step 3 and used by
+  // every later step. Pupils are matched by Wonde ID only, never by name
+  // (see lib/accounts/student-matching.ts).
+  const studentUserByWondeId = new Map<string, string>()
+
   // ── 3. Students (+ contacts) ──────────────────────────────────────────────
   try {
     const students = await fetchWondeStudents(wondeSchoolId, wondeToken)
 
-    // Pre-fetch all school student Users in one query for the photo bridge.
-    const schoolStudentUsers = await prisma.user.findMany({
-      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true },
-    })
-    const userByName = new Map(
-      schoolStudentUsers.map(u => [`${u.firstName}|${u.lastName}`, u.id])
-    )
+    // ── 3a. Student accounts ────────────────────────────────────────────────
+    // Accounts are created silently. NO email is sent from the sync: the school
+    // admin sends invitations when the school is ready (/admin/invitations).
+    try {
+      let misEmails = new Map<string, string>()
+      try {
+        misEmails = await fetchWondeStudentEmails(wondeSchoolId, wondeToken)
+      } catch {
+        // School has not granted pupil contact details in Wonde — accounts
+        // get placeholder addresses until the school adds real ones.
+      }
+      const accounts = await prisma.user.findMany({
+        where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
+        select: { id: true, firstName: true, lastName: true, wondeId: true, email: true },
+      })
+      const current = students.filter(st => !st.is_leaver)
+      const match = matchPupilsToAccounts(
+        current.map(st => ({ id: st.id, firstName: st.forename, lastName: st.surname })),
+        accounts,
+      )
+      for (const c of match.claims) {
+        await prisma.user.update({ where: { id: c.userId }, data: { wondeId: c.wondeId } })
+      }
+      for (const [wid, uid] of match.byWondeId) studentUserByWondeId.set(wid, uid)
+
+      const emailById = new Map(accounts.map(a => [a.id, a.email]))
+      for (const pupil of match.unmatched) {
+        const st = current.find(x => x.id === pupil.id)!
+        const mis = misEmails.get(pupil.id)
+        let email = placeholderEmail(pupil.id)
+        if (isUsableEmail(mis) && !(await prisma.user.findUnique({ where: { email: mis }, select: { id: true } }))) {
+          email = mis
+        }
+        const passwordHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
+        const created = await prisma.user.create({
+          data: {
+            email,
+            firstName: pupil.firstName,
+            lastName:  pupil.lastName,
+            role:      'STUDENT',
+            passwordHash,
+            schoolId:  omnisSchoolId,
+            yearGroup: yearCodeToInt(st.year?.data?.code),
+            wondeId:   pupil.id,
+          },
+        })
+        studentUserByWondeId.set(pupil.id, created.id)
+        await writeAudit({
+          schoolId: omnisSchoolId, actorId: 'wonde-sync', action: 'USER_PROVISIONED',
+          targetType: 'user', targetId: created.id,
+          metadata: { role: 'STUDENT', source: 'wonde', emailKnown: !isPlaceholderEmail(email) },
+        })
+        result.provisioned.students++
+      }
+
+      // Swap a placeholder for the school's real address once the MIS supplies one
+      for (const [wid, uid] of studentUserByWondeId) {
+        const mis = misEmails.get(wid)
+        if (!isUsableEmail(mis) || !isPlaceholderEmail(emailById.get(uid))) continue
+        const taken = await prisma.user.findUnique({ where: { email: mis }, select: { id: true } })
+        if (!taken) await prisma.user.update({ where: { id: uid }, data: { email: mis } })
+      }
+
+      if (match.ambiguous.length > 0) {
+        result.provisioned.needsReview = match.ambiguous.length
+        errors.push(`Student accounts: ${match.ambiguous.length} pupil(s) share a name with another pupil or an existing account, so they were not linked automatically. Check them in User Management.`)
+      }
+    } catch (err) {
+      errors.push(`Student accounts: ${String(err)}`)
+    }
 
     await inBatches(students, async stu => {
       const yearInt     = yearCodeToInt(stu.year?.data?.code)
@@ -256,7 +326,7 @@ export async function runWondeSync(
       // User.avatarUrl is read by homework, messaging, and SEND queries directly.
       // UserSettings.profilePictureUrl is read by the teacher class roster and AppShell.
       // Both must be set so photos appear everywhere after a Wonde sync.
-      // Match by firstName + lastName within the school (best effort for demo).
+      // Matched by Wonde ID (studentUserByWondeId), never by name.
       //
       // We store a proxy URL (/api/student-photo/{userId}) rather than the raw Wonde URL.
       // The proxy route fetches the image server-side with the Wonde API token, so the
@@ -264,7 +334,7 @@ export async function runWondeSync(
       // Bridge MIS fields (tutorGroup, dateOfBirth, photo) to User record.
       // Always update tutorGroup + dateOfBirth when a matching User exists.
       try {
-        const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
+        const matchedUserId = studentUserByWondeId.get(stu.id)
         if (matchedUserId) {
           const formGroup = stu.form_group?.data?.name ?? null
           const dob       = parseWondeDate(stu.date_of_birth)
@@ -282,7 +352,7 @@ export async function runWondeSync(
 
       if (photoUrl) {
         try {
-          const matchedUserId = userByName.get(`${stu.forename}|${stu.surname}`)
+          const matchedUserId = studentUserByWondeId.get(stu.id)
           if (matchedUserId) {
             // Store the direct Wonde CDN URL in both User.avatarUrl and
             // UserSettings.profilePictureUrl — no proxy needed; URL is publicly accessible.
@@ -533,27 +603,20 @@ export async function runWondeSync(
 
   // ── 8. SEN records ────────────────────────────────────────────────────────
   // Fetched via dedicated SEN endpoint (include=sen-needs).
-  // WondeStudentSen has no name fields — name lookup is done via WondeStudent DB records.
+  // Pupils are linked to accounts by Wonde ID (studentUserByWondeId), never by name.
   try {
     const senStudents = await fetchWondeSen(wondeSchoolId, wondeToken)
 
-    // Build WondeStudent id → name key from DB (already synced in section 3)
+    // Known WondeStudent IDs (identity map, kept so the lookups below read the same)
     const wondeStudentsForSen = await prisma.wondeStudent.findMany({
       where:  { schoolId: omnisSchoolId },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true },
     })
     const wondeNameByIdForSen = new Map(
-      wondeStudentsForSen.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+      wondeStudentsForSen.map(ws => [ws.id, ws.id])
     )
 
-    // Pre-fetch all school student Users for send status updates
-    const schoolStudentsForSen = await prisma.user.findMany({
-      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true },
-    })
-    const userByNameForSen = new Map(
-      schoolStudentsForSen.map(u => [`${u.firstName}|${u.lastName}`, u.id])
-    )
+    const userByNameForSen = studentUserByWondeId
 
     await inBatches(senStudents, async stu => {
       if (!knownStudentIds.has(stu.id)) return
@@ -624,15 +687,9 @@ export async function runWondeSync(
       where:  { schoolId: omnisSchoolId },
       select: { id: true, firstName: true, lastName: true },
     })
-    const schoolStudentsForAtt = await prisma.user.findMany({
-      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true },
-    })
-    const userByNameForAtt = new Map(
-      schoolStudentsForAtt.map(u => [`${u.firstName}|${u.lastName}`, u.id])
-    )
+    const userByNameForAtt = studentUserByWondeId
     const wondeStudentNameById = new Map(
-      wondeStudentUsers.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+      wondeStudentUsers.map(ws => [ws.id, ws.id])
     )
 
     await inBatches(summaries, async s => {
@@ -690,19 +747,13 @@ export async function runWondeSync(
     const behaviours = await fetchWondeBehaviours(wondeSchoolId, wondeToken)
 
     // Tally per-student counts then write to User + WondeBehaviourRecord
-    const schoolStudentsForBeh = await prisma.user.findMany({
-      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true },
-    })
     const wondeStudentsForBeh = await prisma.wondeStudent.findMany({
       where:  { schoolId: omnisSchoolId },
       select: { id: true, firstName: true, lastName: true },
     })
-    const userByNameForBeh = new Map(
-      schoolStudentsForBeh.map(u => [`${u.firstName}|${u.lastName}`, u.id])
-    )
+    const userByNameForBeh = studentUserByWondeId
     const wondeStudentNameByIdBeh = new Map(
-      wondeStudentsForBeh.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+      wondeStudentsForBeh.map(ws => [ws.id, ws.id])
     )
     const positiveCount = new Map<string, number>()
     const negativeCount = new Map<string, number>()
@@ -765,19 +816,13 @@ export async function runWondeSync(
   try {
     const exclusions = await fetchWondeExclusions(wondeSchoolId, wondeToken)
 
-    const schoolStudentsForExc = await prisma.user.findMany({
-      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true },
-    })
     const wondeStudentsForExc = await prisma.wondeStudent.findMany({
       where:  { schoolId: omnisSchoolId },
       select: { id: true, firstName: true, lastName: true },
     })
-    const userByNameForExc = new Map(
-      schoolStudentsForExc.map(u => [`${u.firstName}|${u.lastName}`, u.id])
-    )
+    const userByNameForExc = studentUserByWondeId
     const wondeStudentNameByIdExc = new Map(
-      wondeStudentsForExc.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+      wondeStudentsForExc.map(ws => [ws.id, ws.id])
     )
     const studentsWithExclusions = new Set<string>()
 
@@ -878,15 +923,9 @@ export async function runWondeSync(
       where:  { schoolId: omnisSchoolId },
       select: { id: true, firstName: true, lastName: true },
     })
-    const schoolUsersForBaseline = await prisma.user.findMany({
-      where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-      select: { id: true, firstName: true, lastName: true },
-    })
-    const userByNameForBaseline = new Map(
-      schoolUsersForBaseline.map(u => [`${u.firstName}|${u.lastName}`, u.id])
-    )
+    const userByNameForBaseline = studentUserByWondeId
     const wondeNameByIdForBaseline = new Map(
-      wondeStudentsForBaseline.map(ws => [ws.id, `${ws.firstName}|${ws.lastName}`])
+      wondeStudentsForBaseline.map(ws => [ws.id, ws.id])
     )
 
     // Fetch latest assessment result per (studentId, subjectName)
@@ -935,162 +974,20 @@ export async function runWondeSync(
     errors.push(`Baselines: ${String(err)}`)
   }
 
-  // ── Provisioning: create User accounts for new students + parents ───────────
+  // ── Parent links ────────────────────────────────────────────────────────
+  // Parents register themselves (/parents) once the school opens registration.
+  // Each night, make sure every registered parent is linked to all of their
+  // children, using the MIS contact records (parental responsibility only).
   try {
-    const school = await prisma.school.findUnique({
-      where:  { id: omnisSchoolId },
-      select: { id: true, name: true, emailDomain: true },
+    const parents = await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'PARENT', isActive: true },
+      select: { id: true, email: true },
     })
-    const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-
-    if (school) {
-      // ── Students ──────────────────────────────────────────────────────────
-      const wondeStudents = await prisma.wondeStudent.findMany({
-        where:  { schoolId: omnisSchoolId, isLeaver: false },
-        select: { id: true, firstName: true, lastName: true, yearGroup: true },
-      })
-
-      // Build set of existing student emails in this school
-      const existingStudentEmails = new Set(
-        (await prisma.user.findMany({
-          where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
-          select: { email: true },
-        })).map(u => u.email)
-      )
-
-      for (const ws of wondeStudents) {
-        if (!school.emailDomain) break // can't generate emails without domain
-
-        const base  = `${ws.firstName.toLowerCase().replace(/\s+/g, '')}.${ws.lastName.toLowerCase().replace(/\s+/g, '')}`
-        let   email = `${base}@students.${school.emailDomain}`
-        // Deduplicate if collision
-        let   suffix = 1
-        while (existingStudentEmails.has(email)) {
-          email = `${base}${suffix}@students.${school.emailDomain}`
-          suffix++
-        }
-        existingStudentEmails.add(email)
-
-        try {
-          const existing = await prisma.user.findFirst({ where: { email } })
-          if (existing) continue
-
-          const placeholder = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
-          const newUser = await prisma.user.create({
-            data: {
-              email,
-              firstName:    ws.firstName,
-              lastName:     ws.lastName,
-              role:         'STUDENT',
-              passwordHash: placeholder,
-              schoolId:     omnisSchoolId,
-              yearGroup:    ws.yearGroup,
-            },
-          })
-
-          const raw  = crypto.randomBytes(32).toString('hex')
-          const hash = crypto.createHash('sha256').update(raw).digest('hex')
-          await prisma.passwordResetToken.create({
-            data: {
-              userId:    newUser.id,
-              tokenHash: hash,
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            },
-          })
-
-          await sendWelcomeAccountEmail({
-            to:          email,
-            firstName:   ws.firstName,
-            role:        'student',
-            schoolName:  school.name,
-            activateUrl: `${baseUrl}/reset-password?token=${raw}`,
-          })
-
-          await writeAudit({
-            schoolId:   omnisSchoolId,
-            actorId:    'wonde-sync',
-            action:     'USER_PROVISIONED',
-            targetType: 'user',
-            targetId:   newUser.id,
-            metadata:   { role: 'STUDENT', source: 'wonde' },
-          })
-
-          result.provisioned.students++
-        } catch {
-          // Best-effort — don't fail entire sync for one student
-        }
-      }
-
-      // ── Parents (from WondeContact with email + parentalResponsibility) ──
-      const contacts = await prisma.wondeContact.findMany({
-        where:  { schoolId: omnisSchoolId, parentalResponsibility: true, email: { not: null } },
-        select: { id: true, firstName: true, lastName: true, email: true },
-      })
-
-      const existingParentEmails = new Set(
-        (await prisma.user.findMany({
-          where:  { schoolId: omnisSchoolId, role: 'PARENT' },
-          select: { email: true },
-        })).map(u => u.email)
-      )
-
-      for (const c of contacts) {
-        if (!c.email) continue
-        const email = c.email.trim().toLowerCase()
-        if (existingParentEmails.has(email)) continue
-
-        try {
-          const existing = await prisma.user.findFirst({ where: { email } })
-          if (existing) continue
-
-          const placeholder = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10)
-          const newUser = await prisma.user.create({
-            data: {
-              email,
-              firstName:    c.firstName,
-              lastName:     c.lastName,
-              role:         'PARENT',
-              passwordHash: placeholder,
-              schoolId:     omnisSchoolId,
-            },
-          })
-          existingParentEmails.add(email)
-
-          const raw  = crypto.randomBytes(32).toString('hex')
-          const hash = crypto.createHash('sha256').update(raw).digest('hex')
-          await prisma.passwordResetToken.create({
-            data: {
-              userId:    newUser.id,
-              tokenHash: hash,
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            },
-          })
-
-          await sendWelcomeAccountEmail({
-            to:          email,
-            firstName:   c.firstName,
-            role:        'parent',
-            schoolName:  school.name,
-            activateUrl: `${baseUrl}/reset-password?token=${raw}`,
-          })
-
-          await writeAudit({
-            schoolId:   omnisSchoolId,
-            actorId:    'wonde-sync',
-            action:     'USER_PROVISIONED',
-            targetType: 'user',
-            targetId:   newUser.id,
-            metadata:   { role: 'PARENT', source: 'wonde' },
-          })
-
-          result.provisioned.parents++
-        } catch {
-          // Best-effort — don't fail entire sync for one contact
-        }
-      }
+    for (const p of parents) {
+      result.provisioned.parents += await linkParentToChildren(omnisSchoolId, p.id, p.email)
     }
   } catch (err) {
-    errors.push(`Provisioning: ${String(err)}`)
+    errors.push(`Parent links: ${String(err)}`)
   }
 
   result.durationMs = Date.now() - startedAt

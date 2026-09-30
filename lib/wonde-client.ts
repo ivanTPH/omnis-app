@@ -315,3 +315,24 @@ export async function fetchWondeAssessmentResults(schoolId: string, token: strin
     per_page: '200',
   })
 }
+
+/**
+ * Pupils' own school email addresses, from Wonde's `contact_details` include.
+ * The school has to grant this permission in its Wonde portal. If it hasn't,
+ * Wonde rejects the include — callers treat that as "no emails available"
+ * rather than failing the sync.
+ */
+export async function fetchWondeStudentEmails(schoolId: string, token: string): Promise<Map<string, string>> {
+  type Row = { id: string; contact_details?: { data?: { emails?: Record<string, string | null> | null } | null } }
+  const rows = await wondeAll<Row>(`/schools/${schoolId}/students`, token, {
+    include: 'contact_details',
+    per_page: '200',
+  })
+  const out = new Map<string, string>()
+  for (const r of rows) {
+    const e = r.contact_details?.data?.emails
+    const email = e?.email ?? e?.primary ?? e?.work ?? e?.home ?? null
+    if (email) out.set(r.id, email.trim().toLowerCase())
+  }
+  return out
+}

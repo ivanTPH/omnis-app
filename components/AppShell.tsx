@@ -12,6 +12,7 @@ import { NotificationCountContext } from '@/lib/notificationCountContext'
 import { ToastContainer } from '@/components/ui/Toast'
 import GuideChatButton from '@/components/help/GuideChatButton'
 import OnboardingChecklist from '@/components/help/OnboardingChecklist'
+import GoLiveChecklistModal from '@/components/admin/GoLiveChecklistModal'
 import GlobalSearch from '@/components/GlobalSearch'
 import NotificationUnreadBadge from '@/components/notifications/NotificationUnreadBadge'
 import SessionTimeout from '@/components/SessionTimeout'
@@ -166,6 +167,7 @@ export default function AppShell({
       <ToastContainer />
       <GuideChatButton />
       <OnboardingChecklist role={role} />
+      {(STAFF_ROLES.has(role) || role === 'TEACHING_ASSISTANT' || role === 'COVER_MANAGER') && <GoLiveChecklistModal />}
       {!['STUDENT', 'PARENT', 'TEACHING_ASSISTANT'].includes(role) && <GlobalSearch />}
       <SessionTimeout />
       <DemoRoleSwitcher />

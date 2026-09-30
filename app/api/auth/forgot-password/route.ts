@@ -15,8 +15,13 @@ export async function POST(req: NextRequest) {
   const email = (body.email ?? '').trim().toLowerCase()
   if (!email) return NextResponse.json({ ok: true }) // always 200 — don't reveal existence
 
-  const user = await prisma.user.findFirst({ where: { email } })
+  const user = await prisma.user.findFirst({ where: { email }, include: { school: { select: { goLiveAt: true, isDemo: true } } } })
   if (!user) return NextResponse.json({ ok: true })
+  // Pupils and parents cannot get in before their school has gone live
+  // (invitations are sent by the school admin — see lib/go-live.ts).
+  if ((user.role === 'STUDENT' || user.role === 'PARENT') && !user.school.goLiveAt && !user.school.isDemo) {
+    return NextResponse.json({ ok: true })
+  }
 
   // Invalidate previous tokens for this user
   await prisma.passwordResetToken.updateMany({

@@ -198,6 +198,10 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
           <a href="/marketing/terms" className="hover:underline">Terms</a>
           <span className="mx-2" aria-hidden="true">·</span>
           <a href="/marketing/security" className="hover:underline">Security</a>
+          <span className="mx-2" aria-hidden="true">·</span>
+          <a href="/marketing/help" className="hover:underline">Help signing in</a>
+          <span className="mx-2" aria-hidden="true">·</span>
+          <a href="/marketing/parents" className="hover:underline">Parents: register</a>
         </p>
         {!mfaStep && showDemoProp && showDemo && (
           <div className="bg-white/10 backdrop-blur rounded-2xl p-5 space-y-4">

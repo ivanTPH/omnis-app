@@ -152,7 +152,7 @@ export default function StudentImportModal({ onClose, onImported }: {
                 <span className="font-mono bg-blue-100 px-1 rounded">class</span>
               </p>
               <p className="text-blue-600 text-[11px]">
-                Export your school MIS or student information as CSV. Students already in the system (matched by email) will be skipped.
+                Export your school MIS or student information as CSV. Students already in the system (matched by email) will be skipped. Pupils imported from your MIS without an email address will have their email filled in. No emails are sent at this stage.
               </p>
             </div>
           )}
@@ -231,13 +231,14 @@ export default function StudentImportModal({ onClose, onImported }: {
                   <p className="text-[14px] font-bold text-gray-900">Import complete</p>
                   <p className="text-[12px] text-gray-500">
                     {result.created} account{result.created !== 1 ? 's' : ''} created
+                    {result.updated ? `, ${result.updated} email address${result.updated !== 1 ? 'es' : ''} added` : ''}
                     {result.skipped > 0 ? `, ${result.skipped} already existed (skipped)` : ''}
                   </p>
                 </div>
               </div>
-              {result.created > 0 && (
+              {(result.created > 0 || (result.updated ?? 0) > 0) && (
                 <div className="bg-green-50 border border-green-100 rounded-xl p-3 text-[12px] text-green-800">
-                  Activation emails sent to all new students. They have 7 days to set their password.
+                  No emails have been sent yet. When your school is ready, send invitations from the Invitations page.
                 </div>
               )}
               {result.errors.length > 0 && (

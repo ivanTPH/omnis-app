@@ -24,8 +24,10 @@ import { prisma, writeAudit } from '@/lib/prisma'
 import { matchPupilsToAccounts } from '@/lib/accounts/student-matching'
 import { placeholderEmail, isPlaceholderEmail, isUsableEmail } from '@/lib/accounts/placeholder'
 import { linkParentToChildren } from '@/lib/accounts/parent-links'
+import { provisionStaffAndClasses, type MisClass, type ProvisionResult } from '@/lib/accounts/class-provisioning'
 import {
   fetchWondeStudentEmails,
+  fetchWondeEmployeeDetails,
   fetchWondeSchool,
   fetchWondeEmployees,
   fetchWondeStudents,
@@ -56,6 +58,7 @@ export interface WondeSyncResult {
   assessments:  { upserted: number }
   baselines:    { upserted: number }
   provisioned: { students: number; parents: number; needsReview?: number }
+  omnis?:      ProvisionResult   // staff accounts, classes, teachers and enrolments created from MIS data
   errors:       string[]
   durationMs:   number
 }
@@ -199,6 +202,18 @@ export async function runWondeSync(
     })
   } catch (err) {
     errors.push(`Employees: ${String(err)}`)
+  }
+
+  // Staff emails and who teaches which class (only if the school granted them)
+  let employeeClassIds = new Map<string, string[]>()
+  try {
+    const details = await fetchWondeEmployeeDetails(wondeSchoolId, wondeToken)
+    employeeClassIds = details.classIds
+    for (const [id, email] of details.emails) {
+      if (knownEmployeeIds.has(id)) await prisma.wondeEmployee.update({ where: { id }, data: { email } })
+    }
+  } catch (err) {
+    errors.push(`Employee details: ${String(err)}`)
   }
 
   // Wonde pupil ID → Omnis student account ID. Filled in step 3 and used by
@@ -458,8 +473,16 @@ export async function runWondeSync(
 
   // ── 5. Classes (+ enrolments) ─────────────────────────────────────────────
   // FK existence is checked via in-memory Sets — no per-class findUnique calls.
+  const misClasses: MisClass[] = []
   try {
     const classes = await fetchWondeClasses(wondeSchoolId, wondeToken)
+    for (const c of classes) {
+      misClasses.push({
+        id: c.id, name: c.name, subject: c.subject?.data?.name ?? null,
+        yearGroup: yearCodeToInt(c.year?.data?.code),
+        pupilIds: (c.students?.data ?? []).map(st => st.id),
+      })
+    }
 
     // Pass 1: upsert all classes in parallel batches
     await inBatches(classes, async cls => {
@@ -975,6 +998,22 @@ export async function runWondeSync(
     })
   } catch (err) {
     errors.push(`Baselines: ${String(err)}`)
+  }
+
+  // ── Omnis staff, classes, teachers and enrolments ────────────────────────
+  // Not for demo schools (they keep their seeded classes). No emails are sent.
+  try {
+    const sch = await prisma.school.findUnique({ where: { id: omnisSchoolId }, select: { isDemo: true } })
+    if (!sch?.isDemo && misClasses.length > 0) {
+      result.omnis = await provisionStaffAndClasses({
+        schoolId: omnisSchoolId, classes: misClasses, employeeClassIds, studentUserByWondeId,
+      })
+      if (result.omnis.staffWithoutEmail > 0) {
+        errors.push(`Staff: ${result.omnis.staffWithoutEmail} teacher(s) have no email address in the MIS, so no Omnis account was created. Grant staff contact details in Wonde or add them by hand.`)
+      }
+    }
+  } catch (err) {
+    errors.push(`Omnis classes: ${String(err)}`)
   }
 
   // ── Parent links ────────────────────────────────────────────────────────

@@ -44,7 +44,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
   if (!school) throw new Error('School not found')
 
   const [
-    wondeLink, lastGoodSync, pupils, pupilsWithEmail, misClasses, omnisClasses,
+    wondeLink, lastGoodSync, pupils, pupilsWithEmail, misClasses, omnisClasses, classesNoTeacher,
     subjectConfigs, calendarEntries, sencos, teachers, admins, retentionReviewed,
   ] = await Promise.all([
     prisma.wondeSchool.findUnique({ where: { schoolId }, select: { id: true } }),
@@ -57,6 +57,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
     prisma.user.count({ where: { schoolId, role: 'STUDENT', isActive: true, NOT: { email: { endsWith: `@${PLACEHOLDER_EMAIL_DOMAIN}` } } } }),
     prisma.wondeClass.count({ where: { schoolId } }),
     prisma.schoolClass.count({ where: { schoolId } }),
+    prisma.schoolClass.count({ where: { schoolId, teachers: { none: {} } } }),
     prisma.subjectConfig.count({ where: { schoolId } }),
     prisma.schoolCalendar.count({ where: { schoolId } }),
     prisma.user.count({ where: { schoolId, role: 'SENCO', isActive: true } }),
@@ -104,10 +105,12 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
     {
       key: 'classes', required: true, who: 'Automatic (Wonde sync), checked by the school', href: '/admin/classes',
       label: 'Classes and teaching groups',
-      done: misClasses > 0 || omnisClasses > 0,
-      detail: misClasses + omnisClasses > 0
-        ? `${misClasses} classes from the MIS${omnisClasses ? `, ${omnisClasses} set up in Omnis` : ''}. Check that teachers see the right classes.`
-        : 'No classes yet. They arrive with the Wonde sync, or can be added by hand.',
+      done: omnisClasses > 0,
+      detail: omnisClasses > 0
+        ? `${omnisClasses} classes in Omnis${classesNoTeacher ? `; ${classesNoTeacher} have no teacher yet (check Wonde permissions for staff classes, or add teachers on the Classes page)` : ''}. Ask a few teachers to check their classes.`
+        : misClasses > 0
+          ? `${misClasses} classes in the MIS, but none set up in Omnis yet. They are created at the next Wonde sync.`
+          : 'No classes yet. They arrive with the Wonde sync, or can be added by hand.',
     },
     {
       key: 'staff', required: true, who: 'School admin', href: '/admin/staff',

@@ -8,7 +8,7 @@
  * when invoked via vercel.json cron, and manually below for non-Vercel callers).
  */
 
-import { getAiAgentSchools } from '@/lib/ai/agent-schools'
+import { getAiAgentSchools, isAgentRunDay } from '@/lib/ai/agent-schools'
 import { NextRequest, NextResponse } from 'next/server'
 import { runQualityBatchForSchool }  from '@/lib/agents/quality'
 import { reportBatchItemFailure, reportSystemicFailure } from '@/lib/monitoring'
@@ -22,6 +22,11 @@ export async function GET(req: NextRequest) {
 
   if (!secret || authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Coach, quality and engage run on set days only (lib/ai/agent-schools.ts)
+  if (!isAgentRunDay()) {
+    return NextResponse.json({ skipped: true, reason: 'Not an agent run day (AGENT_RUN_DAYS)' })
   }
 
   const started = Date.now()

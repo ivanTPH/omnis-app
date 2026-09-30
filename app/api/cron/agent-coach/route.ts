@@ -14,7 +14,7 @@
  *    publicly callable.
  */
 
-import { getAiAgentSchools } from '@/lib/ai/agent-schools'
+import { getAiAgentSchools, isAgentRunDay } from '@/lib/ai/agent-schools'
 import { NextRequest, NextResponse } from 'next/server'
 import { runCoachBatchForSchool }    from '@/lib/agents/coach'
 import { reportBatchItemFailure, reportSystemicFailure, reportFatalError } from '@/lib/monitoring'
@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
   const auth = request.headers.get('authorization')
   if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Coach, quality and engage run on set days only (lib/ai/agent-schools.ts)
+  if (!isAgentRunDay()) {
+    return NextResponse.json({ skipped: true, reason: 'Not an agent run day (AGENT_RUN_DAYS)' })
   }
 
   const startTime = Date.now()

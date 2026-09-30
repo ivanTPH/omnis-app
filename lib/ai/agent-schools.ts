@@ -34,3 +34,17 @@ export async function schoolHasAiAgents(schoolId: string): Promise<boolean> {
   })
   return !!flag?.enabled
 }
+
+/**
+ * Days (UTC, 0=Sunday) on which the high-volume pupil agents (coach, quality,
+ * engage) run. Default Monday, Wednesday and Friday: each pupil's new work is
+ * batched into one analysis, which roughly halves the AI cost compared with
+ * nightly runs while keeping insights at most two days old. Override with
+ * AGENT_RUN_DAYS, e.g. "0,1,2,3,4,5,6" for nightly. SEND plan and evidence
+ * checks are low-volume and still run every night.
+ */
+export function isAgentRunDay(now = new Date()): boolean {
+  const raw = process.env.AGENT_RUN_DAYS ?? '1,3,5'
+  const days = raw.split(',').map(d => parseInt(d.trim(), 10)).filter(n => n >= 0 && n <= 6)
+  return days.includes(now.getUTCDay())
+}

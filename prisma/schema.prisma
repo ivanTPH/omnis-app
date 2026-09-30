@@ -692,6 +692,7 @@ model SchoolClass {
   department String
   examBoard  String?
   examModules String[]
+  wondeClassId String? @unique // MIS class this was created from (lib/accounts/class-provisioning.ts)
 
   teachers              ClassTeacher[]
   enrolments            Enrolment[]

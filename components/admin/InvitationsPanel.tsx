@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  sendPupilInvitations, sendParentInvitations, setParentRegistration, setFamilyContactEmail,
+  sendPupilInvitations, sendParentInvitations, setParentRegistration, setFamilyContactEmail, sendStaffInvitations,
   type InvitationOverview,
 } from '@/app/actions/go-live'
 
@@ -47,6 +47,32 @@ export default function InvitationsPanel({ overview }: { overview: InvitationOve
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[13px]" />
           <button disabled={pending} onClick={() => run('Saving', async () => { await setFamilyContactEmail(contact); return 'Contact email saved.' })}
             className="px-4 py-2 rounded-lg bg-gray-900 text-white text-[13px] font-semibold disabled:opacity-40">Save</button>
+        </div>
+      </section>
+
+      <section className="bg-white border border-gray-200 rounded-xl p-5">
+        <h2 className="text-[15px] font-bold text-gray-900 mb-1">Staff</h2>
+        <p className="text-[12px] text-gray-500 mb-3">
+          {overview.staff.total} staff accounts: {overview.staff.activated} signed in, {overview.staff.invited} invited.
+          Teachers are created from your MIS with their classes already set up. You can invite staff before going live, so they can prepare.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            disabled={pending}
+            onClick={() => {
+              if (!confirm('Send set-up emails to staff who have not been invited yet?')) return
+              run('Sending', async () => { const r = await sendStaffInvitations({ resend: false }); return `Sent ${r.sent} staff invitation(s).${r.failed ? ` ${r.failed} could not be sent.` : ''}` })
+            }}
+            className="px-4 py-2 rounded-lg bg-gray-900 text-white text-[13px] font-semibold disabled:opacity-40"
+          >Invite staff</button>
+          <button
+            disabled={pending}
+            onClick={() => {
+              if (!confirm('Resend set-up emails to staff who have not signed in yet?')) return
+              run('Sending', async () => { const r = await sendStaffInvitations({ resend: true }); return `Sent ${r.sent} staff reminder(s).${r.failed ? ` ${r.failed} could not be sent.` : ''}` })
+            }}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-[13px] font-medium text-gray-700 disabled:opacity-40"
+          >Resend to staff who haven’t signed in</button>
         </div>
       </section>
 

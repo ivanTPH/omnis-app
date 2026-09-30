@@ -6,8 +6,9 @@ import { prisma, writeAudit } from '@/lib/prisma'
 import { getGoLiveStatus, type GoLiveStatus } from '@/lib/go-live'
 import { PLACEHOLDER_EMAIL_DOMAIN, isUsableEmail } from '@/lib/accounts/placeholder'
 import { createActivationLink } from '@/lib/accounts/activation'
-import { sendWelcomeAccountEmail, sendParentRegistrationInviteEmail } from '@/lib/email'
+import { sendWelcomeAccountEmail, sendParentRegistrationInviteEmail, sendStaffWelcomeEmail } from '@/lib/email'
 import { runBounded } from '@/lib/batch'
+import type { Role } from '@prisma/client'
 import { AI_AGENTS_FLAG } from '@/lib/ai/agent-schools'
 
 const STAFF = ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'COVER_MANAGER', 'TEACHER', 'TEACHING_ASSISTANT', 'SENCO']
@@ -72,6 +73,7 @@ export type YearRow = {
 }
 
 export type InvitationOverview = {
+  staff:              { total: number; withEmail: number; invited: number; activated: number }
   live:               boolean
   parentSignupOpen:   boolean
   familyContactEmail: string | null
@@ -96,6 +98,16 @@ export async function getInvitationOverview(): Promise<InvitationOverview> {
     }),
   ])
   const registered = new Set(parents.map(p => p.email.toLowerCase()))
+  const staffUsers = await prisma.user.findMany({
+    where:  { schoolId: u.schoolId, isActive: true, role: { in: STAFF as Role[] } },
+    select: { email: true, invitedAt: true, activatedAt: true },
+  })
+  const staff = {
+    total:     staffUsers.length,
+    withEmail: staffUsers.filter(s => isUsableEmail(s.email)).length,
+    invited:   staffUsers.filter(s => s.invitedAt).length,
+    activated: staffUsers.filter(s => s.activatedAt).length,
+  }
 
   const rows = new Map<number | null, YearRow>()
   const row = (y: number | null) => {
@@ -122,6 +134,7 @@ export async function getInvitationOverview(): Promise<InvitationOverview> {
   }
 
   return {
+    staff,
     live:               !!school?.goLiveAt || !!school?.isDemo,
     parentSignupOpen:   !!school?.parentSignupOpen,
     familyContactEmail: school?.familyContactEmail ?? null,
@@ -224,6 +237,39 @@ export async function sendParentInvitations(input: { yearGroups: number[] }): Pr
   await writeAudit({
     schoolId: u.schoolId, actorId: u.id, action: 'INVITATIONS_SENT', targetType: 'school', targetId: u.schoolId,
     metadata: { audience: 'parents', yearGroups: input.yearGroups, sent, failed },
+  })
+  revalidatePath('/admin/invitations')
+  return { sent, failed }
+}
+
+/**
+ * Set-up emails for staff who haven't signed in yet (for example accounts
+ * created from the MIS). Allowed before go-live, so staff can prepare.
+ */
+export async function sendStaffInvitations(input: { resend: boolean }): Promise<{ sent: number; failed: number }> {
+  const u = await requireAdmin()
+  const school = await prisma.school.findUnique({ where: { id: u.schoolId }, select: { name: true, familyContactEmail: true } })
+  const staff = await prisma.user.findMany({
+    where: {
+      schoolId: u.schoolId, isActive: true, activatedAt: null, role: { in: STAFF as Role[] },
+      id: { not: u.id },
+      ...(input.resend ? {} : { invitedAt: null }),
+    },
+    select: { id: true, email: true, firstName: true },
+  })
+  let sent = 0, failed = 0
+  await runBounded(staff.filter(s => isUsableEmail(s.email)), async s => {
+    try {
+      const url = await createActivationLink(s.id)
+      const ok = await sendStaffWelcomeEmail({ to: s.email, firstName: s.firstName, schoolName: school!.name, activateUrl: url, contactEmail: school!.familyContactEmail })
+      if (!ok) { failed++; return }
+      await prisma.user.update({ where: { id: s.id }, data: { invitedAt: new Date() } })
+      sent++
+    } catch { failed++ }
+  }, 5)
+  await writeAudit({
+    schoolId: u.schoolId, actorId: u.id, action: 'INVITATIONS_SENT', targetType: 'school', targetId: u.schoolId,
+    metadata: { audience: 'staff', sent, failed },
   })
   revalidatePath('/admin/invitations')
   return { sent, failed }

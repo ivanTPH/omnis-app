@@ -25,3 +25,14 @@
 
 ## Still to check with the trial school
 - Wonde classes are not yet turned into Omnis `SchoolClass` and `Enrolment` rows, and staff accounts are not created from Wonde employees. Before the trial, confirm with the Wonde test school how teachers will see their classes.
+
+## Update (30 Sep, evening): classes, teachers and AI run days
+- **Classes and teachers from the MIS** (`lib/accounts/class-provisioning.ts`, run at the end of each Wonde sync, but not for demo schools):
+  - Teachers become `TEACHER` accounts, linked by `User.wondeId` or claimed by email. Only staff who teach or are flagged as teachers get accounts. No emails are sent.
+  - Wonde classes become `SchoolClass` rows (`wondeClassId`, unique). A class's year group comes from its pupils when the MIS doesn't give one.
+  - Teachers are linked with `ClassTeacher` and pupils with `Enrolment`. When the MIS changes, only MIS-managed links are removed; anything added by hand in Omnis stays.
+- **Where teachers come from:** Wonde employee includes `contact_details` and `classes` (each combination is tried in turn), plus timetable entries and the class's own teacher.
+- **Staff invitations:** a new Staff section on `/admin/invitations`. Staff can be invited before the school goes live.
+- **Go live** turns on the `ai_agents` flag for that school.
+- **AI run days:** coach, quality and engage run on Monday, Wednesday and Friday only (`AGENT_RUN_DAYS`, default `1,3,5`). SEND plan and evidence checks run nightly, and only for records that have changed.
+- **Rehearsal school:** "Omnis Trial Rehearsal" (`school-trial-rehearsal`) now holds the Wonde test-school link and data, moved from Omnis Demo School. Its admin is ivan@omnis.education, who sets a password via Forgot password.

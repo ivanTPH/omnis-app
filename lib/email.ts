@@ -255,6 +255,33 @@ export async function sendWelcomeAccountEmail(params: {
 }
 
 /**
+ * Set-up email for a member of staff whose account was created from the MIS.
+ * Sent only when the school admin chooses (Invitations page). Staff can be
+ * invited before the school goes live, so they can prepare.
+ */
+export async function sendStaffWelcomeEmail(params: {
+  to: string
+  firstName: string
+  schoolName: string
+  activateUrl: string
+  contactEmail?: string | null
+}): Promise<boolean> {
+  const { to, firstName, schoolName, activateUrl, contactEmail } = params
+  return send(
+    to,
+    `Your Omnis account at ${schoolName}`,
+    `
+    <p>Hi ${esc(firstName)},</p>
+    <p>${esc(schoolName)} is setting up <strong>Omnis</strong>, a platform for homework, feedback and SEND support. Your staff account is ready, with your classes already set up from the school\u2019s MIS.</p>
+    <p><strong>What to do now:</strong> click the button below and choose a password.</p>
+    ${button(activateUrl, 'Set up my account')}
+    <p>Each time you sign in, we\u2019ll also email you a 6-digit code. This keeps pupil information safe.</p>
+    <p>Please check that your classes look right, and tell your school\u2019s Omnis lead if anything is missing.</p>
+    <p style="color:#374151;font-size:14px">This link works for 7 days. ${contactLine(schoolName, contactEmail)}</p>` + footer(schoolName),
+  )
+}
+
+/**
  * Invitation to a parent/carer to register (they supply their own email at
  * omnis.education/parents). Sent to the address the school holds on its MIS.
  */

@@ -336,3 +336,39 @@ export async function fetchWondeStudentEmails(schoolId: string, token: string): 
   }
   return out
 }
+
+/**
+ * Staff email addresses and the classes each member of staff teaches.
+ * Uses Wonde's `contact_details` and `classes` includes on employees. A school
+ * may not have granted one of them, so each combination is tried in turn and
+ * whatever is available is returned (never throws).
+ */
+export async function fetchWondeEmployeeDetails(schoolId: string, token: string): Promise<{
+  emails: Map<string, string>
+  classIds: Map<string, string[]>
+  include: string | null
+}> {
+  type Row = {
+    id: string
+    contact_details?: { data?: { emails?: Record<string, string | null> | null } | null }
+    classes?: { data?: Array<{ id: string }> }
+  }
+  for (const include of ['contact_details,classes', 'classes', 'contact_details']) {
+    try {
+      const rows = await wondeAll<Row>(`/schools/${schoolId}/employees`, token, { include, per_page: '100' })
+      const emails = new Map<string, string>()
+      const classIds = new Map<string, string[]>()
+      for (const r of rows) {
+        const e = r.contact_details?.data?.emails
+        const email = e?.email ?? e?.work ?? e?.primary ?? null
+        if (email) emails.set(r.id, email.trim().toLowerCase())
+        const cs = r.classes?.data?.map(c => c.id) ?? []
+        if (cs.length) classIds.set(r.id, cs)
+      }
+      return { emails, classIds, include }
+    } catch {
+      // include not permitted for this school — try the next combination
+    }
+  }
+  return { emails: new Map(), classIds: new Map(), include: null }
+}

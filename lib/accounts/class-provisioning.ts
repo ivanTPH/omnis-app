@@ -117,7 +117,7 @@ export async function provisionStaffAndClasses(opts: {
       select: { id: true },
     })
     await writeAudit({
-      schoolId, actorId: 'wonde-sync', action: 'USER_PROVISIONED',
+      schoolId, actorId: created.id, action: 'USER_PROVISIONED', // actorId must be a real user (FK); source is in metadata
       targetType: 'user', targetId: created.id, metadata: { role: 'TEACHER', source: 'wonde' },
     })
     userByEmployee.set(e.id, created.id)

@@ -66,13 +66,16 @@ export async function GET(request: NextRequest) {
     try {
       const r = await runRolloverForSchool(school.id)
       results.push({ schoolId: school.id, schoolName: school.name, ...r })
-      await writeAudit({
+      // AuditLog.actorId must reference a real user, so record it against the
+      // school's admin (the scheduled job itself is noted in metadata).
+      const admin = await prisma.user.findFirst({ where: { schoolId: school.id, role: 'SCHOOL_ADMIN' }, select: { id: true } })
+      if (admin) await writeAudit({
         schoolId:   school.id,
-        actorId:    'cron',
+        actorId:    admin.id,
         action:     'YEAR_ROLLOVER',
         targetType: 'school',
         targetId:   school.id,
-        metadata:   r,
+        metadata:   { ...r, source: 'cron' },
       })
     } catch (err) {
       errors.push(`${school.name}: ${String(err)}`)

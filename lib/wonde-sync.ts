@@ -276,7 +276,7 @@ export async function runWondeSync(
         })
         studentUserByWondeId.set(pupil.id, created.id)
         await writeAudit({
-          schoolId: omnisSchoolId, actorId: 'wonde-sync', action: 'USER_PROVISIONED',
+          schoolId: omnisSchoolId, actorId: created.id, action: 'USER_PROVISIONED', // AuditLog.actorId must be a real user; the actor (the MIS sync) is recorded in metadata
           targetType: 'user', targetId: created.id,
           metadata: { role: 'STUDENT', source: 'wonde', emailKnown: !isPlaceholderEmail(email) },
         })

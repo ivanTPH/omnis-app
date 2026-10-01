@@ -111,6 +111,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Dashboard',        href: '/admin/dashboard',  icon: 'dashboard'        },
     { label: 'Go-live checklist', href: '/admin/go-live',   icon: 'rocket_launch'    },
     { label: 'Invitations',      href: '/admin/invitations', icon: 'forward_to_inbox' },
+    { label: 'Check MIS data',   href: '/admin/mis-review', icon: 'fact_check'       },
     { label: 'Subjects & Boards', href: '/admin/subjects',  icon: 'school'           },
     { label: 'Revision',         href: '/revision-program', icon: 'bookmark'        },
     { label: 'Year Group Plans', href: '/plans/year-group', icon: 'menu_book'       },

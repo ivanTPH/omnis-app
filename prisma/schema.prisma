@@ -1667,6 +1667,7 @@ model WondeSyncLog {
   status           String
   recordsProcessed Int       @default(0)
   errors           Json      @default("[]")
+  summary          Json?     // plain counts for the admin "Check MIS data" page (lib/mis-review.ts)
   startedAt        DateTime  @default(now())
   completedAt      DateTime?
 

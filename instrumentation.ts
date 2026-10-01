@@ -9,6 +9,10 @@ import * as Sentry from '@sentry/nextjs'
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     await import('./sentry.server.config')
+    // Nightly and weekly jobs run inside the server (lib/scheduler). GitHub
+    // Actions ran them hours late; those workflows are now manual-only.
+    const { startScheduler } = await import('./lib/scheduler/runner')
+    startScheduler()
   }
 
   if (process.env.NEXT_RUNTIME === 'edge') {

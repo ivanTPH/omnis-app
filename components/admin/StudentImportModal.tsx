@@ -55,6 +55,10 @@ function parseRows(csv: string): { rows: ImportStudentRow[]; errors: string[] } 
     const lastName  = cells[colIdx.lastName]?.trim()  ?? ''
     const email     = cells[colIdx.email]?.trim()     ?? ''
 
+    // A pupil row with no email yet (e.g. from the "pupils without an email"
+    // download) is simply left out, not treated as an error.
+    if (firstName && lastName && !email) continue
+
     if (!firstName || !lastName || !email) {
       errors.push(`Row ${i + 2}: missing required field (firstName, lastName, email)`)
       continue

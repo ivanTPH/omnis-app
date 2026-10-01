@@ -75,6 +75,14 @@ export async function runLoggedWondeSync(
         status:           result.errors.length > 0 ? 'partial' : 'success',
         recordsProcessed: totalRecords(result),
         errors:           result.errors,
+        summary: {
+          counts: {
+            students: result.students.upserted, employees: result.employees.upserted,
+            classes: result.classes.upserted, contacts: result.contacts.upserted,
+          },
+          provisioned: result.provisioned,
+          omnis: result.omnis ?? null,
+        },
         completedAt:      new Date(),
       },
     })

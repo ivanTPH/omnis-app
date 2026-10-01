@@ -1,16 +1,10 @@
 name: Cron Jobs - Agents
 
 on:
+  # Schedules now run inside the Omnis server (lib/scheduler/jobs.ts).
+  # Only the DSPy job stays here because it needs Python.
   schedule:
-    - cron: '0 2 * * 0'
-    - cron: '0 5 * * 0'
-    - cron: '0 6 * * 1-5'
-    - cron: '30 2 * * *'
-    - cron: '0 3 * * *'
-    - cron: '30 3 * * *'
-    - cron: '0 4 * * *'
     - cron: '30 2 * * 0'
-    - cron: '15 1 * * *'
   push:
     branches: [main]
   workflow_dispatch:

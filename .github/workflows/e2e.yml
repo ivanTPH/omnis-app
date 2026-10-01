@@ -14,11 +14,11 @@ jobs:
       deployment_uuid: ${{ steps.trigger.outputs.deployment_uuid || '' }}
 
     steps:
-      - name: Trigger Coolify deploy
-        run: |
-          curl -s -X GET \
-            "http://165.232.96.51:8000/api/v1/deploy?uuid=${{ secrets.COOLIFY_APP_UUID }}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+      # No deploy trigger here: Coolify already deploys on every push (webhook).
+      # Triggering a second deploy started two builds at once, and the webhook
+      # build regularly failed. This job now only waits for the new container.
+      - name: Note
+        run: echo "Coolify deploys via its own webhook; waiting for the new container."
 
       - name: Wait for new container + warm all auth paths
         # Docker build (3-stage) takes ~6-8 min. Wait 7 min for the build, then:

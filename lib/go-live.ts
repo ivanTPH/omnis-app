@@ -91,7 +91,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
       label: 'Wonde access approved and MIS connected',
       done: !!wondeLink && !!syncDate,
       detail: !wondeLink
-        ? 'Approve Omnis in your Wonde portal, including pupils, contacts, classes, timetable and SEN. Then connect it here.'
+        ? 'Approve Omnis in your Wonde portal: pupils and pupil contact details, parents/carers, staff and staff contact details, classes with their teachers, timetable and SEN. Then connect it here.'
         : syncDate
           ? `Last successful MIS sync: ${syncDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.`
           : 'Wonde is connected but no sync has completed yet. Run a sync from the Wonde page.',
@@ -103,7 +103,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
       detail: pupils > 0 ? `${pupils} pupil records.` : 'No pupils yet. They arrive with the first Wonde sync.',
     },
     {
-      key: 'classes', required: true, who: 'Automatic (Wonde sync), checked by the school', href: '/admin/classes',
+      key: 'classes', required: true, who: 'Automatic (Wonde sync), checked by the school', href: '/admin/mis-review#classes',
       label: 'Classes and teaching groups',
       done: omnisClasses > 0,
       detail: omnisClasses > 0
@@ -113,7 +113,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
           : 'No classes yet. They arrive with the Wonde sync, or can be added by hand.',
     },
     {
-      key: 'staff', required: true, who: 'School admin', href: '/admin/staff',
+      key: 'staff', required: true, who: 'School admin', href: '/admin/mis-review#staff',
       label: 'Key staff accounts',
       done: admins > 0 && sencos > 0 && teachers > 0,
       detail: `School admin: ${admins}. SENCO: ${sencos}. Teachers and leaders: ${teachers}. At least one of each is needed.`,
@@ -145,7 +145,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
       detail: retentionReviewed > 0 ? 'Retention schedule confirmed.' : 'Check the default retention periods (IRMS toolkit) match your school’s policy.',
     },
     {
-      key: 'pupil-emails', required: false, who: 'School admin or IT', href: '/admin/invitations',
+      key: 'pupil-emails', required: false, who: 'School admin or IT', href: '/admin/mis-review#pupil-emails',
       label: 'Pupil email addresses',
       done: pupils > 0 && pupilsWithEmail === pupils,
       detail: pupils === 0

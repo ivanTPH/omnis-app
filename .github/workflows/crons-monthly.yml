@@ -1,12 +1,8 @@
 name: Cron Jobs - Monthly
 
 on:
-  schedule:
-    - cron: '0 8 1 * *'
-    - cron: '30 8 1 * *'
-    - cron: '0 0 * * 1'
-    - cron: '30 0 * * 1'
-    - cron: '30 9 * * *'
+  # Schedules now run inside the Omnis server (lib/scheduler/jobs.ts).
+  # This workflow is kept for manual runs (Actions → Run workflow).
   push:
     branches: [main]
   workflow_dispatch:

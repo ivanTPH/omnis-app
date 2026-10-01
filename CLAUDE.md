@@ -15,6 +15,13 @@
 >
 > **29 Sep 2026: scheduled jobs and sync fixes** (see `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`):
 > early-warning cohort aggregates fixed (Prisma rejects `null` in compound-unique `where`, so use
+> **1 Oct 2026 (pm): class choice, name review, demo AI.**
+> - Admins choose which MIS classes to import (`School.misClassImport`, `lib/accounts/class-filter.ts`). Teaching classes are always imported; form groups are on by default.
+> - Form groups missing from the MIS classes are built from pupils' `formGroup` (`wondeClassId` `form:<schoolId>:<name>`).
+> - `ClassTeacher.fromMis` / `Enrolment.fromMis`: the sync removes only links it created.
+> - Pupils whose names are ambiguous are reviewed at `/admin/mis-review#same-name`. They are linked or created there and appear on the go-live checklist.
+> - The demo school gets weekly AI on Mondays (`isDemoAiRun`), for changed pupils only. demo-advance AI is on by default. `DEMO_AI=off` stops both.
+>
 > **1 Oct 2026: scheduler and MIS review.**
 > - Nightly and weekly jobs run in-process (`lib/scheduler/jobs.ts`, started from `instrumentation.ts`; disable with `IN_APP_CRON=off`). The GitHub cron workflows are manual-only, except the weekly DSPy job.
 > - Accounts, classes, ClassTeacher and Enrolment rows are created from Wonde (`lib/accounts/class-provisioning.ts`), but not for demo schools.

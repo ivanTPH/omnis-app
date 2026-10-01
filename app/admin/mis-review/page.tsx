@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { requireAuth } from '@/lib/session'
 import AppShell from '@/components/AppShell'
 import { getMisReview } from '@/lib/mis-review'
-import { ClassTeacherAssigner, StaffRoleEditor } from '@/components/admin/MisReviewControls'
+import { ClassTeacherAssigner, StaffRoleEditor, ClassImportForm, PupilNameReview } from '@/components/admin/MisReviewControls'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,6 +50,14 @@ export default async function MisReviewPage() {
           )}
         </section>
 
+        <section id="class-choice" className="bg-white border border-gray-200 rounded-xl p-5">
+          <h2 className="text-[15px] font-bold text-gray-900 mb-1">Which MIS classes to bring in</h2>
+          <p className="text-[12px] text-gray-500 mb-3">
+            Omnis brings in teaching classes and, if you choose, form groups. Other MIS groups are left out.
+          </p>
+          <ClassImportForm view={r.classImport} />
+        </section>
+
         <section id="classes" className="bg-white border border-gray-200 rounded-xl p-5">
           <h2 className="text-[15px] font-bold text-gray-900 mb-1">Classes without a teacher</h2>
           <p className="text-[12px] text-gray-500 mb-3">
@@ -67,6 +75,21 @@ export default async function MisReviewPage() {
             Staff from the MIS start as teachers. Set the SENCO, heads of department and heads of year so they see the right pages.
           </p>
           <StaffRoleEditor staff={r.staff} />
+        </section>
+
+        <section id="same-name" className="bg-white border border-gray-200 rounded-xl p-5">
+          <h2 className="text-[15px] font-bold text-gray-900 mb-1">Pupils to check by hand</h2>
+          {r.nameReview.length === 0 ? (
+            <p className="text-[13px] text-green-800">Every MIS pupil is linked safely. Nothing to check.</p>
+          ) : (
+            <>
+              <p className="text-[12px] text-gray-500 mb-3">
+                These pupils have the same name as an existing Omnis account that isn&rsquo;t linked to your MIS, so Omnis didn&rsquo;t guess.
+                Check the year group and date of birth, then link them or create a new account. Until then they have no account and aren&rsquo;t in any class.
+              </p>
+              <PupilNameReview pupils={r.nameReview} />
+            </>
+          )}
         </section>
 
         <section id="pupil-emails" className="bg-white border border-gray-200 rounded-xl p-5">

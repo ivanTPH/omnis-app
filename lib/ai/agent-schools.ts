@@ -16,12 +16,26 @@ import { prisma } from '@/lib/prisma'
 
 export const AI_AGENTS_FLAG = 'ai_agents'
 
-/** Active schools with overnight AI jobs switched on. */
-export async function getAiAgentSchools(): Promise<{ id: string; name: string }[]> {
+/**
+ * The demo school's AI runs once a week, on Monday night, straight after the
+ * weekly demo update (demo-advance, Monday 00:00 UTC) adds new homework and
+ * submissions. Only pupils whose records changed are analysed, so the demo's
+ * insights, plans and evidence keep developing for a small, fixed cost
+ * (about 100 to 300 short AI calls a week). Set DEMO_AI=off to stop it.
+ */
+export function isDemoAiRun(now = new Date()): boolean {
+  return process.env.DEMO_AI !== 'off' && now.getUTCDay() === 1
+}
+
+/** Active schools with overnight AI jobs switched on (plus the demo school on Mondays). */
+export async function getAiAgentSchools(now = new Date(), opts: { includeDemo?: boolean } = {}): Promise<{ id: string; name: string }[]> {
   return prisma.school.findMany({
     where: {
       isActive: true,
-      featureFlags: { some: { flag: AI_AGENTS_FLAG, enabled: true } },
+      OR: [
+        { featureFlags: { some: { flag: AI_AGENTS_FLAG, enabled: true } } },
+        ...(opts.includeDemo !== false && isDemoAiRun(now) ? [{ isDemo: true }] : []),
+      ],
     },
     select: { id: true, name: true },
   })

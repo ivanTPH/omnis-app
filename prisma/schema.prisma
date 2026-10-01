@@ -307,6 +307,7 @@ model School {
   goLiveBy           String?   // userId of the admin who marked the school live
   parentSignupOpen   Boolean   @default(false) // parents may register at /parents
   familyContactEmail String?   // school contact shown to pupils and parents in invitation emails
+  misClassImport     Json?     // which MIS classes to bring in: { formGroups, excludedSubjects } (lib/accounts/class-filter.ts)
   allowAggregatedContribution Boolean @default(false)
 
   // School-level Data Processing Agreement signing
@@ -711,6 +712,7 @@ model SchoolClass {
 model ClassTeacher {
   classId String
   userId  String
+  fromMis Boolean @default(false) // created by the MIS sync; only these are removed when the MIS changes
   class   SchoolClass @relation(fields: [classId], references: [id])
   user    User        @relation(fields: [userId], references: [id])
 
@@ -720,6 +722,7 @@ model ClassTeacher {
 model Enrolment {
   classId String
   userId  String
+  fromMis Boolean @default(false) // created by the MIS sync; only these are removed when the MIS changes
   class   SchoolClass @relation(fields: [classId], references: [id])
   user    User        @relation(fields: [userId], references: [id])
 

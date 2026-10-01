@@ -25,6 +25,7 @@ import { matchPupilsToAccounts } from '@/lib/accounts/student-matching'
 import { placeholderEmail, isPlaceholderEmail, isUsableEmail } from '@/lib/accounts/placeholder'
 import { linkParentToChildren } from '@/lib/accounts/parent-links'
 import { provisionStaffAndClasses, type MisClass, type ProvisionResult } from '@/lib/accounts/class-provisioning'
+import { filterMisClasses, formClassesFromPupils, isFormClass, parseClassImport } from '@/lib/accounts/class-filter'
 import {
   fetchWondeStudentEmails,
   fetchWondeEmployeeDetails,
@@ -1003,13 +1004,34 @@ export async function runWondeSync(
   // ── Omnis staff, classes, teachers and enrolments ────────────────────────
   // Not for demo schools (they keep their seeded classes). No emails are sent.
   try {
-    const sch = await prisma.school.findUnique({ where: { id: omnisSchoolId }, select: { isDemo: true } })
+    const sch = await prisma.school.findUnique({ where: { id: omnisSchoolId }, select: { isDemo: true, misClassImport: true } })
     if (!sch?.isDemo && misClasses.length > 0) {
-      result.omnis = await provisionStaffAndClasses({
-        schoolId: omnisSchoolId, classes: misClasses, employeeClassIds, studentUserByWondeId,
+      // Only the classes the school chose: teaching classes, plus form groups if wanted (lib/accounts/class-filter.ts)
+      const settings = parseClassImport(sch?.misClassImport)
+      const pupilForms = await prisma.wondeStudent.findMany({
+        where:  { schoolId: omnisSchoolId, isLeaver: false },
+        select: { id: true, formGroup: true, yearGroup: true },
       })
-      if (result.omnis.staffWithoutEmail > 0) {
-        errors.push(`Staff: ${result.omnis.staffWithoutEmail} teacher(s) have no email address in the MIS, so no Omnis account was created. Grant staff contact details in Wonde or add them by hand.`)
+      const formNames = new Set(pupilForms.map(p => p.formGroup?.trim().toLowerCase()).filter((x): x is string => !!x))
+      const filtered = filterMisClasses(misClasses, settings, formNames)
+      let formGroupsAdded = 0
+      if (settings.formGroups) {
+        const misFormNames = new Set(misClasses.filter(c => isFormClass(c, formNames)).map(c => c.name.trim().toLowerCase()))
+        const extra = formClassesFromPupils(omnisSchoolId, pupilForms, misFormNames)
+        filtered.included.push(...extra)
+        formGroupsAdded = extra.length
+      }
+      const prov = await provisionStaffAndClasses({
+        schoolId: omnisSchoolId, classes: filtered.included, employeeClassIds, studentUserByWondeId,
+      })
+      result.omnis = {
+        ...prov,
+        classesExcludedBySubject: filtered.excludedSubjects,
+        formGroupsExcluded: filtered.excludedForms,
+        formGroupsFromPupils: formGroupsAdded,
+      }
+      if (prov.staffWithoutEmail > 0) {
+        errors.push(`Staff: ${prov.staffWithoutEmail} teacher(s) have no email address in the MIS, so no Omnis account was created. Grant staff contact details in Wonde or add them by hand.`)
       }
     }
   } catch (err) {

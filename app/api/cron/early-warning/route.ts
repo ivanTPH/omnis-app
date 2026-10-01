@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
     })
 
     // Schools allowed to use overnight AI (the rest get non-AI processing only).
-    const aiSchoolIds = new Set((await getAiAgentSchools()).map(s => s.id))
+    // The demo school's weekly AI covers the agents only, not this all-pupil refresh.
+    const aiSchoolIds = new Set((await getAiAgentSchools(new Date(), { includeDemo: false })).map(s => s.id))
 
     let totalFlags = 0
     let totalIlpReviewNotifications = 0

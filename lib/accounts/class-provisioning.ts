@@ -16,8 +16,9 @@ import { isUsableEmail } from '@/lib/accounts/placeholder'
  *  - Nothing is emailed. Staff are invited from /admin/invitations.
  *  - Records are linked by MIS ID. A legacy record (no MIS ID) is claimed only
  *    by an exact, unambiguous match (staff: email; class: name).
- *  - Only MIS-managed links are removed when they disappear from the MIS.
- *    Teachers or pupils added by hand in Omnis are never removed.
+ *  - Only links the sync created (fromMis) are removed when they disappear
+ *    from the MIS. Teachers or pupils added by hand in Omnis (including a
+ *    tutor assigned on the Check MIS data page) are never removed.
  *  - Demo schools are skipped by the caller.
  */
 
@@ -29,6 +30,8 @@ export type ProvisionResult = {
   classesWithoutTeacher: number
   teacherLinksAdded: number; teacherLinksRemoved: number
   enrolmentsAdded: number; enrolmentsRemoved: number
+  // Set by the caller from the school's class choice (lib/accounts/class-filter.ts)
+  classesExcludedBySubject?: number; formGroupsExcluded?: number; formGroupsFromPupils?: number
 }
 
 /** Most common non-null year group, or null. Ties go to the lower year. */
@@ -172,29 +175,29 @@ export async function provisionStaffAndClasses(opts: {
     // Teachers: add MIS teachers, remove MIS-managed teachers who no longer teach it
     const wantTeachers = new Set([...(classTeachers.get(mc.id) ?? [])].map(e => userByEmployee.get(e)).filter((x): x is string => !!x))
     if (wantTeachers.size === 0) r.classesWithoutTeacher++
-    const haveTeachers = await prisma.classTeacher.findMany({ where: { classId }, select: { userId: true, user: { select: { wondeId: true } } } })
+    const haveTeachers = await prisma.classTeacher.findMany({ where: { classId }, select: { userId: true, fromMis: true } })
     const haveSet = new Set(haveTeachers.map(t => t.userId))
     const addT = [...wantTeachers].filter(u => !haveSet.has(u))
     if (addT.length) {
-      await prisma.classTeacher.createMany({ data: addT.map(userId => ({ classId: classId!, userId })), skipDuplicates: true })
+      await prisma.classTeacher.createMany({ data: addT.map(userId => ({ classId: classId!, userId, fromMis: true })), skipDuplicates: true })
       r.teacherLinksAdded += addT.length
     }
-    const removeT = haveTeachers.filter(t => t.user.wondeId && !wantTeachers.has(t.userId)).map(t => t.userId)
+    const removeT = haveTeachers.filter(t => t.fromMis && !wantTeachers.has(t.userId)).map(t => t.userId)
     if (removeT.length) {
       await prisma.classTeacher.deleteMany({ where: { classId, userId: { in: removeT } } })
       r.teacherLinksRemoved += removeT.length
     }
 
     // Pupils: same rule
-    const haveEnrol = await prisma.enrolment.findMany({ where: { classId }, select: { userId: true, user: { select: { wondeId: true } } } })
+    const haveEnrol = await prisma.enrolment.findMany({ where: { classId }, select: { userId: true, fromMis: true } })
     const haveEnrolSet = new Set(haveEnrol.map(e => e.userId))
     const wantEnrol = new Set(pupilUserIds)
     const addE = pupilUserIds.filter(u => !haveEnrolSet.has(u))
     if (addE.length) {
-      await prisma.enrolment.createMany({ data: addE.map(userId => ({ classId: classId!, userId })), skipDuplicates: true })
+      await prisma.enrolment.createMany({ data: addE.map(userId => ({ classId: classId!, userId, fromMis: true })), skipDuplicates: true })
       r.enrolmentsAdded += addE.length
     }
-    const removeE = haveEnrol.filter(e => e.user.wondeId && !wantEnrol.has(e.userId)).map(e => e.userId)
+    const removeE = haveEnrol.filter(e => e.fromMis && !wantEnrol.has(e.userId)).map(e => e.userId)
     if (removeE.length) {
       await prisma.enrolment.deleteMany({ where: { classId, userId: { in: removeE } } })
       r.enrolmentsRemoved += removeE.length

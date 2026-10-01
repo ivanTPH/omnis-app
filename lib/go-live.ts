@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { PLACEHOLDER_EMAIL_DOMAIN } from '@/lib/accounts/placeholder'
+import { getNameReview } from '@/lib/mis-review'
 
 /**
  * Go-live checklist.
@@ -45,7 +46,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
 
   const [
     wondeLink, lastGoodSync, pupils, pupilsWithEmail, misClasses, omnisClasses, classesNoTeacher,
-    subjectConfigs, calendarEntries, sencos, teachers, admins, retentionReviewed,
+    subjectConfigs, calendarEntries, sencos, teachers, admins, retentionReviewed, nameReview,
   ] = await Promise.all([
     prisma.wondeSchool.findUnique({ where: { schoolId }, select: { id: true } }),
     prisma.wondeSyncLog.findFirst({
@@ -64,6 +65,7 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
     prisma.user.count({ where: { schoolId, role: { in: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'] }, isActive: true } }),
     prisma.user.count({ where: { schoolId, role: 'SCHOOL_ADMIN', isActive: true } }),
     prisma.auditLog.count({ where: { schoolId, action: 'RETENTION_SCHEDULE_UPDATED' } }),
+    getNameReview(schoolId),
   ])
 
   const emailPct = pupils > 0 ? Math.round((pupilsWithEmail / pupils) * 100) : 0
@@ -143,6 +145,14 @@ export async function getGoLiveStatus(schoolId: string): Promise<GoLiveStatus> {
       label: 'Retention schedule reviewed',
       done: retentionReviewed > 0,
       detail: retentionReviewed > 0 ? 'Retention schedule confirmed.' : 'Check the default retention periods (IRMS toolkit) match your school’s policy.',
+    },
+    {
+      key: 'same-name', required: false, who: 'School admin', href: '/admin/mis-review#same-name',
+      label: 'Pupils to check by hand',
+      done: nameReview.length === 0,
+      detail: nameReview.length === 0
+        ? 'Every MIS pupil is linked safely.'
+        : `${nameReview.length} pupil(s) share a name with an existing account, so Omnis didn’t link them. Check and link them, or create new accounts.`,
     },
     {
       key: 'pupil-emails', required: false, who: 'School admin or IT', href: '/admin/mis-review#pupil-emails',

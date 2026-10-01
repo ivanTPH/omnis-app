@@ -559,7 +559,7 @@ confirmation and the retention/leaver-deletion live test).
 - [ ] Existing DPIA states "school = Controller, Omnis = Processor" — confirm this is reflected in an actual signed Data Processing Agreement template ready for schools, not just asserted in the DPIA
 - [x] Confirm AI provider (Claude API) data handling terms explicitly exclude training on pupil data — document the confirmation — confirmed (Anthropic commercial terms: no training, 30-day deletion).
 - [x] **29 Sep 2026: pupil names pseudonymised before any AI call** (`lib/ai/safe-anthropic.ts`, enforced by test).
-- [ ] Request zero data retention from Anthropic (Ivan)
+- [x] Zero data retention requested 30 Sep 2026; declined 1 Oct 2026 (enterprise only). Mitigation: names pseudonymised before every AI call (SafeAnthropic), standard terms: no training, 30-day deletion. Trust documents updated.
 - [x] **29 Sep 2026: retention follows the school's schedule** (IRMS defaults, export-then-delete for leavers, weekly
       review notice); privacy policy rewritten; DPA draft updated (suppliers, AI safeguards, retention, 24-hour
       breach notice). See `docs/audit/2026-09-29-data-protection-changes.md`.

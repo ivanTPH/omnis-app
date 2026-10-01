@@ -15,6 +15,16 @@
 >
 > **29 Sep 2026: scheduled jobs and sync fixes** (see `docs/audit/2026-09-29-cron-sync-and-backup-fixes.md`):
 > early-warning cohort aggregates fixed (Prisma rejects `null` in compound-unique `where`, so use
+> **1 Oct 2026: scheduler and MIS review.**
+> - Nightly and weekly jobs run in-process (`lib/scheduler/jobs.ts`, started from `instrumentation.ts`; disable with `IN_APP_CRON=off`). The GitHub cron workflows are manual-only, except the weekly DSPy job.
+> - Accounts, classes, ClassTeacher and Enrolment rows are created from Wonde (`lib/accounts/class-provisioning.ts`), but not for demo schools.
+> - `AuditLog.actorId` has a foreign key to User, so never write `'cron'`/`'wonde-sync'` as the actor.
+> - The admin "Check MIS data" page is `/admin/mis-review`.
+> - Agents only analyse changed records (plan-synthesis fingerprint). Coach, quality and engage run Monday, Wednesday and Friday (`AGENT_RUN_DAYS`), and Go live turns on `ai_agents`.
+> - An old Vercel deployment (project omnis-app) was still running July crons against production. It must stay paused or deleted.
+> - Zero data retention was declined by Anthropic (enterprise only).
+> - The rehearsal school is `school-trial-rehearsal` (Wonde test-school link). Oakfield (`cmmj8blef…`) has been retired.
+>
 > **30 Sep 2026 — invitations and go-live:** the Wonde sync no longer emails anyone. Pupils are matched by `User.wondeId`, never by name, and pupils without a known email get a `pending.omnis.invalid` placeholder. There is a go-live checklist (`lib/go-live.ts`, `/admin/go-live`, and a staff pop-up) and admin-triggered invitations (`/admin/invitations`). Parents self-register at `/parents`, checked against MIS contacts with parental responsibility. Details: `docs/audit/2026-09-30-invitations-and-go-live.md`.
 >
 > findFirst plus update/create); nightly Wonde sync added (`/api/cron/wonde-sync`, 01:15 UTC) plus a shared

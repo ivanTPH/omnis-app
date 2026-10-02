@@ -45,7 +45,7 @@ import {
 
 export interface WondeSyncResult {
   employees:   { upserted: number }
-  students:    { upserted: number }
+  students:    { upserted: number; markedLeft?: number }
   contacts:    { upserted: number }
   groups:      { upserted: number }
   classes:     { upserted: number }
@@ -336,6 +336,7 @@ export async function runWondeSync(
           photoUrl,
           wondeUpdatedAt: parseWondeDate(stu.updated_at),
           updatedAt:      now,
+          syncedAt:       now,
         },
       })
       knownStudentIds.add(stu.id)
@@ -437,6 +438,18 @@ export async function runWondeSync(
         }
       }
     })
+
+    // Pupils no longer returned by the MIS (left the school, or records copied
+    // in from elsewhere) are marked as leavers, so counts and checks only use
+    // current pupils. Only when the MIS returned pupils, so a failed or empty
+    // fetch never marks everyone as a leaver. Omnis accounts are not touched.
+    if (students.length > 0) {
+      const stale = await prisma.wondeStudent.updateMany({
+        where: { schoolId: omnisSchoolId, isLeaver: false, id: { notIn: students.map(st => st.id) } },
+        data:  { isLeaver: true, syncedAt: now },
+      })
+      if (stale.count > 0) result.students.markedLeft = stale.count
+    }
   } catch (err) {
     errors.push(`Students/Contacts: ${String(err)}`)
   }

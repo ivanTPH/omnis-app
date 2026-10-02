@@ -70,6 +70,8 @@ function summaryLines(summary: unknown, recordsProcessed: number): string[] {
   } else {
     lines.push(`Read ${recordsProcessed} records from your MIS.`)
   }
+  const stu = (s.students ?? {}) as Record<string, number>
+  if (stu.markedLeft) lines.push(`${stu.markedLeft} pupil record(s) no longer in your MIS were marked as left. Their Omnis accounts were not changed.`)
   if (prov.students) lines.push(`Created ${prov.students} new pupil account(s). No emails were sent.`)
   if (prov.parents) lines.push(`Linked ${prov.parents} parent/carer account(s) to their children.`)
   if (om) {

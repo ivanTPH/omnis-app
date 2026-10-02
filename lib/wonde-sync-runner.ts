@@ -82,6 +82,7 @@ export async function runLoggedWondeSync(
           },
           provisioned: result.provisioned,
           omnis: result.omnis ?? null,
+          students: { markedLeft: result.students.markedLeft ?? 0 },
         },
         completedAt:      new Date(),
       },

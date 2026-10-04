@@ -443,12 +443,17 @@ export async function runWondeSync(
     // in from elsewhere) are marked as leavers, so counts and checks only use
     // current pupils. Only when the MIS returned pupils, so a failed or empty
     // fetch never marks everyone as a leaver. Omnis accounts are not touched.
-    if (students.length > 0) {
+    // Safety: if far fewer pupils came back than are on record, something is
+    // wrong with the fetch (not a mass exodus), so don't mark anyone as left.
+    const onRecord = await prisma.wondeStudent.count({ where: { schoolId: omnisSchoolId, isLeaver: false } })
+    if (students.length > 0 && students.length >= onRecord * 0.8) {
       const stale = await prisma.wondeStudent.updateMany({
         where: { schoolId: omnisSchoolId, isLeaver: false, id: { notIn: students.map(st => st.id) } },
         data:  { isLeaver: true, syncedAt: now },
       })
       if (stale.count > 0) result.students.markedLeft = stale.count
+    } else if (students.length > 0) {
+      errors.push(`Students: the MIS returned ${students.length} pupils but ${onRecord} are on record, so no one was marked as having left. Check the Wonde connection.`)
     }
   } catch (err) {
     errors.push(`Students/Contacts: ${String(err)}`)

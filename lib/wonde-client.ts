@@ -12,7 +12,11 @@ export interface WondePageMeta {
     count: number
     per_page: number
     current_page: number
-    links: { next?: string; previous?: string }
+    // Wonde returns next/more directly on pagination; links.next is kept for safety
+    next?: string | null
+    previous?: string | null
+    more?: boolean
+    links?: { next?: string; previous?: string }
   }
 }
 
@@ -222,16 +226,35 @@ export async function wondeAll<T>(
 
   const results: T[] = []
   let nextUrl: string | null = initialUrl
+  const seen = new Set<string>()
 
-  while (nextUrl) {
+  // Follow every page. Wonde puts the next page in meta.pagination.next (with
+  // more: true). Until 4 Oct 2026 only links.next was read, so only the first
+  // page (200 pupils, 100 classes) was ever fetched.
+  while (nextUrl && !seen.has(nextUrl)) {
+    seen.add(nextUrl)
+    if (seen.size > 1000) throw new Error(`Wonde pagination did not end for ${path}`)
     const page: WondePage<T> = await wondeFetch<WondePage<T>>(nextUrl, token)
-    results.push(...page.data)
-
-    const next: string | undefined = page.meta?.pagination?.links?.next
-    nextUrl = next && next !== nextUrl ? next : null
+    results.push(...(page.data ?? []))
+    nextUrl = nextPageUrl(nextUrl, page)
   }
 
   return results
+}
+
+/** The URL of the next page, or null on the last page. Pure, for testing. */
+export function nextPageUrl(currentUrl: string, page: { data?: unknown[]; meta?: Partial<WondePageMeta> }): string | null {
+  const p = page.meta?.pagination
+  if (!p) return null
+  const next = p.next ?? p.links?.next ?? null
+  if (next) return next
+  if (p.more && (page.data?.length ?? 0) > 0) {
+    // "more" without a URL: ask for the next page number ourselves
+    const u = new URL(currentUrl, 'https://api.wonde.com')
+    u.searchParams.set('page', String((p.current_page ?? 1) + 1))
+    return currentUrl.startsWith('http') ? u.toString() : `${u.pathname}${u.search}`
+  }
+  return null
 }
 
 // ── Typed resource fetchers ───────────────────────────────────────────────────

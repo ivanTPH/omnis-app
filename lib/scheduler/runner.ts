@@ -50,7 +50,21 @@ async function runJob(base: string, path: string, secret: string, timeoutMs: num
       Sentry.captureMessage(`Scheduled job ${path} returned ${res.status}`, { level: 'error', tags: { job: 'scheduler', path } })
     }
   } catch (err) {
+    // Node's fetch gives up waiting for a reply after 300 seconds, but the job
+    // itself keeps running inside the server and finishes (seen with
+    // early-warning on 2 Oct 2026). That is not a failure, so log it only.
+    if (isStillRunning(err)) {
+      console.warn(`[scheduler] ${path} still running after ${Math.round((Date.now() - started) / 1000)}s; not waiting for the reply`)
+      return
+    }
     console.error(`[scheduler] ${path} failed`, err)
     Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { tags: { job: 'scheduler', path } })
   }
+}
+
+/** True when we stopped waiting for a slow job's reply, rather than the job failing. */
+export function isStillRunning(err: unknown): boolean {
+  const e = err as { name?: string; code?: string; cause?: { name?: string; code?: string } } | null
+  const codes = [e?.code, e?.cause?.code, e?.name, e?.cause?.name]
+  return codes.some(c => c === 'UND_ERR_HEADERS_TIMEOUT' || c === 'HeadersTimeoutError' || c === 'TimeoutError')
 }

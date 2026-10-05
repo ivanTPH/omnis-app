@@ -244,7 +244,7 @@ export async function runWondeSync(
         where:  { schoolId: omnisSchoolId, role: 'STUDENT' },
         select: { id: true, firstName: true, lastName: true, wondeId: true, email: true },
       })
-      const current = students.filter(st => !st.is_leaver)
+      const current = students.filter(st => st.is_leaver !== true)
       const match = matchPupilsToAccounts(
         current.map(st => ({ id: st.id, firstName: st.forename, lastName: st.surname })),
         accounts,
@@ -319,7 +319,7 @@ export async function runWondeSync(
           dob:            parseWondeDate(stu.date_of_birth),
           yearGroup:      yearInt,
           formGroup:      stu.form_group?.data?.name ?? null,
-          isLeaver:       stu.is_leaver,
+          isLeaver:       stu.is_leaver === true, // Wonde often omits is_leaver; a pupil it returns is current unless it says otherwise
           photoUrl,
           wondeUpdatedAt: parseWondeDate(stu.updated_at),
           syncedAt:       now,
@@ -332,7 +332,7 @@ export async function runWondeSync(
           dob:            parseWondeDate(stu.date_of_birth),
           yearGroup:      yearInt,
           formGroup:      stu.form_group?.data?.name ?? null,
-          isLeaver:       stu.is_leaver,
+          isLeaver:       stu.is_leaver === true, // Wonde often omits is_leaver; a pupil it returns is current unless it says otherwise
           photoUrl,
           wondeUpdatedAt: parseWondeDate(stu.updated_at),
           updatedAt:      now,

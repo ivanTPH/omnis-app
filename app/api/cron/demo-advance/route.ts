@@ -485,13 +485,15 @@ export async function GET(req: NextRequest) {
   const newHwMap = new Map<string, { hwId: string; questions: McqQuestion[]; title: string; subject: string }>()
 
   for (const hw of weeklyTopics) {
-    // Idempotency: skip if this exact title already exists for this class (any week)
-    // This prevents creating MCQ duplicates when seeded homework has the same title with an older due date
+    // Idempotency: skip if this title already exists for this class THIS WEEK.
+    // (Topics repeat on a 6-week cycle; checking "any week" stopped all new
+    // demo homework once the cycle had gone round once, from mid-September 2026.)
     const existing = await prisma.homework.findFirst({
       where: {
         schoolId,
         classId: hw.classId,
         title:   hw.title,
+        dueAt:   { gte: monday, lte: friday },
       },
       select: { id: true, structuredContent: true },
     })

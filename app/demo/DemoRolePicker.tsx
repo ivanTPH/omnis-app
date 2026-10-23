@@ -3,7 +3,15 @@ import { useState } from 'react'
 import { signIn, signOut } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import Icon from '@/components/ui/Icon'
-import { recordSignOut } from '@/app/actions/settings'
+import { revokePreviousDemoSession } from '@/app/actions/demo'
+
+// Must match DemoRoleSwitcher.tsx's LS_KEY — this page is the OTHER place
+// that flag needs to be set so the in-app switcher shows up afterwards.
+// Previously only the switcher itself ever set it, so a fresh browser that
+// went straight from this picker into a demo role saw no switcher at all,
+// despite the help text below telling them to use one.
+const DEMO_OWNER_LS_KEY = 'omnis-demo-owner'
+const OWNER_EMAIL = 'ivanyardley@me.com'
 
 const SCHOOL_ROLES = [
   { label: 'Teacher',            email: 'j.patel@omnisdemo.school',              icon: 'school' },
@@ -30,8 +38,12 @@ export default function DemoRolePicker({ firstName }: { firstName: string }) {
     setSwitching(email)
     setSwitchError(null)
     try {
-      // Sign out of current session first so NextAuth replaces it cleanly
-      await recordSignOut()
+      // The session cookie must be cleared before calling signIn() again —
+      // NextAuth v5 beta hangs if signIn() is called while already
+      // authenticated. Revoking the owner's session server-side is
+      // deferred until the new sign-in is confirmed to work (see
+      // revokePreviousDemoSession in app/actions/demo.ts), so a failed
+      // switch never invalidates the owner's still-good session.
       await signOut({ redirect: false })
       const result = await signIn('credentials', {
         email,
@@ -39,11 +51,24 @@ export default function DemoRolePicker({ firstName }: { firstName: string }) {
         redirect: false,
       })
       if (result?.error) {
-        setSwitchError(`Could not sign in as ${email} — ${result.error}`)
+        setSwitchError(
+          result.code === 'rate_limited'
+            ? 'Too many sign-in attempts. Please wait a few minutes and try again.'
+            : `Could not sign in as ${email} — ${result.error}`,
+        )
+        // No auto-recovery here: we never store the owner's real password,
+        // so there's nothing to automatically sign back into. They can
+        // still reach /login directly — the session cookie we cleared
+        // above was never the owner's only way back in.
         setSwitching(null)
-      } else {
-        location.assign('/')
+        return
       }
+      // Sets the same flag DemoRoleSwitcher checks, so it appears inside
+      // the demo account instead of staying hidden until a switch is made
+      // from inside the app.
+      localStorage.setItem(DEMO_OWNER_LS_KEY, '1')
+      await revokePreviousDemoSession(OWNER_EMAIL).catch(() => {})
+      location.assign('/')
     } catch (err) {
       setSwitchError(String(err))
       setSwitching(null)

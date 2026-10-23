@@ -89,7 +89,7 @@ export default function BetaForm() {
             ].map(({ icon, title, desc }) => (
               <div key={title} className="flex gap-4">
                 <div className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center shrink-0">
-                  <span className="material-icons text-blue-700 text-base">{icon}</span>
+                  <span className="material-icons text-blue-700 text-base" aria-hidden="true">{icon}</span>
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{title}</p>
@@ -105,7 +105,7 @@ export default function BetaForm() {
           {status === 'sent' ? (
             <div className="text-center py-8">
               <div className="w-14 h-14 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span className="material-icons text-green-600 text-3xl">check_circle</span>
+                <span className="material-icons text-green-600 text-3xl" aria-hidden="true">check_circle</span>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 {demoCreated ? 'Check your inbox' : 'Application received'}
@@ -135,9 +135,12 @@ export default function BetaForm() {
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Apply for beta access</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">School name <span className="text-red-500">*</span></label>
+                  <label htmlFor="beta-school-name" className="block text-sm font-medium text-gray-700 mb-1">School name <span className="text-red-500">*</span></label>
                   <input
+                    id="beta-school-name"
+                    name="organization"
                     type="text"
+                    autoComplete="organization"
                     required
                     value={form.schoolName}
                     onChange={e => update('schoolName', e.target.value)}
@@ -147,9 +150,12 @@ export default function BetaForm() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Your name <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-name" className="block text-sm font-medium text-gray-700 mb-1">Your name <span className="text-red-500">*</span></label>
                     <input
+                      id="beta-name"
+                      name="name"
                       type="text"
+                      autoComplete="name"
                       required
                       value={form.name}
                       onChange={e => update('name', e.target.value)}
@@ -158,8 +164,10 @@ export default function BetaForm() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Job title <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-job-title" className="block text-sm font-medium text-gray-700 mb-1">Job title <span className="text-red-500">*</span></label>
                     <select
+                      id="beta-job-title"
+                      name="jobTitle"
                       required
                       value={form.jobTitle}
                       onChange={e => update('jobTitle', e.target.value)}
@@ -171,9 +179,12 @@ export default function BetaForm() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">School email <span className="text-red-500">*</span></label>
+                  <label htmlFor="beta-email" className="block text-sm font-medium text-gray-700 mb-1">School email <span className="text-red-500">*</span></label>
                   <input
+                    id="beta-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     required
                     value={form.email}
                     onChange={e => update('email', e.target.value)}
@@ -183,9 +194,12 @@ export default function BetaForm() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-password" className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
                     <input
+                      id="beta-password"
+                      name="password"
                       type="password"
+                      autoComplete="new-password"
                       required
                       value={form.password}
                       onChange={e => update('password', e.target.value)}
@@ -194,9 +208,12 @@ export default function BetaForm() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">Confirm password <span className="text-red-500">*</span></label>
                     <input
+                      id="beta-confirm-password"
+                      name="confirmPassword"
                       type="password"
+                      autoComplete="new-password"
                       required
                       value={form.confirmPassword}
                       onChange={e => update('confirmPassword', e.target.value)}
@@ -210,9 +227,12 @@ export default function BetaForm() {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <label htmlFor="beta-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
                     <input
+                      id="beta-phone"
+                      name="phone"
                       type="tel"
+                      autoComplete="tel"
                       value={form.phone}
                       onChange={e => update('phone', e.target.value)}
                       placeholder="01234 567890"
@@ -220,8 +240,10 @@ export default function BetaForm() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">School size <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-school-size" className="block text-sm font-medium text-gray-700 mb-1">School size <span className="text-red-500">*</span></label>
                     <select
+                      id="beta-school-size"
+                      name="schoolSize"
                       required
                       value={form.schoolSize}
                       onChange={e => update('schoolSize', e.target.value)}
@@ -233,8 +255,10 @@ export default function BetaForm() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Anything else you&apos;d like to tell us? <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label htmlFor="beta-message" className="block text-sm font-medium text-gray-700 mb-1">Anything else you&apos;d like to tell us? <span className="text-gray-400 font-normal">(optional)</span></label>
                   <textarea
+                    id="beta-message"
+                    name="message"
                     value={form.message}
                     onChange={e => update('message', e.target.value)}
                     rows={3}
@@ -253,7 +277,7 @@ export default function BetaForm() {
                   className="w-full bg-blue-700 hover:bg-blue-800 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   {status === 'sending' && (
-                    <span className="material-icons text-base animate-spin">refresh</span>
+                    <span className="material-icons text-base animate-spin" aria-hidden="true">refresh</span>
                   )}
                   {status === 'sending' ? 'Submitting…' : 'Submit application'}
                 </button>

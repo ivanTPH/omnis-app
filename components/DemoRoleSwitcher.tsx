@@ -89,6 +89,9 @@ export default function DemoRoleSwitcher() {
       // server-side; that's deferred below until the new sign-in is
       // confirmed to work, so a failed switch never invalidates a session
       // that's still good.
+      // The owner's own session can only be revoked by the owner, so do it
+      // now while still signed in as the owner (see app/actions/demo.ts).
+      if (previousEmail === OWNER_EMAIL) await recordSignOut()
       await signOut({ redirect: false })
       const result = await signIn('credentials', {
         email,
@@ -118,7 +121,7 @@ export default function DemoRoleSwitcher() {
       // server-side now (defence in depth: any captured/replayed old JWT
       // for that account stops working, matching the sign-out-everywhere
       // guarantee the rest of the app relies on recordSignOut() for).
-      if (previousEmail) {
+      if (previousEmail && previousEmail !== OWNER_EMAIL) {
         await revokePreviousDemoSession(previousEmail).catch(() => {})
       }
       location.assign('/')

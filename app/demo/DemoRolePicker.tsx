@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { signIn, signOut } from 'next-auth/react'
 import OmnisLogo from '@/components/ui/OmnisLogo'
 import Icon from '@/components/ui/Icon'
-import { revokePreviousDemoSession } from '@/app/actions/demo'
+import { recordSignOut } from '@/app/actions/settings'
 
 // Must match DemoRoleSwitcher.tsx's LS_KEY — this page is the OTHER place
 // that flag needs to be set so the in-app switcher shows up afterwards.
@@ -11,7 +11,6 @@ import { revokePreviousDemoSession } from '@/app/actions/demo'
 // went straight from this picker into a demo role saw no switcher at all,
 // despite the help text below telling them to use one.
 const DEMO_OWNER_LS_KEY = 'omnis-demo-owner'
-const OWNER_EMAIL = 'ivanyardley@me.com'
 
 const SCHOOL_ROLES = [
   { label: 'Teacher',            email: 'j.patel@omnisdemo.school',              icon: 'school' },
@@ -38,12 +37,13 @@ export default function DemoRolePicker({ firstName }: { firstName: string }) {
     setSwitching(email)
     setSwitchError(null)
     try {
-      // The session cookie must be cleared before calling signIn() again —
-      // NextAuth v5 beta hangs if signIn() is called while already
-      // authenticated. Revoking the owner's session server-side is
-      // deferred until the new sign-in is confirmed to work (see
-      // revokePreviousDemoSession in app/actions/demo.ts), so a failed
-      // switch never invalidates the owner's still-good session.
+      // Revoke the owner's session server-side while still signed in as the
+      // owner (only the owner may revoke their own session — see
+      // revokePreviousDemoSession in app/actions/demo.ts), then clear the
+      // cookie: NextAuth v5 beta hangs if signIn() is called while already
+      // authenticated. If the switch then fails, the owner signs in again
+      // at /login.
+      await recordSignOut()
       await signOut({ redirect: false })
       const result = await signIn('credentials', {
         email,
@@ -67,7 +67,6 @@ export default function DemoRolePicker({ firstName }: { firstName: string }) {
       // the demo account instead of staying hidden until a switch is made
       // from inside the app.
       localStorage.setItem(DEMO_OWNER_LS_KEY, '1')
-      await revokePreviousDemoSession(OWNER_EMAIL).catch(() => {})
       location.assign('/')
     } catch (err) {
       setSwitchError(String(err))

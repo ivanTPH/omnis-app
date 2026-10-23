@@ -44,7 +44,11 @@ export async function getDemoSessionEmail(): Promise<string | null> {
  * have worked, so a failed switch never invalidates a still-good session.
  */
 export async function revokePreviousDemoSession(email: string): Promise<void> {
-  if (!DEMO_SWITCH_EMAILS.has(email)) return
+  // Never the owner: the demo accounts' passwords are public, so anyone
+  // signed in as one could otherwise call this to log the owner out at will.
+  // The owner's session is revoked only by the owner, via recordSignOut(),
+  // while still signed in as the owner.
+  if (email === OWNER_EMAIL || !DEMO_SWITCH_EMAILS.has(email)) return
   const session = await auth()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const callerEmail = (session?.user as any)?.email ?? null

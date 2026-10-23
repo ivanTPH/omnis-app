@@ -46,3 +46,4 @@ next-env.d.ts
 playwright-report/data/
 playwright-report/trace/
 test-results/
+e2e-results.json

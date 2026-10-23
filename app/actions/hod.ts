@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { redirect }    from 'next/navigation'
+import { weightedClassAverage, averageGrade, maxScoreFromBands } from '@/lib/metrics/grades'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -209,7 +210,7 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
   const staffMap = new Map<string, {
     id: string; name: string; email: string
     classIds: Set<string>; studentIds: Set<string>
-    scores: number[]
+    classScores: { avgScore: number | null; studentCount: number }[]
   }>()
 
   for (const cls of deptClasses) {
@@ -217,13 +218,13 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
     for (const ct of cls.teachers) {
       const u = ct.user
       if (!staffMap.has(u.id)) {
-        staffMap.set(u.id, { id: u.id, name: `${u.firstName} ${u.lastName}`, email: u.email, classIds: new Set(), studentIds: new Set(), scores: [] })
+        staffMap.set(u.id, { id: u.id, name: `${u.firstName} ${u.lastName}`, email: u.email, classIds: new Set(), studentIds: new Set(), classScores: [] })
       }
       const entry = staffMap.get(u.id)!
       entry.classIds.add(cls.id)
       for (const sid of stuSet) entry.studentIds.add(sid)
       const agg = aggByClass.get(cls.id)
-      if (agg?.avgScore != null) entry.scores.push(agg.avgScore)
+      entry.classScores.push({ avgScore: agg?.avgScore ?? null, studentCount: stuSet.size })
     }
   }
 
@@ -241,12 +242,14 @@ export async function getHodDashboardData(): Promise<HodDashboardData> {
     classCount:    s.classIds.size,
     studentCount:  s.studentIds.size,
     ungradedCount: ungradedByTeacher.get(s.id) ?? 0,
-    avgScore:      s.scores.length > 0 ? s.scores.reduce((a, b) => a + b, 0) / s.scores.length : null,
+    avgScore:      weightedClassAverage(s.classScores),
   })).sort((a, b) => a.name.localeCompare(b.name))
 
-  // School-wide averages
+  // School-wide averages — weighted by each class's own student count (see
+  // lib/metrics/grades.ts), not a plain mean of class averages, so a class
+  // of 30 doesn't count the same as a class of 1.
   const aggs        = classes.map(c => aggByClass.get(c.id)).filter(Boolean) as typeof allAggs
-  const avgScore    = aggs.length > 0 ? aggs.reduce((s, a) => s + a.avgScore, 0) / aggs.length : null
+  const avgScore    = weightedClassAverage(classes.map(c => ({ avgScore: c.avgScore, studentCount: c.studentCount })))
   const avgCompletion = aggs.length > 0 ? aggs.reduce((s, a) => s + a.completionRate, 0) / aggs.length : null
 
   return {
@@ -395,7 +398,7 @@ export async function getHodClassDetail(classId: string): Promise<HodClassDetail
       finalScore: true,
       teacherScore: true,
       submittedAt: true,
-      homework: { select: { dueAt: true } },
+      homework: { select: { dueAt: true, gradingBands: true } },
     },
     orderBy: { submittedAt: 'desc' },
   })
@@ -418,10 +421,13 @@ export async function getHodClassDetail(classId: string): Promise<HodClassDetail
   const students: HodStudentRow[] = enrolments.map(e => {
     const u    = e.user
     const subs = subsByStudent.get(u.id) ?? []
-    const scores = subs
-      .map(s => s.finalScore ?? s.teacherScore)
-      .filter((v): v is number => v != null)
-    const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : null
+    // Normalised to each homework's own max score before averaging — a raw
+    // mean of finalScore/teacherScore mixes scales across homeworks with
+    // different gradingBands (see lib/metrics/grades.ts).
+    const avgScore = averageGrade(subs.map(s => ({
+      finalScore: s.finalScore ?? s.teacherScore,
+      maxScore:   maxScoreFromBands(s.homework.gradingBands),
+    })))
     const lateCount = subs.filter(s =>
       s.submittedAt && s.homework.dueAt && new Date(s.submittedAt) > new Date(s.homework.dueAt)
     ).length
@@ -430,7 +436,7 @@ export async function getHodClassDetail(classId: string): Promise<HodClassDetail
       id:         u.id,
       firstName:  u.firstName,
       lastName:   u.lastName,
-      avgScore:   avgScore != null ? Math.round(avgScore * 10) / 10 : null,
+      avgScore,
       lateCount,
       sendStatus: (ss && ss !== 'NONE') ? ss : null,
     }

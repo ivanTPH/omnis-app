@@ -4,6 +4,8 @@ import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
 import { getReviewStatus, compareByReviewDate } from '@/lib/send/review-status'
+import { maxScoreFromBands as maxFromBands } from '@/lib/metrics/grades'
+import { getSendCounts } from '@/lib/metrics/send'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -152,13 +154,6 @@ export async function getTeacherSendCaseload(): Promise<TeacherSendCaseload> {
     select: { studentId: true, finalScore: true, homework: { select: { gradingBands: true } } },
   })
 
-  function maxFromBands(bands: unknown): number {
-    if (!bands || typeof bands !== 'object') return 9
-    const keys = Object.keys(bands as Record<string, string>)
-    const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
-    return nums.length ? Math.max(...nums) : 9
-  }
-
   const gradesByStudent = new Map<string, number[]>()
   for (const sub of recentSubmissions) {
     const max = maxFromBands(sub.homework.gradingBands)
@@ -234,16 +229,21 @@ export async function getTeacherSendCaseload(): Promise<TeacherSendCaseload> {
     return a.lastName.localeCompare(b.lastName)
   })
 
-  const noIlpCount    = caseloadStudents.filter(s => !s.hasIlp).length
   const reviewsDue14d = caseloadStudents.filter(
     s => s.reviewDaysUntil != null && s.reviewDaysUntil <= 14
   ).length
 
+  // One shared definition of these counts — see lib/metrics/send.ts.
+  const sendCounts = getSendCounts(
+    caseloadStudents.map(s => ({ studentId: s.id, activeStatus: s.sendStatus })),
+    caseloadStudents.filter(s => s.hasIlp).map(s => s.id),
+  )
+
   return {
-    totalSend:    caseloadStudents.length,
-    senSupport:   caseloadStudents.filter(s => s.sendStatus === 'SEN_SUPPORT').length,
-    ehcpCount:    caseloadStudents.filter(s => s.sendStatus === 'EHCP').length,
-    noIlpCount,
+    totalSend:    sendCounts.onRegister,
+    senSupport:   sendCounts.senSupport,
+    ehcpCount:    sendCounts.ehcp,
+    noIlpCount:   sendCounts.noActiveIlp,
     reviewsDue14d,
     students:     caseloadStudents,
     classSummary: classes.map(c => ({

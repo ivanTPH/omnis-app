@@ -3,6 +3,8 @@ import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
+import { percentToGcseGrade } from '@/lib/grading'
+import { maxScoreFromBands as maxFromBands } from '@/lib/metrics/grades'
 
 export async function getStudentHomework(homeworkId: string) {
   const { schoolId, id: userId, role } = await requireAuth()
@@ -493,15 +495,6 @@ export type SubjectGradeSummary = {
 export async function getStudentGradeHistory(): Promise<SubjectGradeSummary[]> {
   const { schoolId, id: userId, role } = await requireAuth()
   if (role !== 'STUDENT') throw new Error('Forbidden')
-
-  const { percentToGcseGrade } = await import('@/lib/grading')
-
-  function maxFromBands(bands: unknown): number {
-    if (!bands || typeof bands !== 'object') return 9
-    const keys = Object.keys(bands as Record<string, string>)
-    const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
-    return nums.length ? Math.max(...nums) : 9
-  }
 
   const [submissions, baselines, predictions, learningProfile] = await Promise.all([
     prisma.submission.findMany({

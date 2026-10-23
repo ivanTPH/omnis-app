@@ -4,6 +4,7 @@ import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
+import { maxScoreFromBands as maxFromBands } from '@/lib/metrics/grades'
 import { AI_ONE_SHOT_OPTS } from '@/lib/ai-timeouts'
 
 // Same staff roles, same "own school" scoping as the existing report-card export route.
@@ -63,14 +64,6 @@ function currentAcademicYear(): { start: Date; label: string } {
     start: new Date(startYear, 8, 1),
     label: `${startYear}-${String(startYear + 1).slice(-2)}`,
   }
-}
-
-/** Mirrors lib/actions/rag.ts's maxFromBands/toPercent — normalises a raw score to 0-100. */
-function maxFromBands(bands: unknown): number {
-  if (!bands || typeof bands !== 'object') return 9
-  const keys = Object.keys(bands as Record<string, string>)
-  const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
-  return nums.length ? Math.max(...nums) : 9
 }
 
 function toPercent(rawScore: number, bands: unknown): number {

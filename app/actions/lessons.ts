@@ -8,6 +8,7 @@ import { sendReviewCached } from '@/lib/sendReviewCached'
 import { updateSendInsight } from '@/lib/sendInsights'
 import { parseAndValidateDataUrl } from '@/lib/uploadValidation'
 import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
+import { maxScoreFromBands as maxFromBandsServer } from '@/lib/metrics/grades'
 
 // ── CalendarLesson shape (mirrors WeeklyCalendar type) ────────────────────────
 export type CalendarLessonData = {
@@ -1081,13 +1082,6 @@ export type ClassInsightsData = {
   students:      ClassInsightsStudent[]
   classAvg:      number | null
   totalHomework: number
-}
-
-function maxFromBandsServer(bands: unknown): number {
-  if (!bands || typeof bands !== 'object') return 9
-  const keys = Object.keys(bands as Record<string, string>)
-  const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
-  return nums.length ? Math.max(...nums) : 9
 }
 
 async function fetchClassInsights(classId: string, schoolId: string): Promise<ClassInsightsData> {

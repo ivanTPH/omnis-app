@@ -3,6 +3,7 @@
 import { requireAuth }       from '@/lib/session'
 import { prisma }            from '@/lib/prisma'
 import { redirect }          from 'next/navigation'
+import { weightedClassAverage } from '@/lib/metrics/grades'
 
 const ALLOWED = ['HEAD_OF_DEPT', 'SLT', 'SCHOOL_ADMIN']
 
@@ -273,7 +274,6 @@ export async function getTeacherAnalytics(teacherId: string): Promise<TeacherAna
   }))
 
   const dept = classes[0]?.department ?? ''
-  const allGrades = classRows.map(c => c.avgGrade).filter((g): g is number => g != null)
 
   return {
     teacher: { id: teacher.id, name: `${teacher.firstName} ${teacher.lastName}`, email: teacher.email, classCount: classes.length, department: dept },
@@ -284,7 +284,8 @@ export async function getTeacherAnalytics(teacherId: string): Promise<TeacherAna
       sendStudents:      classRows.reduce((s, c) => s + c.sendCount, 0),
       homeworkSet30d:    classRows.reduce((s, c) => s + c.homeworkSet30d, 0),
       ungraded:          classRows.reduce((s, c) => s + c.ungraded, 0),
-      avgGrade:          allGrades.length > 0 ? Math.round(allGrades.reduce((a, b) => a + b, 0) / allGrades.length * 10) / 10 : null,
+      // Weighted by each class's own student count — see lib/metrics/grades.ts.
+      avgGrade:          weightedClassAverage(classRows.map(c => ({ avgScore: c.avgGrade, studentCount: c.studentCount }))),
       avgTurnaroundDays: avgTurnaround,
     },
     bloomsCoverage,
@@ -367,7 +368,7 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
   const teachers: DeptTeacherRow[] = [...teacherMap.entries()].map(([id, t]) => {
     const tClassIds = [...t.classIds]
     let students = 0, send = 0, ungraded = 0, hw30 = 0
-    const grades: number[] = []
+    const classScores: { avgScore: number | null; studentCount: number }[] = []
 
     for (const cid of tClassIds) {
       const s = classStatsMap.get(cid)
@@ -376,7 +377,7 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
       send     += s.sendCount
       ungraded += s.ungraded
       hw30     += s.homeworkSet30d
-      if (s.avgGrade != null) grades.push(s.avgGrade)
+      classScores.push({ avgScore: s.avgGrade, studentCount: s.studentCount })
     }
 
     return {
@@ -385,7 +386,8 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
       classCount:     t.classIds.size,
       studentCount:   students,
       sendCount:      send,
-      avgGrade:       grades.length > 0 ? Math.round(grades.reduce((a, b) => a + b, 0) / grades.length * 10) / 10 : null,
+      // Weighted by each class's own student count — see lib/metrics/grades.ts.
+      avgGrade:       weightedClassAverage(classScores),
       ungraded,
       submissionRate: 0,   // not meaningful cross-class; omit from dept view
       homeworkSet30d: hw30,
@@ -402,7 +404,16 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
     .filter(l => bloomsMap.has(l))
     .map(l => ({ level: l, count: bloomsMap.get(l)! }))
 
-  const allGrades = teachers.map(t => t.avgGrade).filter((g): g is number => g != null)
+  // Computed directly from each class's own score + student count (one
+  // weighted average, not a mean of the per-teacher averages above) — a
+  // class taught by two teachers, or a teacher with several small classes,
+  // must not be double-counted or over/under-weighted. See lib/metrics/grades.ts.
+  const deptAvgGrade = weightedClassAverage(
+    classIds.map(cid => {
+      const s = classStatsMap.get(cid)
+      return { avgScore: s?.avgGrade ?? null, studentCount: s?.studentCount ?? 0 }
+    }),
+  )
 
   return {
     department:     dept || 'All departments',
@@ -414,7 +425,7 @@ export async function getDepartmentAnalytics(department?: string): Promise<Depar
       classes:    deptClasses.length,
       // uniqueDeptStudents de-duplicates students enrolled in multiple department classes
       students:   uniqueDeptStudents,
-      avgGrade:   allGrades.length > 0 ? Math.round(allGrades.reduce((a, b) => a + b, 0) / allGrades.length * 10) / 10 : null,
+      avgGrade:   deptAvgGrade,
       sendPct:    uniqueDeptStudents > 0 ? Math.round((deptSendCount / uniqueDeptStudents) * 100) : 0,
       ungraded:   teachers.reduce((s, t) => s + t.ungraded, 0),
     },
@@ -525,17 +536,16 @@ export async function getStaffOverview(): Promise<StaffOverviewRow[]> {
 
     let studentCount = 0; const studentIds = new Set<string>()
     let hw30 = 0
-    const grades: number[] = []; const rates: number[] = []; const turnaround: number[] = []
+    const classScores: { avgScore: number | null; studentCount: number }[] = []
+    const rates: number[] = []; const turnaround: number[] = []
 
     for (const classId of classIds) {
       const members = enrolByClass.get(classId) ?? []
       members.forEach(uid => studentIds.add(uid))
 
       const agg = latestAggMap.get(classId)
-      if (agg) {
-        if (agg.avgScore != null) grades.push(agg.avgScore)
-        rates.push(agg.completionRate)
-      }
+      classScores.push({ avgScore: agg?.avgScore ?? null, studentCount: members.length })
+      if (agg) rates.push(agg.completionRate)
       hw30 += hw30ByClass.get(classId) ?? 0
       const ta = turnaroundByClass.get(classId) ?? []
       turnaround.push(...ta)
@@ -551,7 +561,8 @@ export async function getStaffOverview(): Promise<StaffOverviewRow[]> {
       classCount:     classIds.length,
       studentCount,
       sendCount,
-      avgGrade:       grades.length > 0 ? Math.round(grades.reduce((a, b) => a + b, 0) / grades.length * 10) / 10 : null,
+      // Weighted by each class's own student count — see lib/metrics/grades.ts.
+      avgGrade:       weightedClassAverage(classScores),
       submissionRate: rates.length > 0 ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length * 1000) / 1000 : 0,
       homeworkSet30d: hw30,
       turnaroundDays: turnaround.length > 0 ? Math.round(turnaround.reduce((a, b) => a + b, 0) / turnaround.length * 10) / 10 : null,

@@ -8,6 +8,7 @@ import PrintButton from '@/components/ui/PrintButton'
 import { PlanStatus } from '@prisma/client'
 import { formatAvgGrade } from '@/lib/gradeUtils'
 import { getCurrentTermLabel } from '@/lib/termUtils'
+import { averageGrade, maxScoreFromBands, weightedClassAverage } from '@/lib/metrics/grades'
 import SubjectPerformanceDropdown from '@/components/slt/SubjectPerformanceDropdown'
 
 export default async function SltAnalyticsPage() {
@@ -65,27 +66,30 @@ export default async function SltAnalyticsPage() {
 
   const sendIds = sendIdsRaw.map(s => s.studentId)
 
-  // Attainment gap: SEND vs school avg (last 30 days, finalScore on 0–9 scale)
-  const [sendAvgResult, allAvgResult] = await Promise.all([
-    sendIds.length > 0
-      ? prisma.submission.aggregate({
-          where: { schoolId, studentId: { in: sendIds }, finalScore: { not: null }, submittedAt: { gte: last30days } },
-          _avg: { finalScore: true },
-        })
-      : Promise.resolve({ _avg: { finalScore: null } }),
-    prisma.submission.aggregate({
-      where: { schoolId, finalScore: { not: null }, submittedAt: { gte: last30days } },
-      _avg: { finalScore: true },
-    }),
-  ])
-  const sendAvgScore  = sendAvgResult._avg.finalScore  ?? null
-  const allAvgScore   = allAvgResult._avg.finalScore   ?? null
+  // Attainment gap: SEND vs school avg (last 30 days). finalScore is on each
+  // homework's OWN max-score scale (from its gradingBands), so this must be
+  // normalised to a GCSE grade per submission before averaging — a DB-side
+  // AVG(finalScore) mixes incompatible scales (see lib/metrics/grades.ts).
+  const periodSubs = await prisma.submission.findMany({
+    where: { schoolId, finalScore: { not: null }, submittedAt: { gte: last30days } },
+    select: { studentId: true, finalScore: true, homework: { select: { gradingBands: true } } },
+  })
+  const sendIdSet = new Set(sendIds)
+  const toScored  = (rows: typeof periodSubs) =>
+    rows.map(s => ({ finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands) }))
+  const allAvgScore   = averageGrade(toScored(periodSubs))
+  const sendAvgScore  = averageGrade(toScored(periodSubs.filter(s => sendIdSet.has(s.studentId))))
   const ilpCoveragePC = sendTotal > 0 ? Math.round(ilpCoverage / sendTotal * 100) : 0
 
-  // School-level aggregates
+  // School-level aggregates — avgScore weighted by each class's own student
+  // count (lib/metrics/grades.ts), not a plain mean of class averages, so
+  // this headline figure can't diverge from other screens that aggregate
+  // the same per-class data through a different number of averaging levels.
   const aggsArr          = Array.from(aggByClass.values())
   const schoolCompletion = aggsArr.length ? aggsArr.reduce((s, a) => s + a.completionRate, 0) / aggsArr.length : 0
-  const schoolScore      = aggsArr.length ? aggsArr.reduce((s, a) => s + a.avgScore, 0) / aggsArr.length : 0
+  const schoolScore      = weightedClassAverage(
+    allClasses.map(c => ({ avgScore: aggByClass.get(c.id)?.avgScore ?? null, studentCount: c._count.enrolments })),
+  ) ?? 0
   const flaggedCount     = aggsArr.filter(a => a.integrityFlagRate > 0.03).length
   // Computed from the school's own calendar (falling back to today's date)
   // — not the termId on whichever aggregate row happens to be first, which

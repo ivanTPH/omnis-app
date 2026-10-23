@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import AppShell from '@/components/AppShell'
 import HomeworkFilterView, { type HomeworkListItem } from '@/components/HomeworkFilterView'
+import { getAssignmentCounts } from '@/lib/metrics/homework'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,13 +67,14 @@ export default async function HomeworkPage() {
     )
 
     items = homework.map(hw => {
-      const total     = countByClass[hw.classId!] ?? 0
-      const submitted = hw.submissions.length
-      const returned  = hw.submissions.filter(s => s.status === 'RETURNED').length
-      // needsMarkCount mirrors the dashboard's criterion: non-RETURNED submissions
-      // that have not yet been given a finalScore (ungraded). This aligns the
-      // "To Mark" figure between the dashboard and the homework list.
-      const needsMarkCount = hw.submissions.filter(s => s.status !== 'RETURNED' && !s.finalScore).length
+      const total  = countByClass[hw.classId!] ?? 0
+      // Same definition everywhere: a submission still needs teacher action
+      // (counts as "to mark") until its status is RETURNED — an auto-marked
+      // submission still needs review. Previously this screen additionally
+      // required `!finalScore`, which auto-marking DOES set, so it silently
+      // undercounted "to mark" relative to the dashboard and marking screens
+      // (see lib/metrics/homework.ts for the traced root cause).
+      const counts = getAssignmentCounts(total, hw.submissions)
       return {
         id:             hw.id,
         title:          hw.title,
@@ -81,9 +83,9 @@ export default async function HomeworkPage() {
         classId:        hw.classId,
         class:          hw.class,
         lesson:         hw.lesson,
-        submittedCount: submitted,
-        markedCount:    returned,
-        needsMarkCount,
+        submittedCount: counts.submitted,
+        markedCount:    counts.marked,
+        needsMarkCount: counts.toMark,
         totalEnrolled:  total,
       }
     })

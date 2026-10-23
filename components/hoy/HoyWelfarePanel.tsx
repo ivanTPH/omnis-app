@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import type { HoyWelfareData } from '@/app/actions/hoy-welfare'
+import { reviewStatusLabel } from '@/lib/send/review-status'
 
 type Props = { data: HoyWelfareData }
 
@@ -60,7 +61,7 @@ export default function HoyWelfarePanel({ data }: Props) {
       bg:      data.highFlagsCount > 0 ? 'bg-rose-50 border-rose-200' : 'bg-gray-50 border-gray-200',
     },
     {
-      label:   'ILP reviews (14d)',
+      label:   'ILP reviews due/overdue',
       value:   data.ilpReviewsDue14d,
       icon:    'schedule',
       colour:  data.ilpReviewsDue14d > 0 ? 'text-blue-600'  : 'text-gray-300',
@@ -260,11 +261,12 @@ export default function HoyWelfarePanel({ data }: Props) {
                       {new Date(r.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                      r.daysUntil < 0   ? 'bg-red-100 text-red-700' :
                       r.daysUntil <= 3  ? 'bg-red-100 text-red-700' :
                       r.daysUntil <= 7  ? 'bg-amber-100 text-amber-700' :
                                           'bg-blue-100 text-blue-700'
                     }`}>
-                      {r.daysUntil === 0 ? 'Today' : r.daysUntil === 1 ? 'Tomorrow' : `${r.daysUntil}d`}
+                      {reviewStatusLabel({ state: r.daysUntil < 0 ? 'overdue' : 'due_soon', daysUntil: r.daysUntil })}
                     </span>
                   </div>
                   <Link href="/senco/ilp" className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-400 hover:text-blue-600 transition-colors" title="Open ILP records">

@@ -6,6 +6,7 @@ import Icon from '@/components/ui/Icon'
 import { PageHeader } from '@/components/ui/PageHeader'
 import SendBadge from '@/components/ui/SendBadge'
 import { getAllAPDRCycles } from '@/app/actions/send-support'
+import { getReviewStatus } from '@/lib/send/review-status'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,16 +27,14 @@ function CycleStepBadge({ cycleStatus, approvedBySenco }: { cycleStatus: string;
 }
 
 function ReviewDueBadge({ reviewDate }: { reviewDate: Date }) {
-  const now    = Date.now()
-  const due    = new Date(reviewDate).getTime()
-  const days   = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
+  const { state, daysUntil: days } = getReviewStatus(reviewDate, new Date(), 21)
   const urgent = days <= 7
-  const warn   = days <= 21
+  const warn   = state === 'due_soon'
   return (
     <span className={`text-[11px] font-medium ${urgent ? 'text-red-600' : warn ? 'text-amber-600' : 'text-gray-500'}`}>
       {urgent && <Icon name="warning" size="sm" className="inline mr-0.5" />}
       {new Date(reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-      {days <= 0 ? ' (overdue)' : days <= 7 ? ` (${days}d)` : ''}
+      {state === 'overdue' ? ' (overdue)' : days <= 7 ? ` (${days}d)` : ''}
     </span>
   )
 }
@@ -51,10 +50,7 @@ export default async function ApdrOverviewPage() {
   // Stats
   const totalActive    = active.length
   const pendingApproval = active.filter(c => !c.approvedBySenco).length
-  const reviewDue14    = active.filter(c => {
-    const days = Math.ceil((new Date(c.reviewDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    return days <= 14
-  }).length
+  const reviewDue14    = active.filter(c => getReviewStatus(c.reviewDate).daysUntil <= 14).length
 
   return (
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>

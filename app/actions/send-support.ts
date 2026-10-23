@@ -7,6 +7,7 @@ import { prisma, writeAudit, writeILPAudit, writeAPDRAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { analyseStudentPatterns } from '@/lib/send/early-warning'
 import { analyseConcernPattern } from '@/lib/send/concern-analyser'
+import { getReviewStatus, countByReviewState } from '@/lib/send/review-status'
 import { markDirty } from '@/lib/agents/snapshot'
 import { AgentType } from '@prisma/client'
 import { z } from 'zod'
@@ -215,6 +216,7 @@ export type SencoDashboardData = {
   highSeverityFlags: number
   studentsWithIlp: number
   ilpReviewsDue: number
+  overdueReviews: number
   recentConcerns: ConcernRow[]
   activeFlags: EarlyWarningFlagRow[]
   openConcernsList: ConcernRow[]
@@ -1916,9 +1918,6 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
   const user = await requireSenco()
   const schoolId = user.schoolId
   const now = new Date()
-  const in14Days = new Date(now)
-  in14Days.setDate(now.getDate() + 14)
-
   const in30Days = new Date(now)
   in30Days.setDate(now.getDate() + 30)
 
@@ -1926,7 +1925,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     openConcerns,
     highSeverityFlags,
     studentsWithIlp,
-    ilpReviewsDue,
+    allIlpReviewDates,
     recentConcernsRaw,
     activeFlagsRaw,
     openConcernsRaw,
@@ -1936,7 +1935,12 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     prisma.sendConcern.count({ where: { schoolId, status: { in: ['open', 'under_review', 'escalated'] } } }),
     prisma.earlyWarningFlag.count({ where: { schoolId, severity: 'high', isActioned: false, expiresAt: { gte: now } } }),
     prisma.individualLearningPlan.count({ where: { schoolId, status: { in: ['active', 'under_review'] }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
-    prisma.individualLearningPlan.count({ where: { schoolId, status: { in: ['active', 'under_review'] }, reviewDate: { gte: now, lte: in14Days }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } } }),
+    // All review dates, no lower bound — an overdue review must still be
+    // counted. Bucketed into due_soon/overdue below via lib/send/review-status.
+    prisma.individualLearningPlan.findMany({
+      where: { schoolId, status: { in: ['active', 'under_review'] }, student: { sendStatus: { activeStatus: { not: 'NONE' } } } },
+      select: { reviewDate: true },
+    }),
     prisma.sendConcern.findMany({
       where: { schoolId },
       orderBy: { createdAt: 'desc' },
@@ -1951,14 +1955,21 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       where: { schoolId, status: 'open' },
       orderBy: { createdAt: 'asc' },
     }),
+    // No lower bound on reviewDate — overdue reviews must appear too.
+    // orderBy reviewDate asc already puts the most-overdue entries first,
+    // since an overdue date is always chronologically earlier than a
+    // future due-soon date (see lib/send/review-status.ts).
     prisma.individualLearningPlan.findMany({
-      where: { schoolId, status: { in: ['active', 'under_review'] }, reviewDate: { gte: now, lte: in30Days } },
+      where: { schoolId, status: { in: ['active', 'under_review'] }, reviewDate: { lte: in30Days } },
       select: { id: true, studentId: true, reviewDate: true, sendCategory: true },
       orderBy: { reviewDate: 'asc' },
       take: 20,
     }),
     getPlanCoherenceAlerts(schoolId).catch(() => []),
   ])
+
+  const ilpReviewsDue  = countByReviewState(allIlpReviewDates.map(i => i.reviewDate), 'due_soon', now)
+  const overdueReviews = countByReviewState(allIlpReviewDates.map(i => i.reviewDate), 'overdue', now)
 
   const userIds = [...new Set([
     ...recentConcernsRaw.map(c => c.studentId),
@@ -1988,6 +1999,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
     highSeverityFlags,
     studentsWithIlp,
     ilpReviewsDue,
+    overdueReviews,
     recentConcerns: recentConcernsRaw.map(c => ({
       id: c.id,
       studentId: c.studentId,
@@ -2077,7 +2089,7 @@ export async function getSencoDashboardData(): Promise<SencoDashboardData> {
       reviewDate:  i.reviewDate,
       planType:    'ILP' as const,
       sendCategory: i.sendCategory,
-      daysUntil:   Math.ceil((i.reviewDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+      daysUntil:   getReviewStatus(i.reviewDate, now).daysUntil,
     })),
     planCoherenceAlerts,
     // Students with open/escalated concerns but no active ILP — deduplicated by student

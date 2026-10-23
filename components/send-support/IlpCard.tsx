@@ -10,6 +10,7 @@ import {
   updateIlpDraft, updateIlpTargetText,
   approveAPDR, updateAPDRSection, completeAPDRReview, generateAPDRForStudent,
 } from '@/app/actions/send-support'
+import { getReviewStatus, reviewStatusLabel } from '@/lib/send/review-status'
 
 const ROLE_LABELS: Record<string, string> = {
   SENCO: 'SENCO', TEACHER: 'Teacher', HEAD_OF_DEPT: 'HoD',
@@ -218,7 +219,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
     }
   }
 
-  const reviewSoon = new Date(ilp.reviewDate).getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000
+  const reviewStatus = getReviewStatus(ilp.reviewDate)
+  const reviewOverdue = reviewStatus.state === 'overdue'
+  const reviewSoon = reviewStatus.state === 'due_soon' || reviewOverdue
 
   // All targets resolved — prompt SENCO to start the next APDR cycle
   const TERMINAL = new Set(['achieved', 'not_achieved', 'deferred'])
@@ -261,10 +264,10 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
             </div>
           </div>
           <div className="text-right space-y-1">
-            <p className={`text-xs font-medium ${reviewSoon ? 'text-orange-600' : 'text-gray-500'}`}>
+            <p className={`text-xs font-medium ${reviewOverdue ? 'text-red-600' : reviewSoon ? 'text-orange-600' : 'text-gray-500'}`}>
               Review: {new Date(ilp.reviewDate).toLocaleDateString('en-GB')}
             </p>
-            {reviewSoon && <p className="text-xs text-orange-500">Review due soon</p>}
+            {reviewSoon && <p className={`text-xs ${reviewOverdue ? 'text-red-600 font-semibold' : 'text-orange-500'}`}>{reviewStatusLabel(reviewStatus)}</p>}
             {ilp.status === 'under_review' && !approved && (
               <button
                 onClick={handleApprove}

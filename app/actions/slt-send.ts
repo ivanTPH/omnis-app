@@ -2,6 +2,7 @@
 
 import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
+import { getReviewStatus } from '@/lib/send/review-status'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -84,7 +85,6 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
   }
 
   const now      = new Date()
-  const in30days = new Date(now.getTime() + 30 * 86_400_000)
   const since90  = new Date(now.getTime() - 90 * 86_400_000)
 
   // ── 1. SEND register ───────────────────────────────────────────────────────
@@ -180,8 +180,8 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
     total:           ehcpPlans.length,
     approved:        ehcpPlans.filter(p => p.approvedBySenco).length,
     pendingApproval: ehcpPlans.filter(p => !p.approvedBySenco).length,
-    reviewOverdue:   ehcpPlans.filter(p => new Date(p.reviewDate) < now).length,
-    reviewDue30:     ehcpPlans.filter(p => { const d = new Date(p.reviewDate); return d >= now && d <= in30days }).length,
+    reviewOverdue:   ehcpPlans.filter(p => getReviewStatus(p.reviewDate, now, 30).state === 'overdue').length,
+    reviewDue30:     ehcpPlans.filter(p => getReviewStatus(p.reviewDate, now, 30).state === 'due_soon').length,
     outcomesTotal:   ehcpOutcomes.length,
     outcomesAchieved: ehcpOutcomes.filter(o => o.status === 'achieved').length,
     outcomesActive:   ehcpOutcomes.filter(o => o.status === 'active').length,
@@ -210,7 +210,7 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
     targetsAchieved: ilpTargets.filter(t => t.status === 'achieved').length,
     targetsActive:   ilpTargets.filter(t => t.status === 'active').length,
     targetsNotAch:   ilpTargets.filter(t => t.status === 'not_achieved').length,
-    reviewOverdue:   ilpFull.filter(i => new Date(i.reviewDate) < now).length,
+    reviewOverdue:   ilpFull.filter(i => getReviewStatus(i.reviewDate, now).state === 'overdue').length,
   }
 
   // ── 6. Need area breakdown ─────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import { SencoRow } from '@/components/ui/SencoRow'
 import type { EhcpPlanWithOutcomes, StudentWithoutEhcp } from '@/app/actions/ehcp'
 import EhcpCard from './EhcpCard'
 import CreateEhcpPlanModal from './CreateEhcpPlanModal'
+import { getReviewStatus, reviewStatusLabel, compareByReviewDate } from '@/lib/send/review-status'
 
 const STATUS_LABEL: Record<string, string> = {
   active: 'Active',
@@ -21,8 +22,11 @@ const STATUS_COLOUR: Record<string, string> = {
   ceased:       'bg-gray-100 text-gray-600',
 }
 
+// EHCP annual reviews have their own 30-day statutory warning window (vs the
+// 14-day default elsewhere) — see lib/send/review-status.ts.
+const EHCP_DUE_SOON_WINDOW_DAYS = 30
 function daysUntil(date: Date) {
-  return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  return getReviewStatus(date, new Date(), EHCP_DUE_SOON_WINDOW_DAYS).daysUntil
 }
 
 type Props = {
@@ -60,7 +64,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
       if (!p.studentName.toLowerCase().includes(q)) return false
     }
     return true
-  }), [plans, yearFilter, searchQuery])
+  }).sort((a, b) => compareByReviewDate(a.reviewDate, b.reviewDate)), [plans, yearFilter, searchQuery])
 
   const filteredWithoutEhcp = useMemo(() => studentsWithoutEhcp.filter(s => {
     if (yearFilter && s.yearGroup !== Number(yearFilter)) return false
@@ -249,7 +253,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
                     </span>
                   ) : (
                     <span className={`text-sm font-semibold ${isOverdue ? 'text-red-700' : isDueSoon ? 'text-amber-700' : 'text-gray-500'}`}>
-                      {isOverdue ? `${Math.abs(days)}d overdue` : `Review in ${days}d`}
+                      {reviewStatusLabel(getReviewStatus(plan.reviewDate, new Date(), EHCP_DUE_SOON_WINDOW_DAYS))}
                     </span>
                   )
                 }

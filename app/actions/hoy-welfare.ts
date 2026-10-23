@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { redirect }    from 'next/navigation'
+import { getReviewStatus } from '@/lib/send/review-status'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -130,13 +131,14 @@ export async function getHoyWelfareData(): Promise<HoyWelfareData> {
       orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
     }),
 
-    // 3. ILP reviews due in 14 days
+    // 3. ILP reviews due in 14 days — no lower bound, so an overdue review
+    // is still counted (see lib/send/review-status.ts).
     prisma.individualLearningPlan.findMany({
       where: {
         schoolId,
         studentId:  { in: studentIds },
         status:     'active',
-        reviewDate: { gte: now, lte: in14days },
+        reviewDate: { lte: in14days },
       },
       select: { id: true, studentId: true, reviewDate: true, sendCategory: true },
       orderBy: { reviewDate: 'asc' },
@@ -285,7 +287,8 @@ export async function getHoyWelfareData(): Promise<HoyWelfareData> {
     studentId:    r.studentId,
     studentName:  (() => { const s = studentMap.get(r.studentId); return s ? `${s.firstName} ${s.lastName}` : 'Unknown' })(),
     reviewDate:   r.reviewDate.toISOString(),
-    daysUntil:    Math.max(0, Math.floor((r.reviewDate.getTime() - now.getTime()) / 86_400_000)),
+    // Never clamped to 0 — an overdue review must stay negative (see lib/send/review-status.ts).
+    daysUntil:    getReviewStatus(r.reviewDate, now).daysUntil,
     sendCategory: r.sendCategory,
   }))
 

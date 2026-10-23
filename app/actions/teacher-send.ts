@@ -3,6 +3,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
 import { percentToGcseGrade } from '@/lib/grading'
+import { getReviewStatus, compareByReviewDate } from '@/lib/send/review-status'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -196,9 +197,9 @@ export async function getTeacherSendCaseload(): Promise<TeacherSendCaseload> {
       : null
 
     const reviewDate     = ilp?.reviewDate ?? null
-    const reviewDaysUntil = reviewDate
-      ? Math.max(0, Math.floor((new Date(reviewDate).getTime() - now.getTime()) / 86_400_000))
-      : null
+    // Never clamped to 0 — an overdue review must stay negative, or every
+    // overdue pupil reads as "due today" (see lib/send/review-status.ts).
+    const reviewDaysUntil = reviewDate ? getReviewStatus(reviewDate, now).daysUntil : null
 
     const activeTargets: CaseloadTarget[] = (ilp?.targets ?? []).map(t => ({
       id:         t.id,
@@ -224,8 +225,12 @@ export async function getTeacherSendCaseload(): Promise<TeacherSendCaseload> {
       avgGrade,
     }
   }).sort((a, b) => {
-    // Sort: EHCP first, then SEN Support; within each group by name
+    // Sort: EHCP first, then SEN Support; within each group, soonest/most
+    // overdue review first (students with no ILP/review date sort last).
     if (a.sendStatus !== b.sendStatus) return a.sendStatus === 'EHCP' ? -1 : 1
+    if (a.reviewDate && b.reviewDate) return compareByReviewDate(a.reviewDate, b.reviewDate)
+    if (a.reviewDate) return -1
+    if (b.reviewDate) return 1
     return a.lastName.localeCompare(b.lastName)
   })
 

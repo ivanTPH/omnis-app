@@ -8,6 +8,7 @@ import { triggerEarlyWarningAnalysis, generateILPFromConcern, getSencoPendingAct
 import { ConcernStatusBadge } from './ConcernList'
 import { SeverityBadge } from './EarlyWarningPanel'
 import CohortInsightsPanel from './CohortInsightsPanel'
+import { reviewStatusLabel } from '@/lib/send/review-status'
 
 type Props = { data: SencoDashboardData }
 
@@ -60,13 +61,17 @@ export default function SencoDashboard({ data }: Props) {
     { label: 'Open Concerns',       value: data.openConcerns,      iconName: 'warning',         color: data.openConcerns > 0 ? 'text-amber-600' : 'text-gray-400',    href: '/senco/concerns' },
     { label: 'High Severity Flags', value: data.highSeverityFlags, iconName: 'radar',           color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-400', href: '/senco/early-warning' },
     { label: 'Students with ILP',   value: data.studentsWithIlp,   iconName: 'favorite_border', color: 'text-blue-600',                                                href: '/senco/ilp' },
+    // Always visible, even at 0 — distinct from "Reviews Due (14d)" below so
+    // an overdue review is never silently folded into a "due soon" count
+    // (see lib/send/review-status.ts for why that used to happen).
+    { label: 'Overdue Reviews',     value: data.overdueReviews,    iconName: 'error',           color: data.overdueReviews > 0 ? 'text-red-600' : 'text-gray-400',    href: '/senco/ilp' },
     { label: 'Reviews Due (14d)',    value: data.ilpReviewsDue,     iconName: 'schedule',        color: data.ilpReviewsDue > 0 ? 'text-orange-600' : 'text-gray-400',  href: '/senco/ilp' },
   ]
 
   return (
     <div className="p-6 space-y-6">
       {/* KPI row — each card links to the relevant section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {kpis.map(k => (
           <Link key={k.label} href={k.href} className="card-stat hover:shadow-md hover:border-gray-300 transition-all group">
             <div className="flex items-center gap-2 mb-2">
@@ -265,7 +270,7 @@ export default function SencoDashboard({ data }: Props) {
           >
             <div className="flex items-center gap-2">
               <Icon name="calendar_today" size="sm" className="text-blue-600" />
-              <h3 className="font-semibold text-blue-900 text-sm">Upcoming Reviews — Next 30 Days</h3>
+              <h3 className="font-semibold text-blue-900 text-sm">Reviews — Overdue &amp; Next 30 Days</h3>
               <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full font-medium">
                 {data.upcomingReviews.length}
               </span>
@@ -285,11 +290,12 @@ export default function SencoDashboard({ data }: Props) {
                       {new Date(r.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                      r.daysUntil < 0   ? 'bg-red-100 text-red-700' :
                       r.daysUntil <= 7  ? 'bg-red-100 text-red-700' :
                       r.daysUntil <= 14 ? 'bg-orange-100 text-orange-700' :
                                           'bg-blue-100 text-blue-700'
                     }`}>
-                      {r.daysUntil === 0 ? 'Today' : r.daysUntil === 1 ? 'Tomorrow' : `${r.daysUntil}d`}
+                      {reviewStatusLabel({ state: r.daysUntil < 0 ? 'overdue' : 'due_soon', daysUntil: r.daysUntil })}
                     </span>
                   </div>
                   <Link href="/senco/ilp" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Go to ILP records">

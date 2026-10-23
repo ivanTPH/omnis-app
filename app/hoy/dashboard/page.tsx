@@ -5,6 +5,7 @@ import AppShell        from '@/components/AppShell'
 import Link            from 'next/link'
 import Icon            from '@/components/ui/Icon'
 import PrintButton     from '@/components/ui/PrintButton'
+import { getReviewStatus, reviewStatusLabel } from '@/lib/send/review-status'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -142,13 +143,14 @@ export default async function HoyDashboardPage() {
       take: 8,
     }),
 
-    // ILP reviews due within 30 days
+    // ILP reviews due within 30 days — no lower bound, so overdue reviews
+    // are counted too (see lib/send/review-status.ts).
     prisma.individualLearningPlan.findMany({
       where: {
         schoolId,
         student: { id: { in: studentIds } },
         status: { in: ['active', 'ACTIVE'] },
-        reviewDate: { lte: in30days, gte: new Date() },
+        reviewDate: { lte: in30days },
       },
       select: {
         id: true, reviewDate: true,
@@ -158,13 +160,13 @@ export default async function HoyDashboardPage() {
       take: 10,
     }),
 
-    // EHCP reviews due
+    // EHCP reviews due — no lower bound, overdue counted too.
     prisma.ehcpPlan.findMany({
       where: {
         schoolId,
         student: { id: { in: studentIds } },
         status: { in: ['active', 'under_review'] },
-        reviewDate: { lte: in30days, gte: new Date() },
+        reviewDate: { lte: in30days },
       },
       select: {
         id: true, reviewDate: true,
@@ -174,13 +176,13 @@ export default async function HoyDashboardPage() {
       take: 10,
     }),
 
-    // APDR cycles review due within 14 days
+    // APDR cycles review due within 14 days — no lower bound, overdue counted too.
     prisma.assessPlanDoReview.findMany({
       where: {
         schoolId,
         studentId: { in: studentIds },
         status: { notIn: ['COMPLETED'] },
-        reviewDate: { lte: in14days, gte: new Date() },
+        reviewDate: { lte: in14days },
       },
       select: {
         id: true, cycleNumber: true, reviewDate: true,
@@ -384,7 +386,7 @@ export default async function HoyDashboardPage() {
 
           {/* Upcoming reviews */}
           {(ilpReviewsDue.length > 0 || ehcpReviewsDue.length > 0 || apdrDue.length > 0) && (
-            <SectionCard title="Upcoming Reviews (next 30 days)" icon="event">
+            <SectionCard title="Reviews — Overdue & Next 30 Days" icon="event">
               <div className="divide-y divide-gray-100">
                 {[
                   ...ilpReviewsDue.map(r => ({ ...r, type: 'ILP', studentId: r.student.id, name: `${r.student.firstName} ${r.student.lastName}` })),
@@ -394,8 +396,8 @@ export default async function HoyDashboardPage() {
                   .sort((a, b) => new Date(a.reviewDate).getTime() - new Date(b.reviewDate).getTime())
                   .slice(0, 12)
                   .map((r, i) => {
-                    const daysLeft = Math.ceil((new Date(r.reviewDate).getTime() - Date.now()) / 86_400_000)
-                    const urgent = daysLeft <= 7
+                    const status = getReviewStatus(r.reviewDate)
+                    const urgent = status.state === 'overdue' || status.daysUntil <= 7
                     return (
                       <div key={i} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50">
                         <div>
@@ -405,7 +407,7 @@ export default async function HoyDashboardPage() {
                           <span className="ml-2 text-[11px] text-gray-400">{r.type}</span>
                         </div>
                         <span className={`text-[12px] font-medium ${urgent ? 'text-red-600' : 'text-amber-600'}`}>
-                          {daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `${daysLeft}d`}
+                          {reviewStatusLabel(status)}
                         </span>
                       </div>
                     )

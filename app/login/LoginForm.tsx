@@ -63,8 +63,10 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
     // role, or MFA infra unavailable. signIn() itself is still the real
     // security check either way.
     const result = await signIn('credentials', { email, password, rememberMe: String(rememberMe), redirect: false })
-    if (result?.error) { setError('Invalid email or password.'); setLoading(false) }
-    else { window.location.href = '/' }
+    if (result?.error) {
+      setError(result.code === 'rate_limited' ? 'Too many attempts. Please try again later.' : 'Invalid email or password.')
+      setLoading(false)
+    } else { window.location.href = '/' }
   }
 
   // Step 2: submit the emailed code alongside the original credentials.
@@ -72,8 +74,10 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
     e.preventDefault()
     setLoading(true); setError('')
     const result = await signIn('credentials', { email, password, otpCode, rememberMe: String(rememberMe), redirect: false })
-    if (result?.error) { setError('Invalid or expired code. Try again.'); setLoading(false) }
-    else { window.location.href = '/' }
+    if (result?.error) {
+      setError(result.code === 'rate_limited' ? 'Too many attempts. Please try again later.' : 'Invalid or expired code. Try again.')
+      setLoading(false)
+    } else { window.location.href = '/' }
   }
 
   async function handleResendCode() {

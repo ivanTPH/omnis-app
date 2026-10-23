@@ -46,8 +46,6 @@ export async function GET(req: NextRequest) {
     orderBy: { dueAt: 'desc' },
   })
 
-  const GCSE_LETTERS = ['', 'F', 'E', 'D', 'C', 'C+', 'B', 'A', 'A*', 'A**'] as const
-
   const rows = homework.map(hw => {
     const enrolled   = hw.class.enrolments.length
     const submitted  = hw.submissions.length
@@ -61,9 +59,7 @@ export async function GET(req: NextRequest) {
     const avgGrade   = avgRaw != null
       ? Math.min(9, Math.max(1, Math.round(avgRaw)))
       : null
-    const avgGradeLabel = avgGrade != null
-      ? `${avgGrade} (${GCSE_LETTERS[avgGrade as keyof typeof GCSE_LETTERS]})`
-      : '—'
+    const avgGradeLabel = avgGrade != null ? `${avgGrade}` : '—'
 
     return [
       hw.dueAt.toLocaleDateString('en-GB'),

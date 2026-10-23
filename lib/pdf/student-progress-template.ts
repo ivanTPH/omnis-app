@@ -1,6 +1,6 @@
 import { pdfShell, escHtml } from './templates'
 import type { StudentFileData } from '@/app/actions/students'
-import { gradeLabel, percentToGcseGrade, GCSE_LETTERS } from '@/lib/grading'
+import { gradeLabel, percentToGcseGrade } from '@/lib/grading'
 
 function dateStr(d: string | Date | null | undefined): string {
   if (!d) return '—'
@@ -11,12 +11,11 @@ function gradeCell(avgScore: number | null): string {
   if (avgScore == null) return '<td style="color:#9ca3af;">—</td>'
   // avgScore is on 0–9 scale
   const g = Math.round(avgScore)
-  const letter = GCSE_LETTERS[g] ?? '?'
   let colour = '#6b7280'
   if (g >= 7) colour = '#15803d'
   else if (g >= 5) colour = '#ca8a04'
   else colour = '#dc2626'
-  return `<td style="font-weight:700;color:${colour};">${g} (${letter})</td>`
+  return `<td style="font-weight:700;color:${colour};">${g}</td>`
 }
 
 function attendanceBand(pct: number | null): { label: string; colour: string } {
@@ -147,7 +146,7 @@ export function studentProgressPdf(data: StudentFileData, schoolName: string): s
 
     <h2>Subject Performance</h2>
     <p style="font-size:9pt;color:#6b7280;margin-bottom:6pt;">
-      Grades are shown on the GCSE 1–9 scale. Grade 4 (C) is a standard pass; Grade 5 (C+) is a strong pass.
+      Grades are shown on the GCSE 1–9 scale. Grade 4 is a standard pass; Grade 5 is a strong pass.
     </p>
     ${perfHtml}
 

@@ -137,11 +137,11 @@ export default async function HodStaffPage() {
                       {s.classes.map(cls => (
                         <div key={cls.id} className="flex items-center gap-4 px-5 py-2.5 text-[12px] hover:bg-gray-50 transition-colors">
                           <RagDot rag={cls.rag} />
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 truncate">
                             <span className="font-medium text-gray-900">{cls.name}</span>
                             <span className="text-gray-400 ml-2">{cls.subject}</span>
                           </div>
-                          <span className="text-gray-400 shrink-0">Y{cls.yearGroup}</span>
+                          <span className="text-gray-400 shrink-0 ml-2">Y{cls.yearGroup}</span>
                           <span className="text-gray-500 shrink-0">{cls.studentCount} students</span>
                           {cls.sendCount > 0 && (
                             <span className="text-amber-600 shrink-0 flex items-center gap-0.5">

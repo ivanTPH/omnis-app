@@ -12,8 +12,7 @@ import { requestILPEvidence, addManualIlpEvidence } from '@/app/actions/ilp-evid
 
 function gradeLabel(g: number | null) {
   if (g == null) return '—'
-  const letters: Record<number, string> = { 9:'A**', 8:'A*', 7:'A', 6:'B', 5:'C+', 4:'C', 3:'D', 2:'E', 1:'F' }
-  return `${g} (${letters[g] ?? '?'})`
+  return `${g}`
 }
 
 function daysPill(days: number) {

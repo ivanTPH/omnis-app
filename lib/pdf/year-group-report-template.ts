@@ -39,8 +39,7 @@ function gradeChip(score: number | null): string {
   const g = Math.min(9, Math.max(1, Math.round(score)))
   const bg    = g >= 7 ? '#f0fdf4' : g >= 5 ? '#eff6ff' : g >= 4 ? '#fffbeb' : '#fef2f2'
   const color = g >= 7 ? '#15803d' : g >= 5 ? '#1d4ed8' : g >= 4 ? '#b45309' : '#b91c1c'
-  const letters = ['','F','E','D','C','C+','B','A','A*','A**'] as const
-  return `<span style="background:${bg};color:${color};padding:1pt 5pt;border-radius:3pt;font-size:9pt;font-weight:700;">${g} (${letters[g]})</span>`
+  return `<span style="background:${bg};color:${color};padding:1pt 5pt;border-radius:3pt;font-size:9pt;font-weight:700;">${g}</span>`
 }
 
 export function yearGroupReportPdf(data: YearGroupReportData): string {

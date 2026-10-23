@@ -1875,8 +1875,6 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
     })
   }
 
-  const GRADE_LABEL: Record<number, string> = { 9:'A**', 8:'A*', 7:'A', 6:'B', 5:'C+', 4:'C', 3:'D', 2:'E', 1:'F' }
-
   return (
     <div className="space-y-4">
       {/* Add button */}
@@ -2018,7 +2016,6 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
                   {/* Grade badge */}
                   <div className={`shrink-0 w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold text-sm ${GRADE_COLORS[r.score] ?? 'bg-gray-100 text-gray-700'}`}>
                     <span className="text-lg leading-none">{r.score}</span>
-                    <span className="text-[10px] leading-none opacity-80">{GRADE_LABEL[r.score] ?? ''}</span>
                   </div>
                   {/* Details */}
                   <div className="flex-1 min-w-0">

@@ -39,9 +39,7 @@ export type DepartmentReportData = {
 
 function gradeLabel(score: number | null): string {
   if (score == null) return '—'
-  const g = Math.max(1, Math.min(9, Math.round(score)))
-  const letters: Record<number, string> = { 9:'A**',8:'A*',7:'A',6:'B',5:'C+',4:'C',3:'D',2:'E',1:'F' }
-  return `${g} (${letters[g] ?? '?'})`
+  return `${Math.max(1, Math.min(9, Math.round(score)))}`
 }
 
 function ragBadge(score: number | null): string {

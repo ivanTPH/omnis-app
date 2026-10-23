@@ -5,17 +5,15 @@
  * used across analytics, progress, and marking views.
  */
 
-import { GCSE_LETTERS, percentToGcseGrade } from './grading'
+import { percentToGcseGrade } from './grading'
 
 /**
  * Format a GCSE grade (1–9) as a human-readable string.
- * "Grade 7 (A)"
+ * "Grade 7" — the number only, never a letter equivalent.
  */
 export function formatGrade(grade: number | null | undefined): string {
   if (grade == null) return '—'
-  const letter = GCSE_LETTERS[Math.round(grade)]
-  if (!letter) return `Grade ${Math.round(grade)}`
-  return `Grade ${Math.round(grade)} (${letter})`
+  return `Grade ${Math.round(grade)}`
 }
 
 /**
@@ -34,7 +32,7 @@ export function scoreToGcseGrade(score: number | null | undefined): number | nul
 
 /**
  * Format a raw score (either 0–9 grade or 0–100 percentage) for
- * compact display in lists.  Returns e.g. "Grade 7 (A)".
+ * compact display in lists.  Returns e.g. "Grade 7".
  */
 export function formatRawScore(score: number | null | undefined): string {
   const grade = scoreToGcseGrade(score)
@@ -43,16 +41,15 @@ export function formatRawScore(score: number | null | undefined): string {
 
 /**
  * Format a 0–9 GCSE average for display in analytics tables.
- * e.g. avgScore=6.4  →  "Grade 6 (B)"  with subtitle "avg 6.4"
+ * e.g. avgScore=6.4  →  "Gr 6"  with subtitle "avg 6.4"
  *
  * Returns { main, sub } for flexible rendering.
  */
 export function formatAvgGrade(avgScore: number | null | undefined): { main: string; sub: string } {
   if (avgScore == null) return { main: '—', sub: '' }
-  const rounded = Math.round(avgScore)
-  const letter  = GCSE_LETTERS[Math.max(1, Math.min(9, rounded))] ?? '?'
+  const rounded = Math.max(1, Math.min(9, Math.round(avgScore)))
   return {
-    main: `Gr ${Math.max(1, Math.min(9, rounded))} (${letter})`,
+    main: `Gr ${rounded}`,
     sub:  `avg ${avgScore.toFixed(1)}`,
   }
 }

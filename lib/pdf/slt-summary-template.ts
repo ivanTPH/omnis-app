@@ -1,5 +1,4 @@
 import { pdfShell, escHtml } from './templates'
-import { GCSE_LETTERS } from '@/lib/grading'
 
 export type SltSummaryData = {
   schoolName:      string
@@ -23,7 +22,7 @@ export type SltSummaryData = {
 function gradeCell(avgScore: number | null): string {
   if (avgScore == null) return '<span style="color:#9ca3af;">—</span>'
   const g = Math.round(avgScore)
-  const clamped = Math.min(9, Math.max(1, g)) as keyof typeof GCSE_LETTERS
+  const clamped = Math.min(9, Math.max(1, g))
   const bg =
     clamped >= 7 ? '#f0fdf4' :
     clamped >= 5 ? '#eff6ff' :
@@ -35,7 +34,7 @@ function gradeCell(avgScore: number | null): string {
     clamped >= 4 ? '#b45309' :
     '#b91c1c'
   return `<span style="background:${bg};color:${color};padding:1pt 6pt;border-radius:3pt;font-size:9pt;font-weight:700;">
-    ${clamped} (${GCSE_LETTERS[clamped]})
+    ${clamped}
   </span>`
 }
 

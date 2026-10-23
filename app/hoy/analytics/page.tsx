@@ -5,11 +5,8 @@ import Link from 'next/link'
 import AppShell from '@/components/AppShell'
 import Icon from '@/components/ui/Icon'
 import { formatAvgGrade } from '@/lib/gradeUtils'
+import { getCurrentTermLabel } from '@/lib/termUtils'
 import PrintButton from '@/components/ui/PrintButton'
-
-function termLabel(id: string) {
-  return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
 
 export default async function HoyAnalyticsPage() {
   const { schoolId, role, id: userId, firstName, lastName, schoolName } = await requireAuth()
@@ -97,7 +94,10 @@ export default async function HoyAnalyticsPage() {
   const aggsArr       = Array.from(aggByClass.values())
   const avgCompletion = aggsArr.length ? aggsArr.reduce((s, a) => s + a.completionRate, 0) / aggsArr.length : 0
   const avgScore      = aggsArr.length ? aggsArr.reduce((s, a) => s + a.avgScore, 0) / aggsArr.length : 0
-  const currentTerm   = aggsArr[0]?.termId ?? ''
+  // Computed from the school's own calendar (falling back to today's date)
+  // — not the termId on whichever aggregate row happens to be first, which
+  // only ever reflects whenever this school's data was last seeded.
+  const currentTerm   = await getCurrentTermLabel(schoolId)
 
   // Group classes by year group
   const byYearGroup = new Map<number, typeof allClasses>()
@@ -164,11 +164,9 @@ export default async function HoyAnalyticsPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {currentTerm && (
-                <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
-                  {termLabel(currentTerm)}
-                </span>
-              )}
+              <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
+                {currentTerm}
+              </span>
               <PrintButton />
             </div>
           </div>

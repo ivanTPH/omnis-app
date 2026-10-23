@@ -17,6 +17,7 @@ import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS } from '@/lib/grading'
+import { needsMarking } from '@/lib/metrics/homework'
 import StudentAvatar from '@/components/StudentAvatar'
 import { toast } from '@/components/ui/Toast'
 
@@ -248,9 +249,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
   const missingCount = pupils.filter(p => !p.submission).length
 
-  const ungradedCount = pupils.filter(p =>
-    p.submission && !p.submission.grade && p.submission.status !== 'RETURNED'
-  ).length
+  const ungradedCount = pupils.filter(p => p.submission && needsMarking(p.submission.status)).length
 
   const sendCount = pupils.filter(p =>
     sendByStudent[p.id]?.activeStatus && sendByStudent[p.id].activeStatus !== 'NONE'
@@ -362,9 +361,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   const filteredPupils = useMemo(() => {
     switch (pupilFilter) {
       case 'ungraded':
-        return pupils.filter(p =>
-          p.submission && !p.submission.grade && p.submission.status !== 'RETURNED'
-        )
+        return pupils.filter(p => p.submission && needsMarking(p.submission.status))
       case 'submitted':
         return pupils.filter(p => p.submission && p.submission.status !== 'RETURNED')
       case 'returned':
@@ -968,9 +965,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
   function handleFilterClick(key: PupilFilter) {
     setPupilFilter(prev => prev === key ? 'all' : key)
     if (key === 'ungraded') {
-      const first = pupils.find(p =>
-        p.submission && !p.submission.grade && p.submission.status !== 'RETURNED'
-      )
+      const first = pupils.find(p => p.submission && needsMarking(p.submission.status))
       setSelectedId(first?.id ?? null)
     } else if (key === 'submitted') {
       const first = pupils.find(p => p.submission && p.submission.status !== 'RETURNED')

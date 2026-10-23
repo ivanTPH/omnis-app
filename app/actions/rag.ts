@@ -6,6 +6,7 @@ import { writeAudit } from '@/lib/prisma'
 import { unstable_cache } from 'next/cache'
 import { currentTermLabel, termLabelToDates } from '@/lib/termUtils'
 import { percentToGcseGrade } from '@/lib/grading'
+import { maxScoreFromBands as maxFromBands } from '@/lib/metrics/grades'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -47,19 +48,6 @@ export type SavePredictionInput = {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-/**
- * Derive maxScore from a homework's gradingBands JSON.
- * Defaults to 9 (consistent with maxFromBandsServer in lessons.ts) so that
- * homework with no explicit gradingBands is treated as out-of-9 rather than
- * out-of-100 — preventing raw scores like 4 from appearing as 4% instead of 44%.
- */
-function maxFromBands(bands: unknown): number {
-  if (!bands || typeof bands !== 'object') return 9
-  const keys = Object.keys(bands as Record<string, string>)
-  const nums = keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n)))
-  return nums.length ? Math.max(...nums) : 9
-}
 
 /** Normalise a raw finalScore to 0-100 using the homework's gradingBands.
  *  Always produces a value in [0, 100] — never returns impossible percentages. */

@@ -6,6 +6,7 @@ import { unstable_cache } from 'next/cache'
 import { SendStatusValue, HomeworkStatus, Role } from '@prisma/client'
 import { percentToGcseGrade } from '@/lib/grading'
 import { currentTermLabel, termLabelToDates } from '@/lib/termUtils'
+import { averageGrade, maxScoreFromBands } from '@/lib/metrics/grades'
 
 // ── Adaptive analytics ────────────────────────────────────────────────────────
 
@@ -1326,13 +1327,16 @@ export async function getInclusionEvidenceReport(
   // ── Section 5 — evidence-backed progress ──────────────────────────────────
   const since90 = new Date(now.getTime() - 90 * 86_400_000)
 
+  // finalScore is on each homework's OWN max-score scale (from its
+  // gradingBands), so this must normalise per submission before averaging —
+  // a DB-side AVG(finalScore) mixes incompatible scales (lib/metrics/grades.ts).
   async function avgScoreFor(ids: string[]): Promise<number | null> {
     if (!ids.length) return null
-    const agg = await prisma.submission.aggregate({
+    const subs = await prisma.submission.findMany({
       where: { schoolId, studentId: { in: ids }, finalScore: { not: null }, submittedAt: { gte: since90 } },
-      _avg: { finalScore: true },
+      select: { finalScore: true, homework: { select: { gradingBands: true } } },
     })
-    return agg._avg.finalScore
+    return averageGrade(subs.map(s => ({ finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands) })))
   }
 
   // Whole-roll "NONE" cohort is queried separately — it's genuinely

@@ -2,6 +2,7 @@
 
 import { requireAuth } from '@/lib/session'
 import { prisma }      from '@/lib/prisma'
+import { averageGrade, maxScoreFromBands, roundGrade } from '@/lib/metrics/grades'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -104,20 +105,26 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
   const sendIds      = sendStatuses.map(s => s.studentId)
 
   // ── 2. Attainment gap (school-wide + SEND) ─────────────────────────────────
-  const [schoolAvgResult, sendAvgResult] = await Promise.all([
-    prisma.submission.aggregate({
-      where: { schoolId, finalScore: { not: null }, submittedAt: { gte: since90 } },
-      _avg:  { finalScore: true },
-    }),
-    sendIds.length > 0
-      ? prisma.submission.aggregate({
-          where: { schoolId, studentId: { in: sendIds }, finalScore: { not: null }, submittedAt: { gte: since90 } },
-          _avg:  { finalScore: true },
-        })
-      : Promise.resolve({ _avg: { finalScore: null } }),
-  ])
-  const schoolAvgScore = schoolAvgResult._avg.finalScore ?? null
-  const sendAvgScore   = sendAvgResult._avg.finalScore   ?? null
+  // finalScore is on each homework's OWN max-score scale (from its
+  // gradingBands — 5, 9, 20, 25, anything), so a DB-side AVG(finalScore)
+  // mixes incompatible scales. Fetch raw rows + each one's gradingBands and
+  // normalise to a GCSE grade before averaging (see lib/metrics/grades.ts).
+  const allSchoolSubs = await prisma.submission.findMany({
+    where: { schoolId, finalScore: { not: null }, submittedAt: { gte: since90 } },
+    select: {
+      studentId: true, finalScore: true,
+      homework: { select: { gradingBands: true } },
+      student:  { select: { yearGroup: true } },
+    },
+  })
+  const schoolAvgScore = averageGrade(allSchoolSubs.map(s => ({
+    finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands),
+  })))
+  const sendIdSet = new Set(sendIds)
+  const sendSubs = allSchoolSubs.filter(s => sendIdSet.has(s.studentId))
+  const sendAvgScore = averageGrade(sendSubs.map(s => ({
+    finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands),
+  })))
 
   // ── 3. Year-group breakdown ────────────────────────────────────────────────
   const yearGroups = [...new Set(
@@ -131,24 +138,17 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
   })
   const ilpStudentSet = new Set(activeIlps.map(i => i.studentId))
 
-  // Submissions per year group (SEND + all)
-  const subsRaw = await prisma.submission.findMany({
-    where: { schoolId, finalScore: { not: null }, submittedAt: { gte: since90 } },
-    select: {
-      studentId: true,
-      finalScore: true,
-      student:   { select: { yearGroup: true } },
-    },
-  })
-
+  // Submissions per year group (SEND + all) — reuses allSchoolSubs fetched above.
   const yearGroupRows: YearGroupSendRow[] = yearGroups.map(yg => {
     const inYear     = sendStatuses.filter(s => s.student.yearGroup === yg)
     const inYearIds  = new Set(inYear.map(s => s.studentId))
-    const yearSubs   = subsRaw.filter(s => s.student.yearGroup === yg)
-    const sendSubs   = yearSubs.filter(s => inYearIds.has(s.studentId))
+    const yearSubs   = allSchoolSubs.filter(s => s.student.yearGroup === yg)
+    const subsOfYear = yearSubs.filter(s => inYearIds.has(s.studentId))
 
-    const sendYgAvg  = sendSubs.length  ? sendSubs.reduce((a, s)  => a + (s.finalScore ?? 0), 0) / sendSubs.length  : null
-    const allYgAvg   = yearSubs.length  ? yearSubs.reduce((a, s)  => a + (s.finalScore ?? 0), 0) / yearSubs.length  : null
+    const toScored = (rows: typeof yearSubs) =>
+      rows.map(s => ({ finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands) }))
+    const sendYgAvg  = averageGrade(toScored(subsOfYear))
+    const allYgAvg   = averageGrade(toScored(yearSubs))
 
     return {
       yearGroup:    yg,
@@ -221,7 +221,7 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
     needAreaMap.get(key)!.push(s.studentId)
   }
 
-  const needAreaSubs = subsRaw.filter(s => sendIds.includes(s.studentId))
+  const needAreaSubs = allSchoolSubs.filter(s => sendIdSet.has(s.studentId))
   const needAreas: NeedAreaRow[] = Array.from(needAreaMap.entries())
     .map(([needArea, ids]) => {
       const idSet = new Set(ids)
@@ -229,7 +229,7 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
       return {
         needArea,
         count:    ids.length,
-        avgScore: subs.length ? subs.reduce((a, s) => a + (s.finalScore ?? 0), 0) / subs.length : null,
+        avgScore: averageGrade(subs.map(s => ({ finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands) }))),
       }
     })
     .sort((a, b) => b.count - a.count)
@@ -238,10 +238,9 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
   const since6mo   = new Date(now.getFullYear(), now.getMonth() - 5, 1)
   const trendSubs  = await prisma.submission.findMany({
     where:  { schoolId, finalScore: { not: null }, submittedAt: { gte: since6mo } },
-    select: { studentId: true, finalScore: true, submittedAt: true },
+    select: { studentId: true, finalScore: true, submittedAt: true, homework: { select: { gradingBands: true } } },
   })
 
-  const sendIdSet = new Set(sendIds)
   const trend: TrendPoint[] = []
   for (let i = 5; i >= 0; i--) {
     const monthStart = new Date(now.getFullYear(), now.getMonth() - i,     1)
@@ -253,19 +252,17 @@ export async function getSltSendDashboard(): Promise<SltSendDashboardData> {
       return d >= monthStart && d < monthEnd
     })
     const sendMonthSubs = monthSubs.filter(s => sendIdSet.has(s.studentId))
+    const toScored = (rows: typeof monthSubs) =>
+      rows.map(s => ({ finalScore: s.finalScore, maxScore: maxScoreFromBands(s.homework.gradingBands) }))
 
-    const schoolAvg = monthSubs.length
-      ? monthSubs.reduce((a, s) => a + (s.finalScore ?? 0), 0) / monthSubs.length
-      : null
-    const sendAvg = sendMonthSubs.length
-      ? sendMonthSubs.reduce((a, s) => a + (s.finalScore ?? 0), 0) / sendMonthSubs.length
-      : null
+    const schoolAvg = averageGrade(toScored(monthSubs))
+    const sendAvg   = averageGrade(toScored(sendMonthSubs))
 
     trend.push({
       month:     label,
-      schoolAvg: schoolAvg != null ? parseFloat(schoolAvg.toFixed(2)) : null,
-      sendAvg:   sendAvg   != null ? parseFloat(sendAvg.toFixed(2))   : null,
-      gap:       schoolAvg != null && sendAvg != null ? parseFloat((sendAvg - schoolAvg).toFixed(2)) : null,
+      schoolAvg,
+      sendAvg,
+      gap:       schoolAvg != null && sendAvg != null ? roundGrade(sendAvg - schoolAvg) : null,
     })
   }
 

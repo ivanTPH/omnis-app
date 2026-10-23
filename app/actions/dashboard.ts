@@ -2,6 +2,7 @@
 import { requireAuth } from '@/lib/session'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
+import { getAssignmentCounts } from '@/lib/metrics/homework'
 
 export type TodayLesson = {
   id: string
@@ -85,9 +86,10 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
       orderBy: { scheduledAt: 'asc' },
     }),
 
-    // Homework with at least one submission that still needs teacher grading.
-    // ungradedCount is computed in JS with !s.grade — mirrors HomeworkMarkingView exactly.
-    // Prisma _count.select.where with null comparisons is unreliable; JS filter is not.
+    // Homework with at least one submission that still needs teacher
+    // grading — getAssignmentCounts() (lib/metrics/homework.ts) is the one
+    // place "needs marking" is decided, so this stays in step with the
+    // homework list and marking screens.
     prisma.homework.findMany({
       where: {
         schoolId,
@@ -103,7 +105,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         dueAt: true,
         submissions: {
           where:  { schoolId, status: { not: 'RETURNED' } },
-          select: { id: true, grade: true },
+          select: { id: true, status: true },
         },
       },
       orderBy: { dueAt: 'asc' },
@@ -204,7 +206,7 @@ async function fetchDashboardData(userId: string, schoolId: string, dateKey: str
         id:            hw.id,
         title:         hw.title,
         dueAt:         hw.dueAt.toISOString(),
-        ungradedCount: hw.submissions.filter(s => !s.grade).length,
+        ungradedCount: getAssignmentCounts(0, hw.submissions).toMark,
       }))
       .filter(hw => hw.ungradedCount > 0),
     submissionsToday:  subsTodayCount,

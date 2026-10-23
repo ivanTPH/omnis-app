@@ -13,9 +13,7 @@ type Props = { data: SltSendDashboardData }
 
 function gradeLabel(score: number | null): string {
   if (score == null) return '—'
-  const g = Math.round(score)
-  const letters: Record<number, string> = { 9:'A**', 8:'A*', 7:'A', 6:'B', 5:'C+', 4:'C', 3:'D', 2:'E', 1:'F' }
-  return `Gr ${g} (${letters[g] ?? '?'})`
+  return `Gr ${Math.round(score)}`
 }
 
 function gap(send: number | null, all: number | null): string {

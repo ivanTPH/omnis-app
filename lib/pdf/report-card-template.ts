@@ -30,12 +30,9 @@ export type ReportCardData = {
   behaviourCount:       number
 }
 
-const GRADE_LETTERS = ['', 'F', 'E', 'D', 'C', 'C+', 'B', 'A', 'A*', 'A**']
-
 function gradeLabel(g: number | null): string {
   if (g == null) return '—'
-  const n = Math.round(g)
-  return `${n} (${GRADE_LETTERS[n] ?? '?'})`
+  return `${Math.round(g)}`
 }
 
 function attendanceRag(pct: number | null): string {

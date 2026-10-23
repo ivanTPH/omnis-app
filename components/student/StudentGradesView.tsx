@@ -272,9 +272,14 @@ function HomeworkRow({ hw }: { hw: GradeHistorySubmission }) {
 
 // ── Subject card ──────────────────────────────────────────────────────────────
 
+const MIN_MARKED_PIECES_FOR_GRADE = 3
+
 function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
   const [open, setOpen] = useState(false)
   const grades = summary.submissions.map(s => s.gcseGrade)
+  // A grade from 1-2 marked pieces is too noisy to call a subject average —
+  // show it only once there's enough work to be meaningful.
+  const hasEnoughWork = summary.submissions.length >= MIN_MARKED_PIECES_FOR_GRADE
 
   // Trend: target-based when predictedGrade is available, else recent trajectory
   type TrendStatus = 'above_target' | 'on_target' | 'below_target' | 'improving' | 'steady' | 'declining'
@@ -319,8 +324,12 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[14px] font-semibold text-gray-900">{summary.subject}</p>
-            <TrendArrow avgGrade={summary.avgGrade} predictedGrade={summary.predictedGrade ?? null} grades={grades} />
-            <span className={`text-[10px] font-medium ${trendColor}`}>{trendLabel}</span>
+            {hasEnoughWork && (
+              <>
+                <TrendArrow avgGrade={summary.avgGrade} predictedGrade={summary.predictedGrade ?? null} grades={grades} />
+                <span className={`text-[10px] font-medium ${trendColor}`}>{trendLabel}</span>
+              </>
+            )}
           </div>
           <p className="text-[11px] text-gray-400 mt-0.5">
             {summary.submissions.length} marked piece{summary.submissions.length !== 1 ? 's' : ''}
@@ -330,7 +339,7 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
           </p>
         </div>
 
-        {grades.length >= 2 && (
+        {hasEnoughWork && grades.length >= 2 && (
           <div className="hidden sm:block">
             <Sparkline grades={grades} />
           </div>
@@ -339,7 +348,9 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
             <p className="text-[10px] text-gray-400 mb-0.5">Current avg</p>
-            <GradePill grade={summary.avgGrade} />
+            {hasEnoughWork
+              ? <GradePill grade={summary.avgGrade} />
+              : <span className="text-[11px] text-gray-400 italic">Not enough work yet</span>}
           </div>
           {summary.predictedGrade != null && (
             <div className="text-right">
@@ -354,8 +365,8 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
 
       {open && (
         <div className="border-t border-gray-100 px-5 py-4 space-y-3">
-          {/* Progress toward predicted */}
-          {summary.predictedGrade != null && (
+          {/* Progress toward predicted — needs a meaningful current average */}
+          {hasEnoughWork && summary.predictedGrade != null && (
             <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-semibold text-blue-800">Progress toward target grade</p>

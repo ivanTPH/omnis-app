@@ -1,12 +1,12 @@
 /**
- * UK GCSE grade utilities (1–9 scale)
+ * UK GCSE grade utilities (1–9 scale).
  *
- * Grade 9 = A** | 8 = A* | 7 = A | 6 = B | 5 = C+ | 4 = C | 3 = D | 2 = E | 1 = F
+ * Grades are always shown as the number only (9-1, or U for unmarked) —
+ * never with a letter equivalent such as "A**"/"A*"/"A"/"B" etc. There is
+ * deliberately no letter-lookup table here any more: the old GCSE_LETTERS
+ * export was the one place every "9 (A**)"-style label in the app (and in
+ * PDF/CSV exports) ultimately came from.
  */
-
-export const GCSE_LETTERS: Record<number, string> = {
-  9: 'A**', 8: 'A*', 7: 'A', 6: 'B', 5: 'C+', 4: 'C', 3: 'D', 2: 'E', 1: 'F',
-}
 
 export function percentToGcseGrade(pct: number): number {
   if (pct >= 90) return 9
@@ -20,10 +20,10 @@ export function percentToGcseGrade(pct: number): number {
   return 1
 }
 
-/** "4 (C)" — compact grade label with letter abbreviation */
+/** "4" — GCSE grades are shown as the number only, 9-1 (or U), never with a letter equivalent. */
 export function gradeLabel(grade: number | null | undefined): string {
   if (grade == null) return 'U'
-  return `${grade} (${GCSE_LETTERS[grade] ?? '?'})`
+  return `${grade}`
 }
 
 /** Tailwind classes for a colour-coded GCSE grade pill (9,8=dark green / 7,6=green / 5,4=amber / 3,2,1=red) */
@@ -37,7 +37,7 @@ export function gradePillClass(grade: number | null | undefined): string {
 
 /**
  * Format a score for display — always shows grade, never a raw fraction.
- * e.g. score=7, maxScore=9 → "78% — Grade 7 (A)"
+ * e.g. score=7, maxScore=9 → "78% — Grade 7"
  */
 export function formatScore(
   score: number | null,
@@ -47,7 +47,7 @@ export function formatScore(
   if (score == null) return 'Not marked'
   const pct   = maxScore && maxScore !== 100 ? Math.round((score / maxScore) * 100) : score
   const grade = percentToGcseGrade(pct)
-  if (showGrade) return `${pct}% — Grade ${grade} (${GCSE_LETTERS[grade]})`
+  if (showGrade) return `${pct}% — Grade ${grade}`
   return `${pct}%`
 }
 

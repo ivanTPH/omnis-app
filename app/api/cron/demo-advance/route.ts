@@ -794,7 +794,7 @@ export async function GET(req: NextRequest) {
         if (!existing) {
           const hwEntry = [...newHwMap.values()].find(v => v.hwId === lowest.homeworkId)
           const pct     = Math.round(((lowest.finalScore ?? 0) / 5) * 100)
-          await prisma.sendConcern.create({
+          const systemConcern = await prisma.sendConcern.create({
             data: {
               schoolId,
               studentId:    lowest.studentId,
@@ -804,6 +804,20 @@ export async function GET(req: NextRequest) {
               description:  `Early warning: student scored ${lowest.finalScore}/5 (${pct}%) on "${hwEntry?.title ?? "this week's homework"}". Performance is below expected level for their SEND profile. Review ILP targets and consider adjusting support strategies.`,
               evidenceNotes: 'Auto-flagged by weekly performance monitoring.',
               status:       'open',
+            },
+          })
+          // actorId is a real FK to User (no "system" user row exists), so
+          // raisedBy/actorId still point at the SENCO — source:'system'
+          // above (and this log's metadata) is what the UI actually keys
+          // off to show "Raised automatically by Omnis early warning"
+          // instead of the SENCO's name.
+          await prisma.sendReviewLog.create({
+            data: {
+              schoolId,
+              studentId: lowest.studentId,
+              action:    'concern_raised',
+              actorId:   senco.id,
+              metadata:  { concernId: systemConcern.id, category: 'literacy', source: 'system', trigger: 'early-warning-weekly-monitor' },
             },
           })
           concernsRaised++

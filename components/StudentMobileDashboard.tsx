@@ -22,6 +22,23 @@ export type MobileHw = {
   homeworkType?: string | null   // 'quiz' | 'short_answer' | 'essay' | null
 }
 
+// Plain labels for every homeworkVariantType value a pupil might see —
+// without this, an unmapped type (free_text, upload, mind_map, diagram,
+// structured_task, problem_solving, creative_writing, STANDARD, ...) fell
+// through to rendering the raw enum string.
+const HOMEWORK_TYPE_LABEL: Record<string, string> = {
+  quiz: 'Quiz', multiple_choice: 'Quiz',
+  short_answer: 'Short answer', SHORT_ANSWER: 'Short answer', retrieval_practice: 'Short answer',
+  essay: 'Essay', extended_writing: 'Essay', creative_writing: 'Written answer', free_text: 'Written answer',
+  structured_task: 'Task', problem_solving: 'Task',
+  mind_map: 'Upload', diagram: 'Upload', upload: 'Upload',
+  STANDARD: 'Homework', standard: 'Homework',
+}
+
+function homeworkTypeLabel(type: string): string {
+  return HOMEWORK_TYPE_LABEL[type] ?? 'Homework'
+}
+
 export type SubjectProgress = {
   subject:    string
   avgScore:   number   // 0–100
@@ -257,10 +274,7 @@ export default function StudentMobileDashboard({
                             ? 'bg-purple-100 text-purple-700'
                             : 'bg-gray-100 text-gray-500'
                         }`}>
-                          {hw.homeworkType === 'quiz' || hw.homeworkType === 'multiple_choice' ? 'Quiz'
-                            : hw.homeworkType === 'short_answer' ? 'Short answer'
-                            : hw.homeworkType === 'essay' || hw.homeworkType === 'extended_writing' ? 'Essay'
-                            : hw.homeworkType}
+                          {homeworkTypeLabel(hw.homeworkType)}
                         </span>
                       )}
                     </div>

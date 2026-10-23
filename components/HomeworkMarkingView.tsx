@@ -16,7 +16,7 @@ function isGradeConflict(err: unknown): boolean {
 import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
-import { percentToGcseGrade, normalizeScoreForForm, GCSE_LETTERS } from '@/lib/grading'
+import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
 import StudentAvatar from '@/components/StudentAvatar'
 import { toast } from '@/components/ui/Toast'
 
@@ -827,7 +827,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 const grade = percentToGcseGrade(pct)
                 return (
                   <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
-                    AI: Gr {grade} ({GCSE_LETTERS[grade]}) ↗
+                    AI: Gr {grade} ↗
                   </span>
                 )
               })()}
@@ -1680,7 +1680,6 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       const isLegacyPct = selectedAutoScore > maxScore && maxScore <= 20
                       const pct = isLegacyPct ? selectedAutoScore : Math.round((selectedAutoScore / maxScore) * 100)
                       const grade = percentToGcseGrade(pct)
-                      const letter = GCSE_LETTERS[grade] ?? ''
                       // Confidence: extreme scores (clear pass/fail) are high confidence; mid-range needs human review
                       const confidence: 'High' | 'Medium' | 'Low' =
                         pct >= 85 || pct <= 15 ? 'High' :
@@ -1700,7 +1699,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           </div>
                           <div>
                             <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Suggested Grade</p>
-                            <p className="text-sm font-bold text-gray-900">Grade {grade} {letter ? `(${letter})` : ''}</p>
+                            <p className="text-sm font-bold text-gray-900">Grade {grade}</p>
                           </div>
                           <div className="ml-auto text-right">
                             <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">AI Confidence</p>
@@ -1949,7 +1948,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                             <button
                               key={g}
                               type="button"
-                              title={`Grade ${g} (${GCSE_LETTERS[gNum]})`}
+                              title={`Grade ${g}`}
                               onClick={() => setField('grade', isSelected ? '' : g)}
                               className={`w-8 h-8 rounded-lg text-[12px] font-bold border transition-colors ${colorCls}`}
                             >
@@ -1964,8 +1963,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                         gradeHasValue              ? 'text-amber-500' :
                         'text-gray-400'
                       }`}>
-                        {form.grade && GCSE_LETTERS[Number(form.grade)]
-                          ? `Grade ${form.grade} (${GCSE_LETTERS[Number(form.grade)]}) — ${gradeLabel}`
+                        {form.grade
+                          ? `Grade ${form.grade} — ${gradeLabel}`
                           : gradeLabel}
                       </p>
                     </div>

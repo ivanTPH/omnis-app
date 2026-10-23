@@ -1,5 +1,4 @@
 import { pdfShell, escHtml } from './templates'
-import { GCSE_LETTERS } from '@/lib/grading'
 
 export type ClassReportStudent = {
   firstName:    string
@@ -34,10 +33,10 @@ export type ClassReportData = {
 
 function gradeChip(score: number | null): string {
   if (score == null) return '<span style="color:#9ca3af;">—</span>'
-  const g = Math.min(9, Math.max(1, Math.round(score))) as keyof typeof GCSE_LETTERS
+  const g = Math.min(9, Math.max(1, Math.round(score)))
   const bg    = g >= 7 ? '#f0fdf4' : g >= 5 ? '#eff6ff' : g >= 4 ? '#fffbeb' : '#fef2f2'
   const color = g >= 7 ? '#15803d' : g >= 5 ? '#1d4ed8' : g >= 4 ? '#b45309' : '#b91c1c'
-  return `<span style="background:${bg};color:${color};padding:1pt 5pt;border-radius:3pt;font-size:9pt;font-weight:700;">${g} (${GCSE_LETTERS[g]})</span>`
+  return `<span style="background:${bg};color:${color};padding:1pt 5pt;border-radius:3pt;font-size:9pt;font-weight:700;">${g}</span>`
 }
 
 function sendBadge(status: string): string {

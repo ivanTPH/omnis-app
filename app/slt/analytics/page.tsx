@@ -7,11 +7,8 @@ import Icon from '@/components/ui/Icon'
 import PrintButton from '@/components/ui/PrintButton'
 import { PlanStatus } from '@prisma/client'
 import { formatAvgGrade } from '@/lib/gradeUtils'
+import { getCurrentTermLabel } from '@/lib/termUtils'
 import SubjectPerformanceDropdown from '@/components/slt/SubjectPerformanceDropdown'
-
-function termLabel(id: string) {
-  return id.replace('term-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
 
 export default async function SltAnalyticsPage() {
   const { schoolId, role, firstName, lastName, schoolName } = await requireAuth()
@@ -90,7 +87,10 @@ export default async function SltAnalyticsPage() {
   const schoolCompletion = aggsArr.length ? aggsArr.reduce((s, a) => s + a.completionRate, 0) / aggsArr.length : 0
   const schoolScore      = aggsArr.length ? aggsArr.reduce((s, a) => s + a.avgScore, 0) / aggsArr.length : 0
   const flaggedCount     = aggsArr.filter(a => a.integrityFlagRate > 0.03).length
-  const currentTerm      = aggsArr[0]?.termId ?? ''
+  // Computed from the school's own calendar (falling back to today's date)
+  // — not the termId on whichever aggregate row happens to be first, which
+  // only ever reflects whenever this school's data was last seeded.
+  const currentTerm      = await getCurrentTermLabel(schoolId)
 
   // Group classes by subject for the main table
   const bySubject = new Map<string, typeof allClasses>()
@@ -163,11 +163,9 @@ export default async function SltAnalyticsPage() {
               <p className="text-[13px] text-gray-400 mt-0.5">Performance overview across all classes</p>
             </div>
             <div className="flex items-center gap-3">
-              {currentTerm && (
-                <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
-                  {termLabel(currentTerm)}
-                </span>
-              )}
+              <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
+                {currentTerm}
+              </span>
               <SubjectPerformanceDropdown subjects={distinctSubjects} />
               <Link
                 href="/api/export/staff-workload"

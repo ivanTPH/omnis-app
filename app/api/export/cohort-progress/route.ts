@@ -4,8 +4,6 @@ import { prisma } from '@/lib/prisma'
 
 const ALLOWED = ['SLT', 'SCHOOL_ADMIN', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR']
 
-const GCSE_LETTERS = ['', 'F', 'E', 'D', 'C', 'C+', 'B', 'A', 'A*', 'A**'] as const
-
 function escapeCsv(val: string | number | null | undefined): string {
   const s = String(val ?? '')
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
@@ -16,8 +14,7 @@ function escapeCsv(val: string | number | null | undefined): string {
 
 function gradeLabel(score: number | null): string {
   if (score == null) return '—'
-  const g = Math.min(9, Math.max(1, Math.round(score))) as 1|2|3|4|5|6|7|8|9
-  return `${g} (${GCSE_LETTERS[g]})`
+  return `${Math.min(9, Math.max(1, Math.round(score)))}`
 }
 
 export async function GET(req: NextRequest) {

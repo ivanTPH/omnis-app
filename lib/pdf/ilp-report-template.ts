@@ -36,12 +36,9 @@ export type IlpReportData = {
   recentSubmissions: IlpReportSubmission[]
 }
 
-const GCSE_LETTERS = ['','F','E','D','C','C+','B','A','A*','A**'] as const
-
 function gradeLabel(score: number | null | undefined): string {
   if (score == null) return '—'
-  const g = Math.min(9, Math.max(1, Math.round(score)))
-  return `${g} (${GCSE_LETTERS[g]})`
+  return `${Math.min(9, Math.max(1, Math.round(score)))}`
 }
 
 function statusBadge(status: string): string {

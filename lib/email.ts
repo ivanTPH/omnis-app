@@ -525,8 +525,6 @@ export async function sendEngagementDigestEmail(params: {
   const month = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
   const compColor = submissionRate >= 80 ? '#16a34a' : submissionRate >= 60 ? '#d97706' : '#dc2626'
   const gradeStr  = avgGrade != null ? avgGrade.toFixed(1) : '—'
-  const GCSE: Record<number, string> = { 9:'A**',8:'A*',7:'A',6:'B',5:'C+',4:'C',3:'D',2:'E',1:'F' }
-  const gradeLetter = avgGrade != null ? (GCSE[Math.round(avgGrade)] ?? '') : ''
 
   await send(
     to,
@@ -546,7 +544,7 @@ export async function sendEngagementDigestEmail(params: {
       </tr>
       <tr style="background:#f3f4f6;">
         <td style="padding:8px 12px;font-weight:600;color:#374151;">School Avg Grade</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:700;color:#374151;">${gradeStr}${gradeLetter ? ` (${gradeLetter})` : ''}</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:700;color:#374151;">${gradeStr}</td>
       </tr>
       <tr>
         <td style="padding:8px 12px;font-weight:600;color:#374151;">Submissions Awaiting Marking</td>

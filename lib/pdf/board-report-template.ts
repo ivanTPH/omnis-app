@@ -25,12 +25,9 @@ export type BoardReportData = {
   }[]
 }
 
-const GCSE_LETTERS: Record<number, string> = { 9:'A**',8:'A*',7:'A',6:'B',5:'C+',4:'C',3:'D',2:'E',1:'F' }
-
 function gradeLabel(g: number | null): string {
   if (g == null) return '—'
-  const n = Math.round(g)
-  return `${n} (${GCSE_LETTERS[n] ?? '?'})`
+  return `${Math.round(g)}`
 }
 
 function rag(val: number, goodGte: number, warnGte: number): string {

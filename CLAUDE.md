@@ -1,6 +1,15 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-09-29. Authoritative reference for Claude sessions.
+> Last updated: 2026-10-23. Authoritative reference for Claude sessions.
+>
+> **23 Oct 2026: how changes reach production.** Every push to `main` deploys to omnis.education automatically
+> (Coolify webhook, ~7 min) and then runs the full E2E suite against the live site (`.github/workflows/e2e.yml`).
+> So never push unverified work to `main`. Verify on a `check/**` branch or a PR first: `.github/workflows/checks.yml`
+> runs tsc, lint, unit tests and build on GitHub (Prisma engine downloads are blocked in some sandboxes, so this is
+> the reliable place to run them). E2E failures are written to a single annotation, `scripts/e2e-annotate.mjs`, which is
+> readable through the GitHub API (`gh api repos/ivanTPH/omnis-app/check-runs/<job id>/annotations`) without
+> signing in to view logs. Demo owner sessions may be revoked only by the owner (`recordSignOut`):
+> `revokePreviousDemoSession` refuses the owner's email, because demo passwords are public.
 >
 > **30 Sep 2026: overnight AI jobs are opt-in per school.** Use the `ai_agents` feature flag (Platform admin → Schools → Feature flags);
 > it is off by default. See `lib/ai/agent-schools.ts` and `docs/audit/2026-09-30-overnight-ai-cost.md`. The demo and test schools had

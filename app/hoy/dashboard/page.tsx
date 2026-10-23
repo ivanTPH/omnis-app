@@ -95,19 +95,42 @@ export default async function HoyDashboardPage() {
   })
   const myYearGroup = role === 'HEAD_OF_YEAR' ? (userRecord?.yearGroup ?? null) : null
 
-  // ── Students in year group ───────────────────────────────────────────────────
-  const yearStudents = await prisma.user.findMany({
+  // ── Classes in year group, with enrolled students ────────────────────────────
+  // Students are derived from CLASS enrolment, not from each student's own
+  // User.yearGroup field — the same approach /hoy/analytics uses. A
+  // student's own yearGroup field can lag behind reality (e.g. a
+  // mid-sync-cycle MIS gap) while their class enrolment is what actually
+  // drives homework/attendance/behaviour data, so deriving the roster from
+  // it directly is both more robust and keeps this page's figures
+  // identical to Year Analytics' instead of silently diverging.
+  const classes = await prisma.schoolClass.findMany({
     where: {
       schoolId,
-      role: 'STUDENT',
-      isActive: true,
       ...(myYearGroup ? { yearGroup: myYearGroup } : {}),
     },
-    select: { id: true, firstName: true, lastName: true, yearGroup: true, attendancePercentage: true, behaviourPositive: true, behaviourNegative: true },
-    orderBy: [{ yearGroup: 'asc' }, { lastName: 'asc' }],
+    select: {
+      id: true, name: true, subject: true, yearGroup: true,
+      teachers: { select: { user: { select: { firstName: true, lastName: true } } }, take: 1 },
+      enrolments: {
+        select: {
+          user: {
+            select: {
+              id: true, firstName: true, lastName: true, yearGroup: true,
+              attendancePercentage: true, behaviourPositive: true, behaviourNegative: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }],
   })
 
-  const studentIds = yearStudents.map(s => s.id)
+  const studentMap = new Map<string, typeof classes[0]['enrolments'][0]['user']>()
+  for (const cls of classes) {
+    for (const e of cls.enrolments) studentMap.set(e.user.id, e.user)
+  }
+  const yearStudents = [...studentMap.values()].sort((a, b) => a.lastName.localeCompare(b.lastName))
+  const studentIds   = yearStudents.map(s => s.id)
 
   // ── Parallel data fetches ────────────────────────────────────────────────────
   const in30days  = new Date(Date.now() + 30 * 86_400_000)
@@ -120,7 +143,6 @@ export default async function HoyDashboardPage() {
     ilpReviewsDue,
     ehcpReviewsDue,
     apdrDue,
-    classes,
   ] = await Promise.all([
     // SEND students in year group
     prisma.sendStatus.count({
@@ -189,22 +211,6 @@ export default async function HoyDashboardPage() {
       orderBy: { reviewDate: 'asc' },
       take: 10,
     }),
-
-    // Classes for year group
-    prisma.schoolClass.findMany({
-      where: {
-        schoolId,
-        ...(myYearGroup ? { yearGroup: myYearGroup } : {}),
-      },
-      select: {
-        id: true, name: true, subject: true, yearGroup: true,
-        teachers: { select: { user: { select: { firstName: true, lastName: true } } }, take: 1 },
-        _count: { select: { enrolments: true } },
-      },
-      orderBy: [{ yearGroup: 'asc' }, { subject: 'asc' }],
-      take: 20,
-    }),
-
   ])
 
   // ── Attendance alerts: below 90% ─────────────────────────────────────────────
@@ -246,6 +252,19 @@ export default async function HoyDashboardPage() {
   const reviewsDueCount    = ilpReviewsDue.length + ehcpReviewsDue.length + apdrDue.length
   const lowAttendanceCount = yearStudents.filter(s => s.attendancePercentage != null && s.attendancePercentage < 90).length
   const hasAttendanceData  = yearStudents.some(s => s.attendancePercentage != null)
+
+  // "Run MIS sync" only works for roles /admin/wonde actually allows
+  // (SCHOOL_ADMIN/SLT) — a HEAD_OF_YEAR following that link was silently
+  // redirected back. Non-admins get an explanation instead, naming who
+  // can fix it and when the MIS was last synced, rather than a dead link.
+  const canRunMisSync = ['SCHOOL_ADMIN', 'SLT'].includes(role)
+  const lastSync = (!hasAttendanceData && !canRunMisSync)
+    ? await prisma.wondeSyncLog.findFirst({
+        where: { schoolId, status: { in: ['success', 'partial'] } },
+        orderBy: { completedAt: 'desc' },
+        select: { completedAt: true },
+      })
+    : null
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -317,9 +336,18 @@ export default async function HoyDashboardPage() {
                   <Icon name="sync" size="md" className="text-gray-300 mx-auto mb-2" />
                   <p className="text-[13px] text-gray-500 font-medium">No attendance data yet</p>
                   <p className="text-[12px] text-gray-400 mt-1">Attendance is synced from your MIS via Wonde.</p>
-                  <Link href="/admin/wonde" className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:underline mt-2">
-                    <Icon name="sync" size="sm" /> Run MIS sync
-                  </Link>
+                  {canRunMisSync ? (
+                    <Link href="/admin/wonde" className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:underline mt-2">
+                      <Icon name="sync" size="sm" /> Run MIS sync
+                    </Link>
+                  ) : (
+                    <p className="text-[12px] text-gray-400 mt-2">
+                      Attendance updates when your school admin syncs the MIS
+                      {lastSync?.completedAt
+                        ? ` · last synced ${lastSync.completedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                        : ' · not yet synced'}
+                    </p>
+                  )}
                 </div>
               ) : attendanceAlerts.length === 0 ? (
                 <div className="px-5 py-8 text-center">
@@ -437,7 +465,7 @@ export default async function HoyDashboardPage() {
                     {classes.map(c => {
                       const hwSet  = hwCountByClass.get(c.id) ?? 0
                       const subCount = subByClass.get(c.id) ?? 0
-                      const expected = hwSet * c._count.enrolments
+                      const expected = hwSet * c.enrolments.length
                       const rate  = expected > 0 ? subCount / expected : null
                       const teacher = c.teachers[0]?.user
                       return (
@@ -448,7 +476,7 @@ export default async function HoyDashboardPage() {
                           <td className="px-5 py-2.5 text-right text-gray-600">{hwSet || '—'}</td>
                           <td className="px-5 py-2.5 text-right text-gray-600">
                             {hwSet > 0 ? (
-                              <span title={`${hwSet} assignment${hwSet !== 1 ? 's' : ''} × ${c._count.enrolments} students`}>
+                              <span title={`${hwSet} assignment${hwSet !== 1 ? 's' : ''} × ${c.enrolments.length} students`}>
                                 {subCount} <span className="text-gray-400">/ {expected}</span>
                               </span>
                             ) : '—'}

@@ -37,8 +37,14 @@ const ROLE_ROUTES: { prefix: string; roles: string[] }[] = [
   { prefix: '/demo',            roles: ['PLATFORM_ADMIN'] },
   { prefix: '/platform-admin',  roles: ['PLATFORM_ADMIN'] },
   { prefix: '/academy',         roles: ['ACADEMY_ADMIN', 'PLATFORM_ADMIN'] },
-  { prefix: '/admin/subjects',  roles: ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'] },
-  { prefix: '/admin',           roles: ['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER'] },
+  { prefix: '/admin/subjects',    roles: ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR'] },
+  // app/admin/attendance/page.tsx's own requireAuth() check already allows
+  // HEAD_OF_YEAR (CLAUDE.md documents it as SCHOOL_ADMIN/SLT/HOY) — without
+  // this specific entry, the generic '/admin' rule below ran first and
+  // silently redirected a HoY back to /dashboard before the page's own,
+  // more permissive check ever ran.
+  { prefix: '/admin/attendance',  roles: ['SCHOOL_ADMIN', 'SLT', 'HEAD_OF_YEAR'] },
+  { prefix: '/admin',             roles: ['SCHOOL_ADMIN', 'SLT', 'COVER_MANAGER'] },
   { prefix: '/send-caseload',  roles: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN'] },
   { prefix: '/send-scorer',    roles: ['SENCO', 'SLT', 'SCHOOL_ADMIN'] },
   { prefix: '/ai-generator',   roles: ['TEACHER', 'HEAD_OF_DEPT', 'HEAD_OF_YEAR', 'SENCO', 'SLT', 'SCHOOL_ADMIN'] },

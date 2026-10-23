@@ -144,7 +144,7 @@ const navByRole: Record<string, NavItem[]> = {
     { label: 'Parent Messages',   href: '/admin/messages',  icon: 'supervisor_account' },
   ],
   SLT: [
-    { label: 'Dashboard',          href: '/dashboard',        icon: 'dashboard'     },
+    { label: 'Dashboard',          href: '/slt/analytics',    icon: 'dashboard'     },
     { label: 'Go-live checklist',  href: '/admin/go-live',    icon: 'rocket_launch' },
     { label: 'Revision',           href: '/revision-program', icon: 'bookmark'      },
     { label: 'Year Group Plans',   href: '/plans/year-group', icon: 'menu_book'     },

@@ -116,6 +116,10 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: https://omnis.education
 
+      - name: Summarise failures as an annotation
+        if: always()
+        run: node scripts/e2e-annotate.mjs e2e-results.json
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

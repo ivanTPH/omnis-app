@@ -7,7 +7,11 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   globalSetup: './e2e/global-setup.ts',
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [
+    ['list'],
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'e2e-results.json' }],
+  ],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000',
     headless: true,

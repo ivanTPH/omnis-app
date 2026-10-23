@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
           {status === 'sent' ? (
             <div className="text-center">
               <div className="w-12 h-12 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <span className="material-icons text-green-600">mark_email_read</span>
+                <span className="material-icons text-green-600" aria-hidden="true">mark_email_read</span>
               </div>
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h2>
               <p className="text-sm text-gray-500 mb-6">
@@ -45,9 +45,12 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-gray-500 mb-6">Enter your school email and we&apos;ll send you a reset link.</p>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">School email</label>
+                  <label htmlFor="forgot-password-email" className="block text-sm font-medium text-gray-700 mb-1">School email</label>
                   <input
+                    id="forgot-password-email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
                     required
                     value={email}
                     onChange={e => setEmail(e.target.value)}

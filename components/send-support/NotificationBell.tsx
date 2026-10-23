@@ -129,7 +129,7 @@ export default function NotificationBell() {
                   <Icon name="check" size="sm" /> Mark all read
                 </button>
               )}
-              <button onClick={() => setOpen(false)} className="p-1 hover:bg-gray-100 rounded">
+              <button onClick={() => setOpen(false)} className="p-1 hover:bg-gray-100 rounded" aria-label="Close notifications">
                 <Icon name="close" size="sm" />
               </button>
             </div>

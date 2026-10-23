@@ -145,7 +145,7 @@ export default function AppShell({
               </button>
               <OmnisLogo variant="sidebar" />
               <div className="flex-1" />
-              <Link href="/notifications" className="relative p-1.5 text-gray-400 hover:text-gray-600">
+              <Link href="/notifications" className="relative p-1.5 text-gray-400 hover:text-gray-600" aria-label="Notifications">
                 <Icon name="notifications" size="md" />
                 <span className="absolute top-0.5 right-0.5">
                   <NotificationUnreadBadge />

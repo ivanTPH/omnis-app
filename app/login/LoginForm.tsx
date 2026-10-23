@@ -97,13 +97,13 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-4">
           {verified && (
             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
-              <span className="material-icons text-green-600 text-base">check_circle</span>
+              <span className="material-icons text-green-600 text-base" aria-hidden="true">check_circle</span>
               Email verified — please sign in to access your account.
             </div>
           )}
           {timedOut && (
             <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm mb-6 flex items-start gap-2">
-              <span className="material-icons text-amber-600 text-base">timer</span>
+              <span className="material-icons text-amber-600 text-base" aria-hidden="true">timer</span>
               <span className="flex-1">You were signed out after a period of inactivity — please sign in again.</span>
               <button
                 type="button"
@@ -111,7 +111,7 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
                 aria-label="Dismiss"
                 className="text-amber-500 hover:text-amber-700 shrink-0"
               >
-                <span className="material-icons text-base">close</span>
+                <span className="material-icons text-base" aria-hidden="true">close</span>
               </button>
             </div>
           )}
@@ -120,12 +120,12 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
               <form onSubmit={handleCredentialsSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="you@school.ac.uk" required />
+                  <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input id="login-email" name="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="you@school.ac.uk" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required />
+                  <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                  <input id="login-password" name="password" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required />
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input

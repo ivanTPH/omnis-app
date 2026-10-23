@@ -289,8 +289,9 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
 
               {source === 'lesson' && (
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">Select lesson</label>
+                  <label htmlFor="hw-select-lesson" className="text-sm font-medium text-gray-700">Select lesson</label>
                   <select
+                    id="hw-select-lesson"
                     value={selectedLesson?.id ?? ''}
                     onChange={e => setSelectedLesson(lessons.find(l => l.id === e.target.value) ?? null)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
@@ -325,8 +326,9 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
 
               {source === 'manual' && (
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">Class</label>
+                  <label htmlFor="hw-select-class" className="text-sm font-medium text-gray-700">Class</label>
                   <select
+                    id="hw-select-class"
                     value={selectedClassId}
                     onChange={e => setSelectedClassId(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
@@ -669,8 +671,9 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
               <h3 className="font-medium text-gray-900">Step 4 — Review content</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Title</label>
+                  <label htmlFor="hw-title" className="text-xs font-medium text-gray-600 uppercase tracking-wide">Title</label>
                   <input
+                    id="hw-title"
                     type="text"
                     value={editedTitle}
                     onChange={e => setEditedTitle(e.target.value)}
@@ -678,8 +681,9 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Student instructions</label>
+                  <label htmlFor="hw-instructions" className="text-xs font-medium text-gray-600 uppercase tracking-wide">Student instructions</label>
                   <textarea
+                    id="hw-instructions"
                     value={editedInstructions}
                     onChange={e => setEditedInstructions(e.target.value)}
                     rows={5}
@@ -739,8 +743,9 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                 )}
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700">Due date</label>
+                <label htmlFor="hw-due-date" className="text-sm font-medium text-gray-700">Due date</label>
                 <input
+                  id="hw-due-date"
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}

@@ -146,6 +146,30 @@ function MarkingPanel({
     })
   }
 
+  // Keyboard shortcuts (desktop): 9-1 and U select a grade, Enter saves and
+  // (via the existing auto-advance behaviour in handleSave/onGraded) moves
+  // to the next pupil. Never fires while focus is in the feedback textarea
+  // (or any text input), so typing feedback can't accidentally change the
+  // grade or submit early.
+  useEffect(() => {
+    if (!canGrade) return
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) return
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        handleSave()
+      } else if (e.key === 'u' || e.key === 'U') {
+        setGrade('U')
+      } else if (/^[1-9]$/.test(e.key)) {
+        setGrade(e.key)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canGrade, grade, note, isPending])
+
   function handleAcceptAndReturn() {
     if (!grade) return
     setError(null)
@@ -290,9 +314,9 @@ function MarkingPanel({
               </div>
             )}
 
-            <div className="flex gap-5 items-start">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start">
               {/* Left: GCSE grade picker */}
-              <div className="flex flex-col gap-1.5 flex-shrink-0">
+              <div className="flex flex-col gap-1.5 flex-shrink-0 w-full sm:w-auto">
                 <div className="flex items-center gap-2">
                   <label className="text-label">GCSE GRADE</label>
                   {suggesting && (
@@ -329,7 +353,7 @@ function MarkingPanel({
               </div>
 
               {/* Right: Teacher feedback + save + auto-advance */}
-              <div className="flex-1 flex flex-col gap-2 min-w-0">
+              <div className="flex-1 flex flex-col gap-2 min-w-0 w-full">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-label">TEACHER FEEDBACK</label>
                   <textarea
@@ -337,10 +361,10 @@ function MarkingPanel({
                     onChange={e => setNote(e.target.value)}
                     placeholder="Optional feedback for the student…"
                     rows={3}
-                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-700 w-full"
+                    className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-700 w-full min-w-[240px]"
                   />
                 </div>
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -455,6 +479,17 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
   const totalCount  = hw.submissions.length
   const selectedSub = hw.submissions.find(s => s.id === selectedSubId) ?? null
 
+  // Below xl (1280px) the student list collapses into this switcher instead
+  // of a permanent sidebar, so the marking panel keeps its full width on
+  // tablet/narrow-desktop screens instead of being squeezed into ~750px.
+  const selectedIndex = visibleSubmissions.findIndex(s => s.id === selectedSubId)
+  function stepSelection(delta: number) {
+    if (visibleSubmissions.length === 0) return
+    const idx     = selectedIndex === -1 ? 0 : selectedIndex
+    const nextIdx = Math.min(visibleSubmissions.length - 1, Math.max(0, idx + delta))
+    setSelectedSubId(visibleSubmissions[nextIdx].id)
+  }
+
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
 
@@ -479,11 +514,64 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
         />
       </div>
 
+      {/* Student switcher — replaces the sidebar list below 1280px (xl) so
+          the marking panel itself keeps full width on tablet/narrow-desktop. */}
+      <div className="xl:hidden shrink-0 bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => stepSelection(-1)}
+          disabled={selectedIndex <= 0}
+          aria-label="Previous student"
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
+        >
+          <Icon name="chevron_left" size="sm" />
+        </button>
+        <div className="flex-1 min-w-0 text-center">
+          <p className="text-data truncate">
+            {selectedSub ? `${selectedSub.student.firstName} ${selectedSub.student.lastName}` : 'No student selected'}
+          </p>
+          <p className="text-meta">
+            {visibleSubmissions.length > 0
+              ? `Student ${selectedIndex + 1} of ${visibleSubmissions.length}`
+              : 'No students in this filter'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => stepSelection(1)}
+          disabled={selectedIndex === -1 || selectedIndex >= visibleSubmissions.length - 1}
+          aria-label="Next student"
+          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
+        >
+          <Icon name="chevron_right" size="sm" />
+        </button>
+        <div className="flex gap-1.5 shrink-0">
+          <button
+            onClick={() => setListFilter('all')}
+            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+              listFilter === 'all'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
+            }`}
+          >All {totalCount}</button>
+          {ungradedCount > 0 && (
+            <button
+              onClick={() => setListFilter('ungraded')}
+              className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                listFilter === 'ungraded'
+                  ? 'bg-amber-600 text-white border-amber-600'
+                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'
+              }`}
+            >Ungraded {ungradedCount}</button>
+          )}
+        </div>
+      </div>
+
       {/* Two-panel layout */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
-        {/* LEFT PANEL — student list */}
-        <div className="w-72 flex-shrink-0 border-r border-gray-200 overflow-y-auto bg-white">
+        {/* LEFT PANEL — student list (xl and above only; see switcher above) */}
+        <div className="hidden xl:block w-72 flex-shrink-0 border-r border-gray-200 overflow-y-auto bg-white">
 
           {/* Panel header + progress */}
           <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
@@ -572,7 +660,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
         </div>
 
         {/* RIGHT PANEL — submission + marking form */}
-        <div className="flex-1 overflow-hidden bg-gray-50">
+        <div className="flex-1 min-w-0 overflow-hidden bg-gray-50">
           {selectedSub
             ? (
               <MarkingPanel

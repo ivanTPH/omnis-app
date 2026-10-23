@@ -56,17 +56,131 @@ export function getClientIp(headers: Headers): string {
 }
 
 /**
- * Login rate limit: 5 attempts per 15 minutes per IP.
- * Returns { success: true } when no Redis is configured (fail-open).
+ * Login rate limiting — two independent limits, both counting only FAILED
+ * sign-in attempts (never successes):
+ *
+ *  - Per account (normalised email) + IP: stops one account being
+ *    brute-forced from a single IP, without penalising every other pupil
+ *    who happens to share that IP — schools sit behind one shared public
+ *    IP, so a single per-IP limit (the previous design) locked out the
+ *    whole class once ~5 pupils had signed in, successful or not.
+ *  - Per IP, coarse: still slows down credential stuffing across many
+ *    accounts from one IP, just with a ceiling high enough that it never
+ *    fires for ordinary shared-IP classroom use.
+ *
+ * Built on plain fixed-window Redis counters (INCR + EXPIRE-once) rather
+ * than @upstash/ratelimit's `Ratelimit` class: that class has no "check
+ * without consuming" mode, and the whole point here is to check the limit
+ * BEFORE the bcrypt comparison (so a locked account fails fast and doesn't
+ * pay for a password hash), then only increment the counter AFTER, and
+ * only if that comparison failed.
+ *
+ * The counting logic itself (`checkLoginLimitAgainst` / `recordFailedLoginAgainst`
+ * / `resetLoginRateLimitAgainst`) is written against a small `LoginLimitStore`
+ * interface rather than the Upstash client directly, so it can be unit
+ * tested with an in-memory fake instead of a live Redis connection.
  */
-const loginRatelimiter = redis
-  ? new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(5, '15 m'), prefix: 'rl:login' })
-  : null
+const LOGIN_ACCOUNT_LIMIT = 5                    // failed attempts per account+IP before lockout
+const LOGIN_ACCOUNT_WINDOW_SECONDS = 15 * 60
+const LOGIN_IP_LIMIT = 100                       // failed attempts per IP before lockout — coarse credential-stuffing ceiling
+const LOGIN_IP_WINDOW_SECONDS = 15 * 60
 
-export async function checkLoginRatelimit(identifier: string): Promise<{ success: boolean; remaining?: number }> {
-  if (!loginRatelimiter) return { success: true }
-  const result = await loginRatelimiter.limit(identifier)
-  return { success: result.success, remaining: result.remaining }
+export interface LoginLimitStore {
+  get(key: string): Promise<number | null>
+  incr(key: string): Promise<number>
+  expire(key: string, seconds: number): Promise<void>
+  ttl(key: string): Promise<number>
+  del(key: string): Promise<void>
+}
+
+function redisLoginStore(): LoginLimitStore | null {
+  if (!redis) return null
+  const r = redis
+  return {
+    get:    (key) => r.get<number>(key),
+    incr:   (key) => r.incr(key),
+    expire: async (key, seconds) => { await r.expire(key, seconds) },
+    ttl:    (key) => r.ttl(key),
+    del:    async (key) => { await r.del(key) },
+  }
+}
+
+export function normalizeLoginEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
+function loginAccountKey(email: string, ip: string): string {
+  return `rl:login:acct:${normalizeLoginEmail(email)}:${ip}`
+}
+
+function loginIpKey(ip: string): string {
+  return `rl:login:ip:${ip}`
+}
+
+export type LoginRateLimitStatus = { limited: boolean; retryAfterSeconds?: number }
+
+async function checkWindow(store: LoginLimitStore, key: string, limit: number): Promise<LoginRateLimitStatus> {
+  const count = await store.get(key)
+  if (count != null && count >= limit) {
+    const ttl = await store.ttl(key)
+    return { limited: true, retryAfterSeconds: ttl > 0 ? ttl : undefined }
+  }
+  return { limited: false }
+}
+
+async function incrementWindow(store: LoginLimitStore, key: string, windowSeconds: number): Promise<void> {
+  const count = await store.incr(key)
+  if (count === 1) await store.expire(key, windowSeconds)
+}
+
+/** Read-only — does not record an attempt. Checked before the bcrypt comparison. */
+export async function checkLoginLimitAgainst(store: LoginLimitStore, email: string, ip: string): Promise<LoginRateLimitStatus> {
+  const [account, perIp] = await Promise.all([
+    checkWindow(store, loginAccountKey(email, ip), LOGIN_ACCOUNT_LIMIT),
+    checkWindow(store, loginIpKey(ip), LOGIN_IP_LIMIT),
+  ])
+  return account.limited ? account : perIp
+}
+
+/** Call only when a sign-in attempt actually failed (unknown/inactive account, wrong password, wrong MFA code). */
+export async function recordFailedLoginAgainst(store: LoginLimitStore, email: string, ip: string): Promise<void> {
+  await Promise.all([
+    incrementWindow(store, loginAccountKey(email, ip), LOGIN_ACCOUNT_WINDOW_SECONDS),
+    incrementWindow(store, loginIpKey(ip), LOGIN_IP_WINDOW_SECONDS),
+  ])
+}
+
+/** Call on a successful sign-in. Clears this account+IP's failure count; the coarse per-IP count is left alone on purpose. */
+export async function resetLoginRateLimitAgainst(store: LoginLimitStore, email: string, ip: string): Promise<void> {
+  await store.del(loginAccountKey(email, ip))
+}
+
+// Public, Redis-backed API used by lib/auth.ts and app/actions/mfa.ts.
+// All three no-op (fail-open) when Upstash isn't configured, matching every
+// other rate limiter in this file.
+
+export async function checkLoginRateLimit(email: string, ip: string): Promise<LoginRateLimitStatus> {
+  const store = redisLoginStore()
+  if (!store) return { limited: false }
+  return checkLoginLimitAgainst(store, email, ip)
+}
+
+export async function recordFailedLogin(email: string, ip: string): Promise<void> {
+  const store = redisLoginStore()
+  if (!store) return
+  await recordFailedLoginAgainst(store, email, ip)
+}
+
+export async function resetLoginRateLimit(email: string, ip: string): Promise<void> {
+  const store = redisLoginStore()
+  if (!store) return
+  await resetLoginRateLimitAgainst(store, email, ip)
+}
+
+/** "Too many attempts. Please try again in N minutes." — shown on the login form and the MFA step instead of the wrong-password message. */
+export function formatLoginRateLimitMessage(retryAfterSeconds: number | undefined): string {
+  const minutes = retryAfterSeconds != null ? Math.max(1, Math.ceil(retryAfterSeconds / 60)) : Math.ceil(LOGIN_ACCOUNT_WINDOW_SECONDS / 60)
+  return `Too many attempts. Please try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`
 }
 
 /**

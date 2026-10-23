@@ -1,8 +1,9 @@
 'use server'
 
 import bcrypt from 'bcryptjs'
+import { headers } from 'next/headers'
 import { prisma } from '@/lib/prisma'
-import { mfaInfraAvailable, storeMfaCode, checkMfaRequestRateLimit } from '@/lib/kv'
+import { mfaInfraAvailable, storeMfaCode, checkMfaRequestRateLimit, checkLoginRateLimit, formatLoginRateLimitMessage, getClientIp } from '@/lib/kv'
 import { sendMfaCodeEmail } from '@/lib/email'
 import { STAFF_ROLES } from '@/lib/roles'
 
@@ -30,6 +31,18 @@ function isDemoAccount(email: string): boolean {
 }
 
 export async function requestLoginMfaCode(email: string, password: string): Promise<MfaRequestResult> {
+  // Same login rate limiter lib/auth.ts's authorize() enforces (see lib/kv.ts)
+  // — checked here too, before the bcrypt comparison below, so the common
+  // path (this action runs before signIn() on every login attempt) can show
+  // the precise "try again in N minutes" message. authorize() remains the
+  // real security boundary: this is a UX helper, not a security boundary on
+  // its own, and does not record attempts itself.
+  const ip = getClientIp(await headers())
+  const loginLimit = await checkLoginRateLimit(email, ip)
+  if (loginLimit.limited) {
+    return { status: 'rate_limited', message: formatLoginRateLimitMessage(loginLimit.retryAfterSeconds) }
+  }
+
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user || !user.isActive) return { status: 'not_required' }
   if (!(await bcrypt.compare(password, user.passwordHash))) return { status: 'not_required' }

@@ -1,9 +1,21 @@
-import NextAuth, { type Session } from 'next-auth'
+import NextAuth, { CredentialsSignin, type Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { checkLoginRatelimit, mfaInfraAvailable, verifyAndConsumeMfaCode, getClientIp } from '@/lib/kv'
+import { checkLoginRateLimit, recordFailedLogin, resetLoginRateLimit, mfaInfraAvailable, verifyAndConsumeMfaCode, getClientIp } from '@/lib/kv'
 import { STAFF_ROLES } from '@/lib/roles'
+
+/**
+ * Thrown instead of returning `null` when lib/kv.ts's login rate limiter
+ * has locked out this account+IP (or this IP, coarsely). A subclass of
+ * CredentialsSignin so Auth.js still redirects to /login with
+ * `error=CredentialsSignin`, but with `code=rate_limited` instead of the
+ * default `code=credentials` — that's what LoginForm.tsx checks to show
+ * "Too many attempts" instead of "Invalid email or password."
+ */
+class LoginRateLimitedSignin extends CredentialsSignin {
+  code = 'rate_limited'
+}
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
@@ -23,18 +35,27 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         const otpCode = credentials?.otpCode as string | undefined
         if (!email || !password) return null
 
-        // Rate limit by IP: 5 attempts per 15 min (no-ops when Upstash not configured)
         const req = request as Request | undefined
         const ip  = req?.headers ? getClientIp(req.headers) : 'unknown'
-        const { success } = await checkLoginRatelimit(ip)
-        if (!success) return null
+
+        // Checked before the DB lookup and the bcrypt comparison, so a
+        // locked-out account/IP fails fast rather than paying for either.
+        // No-ops when Upstash isn't configured (see lib/kv.ts).
+        const { limited } = await checkLoginRateLimit(email, ip)
+        if (limited) throw new LoginRateLimitedSignin()
 
         const user = await prisma.user.findUnique({
           where: { email },
           include: { school: true },
         })
-        if (!user || !user.isActive) return null
-        if (!await bcrypt.compare(password, user.passwordHash)) return null
+        if (!user || !user.isActive) {
+          await recordFailedLogin(email, ip)
+          return null
+        }
+        if (!await bcrypt.compare(password, user.passwordHash)) {
+          await recordFailedLogin(email, ip)
+          return null
+        }
 
         // MFA: staff roles must supply a valid, single-use email code once
         // Upstash is configured. Gracefully skipped when MFA infra is
@@ -44,8 +65,16 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         const DEMO_DOMAINS = ['@omnisdemo.school', '@students.omnisdemo.school', '@parents.omnisdemo.school']
         const isDemo = DEMO_DOMAINS.some(d => user.email.endsWith(d))
         if ((STAFF_ROLES as readonly string[]).includes(user.role) && mfaInfraAvailable() && !isDemo) {
-          if (!otpCode || !(await verifyAndConsumeMfaCode(user.id, otpCode))) return null
+          if (!otpCode || !(await verifyAndConsumeMfaCode(user.id, otpCode))) {
+            await recordFailedLogin(email, ip)
+            return null
+          }
         }
+
+        // A successful sign-in does not count toward the limit, and clears
+        // this account+IP's failure count (the coarse per-IP count is left
+        // alone — see resetLoginRateLimit).
+        await resetLoginRateLimit(email, ip)
 
         // Set activatedAt on first ever login (fire-and-forget)
         if (!user.activatedAt) {

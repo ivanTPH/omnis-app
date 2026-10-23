@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { signIn, signOut } from 'next-auth/react'
 import Icon from '@/components/ui/Icon'
-import { getDemoSessionEmail } from '@/app/actions/demo'
+import { getDemoSessionEmail, revokePreviousDemoSession } from '@/app/actions/demo'
 import { recordSignOut } from '@/app/actions/settings'
 
 const OWNER_EMAIL = 'ivanyardley@me.com'
@@ -78,9 +78,17 @@ export default function DemoRoleSwitcher() {
       location.assign('/login')
       return
     }
+    // Captured before anything below runs — by the time we know whether
+    // the new sign-in succeeded, the browser is no longer authenticated as
+    // this account, so this is the only point we can still read it from.
+    const previousEmail = currentEmail
     try {
-      // Sign out first so NextAuth replaces the session cleanly
-      await recordSignOut()
+      // The client-side session cookie must be cleared before calling
+      // signIn() again — NextAuth v5 beta hangs if signIn() is called while
+      // already authenticated. This does NOT revoke the previous session
+      // server-side; that's deferred below until the new sign-in is
+      // confirmed to work, so a failed switch never invalidates a session
+      // that's still good.
       await signOut({ redirect: false })
       const result = await signIn('credentials', {
         email,
@@ -88,11 +96,32 @@ export default function DemoRoleSwitcher() {
         redirect: false,
       })
       if (result?.error) {
-        setSwitchError(`Sign-in failed: ${result.error}`)
+        setSwitchError(
+          result.code === 'rate_limited'
+            ? 'Too many sign-in attempts. Please wait a few minutes and try again.'
+            : `Sign-in failed: ${result.error}`,
+        )
+        // Best-effort recovery: sign back into the account we just signed
+        // out of, so a failed switch doesn't leave the browser fully
+        // logged out. Only possible when switching away from a demo
+        // account (public, known password) — switching away from the
+        // owner's own account can't auto-recover since we never store
+        // their real password; they fall back to a normal login same as
+        // today.
+        if (previousEmail && previousEmail !== OWNER_EMAIL) {
+          await signIn('credentials', { email: previousEmail, password: 'Demo1234!', redirect: false }).catch(() => {})
+        }
         setSwitching(null)
-      } else {
-        location.assign('/')
+        return
       }
+      // New session confirmed working — safe to revoke the previous one
+      // server-side now (defence in depth: any captured/replayed old JWT
+      // for that account stops working, matching the sign-out-everywhere
+      // guarantee the rest of the app relies on recordSignOut() for).
+      if (previousEmail) {
+        await revokePreviousDemoSession(previousEmail).catch(() => {})
+      }
+      location.assign('/')
     } catch (err) {
       setSwitchError(String(err))
       setSwitching(null)

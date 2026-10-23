@@ -1,0 +1,40 @@
+name: Checks
+
+# Type-check, lint, build and unit tests. Runs on pull requests to main and on
+# check/** branches, so a change can be verified before it reaches main (every
+# push to main deploys to production via the Coolify webhook).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: ['check/**']
+  workflow_dispatch:
+
+jobs:
+  checks:
+    name: tsc · lint · build · unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Build-time placeholders only — nothing here connects to a real database.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?pgbouncer=true
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
+      NEXTAUTH_SECRET: ci-only-not-a-secret
+      AUTH_SECRET: ci-only-not-a-secret
+      IN_APP_CRON: 'off'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - name: Type-check
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Build
+        run: npm run build

@@ -21,9 +21,11 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Bake git SHA into the image at build time so Sentry release tracking works.
-# Coolify passes COMMIT_SHA as a build arg; defaults to "local" in dev builds.
-ARG COMMIT_SHA=local
-ENV NEXT_PUBLIC_COMMIT_SHA=${COMMIT_SHA}
+# Uses COMMIT_SHA if passed, else Coolify's built-in SOURCE_COMMIT build arg,
+# else "local". /api/health reports it, so CI can tell when a deploy is live.
+ARG SOURCE_COMMIT=""
+ARG COMMIT_SHA=""
+ENV NEXT_PUBLIC_COMMIT_SHA=${COMMIT_SHA:-${SOURCE_COMMIT:-local}}
 
 # NEXT_PUBLIC_* vars are inlined into the client JS bundle at build time, not read
 # at container runtime — so the client Sentry DSN must be passed in as a build arg

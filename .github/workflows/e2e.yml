@@ -9,7 +9,7 @@ jobs:
   deploy:
     name: Deploy to Coolify
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 75
     outputs:
       deployment_uuid: ${{ steps.trigger.outputs.deployment_uuid || '' }}
 
@@ -21,15 +21,31 @@ jobs:
         run: echo "Coolify deploys via its own webhook; waiting for the new container."
 
       - name: Wait for new container + warm all auth paths
-        # Docker build (3-stage) takes ~6-8 min. Wait 7 min for the build, then:
-        # 1. Poll auth endpoint until the NEW container responds (not the old one).
-        # 2. Warm ALL 9 role auth paths + the /login SSR page so that Playwright's
-        #    global-setup doesn't hit cold Next.js SSR + cold bcrypt + cold DB on
-        #    first login (which caused 90s timeouts for every role in global-setup).
+        # Builds take 6-20 min, so a fixed sleep is unreliable (on 23 Oct the
+        # suite ran against the OLD container because the build took 16 min).
+        # /api/health reports the commit it was built from: wait until it
+        # matches this run's commit. Containers built before that field existed
+        # report nothing; if the new build reports "local" (no commit build arg
+        # supplied), fall back to a generous fixed wait.
         run: |
           BASE=https://omnis.education
-          echo "Waiting 7 minutes for Docker build + deploy + container start …"
-          sleep 420
+          WANT="${GITHUB_SHA}"
+          echo "Waiting for ${BASE}/api/health to report commit ${WANT} …"
+          LIVE=false
+          for i in $(seq 1 90); do
+            GOT=$(curl -sf --max-time 15 "$BASE/api/health" | sed -n 's/.*"commit":"\([^"]*\)".*/\1/p' || true)
+            echo "$(date -u '+%H:%M:%S') UTC — live commit: ${GOT:-unknown}"
+            if [ "$GOT" = "$WANT" ]; then LIVE=true; break; fi
+            if [ "$GOT" = "local" ]; then
+              echo "Build does not report its commit — falling back to a 20-minute wait"
+              sleep 1200; LIVE=true; break
+            fi
+            sleep 30
+          done
+          if [ "$LIVE" != "true" ]; then
+            echo "::error::omnis.education never reported commit ${WANT} within 45 minutes — check the Coolify deployment"
+            exit 1
+          fi
 
           echo "Polling auth endpoint until new container is ready …"
           READY=false

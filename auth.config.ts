@@ -6,7 +6,7 @@ import { STAFF_ROLES } from '@/lib/roles'
 
 // ─── Role → home page mapping ─────────────────────────────────────────────────
 
-function getRoleHome(role: string): string {
+export function getRoleHome(role: string): string {
   switch (role) {
     case 'STUDENT':        return '/student/dashboard'
     case 'PARENT':         return '/parent/dashboard'

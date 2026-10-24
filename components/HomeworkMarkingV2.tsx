@@ -314,9 +314,13 @@ function MarkingPanel({
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-start">
+            {/* Stacked until lg: with the 240px app sidebar showing from md up, a
+                768px screen leaves ~528px — too narrow for the grade picker
+                (~360px) and the feedback box (min 240px) side by side, which
+                pushed Save Grade off-screen. */}
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start">
               {/* Left: GCSE grade picker */}
-              <div className="flex flex-col gap-1.5 flex-shrink-0 w-full sm:w-auto">
+              <div className="flex flex-col gap-1.5 flex-shrink-0 w-full lg:w-auto">
                 <div className="flex items-center gap-2">
                   <label className="text-label">GCSE GRADE</label>
                   {suggesting && (

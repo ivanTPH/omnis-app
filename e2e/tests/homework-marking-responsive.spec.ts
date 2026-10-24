@@ -126,9 +126,14 @@ test.describe('Homework marking screen — responsive layout', () => {
     await expect(gradeSeven).toHaveClass(/bg-blue-700/)
 
     // Enter (outside the textarea) saves.
-    const saveButton = page.getByRole('button', { name: /Save Grade|Saved!/ })
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('button', { name: 'Saved!' })).toBeVisible({ timeout: 10_000 })
-    void saveButton
+    // Wait for either outcome, then fail with the on-screen error text if the
+    // save was rejected, so a failure says WHY rather than just "not visible".
+    const saved = page.getByRole('button', { name: 'Saved!' })
+    const saveError = page.getByText(/Failed to save grade|graded by someone else|Someone else already graded|Only teaching staff/)
+    await expect(saved.or(saveError).first()).toBeVisible({ timeout: 15_000 })
+    if (await saveError.count()) {
+      throw new Error(`Enter did not save the grade — the page showed: "${await saveError.first().innerText()}"`)
+    }
   })
 })

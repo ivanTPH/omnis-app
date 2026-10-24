@@ -18,15 +18,20 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+// Which build is serving this request — lets CI wait for a new deploy to go
+// live instead of guessing with a fixed sleep. A commit SHA is not sensitive
+// (the repository is public); "local" means the build arg wasn't supplied.
+const commit = process.env.NEXT_PUBLIC_COMMIT_SHA || 'local'
+
 export async function GET() {
   const timestamp = new Date().toISOString()
 
   try {
     await prisma.$queryRaw`SELECT 1`
-    return NextResponse.json({ status: 'ok', timestamp })
+    return NextResponse.json({ status: 'ok', timestamp, commit })
   } catch {
     return NextResponse.json(
-      { status: 'error', timestamp, detail: 'database unreachable' },
+      { status: 'error', timestamp, commit, detail: 'database unreachable' },
       { status: 503 },
     )
   }

@@ -50,15 +50,19 @@ async function openFirstLesson(page: Page): Promise<boolean> {
     const day = d.getUTCDay() || 7  // 1=Mon … 7=Sun
     d.setUTCDate(d.getUTCDate() - (day - 1))
     const weekStart = d.toISOString().slice(0, 10)
-    await page.goto(`/calendar?week=${weekStart}`)
+    // domcontentloaded, not the default 'load': the calendar keeps loading
+    // avatars and other resources, and waiting for all of them hit the 60s
+    // test timeout on Coolify (see CLAUDE.md E2E gotchas).
+    await page.goto(`/calendar?week=${weekStart}`, { waitUntil: 'domcontentloaded' })
   } else {
-    await page.goto('/calendar')
+    await page.goto('/calendar', { waitUntil: 'domcontentloaded' })
   }
 
   await page.waitForLoadState('domcontentloaded')
   // Lesson cards are draggable divs on the calendar grid
   const lessonCard = page.locator('div[draggable="true"]').first()
-  const hasLesson = await lessonCard.isVisible({ timeout: 8_000 }).catch(() => false)
+  // isVisible() doesn't wait, so a slow first render read as "no lessons".
+  const hasLesson = await lessonCard.waitFor({ state: 'visible', timeout: 20_000 }).then(() => true).catch(() => false)
   if (!hasLesson) {
     // Local DB week may differ from the remote DB — skip gracefully
     console.warn('  openFirstLesson: no lesson cards visible (local/remote DB week mismatch — re-seed Vercel to fix)')

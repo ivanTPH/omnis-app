@@ -73,8 +73,19 @@ async function openFirstLesson(page: Page): Promise<boolean> {
     console.warn('  openFirstLesson: no lesson cards visible (local/remote DB week mismatch — re-seed Vercel to fix)')
     return false
   }
+  // The fixed "Getting started" checklist (z-50, bottom-right) sits over the
+  // late-week afternoon lessons and swallowed the click until the 60s test
+  // timeout. Dismiss it first, as Step 12 does.
+  const dismiss = page.locator('[aria-label="Dismiss"]')
+  if (await dismiss.isVisible().catch(() => false)) await dismiss.click({ timeout: 5_000 }).catch(() => {})
   mark('lesson card visible; clicking')
-  await lessonCard.click()
+  try {
+    await lessonCard.click({ timeout: 15_000 })
+  } catch (err) {
+    // Playwright's message names the element intercepting the click.
+    console.info(`[openFirstLesson] click failed: ${String(err).split('\n').slice(0, 4).join(' ')}`)
+    throw err
+  }
   mark('clicked')
   // LessonFolder shows a tab row
   await expect(page.getByText('Overview').first()).toBeVisible({ timeout: 8_000 })

@@ -15,8 +15,10 @@ test.describe('SENCO / SEND flows', () => {
     await loginAs(page, USERS.senco)
   })
 
-  test('SENCO lands on send dashboard', async ({ page }) => {
-    await expect(page).toHaveURL(/\/send\/dashboard/, { timeout: 10_000 })
+  // SENCO's home is /senco/dashboard (getRoleHome in auth.config.ts); the
+  // root page used to send them to /send/dashboard instead.
+  test('SENCO lands on the SENCO dashboard', async ({ page }) => {
+    await expect(page).toHaveURL(/\/senco\/dashboard/, { timeout: 10_000 })
     await expect(page.locator('body')).toBeVisible()
   })
 

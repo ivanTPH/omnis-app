@@ -215,9 +215,11 @@ test.describe('/hoy/welfare — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).not.toMatch(/something went wrong|unexpected error|unhandled/i)
-    expect(body.length).toBeGreaterThan(100)
+    // /hoy/welfare has a loading.tsx skeleton: wait for the real page
+    // (its heading) before reading text, never a single innerText() snapshot.
+    const body = page.locator('body')
+    await expect(body).toContainText(/pastoral welfare/i, { timeout: 30_000 })
+    await expect(body).not.toContainText(/something went wrong|unexpected error|unhandled/i)
   })
 
   test('Pastoral Welfare heading is visible', async ({ page }) => {
@@ -226,8 +228,7 @@ test.describe('/hoy/welfare — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/pastoral welfare/i)
+    await expect(page.getByRole('heading', { name: /pastoral welfare/i })).toBeVisible({ timeout: 30_000 })
   })
 
   test('KPI cards are present (needing attention, open concerns, ILP reviews)', async ({ page }) => {
@@ -236,10 +237,10 @@ test.describe('/hoy/welfare — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/needing attention/i)
-    expect(body).toMatch(/open concerns/i)
-    expect(body).toMatch(/ilp reviews/i)
+    const body = page.locator('body')
+    await expect(body).toContainText(/needing attention/i, { timeout: 30_000 })
+    await expect(body).toContainText(/open concerns/i)
+    await expect(body).toContainText(/ilp reviews/i)
   })
 
   test('Early Warning section is present', async ({ page }) => {
@@ -248,8 +249,7 @@ test.describe('/hoy/welfare — page content', () => {
     await page.waitForLoadState('domcontentloaded')
     await expect(page).not.toHaveURL(/\/login/, { timeout: 8_000 })
 
-    const body = await page.locator('body').innerText({ timeout: 10_000 })
-    expect(body).toMatch(/early warning/i)
+    await expect(page.locator('body')).toContainText(/early warning/i, { timeout: 30_000 })
   })
 
   test('HOY sidebar shows Welfare nav link', async ({ page }) => {

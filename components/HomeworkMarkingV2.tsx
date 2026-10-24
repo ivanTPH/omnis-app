@@ -6,7 +6,20 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import SendBadge from '@/components/ui/SendBadge'
 import StudentAvatar from '@/components/StudentAvatar'
-import { markSubmission, suggestHomeworkGrade } from '@/app/actions/homework'
+import { markSubmission } from '@/app/actions/homework'
+
+// Fetched from a route handler, not called as a server action: Next.js runs a
+// client's server actions one at a time, so several in-flight AI suggestions
+// used to hold up Save Grade by 15-30 seconds.
+async function fetchGradeSuggestion(submissionId: string): Promise<GradeSuggestion> {
+  const res = await fetch('/api/homework/suggest-grade', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ submissionId }),
+  })
+  if (!res.ok) throw new Error(`Grade suggestion failed (${res.status})`)
+  return res.json()
+}
 import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
 
 /** True when markSubmission() rejected the save because someone else graded
@@ -105,7 +118,7 @@ function MarkingPanel({
     if (!canGrade || sub.grade || !hw.modelAnswer || cachedSuggestion?.grade) return
     let cancelled = false
     setSuggesting(true)
-    suggestHomeworkGrade(sub.id)
+    fetchGradeSuggestion(sub.id)
       .then(r => {
         if (cancelled) return
         if (r.grade) {
@@ -459,7 +472,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
     const timers = ungraded.map((sub, i) =>
       setTimeout(async () => {
         try {
-          const r = await suggestHomeworkGrade(sub.id)
+          const r = await fetchGradeSuggestion(sub.id)
           if (r.grade) setSuggestionsCache(prev => ({ ...prev, [sub.id]: r }))
         } catch {}
       }, i * 800),

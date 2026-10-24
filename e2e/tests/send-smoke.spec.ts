@@ -31,6 +31,9 @@ async function loginSlt(page: Page)     { await loginAs(page, USERS.slt)     }
 /** Open LessonFolder by navigating to the week of the most recent lesson for the teacher */
 /** Opens the most recent lesson folder. Returns true if a lesson was opened, false if no lessons found (graceful skip). */
 async function openFirstLesson(page: Page): Promise<boolean> {
+  const t0 = Date.now()
+  const mark = (what: string) => console.info(`[openFirstLesson +${Math.round((Date.now() - t0) / 1000)}s] ${what}`)
+  mark('start')
   // Find the teacher user so we can scope to their lessons
   const teacher = await prisma.user.findUnique({
     where: { email: USERS.teacher.email },
@@ -44,6 +47,7 @@ async function openFirstLesson(page: Page): Promise<boolean> {
     select: { scheduledAt: true },
   })
 
+  mark(`db lookups done; latest lesson ${lesson?.scheduledAt?.toISOString() ?? 'none'}`)
   if (lesson) {
     // Build ISO week-start (Monday) for the lesson's date and pass as query param
     const d = new Date(lesson.scheduledAt)
@@ -59,6 +63,7 @@ async function openFirstLesson(page: Page): Promise<boolean> {
   }
 
   await page.waitForLoadState('domcontentloaded')
+  mark(`calendar DOM loaded: ${page.url()}`)
   // Lesson cards are draggable divs on the calendar grid
   const lessonCard = page.locator('div[draggable="true"]').first()
   // isVisible() doesn't wait, so a slow first render read as "no lessons".
@@ -68,7 +73,9 @@ async function openFirstLesson(page: Page): Promise<boolean> {
     console.warn('  openFirstLesson: no lesson cards visible (local/remote DB week mismatch — re-seed Vercel to fix)')
     return false
   }
+  mark('lesson card visible; clicking')
   await lessonCard.click()
+  mark('clicked')
   // LessonFolder shows a tab row
   await expect(page.getByText('Overview').first()).toBeVisible({ timeout: 8_000 })
   return true

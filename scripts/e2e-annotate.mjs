@@ -39,7 +39,11 @@ function walk(suite, trail, specFile) {
       })(r.steps)
       const where = loc ? `@ ${loc.file.split('/').slice(-1)[0]}:${loc.line}` : stepLoc ? `last step: ${stepLoc}` : ''
       const msg = (lines.slice(0, 3).join(' | ').slice(0, 600) + (where ? ` [${where}]` : ''))
-      if (test.status === 'unexpected') failed.push({ file: fileName, name, msg })
+      // For timeouts, the last lines the test printed show how far it got.
+      const out = (test.results ?? []).flatMap(x => (x.stdout ?? []).map(o => (o.text ?? '').trim())).filter(Boolean)
+      const trail = /timeout/i.test(msg) && out.length ? ` {${out.slice(-3).join(' / ').slice(0, 300)}}` : ''
+      void trail
+      if (test.status === 'unexpected') failed.push({ file: fileName, name, msg: msg + trail })
       else if (test.status === 'flaky') flaky.push({ file: fileName, name })
     }
   }

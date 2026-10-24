@@ -38,7 +38,9 @@ test.describe('Demo role switcher', () => {
         contentType: 'application/json',
         body: JSON.stringify({ url: `${origin}/login?error=CredentialsSignin` }),
       })
-    })
+    // times: 1 — fail only the switch itself. The switcher then signs back
+    // into the previous demo account with a real request, which must succeed.
+    }, { times: 1 })
 
     await page.getByRole('button', { name: /Switch role|Demo active/ }).click()
     await page.getByRole('button', { name: /^Teacher/ }).click()
@@ -77,7 +79,9 @@ test.describe('Demo role switcher', () => {
         contentType: 'application/json',
         body: JSON.stringify({ url: `${origin}/login?error=CredentialsSignin&code=rate_limited` }),
       })
-    })
+    // times: 1 — fail only the switch itself. The switcher then signs back
+    // into the previous demo account with a real request, which must succeed.
+    }, { times: 1 })
 
     await page.getByRole('button', { name: /Switch role|Demo active/ }).click()
     await page.getByRole('button', { name: /^Teacher/ }).click()

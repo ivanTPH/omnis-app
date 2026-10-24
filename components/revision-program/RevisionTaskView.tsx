@@ -242,7 +242,7 @@ function MarkSchemeReview({ task, response, onContinue }: {
                         onClick={() => setSelfMarks(prev => ({ ...prev, [q.id]: n }))}
                         className={`w-7 h-7 rounded-lg text-xs font-bold transition-colors ${
                           mark === n
-                            ? n === q.marks ? 'bg-green-500 text-white' : n === 0 ? 'bg-red-400 text-white' : 'bg-amber-400 text-white'
+                            ? n === q.marks ? 'bg-green-700 text-white' : n === 0 ? 'bg-red-400 text-white' : 'bg-amber-400 text-white'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
@@ -609,7 +609,7 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
       {/* ── Section B: Focus Areas ── */}
       <section>
         <div className="flex items-center gap-2 mb-4">
-          <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">B</span>
+          <span className="w-6 h-6 rounded-full bg-amber-700 text-white text-xs font-bold flex items-center justify-center shrink-0">B</span>
           <h2 className="text-base font-semibold text-gray-900">Focus Areas</h2>
           <span className="text-xs text-amber-700 font-medium">Personalised for you</span>
         </div>

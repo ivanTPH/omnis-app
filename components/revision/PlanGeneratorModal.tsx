@@ -115,7 +115,7 @@ export default function PlanGeneratorModal({
             {([1,2,3] as const).map(n => (
               <div key={n} className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                  step === n ? 'bg-blue-600 text-white' : step > n ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
+                  step === n ? 'bg-blue-600 text-white' : step > n ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {step > n ? <Icon name="check" size="sm" /> : n}
                 </div>
@@ -307,7 +307,7 @@ export default function PlanGeneratorModal({
               <button
                 onClick={handleAccept}
                 disabled={pending || sessions.length === 0}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-green-700 text-white rounded-xl hover:bg-green-800 disabled:opacity-50"
               >
                 {pending ? <><Icon name="refresh" size="sm" className="animate-spin" />Saving…</> : <><Icon name="check" size="sm" />Accept Plan</>}
               </button>

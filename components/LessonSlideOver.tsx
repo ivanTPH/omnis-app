@@ -248,7 +248,7 @@ export default function LessonSlideOver({
             <div key={s.n} className="flex items-center gap-1.5">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
                 step === s.n ? 'bg-blue-600 text-white' :
-                step > s.n  ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                step > s.n  ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
               }`}>{s.n}</div>
               <span className={`text-[11px] font-medium hidden sm:block ${step === s.n ? 'text-gray-700' : 'text-gray-500'}`}>{s.label}</span>
               {s.n < 3 && <Icon name="chevron_right" size="sm" className="text-gray-600 ml-1" />}

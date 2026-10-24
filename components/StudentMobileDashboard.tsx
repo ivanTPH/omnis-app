@@ -272,7 +272,7 @@ export default function StudentMobileDashboard({
                             ? 'bg-green-100 text-green-700'
                             : hw.homeworkType === 'essay' || hw.homeworkType === 'extended_writing'
                             ? 'bg-purple-100 text-purple-700'
-                            : 'bg-gray-100 text-gray-500'
+                            : 'bg-gray-100 text-gray-600'
                         }`}>
                           {homeworkTypeLabel(hw.homeworkType)}
                         </span>

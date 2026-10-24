@@ -90,7 +90,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
           >
             {generating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
             Generate K Plan
@@ -124,7 +124,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
                   <button
                     onClick={handleApprove}
                     disabled={approving}
-                    className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-50"
                   >
                     {approving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="verified_user" size="sm" />}
                     Approve
@@ -142,7 +142,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
             )}
             <button
               onClick={() => setModalOpen(true)}
-              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors"
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors"
             >
               <Icon name="menu_book" size="sm" /> Full view
             </button>
@@ -173,7 +173,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
             <button
               onClick={handleRegenerate}
               disabled={regenerating}
-              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-lg transition-colors disabled:opacity-50 shrink-0"
             >
               {regenerating ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="sync" size="sm" />}
               Sync now

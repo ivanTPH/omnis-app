@@ -1079,7 +1079,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               onClick={() => handleFilterClick('ungraded')}
               title="Ungraded — submitted but not yet marked"
               className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-amber-200 ${
-                pupilFilter === 'ungraded' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-800'
+                pupilFilter === 'ungraded' ? 'bg-amber-700 text-white' : 'bg-amber-50 text-amber-800'
               }`}
             >
               <span className="text-2xl font-bold leading-none">{ungradedCount}</span>
@@ -1091,7 +1091,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             onClick={() => handleFilterClick('returned')}
             title="Returned — homework marked and sent back to students"
             className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-green-200 ${
-              pupilFilter === 'returned' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-800'
+              pupilFilter === 'returned' ? 'bg-green-700 text-white' : 'bg-green-50 text-green-800'
             }`}
           >
             <span className="text-2xl font-bold leading-none">{returnedCount}</span>
@@ -1198,7 +1198,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 <button
                   onClick={handleBulkReturn}
                   disabled={bulkReturning}
-                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded bg-green-700 hover:bg-green-800 text-white transition-colors disabled:opacity-50"
                 >
                   {bulkReturning
                     ? <Icon name="refresh" size="sm" className="animate-spin" />
@@ -1720,7 +1720,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       <button
                         onClick={handleApprove}
                         disabled={isPending}
-                        className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                        className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
                       >
                         {isPending
                           ? <Icon name="refresh" size="sm" className="animate-spin" />
@@ -1828,7 +1828,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           await addPassportRecommendation(gradeDrop.studentId, gradeDrop.suggestion)
                           setPassportAdded(true)
                         }}
-                        className="flex items-center gap-1 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
+                        className="flex items-center gap-1 bg-amber-700 hover:bg-amber-800 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
                       >
                         <Icon name="add" size="sm" />
                         Add to Passport
@@ -1933,11 +1933,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           const isAiSuggested = isSelected && gradeState === 'auto'
                           const colorCls = isSelected
                             ? (isAiSuggested
-                                ? 'bg-gray-200 text-gray-500 border-gray-300'
+                                ? 'bg-gray-200 text-gray-600 border-gray-300'
                                 : gNum >= 8 ? 'bg-green-700 text-white border-green-700' :
-                                  gNum >= 6 ? 'bg-green-500 text-white border-green-500' :
+                                  gNum >= 6 ? 'bg-green-700 text-white border-green-500' :
                                   gNum >= 4 ? 'bg-amber-400 text-white border-amber-400' :
-                                              'bg-red-500 text-white border-red-500')
+                                              'bg-red-600 text-white border-red-500')
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
                           return (
                             <button
@@ -2262,7 +2262,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
                         r.adaptationType === 'send'    ? 'bg-purple-100 text-purple-700' :
                         r.adaptationType === 'profile' ? 'bg-indigo-100 text-indigo-700' :
-                                                         'bg-gray-200 text-gray-500'
+                                                         'bg-gray-200 text-gray-600'
                       }`}>
                         {r.adaptationType === 'send' ? 'SEND' : r.adaptationType === 'profile' ? 'Profile' : 'Standard'}
                       </span>

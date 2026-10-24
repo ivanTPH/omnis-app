@@ -25,7 +25,7 @@ export default function TrialBanner() {
       className={`shrink-0 flex items-center gap-3 px-4 py-2 text-sm font-medium ${
         expired
           ? 'bg-red-600 text-white'
-          : 'bg-amber-500 text-white'
+          : 'bg-amber-700 text-white'
       }`}
     >
       <Icon name={expired ? 'lock' : 'timer'} size="sm" />

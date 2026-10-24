@@ -84,7 +84,7 @@ export default function MiniCalendar() {
                 className={`
                   w-8 h-8 flex items-center justify-center rounded-full text-[13px]
                   ${today_
-                    ? 'bg-red-500 text-white font-semibold'
+                    ? 'bg-red-600 text-white font-semibold'
                     : day
                     ? weekend
                       ? 'text-gray-600 hover:bg-gray-50 cursor-default'

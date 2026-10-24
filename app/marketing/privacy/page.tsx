@@ -215,7 +215,7 @@ export default function PrivacyPage() {
 
       <div className="mt-16 pt-8 border-t border-gray-100 text-sm text-gray-500">
         Questions about this policy? Email{' '}
-        <a href="mailto:privacy@omnis.education" className="text-blue-600 hover:underline">
+        <a href="mailto:privacy@omnis.education" className="text-blue-600 underline underline-offset-2 hover:no-underline">
           privacy@omnis.education
         </a>
       </div>

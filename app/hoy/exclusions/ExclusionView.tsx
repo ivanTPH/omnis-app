@@ -110,7 +110,7 @@ function ExclRow({ e, onResolved }: { e: ExclusionRow; onResolved: (id: string, 
               />
               <button
                 onClick={() => resolve('returned')}
-                className="px-3 py-2 text-[11px] font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors whitespace-nowrap"
+                className="px-3 py-2 text-[11px] font-semibold bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-colors whitespace-nowrap"
               >
                 Confirm Return
               </button>

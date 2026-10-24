@@ -141,7 +141,7 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
                   {loading ? 'Signing in...' : 'Sign in'}
                 </button>
                 <p className="text-center text-sm text-gray-500">
-                  <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
+                  <a href="/forgot-password" className="text-blue-700 underline underline-offset-2 hover:no-underline">Forgot your password?</a>
                 </p>
                 {showDemoProp && (
                   <p className="text-center text-sm text-gray-500">

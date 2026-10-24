@@ -125,7 +125,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
               <p className="text-sm text-gray-500 mt-1">A draft ILP has been created for {concern.studentName} based on this concern. Review and activate it in the ILP records.</p>
             </div>
             <div className="flex gap-3">
-              <Link href="/senco/ilp" className="px-5 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+              <Link href="/senco/ilp" className="px-5 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800">
                 View ILP Records
               </Link>
               <button type="button" onClick={onClose} className="px-5 py-2 border border-gray-200 rounded-lg text-sm">
@@ -208,7 +208,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
                       type="button"
                       onClick={handleGenerateIlp}
                       disabled={generatingIlp}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-50"
                     >
                       {generatingIlp
                         ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating ILP…</>

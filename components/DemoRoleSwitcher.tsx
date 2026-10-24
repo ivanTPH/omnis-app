@@ -112,6 +112,9 @@ export default function DemoRoleSwitcher() {
           await signIn('credentials', { email: previousEmail, password: 'Demo1234!', redirect: false }).catch(() => {})
         }
         setSwitching(null)
+        // The menu closed when the switch started; reopen it so the error
+        // (rendered inside the menu) is actually seen.
+        setOpen(true)
         return
       }
       // New session confirmed working — safe to revoke the previous one
@@ -125,6 +128,7 @@ export default function DemoRoleSwitcher() {
     } catch (err) {
       setSwitchError(String(err))
       setSwitching(null)
+      setOpen(true)
     }
   }
 
@@ -238,7 +242,7 @@ export default function DemoRoleSwitcher() {
         disabled={!!switching && !open}
         className={`flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-full shadow-lg transition-all ${
           isOnKnownDemo
-            ? 'bg-amber-500 hover:bg-amber-600 text-white'
+            ? 'bg-amber-700 hover:bg-amber-800 text-white'
             : 'bg-blue-700 hover:bg-blue-800 text-white'
         } disabled:opacity-60`}
         title="Switch demo role"

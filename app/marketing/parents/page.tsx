@@ -23,9 +23,9 @@ export default function ParentsPage() {
       </div>
       <ParentRegisterForm />
       <p className="text-sm text-gray-500 mt-6">
-        Already registered? <Link href="/login" className="text-blue-700 hover:underline">Sign in</Link>
+        Already registered? <Link href="/login" className="text-blue-700 underline underline-offset-2 hover:no-underline">Sign in</Link>
         {' · '}
-        <Link href="/marketing/help#common-problems" className="text-blue-700 hover:underline">Help</Link>
+        <Link href="/marketing/help#common-problems" className="text-blue-700 underline underline-offset-2 hover:no-underline">Help</Link>
       </p>
     </main>
   )

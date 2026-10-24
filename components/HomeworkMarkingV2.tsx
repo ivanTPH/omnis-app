@@ -274,7 +274,7 @@ function MarkingPanel({
                     <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                       suggestion.confidence === 'high'   ? 'bg-green-100 text-green-700' :
                       suggestion.confidence === 'medium' ? 'bg-amber-100 text-amber-700' :
-                                                           'bg-gray-100 text-gray-500'
+                                                           'bg-gray-100 text-gray-600'
                     }`}>{suggestion.confidence}</span>
                   </p>
                   <button
@@ -339,7 +339,7 @@ function MarkingPanel({
                       className={`w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
                         grade === g
                           ? (suggestion && grade === suggestion.grade && !saved
-                              ? 'bg-gray-200 text-gray-500 border-gray-300'
+                              ? 'bg-gray-200 text-gray-600 border-gray-300'
                               : 'bg-blue-700 text-white border-blue-700')
                           : 'bg-white text-gray-600 border-gray-200 hover:border-blue-400 hover:text-blue-700'
                       }`}
@@ -563,7 +563,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
               onClick={() => setListFilter('ungraded')}
               className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
                 listFilter === 'ungraded'
-                  ? 'bg-amber-600 text-white border-amber-600'
+                  ? 'bg-amber-700 text-white border-amber-600'
                   : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'
               }`}
             >Ungraded {ungradedCount}</button>
@@ -601,7 +601,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
                   onClick={() => setListFilter('ungraded')}
                   className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
                     listFilter === 'ungraded'
-                      ? 'bg-amber-600 text-white border-amber-600'
+                      ? 'bg-amber-700 text-white border-amber-600'
                       : 'bg-amber-50 text-amber-700 border-amber-200 hover:border-amber-400'
                   }`}
                 >Ungraded {ungradedCount}</button>

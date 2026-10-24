@@ -92,9 +92,9 @@ function ResetPasswordForm() {
             </button>
           </form>
           <p className="text-center text-sm text-gray-500 mt-4">
-            <Link href="/forgot-password" className="text-blue-700 hover:underline">Request a new link</Link>
+            <Link href="/forgot-password" className="text-blue-700 underline underline-offset-2 hover:no-underline">Request a new link</Link>
             {' · '}
-            <Link href="/marketing/help" className="text-blue-700 hover:underline">Help signing in</Link>
+            <Link href="/marketing/help" className="text-blue-700 underline underline-offset-2 hover:no-underline">Help signing in</Link>
           </p>
         </>
       )}

@@ -119,7 +119,7 @@ export default function KPlanStudentVoiceSection({ kplan: initial, studentId, st
               title={kplan?.gdprConsented ? 'GDPR consent on — click to revoke' : 'Enable GDPR consent to allow AI generation'}
               className={`flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-full transition-colors ${
                 kplan?.gdprConsented
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-green-700 text-white'
                   : 'bg-emerald-600 text-emerald-200 hover:bg-emerald-500'
               }`}
             >
@@ -134,7 +134,7 @@ export default function KPlanStudentVoiceSection({ kplan: initial, studentId, st
                 onClick={handleGenerate}
                 disabled={generating || !kplan?.gdprConsented}
                 title={kplan?.gdprConsented ? 'AI-generate draft from ILP data' : 'Enable GDPR consent first'}
-                className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-lg transition-colors"
+                className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40 text-white rounded-lg transition-colors"
               >
                 {generating
                   ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>

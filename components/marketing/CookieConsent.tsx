@@ -36,7 +36,7 @@ export default function CookieConsent() {
         <p className="text-sm text-gray-600 flex-1">
           We use essential cookies to keep you signed in and protect your session. We don&apos;t use
           advertising or tracking cookies.{' '}
-          <Link href="/marketing/privacy#10-cookies" className="text-blue-600 hover:underline">
+          <Link href="/marketing/privacy#10-cookies" className="text-blue-600 underline underline-offset-2 hover:no-underline">
             Cookie policy
           </Link>
         </p>

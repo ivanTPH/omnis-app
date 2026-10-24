@@ -207,7 +207,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
               <button
                 onClick={() => handleApprove(activeCycle.id)}
                 disabled={approvingId === activeCycle.id}
-                className="flex items-center gap-1 text-[11px] bg-green-600 text-white px-2.5 py-1 rounded-full hover:bg-green-700 disabled:opacity-50"
+                className="flex items-center gap-1 text-[11px] bg-green-700 text-white px-2.5 py-1 rounded-full hover:bg-green-800 disabled:opacity-50"
               >
                 <Icon name="verified_user" size="sm" />
                 {approvingId === activeCycle.id ? 'Approving…' : 'Approve'}
@@ -302,7 +302,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                     <button
                       onClick={handleCompleteReview}
                       disabled={completing || !reviewText.trim()}
-                      className="flex items-center gap-1 text-[11px] bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                      className="flex items-center gap-1 text-[11px] bg-amber-700 text-white px-3 py-1.5 rounded-lg hover:bg-amber-800 disabled:opacity-50"
                     >
                       <Icon name="loop" size="sm" /> {completing ? 'Completing…' : 'Complete & start next cycle'}
                     </button>

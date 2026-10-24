@@ -142,7 +142,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
           {studentsWithoutEhcp.length > 0 && (
             <button
               onClick={() => setViewMode('no_ehcp')}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ehcp' ? 'bg-amber-500 text-white' : 'text-amber-800 bg-amber-50 hover:bg-amber-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ehcp' ? 'bg-amber-700 text-white' : 'text-amber-800 bg-amber-50 hover:bg-amber-100'}`}
             >
               <Icon name="warning" size="sm" />
               SEND without EHCP ({studentsWithoutEhcp.length})

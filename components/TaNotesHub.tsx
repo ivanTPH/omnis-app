@@ -331,7 +331,7 @@ export default function TaNotesHub() {
                         type="button"
                         onClick={() => handleAddNote(student.id)}
                         disabled={saving === student.id || !noteText[student.id]?.trim()}
-                        className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg disabled:opacity-50 transition-colors"
                       >
                         {saving === student.id
                           ? <Icon name="refresh" size="sm" className="animate-spin" />

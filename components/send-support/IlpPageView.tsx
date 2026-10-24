@@ -558,7 +558,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
           {studentsWithoutIlp.length > 0 && (
             <button
               onClick={() => setViewMode('no_ilp')}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ilp' ? 'bg-amber-500 text-white' : 'text-amber-800 bg-amber-50 hover:bg-amber-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ilp' ? 'bg-amber-700 text-white' : 'text-amber-800 bg-amber-50 hover:bg-amber-100'}`}
             >
               <Icon name="warning" size="sm" />
               SEND without ILP ({studentsWithoutIlp.length})
@@ -660,7 +660,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                     <button
                       onClick={() => handleApproveEdit(edit.id)}
                       disabled={!!editAction[edit.id]}
-                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-green-600 hover:bg-green-500 text-white rounded-lg disabled:opacity-50 transition-colors"
+                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-green-700 hover:bg-green-800 text-white rounded-lg disabled:opacity-50 transition-colors"
                     >
                       {editAction[edit.id] === 'approving'
                         ? <Icon name="refresh" size="sm" className="animate-spin" />
@@ -788,7 +788,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                 <button
                   onClick={handleBulkApprove}
                   disabled={bulkApproveState === 'running'}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[12px] font-semibold disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-700 hover:bg-green-800 text-white rounded-lg text-[12px] font-semibold disabled:opacity-60"
                 >
                   {bulkApproveState === 'running'
                     ? <><Icon name="refresh" size="sm" className="animate-spin" /> Approving…</>
@@ -865,7 +865,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                         <button
                           onClick={() => handleApproveIlp(ilp.id)}
                           disabled={approveAction[ilp.id]}
-                          className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60"
+                          className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1.5 bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-60"
                         >
                           {approveAction[ilp.id]
                             ? <><Icon name="refresh" size="sm" className="animate-spin" /> Approving…</>

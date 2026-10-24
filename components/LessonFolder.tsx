@@ -754,7 +754,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             )}
             <Icon name="chevron_right" size="sm" className="text-blue-300" />
             <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>2</div>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>2</div>
               <span className={`text-[12px] font-medium ${wizardStep === 5 ? 'text-blue-700' : 'text-gray-500'}`}>Set Homework</span>
             </div>
             <div className="ml-auto">
@@ -812,7 +812,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           <button
                             onClick={() => saveResourceEdit(r.id)}
                             disabled={editSaving}
-                            className="w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-40"
+                            className="w-6 h-6 flex items-center justify-center bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-40"
                           >
                             <Icon name="check" size="sm" />
                           </button>
@@ -1561,7 +1561,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               <button
                                 onClick={() => saveResourceEdit(r.id)}
                                 disabled={editSaving}
-                                className="w-6 h-6 flex items-center justify-center bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-40"
+                                className="w-6 h-6 flex items-center justify-center bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-40"
                               >
                                 <Icon name="check" size="sm" />
                               </button>
@@ -1732,7 +1732,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               }
                             }}
                             disabled={generatingSlides || !!generatingResType}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-[12px] font-semibold hover:bg-amber-700 disabled:opacity-40"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-700 text-white rounded-lg text-[12px] font-semibold hover:bg-amber-800 disabled:opacity-40"
                           >
                             {generatingSlides
                               ? <><Icon name="refresh" size="sm" className="animate-spin" />Generating…</>
@@ -1895,7 +1895,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 )}
                                 <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                                   hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-                                  hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-500'   :
+                                  hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-600'   :
                                   'bg-amber-100 text-amber-700'
                                 }`}>
                                   {hw.status === 'PUBLISHED' && <Icon name="lock" size="sm" />}

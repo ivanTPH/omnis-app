@@ -121,7 +121,7 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
         {STEPS.map((label, i) => (
           <div key={i} className="flex items-center gap-2 flex-1">
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-              i < step  ? 'bg-green-500 text-white' :
+              i < step  ? 'bg-green-700 text-white' :
               i === step ? 'bg-blue-600 text-white' :
               'bg-gray-200 text-gray-600'
             }`}>
@@ -373,7 +373,7 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
             <button
               onClick={handleComplete}
               disabled={pending || !dpaAccepted}
-              className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-[13px] font-medium transition"
+              className="w-full py-2.5 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white rounded-lg text-[13px] font-medium transition"
             >
               {pending ? 'Finishing…' : 'Sign DPA & Go to dashboard'}
             </button>

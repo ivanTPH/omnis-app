@@ -145,7 +145,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                     {c.name}
                     {marking > 0 && (
                       <span className={`inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold leading-none ${
-                        isSelected ? 'bg-white text-rose-600' : 'bg-rose-500 text-white'
+                        isSelected ? 'bg-white text-rose-600' : 'bg-rose-600 text-white'
                       }`}>
                         {marking}
                       </span>

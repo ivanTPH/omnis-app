@@ -24,7 +24,8 @@ import { NextResponse } from 'next/server'
 function svgInitials(firstName: string | null, lastName: string | null): NextResponse {
   const initials = [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?'
   // Pick a stable colour from initials char code
-  const colours = ['#4f46e5','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777']
+  // 700 shades: white initials meet WCAG AA contrast (4.5:1) on every colour.
+  const colours = ['#4338ca','#0e7490','#047857','#b45309','#b91c1c','#6d28d9','#be185d']
   const bg = colours[(initials.charCodeAt(0) ?? 0) % colours.length]
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
   <rect width="128" height="128" rx="64" fill="${bg}"/>

@@ -375,7 +375,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
             <button
               onClick={handleActivateAll}
               disabled={pending}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-[13px] font-medium rounded-lg transition"
+              className="flex items-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-800 disabled:opacity-50 text-white text-[13px] font-medium rounded-lg transition"
               title={`Mark all ${counts.pending} pending accounts as activated (for demo/trial use)`}
             >
               <Icon name="how_to_reg" size="sm" />

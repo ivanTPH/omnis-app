@@ -79,10 +79,10 @@ export default function HelpPage() {
         </section>
 
         <section className="border-t border-gray-200 pt-8 flex flex-wrap gap-4">
-          <Link href="/login" className="text-blue-700 hover:underline">Sign in</Link>
-          <Link href="/marketing/parents" className="text-blue-700 hover:underline">Parent registration</Link>
-          <Link href="/forgot-password" className="text-blue-700 hover:underline">Forgotten password</Link>
-          <Link href="/marketing/privacy" className="text-blue-700 hover:underline">Privacy policy</Link>
+          <Link href="/login" className="text-blue-700 underline underline-offset-2 hover:no-underline">Sign in</Link>
+          <Link href="/marketing/parents" className="text-blue-700 underline underline-offset-2 hover:no-underline">Parent registration</Link>
+          <Link href="/forgot-password" className="text-blue-700 underline underline-offset-2 hover:no-underline">Forgotten password</Link>
+          <Link href="/marketing/privacy" className="text-blue-700 underline underline-offset-2 hover:no-underline">Privacy policy</Link>
         </section>
       </div>
     </main>

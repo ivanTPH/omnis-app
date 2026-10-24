@@ -136,14 +136,14 @@ function RecommendationCard({ item, onReviewed }: {
                 <button
                   onClick={() => handleReview('CONFIRMED')}
                   disabled={pending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:opacity-50 transition"
                 >
                   <Icon name="check_circle" size="sm" />Confirm
                 </button>
                 <button
                   onClick={() => handleReview('OVERRIDDEN')}
                   disabled={pending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium bg-amber-700 text-white rounded-lg hover:bg-amber-800 disabled:opacity-50 transition"
                 >
                   <Icon name="edit" size="sm" />Override
                 </button>

@@ -132,7 +132,7 @@ export default async function ApdrOverviewPage() {
                             {i > 0 && <div className={`h-px w-4 ${isComp ? 'bg-green-400' : isCurr ? 'bg-blue-300' : 'bg-gray-200'}`} />}
                             <div className="flex flex-col items-center gap-0.5">
                               <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0
-                                ${isComp ? 'bg-green-500 text-white' : isCurr ? 'bg-blue-600 text-white ring-1 ring-offset-1 ring-blue-300' : 'bg-gray-200 text-gray-600'}`}>
+                                ${isComp ? 'bg-green-700 text-white' : isCurr ? 'bg-blue-600 text-white ring-1 ring-offset-1 ring-blue-300' : 'bg-gray-200 text-gray-600'}`}>
                                 {isComp ? '✓' : i + 1}
                               </div>
                               <span className={`text-[8px] font-semibold ${isComp ? 'text-green-700' : isCurr ? 'text-blue-700' : 'text-gray-500'}`}>
@@ -180,7 +180,7 @@ export default async function ApdrOverviewPage() {
               <p className="text-sm text-gray-500 mt-2">No active APDR cycles yet.</p>
               <p className="text-[12px] text-gray-500 mt-1">
                 Approve an ILP in{' '}
-                <Link href="/senco/ilp" className="text-blue-600 hover:underline">ILP Records</Link>
+                <Link href="/senco/ilp" className="text-blue-600 underline underline-offset-2 hover:no-underline">ILP Records</Link>
                 {' '}to auto-generate the first cycle.
               </p>
             </div>

@@ -261,7 +261,7 @@ export default function SubmissionMarkingView({
                   <button
                     onClick={handleApprove}
                     disabled={isPending}
-                    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
+                    className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-[12px] font-semibold transition-colors"
                   >
                     {isPending
                       ? <Icon name="refresh" size="sm" className="animate-spin" />

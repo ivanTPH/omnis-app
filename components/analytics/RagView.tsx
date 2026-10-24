@@ -169,7 +169,7 @@ function PredictionForm({
           {saved ? 'Saved' : saving ? 'Saving…' : 'Save draft'}
         </button>
         <button onClick={handleConfirm} disabled={!notes.trim() || confirming || confirmed}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60">
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60">
           {confirming ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="verified" size="sm" />}
           {confirmed ? 'Grade confirmed ✓' : confirming ? 'Confirming…' : 'Confirm grade →'}
         </button>

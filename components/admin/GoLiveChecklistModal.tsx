@@ -57,7 +57,7 @@ export default function GoLiveChecklistModal() {
                 </p>
                 <p className="text-gray-600">{item.detail}</p>
                 {status.canManage
-                  ? <Link href={item.href} onClick={dismiss} className="text-blue-700 hover:underline">Sort this out</Link>
+                  ? <Link href={item.href} onClick={dismiss} className="text-blue-700 underline underline-offset-2 hover:no-underline">Sort this out</Link>
                   : <p className="text-gray-500">Usually done by: {item.who}</p>}
               </div>
             </li>

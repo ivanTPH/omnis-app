@@ -252,7 +252,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                   </button>
                   <button
                     onClick={() => handleStatusChange(outcome.id, 'achieved')}
-                    className="text-xs px-2 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 font-medium transition-colors"
+                    className="text-xs px-2 py-1 rounded-lg bg-green-700 text-white hover:bg-green-800 font-medium transition-colors"
                   >
                     Mark achieved
                   </button>
@@ -427,7 +427,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                         <button
                           onClick={() => handleConfirm(s.id, s.outcomeId)}
                           disabled={confirmingId === s.id}
-                          className="flex items-center gap-1 text-xs bg-green-600 text-white px-2.5 py-1 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                          className="flex items-center gap-1 text-xs bg-green-700 text-white px-2.5 py-1 rounded-lg hover:bg-green-800 disabled:opacity-50 transition-colors"
                         >
                           <Icon name="check" size="sm" />
                           {confirmingId === s.id ? 'Confirming…' : 'Confirm evidence'}

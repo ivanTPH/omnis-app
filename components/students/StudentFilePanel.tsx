@@ -1126,7 +1126,7 @@ function NotesTab({
                   <textarea value={editTaNoteText} onChange={e => setEditTaNoteText(e.target.value)} rows={3}
                     className="w-full text-sm border border-amber-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
                   <div className="flex gap-2">
-                    <button onClick={() => handleSaveTaNoteEdit(n.id)} disabled={taPending} className="px-3 py-1 bg-amber-600 text-white rounded-lg text-xs font-medium disabled:opacity-50">Save</button>
+                    <button onClick={() => handleSaveTaNoteEdit(n.id)} disabled={taPending} className="px-3 py-1 bg-amber-700 text-white rounded-lg text-xs font-medium disabled:opacity-50">Save</button>
                     <button onClick={() => setEditTaNoteId(null)} className="px-3 py-1 text-gray-500 hover:text-gray-700 text-xs">Cancel</button>
                   </div>
                 </div>
@@ -1185,7 +1185,7 @@ function NotesTab({
               <button
                 onClick={handleAddTaNote}
                 disabled={taPending || !taText.trim()}
-                className="px-4 py-1.5 bg-amber-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 ml-auto"
+                className="px-4 py-1.5 bg-amber-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 ml-auto"
               >
                 {taPending ? 'Saving…' : 'Save note'}
               </button>
@@ -1559,7 +1559,7 @@ function ApdrCycleCard({
 
   const statusColors: Record<string, string> = {
     ACTIVE:    'bg-emerald-100 text-emerald-700',
-    COMPLETED: 'bg-gray-100 text-gray-500',
+    COMPLETED: 'bg-gray-100 text-gray-600',
   }
 
   return (
@@ -1634,7 +1634,7 @@ function ApdrCycleCard({
           <button
             onClick={handleApprove}
             disabled={approving}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
           >
             <Icon name="check_circle" size="sm" />
             {approving ? 'Approving…' : 'Approve APDR'}
@@ -2177,7 +2177,7 @@ function PastoralNotesTab({
           <button
             onClick={handleAdd}
             disabled={saving || !text.trim()}
-            className="px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+            className="px-4 py-1.5 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save note'}
           </button>
@@ -2435,7 +2435,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 <span key={s.subject} className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                   s.isCore
                     ? 'bg-blue-50 text-blue-600 border border-blue-100'
-                    : 'bg-gray-100 text-gray-500'
+                    : 'bg-gray-100 text-gray-600'
                 }`}>
                   {s.subject}{s.level ? ` (${s.level})` : ''}
                 </span>
@@ -2791,7 +2791,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                     onClick={() => setBhvType(t)}
                     className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                       bhvType === t
-                        ? t === 'positive' ? 'bg-emerald-600 text-white' : t === 'negative' ? 'bg-rose-600 text-white' : 'bg-gray-600 text-white'
+                        ? t === 'positive' ? 'bg-emerald-700 text-white' : t === 'negative' ? 'bg-rose-600 text-white' : 'bg-gray-600 text-white'
                         : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >

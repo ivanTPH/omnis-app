@@ -115,7 +115,7 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
           </select>
           <div className="flex gap-2">
             <button onClick={handleLink} disabled={!selectedLesson || pending}
-              className="px-3 py-1 rounded-lg bg-green-600 hover:bg-green-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-50">
+              className="px-3 py-1 rounded-lg bg-green-700 hover:bg-green-800 text-white text-[11px] font-semibold transition-colors disabled:opacity-50">
               {pending ? 'Linking…' : 'Link'}
             </button>
             <button onClick={() => setShowLinkModal(false)}

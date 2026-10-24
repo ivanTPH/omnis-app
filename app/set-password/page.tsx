@@ -106,7 +106,7 @@ function SetPasswordForm() {
           </form>
           <p className="text-center text-sm text-gray-500 mt-4">
             Link expired?{' '}
-            <Link href="/forgot-password" className="text-blue-700 hover:underline">Request a new one</Link>
+            <Link href="/forgot-password" className="text-blue-700 underline underline-offset-2 hover:no-underline">Request a new one</Link>
           </p>
         </>
       )}

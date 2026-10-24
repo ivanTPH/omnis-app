@@ -115,7 +115,7 @@ export default async function SendDashboardPage() {
               <p className="text-[13px] text-gray-500 mt-0.5">School-wide register and plan oversight</p>
             </div>
             {pendingReviews > 0 && (
-              <Link href="/send/review-due" className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white text-[12px] font-semibold rounded-xl hover:bg-amber-600 transition">
+              <Link href="/send/review-due" className="flex items-center gap-2 px-3 py-2 bg-amber-700 text-white text-[12px] font-semibold rounded-xl hover:bg-amber-800 transition">
                 <Icon name="warning" size="sm" />
                 {pendingReviews} pending review{pendingReviews !== 1 ? 's' : ''}
               </Link>

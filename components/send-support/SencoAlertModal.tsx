@@ -166,7 +166,7 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
               <button
                 onClick={handleSend}
                 disabled={!message.trim() || selected.size === 0 || isPending}
-                className="flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-5 py-2 bg-amber-700 hover:bg-amber-800 text-white text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isPending
                   ? <Icon name="refresh" size="sm" className="animate-spin" />

@@ -190,7 +190,7 @@ export default function HomeworkTypeRenderer({
                         i === currentQ
                           ? 'bg-indigo-600 text-white scale-110 shadow-md shadow-indigo-200'
                           : isDone
-                            ? 'bg-emerald-500 text-white cursor-pointer'
+                            ? 'bg-emerald-700 text-white cursor-pointer'
                             : 'bg-gray-100 text-gray-600 cursor-default'
                       }`}
                     >
@@ -453,7 +453,7 @@ export default function HomeworkTypeRenderer({
                         i === currentQ
                           ? 'bg-indigo-600 text-white scale-110 shadow-md shadow-indigo-200'
                           : isDone
-                            ? 'bg-emerald-500 text-white cursor-pointer'
+                            ? 'bg-emerald-700 text-white cursor-pointer'
                             : 'bg-gray-100 text-gray-600 cursor-default'
                       }`}
                     >

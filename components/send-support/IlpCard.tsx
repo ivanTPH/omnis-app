@@ -272,7 +272,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
               <button
                 onClick={handleApprove}
                 disabled={approving}
-                className="flex items-center gap-1 text-xs bg-green-600 text-white px-3 py-1 rounded-full hover:bg-green-700 disabled:opacity-50 ml-auto"
+                className="flex items-center gap-1 text-xs bg-green-700 text-white px-3 py-1 rounded-full hover:bg-green-800 disabled:opacity-50 ml-auto"
               >
                 <Icon name="verified_user" size="sm" />
                 {approving ? 'Approving…' : 'Approve ILP'}
@@ -301,7 +301,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                   )}
                   <div className="flex flex-col items-center gap-0.5">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
-                      ${isCompleted ? 'bg-green-500 text-white' : isCurrent ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-200' : 'bg-gray-200 text-gray-600'}`}>
+                      ${isCompleted ? 'bg-green-700 text-white' : isCurrent ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-200' : 'bg-gray-200 text-gray-600'}`}>
                       {isCompleted ? '✓' : i + 1}
                     </div>
                     <span className={`text-[9px] font-semibold whitespace-nowrap
@@ -442,7 +442,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                       <button
                         onClick={handleApproveApdr}
                         disabled={apdrApproving}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium disabled:opacity-50"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-medium disabled:opacity-50"
                       >
                         <Icon name="verified" size="sm" />
                         {apdrApproving ? 'Approving…' : 'Approve cycle'}

@@ -167,7 +167,7 @@ function SignalTableRow({ signal, onDone }: { signal: SignalRow; onDone: () => v
                 <button
                   disabled={isPending}
                   onClick={e => { e.stopPropagation(); act('RELEASED') }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 text-white text-[11px] font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-700 text-white text-[11px] font-semibold hover:bg-green-800 disabled:opacity-50 transition-colors"
                 >
                   <Icon name="check_circle" size="sm" />
                   Release
@@ -175,7 +175,7 @@ function SignalTableRow({ signal, onDone }: { signal: SignalRow; onDone: () => v
                 <button
                   disabled={isPending}
                   onClick={e => { e.stopPropagation(); act('FLAGGED_FOR_RESUBMISSION') }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-[11px] font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-700 text-white text-[11px] font-semibold hover:bg-amber-800 disabled:opacity-50 transition-colors"
                 >
                   <Icon name="replay" size="sm" />
                   Resubmission
@@ -344,7 +344,7 @@ function PatternCaseTableRow({ c, role, onDone }: { c: PatternCaseRow; role: str
                   <button
                     disabled={isPending}
                     onClick={e => { e.stopPropagation(); markUnderReview() }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-[11px] font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-700 text-white text-[11px] font-semibold hover:bg-amber-800 disabled:opacity-50 transition-colors"
                   >
                     <Icon name="visibility" size="sm" />
                     Mark Under Review

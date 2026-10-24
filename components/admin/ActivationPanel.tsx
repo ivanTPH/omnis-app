@@ -74,7 +74,7 @@ export default function ActivationPanel({
       <p className="text-[11px] text-gray-500 mt-3">
         Ask form tutors to remind students to check their school email and click the activation link.
         You can resend emails individually from{' '}
-        <Link href="/admin/users" className="text-blue-600 hover:underline">User Management</Link>.
+        <Link href="/admin/users" className="text-blue-600 underline underline-offset-2 hover:no-underline">User Management</Link>.
       </p>
     </div>
   )

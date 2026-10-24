@@ -760,7 +760,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                 <button
                   onClick={handlePublish}
                   disabled={publishing || !classId}
-                  className="flex-1 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                  className="flex-1 py-2.5 bg-green-700 text-white rounded-lg text-sm font-medium hover:bg-green-800 disabled:opacity-50"
                 >
                   {publishing ? 'Publishing…' : 'Publish homework'}
                 </button>

@@ -42,7 +42,7 @@ export default function SecurityPage() {
             Each school using Omnis is the data controller for its pupils’, parents’ and staff’s data. Omnis is the data
             processor: we use that data only to provide the service, on the school’s instructions, under a Data Processing
             Agreement. We never sell data or use it to train AI models. Full details are in our{' '}
-            <Link href="/marketing/privacy" className="text-blue-700 hover:underline">privacy policy</Link>.
+            <Link href="/marketing/privacy" className="text-blue-700 underline underline-offset-2 hover:no-underline">privacy policy</Link>.
           </p>
         </section>
 
@@ -120,8 +120,8 @@ export default function SecurityPage() {
             <li>a summary of our incident response plan</li>
           </ul>
           <p className="mt-3">
-            Email <a href="mailto:privacy@omnis.education" className="text-blue-700 hover:underline">privacy@omnis.education</a>.
-            Our <Link href="/marketing/terms" className="text-blue-700 hover:underline">terms of service</Link> are also published.
+            Email <a href="mailto:privacy@omnis.education" className="text-blue-700 underline underline-offset-2 hover:no-underline">privacy@omnis.education</a>.
+            Our <Link href="/marketing/terms" className="text-blue-700 underline underline-offset-2 hover:no-underline">terms of service</Link> are also published.
           </p>
         </section>
       </div>

@@ -166,7 +166,7 @@ export default function SessionDetailModal({
             <div className="flex gap-2">
               <button
                 onClick={() => setMarking(true)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[13px] font-semibold bg-green-700 text-white rounded-xl hover:bg-green-800"
               >
                 <Icon name="check_circle" size="sm" />
                 Mark Complete
@@ -199,7 +199,7 @@ export default function SessionDetailModal({
                 <button
                   onClick={handleComplete}
                   disabled={pending}
-                  className="flex-1 py-2.5 text-[13px] font-semibold bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50"
+                  className="flex-1 py-2.5 text-[13px] font-semibold bg-green-700 text-white rounded-xl hover:bg-green-800 disabled:opacity-50"
                 >
                   {pending ? 'Saving…' : 'Save & Complete'}
                 </button>

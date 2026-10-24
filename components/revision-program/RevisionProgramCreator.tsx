@@ -990,7 +990,7 @@ function Step4({
             type="button"
             onClick={canApprove ? onApprove : undefined}
             disabled={!canApprove}
-            className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 bg-green-700 hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
           >
             <Icon name="check_circle" size="sm" /> Approve &amp; Publish
           </button>
@@ -1115,7 +1115,7 @@ export default function RevisionProgramCreator({
           const done   = step > n
           return (
             <div key={label} className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? 'bg-green-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? 'bg-green-700 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
                 {done ? '✓' : n}
               </div>
               <span className={`text-xs font-medium ${active ? 'text-blue-700' : done ? 'text-green-800' : 'text-gray-600'}`}>{label}</span>

@@ -289,7 +289,7 @@ export default function WeeklyCalendar({
                         <span className={`text-[10px] font-semibold tracking-widest uppercase ${todayCol ? 'text-blue-600' : 'text-gray-500'}`}>
                           {WEEKDAYS[di]}
                         </span>
-                        <div className={`w-9 h-9 mt-0.5 flex items-center justify-center rounded-full text-[22px] font-light leading-none ${todayCol ? 'bg-blue-500 text-white' : 'text-gray-800'}`}>
+                        <div className={`w-9 h-9 mt-0.5 flex items-center justify-center rounded-full text-[22px] font-light leading-none ${todayCol ? 'bg-blue-600 text-white' : 'text-gray-800'}`}>
                           {day.getDate()}
                         </div>
                       </div>
@@ -418,14 +418,14 @@ export default function WeeklyCalendar({
                                     {/* Resource completeness badges */}
                                     <div className="flex gap-0.5 mt-1">
                                       <Tooltip content={lesson.hasPlan ? 'Lesson plan complete' : 'No lesson plan yet'} side="bottom">
-                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-500'}`}>P</span>
+                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan ? 'bg-green-700 text-white' : 'bg-white/60 text-gray-500'}`}>P</span>
                                       </Tooltip>
                                       <Tooltip content={lesson.hasSlides ? 'Slides attached' : 'No slides yet'} side="bottom">
-                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-500'}`}>S</span>
+                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides ? 'bg-green-700 text-white' : 'bg-white/60 text-gray-500'}`}>S</span>
                                       </Tooltip>
                                       {lesson.hasHomework ? (
                                         <Tooltip content={lesson.homeworkStatus === 'DRAFT' ? 'Homework (draft)' : 'Homework (published)'} side="bottom">
-                                          <span className={`inline-flex items-center px-1 rounded leading-4 h-4 ${lesson.homeworkStatus === 'DRAFT' ? 'bg-amber-400 text-white' : 'bg-green-500 text-white'}`}>
+                                          <span className={`inline-flex items-center px-1 rounded leading-4 h-4 ${lesson.homeworkStatus === 'DRAFT' ? 'bg-amber-400 text-white' : 'bg-green-700 text-white'}`}>
                                             {lesson.homeworkStatus === 'DRAFT'
                                               ? <Icon name="edit" size="sm" />
                                               : <Icon name="lock" size="sm" />}

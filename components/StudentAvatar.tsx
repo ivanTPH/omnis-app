@@ -6,18 +6,19 @@ type SendStatus = 'NONE' | 'SEN_SUPPORT' | 'EHCP' | null | undefined
 
 const SIZES: Record<Size, number> = { xs: 24, sm: 32, md: 40, lg: 56 }
 
-// 10 distinct colours — readable with white text
+// 10 distinct colours, all the 700 shade so white initials meet WCAG AA
+// (4.5:1). The 500 shades used before were as low as 2.1:1 (amber).
 const PALETTE = [
-  '#3b82f6', // blue
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#ef4444', // red
-  '#6366f1', // indigo
-  '#14b8a6', // teal
-  '#f97316', // orange
-  '#84cc16', // lime (dark enough at this saturation)
+  '#1d4ed8', // blue-700
+  '#6d28d9', // violet-700
+  '#be185d', // pink-700
+  '#b45309', // amber-700
+  '#047857', // emerald-700
+  '#b91c1c', // red-700
+  '#4338ca', // indigo-700
+  '#0f766e', // teal-700
+  '#c2410c', // orange-700
+  '#4d7c0f', // lime-700
 ]
 
 /** Deterministic colour derived from the student's full name */

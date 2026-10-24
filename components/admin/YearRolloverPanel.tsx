@@ -86,7 +86,7 @@ export default function YearRolloverPanel() {
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirm}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg bg-amber-700 text-white hover:bg-amber-800 transition"
                 >
                   <Icon name="check_circle" size="sm" />
                   Confirm rollover

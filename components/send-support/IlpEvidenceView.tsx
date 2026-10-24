@@ -161,7 +161,7 @@ function StudentRow({ student, expanded, onToggle }: {
               className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
                 requestSent
                   ? 'bg-green-100 text-green-800 cursor-default'
-                  : 'bg-amber-600 text-white hover:bg-amber-700'
+                  : 'bg-amber-700 text-white hover:bg-amber-800'
               }`}
             >
               <Icon
@@ -231,7 +231,7 @@ function StudentRow({ student, expanded, onToggle }: {
                           onClick={() => setEvidenceType(type)}
                           className={`text-[10px] font-semibold px-2 py-1 rounded-full border transition-colors ${
                             evidenceType === type
-                              ? type === 'PROGRESS' ? 'bg-green-600 text-white border-green-600'
+                              ? type === 'PROGRESS' ? 'bg-green-700 text-white border-green-600'
                                 : type === 'CONCERN' ? 'bg-red-600 text-white border-red-600'
                                 : 'bg-gray-500 text-white border-gray-500'
                               : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
@@ -342,21 +342,21 @@ export default function IlpEvidenceView({ data }: { data: IlpEvidenceSummary }) 
       label: 'Review Due (30d)',
       count: reviewSoonCount,
       color: reviewSoonCount > 0 ? 'text-orange-700 bg-orange-50 border-orange-200' : 'text-gray-500 bg-white border-gray-200',
-      activeColor: 'bg-orange-500 text-white border-orange-500',
+      activeColor: 'bg-orange-700 text-white border-orange-500',
     },
     {
       id: 'evidence_gap',
       label: 'Evidence Gaps',
       count: evidenceGapCount,
       color: evidenceGapCount > 0 ? 'text-amber-800 bg-amber-50 border-amber-200' : 'text-gray-500 bg-white border-gray-200',
-      activeColor: 'bg-amber-500 text-white border-amber-500',
+      activeColor: 'bg-amber-700 text-white border-amber-500',
     },
     {
       id: 'on_track',
       label: 'On Track',
       count: onTrackCount,
       color: 'text-green-800 bg-green-50 border-green-200',
-      activeColor: 'bg-green-600 text-white border-green-600',
+      activeColor: 'bg-green-700 text-white border-green-600',
     },
   ]
 

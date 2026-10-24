@@ -60,12 +60,12 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
           </div>
           <div className="flex items-center gap-2">
             {passport.status === 'APPROVED' && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 bg-green-600 text-white rounded-full">
+              <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 bg-green-700 text-white rounded-full">
                 <Icon name="check_circle" size="sm" /> Approved
               </span>
             )}
             {passport.status === 'DRAFT' && (
-              <span className="text-[11px] font-semibold px-2.5 py-1 bg-amber-500 text-white rounded-full">
+              <span className="text-[11px] font-semibold px-2.5 py-1 bg-amber-700 text-white rounded-full">
                 Draft
               </span>
             )}
@@ -83,7 +83,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
                   <button
                     onClick={handleApprove}
                     disabled={approving}
-                    className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-50"
                   >
                     {approving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="verified_user" size="sm" />}
                     Approve

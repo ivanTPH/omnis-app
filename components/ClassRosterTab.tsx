@@ -204,7 +204,7 @@ export default function ClassRosterTab({
             onClick={() => setSendFilter(f)}
             className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
               sendFilter === f
-                ? f === 'NO_PLAN' ? 'bg-amber-500 text-white'
+                ? f === 'NO_PLAN' ? 'bg-amber-700 text-white'
                   : f === 'NO_PASSPORT' ? 'bg-violet-600 text-white'
                   : 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -789,7 +789,7 @@ export default function ClassRosterTab({
                                   </div>
                                   <div className="flex items-center gap-2 pt-1">
                                     <button type="button" onClick={() => openKPlanModal(row.id, studentName)} disabled={kPlanLoading === row.id}
-                                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white rounded-lg transition-colors disabled:opacity-50">
+                                      className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 bg-teal-700 hover:bg-teal-800 text-white rounded-lg transition-colors disabled:opacity-50">
                                       {kPlanLoading === row.id ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
                                       Full view
                                     </button>
@@ -844,7 +844,7 @@ export default function ClassRosterTab({
                                 <div key={i} className="flex items-center gap-3">
                                   <Link href={`/homework/${s.homeworkId}`} className="text-[12px] text-blue-700 hover:text-blue-800 hover:underline flex-1 truncate">{s.homeworkTitle}</Link>
                                   <span className="text-[10px] text-gray-600">{new Date(s.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${STATUS_COLORS[s.status] ?? 'bg-gray-100 text-gray-600'}`}>
                                     {s.status.charAt(0) + s.status.slice(1).toLowerCase().replace(/_/g, ' ')}
                                   </span>
                                   {scoreStr != null && (
@@ -922,7 +922,7 @@ export default function ClassRosterTab({
                             type="button"
                             onClick={() => handleSaveNote(row.id)}
                             disabled={savingNote === row.id || !newNotes[row.id]?.trim()}
-                            className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-white rounded-lg disabled:opacity-50 transition-colors"
+                            className="flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 bg-yellow-700 hover:bg-yellow-400 text-white rounded-lg disabled:opacity-50 transition-colors"
                           >
                             {savingNote === row.id ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="sticky_note_2" size="sm" />}
                             Add class note
@@ -1078,7 +1078,7 @@ function FlagConcernModal({ studentId, studentName, onClose }: { studentId: stri
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
               <button type="submit" disabled={submitting || description.trim().length < 10}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-700 hover:bg-amber-800 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">
                 {submitting ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="flag" size="sm" />}
                 Raise Concern
               </button>

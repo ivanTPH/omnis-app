@@ -139,7 +139,7 @@ export default function EhcpCard({ plan, isSenco }: Props) {
           <button
             onClick={handleApprove}
             disabled={approving}
-            className="flex items-center gap-1.5 text-sm font-semibold bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+            className="flex items-center gap-1.5 text-sm font-semibold bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 disabled:opacity-50 transition-colors"
           >
             <Icon name="verified_user" size="sm" />
             {approving ? 'Approving…' : 'Approve & Activate EHCP'}

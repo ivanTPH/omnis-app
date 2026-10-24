@@ -123,7 +123,7 @@ export default function BetaForm() {
                   >
                     Go to sign in →
                   </Link>
-                  <p className="text-xs text-gray-500 mb-4">The verification link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 hover:underline">forgot password</Link> to get a new one.</p>
+                  <p className="text-xs text-gray-500 mb-4">The verification link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 underline underline-offset-2 hover:no-underline">forgot password</Link> to get a new one.</p>
                 </>
               )}
               <div>

@@ -72,9 +72,9 @@ function RequestSupportModal({
                     onClick={() => setUrgency(u)}
                     className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors capitalize ${
                       urgency === u
-                        ? u === 'high'    ? 'bg-red-500 text-white border-red-500'
-                        : u === 'medium'  ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-blue-500 text-white border-blue-500'
+                        ? u === 'high'    ? 'bg-red-600 text-white border-red-500'
+                        : u === 'medium'  ? 'bg-amber-700 text-white border-amber-500'
+                        : 'bg-blue-600 text-white border-blue-500'
                         : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -103,7 +103,7 @@ function RequestSupportModal({
               <button
                 type="submit"
                 disabled={pending}
-                className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-amber-700 text-white rounded-lg text-sm font-medium hover:bg-amber-800 disabled:opacity-50"
               >
                 {pending ? 'Sending…' : 'Send request'}
               </button>
@@ -232,7 +232,7 @@ function LogConcernModal({
               <button
                 type="submit"
                 disabled={pending || loading}
-                className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-amber-700 text-white rounded-lg text-sm font-medium hover:bg-amber-800 disabled:opacity-50"
               >
                 {pending ? 'Raising…' : 'Raise concern'}
               </button>
@@ -402,7 +402,7 @@ export default function InLessonActionStrip({
             onClick={() => setKPlansOpen(v => !v)}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm border ${
               kPlansOpen
-                ? 'bg-teal-600 text-white border-teal-600'
+                ? 'bg-teal-700 text-white border-teal-600'
                 : 'bg-white border-amber-300 text-amber-800 hover:bg-amber-100'
             }`}
           >

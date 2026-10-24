@@ -202,7 +202,7 @@ export default async function ParentDashboardPage({
                       }`}
                     >
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                        isSelected ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700'
+                        isSelected ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700'
                       }`}>
                         {(child as any).firstName[0]}{(child as any).lastName[0]}
                       </div>

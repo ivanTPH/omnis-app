@@ -156,7 +156,7 @@ export default function SencoDashboard({ data }: Props) {
                     <button
                       onClick={() => handleGenerateIlp(c.id, c.studentId)}
                       disabled={ilpGenerating[c.studentId]}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-700 text-white rounded-lg text-xs font-medium hover:bg-green-800 disabled:opacity-50"
                     >
                       {ilpGenerating[c.studentId]
                         ? <><Icon name="refresh" size="sm" className="animate-spin" /> Generating…</>

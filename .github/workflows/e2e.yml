@@ -4,6 +4,16 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      spec:
+        description: 'Only run these spec files (space-separated, e.g. e2e/tests/send-smoke.spec.ts). Empty = full suite.'
+        required: false
+        default: ''
+      skip_deploy_wait:
+        description: 'Skip waiting for a new deploy (the live site is already on this commit).'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   deploy:
@@ -21,6 +31,7 @@ jobs:
         run: echo "Coolify deploys via its own webhook; waiting for the new container."
 
       - name: Wait for new container + warm all auth paths
+        if: ${{ !inputs.skip_deploy_wait }}
         # Builds take 6-20 min, so a fixed sleep is unreliable (on 23 Oct the
         # suite ran against the OLD container because the build took 16 min).
         # /api/health reports the commit it was built from: wait until it
@@ -128,8 +139,11 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: npm run test:e2e
+        # Passed via env, not interpolated into the script, so the input is
+        # never parsed as shell code.
+        run: npm run test:e2e -- $SPEC
         env:
+          SPEC: ${{ inputs.spec }}
           PLAYWRIGHT_BASE_URL: https://omnis.education
 
       - name: Summarise failures as an annotation

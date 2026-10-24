@@ -25,7 +25,20 @@ function walk(suite, trail, specFile) {
       const name = [...here, spec.title].filter(Boolean).join(' › ')
       const err = (test.results ?? []).flatMap(r => r.errors ?? (r.error ? [r.error] : []))[0]
       const lines = clean(err?.message).split('\n').map(l => l.trim()).filter(Boolean)
-      const msg = lines.slice(0, 3).join(' | ').slice(0, 700)
+      // Where it failed: Playwright's error location, or for timeouts the last
+      // step that was still running (its location is the useful line).
+      const r = (test.results ?? []).find(x => (x.errors ?? []).length || x.error) ?? {}
+      const loc = err?.location ?? r.error?.location
+      const stepLoc = (function lastStep(steps) {
+        for (let i = (steps ?? []).length - 1; i >= 0; i--) {
+          const inner = lastStep(steps[i].steps)
+          if (inner) return inner
+          if (steps[i].location) return `${steps[i].title} @ ${steps[i].location.file.split('/').slice(-1)[0]}:${steps[i].location.line}`
+        }
+        return null
+      })(r.steps)
+      const where = loc ? `@ ${loc.file.split('/').slice(-1)[0]}:${loc.line}` : stepLoc ? `last step: ${stepLoc}` : ''
+      const msg = (lines.slice(0, 3).join(' | ').slice(0, 600) + (where ? ` [${where}]` : ''))
       if (test.status === 'unexpected') failed.push({ file: fileName, name, msg })
       else if (test.status === 'flaky') flaky.push({ file: fileName, name })
     }

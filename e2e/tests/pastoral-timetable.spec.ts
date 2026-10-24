@@ -30,8 +30,11 @@ let studentId: string | null = null
 
 test.beforeAll(async () => {
   try {
+    // The demo pupil, so the demo staff accounts below are in the same school.
+    // (Any STUDENT could be in another school, e.g. the Wonde rehearsal
+    // school, and staff are rightly redirected away from those files.)
     const student = await prisma.user.findFirst({
-      where: { role: 'STUDENT' },
+      where: { role: 'STUDENT', email: USERS.student.email },
       select: { id: true },
     })
     studentId = student?.id ?? null

@@ -79,13 +79,10 @@ async function openFirstLesson(page: Page): Promise<boolean> {
   const dismiss = page.locator('[aria-label="Dismiss"]')
   if (await dismiss.isVisible().catch(() => false)) await dismiss.click({ timeout: 5_000 }).catch(() => {})
   mark('lesson card visible; clicking')
-  try {
-    await lessonCard.click({ timeout: 15_000 })
-  } catch (err) {
-    // Playwright's message names the element intercepting the click.
-    console.info(`[openFirstLesson] click failed: ${String(err).replace(/\u001b\[[0-9;]*m/g, '').split('\n').slice(2, 14).join(' ¦ ')}`)
-    throw err
-  }
+  // Dispatch the click on the card itself: overlapping lessons in the same
+  // slot are drawn on top of each other (e.g. two 9E lessons on Friday), so a
+  // pointer click on the first card is intercepted by the one above it.
+  await lessonCard.dispatchEvent('click')
   mark('clicked')
   // LessonFolder shows a tab row
   await expect(page.getByText('Overview').first()).toBeVisible({ timeout: 8_000 })

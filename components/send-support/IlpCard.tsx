@@ -247,7 +247,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
             </p>
             {/* SEND status dropdown */}
             <div className="flex items-center gap-2">
-              <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">SEND Status</label>
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">SEND Status</label>
               <div className="relative flex items-center gap-1.5">
                 <select
                   value={sendStatus}
@@ -264,10 +264,10 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
             </div>
           </div>
           <div className="text-right space-y-1">
-            <p className={`text-xs font-medium ${reviewOverdue ? 'text-red-600' : reviewSoon ? 'text-orange-600' : 'text-gray-500'}`}>
+            <p className={`text-xs font-medium ${reviewOverdue ? 'text-red-600' : reviewSoon ? 'text-orange-700' : 'text-gray-500'}`}>
               Review: {new Date(ilp.reviewDate).toLocaleDateString('en-GB')}
             </p>
-            {reviewSoon && <p className={`text-xs ${reviewOverdue ? 'text-red-600 font-semibold' : 'text-orange-500'}`}>{reviewStatusLabel(reviewStatus)}</p>}
+            {reviewSoon && <p className={`text-xs ${reviewOverdue ? 'text-red-600 font-semibold' : 'text-orange-700'}`}>{reviewStatusLabel(reviewStatus)}</p>}
             {ilp.status === 'under_review' && !approved && (
               <button
                 onClick={handleApprove}
@@ -279,7 +279,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
               </button>
             )}
             {approved && (
-              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full ml-auto">
+              <span className="flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-auto">
                 <Icon name="check_circle" size="sm" /> Approved
               </span>
             )}
@@ -288,7 +288,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
 
         {/* APDR Cycle indicator */}
         <div className="mt-3 pt-2.5 border-t border-blue-100 flex items-center gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 shrink-0">APDR Cycle</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 shrink-0">APDR Cycle</span>
           <div className="flex items-center">
             {APDR_STEPS.map((label, i) => {
               const current = apdrStepIndex(ilp.status)
@@ -301,11 +301,11 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                   )}
                   <div className="flex flex-col items-center gap-0.5">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0
-                      ${isCompleted ? 'bg-green-500 text-white' : isCurrent ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-200' : 'bg-gray-200 text-gray-400'}`}>
+                      ${isCompleted ? 'bg-green-500 text-white' : isCurrent ? 'bg-blue-600 text-white ring-2 ring-offset-1 ring-blue-200' : 'bg-gray-200 text-gray-600'}`}>
                       {isCompleted ? '✓' : i + 1}
                     </div>
                     <span className={`text-[9px] font-semibold whitespace-nowrap
-                      ${isCompleted ? 'text-green-600' : isCurrent ? 'text-blue-700' : 'text-gray-400'}`}>
+                      ${isCompleted ? 'text-green-700' : isCurrent ? 'text-blue-700' : 'text-gray-500'}`}>
                       {label}
                     </span>
                   </div>
@@ -340,7 +340,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                 <div className="px-4 py-3 grid sm:grid-cols-2 gap-4 border-b border-indigo-100">
                   {(['assessContent', 'planContent'] as const).map(field => (
                     <div key={field}>
-                      <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1">
+                      <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">
                         {field === 'assessContent' ? 'Assess' : 'Plan'}
                       </p>
                       {ilp.activeApdrCycle![field] ? (
@@ -348,7 +348,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                           {ilp.activeApdrCycle![field]}
                         </p>
                       ) : (
-                        <p className="text-xs text-gray-400 italic">Not yet completed</p>
+                        <p className="text-xs text-gray-500 italic">Not yet completed</p>
                       )}
                     </div>
                   ))}
@@ -357,7 +357,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                 {/* Do — editable by all staff */}
                 <div className="px-4 py-3 border-b border-indigo-100">
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Do — Observations</p>
+                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Do — Observations</p>
                     {!doEditing && (
                       <button
                         onClick={() => { setDoContent(ilp.activeApdrCycle!.doContent); setDoEditing(true) }}
@@ -389,7 +389,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                     </div>
                   ) : (
                     <p className="text-xs text-gray-700 whitespace-pre-wrap">
-                      {doContent || <span className="text-gray-400 italic">No observations yet — click &ldquo;Add note&rdquo; to record what&apos;s working.</span>}
+                      {doContent || <span className="text-gray-500 italic">No observations yet — click &ldquo;Add note&rdquo; to record what&apos;s working.</span>}
                     </p>
                   )}
                 </div>
@@ -397,7 +397,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                 {/* Review — SENCO-only complete form */}
                 {isSencoTier && (
                   <div className="px-4 py-3 border-b border-indigo-100">
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-1.5">Review</p>
+                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Review</p>
                     {apdrReviewOpen ? (
                       <div className="space-y-2">
                         <textarea
@@ -453,7 +453,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                         <Icon name="verified" size="sm" />Approved
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-500">
                       Review due {new Date(ilp.activeApdrCycle.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
@@ -620,7 +620,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
                     {t.progressNotes && (
                       <p className="text-xs text-blue-700 bg-blue-50 rounded px-2 py-1 mt-1">{t.progressNotes}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">Target date: {new Date(t.targetDate).toLocaleDateString('en-GB')}</p>
+                    <p className="text-xs text-gray-500 mt-1">Target date: {new Date(t.targetDate).toLocaleDateString('en-GB')}</p>
                   </div>
                   <button
                     onClick={() => setExpandedTargetId(expandedTargetId === t.id ? null : t.id)}
@@ -712,7 +712,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
             <ul className="space-y-1">
               {ilp.strategies.map((s, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="text-blue-400 mt-0.5">·</span>
+                  <span className="text-blue-600 mt-0.5">·</span>
                   {s}
                 </li>
               ))}
@@ -751,7 +751,7 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
             <ul className="space-y-1">
               {ilp.resourcesNeeded.map((r, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                  <span className="text-purple-400 mt-0.5">·</span>
+                  <span className="text-purple-600 mt-0.5">·</span>
                   {r}
                 </li>
               ))}
@@ -809,9 +809,9 @@ export default function IlpCard({ ilp, userRole = 'SENCO' }: Props) {
             {auditOpen && (
               <div className="mt-3">
                 {auditLoading ? (
-                  <p className="text-xs text-gray-400 animate-pulse">Loading…</p>
+                  <p className="text-xs text-gray-500 animate-pulse">Loading…</p>
                 ) : !auditEntries || auditEntries.length === 0 ? (
-                  <p className="text-xs text-gray-400">No edits recorded yet.</p>
+                  <p className="text-xs text-gray-500">No edits recorded yet.</p>
                 ) : (
                   <ol className="relative border-l border-gray-200 space-y-4 pl-4">
                     {auditEntries.map(entry => (

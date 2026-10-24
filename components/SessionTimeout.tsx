@@ -83,11 +83,11 @@ export default function SessionTimeout() {
           <p className="text-sm text-gray-500 mt-1">
             For data security, your session will end in
           </p>
-          <p className="text-3xl font-mono font-semibold text-amber-600 mt-2">
+          <p className="text-3xl font-mono font-semibold text-amber-700 mt-2">
             {mins}:{secs}
           </p>
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           Move your mouse or press any key to stay logged in.
         </p>
         <button
@@ -104,7 +104,7 @@ export default function SessionTimeout() {
             await recordSignOut()
             await signOut({ callbackUrl: '/login' })
           }}
-          className="w-full py-2 text-sm text-gray-400 hover:text-gray-600"
+          className="w-full py-2 text-sm text-gray-500 hover:text-gray-600"
         >
           Log out now
         </button>

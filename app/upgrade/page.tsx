@@ -44,7 +44,7 @@ export default async function UpgradePage() {
           </>
         ) : (
           <>
-            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-700 text-sm font-semibold px-4 py-1.5 rounded-full mb-6">
+            <div className="inline-flex items-center gap-2 bg-amber-100 text-amber-800 text-sm font-semibold px-4 py-1.5 rounded-full mb-6">
               <Icon name="timer" size="sm" />
               {daysLeft} day{daysLeft === 1 ? '' : 's'} remaining
             </div>
@@ -60,7 +60,7 @@ export default async function UpgradePage() {
 
       {/* Feature list */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-lg mb-8">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-5">Everything included</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-5">Everything included</p>
         <ul className="space-y-3">
           {FEATURES.map(f => (
             <li key={f.label} className="flex items-start gap-3">
@@ -82,7 +82,7 @@ export default async function UpgradePage() {
           <Icon name="mail" size="sm" />
           Contact us to subscribe
         </a>
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-gray-500">
           We&apos;ll set up your school&apos;s account and migrate your demo data.
         </p>
       </div>

@@ -114,7 +114,7 @@ function EditUserModal({
           <h2 className="text-[15px] font-bold text-gray-900">
             Edit — {user.firstName} {user.lastName}
           </h2>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 transition">
+          <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-600 transition">
             <Icon name="close" size="sm" />
           </button>
         </div>
@@ -156,12 +156,12 @@ function EditUserModal({
             <div>
               <label className="block text-[12px] font-medium text-gray-700 mb-2">
                 Class enrolments
-                <span className="ml-1 text-gray-400 font-normal">({selectedCls.size} selected)</span>
+                <span className="ml-1 text-gray-500 font-normal">({selectedCls.size} selected)</span>
               </label>
               <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
                 {Object.entries(classByYear).sort(([a],[b]) => Number(a)-Number(b)).map(([yr, cls]) => (
                   <div key={yr}>
-                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide bg-gray-50">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
                       Year {yr}
                     </p>
                     {cls.map(c => (
@@ -176,7 +176,7 @@ function EditUserModal({
                           className="accent-blue-600"
                         />
                         <span className="text-[12px] text-gray-800">{c.name}</span>
-                        <span className="text-[11px] text-gray-400 ml-auto">{c.subject}</span>
+                        <span className="text-[11px] text-gray-500 ml-auto">{c.subject}</span>
                       </label>
                     ))}
                   </div>
@@ -190,12 +190,12 @@ function EditUserModal({
             <div>
               <label className="block text-[12px] font-medium text-gray-700 mb-2">
                 Class assignments
-                <span className="ml-1 text-gray-400 font-normal">({selectedCls.size} selected)</span>
+                <span className="ml-1 text-gray-500 font-normal">({selectedCls.size} selected)</span>
               </label>
               <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-52 overflow-y-auto">
                 {Object.entries(classByYear).sort(([a],[b]) => Number(a)-Number(b)).map(([yr, cls]) => (
                   <div key={yr}>
-                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide bg-gray-50">
+                    <p className="px-3 py-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide bg-gray-50">
                       Year {yr}
                     </p>
                     {cls.map(c => (
@@ -210,7 +210,7 @@ function EditUserModal({
                           className="accent-blue-600"
                         />
                         <span className="text-[12px] text-gray-800">{c.name}</span>
-                        <span className="text-[11px] text-gray-400 ml-auto">{c.subject}</span>
+                        <span className="text-[11px] text-gray-500 ml-auto">{c.subject}</span>
                       </label>
                     ))}
                   </div>
@@ -245,10 +245,10 @@ function EditUserModal({
 const ROLE_COLOUR: Record<string, string> = {
   STUDENT:           'bg-blue-100 text-blue-700',
   PARENT:            'bg-purple-100 text-purple-700',
-  TEACHER:           'bg-green-100 text-green-700',
+  TEACHER:           'bg-green-100 text-green-800',
   HEAD_OF_DEPT:      'bg-teal-100 text-teal-700',
   HEAD_OF_YEAR:      'bg-teal-100 text-teal-700',
-  SENCO:             'bg-amber-100 text-amber-700',
+  SENCO:             'bg-amber-100 text-amber-800',
   SLT:               'bg-red-100 text-red-700',
   SCHOOL_ADMIN:      'bg-gray-100 text-gray-700',
   COVER_MANAGER:     'bg-orange-100 text-orange-700',
@@ -419,7 +419,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
           >
             {c.label}
             {counts[c.key] > 0 && (
-              <span className={`ml-1.5 text-[10px] font-bold ${filter === c.key ? 'text-blue-100' : 'text-gray-400'}`}>
+              <span className={`ml-1.5 text-[10px] font-bold ${filter === c.key ? 'text-blue-100' : 'text-gray-500'}`}>
                 {counts[c.key]}
               </span>
             )}
@@ -457,7 +457,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
             <tbody className="divide-y divide-gray-50">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">No users match this filter</td>
+                  <td colSpan={7} className="text-center py-12 text-gray-500">No users match this filter</td>
                 </tr>
               )}
               {filtered.map(u => (
@@ -476,20 +476,20 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
                   </td>
                   <td className="px-4 py-3">
                     {!u.isActive ? (
-                      <span className="inline-flex items-center gap-1 text-gray-400 text-[11px]">
+                      <span className="inline-flex items-center gap-1 text-gray-500 text-[11px]">
                         <Icon name="block" size="sm" /> Inactive
                       </span>
                     ) : u.activatedAt ? (
-                      <span className="inline-flex items-center gap-1 text-green-600 text-[11px]">
+                      <span className="inline-flex items-center gap-1 text-green-700 text-[11px]">
                         <Icon name="check_circle" size="sm" /> Active
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-amber-600 text-[11px]">
+                      <span className="inline-flex items-center gap-1 text-amber-700 text-[11px]">
                         <Icon name="schedule" size="sm" /> Pending
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-400">
+                  <td className="px-4 py-3 text-gray-500">
                     {u.activatedAt
                       ? new Date(u.activatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
                       : '—'}
@@ -500,7 +500,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
                       <button
                         onClick={() => setEditing(u)}
                         title="Edit user"
-                        className="p-1 rounded hover:bg-blue-50 text-blue-400 transition"
+                        className="p-1 rounded hover:bg-blue-50 text-blue-700 transition"
                       >
                         <Icon name="edit" size="sm" />
                       </button>
@@ -510,7 +510,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
                           onClick={() => handleResend(u.id)}
                           disabled={pending}
                           title="Resend welcome email"
-                          className="p-1 rounded hover:bg-blue-50 text-blue-500 transition disabled:opacity-40"
+                          className="p-1 rounded hover:bg-blue-50 text-blue-700 transition disabled:opacity-40"
                         >
                           <Icon name="email" size="sm" />
                         </button>
@@ -521,7 +521,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
                           onClick={() => handleDeactivate(u.id)}
                           disabled={pending}
                           title="Deactivate user"
-                          className="p-1 rounded hover:bg-red-50 text-red-400 transition disabled:opacity-40"
+                          className="p-1 rounded hover:bg-red-50 text-red-700 transition disabled:opacity-40"
                         >
                           <Icon name="person_off" size="sm" />
                         </button>
@@ -530,7 +530,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
                           onClick={() => handleReactivate(u.id)}
                           disabled={pending}
                           title="Reactivate user"
-                          className="p-1 rounded hover:bg-green-50 text-green-500 transition disabled:opacity-40"
+                          className="p-1 rounded hover:bg-green-50 text-green-800 transition disabled:opacity-40"
                         >
                           <Icon name="person_add" size="sm" />
                         </button>
@@ -543,7 +543,7 @@ export default function UserManagementTable({ users, counts, initialFilter = 'al
           </table>
         </div>
         {filtered.length > 0 && (
-          <div className="px-4 py-2 border-t border-gray-100 text-[11px] text-gray-400 bg-gray-50">
+          <div className="px-4 py-2 border-t border-gray-100 text-[11px] text-gray-500 bg-gray-50">
             Showing {filtered.length} of {users.length} users
           </div>
         )}

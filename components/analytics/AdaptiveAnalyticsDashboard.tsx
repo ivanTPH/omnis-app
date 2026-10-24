@@ -106,7 +106,7 @@ export default function AdaptiveAnalyticsDashboard() {
       {/* ── Class list sidebar — persists across all views ── */}
       <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-gray-200 bg-white overflow-y-auto">
         <div className="px-3 pt-5 pb-2">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 mb-2">Your Classes</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 mb-2">Your Classes</p>
           {loadingC ? (
             <div className="space-y-1.5 px-2">
               {[1, 2, 3].map(i => (
@@ -114,7 +114,7 @@ export default function AdaptiveAnalyticsDashboard() {
               ))}
             </div>
           ) : classes.length === 0 ? (
-            <p className="text-[11px] text-gray-400 px-2">No classes found.</p>
+            <p className="text-[11px] text-gray-500 px-2">No classes found.</p>
           ) : (
             <div className="space-y-0.5">
               {classes.map(cls => (
@@ -130,7 +130,7 @@ export default function AdaptiveAnalyticsDashboard() {
                   <p className={`text-[12px] font-semibold truncate ${selectedClassId === cls.id ? 'text-white' : 'text-gray-900'}`}>
                     {cls.name}
                   </p>
-                  <p className={`text-[10px] mt-0.5 ${selectedClassId === cls.id ? 'text-blue-100' : 'text-gray-400'}`}>
+                  <p className={`text-[10px] mt-0.5 ${selectedClassId === cls.id ? 'text-blue-100' : 'text-gray-500'}`}>
                     {cls.subject} · Yr {cls.yearGroup}
                     {cls.hwCount > 0 && ` · ${cls.hwCount} hw`}
                   </p>
@@ -171,7 +171,7 @@ export default function AdaptiveAnalyticsDashboard() {
                     {[1, 2].map(i => <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />)}
                   </div>
                 ) : classes.length === 0 ? (
-                  <p className="text-sm text-gray-400">No classes found. Publish homework to see topic data here.</p>
+                  <p className="text-sm text-gray-500">No classes found. Publish homework to see topic data here.</p>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {classes.map(cls => (
@@ -182,7 +182,7 @@ export default function AdaptiveAnalyticsDashboard() {
                       >
                         <div>
                           <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{cls.name}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">{cls.subject} · Year {cls.yearGroup} · {cls.studentCount} students</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5">{cls.subject} · Year {cls.yearGroup} · {cls.studentCount} students</p>
                         </div>
                         <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors" />
                       </button>
@@ -217,7 +217,7 @@ export default function AdaptiveAnalyticsDashboard() {
                           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                             <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.round(analytics.ilpEvidenceRate * 100)}%` }} />
                           </div>
-                          <p className="text-[10px] text-gray-400 mt-1">of homework linked to an ILP target</p>
+                          <p className="text-[10px] text-gray-500 mt-1">of homework linked to an ILP target</p>
                         </div>
                         <div className="bg-white border border-gray-200 rounded-xl p-4">
                           <div className="flex items-center gap-2 mb-2">
@@ -228,7 +228,7 @@ export default function AdaptiveAnalyticsDashboard() {
                           <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                             <div className="h-full bg-purple-500 rounded-full" style={{ width: `${Math.round(analytics.ehcpEvidenceRate * 100)}%` }} />
                           </div>
-                          <p className="text-[10px] text-gray-400 mt-1">of homework linked to an EHCP outcome</p>
+                          <p className="text-[10px] text-gray-500 mt-1">of homework linked to an EHCP outcome</p>
                         </div>
                       </div>
 
@@ -334,7 +334,7 @@ export default function AdaptiveAnalyticsDashboard() {
                               <div className={`h-full ${barColor} rounded-full`} style={{ width: `${t.avgScore}%` }} />
                             </div>
                             <span className="text-[11px] font-semibold text-gray-700 w-12 text-right">{gradeLabel(grade)}</span>
-                            <span className="text-[10px] text-gray-400 w-10 text-right">{t.count} hw</span>
+                            <span className="text-[10px] text-gray-500 w-10 text-right">{t.count} hw</span>
                           </div>
                         )
                       })}

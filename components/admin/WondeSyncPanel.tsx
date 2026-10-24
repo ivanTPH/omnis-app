@@ -35,8 +35,8 @@ function timeAgo(date: Date | null): string {
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
-    success: 'bg-green-100 text-green-700',
-    partial: 'bg-amber-100 text-amber-700',
+    success: 'bg-green-100 text-green-800',
+    partial: 'bg-amber-100 text-amber-800',
     running: 'bg-blue-100 text-blue-700',
     failed:  'bg-red-100 text-red-700',
   }
@@ -59,21 +59,21 @@ function LogRow({ log }: { log: WondeSyncLog }) {
         <div className="flex items-center gap-3">
           <StatusBadge status={log.status} />
           <span className="text-[13px] text-gray-700 font-medium capitalize">{log.syncType} sync</span>
-          <span className="text-[12px] text-gray-400">{log.recordsProcessed} records</span>
+          <span className="text-[12px] text-gray-500">{log.recordsProcessed} records</span>
           {errs.length > 0 && (
-            <span className="text-[11px] text-amber-600 flex items-center gap-1">
+            <span className="text-[11px] text-amber-700 flex items-center gap-1">
               <IconComp name="warning" size="sm" /> {errs.length} warning{errs.length > 1 ? 's' : ''}
             </span>
           )}
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[12px] text-gray-400">{timeAgo(log.startedAt)}</span>
+          <span className="text-[12px] text-gray-500">{timeAgo(log.startedAt)}</span>
           {log.completedAt && (
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-gray-500">
               {((new Date(log.completedAt).getTime() - new Date(log.startedAt).getTime()) / 1000).toFixed(1)}s
             </span>
           )}
-          {open ? <IconComp name="expand_less" size="sm" className="text-gray-400" /> : <IconComp name="expand_more" size="sm" className="text-gray-400" />}
+          {open ? <IconComp name="expand_less" size="sm" className="text-gray-500" /> : <IconComp name="expand_more" size="sm" className="text-gray-500" />}
         </div>
       </button>
       {open && errs.length > 0 && (
@@ -156,14 +156,14 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             {config?.connected
-              ? <IconComp name="wifi" size="sm" className="text-green-500" />
-              : <IconComp name="wifi_off" size="sm" className="text-gray-400" />
+              ? <IconComp name="wifi" size="sm" className="text-green-700" />
+              : <IconComp name="wifi_off" size="sm" className="text-gray-500" />
             }
             <h2 className="text-[15px] font-semibold text-gray-900">MIS Connection</h2>
           </div>
           <div className="flex items-center gap-2">
             {config?.connected && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[11px] font-medium">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-[11px] font-medium">
                 <IconComp name="check_circle" size="sm" /> Connected
               </span>
             )}
@@ -172,19 +172,19 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
           <div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">Wonde School ID</p>
+            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">Wonde School ID</p>
             <p className="text-[13px] font-mono text-gray-700">{config?.wondeSchoolId ?? '—'}</p>
           </div>
           <div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">MIS Provider</p>
+            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">MIS Provider</p>
             <p className="text-[13px] text-gray-700">{config?.mis ?? '—'}</p>
           </div>
           <div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">Phase</p>
+            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">Phase</p>
             <p className="text-[13px] text-gray-700">{config?.phase ?? '—'}</p>
           </div>
           <div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">Last Synced</p>
+            <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">Last Synced</p>
             <p className="text-[13px] text-gray-700">{timeAgo(config?.syncedAt ?? null)}</p>
           </div>
         </div>
@@ -264,9 +264,9 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
           { label: 'Timetable',  value: counts.timetable, iconName: 'calendar_today' },
         ].map(({ label, value, iconName }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <IconComp name={iconName} size="sm" className="text-indigo-400 mx-auto mb-1.5" />
+            <IconComp name={iconName} size="sm" className="text-indigo-600 mx-auto mb-1.5" />
             <p className="text-[20px] font-bold text-gray-900">{value.toLocaleString()}</p>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mt-0.5">{label}</p>
+            <p className="text-[11px] text-gray-500 uppercase tracking-wide mt-0.5">{label}</p>
           </div>
         ))}
       </div>
@@ -274,11 +274,11 @@ export default function WondeSyncPanel({ config, counts, logs: initialLogs }: Pr
       {/* Sync logs */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="text-[15px] font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <IconComp name="storage" size="sm" className="text-gray-400" />
+          <IconComp name="storage" size="sm" className="text-gray-500" />
           Sync History
         </h2>
         {logs.length === 0 ? (
-          <p className="text-[13px] text-gray-400 text-center py-8">No sync runs yet</p>
+          <p className="text-[13px] text-gray-500 text-center py-8">No sync runs yet</p>
         ) : (
           <div className="space-y-2">
             {logs.map(log => <LogRow key={log.id} log={log} />)}

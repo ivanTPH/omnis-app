@@ -96,7 +96,7 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
         </div>
         <div className="bg-white rounded-2xl shadow-sm p-8 mb-4">
           {verified && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
+            <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg text-sm mb-6 flex items-center gap-2">
               <span className="material-icons text-green-600 text-base" aria-hidden="true">check_circle</span>
               Email verified — please sign in to access your account.
             </div>
@@ -109,7 +109,7 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
                 type="button"
                 onClick={() => setTimedOut(false)}
                 aria-label="Dismiss"
-                className="text-amber-500 hover:text-amber-700 shrink-0"
+                className="text-amber-700 hover:text-amber-700 shrink-0"
               >
                 <span className="material-icons text-base" aria-hidden="true">close</span>
               </button>
@@ -144,7 +144,7 @@ export default function LoginForm({ showDemo: showDemoProp }: { showDemo: boolea
                   <a href="/forgot-password" className="text-blue-700 hover:underline">Forgot your password?</a>
                 </p>
                 {showDemoProp && (
-                  <p className="text-center text-sm text-gray-400">
+                  <p className="text-center text-sm text-gray-500">
                     <button type="button" onClick={() => setShowDemo(v => !v)} className="hover:text-blue-600 hover:underline transition-colors">
                       {showDemo ? 'Hide demo accounts' : 'Explore demo accounts →'}
                     </button>

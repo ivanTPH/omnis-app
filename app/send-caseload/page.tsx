@@ -24,12 +24,12 @@ export default async function SendCaseloadPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Link href="/classes" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                <Link href="/classes" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
                   <Icon name="chevron_left" size="sm" /> My Classes
                 </Link>
               </div>
               <h1 className="text-[22px] font-bold text-gray-900">My SEND Students</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {data.totalSend} student{data.totalSend !== 1 ? 's' : ''} on the SEND register across your classes
               </p>
             </div>

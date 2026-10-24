@@ -55,7 +55,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-slate-800 text-white shrink-0">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">K Plan — Learning Passport</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-0.5">K Plan — Learning Passport</p>
             <h2 className="text-lg font-bold">{studentName}</h2>
           </div>
           <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
             >
               <Icon name="download" size="sm" /> Export PDF
             </a>
-            <button onClick={onClose} aria-label="Close" className="p-1.5 text-slate-400 hover:text-white rounded-lg">
+            <button onClick={onClose} aria-label="Close" className="p-1.5 text-slate-500 hover:text-white rounded-lg">
               <Icon name="close" size="sm" />
             </button>
           </div>
@@ -116,7 +116,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
               </div>
               <div className="px-5 py-4">
                 <p className="text-[13px] text-blue-900 leading-relaxed whitespace-pre-wrap">
-                  {passport.sendInformation || <span className="text-gray-400 italic">Not yet generated.</span>}
+                  {passport.sendInformation || <span className="text-gray-500 italic">Not yet generated.</span>}
                 </p>
               </div>
             </div>
@@ -128,10 +128,10 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
               </div>
               <div className="px-5 py-4">
                 {passport.teacherActions.length === 0 ? (
-                  <p className="text-[13px] text-gray-400 italic">Not yet generated.</p>
+                  <p className="text-[13px] text-gray-500 italic">Not yet generated.</p>
                 ) : (
                   <>
-                    <p className="text-[10px] text-purple-400 italic mb-3">Tick off as reminders — not saved</p>
+                    <p className="text-[10px] text-purple-600 italic mb-3">Tick off as reminders — not saved</p>
                     <ul className="space-y-3">
                       {passport.teacherActions.map((action, i) => (
                         <li key={i}>
@@ -163,7 +163,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
               </div>
               <div className="px-5 py-4">
                 {passport.studentCommitments.length === 0 ? (
-                  <p className="text-[13px] text-gray-400 italic">Not yet generated.</p>
+                  <p className="text-[13px] text-gray-500 italic">Not yet generated.</p>
                 ) : (
                   <ul className="space-y-3">
                     {passport.studentCommitments.map((commitment, i) => (
@@ -190,7 +190,7 @@ export default function KPlanModal({ passport, studentName, studentId, userRole,
           </span>
           <Link
             href={`/student/${studentId}/send`}
-            className="shrink-0 text-blue-500 hover:text-blue-700 font-medium"
+            className="shrink-0 text-blue-600 hover:text-blue-700 font-medium"
           >
             Full SEND record →</Link>
         </div>

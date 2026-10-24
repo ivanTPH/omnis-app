@@ -63,20 +63,20 @@ export default async function TaSendStudentsPage() {
                         </span>
                         <SendBadge status={s.sendStatus as 'EHCP' | 'SEN_SUPPORT'} showTier />
                         {s.apdrPhase && (
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
                             APDR: {s.apdrPhase} phase
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                         {s.yearGroup && (
-                          <span className="text-[11px] text-gray-400">Year {s.yearGroup}</span>
+                          <span className="text-[11px] text-gray-500">Year {s.yearGroup}</span>
                         )}
                         {s.needArea && (
                           <span className="text-[11px] text-purple-600">{s.needArea}</span>
                         )}
                         {s.classes.length > 0 && (
-                          <span className="text-[11px] text-gray-400">
+                          <span className="text-[11px] text-gray-500">
                             {s.classes.slice(0, 3).map(c => c.name).join(', ')}
                             {s.classes.length > 3 && ` +${s.classes.length - 3} more`}
                           </span>
@@ -88,11 +88,11 @@ export default async function TaSendStudentsPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
                     {/* ILP Targets */}
                     <div className="px-5 py-4">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
                         <Icon name="flag" size="sm" /> Active ILP Targets
                       </p>
                       {s.ilpTargets.length === 0 ? (
-                        <p className="text-[12px] text-gray-400 italic">No active ILP targets</p>
+                        <p className="text-[12px] text-gray-500 italic">No active ILP targets</p>
                       ) : (
                         <ul className="space-y-1.5">
                           {s.ilpTargets.map(t => (
@@ -111,14 +111,14 @@ export default async function TaSendStudentsPage() {
 
                     {/* Classroom Strategies */}
                     <div className="px-5 py-4">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
                         <Icon name="psychology" size="sm" /> Classroom Strategies
                       </p>
                       {s.supportSnapshot && (
                         <p className="text-[12px] text-gray-600 leading-relaxed mb-2 italic">{s.supportSnapshot}</p>
                       )}
                       {s.classroomStrategies.length === 0 && !s.supportSnapshot ? (
-                        <p className="text-[12px] text-gray-400 italic">No strategies recorded yet</p>
+                        <p className="text-[12px] text-gray-500 italic">No strategies recorded yet</p>
                       ) : (
                         <ul className="space-y-1">
                           {s.classroomStrategies.slice(0, 5).map((strat, i) => (

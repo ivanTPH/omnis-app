@@ -6,8 +6,8 @@ import type { AssignmentWithDetails, AvailableStaffMember } from '@/app/actions/
 import { getAvailableStaff, assignCover, updateAssignmentStatus } from '@/app/actions/cover'
 
 const STATUS_OPTS = [
-  { value: 'assigned',   label: 'Assigned',   colour: 'bg-amber-100 text-amber-700'  },
-  { value: 'confirmed',  label: 'Confirmed',   colour: 'bg-green-100 text-green-700'  },
+  { value: 'assigned',   label: 'Assigned',   colour: 'bg-amber-100 text-amber-800'  },
+  { value: 'confirmed',  label: 'Confirmed',   colour: 'bg-green-100 text-green-800'  },
   { value: 'cancelled',  label: 'Cancelled',   colour: 'bg-gray-100 text-gray-600'    },
 ]
 
@@ -63,7 +63,7 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[14px] font-bold text-gray-900">Assign Cover</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-500 hover:text-gray-700">
             <Icon name="close" size="sm" />
           </button>
         </div>
@@ -91,9 +91,9 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
             Available Staff
           </label>
           {loading ? (
-            <p className="text-[12px] text-gray-400">Loading available staff…</p>
+            <p className="text-[12px] text-gray-500">Loading available staff…</p>
           ) : available.length === 0 ? (
-            <p className="text-[12px] text-gray-400">No available staff for this period.</p>
+            <p className="text-[12px] text-gray-500">No available staff for this period.</p>
           ) : (
             <div className="space-y-1.5 max-h-52 overflow-auto">
               {/* Sort: subject-matched staff first, then by cover load */}
@@ -138,22 +138,22 @@ export default function AssignCoverModal({ assignment, schoolId, date, onClose, 
                             {s.title ? `${s.title} ` : ''}{s.firstName} {s.lastName}
                           </p>
                           {isBest && (
-                            <span className="text-[9px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded uppercase tracking-wide">
+                            <span className="text-[9px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded uppercase tracking-wide">
                               Best match
                             </span>
                           )}
                           {isMatch && !isBest && (
-                            <span className="text-[9px] font-semibold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] font-semibold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
                               Subject match
                             </span>
                           )}
                         </div>
                         {s.subjects.length > 0 && (
-                          <p className="text-[10px] text-gray-400">{s.subjects.slice(0, 3).join(', ')}</p>
+                          <p className="text-[10px] text-gray-500">{s.subjects.slice(0, 3).join(', ')}</p>
                         )}
                       </div>
                       {s.coverLoadToday > 0 && (
-                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium shrink-0">
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium shrink-0">
                           {s.coverLoadToday} cover{s.coverLoadToday !== 1 ? 's' : ''}
                         </span>
                       )}

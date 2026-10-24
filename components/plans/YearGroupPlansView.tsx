@@ -305,7 +305,7 @@ export default function YearGroupPlansView({
             </div>
             <button
               onClick={() => setHelpDismissed(true)}
-              className="text-blue-400 hover:text-blue-600 shrink-0"
+              className="text-blue-600 hover:text-blue-600 shrink-0"
               title="Dismiss"
             >
               <Icon name="close" size="sm" />
@@ -320,7 +320,7 @@ export default function YearGroupPlansView({
         <div className="w-full sm:w-52 sm:shrink-0">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-3 py-2 border-b border-gray-100">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Subjects</span>
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Subjects</span>
             </div>
             <nav className="py-1 sm:max-h-[70vh] sm:overflow-y-auto overflow-x-auto flex sm:flex-col flex-row">
               {orderedSubjects.map(subject => {
@@ -400,7 +400,7 @@ export default function YearGroupPlansView({
                                 + Create Plan
                               </button>
                             )
-                            : <span className="text-xs text-gray-400 italic">No plan</span>
+                            : <span className="text-xs text-gray-500 italic">No plan</span>
                         }
                       </td>
 
@@ -444,7 +444,7 @@ export default function YearGroupPlansView({
                           {plan && canEdit && plan.status === 'DRAFT' && (
                             <button
                               onClick={() => handleSubmit(plan.id)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-amber-800 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
                             >
                               <Icon name="send" size="sm" />
                               Submit
@@ -455,7 +455,7 @@ export default function YearGroupPlansView({
                           {plan && canApprove && plan.status === 'SUBMITTED' && (
                             <button
                               onClick={() => handleApprove(plan.id)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-800 hover:text-green-800 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
                             >
                               <Icon name="check_circle" size="sm" />
                               Approve
@@ -466,7 +466,7 @@ export default function YearGroupPlansView({
                           {plan && canEdit && (
                             <button
                               onClick={() => setConfirmDeleteId(plan.id)}
-                              className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-gray-400 hover:text-red-600 bg-gray-100 hover:bg-red-50 rounded-lg transition-colors"
+                              className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-gray-600 hover:text-red-700 bg-gray-100 hover:bg-red-50 rounded-lg transition-colors"
                               title="Delete plan"
                             >
                               <Icon name="delete" size="sm" />
@@ -529,7 +529,7 @@ export default function YearGroupPlansView({
               </div>
               <button
                 onClick={() => setModal(DEFAULT_MODAL)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-500 hover:text-gray-600 transition-colors"
               >
                 <Icon name="close" size="md" />
               </button>
@@ -566,14 +566,14 @@ export default function YearGroupPlansView({
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-sm font-medium text-gray-700">
                     Plan Content
-                    <span className="text-gray-400 font-normal ml-1">(describe your scheme of work — topics, terms, key texts)</span>
+                    <span className="text-gray-500 font-normal ml-1">(describe your scheme of work — topics, terms, key texts)</span>
                   </label>
                   {!modal.content.trim() && (
                     <button
                       type="button"
                       onClick={() => handleInsertTemplate(modal.subject, modal.yearGroup)}
                       disabled={insertingTemplate}
-                      className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors shrink-0 disabled:opacity-50"
+                      className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors shrink-0 disabled:opacity-50"
                     >
                       <Icon name={insertingTemplate ? 'refresh' : 'auto_fix_high'} size="sm" className={insertingTemplate ? 'animate-spin' : ''} />
                       {insertingTemplate ? 'Loading…' : 'Insert template'}
@@ -584,7 +584,7 @@ export default function YearGroupPlansView({
                       type="button"
                       onClick={() => handleInsertTemplate(modal.subject, modal.yearGroup)}
                       disabled={insertingTemplate}
-                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors shrink-0 disabled:opacity-50"
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-600 transition-colors shrink-0 disabled:opacity-50"
                       title="Replace with template (will overwrite current content)"
                     >
                       <Icon name={insertingTemplate ? 'refresh' : 'refresh'} size="sm" className={insertingTemplate ? 'animate-spin' : ''} />
@@ -604,10 +604,10 @@ export default function YearGroupPlansView({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
                   External Link
-                  <span className="text-gray-400 font-normal ml-1">(optional — paste a URL to a PDF, Google Doc, or shared drive)</span>
+                  <span className="text-gray-500 font-normal ml-1">(optional — paste a URL to a PDF, Google Doc, or shared drive)</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                     <Icon name="link" size="sm" />
                   </span>
                   <input
@@ -618,7 +618,7 @@ export default function YearGroupPlansView({
                     className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">This is an external URL, not a file upload. Paste a shareable link from Google Drive, OneDrive, Dropbox, or a PDF URL.</p>
+                <p className="text-[11px] text-gray-500 mt-1">This is an external URL, not a file upload. Paste a shareable link from Google Drive, OneDrive, Dropbox, or a PDF URL.</p>
               </div>
 
               <label className="flex items-center gap-2.5 cursor-pointer select-none">
@@ -633,7 +633,7 @@ export default function YearGroupPlansView({
             </div>
 
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200">
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 {modal.plan ? 'Changes save over the existing draft.' : 'Saved as Draft — submit when ready for HOD approval.'}
               </p>
               <div className="flex items-center gap-3">

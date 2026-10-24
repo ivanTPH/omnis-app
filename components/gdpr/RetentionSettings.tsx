@@ -59,7 +59,7 @@ export default function RetentionSettings({ initial, canEdit }: Props) {
                 />
                 <span className="text-[12px] text-gray-500">years</span>
               </span>
-              <span className="block text-[11px] text-gray-400 mt-1">{f.help} Default {f.def}.</span>
+              <span className="block text-[11px] text-gray-500 mt-1">{f.help} Default {f.def}.</span>
             </label>
           ))}
         </div>

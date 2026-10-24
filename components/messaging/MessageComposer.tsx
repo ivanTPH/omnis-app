@@ -67,7 +67,7 @@ export default function MessageComposer({
         </button>
       </div>
       {body.length > MAX_CHARS - 200 && (
-        <p className={`text-[10px] mt-1 text-right ${tooLong ? 'text-red-500' : 'text-gray-400'}`}>
+        <p className={`text-[10px] mt-1 text-right ${tooLong ? 'text-red-600' : 'text-gray-500'}`}>
           {remaining} characters remaining
         </p>
       )}

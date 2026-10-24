@@ -49,18 +49,18 @@ export default async function HodCurriculumPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Link href="/hod/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                <Link href="/hod/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
                   <Icon name="chevron_left" size="sm" /> Department
                 </Link>
               </div>
               <h1 className="text-[22px] font-bold text-gray-900">Curriculum Map</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {data.department} · {data.subjects.join(', ')} · Oak National Academy coverage
               </p>
             </div>
             <div className="text-right">
               <p className="text-[28px] font-bold text-blue-600">{overallPct}%</p>
-              <p className="text-[11px] text-gray-400">{data.totalUsed}/{data.totalOak} lessons used</p>
+              <p className="text-[11px] text-gray-500">{data.totalUsed}/{data.totalOak} lessons used</p>
             </div>
           </div>
 
@@ -68,7 +68,7 @@ export default async function HodCurriculumPage() {
             <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
               <Icon name="map" size="lg" className="text-gray-300 mx-auto mb-3" />
               <p className="text-[14px] font-semibold text-gray-500">No Oak lesson data found</p>
-              <p className="text-[12px] text-gray-400 mt-1">
+              <p className="text-[12px] text-gray-500 mt-1">
                 Run an Oak sync from the platform admin panel, or no lessons match your department subjects.
               </p>
             </div>
@@ -78,7 +78,7 @@ export default async function HodCurriculumPage() {
                 <div key={ks}>
                   <h2 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
                     {KS_LABEL[ks] ?? ks.toUpperCase()}
-                    <span className="ml-2 font-normal text-gray-400">
+                    <span className="ml-2 font-normal text-gray-500">
                       {units.length} unit{units.length !== 1 ? 's' : ''}
                     </span>
                   </h2>
@@ -98,7 +98,7 @@ export default async function HodCurriculumPage() {
                             <td className="px-4 py-3">
                               <p className="font-medium text-gray-900">{u.unitTitle}</p>
                               {u.usedLessons > 0 && (
-                                <p className="text-[10px] text-emerald-600 mt-0.5">
+                                <p className="text-[10px] text-emerald-700 mt-0.5">
                                   {u.usedLessons} lesson{u.usedLessons !== 1 ? 's' : ''} taught
                                 </p>
                               )}
@@ -123,7 +123,7 @@ export default async function HodCurriculumPage() {
           )}
 
           {/* Legend */}
-          <div className="mt-6 flex items-center gap-6 text-[11px] text-gray-400">
+          <div className="mt-6 flex items-center gap-6 text-[11px] text-gray-500">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> ≥70% covered</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> 30–69%</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-gray-200 inline-block" /> &lt;30%</span>

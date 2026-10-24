@@ -99,14 +99,14 @@ const RESOURCE_TYPE_LABELS: Record<string, string> = {
   VIDEO: 'Video', LINK: 'Link', OTHER: 'Other',
 }
 const RESOURCE_TYPE_COLORS: Record<string, string> = {
-  PLAN: 'bg-green-100 text-green-700', SLIDES: 'bg-blue-100 text-blue-700',
+  PLAN: 'bg-green-100 text-green-800', SLIDES: 'bg-blue-100 text-blue-700',
   WORKSHEET: 'bg-purple-100 text-purple-700', VIDEO: 'bg-rose-100 text-rose-700',
-  LINK: 'bg-amber-100 text-amber-700', OTHER: 'bg-gray-100 text-gray-600',
+  LINK: 'bg-amber-100 text-amber-800', OTHER: 'bg-gray-100 text-gray-600',
 }
 
 function scoreColor(score: number) {
-  if (score >= 8) return 'bg-green-100 text-green-700'
-  if (score >= 5) return 'bg-amber-100 text-amber-700'
+  if (score >= 8) return 'bg-green-100 text-green-800'
+  if (score >= 5) return 'bg-amber-100 text-amber-800'
   return 'bg-red-100 text-red-700'
 }
 
@@ -577,14 +577,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         {/* File-drop overlay */}
         {isDragOver && (
           <div className="absolute inset-0 z-10 bg-blue-50/90 rounded-2xl flex flex-col items-center justify-center pointer-events-none">
-            <Icon name="upload" size="lg" className="text-blue-400 mb-3" />
+            <Icon name="upload" size="lg" className="text-blue-700 mb-3" />
             <p className="text-[15px] font-semibold text-blue-700">Drop files to add as resources</p>
-            <p className="text-[12px] text-blue-500 mt-1">PDF, PPTX, DOCX supported</p>
+            <p className="text-[12px] text-blue-700 mt-1">PDF, PPTX, DOCX supported</p>
           </div>
         )}
         {dropPending && (
           <div className="absolute inset-0 z-10 bg-white/80 rounded-2xl flex items-center justify-center">
-            <Icon name="refresh" size="lg" className="animate-spin text-blue-500" />
+            <Icon name="refresh" size="lg" className="animate-spin text-blue-700" />
           </div>
         )}
 
@@ -603,7 +603,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   placeholder="Lesson title"
                   title="Click to edit lesson title"
                 />
-                <Icon name="edit" size="sm" className="text-gray-300 group-hover:text-gray-400 shrink-0 transition-colors" />
+                <Icon name="edit" size="sm" className="text-gray-600 group-hover:text-gray-600 shrink-0 transition-colors" />
               </div>
             )}
             {lesson && (
@@ -637,7 +637,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       if (v) { const [h, m] = v.split(':').map(Number); setEditEnd(`${String(Math.min(h+1,23)).padStart(2,'0')}:${String(m).padStart(2,'0')}`) }
                     }}
                       className="border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" />
-                    <span className="text-gray-300 text-[11px]">–</span>
+                    <span className="text-gray-500 text-[11px]">–</span>
                     <input type="time" value={editEnd} onChange={e => setEditEnd(e.target.value)}
                       className="border border-gray-300 rounded px-2 py-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" />
                     <button
@@ -648,16 +648,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       {rescheduling ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
                       Save
                     </button>
-                    <button onClick={() => setHeaderEditDate(false)} className="text-[11px] text-gray-400 hover:text-gray-600">Cancel</button>
+                    <button onClick={() => setHeaderEditDate(false)} className="text-[11px] text-gray-500 hover:text-gray-600">Cancel</button>
                   </div>
                 ) : (
-                  <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                  <span className="text-[11px] text-gray-500 flex items-center gap-1">
                     {new Date(lesson.scheduledAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                     {lesson.endsAt && ` · ${new Date(lesson.scheduledAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}–${new Date(lesson.endsAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
                     <button
                       onClick={() => setHeaderEditDate(true)}
                       title="Edit date & time"
-                      className="ml-0.5 w-4 h-4 flex items-center justify-center rounded hover:bg-gray-100 text-gray-300 hover:text-gray-500 transition-colors"
+                      className="ml-0.5 w-4 h-4 flex items-center justify-center rounded hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition-colors"
                     >
                       <Icon name="edit" size="sm" />
                     </button>
@@ -678,7 +678,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             )}
             {confirmDelete ? (
               <>
-                <span className="text-[11px] text-red-600 font-medium mr-1">Delete this lesson?</span>
+                <span className="text-[11px] text-red-700 font-medium mr-1">Delete this lesson?</span>
                 <button
                   onClick={() => startDelete(async () => {
                     await deleteLesson(lessonId!)
@@ -692,7 +692,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 </button>
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="px-2.5 py-1 text-[11px] font-medium text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-2.5 py-1 text-[11px] font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
                 </button>
@@ -701,7 +701,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               <button
                 onClick={() => setConfirmDelete(true)}
                 title="Delete lesson"
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 text-gray-600 hover:text-red-700 transition-colors"
               >
                 <Icon name="delete" size="sm" />
               </button>
@@ -710,7 +710,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
             >
-              <Icon name="close" size="md" className="text-gray-500" />
+              <Icon name="close" size="md" className="text-gray-600" />
             </button>
           </div>
         </div>
@@ -741,7 +741,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             {wizardStep === 5 ? (
               <button
                 onClick={() => setWizardStep(4)}
-                className="flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                className="flex items-center gap-1.5 text-[12px] font-medium text-blue-700 hover:text-blue-800 transition-colors"
               >
                 <Icon name="arrow_back" size="sm" />
                 Resources
@@ -754,13 +754,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             )}
             <Icon name="chevron_right" size="sm" className="text-blue-300" />
             <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
-              <span className={`text-[12px] font-medium ${wizardStep === 5 ? 'text-blue-700' : 'text-gray-400'}`}>Set Homework</span>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${wizardStep === 5 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}>2</div>
+              <span className={`text-[12px] font-medium ${wizardStep === 5 ? 'text-blue-700' : 'text-gray-500'}`}>Set Homework</span>
             </div>
             <div className="ml-auto">
               <button
                 onClick={() => setWizardStep(null)}
-                className="text-[11px] text-gray-400 hover:text-gray-600 underline"
+                className="text-[11px] text-gray-500 hover:text-gray-600 underline"
               >
                 Skip setup
               </button>
@@ -772,7 +772,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="flex items-center justify-center h-48">
-              <Icon name="refresh" size="md" className="animate-spin text-gray-400" />
+              <Icon name="refresh" size="md" className="animate-spin text-gray-500" />
             </div>
           ) : wizardStep === 4 ? (
             /* ── Wizard Step 4: Resources ───────────────────────── */
@@ -818,7 +818,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           </button>
                           <button
                             onClick={() => setEditingResourceId(null)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-500 hover:text-gray-600"
                           >
                             <Icon name="close" size="sm" />
                           </button>
@@ -834,7 +834,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             >{r.label}</a>
                           ) : (
                             <span
-                              className="flex-1 text-[13px] text-gray-400 truncate"
+                              className="flex-1 text-[13px] text-gray-500 truncate"
                               title="No file attached — go to Resources tab to upload a file"
                             >
                               {r.label}
@@ -853,7 +853,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               download={r.label}
                               target="_blank"
                               rel="noreferrer"
-                              className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-green-100 text-gray-300 hover:text-green-700 transition-colors"
+                              className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-green-100 text-gray-600 hover:text-green-800 transition-colors"
                             >
                               <Icon name="download" size="sm" />
                             </a>
@@ -861,14 +861,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           <button
                             title="Edit"
                             onClick={() => { setEditingResourceId(r.id); setEditLabel(r.label); setEditUrl(r.url?.startsWith('data:') ? '' : (r.url ?? '')) }}
-                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-300 hover:text-gray-600 transition-colors"
+                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-600 hover:text-gray-600 transition-colors"
                           >
                             <Icon name="edit" size="sm" />
                           </button>
                           <button
                             disabled={removing}
                             onClick={() => startRemove(async () => { await removeResource(r.id); await refreshLesson() })}
-                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-300 hover:text-red-500 transition-colors"
+                            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-600 hover:text-red-700 transition-colors"
                           >
                             <Icon name="close" size="sm" />
                           </button>
@@ -910,7 +910,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   </button>
                   <button
                     onClick={() => { router.refresh(); onClose() }}
-                    className="flex-1 py-3 border-2 border-gray-200 text-gray-500 font-semibold rounded-xl text-[13px] hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-3 border-2 border-gray-200 text-gray-600 font-semibold rounded-xl text-[13px] hover:bg-gray-50 transition-colors"
                   >
                     No — save &amp; done
                   </button>
@@ -928,7 +928,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         <button
                           type="button"
                           onClick={() => { router.refresh(); onClose() }}
-                          className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+                          className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
                         >
                           Skip — no homework
                         </button>
@@ -969,7 +969,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {/* AI source indicator */}
                   {genSource && !generatingHw && (
                     <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 border border-purple-100 rounded-lg">
-                      <Icon name="auto_awesome" size="sm" className="text-purple-500 shrink-0" />
+                      <Icon name="auto_awesome" size="sm" className="text-purple-600 shrink-0" />
                       <p className="text-[11px] text-purple-700">Generated from {genSource} — edit any question below</p>
                     </div>
                   )}
@@ -987,7 +987,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             {hwGenMessage || 'Analysing lesson content…'}
                           </p>
                         </div>
-                        <span className="text-[11px] text-purple-500 shrink-0">{Math.round(hwGenProgress)}%</span>
+                        <span className="text-[11px] text-purple-600 shrink-0">{Math.round(hwGenProgress)}%</span>
                       </div>
                       <div className="h-1.5 bg-purple-200 rounded-full overflow-hidden">
                         <div
@@ -1000,14 +1000,14 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                   {hwGenerationError && !generatingHw && (
                     <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
+                      <Icon name="warning" size="sm" className="text-amber-800 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-medium text-amber-800">{hwGenerationError}</p>
                         <div className="flex items-center gap-3 mt-1">
                           <button
                             type="button"
                             onClick={handleRegenerateHw}
-                            className="text-[11px] text-amber-700 underline hover:text-amber-900"
+                            className="text-[11px] text-amber-800 underline hover:text-amber-900"
                           >
                             Try again
                           </button>
@@ -1028,7 +1028,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-[12px] font-semibold text-gray-700">
-                          Questions <span className="text-gray-400 font-normal">({mcqQuestions.length})</span>
+                          Questions <span className="text-gray-500 font-normal">({mcqQuestions.length})</span>
                         </label>
                         <button
                           type="button"
@@ -1040,13 +1040,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       </div>
                       {mcqQuestions.length === 0 ? (
                         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
-                          <p className="text-[12px] text-gray-400">No questions yet — click &quot;Generate with AI&quot; or add manually</p>
+                          <p className="text-[12px] text-gray-500">No questions yet — click &quot;Generate with AI&quot; or add manually</p>
                         </div>
                       ) : (
                         mcqQuestions.map((q, qi) => (
                           <div key={qi} className="border border-gray-200 rounded-xl p-4 bg-white space-y-3">
                             <div className="flex items-start gap-2">
-                              <span className="text-[11px] font-bold text-gray-400 shrink-0 mt-2.5">Q{qi + 1}</span>
+                              <span className="text-[11px] font-bold text-gray-500 shrink-0 mt-2.5">Q{qi + 1}</span>
                               <textarea
                                 ref={el => autoResize(el)}
                                 value={q.q}
@@ -1054,7 +1054,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 placeholder="Question text…"
                                 className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none overflow-hidden"
                               />
-                              <button onClick={() => removeMcqQ(qi)} className="text-gray-300 hover:text-red-400 shrink-0 mt-2">
+                              <button onClick={() => removeMcqQ(qi)} className="text-gray-500 hover:text-red-600 shrink-0 mt-2">
                                 <Icon name="close" size="sm" />
                               </button>
                             </div>
@@ -1067,7 +1067,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     checked={q.correct === oi}
                                     onChange={() => updateMcqQ(qi, { correct: oi })}
                                     title="Mark as correct answer"
-                                    className="text-green-600 focus:ring-green-500 shrink-0"
+                                    className="text-green-700 focus:ring-green-500 shrink-0"
                                   />
                                   <span className="text-[11px] font-bold text-gray-500 w-4 shrink-0">{letter}.</span>
                                   <input
@@ -1104,7 +1104,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-[12px] font-semibold text-gray-700">
-                          Questions &amp; Model Answers <span className="text-gray-400 font-normal">({saQuestions.length})</span>
+                          Questions &amp; Model Answers <span className="text-gray-500 font-normal">({saQuestions.length})</span>
                         </label>
                         <button
                           type="button"
@@ -1116,13 +1116,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       </div>
                       {saQuestions.length === 0 ? (
                         <div className="text-center py-8 border border-dashed border-gray-200 rounded-xl">
-                          <p className="text-[12px] text-gray-400">No questions yet — click &quot;Generate with AI&quot; or add manually</p>
+                          <p className="text-[12px] text-gray-500">No questions yet — click &quot;Generate with AI&quot; or add manually</p>
                         </div>
                       ) : (
                         saQuestions.map((q, qi) => (
                           <div key={qi} className="border border-gray-200 rounded-xl bg-white overflow-hidden">
                             <div className="flex items-start gap-2 px-4 pt-4 pb-2">
-                              <span className="text-[11px] font-bold text-gray-400 shrink-0 mt-2.5">Q{qi + 1}</span>
+                              <span className="text-[11px] font-bold text-gray-500 shrink-0 mt-2.5">Q{qi + 1}</span>
                               <textarea
                                 ref={el => autoResize(el)}
                                 value={q.q}
@@ -1130,13 +1130,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 placeholder="Question for pupils…"
                                 className="flex-1 text-[13px] border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 resize-none overflow-hidden"
                               />
-                              <button onClick={() => removeSaQ(qi)} className="text-gray-300 hover:text-red-400 shrink-0 mt-2">
+                              <button onClick={() => removeSaQ(qi)} className="text-gray-500 hover:text-red-600 shrink-0 mt-2">
                                 <Icon name="close" size="sm" />
                               </button>
                             </div>
                             <div className="px-4 pb-4 pl-10 space-y-2">
                               <div>
-                                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Model answer</label>
+                                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Model answer</label>
                                 <textarea
                                   ref={el => autoResize(el)}
                                   value={q.modelAnswer}
@@ -1149,12 +1149,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   }`}
                                 />
                                 {!q.modelAnswer.trim() && (
-                                  <p className="text-[10px] text-amber-600 mt-1">Model answer not generated — add manually before saving</p>
+                                  <p className="text-[10px] text-amber-700 mt-1">Model answer not generated — add manually before saving</p>
                                 )}
                               </div>
                               <div className="flex gap-2">
                                 <div className="flex-1">
-                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Mark scheme</label>
+                                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Mark scheme</label>
                                   <textarea
                                     ref={el => autoResize(el)}
                                     value={q.markScheme ?? ''}
@@ -1164,7 +1164,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   />
                                 </div>
                                 <div className="w-20 shrink-0">
-                                  <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">Marks</label>
+                                  <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Marks</label>
                                   <input
                                     type="number"
                                     min={1}
@@ -1177,7 +1177,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 </div>
                               </div>
                               <div>
-                                <label className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide block mb-1">SEND scaffolding hint <span className="font-normal text-purple-400 normal-case">(shown to SEND students)</span></label>
+                                <label className="text-[10px] font-semibold text-purple-600 uppercase tracking-wide block mb-1">SEND scaffolding hint <span className="font-normal text-purple-600 normal-case">(shown to SEND students)</span></label>
                                 <input
                                   value={q.scaffolding_hint ?? ''}
                                   onChange={e => updateSaQ(qi, { scaffolding_hint: e.target.value || undefined })}
@@ -1216,7 +1216,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         <label className="block text-[12px] font-medium text-gray-500 mb-1.5">
                           {hwType === 'EXTENDED_WRITING' ? 'Essay question' :
                            hwType === 'MIXED'            ? 'Instructions for pupils' :
-                           'Task instructions'} <span className="text-red-400">*</span>
+                           'Task instructions'} <span className="text-red-600">*</span>
                         </label>
                         <textarea
                           rows={hwType === 'EXTENDED_WRITING' ? 4 : 5}
@@ -1260,7 +1260,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             }`}
                           />
                           {!activeHw.modelAnswer?.trim() && (
-                            <p className="text-[11px] text-amber-600">Model answer not generated — add manually before saving</p>
+                            <p className="text-[11px] text-amber-700">Model answer not generated — add manually before saving</p>
                           )}
                           <div className="space-y-2 border-t border-gray-200 pt-3">
                             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Mark scheme bands</p>
@@ -1302,7 +1302,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           </div>
                           <div>
                             <label className="block text-[12px] font-medium text-gray-500 mb-1.5">
-                              Teacher marking notes <span className="text-gray-400 font-normal">(private)</span>
+                              Teacher marking notes <span className="text-gray-500 font-normal">(private)</span>
                             </label>
                             <textarea
                               rows={3}
@@ -1325,7 +1325,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
                     </div>
                     <div>
-                      <label className="block text-[12px] font-medium text-gray-500 mb-1.5">Due date <span className="text-red-400">*</span></label>
+                      <label className="block text-[12px] font-medium text-gray-500 mb-1.5">Due date <span className="text-red-600">*</span></label>
                       <input type="date" value={hwDueDate} onChange={e => setHwDueDate(e.target.value)}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
                     </div>
@@ -1362,7 +1362,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 .catch(() => {})
                                 .finally(() => setObjsGenerating(false))
                             }}
-                            className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 transition-colors"
+                            className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-600 transition-colors"
                             title="Re-generate objectives from curriculum"
                           >
                             <Icon name="auto_fix_high" size="sm" />Regenerate
@@ -1372,7 +1372,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           type="button"
                           onClick={() => setObjectives(prev => [...prev, ''])}
                           disabled={objsGenerating}
-                          className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-700 disabled:opacity-40"
+                          className="flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-700 disabled:opacity-40"
                         >
                           <Icon name="add" size="sm" />Add objective
                         </button>
@@ -1380,16 +1380,16 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                     <div className="space-y-2">
                       {objsGenerating ? (
-                        <div className="flex items-center gap-2 py-3 text-[12px] text-gray-400">
-                          <Icon name="refresh" size="sm" className="animate-spin text-blue-400" />
+                        <div className="flex items-center gap-2 py-3 text-[12px] text-gray-600">
+                          <Icon name="refresh" size="sm" className="animate-spin text-blue-700" />
                           Generating objectives from curriculum…
                         </div>
                       ) : objectives.length === 0 ? (
-                        <p className="text-[12px] text-gray-400 italic">No objectives yet — click Add objective or Regenerate above.</p>
+                        <p className="text-[12px] text-gray-600 italic">No objectives yet — click Add objective or Regenerate above.</p>
                       ) : (
                         objectives.map((obj, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-400 font-medium w-5 text-right shrink-0">{i + 1}.</span>
+                            <span className="text-[11px] text-gray-600 font-medium w-5 text-right shrink-0">{i + 1}.</span>
                             <input
                               value={obj}
                               onChange={e => setObjectives(prev => prev.map((o, j) => j === i ? e.target.value : o))}
@@ -1408,7 +1408,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   router.refresh()
                                 })
                               }}
-                              className="text-gray-300 hover:text-red-400 transition-colors"
+                              className="text-gray-600 hover:text-red-700 transition-colors"
                             >
                               <Icon name="delete" size="sm" />
                             </button>
@@ -1417,13 +1417,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       )}
                     </div>
                   </div>
-                  {saving && <p className="text-[11px] text-gray-400">Saving…</p>}
+                  {saving && <p className="text-[11px] text-gray-600">Saving…</p>}
 
                   {/* Class SEND summary banner — uses already-loaded sendStatuses */}
                   {lesson?.sendStatuses && lesson.sendStatuses.length > 0 && (
                     <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
                       <div className="flex items-center gap-2">
-                        <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
+                        <Icon name="accessibility_new" size="sm" className="text-blue-700 shrink-0" />
                         <span className="text-[12px] text-blue-800">
                           <span className="font-semibold">{lesson.sendStatuses.length} student{lesson.sendStatuses.length !== 1 ? 's' : ''}</span> with SEND needs in this class
                         </span>
@@ -1459,13 +1459,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           className="flex items-center justify-between px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-2xl hover:bg-emerald-100 transition-colors group"
                         >
                           <div className="flex items-center gap-2">
-                            <Icon name="auto_awesome" size="sm" className="text-emerald-600 shrink-0" />
+                            <Icon name="auto_awesome" size="sm" className="text-emerald-700 shrink-0" />
                             <span className="text-[12px] text-emerald-800">
                               <span className="font-semibold">Plan with Oak Aila</span>
-                              <span className="text-emerald-600"> — AI lesson planner, pre-filled for this lesson</span>
+                              <span className="text-emerald-700"> — AI lesson planner, pre-filled for this lesson</span>
                             </span>
                           </div>
-                          <Icon name="open_in_new" size="sm" className="text-emerald-500 group-hover:text-emerald-700 transition-colors shrink-0" />
+                          <Icon name="open_in_new" size="sm" className="text-emerald-700 group-hover:text-emerald-700 transition-colors shrink-0" />
                         </a>
                       )
                     })()
@@ -1473,10 +1473,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                   {/* Date & time */}
                   <div>
-                    <h3 className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-3">Date & Time</h3>
+                    <h3 className="text-[12px] font-semibold text-gray-600 uppercase tracking-wide mb-3">Date & Time</h3>
                     <div className="grid grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Date</label>
+                        <label className="block text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Date</label>
                         <input
                           type="date"
                           value={editDate}
@@ -1485,7 +1485,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Start</label>
+                        <label className="block text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Start</label>
                         <input
                           type="time"
                           value={editStart}
@@ -1497,7 +1497,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">End</label>
+                        <label className="block text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">End</label>
                         <input
                           type="time"
                           value={editEnd}
@@ -1517,7 +1517,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         router.refresh()
                         await refreshLesson()
                       })}
-                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-[12px] font-medium hover:bg-blue-100 disabled:opacity-40 transition-colors"
+                      className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-[12px] font-medium hover:bg-blue-100 disabled:opacity-40 transition-colors"
                     >
                       {rescheduling
                         ? <><Icon name="refresh" size="sm" className="animate-spin" /> Saving…</>
@@ -1567,7 +1567,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               </button>
                               <button
                                 onClick={() => setEditingResourceId(null)}
-                                className="text-gray-400 hover:text-gray-600"
+                                className="text-gray-500 hover:text-gray-600"
                               >
                                 <Icon name="close" size="sm" />
                               </button>
@@ -1587,7 +1587,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   </button>
                                 ) : (
                                   <span
-                                    className="flex-1 text-[13px] text-gray-400 truncate"
+                                    className="flex-1 text-[13px] text-gray-500 truncate"
                                     title="No file attached — upload a file above or add a URL via the edit button"
                                   >
                                     {r.label}
@@ -1596,7 +1596,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 )
                               })()}
                               {r.fileKey && !r.url && (
-                                <span className="text-[10px] text-gray-400 shrink-0">
+                                <span className="text-[10px] text-gray-500 shrink-0">
                                   {r.fileKey.startsWith('stub:') ? r.fileKey.slice(5) : r.fileKey}
                                 </span>
                               )}
@@ -1608,7 +1608,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                       const viewUrl = r.url!.startsWith('data:') ? `/api/resource-file/${r.id}` : r.url!
                                       setPreviewUrl(viewUrl); setPreviewLabel(r.label)
                                     }}
-                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-blue-100 text-gray-300 hover:text-blue-600 transition-colors"
+                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition-colors"
                                   >
                                     <Icon name="visibility" size="sm" />
                                   </button>
@@ -1618,7 +1618,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     download={r.label}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-green-100 text-gray-300 hover:text-green-700 transition-colors"
+                                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-green-100 text-gray-600 hover:text-green-800 transition-colors"
                                   >
                                     <Icon name="download" size="sm" />
                                   </a>
@@ -1632,7 +1632,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               <button
                                 title="Edit"
                                 onClick={() => { setEditingResourceId(r.id); setEditLabel(r.label); setEditUrl(r.url ?? '') }}
-                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-300 hover:text-gray-600 transition-colors"
+                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-600 hover:text-gray-600 transition-colors"
                               >
                                 <Icon name="edit" size="sm" />
                               </button>
@@ -1642,7 +1642,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   await removeResource(r.id)
                                   await refreshLesson()
                                 })}
-                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40"
+                                className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-100 text-gray-600 hover:text-red-700 transition-colors disabled:opacity-40"
                               >
                                 <Icon name="close" size="sm" />
                               </button>
@@ -1657,9 +1657,9 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                       onClick={() => emptyZoneFileRef.current?.click()}
                       className="w-full border border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/30 rounded-xl p-8 text-center transition-colors cursor-pointer"
                     >
-                      <Icon name="upload" size="md" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-500 font-medium">Click to upload a file</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">PDF, PPTX, DOCX — or drag &amp; drop anywhere</p>
+                      <Icon name="upload" size="md" className="mx-auto text-gray-600 mb-2" />
+                      <p className="text-[12px] text-gray-600 font-medium">Click to upload a file</p>
+                      <p className="text-[11px] text-gray-600 mt-0.5">PDF, PPTX, DOCX — or drag &amp; drop anywhere</p>
                       <input
                         ref={emptyZoneFileRef}
                         type="file"
@@ -1700,10 +1700,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   {lesson && lesson.class && (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
                       <div className="flex items-start gap-3">
-                        <Icon name="auto_awesome" size="md" className="text-amber-600 shrink-0 mt-0.5" />
+                        <Icon name="auto_awesome" size="md" className="text-amber-800 shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold text-amber-800">Generate resources with AI</p>
-                          <p className="text-[11px] text-amber-700 mt-0.5">
+                          <p className="text-[11px] text-amber-800 mt-0.5">
                             AI uses Oak National Academy curriculum content where available, then falls back to UK subject knowledge.
                           </p>
                         </div>
@@ -1782,7 +1782,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-2.5 text-[12px] text-red-700">
                           <Icon name="error_outline" size="sm" className="shrink-0 mt-0.5" />
                           <span>{slideError ?? resGenError}</span>
-                          <button onClick={() => { setSlideError(null); setResGenError(null) }} className="ml-auto shrink-0 text-red-400 hover:text-red-600">
+                          <button onClick={() => { setSlideError(null); setResGenError(null) }} className="ml-auto shrink-0 text-red-700 hover:text-red-700">
                             <Icon name="close" size="sm" />
                           </button>
                         </div>
@@ -1813,7 +1813,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     {(lesson?.homework?.length ?? 0) === 0 && (
                       <div className="flex items-center gap-2">
                         {(lesson?.resources?.length ?? 0) === 0 && (
-                          <span className="text-[11px] text-amber-600">Add resources first</span>
+                          <span className="text-[11px] text-amber-700">Add resources first</span>
                         )}
                         <button
                           onClick={() => {
@@ -1829,7 +1829,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                           }}
                           disabled={(lesson?.resources?.length ?? 0) === 0}
                           title={(lesson?.resources?.length ?? 0) === 0 ? 'Add at least one resource before setting homework' : undefined}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[12px] font-medium hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[12px] font-medium hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                         >
                           <Icon name="add" size="sm" />Set homework
                         </button>
@@ -1851,7 +1851,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 ) : (
                                   <p className="text-[13px] font-semibold text-gray-900">{hw.title}</p>
                                 )}
-                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                <p className="text-[11px] text-gray-500 mt-0.5">
                                   Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                   {' · '}{hw.submissions.length} submission{hw.submissions.length !== 1 ? 's' : ''}
                                 </p>
@@ -1861,7 +1861,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 {hw.status !== 'DRAFT' && (
                                   <button
                                     onClick={() => { setViewingHwId(hw.id); setViewingHwTitle(hw.title) }}
-                                    className="flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                    className="flex items-center gap-1 text-[11px] font-medium text-gray-600 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
                                     title="View homework questions and mark scheme"
                                   >
                                     <Icon name="menu_book" size="sm" />View
@@ -1880,7 +1880,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                       initHwDates()
                                       setWizardStep(5)
                                     }}
-                                    className="flex items-center gap-1 text-[11px] font-medium text-amber-600 hover:text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors"
+                                    className="flex items-center gap-1 text-[11px] font-medium text-amber-800 hover:text-amber-800 px-2 py-1 rounded-lg hover:bg-amber-50 transition-colors"
                                     title="Edit draft homework"
                                   >
                                     <Icon name="edit" size="sm" />Edit draft
@@ -1888,7 +1888,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                 ) : (
                                   <Link
                                     href={`/homework/${hw.id}/mark`}
-                                    className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                                    className="flex items-center gap-1 text-[11px] font-medium text-blue-700 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                                   >
                                     <Icon name="open_in_new" size="sm" />Mark
                                   </Link>
@@ -1937,12 +1937,12 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     }`}>
                                       {s.status === 'RESUBMISSION_REQ' ? 'Resubmit' : s.status.charAt(0) + s.status.slice(1).toLowerCase().replace('_', ' ')}
                                     </span>
-                                    <Icon name="arrow_forward_ios" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors shrink-0" />
+                                    <Icon name="arrow_forward_ios" size="sm" className="text-gray-500 group-hover:text-blue-600 transition-colors shrink-0" />
                                   </Link>
                                 ))}
                               </div>
                             ) : (
-                              <p className="px-4 py-3 text-[12px] text-gray-400 italic">No submissions yet.</p>
+                              <p className="px-4 py-3 text-[12px] text-gray-500 italic">No submissions yet.</p>
                             )}
                           </div>
                         )
@@ -1950,8 +1950,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     </div>
                   ) : (
                     <div className="border border-dashed border-gray-300 rounded-xl p-8 text-center">
-                      <Icon name="assignment" size="md" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-400">No homework linked. Set homework from this lesson.</p>
+                      <Icon name="assignment" size="md" className="mx-auto text-gray-500 mb-2" />
+                      <p className="text-[12px] text-gray-500">No homework linked. Set homework from this lesson.</p>
                     </div>
                   )}
 
@@ -1962,7 +1962,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         href={`/revision-program/new?classId=${lesson.class.id}${lesson.title ? `&topic=${encodeURIComponent(lesson.title)}` : ''}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[13px] font-semibold hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-blue-200 text-blue-700 text-[13px] font-semibold hover:border-blue-400 hover:bg-blue-50 transition-colors"
                       >
                         <Icon name="loop" size="sm" />
                         Launch Revision for this Topic →
@@ -1996,7 +1996,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     {/* Analytics / insights panel */}
                     <div>
                       <div className="px-7 pt-5 pb-1 flex items-center justify-between">
-                        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
                           <Icon name="bar_chart" size="sm" />Class Performance
                         </p>
                         <Link
@@ -2012,8 +2012,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                 ) : (
                   <div className="p-7">
                     <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                      <Icon name="people" size="lg" className="mx-auto text-gray-300 mb-2" />
-                      <p className="text-[12px] text-gray-400">
+                      <Icon name="people" size="lg" className="mx-auto text-gray-500 mb-2" />
+                      <p className="text-[12px] text-gray-500">
                         {lesson?.classId
                           ? 'Class data could not be loaded for this lesson.'
                           : 'No class assigned to this lesson.'}
@@ -2034,8 +2034,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   return (
                     <div className="p-7">
                       <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                        <Icon name="accessibility_new" size="lg" className="mx-auto text-gray-300 mb-2" />
-                        <p className="text-[12px] text-gray-400">No students with SEND needs in this class.</p>
+                        <Icon name="accessibility_new" size="lg" className="mx-auto text-gray-600 mb-2" />
+                        <p className="text-[12px] text-gray-600">No students with SEND needs in this class.</p>
                       </div>
                     </div>
                   )
@@ -2066,7 +2066,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                     {/* Header */}
                     <div className="px-7 py-4 bg-blue-50/60 border-b border-blue-100 flex items-center gap-2">
-                      <Icon name="accessibility_new" size="sm" className="text-blue-600 shrink-0" />
+                      <Icon name="accessibility_new" size="sm" className="text-blue-700 shrink-0" />
                       <span className="text-[12px] font-semibold text-blue-800">{sendStudents.length} student{sendStudents.length !== 1 ? 's' : ''} with SEND needs</span>
                     </div>
 
@@ -2097,10 +2097,10 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                             <span className="text-[13px] font-medium text-gray-900 flex-1">{name}</span>
                             <SendBadge status={ss.activeStatus as 'SEN_SUPPORT' | 'EHCP'} size="sm" />
                             {targets.length > 0 && (
-                              <span className="text-[10px] text-gray-400">{targets.length} ILP target{targets.length !== 1 ? 's' : ''}</span>
+                              <span className="text-[10px] text-gray-500">{targets.length} ILP target{targets.length !== 1 ? 's' : ''}</span>
                             )}
                             {outcomes.length > 0 && (
-                              <span className="text-[10px] text-purple-500">{outcomes.length} EHCP outcome{outcomes.length !== 1 ? 's' : ''}</span>
+                              <span className="text-[10px] text-purple-600">{outcomes.length} EHCP outcome{outcomes.length !== 1 ? 's' : ''}</span>
                             )}
                           </button>
 
@@ -2110,7 +2110,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                               {/* ILP targets */}
                               {targets.length > 0 && (
                                 <div>
-                                  <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide mb-2">Active ILP Targets</p>
+                                  <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-2">Active ILP Targets</p>
                                   <div className="space-y-2">
                                     {targets.map(t => (
                                       <div key={t.id} className="bg-blue-50 rounded-xl p-3">
@@ -2123,7 +2123,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                           }`}>{t.status}</span>
                                         </div>
                                         {t.strategy && (
-                                          <p className="text-[11px] text-gray-500 mt-1">Strategy: {t.strategy}</p>
+                                          <p className="text-[11px] text-gray-600 mt-1">Strategy: {t.strategy}</p>
                                         )}
                                       </div>
                                     ))}
@@ -2141,7 +2141,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                         <p className="text-[11px] font-semibold text-purple-700 mb-0.5">Section {o.section}</p>
                                         <p className="text-[12px] text-gray-800">{o.outcomeText}</p>
                                         {o.provisionRequired && (
-                                          <p className="text-[11px] text-gray-500 mt-1">Provision: {o.provisionRequired}</p>
+                                          <p className="text-[11px] text-gray-600 mt-1">Provision: {o.provisionRequired}</p>
                                         )}
                                       </div>
                                     ))}
@@ -2157,19 +2157,19 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                   </p>
                                   {kPlan.iLearnBestWhen && (
                                     <div className="mb-2">
-                                      <p className="text-[10px] font-medium text-emerald-600 mb-0.5">I learn best when…</p>
+                                      <p className="text-[10px] font-medium text-emerald-700 mb-0.5">I learn best when…</p>
                                       <p className="text-[12px] text-gray-800">{kPlan.iLearnBestWhen}</p>
                                     </div>
                                   )}
                                   {kPlan.pleaseHelpMeBy && (
                                     <div className="mb-2">
-                                      <p className="text-[10px] font-medium text-emerald-600 mb-0.5">Please help me by…</p>
+                                      <p className="text-[10px] font-medium text-emerald-700 mb-0.5">Please help me by…</p>
                                       <p className="text-[12px] text-gray-800">{kPlan.pleaseHelpMeBy}</p>
                                     </div>
                                   )}
                                   {kPlan.examAccessArrangements.length > 0 && (
                                     <div>
-                                      <p className="text-[10px] font-medium text-emerald-600 mb-1">Exam access arrangements</p>
+                                      <p className="text-[10px] font-medium text-emerald-700 mb-1">Exam access arrangements</p>
                                       <div className="flex flex-wrap gap-1">
                                         {kPlan.examAccessArrangements.map((a, i) => (
                                           <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full">{a}</span>
@@ -2182,7 +2182,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
 
                               {/* No SEND detail available */}
                               {targets.length === 0 && outcomes.length === 0 && !kPlan && (
-                                <p className="text-[12px] text-gray-400 italic">No active ILP targets or EHCP outcomes on file.</p>
+                                <p className="text-[12px] text-gray-600 italic">No active ILP targets or EHCP outcomes on file.</p>
                               )}
 
                               {/* Actions row */}
@@ -2221,7 +2221,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                                     <div className="mt-2 bg-indigo-50 rounded-xl p-3 space-y-1.5">
                                       {suggestions.map((s, i) => (
                                         <div key={i} className="flex items-start gap-2">
-                                          <Icon name="check_circle" size="sm" className="text-indigo-500 shrink-0 mt-0.5" />
+                                          <Icon name="check_circle" size="sm" className="text-indigo-600 shrink-0 mt-0.5" />
                                           <p className="text-[12px] text-indigo-800">{s}</p>
                                         </div>
                                       ))}
@@ -2248,7 +2248,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                   <div>
                     {/* Class selector filter bar */}
                     <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50/60">
-                      <Icon name="filter_list" size="sm" className="text-gray-400 shrink-0" />
+                      <Icon name="filter_list" size="sm" className="text-gray-500 shrink-0" />
                       <select
                         value={effectiveClassId ?? ''}
                         onChange={e => setAnalyticsClassId(e.target.value || null)}
@@ -2269,7 +2269,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                         }
                       </select>
                       {effectiveClass && (
-                        <span className="text-[11px] text-gray-400 shrink-0">
+                        <span className="text-[11px] text-gray-500 shrink-0">
                           {effectiveClass.subject} · Year {effectiveClass.yearGroup}
                         </span>
                       )}
@@ -2284,8 +2284,8 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
                     ) : (
                       <div className="p-7">
                         <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
-                          <Icon name="analytics" size="lg" className="mx-auto text-gray-300 mb-2" />
-                          <p className="text-[12px] text-gray-400">No class assigned to this lesson.</p>
+                          <Icon name="analytics" size="lg" className="mx-auto text-gray-500 mb-2" />
+                          <p className="text-[12px] text-gray-500">No class assigned to this lesson.</p>
                         </div>
                       </div>
                     )}
@@ -2302,13 +2302,13 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
           <div className="shrink-0 border-t border-gray-200 px-7 py-4 flex items-center justify-between bg-white">
             <button
               onClick={() => setWizardStep(null)}
-              className="text-[12px] text-gray-400 hover:text-gray-600 underline"
+              className="text-[12px] text-gray-500 hover:text-gray-600 underline"
             >
               Skip
             </button>
             <div className="flex flex-col items-end gap-1">
               {(lesson?.resources?.length ?? 0) === 0 && (
-                <p className="text-[11px] text-amber-600">Add at least one resource to generate homework</p>
+                <p className="text-[11px] text-amber-700">Add at least one resource to generate homework</p>
               )}
               <button
                 onClick={() => { setWizardStep(5); initHwDates() }}
@@ -2385,7 +2385,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
         {/* ── Sticky save footer — normal edit mode ────────────── */}
         {wizardStep === null && (
           <div className="shrink-0 border-t border-gray-200 px-7 py-3 flex items-center justify-between bg-white">
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-gray-500">
               {saving ? 'Saving…' : 'Changes to title and objectives are auto-saved.'}
             </span>
             <button
@@ -2418,7 +2418,7 @@ export default function LessonFolder({ lessonId, onClose, defaultTab, wizardMode
             <p className="text-sm font-semibold text-gray-900">Which resource to use?</p>
             <button
               onClick={() => setResourcePickerOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-500 hover:text-gray-600"
             >
               <Icon name="close" size="sm" />
             </button>

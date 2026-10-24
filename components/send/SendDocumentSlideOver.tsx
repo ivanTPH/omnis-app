@@ -17,14 +17,14 @@ type Props = {
 }
 
 const DOC_META: Record<DocType, { label: string; icon: React.ReactNode; colour: string }> = {
-  kPlan: { label: 'K Plan — Learning Passport', icon: <Icon name="menu_book" size="sm" />,      colour: 'text-amber-700 bg-amber-100' },
+  kPlan: { label: 'K Plan — Learning Passport', icon: <Icon name="menu_book" size="sm" />,      colour: 'text-amber-800 bg-amber-100' },
   ilp:   { label: 'Individual Learning Plan',   icon: <Icon name="favorite_border" size="sm" />, colour: 'text-blue-700  bg-blue-100' },
   ehcp:  { label: 'EHCP Plan',                  icon: <Icon name="verified_user" size="sm" />,   colour: 'text-purple-700 bg-purple-100' },
 }
 
 const TARGET_STATUS: Record<string, { label: string; cls: string }> = {
   active:       { label: 'Active',        cls: 'bg-blue-100 text-blue-700' },
-  achieved:     { label: 'Achieved',      cls: 'bg-green-100 text-green-700' },
+  achieved:     { label: 'Achieved',      cls: 'bg-green-100 text-green-800' },
   not_achieved: { label: 'Not achieved',  cls: 'bg-red-100 text-red-700' },
   deferred:     { label: 'Deferred',      cls: 'bg-orange-100 text-orange-700' },
 }
@@ -83,7 +83,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
         <div className="flex items-center gap-3 px-6 py-4 bg-slate-800 text-white shrink-0">
           <span className={`p-1.5 rounded-lg text-sm ${meta.colour}`}>{meta.icon}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-0.5">
               {meta.label}
             </p>
             <h2 className="text-[15px] font-bold truncate">{studentName}</h2>
@@ -111,10 +111,10 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
             return (
               <>
                 <section>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-2">SEND Information</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-2">SEND Information</p>
                   <div className="border-l-4 border-amber-400 pl-4">
                     <p className="text-[13px] text-amber-900 italic leading-relaxed whitespace-pre-wrap">
-                      {kPlan.sendInformation || <span className="text-gray-400">Not yet generated.</span>}
+                      {kPlan.sendInformation || <span className="text-gray-500">Not yet generated.</span>}
                     </p>
                   </div>
                 </section>
@@ -139,7 +139,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
 
                 {kPlan.studentCommitments.length > 0 && (
                   <section>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-700 mb-2">
                       I will help myself by
                     </p>
                     <ul className="space-y-1.5">
@@ -163,11 +163,11 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
               <>
                 <section className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">SEND Category</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">SEND Category</p>
                     <p className="text-[13px] text-gray-800">{ilp.sendCategory}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Review Date</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Review Date</p>
                     <p className="text-[13px] text-gray-800">
                       {new Date(ilp.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
@@ -175,14 +175,14 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                 </section>
 
                 <section>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Areas of Need</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1">Areas of Need</p>
                   <p className="text-[13px] text-gray-700 leading-relaxed">{ilp.areasOfNeed}</p>
                 </section>
 
                 <section>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-2">SMART Goals</p>
                   {ilp.targets.length === 0 ? (
-                    <p className="text-[12px] text-gray-400 italic">No targets set.</p>
+                    <p className="text-[12px] text-gray-500 italic">No targets set.</p>
                   ) : (
                     <div className="space-y-2.5">
                       {ilp.targets.map((t, i) => {
@@ -195,7 +195,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                             </div>
                             <p className="text-[11px] text-gray-500">Strategy: {t.strategy}</p>
                             <p className="text-[11px] text-gray-500">Success: {t.successMeasure}</p>
-                            <p className="text-[10px] text-gray-400">
+                            <p className="text-[10px] text-gray-500">
                               Due {new Date(t.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
                           </div>
@@ -217,7 +217,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
             return (
               <>
                 <section>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Annual Review Date</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Annual Review Date</p>
                   <p className="text-[13px] text-gray-800 flex items-center gap-1.5">
                     <Icon name="schedule" size="sm" className="text-gray-400" />
                     {new Date(ehcp.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -277,9 +277,9 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
               {auditOpen && (
                 <div className="mt-3">
                   {auditLoading ? (
-                    <p className="text-[11px] text-gray-400 animate-pulse">Loading…</p>
+                    <p className="text-[11px] text-gray-500 animate-pulse">Loading…</p>
                   ) : !auditEntries || auditEntries.length === 0 ? (
-                    <p className="text-[11px] text-gray-400">No edits recorded yet.</p>
+                    <p className="text-[11px] text-gray-500">No edits recorded yet.</p>
                   ) : (
                     <ol className="border-l border-gray-200 pl-4 space-y-3">
                       {auditEntries.map(entry => {
@@ -294,11 +294,11 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="text-[11px] font-medium text-gray-700">
                                 {entry.userName}
-                                <span className="font-normal text-gray-400"> · {entry.fieldChanged} · </span>
+                                <span className="font-normal text-gray-500"> · {entry.fieldChanged} · </span>
                                 {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </p>
                               {isPending && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
                                   Pending review
                                 </span>
                               )}
@@ -309,9 +309,9 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                               )}
                             </div>
                             {(entry.previousValue || entry.newValue) && (
-                              <p className="text-[11px] text-gray-400 mt-0.5">
-                                {entry.changeType === 'ADDED'        && <span className="text-green-600">&ldquo;{entry.newValue}&rdquo;</span>}
-                                {entry.changeType === 'DELETED'      && <span className="text-red-500 line-through">&ldquo;{entry.previousValue}&rdquo;</span>}
+                              <p className="text-[11px] text-gray-500 mt-0.5">
+                                {entry.changeType === 'ADDED'        && <span className="text-green-700">&ldquo;{entry.newValue}&rdquo;</span>}
+                                {entry.changeType === 'DELETED'      && <span className="text-red-600 line-through">&ldquo;{entry.previousValue}&rdquo;</span>}
                                 {(entry.changeType === 'EDITED' || isPending || isRejected) && (
                                   <>&ldquo;{(entry.newValue ?? entry.previousValue ?? '').slice(0, 80)}&rdquo;</>
                                 )}
@@ -331,7 +331,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
           {canNote && (
             <section className="border-t border-gray-100 pt-4">
               {noteDone ? (
-                <div className="flex items-center gap-2 text-[12px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 text-[12px] text-green-800 bg-green-50 rounded-lg px-3 py-2">
                   <Icon name="check_circle" size="sm" /> Note submitted — pending SENCO review
                 </div>
               ) : noteOpen ? (
@@ -354,7 +354,7 @@ export default function SendDocumentSlideOver({ docType, doc, studentName, userR
                     </button>
                     <button
                       onClick={() => { setNoteOpen(false); setNoteText('') }}
-                      className="text-[12px] text-gray-400 hover:text-gray-600"
+                      className="text-[12px] text-gray-500 hover:text-gray-600"
                     >
                       Cancel
                     </button>

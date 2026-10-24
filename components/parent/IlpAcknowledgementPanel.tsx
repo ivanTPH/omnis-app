@@ -58,17 +58,17 @@ export default function IlpAcknowledgementPanel({
               {targets.length} active goal{targets.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <p className="text-[11px] text-indigo-500">{sendCategory}</p>
+          <p className="text-[11px] text-indigo-600">{sendCategory}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           {acknowledged && (
-            <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
               <Icon name="check_circle" size="sm" />
               Reviewed{dateStr ? ` · ${dateStr}` : ''}
             </span>
           )}
           {meetingRequested && (
-            <span className="flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
+            <span className="flex items-center gap-1 text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
               <Icon name="event" size="sm" />
               Meeting requested
             </span>
@@ -85,13 +85,13 @@ export default function IlpAcknowledgementPanel({
             <div>
               <p className="text-[13px] font-medium text-indigo-900">{t.target}</p>
               {t.successMeasure && (
-                <p className="text-[11px] text-indigo-500 mt-0.5">Success: {t.successMeasure}</p>
+                <p className="text-[11px] text-indigo-600 mt-0.5">Success: {t.successMeasure}</p>
               )}
             </div>
           </div>
         ))}
         {targets.length > 4 && (
-          <p className="text-[11px] text-indigo-400 pl-8">+{targets.length - 4} more goals</p>
+          <p className="text-[11px] text-indigo-600 pl-8">+{targets.length - 4} more goals</p>
         )}
       </div>
 
@@ -125,7 +125,7 @@ export default function IlpAcknowledgementPanel({
         <div className="border-t border-indigo-100 pt-4 space-y-3">
           <div>
             <label className="block text-[11px] font-semibold text-indigo-700 mb-1">
-              How is your child progressing at home? <span className="font-normal text-indigo-400">(optional)</span>
+              How is your child progressing at home? <span className="font-normal text-indigo-600">(optional)</span>
             </label>
             <textarea
               value={homeProgress}
@@ -157,7 +157,7 @@ export default function IlpAcknowledgementPanel({
               {saving ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="check" size="sm" />}
               {saving ? 'Saving…' : 'Submit'}
             </button>
-            <button onClick={() => setShowForm(false)} className="text-[12px] text-indigo-500 hover:text-indigo-700 px-3 py-1.5">
+            <button onClick={() => setShowForm(false)} className="text-[12px] text-indigo-600 hover:text-indigo-700 px-3 py-1.5">
               Cancel
             </button>
           </div>

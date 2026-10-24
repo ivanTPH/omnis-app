@@ -23,12 +23,12 @@ export default async function SltSendPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Link href="/slt/analytics" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                <Link href="/slt/analytics" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
                   <Icon name="chevron_left" size="sm" /> Analytics
                 </Link>
               </div>
               <h1 className="text-[22px] font-bold text-gray-900">SEND Reporting Dashboard</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">{schoolName} — SLT overview of Special Educational Needs provision</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">{schoolName} — SLT overview of Special Educational Needs provision</p>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-semibold px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100">

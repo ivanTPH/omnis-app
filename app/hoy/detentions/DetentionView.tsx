@@ -16,7 +16,7 @@ const TYPE_LABELS: Record<string, string> = {
   isolation:    'Isolation',
 }
 const TYPE_COLORS: Record<string, string> = {
-  lunchtime:    'bg-amber-100 text-amber-700',
+  lunchtime:    'bg-amber-100 text-amber-800',
   after_school: 'bg-blue-100 text-blue-700',
   morning:      'bg-purple-100 text-purple-700',
   isolation:    'bg-rose-100 text-rose-700',
@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   scheduled: 'bg-blue-100 text-blue-700',
   attended:  'bg-emerald-100 text-emerald-700',
   missed:    'bg-rose-100 text-rose-700',
-  cancelled: 'bg-gray-100 text-gray-500',
+  cancelled: 'bg-gray-100 text-gray-600',
 }
 
 const YEARS = [7, 8, 9, 10, 11, 12, 13]
@@ -50,7 +50,7 @@ function DetRow({
         <Link href={`/students/${d.studentId}`} className="font-medium text-gray-900 hover:text-blue-600 text-[12px]">
           {d.studentName}
         </Link>
-        {d.yearGroup && <span className="ml-1.5 text-[10px] text-gray-400">Y{d.yearGroup}</span>}
+        {d.yearGroup && <span className="ml-1.5 text-[10px] text-gray-500">Y{d.yearGroup}</span>}
       </td>
       <td className="px-4 py-2.5">
         <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${TYPE_COLORS[d.type] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -60,19 +60,19 @@ function DetRow({
       <td className="px-4 py-2.5 text-[12px] text-gray-600 max-w-[180px] truncate">{d.reason}</td>
       <td className="px-4 py-2.5 text-[11px] text-gray-500 whitespace-nowrap">
         <div>{dateStr}</div>
-        <div className="text-gray-400">{timeStr} · {d.durationMins}min{d.location ? ` · ${d.location}` : ''}</div>
+        <div className="text-gray-500">{timeStr} · {d.durationMins}min{d.location ? ` · ${d.location}` : ''}</div>
       </td>
       <td className="px-4 py-2.5">
-        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[d.status] ?? 'bg-gray-100 text-gray-500'}`}>
+        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[d.status] ?? 'bg-gray-100 text-gray-600'}`}>
           {d.status.charAt(0).toUpperCase() + d.status.slice(1)}
         </span>
         {d.parentNotified && (
-          <div className="flex items-center gap-0.5 text-[10px] text-emerald-600 mt-0.5">
+          <div className="flex items-center gap-0.5 text-[10px] text-emerald-700 mt-0.5">
             <Icon name="email" size="sm" /><span>Parent notified</span>
           </div>
         )}
       </td>
-      <td className="px-4 py-2.5 text-[11px] text-gray-400">{d.authorName}</td>
+      <td className="px-4 py-2.5 text-[11px] text-gray-500">{d.authorName}</td>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-1 flex-wrap">
           {d.status === 'scheduled' && (
@@ -91,7 +91,7 @@ function DetRow({
               </button>
               <button
                 onClick={() => start(async () => { const r = await resolveDetention(d.id, 'cancelled'); if (r.ok) onResolved(d.id, 'cancelled') })}
-                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
@@ -99,7 +99,7 @@ function DetRow({
           )}
           <button
             onClick={() => start(async () => { const r = await deleteDetention(d.id); if (r.ok) onDeleted(d.id) })}
-            className="p-1 text-gray-300 hover:text-rose-500 transition-colors"
+            className="p-1 text-gray-500 hover:text-rose-600 transition-colors"
             title="Delete"
           >
             <Icon name="delete" size="sm" />
@@ -137,12 +137,12 @@ function Section({
         <table className="w-full text-[12px]">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-left px-4 py-2 font-semibold text-gray-400">Student</th>
-              <th className="text-left px-4 py-2 font-semibold text-gray-400">Type</th>
-              <th className="text-left px-4 py-2 font-semibold text-gray-400">Reason</th>
-              <th className="text-left px-4 py-2 font-semibold text-gray-400">Scheduled</th>
-              <th className="text-left px-4 py-2 font-semibold text-gray-400">Status</th>
-              <th className="text-left px-4 py-2 font-semibold text-gray-400">Set by</th>
+              <th className="text-left px-4 py-2 font-semibold text-gray-500">Student</th>
+              <th className="text-left px-4 py-2 font-semibold text-gray-500">Type</th>
+              <th className="text-left px-4 py-2 font-semibold text-gray-500">Reason</th>
+              <th className="text-left px-4 py-2 font-semibold text-gray-500">Scheduled</th>
+              <th className="text-left px-4 py-2 font-semibold text-gray-500">Status</th>
+              <th className="text-left px-4 py-2 font-semibold text-gray-500">Set by</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
@@ -204,12 +204,12 @@ function LogForm({ onLogged }: { onLogged: () => void }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[15px] font-semibold text-gray-900">Log Detention</h3>
-          <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
 
-        {error && <p className="mb-3 text-[12px] text-rose-600 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
+        {error && <p className="mb-3 text-[12px] text-rose-700 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
 
         <div className="space-y-3">
           <div>
@@ -336,12 +336,12 @@ export default function DetentionView({
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Link href="/hoy/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+              <Link href="/hoy/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
                 <Icon name="chevron_left" size="sm" /> Dashboard
               </Link>
             </div>
             <h1 className="text-[22px] font-bold text-gray-900">Detention Register</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">Manage and track student detentions</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">Manage and track student detentions</p>
           </div>
           <LogForm onLogged={() => reloadYear(yearGroup)} />
         </div>
@@ -349,14 +349,14 @@ export default function DetentionView({
         {/* KPI cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Today',    value: totalToday,    color: totalToday > 0 ? 'text-blue-600' : 'text-gray-300' },
+            { label: 'Today',    value: totalToday,    color: totalToday > 0 ? 'text-blue-600' : 'text-gray-500' },
             { label: 'Upcoming', value: totalUpcoming, color: 'text-gray-900' },
-            { label: 'Missed',   value: totalMissed,   color: totalMissed > 0 ? 'text-rose-600' : 'text-gray-300' },
-            { label: 'Attended this week', value: totalAttended, color: 'text-emerald-600' },
+            { label: 'Missed',   value: totalMissed,   color: totalMissed > 0 ? 'text-rose-600' : 'text-gray-500' },
+            { label: 'Attended this week', value: totalAttended, color: 'text-emerald-700' },
           ].map(k => (
             <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
               <p className={`text-[24px] font-bold ${k.color}`}>{k.value}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{k.label}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">{k.label}</p>
             </div>
           ))}
         </div>
@@ -388,7 +388,7 @@ export default function DetentionView({
           <div className="bg-white border border-gray-200 rounded-xl py-16 text-center">
             <Icon name="event_available" size="lg" className="text-gray-300 mx-auto mb-3" />
             <p className="text-[13px] text-gray-500 font-medium">No detentions recorded</p>
-            <p className="text-[11px] text-gray-400 mt-1">Use &quot;Log Detention&quot; to add one.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Use &quot;Log Detention&quot; to add one.</p>
           </div>
         ) : (
           <>

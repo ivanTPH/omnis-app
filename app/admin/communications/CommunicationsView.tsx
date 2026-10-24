@@ -72,7 +72,7 @@ function CommCard({ comm }: { comm: CommunicationRow }) {
               {scopeLabel(comm.recipientScope)}
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             Sent by {comm.authorName} · {dateStr(comm.createdAt)} · {comm.sentCount} recipients · {readPct}% read
           </p>
         </div>
@@ -120,11 +120,11 @@ function CommCard({ comm }: { comm: CommunicationRow }) {
                       <li key={r.parentId} className="px-3 py-1.5 flex items-center gap-2 bg-white">
                         <Icon name="person" size="sm" className="text-gray-300 shrink-0" />
                         <span className="font-medium text-gray-700">{r.parentName}</span>
-                        <span className="text-gray-400 truncate">{r.email}</span>
+                        <span className="text-gray-500 truncate">{r.email}</span>
                       </li>
                     ))}
                     {unread.length > 15 && (
-                      <li className="px-3 py-1.5 text-gray-400 bg-white">+ {unread.length - 15} more</li>
+                      <li className="px-3 py-1.5 text-gray-500 bg-white">+ {unread.length - 15} more</li>
                     )}
                   </ul>
                 </div>
@@ -140,11 +140,11 @@ function CommCard({ comm }: { comm: CommunicationRow }) {
                       <li key={r.parentId} className="px-3 py-1.5 flex items-center gap-2 bg-white">
                         <Icon name="done_all" size="sm" className="text-emerald-400 shrink-0" />
                         <span className="font-medium text-gray-700">{r.parentName}</span>
-                        <span className="text-gray-400 ml-auto shrink-0">{shortDate(r.readAt!)}</span>
+                        <span className="text-gray-500 ml-auto shrink-0">{shortDate(r.readAt!)}</span>
                       </li>
                     ))}
                     {read.length > 10 && (
-                      <li className="px-3 py-1.5 text-gray-400 bg-white">+ {read.length - 10} more</li>
+                      <li className="px-3 py-1.5 text-gray-500 bg-white">+ {read.length - 10} more</li>
                     )}
                   </ul>
                 </div>
@@ -217,7 +217,7 @@ export default function CommunicationsView({ log }: { log: CommunicationRow[] })
 
       {/* Log */}
       {log.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="mail_outline" size="lg" className="mx-auto mb-3 opacity-40" />
           <p className="text-sm">No communications sent yet</p>
           <button onClick={() => setShowModal(true)} className="mt-3 text-indigo-600 text-sm hover:underline">
@@ -236,12 +236,12 @@ export default function CommunicationsView({ log }: { log: CommunicationRow[] })
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">New Communication</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-600">
                 <Icon name="close" size="sm" />
               </button>
             </div>
 
-            {error && <p className="text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
+            {error && <p className="text-sm text-rose-700 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
 
             <div className="space-y-3">
               <div>
@@ -256,7 +256,7 @@ export default function CommunicationsView({ log }: { log: CommunicationRow[] })
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Subject <span className="text-rose-500">*</span></label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Subject <span className="text-rose-600">*</span></label>
                 <input
                   className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g. Important update regarding school events"
@@ -266,7 +266,7 @@ export default function CommunicationsView({ log }: { log: CommunicationRow[] })
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Message <span className="text-rose-500">*</span></label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Message <span className="text-rose-600">*</span></label>
                 <textarea
                   className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                   rows={6}

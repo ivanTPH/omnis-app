@@ -69,7 +69,7 @@ function AttTooltip({ active, payload }: { active?: boolean; payload?: {name: st
 
 const FLAG_COLOURS: Record<string, string> = {
   'SEND need':          'bg-purple-100 text-purple-700',
-  'Attendance <90%':   'bg-amber-100  text-amber-700',
+  'Attendance <90%':   'bg-amber-100  text-amber-800',
   'Behaviour concerns': 'bg-orange-100 text-orange-700',
   'Low attainment':    'bg-red-100    text-red-700',
   'Exclusion on record':'bg-red-200   text-red-800',
@@ -300,14 +300,14 @@ export default function PopulationDashboard({ data }: { data: PopulationInsights
                 <div>
                   <p className="text-2xl font-bold text-blue-700">{fsmCount}</p>
                   <p className="text-xs text-gray-500">Free School Meals eligible</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {totalStudents > 0 ? Math.round((fsmCount / totalStudents) * 100) : 0}% of cohort
                   </p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-teal-700">{ealCount}</p>
                   <p className="text-xs text-gray-500">English as Additional Language</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {totalStudents > 0 ? Math.round((ealCount / totalStudents) * 100) : 0}% of cohort
                   </p>
                 </div>
@@ -320,7 +320,7 @@ export default function PopulationDashboard({ data }: { data: PopulationInsights
                   <p className="text-xs text-gray-500">Year groups with FSM+SEND overlap</p>
                 </div>
               </div>
-              <p className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1">
+              <p className="text-xs text-amber-800 bg-amber-50 rounded px-2 py-1">
                 FSM/EAL data synced from MIS. Update via Admin → MIS Sync.
               </p>
             </div>
@@ -328,7 +328,7 @@ export default function PopulationDashboard({ data }: { data: PopulationInsights
             <div className="mt-4 flex flex-col items-center justify-center gap-2 text-center py-6">
               <Icon name="sync" size="lg" color="#9ca3af" />
               <p className="text-sm text-gray-500">FSM and EAL data not yet synced</p>
-              <p className="text-xs text-gray-400">Run a Wonde MIS sync from Admin → MIS Sync to populate pupil characteristics.</p>
+              <p className="text-xs text-gray-500">Run a Wonde MIS sync from Admin → MIS Sync to populate pupil characteristics.</p>
             </div>
           )}
         </div>
@@ -381,7 +381,7 @@ export default function PopulationDashboard({ data }: { data: PopulationInsights
           <Icon name="check_circle" size="lg" color="#16a34a" />
           <div>
             <p className="text-sm font-medium text-green-800">No multi-factor at-risk students identified</p>
-            <p className="text-xs text-green-600">No students currently have 3+ overlapping risk factors.</p>
+            <p className="text-xs text-green-700">No students currently have 3+ overlapping risk factors.</p>
           </div>
         </div>
       )}

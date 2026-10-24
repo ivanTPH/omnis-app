@@ -165,7 +165,7 @@ export default function HomeworkTypeRenderer({
             <div className="mb-5">
               <div className="flex items-center justify-between text-[11px] font-semibold mb-2">
                 <span className="text-indigo-600">Question {currentQ + 1} of {questions.length}</span>
-                <span className="text-gray-400">{pct}% complete</span>
+                <span className="text-gray-500">{pct}% complete</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
@@ -191,7 +191,7 @@ export default function HomeworkTypeRenderer({
                           ? 'bg-indigo-600 text-white scale-110 shadow-md shadow-indigo-200'
                           : isDone
                             ? 'bg-emerald-500 text-white cursor-pointer'
-                            : 'bg-gray-100 text-gray-400 cursor-default'
+                            : 'bg-gray-100 text-gray-600 cursor-default'
                       }`}
                     >
                       {isDone && i !== currentQ ? <Icon name="check" size="sm" /> : i + 1}
@@ -208,7 +208,7 @@ export default function HomeworkTypeRenderer({
                   Q{currentQ + 1}
                 </span>
                 {q.marks != null && (
-                  <span className="text-[11px] font-medium text-gray-400">
+                  <span className="text-[11px] font-medium text-gray-500">
                     {q.marks} mark{q.marks !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -254,7 +254,7 @@ export default function HomeworkTypeRenderer({
                         }`}
                       >
                         <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${
-                          selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-400'
+                          selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-gray-300 text-gray-500'
                         }`}>
                           {selected ? <Icon name="check" size="sm" /> : OPTION_LETTERS[j] ?? j + 1}
                         </div>
@@ -312,7 +312,7 @@ export default function HomeworkTypeRenderer({
                 <Icon name="warning" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-amber-800">Select an answer first</p>
-                  <button type="button" onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }} className="text-xs text-amber-600 underline mt-0.5">
+                  <button type="button" onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }} className="text-xs text-amber-700 underline mt-0.5">
                     Skip this question
                   </button>
                 </div>
@@ -339,7 +339,7 @@ export default function HomeworkTypeRenderer({
                   )}
                 </div>
                 {isEhcp && q.ehcp_adaptation && q.ehcp_adaptation !== q.question && (
-                  <p className="text-[11px] text-purple-500 italic">Simplified for accessibility</p>
+                  <p className="text-[11px] text-purple-600 italic">Simplified for accessibility</p>
                 )}
                 {q.hint && <p className="text-xs text-gray-500 italic">Hint: {q.hint}</p>}
                 {isSen && q.scaffolding_hint && (
@@ -428,7 +428,7 @@ export default function HomeworkTypeRenderer({
             <div className="mb-5">
               <div className="flex items-center justify-between text-[11px] font-semibold mb-2">
                 <span className="text-indigo-600">Question {currentQ + 1} of {questions.length}</span>
-                <span className="text-gray-400">{pct}% complete</span>
+                <span className="text-gray-500">{pct}% complete</span>
               </div>
               <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
@@ -454,7 +454,7 @@ export default function HomeworkTypeRenderer({
                           ? 'bg-indigo-600 text-white scale-110 shadow-md shadow-indigo-200'
                           : isDone
                             ? 'bg-emerald-500 text-white cursor-pointer'
-                            : 'bg-gray-100 text-gray-400 cursor-default'
+                            : 'bg-gray-100 text-gray-600 cursor-default'
                       }`}
                     >
                       {isDone && i !== currentQ ? <Icon name="check" size="sm" /> : i + 1}
@@ -471,7 +471,7 @@ export default function HomeworkTypeRenderer({
                   Q{currentQ + 1}
                 </span>
                 {q.marks != null && (
-                  <span className="text-[11px] font-medium text-gray-400">
+                  <span className="text-[11px] font-medium text-gray-500">
                     {q.marks} mark{q.marks !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -511,7 +511,7 @@ export default function HomeworkTypeRenderer({
                     <button
                       type="button"
                       onClick={() => toggleOriginal(qId)}
-                      className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2 mb-3"
+                      className="text-[11px] text-gray-500 hover:text-gray-600 underline underline-offset-2 mb-3"
                     >
                       {showOriginal[qId] ? 'Show simplified question' : 'Show original question'}
                     </button>
@@ -524,7 +524,7 @@ export default function HomeworkTypeRenderer({
 
               {/* Answer textarea */}
               <div>
-                <label className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2 block">
+                <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-2 block">
                   Your Answer
                 </label>
                 <textarea
@@ -534,7 +534,7 @@ export default function HomeworkTypeRenderer({
                   rows={5}
                   className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-800 resize-y focus:outline-none focus:border-indigo-400 leading-relaxed transition"
                 />
-                <p className="text-[11px] text-gray-400 mt-1 text-right">
+                <p className="text-[11px] text-gray-500 mt-1 text-right">
                   {wordCount} word{wordCount !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -580,7 +580,7 @@ export default function HomeworkTypeRenderer({
                   <button
                     type="button"
                     onClick={() => { setSkipWarning(false); setCurrentQ(q => q + 1); setHintOpen(false) }}
-                    className="text-xs text-amber-600 underline mt-0.5"
+                    className="text-xs text-amber-700 underline mt-0.5"
                   >
                     Skip this question
                   </button>
@@ -625,7 +625,7 @@ export default function HomeworkTypeRenderer({
                       <button
                         type="button"
                         onClick={() => toggleOriginal(qId)}
-                        className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                        className="text-[11px] text-gray-500 hover:text-gray-600 underline underline-offset-2"
                       >
                         {isShowingOriginal ? 'Show simplified question' : 'Show original question'}
                       </button>
@@ -642,7 +642,7 @@ export default function HomeworkTypeRenderer({
 
                 {disabled ? (
                   <div className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 whitespace-pre-wrap leading-relaxed min-h-[4rem]">
-                    {answers[qId] || <span className="text-gray-400 italic">No answer provided</span>}
+                    {answers[qId] || <span className="text-gray-500 italic">No answer provided</span>}
                   </div>
                 ) : (
                   <textarea
@@ -688,7 +688,7 @@ export default function HomeworkTypeRenderer({
           {essayVocab && <VocabGlossary terms={essayVocab} />}
           {disabled ? (
             <div className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 whitespace-pre-wrap leading-relaxed min-h-[8rem]">
-              {value || <span className="text-gray-400 italic">No answer provided</span>}
+              {value || <span className="text-gray-500 italic">No answer provided</span>}
             </div>
           ) : (
             <textarea
@@ -702,7 +702,7 @@ export default function HomeworkTypeRenderer({
           {showModelAnswer && content?.questions?.[0]?.modelAnswer && (
             <CollapsibleModelAnswer text={content.questions[0].modelAnswer} />
           )}
-          <div className="flex justify-between text-xs text-gray-400">
+          <div className="flex justify-between text-xs text-gray-500">
             <span>{value.trim().split(/\s+/).filter(Boolean).length} words</span>
             {wordCount && <span>Target: ~{wordCount} words</span>}
           </div>
@@ -732,7 +732,7 @@ export default function HomeworkTypeRenderer({
                 <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
                 {disabled ? (
                   <div className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 whitespace-pre-wrap leading-relaxed min-h-[4rem]">
-                    {answers[q.id ?? i] || <span className="text-gray-400 italic">No answer provided</span>}
+                    {answers[q.id ?? i] || <span className="text-gray-500 italic">No answer provided</span>}
                   </div>
                 ) : (
                   <textarea
@@ -816,7 +816,7 @@ export default function HomeworkTypeRenderer({
               <>
                 <Icon name="attach_file" size="md" className="text-green-500 mx-auto" />
                 <p className="text-sm font-medium text-green-700">{storedFileName}</p>
-                {!disabled && <p className="text-xs text-gray-400">Click to replace</p>}
+                {!disabled && <p className="text-xs text-gray-500">Click to replace</p>}
               </>
             ) : (
               <>
@@ -826,7 +826,7 @@ export default function HomeworkTypeRenderer({
                   {type === 'diagram' && 'Photograph your diagram and upload below.'}
                   {type === 'upload' && 'Click to upload your completed work.'}
                 </p>
-                {!disabled && <p className="text-xs text-gray-400">JPG, PNG, PDF accepted</p>}
+                {!disabled && <p className="text-xs text-gray-500">JPG, PNG, PDF accepted</p>}
               </>
             )}
             <input

@@ -268,7 +268,7 @@ export default function WeeklyCalendar({
                   const outOfHours = h < startHour || h >= endHour
                   return (
                     <div key={h} style={{ height: SLOT_H }} className={`relative border-b ${outOfHours ? 'border-gray-100 bg-gray-50/50' : 'border-gray-100'}`}>
-                      <span className="absolute -top-2 right-2 text-[10px] font-medium text-gray-400 select-none">
+                      <span className="absolute -top-2 right-2 text-[10px] font-medium text-gray-500 select-none">
                         {h < 10 ? `0${h}` : h}:00
                       </span>
                     </div>
@@ -286,7 +286,7 @@ export default function WeeklyCalendar({
 
                       {/* Day header */}
                       <div className="h-14 flex flex-col items-center justify-center border-b border-gray-200 shrink-0 sticky top-0 z-10 bg-white">
-                        <span className={`text-[10px] font-semibold tracking-widest uppercase ${todayCol ? 'text-blue-500' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] font-semibold tracking-widest uppercase ${todayCol ? 'text-blue-600' : 'text-gray-500'}`}>
                           {WEEKDAYS[di]}
                         </span>
                         <div className={`w-9 h-9 mt-0.5 flex items-center justify-center rounded-full text-[22px] font-light leading-none ${todayCol ? 'bg-blue-500 text-white' : 'text-gray-800'}`}>
@@ -376,7 +376,7 @@ export default function WeeklyCalendar({
                                     ${isDragHighlight ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
                                   `}
                                 >
-                                  <span className="flex items-center gap-0.5 text-[11px] text-blue-400 font-medium">
+                                  <span className="flex items-center gap-0.5 text-[11px] text-blue-600 font-medium">
                                     <Icon name="add" size="sm" />Add lesson
                                   </span>
                                 </div>
@@ -418,10 +418,10 @@ export default function WeeklyCalendar({
                                     {/* Resource completeness badges */}
                                     <div className="flex gap-0.5 mt-1">
                                       <Tooltip content={lesson.hasPlan ? 'Lesson plan complete' : 'No lesson plan yet'} side="bottom">
-                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>P</span>
+                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasPlan ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-500'}`}>P</span>
                                       </Tooltip>
                                       <Tooltip content={lesson.hasSlides ? 'Slides attached' : 'No slides yet'} side="bottom">
-                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-400'}`}>S</span>
+                                        <span className={`text-[8px] font-bold px-1 rounded leading-4 ${lesson.hasSlides ? 'bg-green-500 text-white' : 'bg-white/60 text-gray-500'}`}>S</span>
                                       </Tooltip>
                                       {lesson.hasHomework ? (
                                         <Tooltip content={lesson.homeworkStatus === 'DRAFT' ? 'Homework (draft)' : 'Homework (published)'} side="bottom">
@@ -433,7 +433,7 @@ export default function WeeklyCalendar({
                                         </Tooltip>
                                       ) : (
                                         <Tooltip content="No homework set" side="bottom">
-                                          <span className="text-[8px] font-bold px-1 rounded leading-4 bg-white/60 text-gray-400">H</span>
+                                          <span className="text-[8px] font-bold px-1 rounded leading-4 bg-white/60 text-gray-500">H</span>
                                         </Tooltip>
                                       )}
                                       {lesson.hasOther && (
@@ -474,12 +474,12 @@ export default function WeeklyCalendar({
         <div className="hidden lg:flex w-52 shrink-0 border-l border-gray-200 flex-col bg-gray-50/50">
           <div className="px-4 h-12 flex flex-col justify-center border-b border-gray-200 bg-white shrink-0">
             <p className="text-[13px] font-semibold text-gray-900 leading-tight">Lessons</p>
-            <p className="text-[10px] text-gray-400">Drag to schedule</p>
+            <p className="text-[10px] text-gray-500">Drag to schedule</p>
           </div>
 
           <div className="flex-1 overflow-auto p-2.5 space-y-1.5">
             {unscheduled.length === 0 ? (
-              <p className="text-[11px] text-gray-400 text-center pt-10 leading-relaxed px-2">
+              <p className="text-[11px] text-gray-500 text-center pt-10 leading-relaxed px-2">
                 No unscheduled lessons.<br />Create one below.
               </p>
             ) : (
@@ -504,7 +504,7 @@ export default function WeeklyCalendar({
           <div className="p-2.5 border-t border-gray-200 bg-white shrink-0">
             <button
               onClick={() => setSlideOver({ date: toLocalDateStr(new Date()), hour: startHour })}
-              className="flex items-center justify-center gap-1 w-full py-2 rounded-lg border border-dashed border-gray-300 text-[11px] text-gray-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-colors"
+              className="flex items-center justify-center gap-1 w-full py-2 rounded-lg border border-dashed border-gray-300 text-[11px] text-gray-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50/50 transition-colors"
             >
               <Icon name="add" size="sm" />New lesson
             </button>

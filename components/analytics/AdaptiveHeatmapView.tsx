@@ -26,7 +26,7 @@ function cellClasses(status: 'green' | 'amber' | 'red' | null): string {
   if (status === 'green') return 'bg-green-100 text-green-800'
   if (status === 'amber') return 'bg-amber-100 text-amber-800'
   if (status === 'red')   return 'bg-red-100 text-red-800'
-  return 'bg-gray-50 text-gray-300'
+  return 'bg-gray-50 text-gray-500'
 }
 
 function headerBar(status: 'green' | 'amber' | 'red'): string {
@@ -80,20 +80,20 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
   }
 
   if (loading) return (
-    <div className="flex items-center gap-2 py-10 text-gray-400">
+    <div className="flex items-center gap-2 py-10 text-gray-500">
       <Icon name="refresh" size="sm" className="animate-spin" />
       <span className="text-sm">Loading topic data…</span>
     </div>
   )
   if (error || !data) return (
-    <div className="text-center py-14 text-gray-400">
+    <div className="text-center py-14 text-gray-500">
       <Icon name="error_outline" size="lg" className="mb-2 text-red-300" />
       <p className="text-sm">{error || 'Could not load topic data. Please try again.'}</p>
     </div>
   )
 
   if (data.topics.length === 0) return (
-    <div className="text-center py-14 text-gray-400">
+    <div className="text-center py-14 text-gray-500">
       <p className="text-sm">No marked homework found in the last term for this class.</p>
       <p className="text-xs mt-1">Publish and mark homework assignments to see performance data here.</p>
     </div>
@@ -119,11 +119,11 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
     <div className="space-y-4">
       {/* Summary chips */}
       <div className="flex items-center gap-3 flex-wrap">
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200">
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-800 text-[11px] font-semibold border border-green-200">
           <span className="w-2 h-2 rounded-full bg-green-500" />
           {green} topic{green !== 1 ? 's' : ''} Grade 6+
         </span>
-        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold border border-amber-200">
+        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-[11px] font-semibold border border-amber-200">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
           {amber} Grade 4–5
         </span>
@@ -131,7 +131,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
           <span className="w-2 h-2 rounded-full bg-red-500" />
           {red} Grade 1–3
         </span>
-        <span className="ml-auto text-[11px] text-gray-400">
+        <span className="ml-auto text-[11px] text-gray-500">
           Click a <strong>topic column</strong> to see per-student breakdown · Click a <strong>student row</strong> for their full profile
         </span>
       </div>
@@ -159,7 +159,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                       {t.topic.length > 18 ? t.topic.slice(0, 18) + '…' : t.topic}
                     </div>
                     <div className={`mt-1.5 h-1 rounded-full mx-auto w-10 ${headerBar(t.status)}`} />
-                    <div className="text-[10px] text-gray-400 mt-0.5">
+                    <div className="text-[10px] text-gray-500 mt-0.5">
                       Gr {percentToGcseGrade(t.avgScore)}
                     </div>
                   </button>
@@ -230,7 +230,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
               </div>
               <button
                 onClick={() => setActiveTopic(null)}
-                className="p-1 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1 rounded-lg hover:bg-blue-100 text-gray-600 hover:text-gray-600 transition-colors"
                 aria-label="Close topic panel"
               >
                 <Icon name="close" size="sm" />
@@ -277,10 +277,10 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                           }`}>
                             Grade {percentToGcseGrade(score)}
                           </span>
-                          <span className="text-[10px] text-gray-400 ml-1">({score}%)</span>
+                          <span className="text-[10px] text-gray-500 ml-1">({score}%)</span>
                         </>
                       ) : (
-                        <span className="text-[11px] text-gray-300 italic">not submitted</span>
+                        <span className="text-[11px] text-gray-500 italic">not submitted</span>
                       )}
                     </div>
 
@@ -297,7 +297,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                           </button>
                         )}
                         {gen === 'generating' && (
-                          <span className="inline-flex items-center gap-1.5 text-gray-400 text-[11px]">
+                          <span className="inline-flex items-center gap-1.5 text-gray-500 text-[11px]">
                             <Icon name="refresh" size="sm" className="animate-spin" />
                             Generating…
                           </span>
@@ -305,7 +305,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                         {gen === 'error' && (
                           <button
                             onClick={() => handleTopicGenerate(activeTopic, student.id, name)}
-                            className="text-[11px] text-red-500 hover:text-red-700"
+                            className="text-[11px] text-red-600 hover:text-red-700"
                           >
                             Failed — retry
                           </button>
@@ -313,7 +313,7 @@ export default function AdaptiveHeatmapView({ classId, subject, yearGroup, onSel
                         {gen != null && gen !== 'generating' && gen !== 'error' && (
                           <Link
                             href="/ai-generator"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-800 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
                           >
                             <Icon name="check" size="sm" />
                             {(gen as { id: string; title: string }).title.length > 18

@@ -20,10 +20,10 @@ const RAG_COLOR = {
 }
 
 const RAG_LABEL = {
-  green: { cls: 'bg-green-100 text-green-700', text: '≥70%' },
-  amber: { cls: 'bg-amber-100 text-amber-700', text: '40–69%' },
-  red:   { cls: 'bg-red-100 text-red-600',     text: '<40%' },
-  none:  { cls: 'bg-gray-100 text-gray-400',   text: 'No data' },
+  green: { cls: 'bg-green-100 text-green-800', text: '≥70%' },
+  amber: { cls: 'bg-amber-100 text-amber-800', text: '40–69%' },
+  red:   { cls: 'bg-red-100 text-red-700',     text: '<40%' },
+  none:  { cls: 'bg-gray-100 text-gray-600',   text: 'No data' },
 }
 
 function CustomTooltip({ active, payload }: any) {
@@ -76,7 +76,7 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
       <div className="p-7">
         <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
           <Icon name="bar_chart" size="lg" className="mx-auto text-gray-300 mb-2" />
-          <p className="text-[12px] text-gray-400">No published homework for this class yet.</p>
+          <p className="text-[12px] text-gray-500">No published homework for this class yet.</p>
         </div>
       </div>
     )
@@ -114,18 +114,18 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
       {/* RAG summary chips */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[11px] font-medium text-gray-500">{students.length} students · {totalHomework} assignments</span>
-        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{green} on track</span>
-        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{amber} developing</span>
-        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">{red} at risk</span>
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800">{green} on track</span>
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{amber} developing</span>
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">{red} at risk</span>
         {none > 0 && (
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">{none} no data</span>
+          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">{none} no data</span>
         )}
       </div>
 
       {/* Line chart — class performance over time */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Class Performance Over Time</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Class Performance Over Time</p>
         </div>
         {hasTimeSeries ? (
           <div>
@@ -188,7 +188,7 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
           </div>
         ) : (
           <div className="flex items-center justify-center h-24 border border-dashed border-gray-200 rounded-xl">
-            <p className="text-[11px] text-gray-400">Not enough data for trend chart</p>
+            <p className="text-[11px] text-gray-500">Not enough data for trend chart</p>
           </div>
         )}
       </div>
@@ -196,8 +196,8 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
       {/* Bar chart — average score by student */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Average Score by Student</p>
-          <div className="flex items-center gap-3 text-[9px] text-gray-400">
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Average Score by Student</p>
+          <div className="flex items-center gap-3 text-[9px] text-gray-500">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> ≥70%</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 40–69%</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> &lt;40%</span>
@@ -243,14 +243,14 @@ export default function ClassInsightsTab({ classId }: { classId: string }) {
 
       {/* RAG student table */}
       <div>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Progress Status</p>
+        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Student Progress Status</p>
         <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
           {students.map(s => {
             const rag = RAG_LABEL[s.ragStatus]
             return (
               <div key={s.studentId} className="flex items-center gap-3 px-4 py-2 bg-white">
                 <span className="flex-1 text-[12px] text-gray-800 truncate">{s.name}</span>
-                <span className="text-[11px] text-gray-400 shrink-0">
+                <span className="text-[11px] text-gray-500 shrink-0">
                   {s.submissionCount}/{totalHomework} submitted
                 </span>
                 <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${rag.cls}`}>

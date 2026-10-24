@@ -91,7 +91,7 @@ function SetPasswordForm() {
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{errorMsg}</div>
             )}
             {!token && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
                 Invalid or missing setup link. Please request a new one below.
               </div>
             )}
@@ -122,7 +122,7 @@ export default function SetPasswordPage() {
           <OmnisLogo variant="login" background="dark" />
           <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
-        <Suspense fallback={<div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-sm">Loading…</div>}>
+        <Suspense fallback={<div className="bg-white rounded-2xl p-8 text-center text-gray-500 text-sm">Loading…</div>}>
           <SetPasswordForm />
         </Suspense>
       </div>

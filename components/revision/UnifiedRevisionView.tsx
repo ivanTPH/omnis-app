@@ -78,8 +78,8 @@ function subjectColour(subject: string) {
   const map: Record<string, string> = {
     English: 'bg-purple-100 text-purple-700',
     Maths:   'bg-blue-100 text-blue-700',
-    Science: 'bg-green-100 text-green-700',
-    History: 'bg-amber-100 text-amber-700',
+    Science: 'bg-green-100 text-green-800',
+    History: 'bg-amber-100 text-amber-800',
   }
   return map[subject] ?? 'bg-gray-100 text-gray-700'
 }
@@ -104,7 +104,7 @@ function TaskCard({ task }: { task: RevTask }) {
               {task.program.subject}
             </span>
             {hasSend && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
                 Adapted for you
               </span>
             )}
@@ -119,13 +119,13 @@ function TaskCard({ task }: { task: RevTask }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-gray-400">
+      <div className="flex items-center gap-4 text-xs text-gray-500">
         <span className="capitalize">{task.taskType.replace(/_/g, ' ')}</span>
         <span className="flex items-center gap-1"><Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins</span>
       </div>
 
       {isAssignment && task.program.deadline && (
-        <p className={`text-xs font-semibold flex items-center gap-1 ${overdue ? 'text-rose-600' : dueSoon ? 'text-amber-600' : 'text-gray-500'}`}>
+        <p className={`text-xs font-semibold flex items-center gap-1 ${overdue ? 'text-rose-600' : dueSoon ? 'text-amber-700' : 'text-gray-500'}`}>
           {overdue && <Icon name="error" size="sm" />}
           {overdue
             ? `Overdue by ${Math.abs(due!)} day${Math.abs(due!) !== 1 ? 's' : ''}`
@@ -165,7 +165,7 @@ function CompletedCard({ task }: { task: RevTask }) {
           )}
         </div>
         {score != null && (
-          <span className="text-lg font-bold text-green-600 shrink-0">{gradeLabel(score)}</span>
+          <span className="text-lg font-bold text-green-700 shrink-0">{gradeLabel(score)}</span>
         )}
       </div>
 
@@ -174,7 +174,7 @@ function CompletedCard({ task }: { task: RevTask }) {
           <p className="text-xs text-gray-500">Your confidence:</p>
           <div className="flex gap-0.5">
             {[1,2,3,4,5].map(n => (
-              <Icon key={n} name="star" size="sm" className={n <= (task.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-300'} />
+              <Icon key={n} name="star" size="sm" className={n <= (task.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-500'} />
             ))}
           </div>
         </div>
@@ -194,7 +194,7 @@ function CompletedCard({ task }: { task: RevTask }) {
 
 function EmptyTasks({ label }: { label: string }) {
   return (
-    <div className="flex flex-col items-center py-16 text-gray-400">
+    <div className="flex flex-col items-center py-16 text-gray-500">
       <Icon name="assignment" size="lg" className="mb-3 opacity-30" />
       <p className="text-sm">{label}</p>
     </div>
@@ -251,7 +251,7 @@ export default function UnifiedRevisionView({
               <Icon name="auto_stories" size="md" className="text-blue-600" />
               <h1 className="text-page-title">Revision Planner</h1>
             </div>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 mt-1">
               {initialExams.length} exam{initialExams.length !== 1 ? 's' : ''} tracked
               {activeTasks.length > 0 && ` · ${activeTasks.length} task${activeTasks.length !== 1 ? 's' : ''} set by teacher`}
               {dueThisWeek > 0 && ` · ${dueThisWeek} due this week`}
@@ -281,7 +281,7 @@ export default function UnifiedRevisionView({
                       <Icon name={step.icon} size="sm" className="text-blue-500 shrink-0" />
                       <div>
                         <p className="text-[12px] font-semibold text-blue-900">{step.title}</p>
-                        <p className="text-[11px] text-blue-500">{step.desc}</p>
+                        <p className="text-[11px] text-blue-600">{step.desc}</p>
                       </div>
                     </div>
                   ))}

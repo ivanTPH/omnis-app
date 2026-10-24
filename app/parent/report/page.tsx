@@ -38,12 +38,12 @@ export default async function ParentReportPage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/parent/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/parent/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> Dashboard
             </Link>
           </div>
           <h1 className="text-[22px] font-bold text-gray-900 mb-1">Progress Reports</h1>
-          <p className="text-[13px] text-gray-400 mb-6">
+          <p className="text-[13px] text-gray-500 mb-6">
             Download a PDF summary report for your child including recent grades, attendance and learning targets.
           </p>
 
@@ -51,16 +51,16 @@ export default async function ParentReportPage() {
             <div className="bg-white border border-gray-200 rounded-xl py-12 text-center">
               <Icon name="person" size="lg" color="#d1d5db" />
               <p className="text-sm text-gray-500 mt-3">No linked children found.</p>
-              <p className="text-[12px] text-gray-400 mt-1">Please contact your school to set up your account link.</p>
+              <p className="text-[12px] text-gray-500 mt-1">Please contact your school to set up your account link.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {children.map(child => {
                 const attPct = child.attendancePercentage
-                const attColor = attPct == null ? 'text-gray-400'
+                const attColor = attPct == null ? 'text-gray-500'
                   : attPct < 85 ? 'text-rose-600'
-                  : attPct < 90 ? 'text-amber-600'
-                  : 'text-emerald-600'
+                  : attPct < 90 ? 'text-amber-700'
+                  : 'text-emerald-700'
 
                 return (
                   <div key={child.id} className="bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4">
@@ -97,7 +97,7 @@ export default async function ParentReportPage() {
             </div>
           )}
 
-          <p className="text-[11px] text-gray-400 mt-6 text-center">
+          <p className="text-[11px] text-gray-500 mt-6 text-center">
             Reports are generated in real-time from school data. Content set by {schoolName}.
           </p>
         </div>

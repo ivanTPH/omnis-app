@@ -21,7 +21,7 @@ export default function AdminDashboardError({
         <p className="text-[13px] text-gray-500 mb-6">
           Something went wrong loading the admin dashboard.
           {error.digest && (
-            <span className="block mt-1 font-mono text-[11px] text-gray-400">
+            <span className="block mt-1 font-mono text-[11px] text-gray-500">
               Digest: {error.digest}
             </span>
           )}

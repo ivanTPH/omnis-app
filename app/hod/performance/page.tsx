@@ -17,7 +17,7 @@ export default async function HodPerformancePage() {
   const data = await getHodDashboardData()
 
   const avgGradeLabel = data.avgScore != null ? gradeLabel(Math.round(data.avgScore)) : '—'
-  const avgPillClass  = data.avgScore != null ? gradePillClass(Math.round(data.avgScore)) : 'bg-gray-100 text-gray-500'
+  const avgPillClass  = data.avgScore != null ? gradePillClass(Math.round(data.avgScore)) : 'bg-gray-100 text-gray-600'
 
   const completionPct = data.avgCompletion != null
     ? Math.round(data.avgCompletion * 100)
@@ -30,14 +30,14 @@ export default async function HodPerformancePage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/hod/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/hod/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> HOD Dashboard
             </Link>
           </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Department Performance</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {data.department} · {data.subjects.join(', ') || 'All subjects'}
               </p>
             </div>
@@ -52,28 +52,28 @@ export default async function HodPerformancePage() {
           {/* KPI cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-[11px] font-semibold text-gray-400 mb-1">Classes</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">Classes</p>
               <p className="text-[26px] font-bold text-gray-900 leading-none">{data.totalClasses}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{data.subjects.length} subject{data.subjects.length !== 1 ? 's' : ''}</p>
+              <p className="text-[10px] text-gray-500 mt-1">{data.subjects.length} subject{data.subjects.length !== 1 ? 's' : ''}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-[11px] font-semibold text-gray-400 mb-1">Students</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">Students</p>
               <p className="text-[26px] font-bold text-gray-900 leading-none">{data.totalStudents}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{data.sendStudents} SEND</p>
+              <p className="text-[10px] text-gray-500 mt-1">{data.sendStudents} SEND</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <p className="text-[11px] font-semibold text-gray-400 mb-1">Avg grade</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">Avg grade</p>
               <div className={`inline-flex items-center px-2 py-0.5 rounded text-[13px] font-bold mt-0.5 ${avgPillClass}`}>
                 {avgGradeLabel}
               </div>
-              <p className="text-[10px] text-gray-400 mt-1">dept average</p>
+              <p className="text-[10px] text-gray-500 mt-1">dept average</p>
             </div>
             <div className={`rounded-xl p-4 ${data.totalUngraded > 0 ? 'bg-amber-50 border border-amber-200' : 'bg-white border border-gray-200'}`}>
-              <p className="text-[11px] font-semibold text-gray-400 mb-1">Ungraded</p>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">Ungraded</p>
               <p className={`text-[26px] font-bold leading-none ${data.totalUngraded > 0 ? 'text-amber-700' : 'text-gray-900'}`}>
                 {data.totalUngraded}
               </p>
-              <p className="text-[10px] text-gray-400 mt-1">submissions</p>
+              <p className="text-[10px] text-gray-500 mt-1">submissions</p>
             </div>
           </div>
 
@@ -121,12 +121,12 @@ export default async function HodPerformancePage() {
                 <tbody className="divide-y divide-gray-50">
                   {data.classes.map(cls => {
                     const grade = cls.avgScore != null ? gradeLabel(Math.round(cls.avgScore)) : '—'
-                    const pill  = cls.avgScore != null ? gradePillClass(Math.round(cls.avgScore)) : 'bg-gray-100 text-gray-400'
+                    const pill  = cls.avgScore != null ? gradePillClass(Math.round(cls.avgScore)) : 'bg-gray-100 text-gray-600'
                     return (
                       <tr key={cls.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2.5 font-medium text-gray-900">
                           <span>{cls.name}</span>
-                          <span className="ml-1.5 text-[10px] text-gray-400">Y{cls.yearGroup}</span>
+                          <span className="ml-1.5 text-[10px] text-gray-500">Y{cls.yearGroup}</span>
                         </td>
                         <td className="px-4 py-2.5 text-gray-500">
                           {cls.teacherNames.slice(0, 2).join(', ')}
@@ -134,7 +134,7 @@ export default async function HodPerformancePage() {
                         </td>
                         <td className="px-4 py-2.5 text-right text-gray-700">{cls.studentCount}</td>
                         <td className="px-4 py-2.5 text-right">
-                          <span className={cls.sendCount > 0 ? 'text-blue-700 font-semibold' : 'text-gray-400'}>
+                          <span className={cls.sendCount > 0 ? 'text-blue-700 font-semibold' : 'text-gray-500'}>
                             {cls.sendCount || '—'}
                           </span>
                         </td>
@@ -144,7 +144,7 @@ export default async function HodPerformancePage() {
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right">
-                          <span className={cls.ungradedCount > 0 ? 'text-amber-700 font-semibold' : 'text-gray-400'}>
+                          <span className={cls.ungradedCount > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'}>
                             {cls.ungradedCount || '—'}
                           </span>
                         </td>
@@ -156,7 +156,7 @@ export default async function HodPerformancePage() {
                               : 'bg-rose-500'
                             }`} />
                           ) : (
-                            <span className="text-gray-300">—</span>
+                            <span className="text-gray-500">—</span>
                           )}
                         </td>
                       </tr>
@@ -187,7 +187,7 @@ export default async function HodPerformancePage() {
                 <tbody className="divide-y divide-gray-50">
                   {data.staff.map(s => {
                     const grade = s.avgScore != null ? gradeLabel(Math.round(s.avgScore)) : '—'
-                    const pill  = s.avgScore != null ? gradePillClass(Math.round(s.avgScore)) : 'bg-gray-100 text-gray-400'
+                    const pill  = s.avgScore != null ? gradePillClass(Math.round(s.avgScore)) : 'bg-gray-100 text-gray-600'
                     return (
                       <tr key={s.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2.5 font-medium text-gray-900">{s.name}</td>
@@ -199,7 +199,7 @@ export default async function HodPerformancePage() {
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right">
-                          <span className={s.ungradedCount > 0 ? 'text-amber-700 font-semibold' : 'text-gray-400'}>
+                          <span className={s.ungradedCount > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'}>
                             {s.ungradedCount || '—'}
                           </span>
                         </td>
@@ -215,7 +215,7 @@ export default async function HodPerformancePage() {
             <div className="bg-white border border-gray-200 rounded-xl py-12 text-center">
               <Icon name="bar_chart" size="lg" color="#d1d5db" />
               <p className="text-sm text-gray-500 mt-3">No class data available yet.</p>
-              <p className="text-[12px] text-gray-400 mt-1">Performance data will appear once homework has been marked.</p>
+              <p className="text-[12px] text-gray-500 mt-1">Performance data will appear once homework has been marked.</p>
             </div>
           )}
         </div>

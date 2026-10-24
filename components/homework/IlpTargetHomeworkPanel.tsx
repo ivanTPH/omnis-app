@@ -54,11 +54,11 @@ export default function IlpTargetHomeworkPanel({ classId, linkedIds, onToggle }:
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-xs font-medium text-gray-600">{t.studentName}</span>
                     {urgent && <Icon name="error" size="sm" className="text-red-500" />}
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${urgent ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${urgent ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}`}>
                       {t.daysUntilDue}d left
                     </span>
                     {t.evidenceCount > 0 && (
-                      <span className="text-xs text-gray-400">{t.evidenceCount} evidence</span>
+                      <span className="text-xs text-gray-500">{t.evidenceCount} evidence</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-800 line-clamp-2">{t.target}</p>

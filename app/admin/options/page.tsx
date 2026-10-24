@@ -86,7 +86,7 @@ export default async function OptionsPage({
                           Core
                         </span>
                       ) : (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                           Option
                         </span>
                       )}
@@ -94,8 +94,8 @@ export default async function OptionsPage({
                     <td className="px-5 py-3.5 text-right text-gray-700 font-medium">
                       {r.studentCount}
                     </td>
-                    <td className="px-5 py-3.5 text-right text-gray-400">
-                      {r.classCount > 0 ? r.classCount : <span className="text-amber-500">None set</span>}
+                    <td className="px-5 py-3.5 text-right text-gray-500">
+                      {r.classCount > 0 ? r.classCount : <span className="text-amber-700">None set</span>}
                     </td>
                   </tr>
                 ))}

@@ -23,7 +23,7 @@ export default function LessonsError({
           There was a problem loading this page. Please try again.
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-400 mb-4">Ref: {error.digest}</p>
+          <p className="text-xs text-gray-500 mb-4">Ref: {error.digest}</p>
         )}
         <button
           onClick={reset}

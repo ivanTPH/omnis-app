@@ -92,7 +92,7 @@ export default function OnboardingChecklist({ role }: { role: string }) {
               <Link
                 href={item.href}
                 className={`flex-1 text-[12px] transition-colors hover:text-blue-600 ${
-                  done ? 'text-gray-400 line-through' : 'text-gray-700'
+                  done ? 'text-gray-500 line-through' : 'text-gray-700'
                 }`}
               >
                 {item.label}
@@ -113,7 +113,7 @@ export default function OnboardingChecklist({ role }: { role: string }) {
             <Icon name="help_outline" size="sm" /> View full help guide
           </Link>
         )}
-        <button onClick={dismiss} className="text-[10px] text-gray-400 hover:text-gray-600">
+        <button onClick={dismiss} className="text-[10px] text-gray-500 hover:text-gray-600">
           Dismiss
         </button>
       </div>

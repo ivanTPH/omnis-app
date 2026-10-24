@@ -32,7 +32,7 @@ export default async function HodDashboardPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">{data.department} Department</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {schoolName} · {data.subjects.join(', ')}
               </p>
             </div>
@@ -61,14 +61,14 @@ export default async function HodDashboardPage() {
               { label: 'Classes',     value: data.totalClasses,   color: 'text-gray-900' },
               { label: 'Students',    value: data.totalStudents,  color: 'text-gray-900' },
               { label: 'Staff',       value: data.staff.length,   color: 'text-gray-900' },
-              { label: 'SEND',        value: data.sendStudents,   color: data.sendStudents > 0 ? 'text-amber-600' : 'text-gray-300' },
+              { label: 'SEND',        value: data.sendStudents,   color: data.sendStudents > 0 ? 'text-amber-700' : 'text-gray-500' },
               { label: 'Avg Grade',   value: gradeDisplay?.main ?? '—', color: 'text-blue-600' },
               { label: 'Completion',  value: completionPct != null ? `${completionPct}%` : '—', color: 'text-gray-900' },
-              { label: 'To Mark',     value: data.totalUngraded,  color: data.totalUngraded > 0 ? 'text-rose-600' : 'text-gray-300' },
+              { label: 'To Mark',     value: data.totalUngraded,  color: data.totalUngraded > 0 ? 'text-rose-600' : 'text-gray-500' },
             ].map(k => (
               <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
                 <p className={`text-[22px] font-bold ${k.color}`}>{k.value}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{k.label}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{k.label}</p>
               </div>
             ))}
           </div>
@@ -95,7 +95,7 @@ export default async function HodDashboardPage() {
                   <tbody className="divide-y divide-gray-50">
                     {data.classes.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-[12px] text-gray-400">
+                        <td colSpan={6} className="px-4 py-8 text-center text-[12px] text-gray-500">
                           No classes found for this department.
                         </td>
                       </tr>
@@ -106,7 +106,7 @@ export default async function HodDashboardPage() {
                         <tr key={cls.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-2.5">
                             <p className="font-semibold text-gray-900">{cls.name}</p>
-                            <p className="text-[10px] text-gray-400">Y{cls.yearGroup} · {cls.subject}</p>
+                            <p className="text-[10px] text-gray-500">Y{cls.yearGroup} · {cls.subject}</p>
                           </td>
                           <td className="px-4 py-2.5 hidden sm:table-cell text-gray-600">
                             {cls.teacherNames.join(', ') || '—'}
@@ -114,7 +114,7 @@ export default async function HodDashboardPage() {
                           <td className="px-4 py-2.5 text-right text-gray-700">
                             {cls.studentCount}
                             {cls.sendCount > 0 && (
-                              <span className="ml-1 text-[10px] text-amber-600">({cls.sendCount} SEND)</span>
+                              <span className="ml-1 text-[10px] text-amber-700">({cls.sendCount} SEND)</span>
                             )}
                           </td>
                           <td className="px-4 py-2.5 text-right font-semibold text-gray-800">
@@ -124,7 +124,7 @@ export default async function HodDashboardPage() {
                           <td className="px-4 py-2.5 text-center">
                             {cls.rag ? (
                               <span className={`inline-block w-2.5 h-2.5 rounded-full ${RAG_COLOR[cls.rag]}`} />
-                            ) : <span className="text-gray-300">—</span>}
+                            ) : <span className="text-gray-500">—</span>}
                           </td>
                         </tr>
                       )
@@ -157,14 +157,14 @@ export default async function HodDashboardPage() {
                 </h2>
                 <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-50">
                   {data.staff.length === 0 ? (
-                    <p className="px-4 py-4 text-[12px] text-gray-400">No staff assigned.</p>
+                    <p className="px-4 py-4 text-[12px] text-gray-500">No staff assigned.</p>
                   ) : data.staff.map(s => {
                     const g = s.avgScore != null ? formatAvgGrade(s.avgScore) : null
                     return (
                       <div key={s.id} className="px-4 py-3 flex items-center gap-3">
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-semibold text-gray-900 truncate">{s.name}</p>
-                          <p className="text-[10px] text-gray-400">{s.classCount} class{s.classCount !== 1 ? 'es' : ''} · {s.studentCount} students</p>
+                          <p className="text-[10px] text-gray-500">{s.classCount} class{s.classCount !== 1 ? 'es' : ''} · {s.studentCount} students</p>
                         </div>
                         <div className="text-right shrink-0">
                           {g && <p className="text-[11px] font-semibold text-gray-700">{g.main}</p>}
@@ -185,9 +185,9 @@ export default async function HodDashboardPage() {
                 </h2>
                 <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-50">
                   {[
-                    { label: 'SEND students',  value: data.sendStudents,  icon: 'favorite',     color: 'text-amber-600' },
+                    { label: 'SEND students',  value: data.sendStudents,  icon: 'favorite',     color: 'text-amber-700' },
                     { label: 'Active ILPs',    value: data.activeIlps,   icon: 'description',  color: 'text-blue-600'  },
-                    { label: 'Open concerns',  value: data.openConcerns, icon: 'report_problem', color: data.openConcerns > 0 ? 'text-rose-600' : 'text-gray-400' },
+                    { label: 'Open concerns',  value: data.openConcerns, icon: 'report_problem', color: data.openConcerns > 0 ? 'text-rose-600' : 'text-gray-500' },
                   ].map(item => (
                     <div key={item.label} className="px-4 py-3 flex items-center gap-3">
                       <Icon name={item.icon} size="sm" className={item.color} />

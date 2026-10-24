@@ -31,12 +31,12 @@ export default async function SubmissionMarkingPage({
           <div className="flex items-center gap-3 min-w-0">
             <Link
               href={`/homework/${homeworkId}`}
-              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700 shrink-0"
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-700 shrink-0"
             >
               <Icon name="chevron_left" size="sm" />
             </Link>
             <div className="min-w-0">
-              <p className="text-[11px] text-gray-400 truncate">{hw.title}</p>
+              <p className="text-[11px] text-gray-500 truncate">{hw.title}</p>
               <p className="text-[15px] font-bold text-gray-900 leading-tight">
                 {student.firstName} {student.lastName}
               </p>
@@ -45,7 +45,7 @@ export default async function SubmissionMarkingPage({
 
           {/* Prev / Next navigation */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[12px] text-gray-400 mr-1">
+            <span className="text-[12px] text-gray-500 mr-1">
               {nav.current} of {nav.total}
             </span>
             <Link
@@ -54,7 +54,7 @@ export default async function SubmissionMarkingPage({
               className={`p-1.5 rounded-lg border transition-colors ${
                 nav.prev
                   ? 'border-gray-200 hover:bg-gray-100 text-gray-600'
-                  : 'border-gray-100 text-gray-300 pointer-events-none'
+                  : 'border-gray-100 text-gray-600 pointer-events-none'
               }`}
             >
               <Icon name="chevron_left" size="sm" />
@@ -65,7 +65,7 @@ export default async function SubmissionMarkingPage({
               className={`p-1.5 rounded-lg border transition-colors ${
                 nav.next
                   ? 'border-gray-200 hover:bg-gray-100 text-gray-600'
-                  : 'border-gray-100 text-gray-300 pointer-events-none'
+                  : 'border-gray-100 text-gray-600 pointer-events-none'
               }`}
             >
               <Icon name="chevron_right" size="sm" />

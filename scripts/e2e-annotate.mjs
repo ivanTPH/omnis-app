@@ -25,7 +25,7 @@ function walk(suite, trail, specFile) {
       const name = [...here, spec.title].filter(Boolean).join(' › ')
       const err = (test.results ?? []).flatMap(r => r.errors ?? (r.error ? [r.error] : []))[0]
       const lines = clean(err?.message).split('\n').map(l => l.trim()).filter(Boolean)
-      const msg = lines.slice(0, 3).join(' | ').slice(0, 300)
+      const msg = lines.slice(0, 3).join(' | ').slice(0, 700)
       if (test.status === 'unexpected') failed.push({ file: fileName, name, msg })
       else if (test.status === 'flaky') flaky.push({ file: fileName, name })
     }

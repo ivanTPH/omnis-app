@@ -105,7 +105,7 @@ export default async function StudentSendPage({
               <div className="flex items-start gap-2.5">
                 <Icon name="lightbulb" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Support Snapshot</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1">Support Snapshot</p>
                   {student.supportSnapshot ? (
                     <p className="text-[13px] text-amber-900 leading-relaxed">{student.supportSnapshot}</p>
                   ) : (
@@ -130,10 +130,10 @@ export default async function StudentSendPage({
             <Icon name="menu_book" size="sm" className="text-teal-600" />
             <h2 className="font-semibold text-gray-900 text-sm">K Plan — Learning Passport</h2>
             {passport?.status === 'APPROVED' && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Approved</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 font-medium">Approved</span>
             )}
             {passport?.status === 'DRAFT' && isSenco && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">Draft — needs approval</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Draft — needs approval</span>
             )}
           </div>
           <KPlanSection

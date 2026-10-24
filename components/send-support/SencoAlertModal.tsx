@@ -69,7 +69,7 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
               <p className="text-[11px] text-gray-500">{studentName}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -108,7 +108,7 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
                   placeholder={`e.g. "${studentName} is finding extended writing difficult — please allow extra time and consider breaking tasks into smaller steps."`}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
                 />
-                <p className="text-[10px] text-gray-400 text-right mt-0.5">{message.length}/500</p>
+                <p className="text-[10px] text-gray-500 text-right mt-0.5">{message.length}/500</p>
               </div>
 
               {/* Teacher selector */}
@@ -127,7 +127,7 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
                 </div>
                 <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100 max-h-48 overflow-y-auto">
                   {teachers.length === 0 ? (
-                    <p className="px-3 py-3 text-sm text-gray-400 italic">No staff found.</p>
+                    <p className="px-3 py-3 text-sm text-gray-500 italic">No staff found.</p>
                   ) : (
                     teachers.map(t => (
                       <label
@@ -138,10 +138,10 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
                           type="checkbox"
                           checked={selected.has(t.id)}
                           onChange={() => toggle(t.id)}
-                          className="rounded border-gray-300 text-amber-600 focus:ring-amber-400"
+                          className="rounded border-gray-300 text-amber-700 focus:ring-amber-400"
                         />
                         <span className="flex-1 text-sm text-gray-800">{t.name}</span>
-                        <span className="text-[10px] text-gray-400">{t.role.replace(/_/g, ' ')}</span>
+                        <span className="text-[10px] text-gray-500">{t.role.replace(/_/g, ' ')}</span>
                       </label>
                     ))
                   )}
@@ -149,7 +149,7 @@ export default function SencoAlertModal({ studentId, studentName, staffList, onC
               </div>
 
               {error && (
-                <p className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
                   {error}
                 </p>
               )}

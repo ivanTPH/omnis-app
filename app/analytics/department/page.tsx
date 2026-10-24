@@ -15,7 +15,7 @@ const BLOOMS_COLOUR: Record<string, string> = {
   remember:   'bg-blue-100 text-blue-700',
   understand: 'bg-indigo-100 text-indigo-700',
   apply:      'bg-violet-100 text-violet-700',
-  analyse:    'bg-amber-100 text-amber-700',
+  analyse:    'bg-amber-100 text-amber-800',
   evaluate:   'bg-orange-100 text-orange-700',
   create:     'bg-rose-100 text-rose-700',
 }
@@ -39,14 +39,14 @@ export default async function DepartmentAnalyticsPage({
         <div className="max-w-5xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/analytics" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/analytics" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> Analytics
             </Link>
           </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Department Analytics</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">{data.department} — cross-teacher performance comparison</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">{data.department} — cross-teacher performance comparison</p>
             </div>
             <Link
               href="/analytics/teacher"
@@ -72,7 +72,7 @@ export default async function DepartmentAnalyticsPage({
               { label: 'Classes',   value: data.totals.classes,                                               colour: 'bg-indigo-50 text-indigo-700' },
               { label: 'Students',  value: data.totals.students,                                              colour: 'bg-gray-50 text-gray-700'    },
               { label: 'SEND %',    value: `${data.totals.sendPct}%`,                                         colour: 'bg-purple-50 text-purple-700' },
-              { label: 'Ungraded',  value: data.totals.ungraded,                                              colour: data.totals.ungraded > 0 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700' },
+              { label: 'Ungraded',  value: data.totals.ungraded,                                              colour: data.totals.ungraded > 0 ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-700' },
             ].map(c => (
               <div key={c.label} className={`rounded-xl p-4 ${c.colour}`}>
                 <p className="text-[11px] font-semibold opacity-70 mb-1">{c.label}</p>
@@ -85,13 +85,13 @@ export default async function DepartmentAnalyticsPage({
           {data.totals.avgGrade != null && (
             <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 mb-6 flex items-center gap-4">
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 mb-1">Department avg GCSE grade</p>
+                <p className="text-[11px] font-semibold text-gray-500 mb-1">Department avg GCSE grade</p>
                 <span className={`inline-block px-4 py-1.5 rounded-full text-[16px] font-bold ${gradePillClass(Math.round(data.totals.avgGrade))}`}>
                   {gradeLabel(Math.round(data.totals.avgGrade))}
                 </span>
               </div>
               <div className="h-8 w-px bg-gray-100 mx-2" />
-              <p className="text-[12px] text-gray-400">Aggregate across all teachers and classes in {data.department}</p>
+              <p className="text-[12px] text-gray-500">Aggregate across all teachers and classes in {data.department}</p>
             </div>
           )}
 
@@ -99,13 +99,13 @@ export default async function DepartmentAnalyticsPage({
           {data.teachers.length === 0 ? (
             <div className="bg-white border border-gray-200 rounded-xl py-14 text-center">
               <Icon name="school" size="lg" color="#d1d5db" />
-              <p className="text-sm text-gray-400 mt-3">No teachers found for this department</p>
+              <p className="text-sm text-gray-500 mt-3">No teachers found for this department</p>
             </div>
           ) : (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
               <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
                 <h2 className="text-[14px] font-semibold text-gray-900">Teacher comparison</h2>
-                <span className="ml-auto text-[11px] text-gray-400">{data.teachers.length} teachers</span>
+                <span className="ml-auto text-[11px] text-gray-500">{data.teachers.length} teachers</span>
               </div>
               <table className="w-full text-[12px]">
                 <thead>
@@ -132,13 +132,13 @@ export default async function DepartmentAnalyticsPage({
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold ${gradePillClass(Math.round(t.avgGrade))}`}>
                             {gradeLabel(Math.round(t.avgGrade))}
                           </span>
-                        ) : <span className="text-gray-300">—</span>}
+                        ) : <span className="text-gray-500">—</span>}
                       </td>
                       <td className="px-4 py-2.5 text-right hidden lg:table-cell text-gray-500">{t.homeworkSet30d}</td>
                       <td className="px-4 py-2.5 text-right">
                         {t.ungraded > 0
-                          ? <span className="text-amber-600 font-semibold">{t.ungraded}</span>
-                          : <span className="text-gray-300">—</span>}
+                          ? <span className="text-amber-700 font-semibold">{t.ungraded}</span>
+                          : <span className="text-gray-500">—</span>}
                       </td>
                       <td className="px-4 py-2.5 hidden lg:table-cell">
                         <Link
@@ -159,7 +159,7 @@ export default async function DepartmentAnalyticsPage({
           {data.bloomsCoverage.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <h2 className="text-[14px] font-semibold text-gray-900 mb-1">Bloom&apos;s taxonomy — department coverage</h2>
-              <p className="text-[12px] text-gray-400 mb-3">Homework tasks logged across all classes in {data.department}</p>
+              <p className="text-[12px] text-gray-500 mb-3">Homework tasks logged across all classes in {data.department}</p>
               <div className="space-y-2">
                 {BLOOMS_ALL.map(l => {
                   const found  = data.bloomsCoverage.find(b => b.level === l)
@@ -168,7 +168,7 @@ export default async function DepartmentAnalyticsPage({
                   const barPct = Math.round((count / maxCount) * 100)
                   return (
                     <div key={l} className="flex items-center gap-3">
-                      <span className={`w-20 shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full text-center ${count > 0 ? (BLOOMS_COLOUR[l] ?? 'bg-gray-100 text-gray-600') : 'bg-gray-50 text-gray-300'}`}>
+                      <span className={`w-20 shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full text-center ${count > 0 ? (BLOOMS_COLOUR[l] ?? 'bg-gray-100 text-gray-600') : 'bg-gray-50 text-gray-500'}`}>
                         {l.charAt(0).toUpperCase() + l.slice(1)}
                       </span>
                       <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -183,7 +183,7 @@ export default async function DepartmentAnalyticsPage({
                 })}
               </div>
               {data.bloomsCoverage.length < 6 && (
-                <p className="text-[11px] text-amber-600 mt-3 flex items-center gap-1">
+                <p className="text-[11px] text-amber-700 mt-3 flex items-center gap-1">
                   <Icon name="info" size="sm" />
                   {6 - data.bloomsCoverage.length} Bloom&apos;s level{6 - data.bloomsCoverage.length !== 1 ? 's' : ''} not yet set in any homework across this department
                 </p>

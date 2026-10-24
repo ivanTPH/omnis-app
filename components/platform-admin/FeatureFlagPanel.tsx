@@ -44,7 +44,7 @@ export default function FeatureFlagPanel({ schoolId }: Props) {
   }
 
   if (loading) {
-    return <div className="py-4 text-center text-[12px] text-gray-400">Loading flags…</div>
+    return <div className="py-4 text-center text-[12px] text-gray-500">Loading flags…</div>
   }
 
   return (
@@ -56,7 +56,7 @@ export default function FeatureFlagPanel({ schoolId }: Props) {
           <div key={flag} className="flex items-start gap-3 px-1">
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-semibold text-gray-700">{label}</p>
-              <p className="text-[11px] text-gray-400">{description}</p>
+              <p className="text-[11px] text-gray-500">{description}</p>
             </div>
             <button
               onClick={() => handleToggle(flag, enabled)}

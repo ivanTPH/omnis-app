@@ -81,7 +81,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
           <Icon name="menu_book" size="md" className="text-teal-500 mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-medium text-teal-800">No K Plan yet</p>
-            <p className="text-xs text-teal-600 mt-0.5">
+            <p className="text-xs text-teal-700 mt-0.5">
               The K Plan synthesises ILP, EHCP, and APDR data into a ready-to-use classroom reference.
             </p>
           </div>
@@ -159,7 +159,7 @@ export default function KPlanSection({ passport: initial, studentId, studentName
 
         {/* 2-line SEND info preview (always visible) */}
         <div className="px-4 py-3 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">SEND Information</p>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">SEND Information</p>
           <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">{passport.sendInformation}</p>
         </div>
 
@@ -199,8 +199,8 @@ export default function KPlanSection({ passport: initial, studentId, studentName
 
             {/* Student commitments */}
             <div className="px-4 py-4">
-              <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">I will help myself by</p>
-              <p className="text-[11px] text-gray-400 italic mb-2">{firstName}&apos;s own commitments</p>
+              <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">I will help myself by</p>
+              <p className="text-[11px] text-gray-500 italic mb-2">{firstName}&apos;s own commitments</p>
               <ul className="space-y-1.5">
                 {passport.studentCommitments.map((c, i) => (
                   <li key={i} className="flex items-start gap-2 text-[13px] text-gray-700">

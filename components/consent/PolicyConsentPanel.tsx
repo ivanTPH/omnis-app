@@ -119,7 +119,7 @@ export default function PolicyConsentPanel({ items, checked, onChange, attempted
                 type="button"
                 aria-label="Close policy"
                 onClick={() => setViewing(null)}
-                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors shrink-0"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors shrink-0"
               >
                 <Icon name="close" size="sm" />
               </button>
@@ -132,7 +132,7 @@ export default function PolicyConsentPanel({ items, checked, onChange, attempted
 
             {/* Footer */}
             <div className="px-5 sm:px-6 py-4 border-t border-gray-100 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-500">
                 Tick the checkbox to confirm you have read and accept this policy.
               </p>
               <button

@@ -126,7 +126,7 @@ export default function EhcpCard({ plan, isSenco }: Props) {
           </div>
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide block">
-              SENCO review commentary <span className="font-normal text-amber-600">(logged with approval)</span>
+              SENCO review commentary <span className="font-normal text-amber-700">(logged with approval)</span>
             </label>
             <textarea
               value={reviewNote}
@@ -218,7 +218,7 @@ export default function EhcpCard({ plan, isSenco }: Props) {
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-sm ${isEmpty ? 'text-gray-400 italic' : 'text-gray-700'}`}>
+                      <p className={`text-sm ${isEmpty ? 'text-gray-500 italic' : 'text-gray-700'}`}>
                         {isEmpty ? (key === 'J' ? 'Not applicable' : 'Not yet completed') : content}
                       </p>
                     )}
@@ -276,7 +276,7 @@ export default function EhcpCard({ plan, isSenco }: Props) {
                         </span>
                       )}
                       {r.amendmentsNeeded && (
-                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">
                           Amendments needed
                         </span>
                       )}
@@ -293,10 +293,10 @@ export default function EhcpCard({ plan, isSenco }: Props) {
                     </div>
                   </div>
                   <p className="text-[11px] text-gray-600 line-clamp-2">{r.summary}</p>
-                  <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                  <div className="flex items-center gap-3 text-[10px] text-gray-500">
                     <span>Reviewed by {r.reviewerName}</span>
                     <span>Next review: {new Date(r.newReviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                    {r.laNotified && <span className="text-green-600">LA notified</span>}
+                    {r.laNotified && <span className="text-green-700">LA notified</span>}
                   </div>
                 </div>
               ))}
@@ -304,7 +304,7 @@ export default function EhcpCard({ plan, isSenco }: Props) {
           )}
 
           {annualReviews.length === 0 && (
-            <p className="px-4 py-3 text-[12px] text-gray-400">No annual reviews recorded yet.</p>
+            <p className="px-4 py-3 text-[12px] text-gray-500">No annual reviews recorded yet.</p>
           )}
         </div>
       )}
@@ -359,9 +359,9 @@ export default function EhcpCard({ plan, isSenco }: Props) {
           {auditOpen && (
             <div className="mt-3">
               {auditLoading ? (
-                <p className="text-xs text-gray-400 animate-pulse">Loading…</p>
+                <p className="text-xs text-gray-500 animate-pulse">Loading…</p>
               ) : !auditEntries || auditEntries.length === 0 ? (
-                <p className="text-xs text-gray-400">No edits recorded yet.</p>
+                <p className="text-xs text-gray-500">No edits recorded yet.</p>
               ) : (
                 <ol className="relative border-l border-gray-200 space-y-4 pl-4">
                   {auditEntries.map(entry => (

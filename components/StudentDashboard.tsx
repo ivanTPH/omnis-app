@@ -24,9 +24,9 @@ export default function StudentDashboard({ data, staffView = false }: { data: St
     : data.homeworks.filter(h => h.subject === subjectFilter)
 
   const scoreColor = (score: number | null) =>
-    score == null       ? 'text-gray-400' :
-    score >= 75         ? 'text-green-600' :
-    score >= 55         ? 'text-amber-600' :
+    score == null       ? 'text-gray-500' :
+    score >= 75         ? 'text-green-700' :
+    score >= 55         ? 'text-amber-700' :
     'text-rose-600'
 
   return (
@@ -124,7 +124,7 @@ export default function StudentDashboard({ data, staffView = false }: { data: St
               )
             })}
           </div>
-          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-[10px] text-gray-400 uppercase tracking-wide">
+          <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100 text-[10px] text-gray-500 uppercase tracking-wide">
             <span className="flex-1 pl-28">Completion →</span>
             <span className="w-9 text-right">Rate</span>
             <span className="w-8 text-right">Score</span>
@@ -183,11 +183,11 @@ export default function StudentDashboard({ data, staffView = false }: { data: St
                   {/* Title + subject badge */}
                   <div className="min-w-0">
                     <p className="font-medium text-gray-800 group-hover:text-blue-700 truncate transition-colors">{hw.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 sm:hidden">{hw.class} · {due}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 sm:hidden">{hw.class} · {due}</p>
                     <span className="sm:hidden inline-flex items-center mt-1">
                       {hw.submitted
-                        ? <span className="text-[10px] text-green-600 font-medium">Submitted</span>
-                        : <span className="text-[10px] text-rose-500 font-medium">Not submitted</span>}
+                        ? <span className="text-[10px] text-green-700 font-medium">Submitted</span>
+                        : <span className="text-[10px] text-rose-600 font-medium">Not submitted</span>}
                     </span>
                   </div>
 
@@ -207,8 +207,8 @@ export default function StudentDashboard({ data, staffView = false }: { data: St
                   {/* Score */}
                   <div className={`text-right font-semibold ${scoreColor(hw.score)}`}>
                     {hw.submitted
-                      ? hw.score != null ? formatRawScore(hw.score) : <span className="text-gray-400 font-normal text-xs">Pending</span>
-                      : <span className="text-gray-300 font-normal text-xs">—</span>}
+                      ? hw.score != null ? formatRawScore(hw.score) : <span className="text-gray-500 font-normal text-xs">Pending</span>
+                      : <span className="text-gray-500 font-normal text-xs">—</span>}
                   </div>
                 </Link>
               )
@@ -239,8 +239,8 @@ function KpiCard({ iconName, label, value, color }: {
 }) {
   const bg: Record<string, string> = {
     blue:   'bg-blue-50   text-blue-700',
-    green:  'bg-green-50  text-green-700',
-    amber:  'bg-amber-50  text-amber-700',
+    green:  'bg-green-50  text-green-800',
+    amber:  'bg-amber-50  text-amber-800',
     purple: 'bg-purple-50 text-purple-700',
   }
   return (

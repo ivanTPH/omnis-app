@@ -147,7 +147,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Icon name="refresh" size="sm" className="animate-spin text-gray-400" />
+        <Icon name="refresh" size="sm" className="animate-spin text-gray-500" />
       </div>
     )
   }
@@ -161,7 +161,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
         <div>
           <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">APDR Cycle</p>
           {activeCycle && (
-            <p className="text-[11px] text-gray-400 mt-0.5">
+            <p className="text-[11px] text-gray-500 mt-0.5">
               Cycle {activeCycle.cycleNumber} · Review due {new Date(activeCycle.reviewDate).toLocaleDateString('en-GB')}
             </p>
           )}
@@ -190,7 +190,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
 
       {/* No APDR yet */}
       {!activeCycle && cycles?.length === 0 && (
-        <div className="text-center py-6 text-[12px] text-gray-400">
+        <div className="text-center py-6 text-[12px] text-gray-500">
           No APDR cycle yet.{isSenco ? ' Click Generate to create one.' : ''}
         </div>
       )}
@@ -216,8 +216,8 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
           )}
           {activeCycle.approvedBySenco && (
             <div className="flex items-center gap-1.5 bg-green-50 border-b border-green-100 px-3 py-1.5">
-              <Icon name="check_circle" size="sm" className="text-green-600" />
-              <span className="text-[11px] text-green-700">Approved · visible to all staff</span>
+              <Icon name="check_circle" size="sm" className="text-green-800" />
+              <span className="text-[11px] text-green-800">Approved · visible to all staff</span>
             </div>
           )}
 
@@ -235,7 +235,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${COLOUR_MAP[colour].label}`}>
                         {label}
                       </span>
-                      <span className="text-[10px] text-gray-400">{desc}</span>
+                      <span className="text-[10px] text-gray-500">{desc}</span>
                     </div>
                     {canEdit && !isEditing && (
                       <button
@@ -273,7 +273,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
                       </div>
                     </div>
                   ) : (
-                    <p className={`text-[12px] ${hasContent ? 'text-gray-700' : 'text-gray-400 italic'}`}>
+                    <p className={`text-[12px] ${hasContent ? 'text-gray-700' : 'text-gray-500 italic'}`}>
                       {hasContent ? content : (label === 'Do' ? 'No notes added yet.' : label === 'Review' ? 'Review not yet completed.' : 'Not yet completed.')}
                     </p>
                   )}
@@ -330,7 +330,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
             <div className="border-t border-gray-100 px-3 py-2 bg-gray-50">
               <button
                 onClick={() => handleToggleAudit(activeCycle.id)}
-                className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600"
+                className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-600"
               >
                 <Icon name="history" size="sm" />
                 {auditOpen === activeCycle.id ? 'Hide' : 'Show'} edit history
@@ -340,16 +340,16 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
               {auditOpen === activeCycle.id && (
                 <div className="mt-2">
                   {auditLoading ? (
-                    <p className="text-[11px] text-gray-400 animate-pulse">Loading…</p>
+                    <p className="text-[11px] text-gray-500 animate-pulse">Loading…</p>
                   ) : !auditEntries[activeCycle.id]?.length ? (
-                    <p className="text-[11px] text-gray-400">No edits recorded yet.</p>
+                    <p className="text-[11px] text-gray-500">No edits recorded yet.</p>
                   ) : (
                     <ol className="relative border-l border-gray-200 space-y-3 pl-3">
                       {auditEntries[activeCycle.id].map(e => (
                         <li key={e.id} className="relative">
                           <span className="absolute -left-[0.85rem] top-1 w-1.5 h-1.5 rounded-full bg-amber-400 border-2 border-white" />
                           <p className="text-[11px] font-medium text-gray-800">
-                            {e.userName} <span className="font-normal text-gray-400">({ROLE_LABELS[e.userRole] ?? e.userRole})</span>
+                            {e.userName} <span className="font-normal text-gray-500">({ROLE_LABELS[e.userRole] ?? e.userRole})</span>
                             {' '}edited <span className="font-medium">{e.fieldChanged}</span>
                             {' '}on {new Date(e.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
@@ -378,7 +378,7 @@ export default function StudentAPDRPanel({ studentId, userRole }: Props) {
         <div>
           <button
             onClick={() => setHistoryOpen(p => !p)}
-            className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600 font-medium"
+            className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-600 font-medium"
           >
             <Icon name="expand_more" size="sm" className={`transition-transform ${historyOpen ? '' : '-rotate-90'}`} />
             {completedCycles.length} completed cycle{completedCycles.length > 1 ? 's' : ''}

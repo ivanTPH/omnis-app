@@ -34,10 +34,10 @@ export default async function IlpListPage() {
     [PlanStatus.ARCHIVED]:             'Archived',
   }
   const statusStyle: Record<string, string> = {
-    [PlanStatus.DRAFT]:                'bg-gray-100 text-gray-500',
+    [PlanStatus.DRAFT]:                'bg-gray-100 text-gray-600',
     [PlanStatus.ACTIVE_INTERNAL]:      'bg-teal-50 text-teal-700',
-    [PlanStatus.ACTIVE_PARENT_SHARED]: 'bg-green-100 text-green-700',
-    [PlanStatus.ARCHIVED]:             'bg-gray-100 text-gray-400',
+    [PlanStatus.ACTIVE_PARENT_SHARED]: 'bg-green-100 text-green-800',
+    [PlanStatus.ARCHIVED]:             'bg-gray-100 text-gray-600',
   }
 
   return (
@@ -46,18 +46,18 @@ export default async function IlpListPage() {
         <div className="max-w-4xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
           <div className="flex items-center gap-3 mb-8">
-            <Link href="/send/dashboard" className="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
+            <Link href="/send/dashboard" className="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-600 hover:text-gray-700">
               <Icon name="chevron_left" size="sm" />
             </Link>
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">ILP Records</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">{sendStatuses.length} student{sendStatuses.length !== 1 ? 's' : ''} on the SEND register</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">{sendStatuses.length} student{sendStatuses.length !== 1 ? 's' : ''} on the SEND register</p>
             </div>
           </div>
 
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             {sendStatuses.length === 0 ? (
-              <div className="py-16 text-center text-gray-400">
+              <div className="py-16 text-center text-gray-500">
                 <Icon name="favorite" size="lg" className="mx-auto mb-3 opacity-30" />
                 <p className="text-[14px] font-medium">No ILP records yet</p>
               </div>
@@ -79,7 +79,7 @@ export default async function IlpListPage() {
 
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-gray-900">{ss.student.firstName} {ss.student.lastName}</p>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-gray-500">
                           Year {ss.student.yearGroup ?? '—'}
                           {ss.needArea && <span className="ml-2 text-blue-600">{ss.needArea}</span>}
                         </p>
@@ -95,20 +95,20 @@ export default async function IlpListPage() {
                         <>
                           <div className="shrink-0 text-right">
                             <p className="text-[12px] text-gray-500">{plan.targets.length} target{plan.targets.length !== 1 ? 's' : ''}</p>
-                            <p className="text-[11px] text-gray-400">{plan.strategies.length} strateg{plan.strategies.length !== 1 ? 'ies' : 'y'}</p>
+                            <p className="text-[11px] text-gray-500">{plan.strategies.length} strateg{plan.strategies.length !== 1 ? 'ies' : 'y'}</p>
                           </div>
-                          <span className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${statusStyle[plan.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                          <span className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${statusStyle[plan.status] ?? 'bg-gray-100 text-gray-600'}`}>
                             {statusLabel[plan.status] ?? plan.status}
                           </span>
                           <div className="shrink-0 text-right w-24">
                             <p className="text-[11px] text-gray-500">
                               {new Date(plan.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
-                            <p className="text-[10px] text-gray-400">Review</p>
+                            <p className="text-[10px] text-gray-500">Review</p>
                           </div>
                         </>
                       ) : (
-                        <span className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-400">No Plan</span>
+                        <span className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600">No Plan</span>
                       )}
 
                       <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0 group-hover:text-blue-400 transition" />

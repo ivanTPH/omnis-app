@@ -1,7 +1,7 @@
 import type { AuditLogRow } from '@/app/actions/platform-admin'
 
 const ACTION_COLOURS: Record<string, string> = {
-  'school.created':     'bg-green-100 text-green-700',
+  'school.created':     'bg-green-100 text-green-800',
   'school.activated':   'bg-blue-100 text-blue-700',
   'school.deactivated': 'bg-red-100 text-red-700',
   'flag.toggled':       'bg-purple-100 text-purple-700',
@@ -27,7 +27,7 @@ export default function PlatformAuditLogTable({ logs }: { logs: AuditLogRow[] })
           <tbody className="divide-y divide-gray-50">
             {logs.map(log => (
               <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap">
+                <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">
                   {new Date(log.createdAt).toLocaleString('en-GB', {
                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                   })}
@@ -38,10 +38,10 @@ export default function PlatformAuditLogTable({ logs }: { logs: AuditLogRow[] })
                     {log.action}
                   </span>
                 </td>
-                <td className="px-3 py-2.5 text-gray-400 font-mono text-[10px] truncate max-w-[120px]">
+                <td className="px-3 py-2.5 text-gray-500 font-mono text-[10px] truncate max-w-[120px]">
                   {log.target ?? '—'}
                 </td>
-                <td className="px-3 py-2.5 text-gray-400 max-w-[180px] truncate">
+                <td className="px-3 py-2.5 text-gray-500 max-w-[180px] truncate">
                   {log.metadata ? JSON.stringify(log.metadata) : '—'}
                 </td>
               </tr>
@@ -49,7 +49,7 @@ export default function PlatformAuditLogTable({ logs }: { logs: AuditLogRow[] })
           </tbody>
         </table>
         {logs.length === 0 && (
-          <p className="text-center py-8 text-[13px] text-gray-400">No audit log entries yet.</p>
+          <p className="text-center py-8 text-[13px] text-gray-500">No audit log entries yet.</p>
         )}
       </div>
     </div>

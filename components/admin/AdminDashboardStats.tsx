@@ -3,12 +3,12 @@ import type { AdminDashboardData } from '@/app/actions/admin'
 
 const STATS = [
   { key: 'studentCount',      label: 'Students',            iconName: 'people',          colour: 'text-blue-600'   },
-  { key: 'staffCount',        label: 'Staff',                iconName: 'how_to_reg',      colour: 'text-green-600'  },
+  { key: 'staffCount',        label: 'Staff',                iconName: 'how_to_reg',      colour: 'text-green-700'  },
   { key: 'classCount',        label: 'Classes',              iconName: 'menu_book',       colour: 'text-gray-900'   },
   { key: 'sendCount',         label: 'On SEND Register',     iconName: 'favorite',        colour: 'text-purple-600' },
-  { key: 'activeIlpCount',    label: 'Active Plans',         iconName: 'description',     colour: 'text-teal-600'   },
-  { key: 'openConcerns',      label: 'Open Concerns',        iconName: 'report_problem',  colour: 'text-orange-600' },
-  { key: 'pendingActivation', label: 'Not yet logged in',    iconName: 'schedule',        colour: 'text-amber-500'  },
+  { key: 'activeIlpCount',    label: 'Active Plans',         iconName: 'description',     colour: 'text-teal-700'   },
+  { key: 'openConcerns',      label: 'Open Concerns',        iconName: 'report_problem',  colour: 'text-orange-700' },
+  { key: 'pendingActivation', label: 'Not yet logged in',    iconName: 'schedule',        colour: 'text-amber-700'  },
 ] as const
 
 export default function AdminDashboardStats({ data }: { data: AdminDashboardData }) {
@@ -18,7 +18,7 @@ export default function AdminDashboardStats({ data }: { data: AdminDashboardData
         <div key={key} className="bg-white border border-gray-200 rounded-xl p-5">
           <div className="flex items-center gap-1.5 mb-2">
             <Icon name={iconName} size="sm" className={colour} />
-            <p className="text-[11px] text-gray-400 font-medium">{label}</p>
+            <p className="text-[11px] text-gray-500 font-medium">{label}</p>
           </div>
           <p className={`text-[26px] font-bold ${colour}`}>{data[key]}</p>
         </div>

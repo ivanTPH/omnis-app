@@ -11,9 +11,9 @@ import { savePlanNote, messageSencoAboutPlan } from '@/app/actions/plans'
 import type { IlpRow, EhcpRow, KPlanRow, PlanNote } from '@/app/actions/plans'
 
 const ILP_STATUS: Record<string, string> = {
-  active:       'bg-green-100 text-green-700',
-  under_review: 'bg-amber-100 text-amber-700',
-  archived:     'bg-gray-100 text-gray-400',
+  active:       'bg-green-100 text-green-800',
+  under_review: 'bg-amber-100 text-amber-800',
+  archived:     'bg-gray-100 text-gray-600',
 }
 const ILP_LABEL: Record<string, string> = {
   active:       'Active',
@@ -28,7 +28,7 @@ function isOverdue(d: string) {
 function ReviewDate({ date }: { date: string }) {
   const overdue = isOverdue(date)
   return (
-    <div className={`flex items-center gap-1 text-[11px] shrink-0 ${overdue ? 'text-rose-600 font-semibold' : 'text-gray-400'}`}>
+    <div className={`flex items-center gap-1 text-[11px] shrink-0 ${overdue ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>
       <Icon name="calendar_today" size="sm" />
       {overdue
         ? 'Review overdue'
@@ -87,7 +87,7 @@ function NotesPanel({
           {notes.map(n => (
             <div key={n.id} className="bg-gray-50 rounded-lg px-3 py-2 text-[12px]">
               <p className="text-gray-700 whitespace-pre-wrap">{n.note}</p>
-              <p className="text-gray-400 mt-1">
+              <p className="text-gray-500 mt-1">
                 {n.teacherName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
@@ -209,7 +209,7 @@ export default function PlansView({
           {/* ILPs */}
           {ilps.length > 0 && (
             <section>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Icon name="favorite_border" size="sm" /> Individual Learning Plans ({ilps.length})
               </p>
               <div className="space-y-2">
@@ -232,11 +232,11 @@ export default function PlansView({
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900">{studentName}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5 truncate">
+                          <p className="text-[11px] text-gray-500 mt-0.5 truncate">
                             {ilp.sendCategory}{activeTargets > 0 ? ` · ${activeTargets} active target${activeTargets !== 1 ? 's' : ''}` : ''}
                           </p>
                         </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 ${ILP_STATUS[ilp.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 ${ILP_STATUS[ilp.status] ?? 'bg-gray-100 text-gray-600'}`}>
                           {ILP_LABEL[ilp.status] ?? ilp.status}
                         </span>
                         <ReviewDate date={ilp.reviewDate} />
@@ -260,7 +260,7 @@ export default function PlansView({
           {/* EHCPs */}
           {ehcps.length > 0 && (
             <section>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Icon name="verified_user" size="sm" /> EHCP Plans ({ehcps.length})
               </p>
               <div className="space-y-2">
@@ -282,7 +282,7 @@ export default function PlansView({
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900">{studentName}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5 truncate">
+                          <p className="text-[11px] text-gray-500 mt-0.5 truncate">
                             EHCP · {ehcp.localAuthority}
                           </p>
                         </div>
@@ -308,7 +308,7 @@ export default function PlansView({
           {/* K Plans */}
           {kplans.length > 0 && (
             <section>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                 <Icon name="menu_book" size="sm" /> K Plans / Learning Passports ({kplans.length})
               </p>
               <div className="space-y-2">
@@ -329,12 +329,12 @@ export default function PlansView({
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-gray-900">{studentName}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">K Plan · Learning Passport</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5">K Plan · Learning Passport</p>
                         </div>
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 ${
                           kplan.status === 'ACTIVE_PARENT_SHARED'
                             ? 'bg-blue-100 text-blue-700'
-                            : 'bg-green-100 text-green-700'
+                            : 'bg-green-100 text-green-800'
                         }`}>
                           {kplan.status === 'ACTIVE_PARENT_SHARED' ? 'Shared' : 'Active'}
                         </span>

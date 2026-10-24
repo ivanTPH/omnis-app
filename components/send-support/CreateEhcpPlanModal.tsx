@@ -82,7 +82,7 @@ export default function CreateEhcpPlanModal({ students, onClose }: Props) {
         <div className="sticky top-0 bg-white flex items-center justify-between px-6 py-4 border-b border-gray-100 z-10">
           <div>
             <h2 className="font-semibold text-gray-900">New EHCP Plan</h2>
-            <p className="text-[12px] text-gray-400 mt-0.5">Creates plan document and updates SEND register to EHCP</p>
+            <p className="text-[12px] text-gray-500 mt-0.5">Creates plan document and updates SEND register to EHCP</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100">
             <Icon name="close" size="md" />
@@ -106,7 +106,7 @@ export default function CreateEhcpPlanModal({ students, onClose }: Props) {
               ))}
             </select>
             {students.length === 0 && (
-              <p className="text-[11px] text-amber-600 mt-1">All SEND-registered students already have EHCP plan documents.</p>
+              <p className="text-[11px] text-amber-700 mt-1">All SEND-registered students already have EHCP plan documents.</p>
             )}
           </div>
 
@@ -205,7 +205,7 @@ export default function CreateEhcpPlanModal({ students, onClose }: Props) {
           </div>
 
           {error && (
-            <p className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-[12px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</p>
           )}
 
           {/* Actions */}

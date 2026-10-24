@@ -124,7 +124,7 @@ export default function IlpForm({ studentId, studentName, onClose }: Props) {
           <div key={s} className={`flex-1 h-1 rounded-full ${step >= s ? 'bg-blue-600' : 'bg-gray-200'}`} />
         ))}
       </div>
-      <p className="text-xs text-gray-400">Step {step} of 3 — Creating ILP for {studentName}</p>
+      <p className="text-xs text-gray-500">Step {step} of 3 — Creating ILP for {studentName}</p>
 
       {/* Step 1 */}
       {step === 1 && (
@@ -161,7 +161,7 @@ export default function IlpForm({ studentId, studentName, onClose }: Props) {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-700">Target {i + 1}</p>
                 {targets.length > 1 && (
-                  <button onClick={() => removeTarget(i)} className="p-1 hover:bg-gray-100 rounded text-gray-400">
+                  <button onClick={() => removeTarget(i)} className="p-1 hover:bg-gray-100 rounded text-gray-600">
                     <Icon name="delete" size="sm" />
                   </button>
                 )}

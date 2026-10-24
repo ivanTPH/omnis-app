@@ -33,14 +33,14 @@ export default async function AcademySendPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: 'On SEND Register',  value: `${totalSend.toLocaleString()} (${sendPct}%)`, icon: 'favorite',       colour: 'text-purple-600' },
-              { label: 'Active ILPs',        value: totalIlps.toLocaleString(),                   icon: 'description',    colour: 'text-amber-600'  },
+              { label: 'Active ILPs',        value: totalIlps.toLocaleString(),                   icon: 'description',    colour: 'text-amber-700'  },
               { label: 'EHCP Plans',         value: totalEhcps.toLocaleString(),                  icon: 'fact_check',     colour: 'text-rose-600'   },
-              { label: 'Open Concerns',      value: totalConcerns.toLocaleString(),               icon: 'report_problem', colour: 'text-orange-600' },
+              { label: 'Open Concerns',      value: totalConcerns.toLocaleString(),               icon: 'report_problem', colour: 'text-orange-700' },
             ].map(({ label, value, icon, colour }) => (
               <div key={label} className="bg-white border border-gray-200 rounded-xl p-5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Icon name={icon} size="sm" className={colour} />
-                  <p className="text-[11px] text-gray-400 font-medium">{label}</p>
+                  <p className="text-[11px] text-gray-500 font-medium">{label}</p>
                 </div>
                 <p className={`text-[24px] font-bold ${colour}`}>{value}</p>
               </div>
@@ -74,34 +74,34 @@ export default async function AcademySendPage() {
                         <td className="px-4 py-3 font-medium text-gray-900">{s.name}</td>
                         <td className="px-4 py-3 text-right text-gray-600">{s.studentCount.toLocaleString()}</td>
                         <td className="px-4 py-3 text-right">
-                          <span className={s.sendStudents > 0 ? 'text-purple-700 font-medium' : 'text-gray-300'}>
+                          <span className={s.sendStudents > 0 ? 'text-purple-700 font-medium' : 'text-gray-500'}>
                             {s.sendStudents > 0 ? s.sendStudents : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           {s.sendStudents > 0 ? (
-                            <span className={`font-medium ${pct >= 20 ? 'text-amber-600' : 'text-gray-600'}`}>
+                            <span className={`font-medium ${pct >= 20 ? 'text-amber-700' : 'text-gray-600'}`}>
                               {pct}%
                             </span>
-                          ) : <span className="text-gray-300">—</span>}
+                          ) : <span className="text-gray-500">—</span>}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className={s.activeIlps > 0 ? 'text-amber-700 font-medium' : 'text-gray-300'}>
+                          <span className={s.activeIlps > 0 ? 'text-amber-700 font-medium' : 'text-gray-500'}>
                             {s.activeIlps > 0 ? s.activeIlps : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className={s.ehcps > 0 ? 'text-rose-700 font-medium' : 'text-gray-300'}>
+                          <span className={s.ehcps > 0 ? 'text-rose-700 font-medium' : 'text-gray-500'}>
                             {s.ehcps > 0 ? s.ehcps : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
                           {s.openConcerns > 0 ? (
-                            <span className="inline-flex items-center justify-end gap-1 text-orange-600 font-medium">
+                            <span className="inline-flex items-center justify-end gap-1 text-orange-700 font-medium">
                               <Icon name="report_problem" size="sm" />
                               {s.openConcerns}
                             </span>
-                          ) : <span className="text-gray-300">—</span>}
+                          ) : <span className="text-gray-500">—</span>}
                         </td>
                       </tr>
                     )
@@ -114,7 +114,7 @@ export default async function AcademySendPage() {
                     <td className="px-4 py-3 text-right text-gray-700">{sendPct}%</td>
                     <td className="px-4 py-3 text-right text-amber-700">{totalIlps}</td>
                     <td className="px-4 py-3 text-right text-rose-700">{totalEhcps}</td>
-                    <td className="px-4 py-3 text-right text-orange-600">{totalConcerns}</td>
+                    <td className="px-4 py-3 text-right text-orange-700">{totalConcerns}</td>
                   </tr>
                 </tbody>
               </table>

@@ -41,12 +41,12 @@ function QJQuestion({ q, i }: { q: Record<string, unknown>; i: number }) {
       <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
         <p className="text-[13px] font-medium text-gray-900">{i + 1}. {prompt}</p>
         {marks != null && (
-          <span className="text-[10px] text-gray-400 mt-0.5">[{marks} mark{marks !== 1 ? 's' : ''}]</span>
+          <span className="text-[10px] text-gray-500 mt-0.5">[{marks} mark{marks !== 1 ? 's' : ''}]</span>
         )}
       </div>
       {(answer || ms) && (
         <div className="px-4 py-3 bg-green-50 border-b border-green-100">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">Model answer</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-green-700 mb-1">Model answer</p>
           <p className="text-[12px] text-green-900 leading-snug">{answer || ms}</p>
         </div>
       )}
@@ -66,7 +66,7 @@ function SCQuestionCard({ q, i }: { q: SCQuestion; i: number }) {
         <p className="text-[13px] font-medium text-gray-900">{i + 1}. {prompt}</p>
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {marks != null && (
-            <span className="text-[10px] text-gray-400">[{marks} mark{marks !== 1 ? 's' : ''}]</span>
+            <span className="text-[10px] text-gray-500">[{marks} mark{marks !== 1 ? 's' : ''}]</span>
           )}
           {hasSend && (
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700">SEND scaffold</span>
@@ -77,7 +77,7 @@ function SCQuestionCard({ q, i }: { q: SCQuestion; i: number }) {
       {/* MCQ options */}
       {q.options && q.options.length > 0 && (
         <div className="px-4 py-2 border-b border-gray-100">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Options</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Options</p>
           <ul className="space-y-1">
             {q.options.map((opt, j) => (
               <li key={j} className={`text-[12px] flex items-center gap-2 ${opt === answer ? 'text-green-700 font-semibold' : 'text-gray-600'}`}>
@@ -93,7 +93,7 @@ function SCQuestionCard({ q, i }: { q: SCQuestion; i: number }) {
       {/* Model answer for non-MCQ */}
       {answer && !q.options && (
         <div className="px-4 py-3 bg-green-50 border-b border-green-100">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">Model answer</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-green-700 mb-1">Model answer</p>
           <p className="text-[12px] text-green-900 leading-snug">{answer}</p>
         </div>
       )}
@@ -172,7 +172,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
             </div>
             <div>
               <p className="text-[13px] font-semibold text-gray-900 leading-tight">{title}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Teacher view — students do not see model answers</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Teacher view — students do not see model answers</p>
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-gray-100 transition-colors">
@@ -183,7 +183,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {loading && (
-            <div className="flex items-center gap-2 text-[12px] text-gray-400 py-8 justify-center">
+            <div className="flex items-center gap-2 text-[12px] text-gray-500 py-8 justify-center">
               <Icon name="refresh" size="sm" className="animate-spin" /> Loading homework detail…
             </div>
           )}
@@ -216,7 +216,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Instructions */}
               {hw.instructions && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Instructions</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Instructions</p>
                   <p className="text-[13px] text-gray-800 leading-relaxed">{hw.instructions}</p>
                 </div>
               )}
@@ -235,7 +235,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Questions from structuredContent (richest source — has scaffold hints) */}
               {scQuestions.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1">
                     <Icon name="menu_book" size="sm" /> Questions &amp; model answers
                   </p>
                   <div className="space-y-3">
@@ -249,7 +249,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Fallback: questionsJson flat array */}
               {scQuestions.length === 0 && qJson.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1">
                     <Icon name="menu_book" size="sm" /> Questions &amp; model answers
                   </p>
                   <div className="space-y-3">
@@ -263,7 +263,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Fallback: HomeworkQuestion rows */}
               {scQuestions.length === 0 && qJson.length === 0 && hqRows.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2 flex items-center gap-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1">
                     <Icon name="menu_book" size="sm" /> Questions &amp; mark scheme
                   </p>
                   <div className="space-y-3">
@@ -275,7 +275,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
                         <div key={q.id} className="border border-gray-100 rounded-xl overflow-hidden">
                           <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
                             <p className="text-[13px] font-medium text-gray-900">{i + 1}. {q.prompt}</p>
-                            <span className="text-[10px] text-gray-400">[{q.maxScore} mark{q.maxScore !== 1 ? 's' : ''}]</span>
+                            <span className="text-[10px] text-gray-500">[{q.maxScore} mark{q.maxScore !== 1 ? 's' : ''}]</span>
                           </div>
                           {opts && opts.length > 0 && (
                             <div className="px-4 py-2 border-b border-gray-100">
@@ -294,13 +294,13 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
                           )}
                           {!opts && correct && (
                             <div className="px-4 py-3 bg-green-50">
-                              <p className="text-[10px] font-bold uppercase tracking-wide text-green-600 mb-1">Model answer</p>
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-green-700 mb-1">Model answer</p>
                               <p className="text-[12px] text-green-900">{Array.isArray(correct) ? correct.join(', ') : correct}</p>
                             </div>
                           )}
                           {rubric && (
                             <div className="px-4 py-2 bg-amber-50">
-                              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-600 mb-1">Rubric</p>
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">Rubric</p>
                               {Object.entries(rubric).map(([k, v]) => (
                                 <p key={k} className="text-[12px] text-amber-900">{k}: {v}</p>
                               ))}
@@ -321,7 +321,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Model answer — only for extended writing / UPLOAD where no per-question answers exist */}
               {hw.modelAnswer && scQuestions.length === 0 && qJson.length === 0 && hqRows.length === 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Model answer</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Model answer</p>
                   <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
                     <p className="text-[13px] text-green-900 leading-relaxed whitespace-pre-wrap">{hw.modelAnswer}</p>
                   </div>
@@ -331,7 +331,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
               {/* Grading bands / mark scheme */}
               {bands && Object.keys(bands).length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-2">Mark scheme / grading bands</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-2">Mark scheme / grading bands</p>
                   <div className="border border-gray-200 rounded-xl overflow-hidden">
                     {Object.entries(bands)
                       .sort(([a], [b]) => Number(b) - Number(a))
@@ -347,7 +347,7 @@ export default function HomeworkDetailPanel({ homeworkId, title, onClose }: Prop
 
               {/* Nothing to show */}
               {scQuestions.length === 0 && qJson.length === 0 && hqRows.length === 0 && !hw.modelAnswer && !bands && (
-                <div className="text-center py-8 text-[12px] text-gray-400 italic">
+                <div className="text-center py-8 text-[12px] text-gray-500 italic">
                   No question detail stored for this homework.
                 </div>
               )}

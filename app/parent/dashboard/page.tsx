@@ -130,7 +130,7 @@ export default async function ParentDashboardPage({
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Welcome, {firstName}</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">{schoolName}</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">{schoolName}</p>
             </div>
             {unreadMsgs > 0 && (
               <Link href="/parent/messages" className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-[12px] font-semibold rounded-xl hover:bg-blue-700 transition">
@@ -160,9 +160,9 @@ export default async function ParentDashboardPage({
                         <Icon name="chevron_right" size="sm" className="text-gray-300 mt-0.5 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className={`text-[13px] leading-snug ${!n.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
-                          {n.body && <p className="text-[11px] text-gray-400 mt-0.5">{n.body}</p>}
+                          {n.body && <p className="text-[11px] text-gray-500 mt-0.5">{n.body}</p>}
                         </div>
-                        <time className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                        <time className="text-[10px] text-gray-500 shrink-0 mt-0.5">
                           {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </time>
                       </Link>
@@ -171,9 +171,9 @@ export default async function ParentDashboardPage({
                         <Icon name="circle" size="sm" className="text-gray-200 mt-0.5 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className={`text-[13px] leading-snug ${!n.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>{n.title}</p>
-                          {n.body && <p className="text-[11px] text-gray-400 mt-0.5">{n.body}</p>}
+                          {n.body && <p className="text-[11px] text-gray-500 mt-0.5">{n.body}</p>}
                         </div>
-                        <time className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                        <time className="text-[10px] text-gray-500 shrink-0 mt-0.5">
                           {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </time>
                       </div>
@@ -187,7 +187,7 @@ export default async function ParentDashboardPage({
           {/* Child switcher — only shown when parent has 2+ children */}
           {children.length > 1 && (
             <div className="mb-6">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">My Children</p>
+              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">My Children</p>
               <div className="flex items-center gap-2 flex-wrap">
                 {children.map(child => {
                   const isSelected = child.id === selectedChildId
@@ -216,7 +216,7 @@ export default async function ParentDashboardPage({
           )}
 
           {children.length === 0 && (
-            <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl text-gray-400">
+            <div className="text-center py-16 border border-dashed border-gray-200 rounded-2xl text-gray-500">
               <Icon name="assignment" size="lg" className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">No children linked to your account</p>
               <p className="text-[13px] mt-1">Please contact the school admin</p>
@@ -235,7 +235,7 @@ export default async function ParentDashboardPage({
                 </div>
                 <div>
                   <h2 className="text-[16px] font-bold text-gray-900">{child.firstName} {child.lastName}</h2>
-                  <p className="text-[12px] text-gray-400">
+                  <p className="text-[12px] text-gray-500">
                     {child.enrolments.map((e: any) => e.class.name).join(' · ')}
                   </p>
                 </div>
@@ -244,20 +244,20 @@ export default async function ParentDashboardPage({
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                 <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-[22px] font-bold text-amber-600">{pending.length}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Due</p>
+                  <p className="text-[22px] font-bold text-amber-700">{pending.length}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Due</p>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-4">
                   <p className="text-[22px] font-bold text-blue-600">{awaiting.length}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Awaiting Mark</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Awaiting Mark</p>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-4">
-                  <p className="text-[22px] font-bold text-green-600">{graded.length}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Graded</p>
+                  <p className="text-[22px] font-bold text-green-700">{graded.length}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Graded</p>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl p-4">
                   <p className="text-[22px] font-bold text-gray-900">{completion}%</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Completion</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">Completion</p>
                 </div>
               </div>
 
@@ -277,7 +277,7 @@ export default async function ParentDashboardPage({
                       <div key={hw.id} className="flex items-center justify-between px-5 py-3">
                         <div className="min-w-0 flex-1">
                           <p className="text-[13px] font-medium text-gray-900 truncate">{hw.title}</p>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="text-[11px] text-gray-500">
                             {hw.class.name} · Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                           </p>
                         </div>
@@ -287,15 +287,15 @@ export default async function ParentDashboardPage({
                             : sub
                               ? <span className="bg-blue-50 text-blue-700 text-[11px] font-medium px-2.5 py-0.5 rounded-full">Submitted</span>
                               : overdue
-                                ? <span className="bg-rose-50 text-rose-600 text-[11px] font-medium px-2.5 py-0.5 rounded-full">Overdue</span>
-                                : <span className="bg-amber-50 text-amber-700 text-[11px] font-medium px-2.5 py-0.5 rounded-full">Pending</span>
+                                ? <span className="bg-rose-50 text-rose-700 text-[11px] font-medium px-2.5 py-0.5 rounded-full">Overdue</span>
+                                : <span className="bg-amber-50 text-amber-800 text-[11px] font-medium px-2.5 py-0.5 rounded-full">Pending</span>
                           }
                         </div>
                       </div>
                     )
                   })}
                   {homework.length === 0 && (
-                    <p className="px-5 py-6 text-center text-[13px] text-gray-400">No homework assigned yet</p>
+                    <p className="px-5 py-6 text-center text-[13px] text-gray-500">No homework assigned yet</p>
                   )}
                 </div>
               </div>
@@ -308,7 +308,7 @@ export default async function ParentDashboardPage({
                       <Icon name="track_changes" size="sm" className="text-purple-600" />
                       <h3 className="text-[13px] font-semibold text-purple-900">Support Plan — Shared with you</h3>
                     </div>
-                    <span className="text-[11px] text-purple-500">
+                    <span className="text-[11px] text-purple-600">
                       Review {new Date(plan.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
@@ -318,7 +318,7 @@ export default async function ParentDashboardPage({
                         <div className={`w-1.5 h-1.5 rounded-full mt-2 shrink-0 ${t.achieved ? 'bg-green-500' : 'bg-purple-400'}`} />
                         <div>
                           <p className="text-[12px] font-medium text-purple-900">{t.metricKey}</p>
-                          {t.baselineValue && <p className="text-[11px] text-purple-500">{t.baselineValue} → {t.targetValue}</p>}
+                          {t.baselineValue && <p className="text-[11px] text-purple-600">{t.baselineValue} → {t.targetValue}</p>}
                         </div>
                       </div>
                     ))}
@@ -337,8 +337,8 @@ export default async function ParentDashboardPage({
                                                      'bg-rose-50 border-rose-200'
                 }`}>
                   <Icon name="event_available" size="sm" className={
-                    child.attendancePercentage >= 95 ? 'text-green-600' :
-                    child.attendancePercentage >= 85 ? 'text-amber-600' : 'text-rose-600'
+                    child.attendancePercentage >= 95 ? 'text-green-700' :
+                    child.attendancePercentage >= 85 ? 'text-amber-700' : 'text-rose-600'
                   } />
                   <div className="flex-1">
                     <p className="text-[13px] font-semibold text-gray-900">Attendance</p>
@@ -360,7 +360,7 @@ export default async function ParentDashboardPage({
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="px-5 py-3.5 border-b border-gray-100">
                     <h3 className="text-[13px] font-semibold text-gray-900">Subject Performance</h3>
-                    <p className="text-[11px] text-gray-400 mt-0.5">Based on returned homework</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">Based on returned homework</p>
                   </div>
                   <div className="divide-y divide-gray-100">
                     {subjectAverages.slice(0, 5).map(({ subject, avg, trend }: any) => (
@@ -411,7 +411,7 @@ export default async function ParentDashboardPage({
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">Progress & Grades</p>
-                    <p className="text-[11px] text-gray-400">Subject breakdown</p>
+                    <p className="text-[11px] text-gray-500">Subject breakdown</p>
                   </div>
                   <Icon name="chevron_right" size="sm" className="text-gray-300 ml-auto shrink-0 group-hover:text-blue-400 transition" />
                 </Link>
@@ -421,7 +421,7 @@ export default async function ParentDashboardPage({
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold text-gray-900">Messages</p>
-                    <p className="text-[11px] text-gray-400">Contact teachers</p>
+                    <p className="text-[11px] text-gray-500">Contact teachers</p>
                   </div>
                   <Icon name="chevron_right" size="sm" className="text-gray-300 ml-auto shrink-0 group-hover:text-green-400 transition" />
                 </Link>
@@ -435,7 +435,7 @@ export default async function ParentDashboardPage({
             <Icon name="person_add" size="sm" className="text-gray-400 shrink-0 mt-0.5" />
             <div className="min-w-0">
               <p className="text-[13px] font-semibold text-gray-700">Have another child at {schoolName}?</p>
-              <p className="text-[12px] text-gray-400 mt-0.5">Contact the school office and ask them to link your account. Additional children will appear here automatically.</p>
+              <p className="text-[12px] text-gray-500 mt-0.5">Contact the school office and ask them to link your account. Additional children will appear here automatically.</p>
             </div>
           </div>
 

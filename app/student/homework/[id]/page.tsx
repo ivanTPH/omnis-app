@@ -32,7 +32,7 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
           <div className="flex items-start gap-3">
             <Link
               href="/student/dashboard"
-              className="mt-0.5 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
+              className="mt-0.5 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-700"
             >
               <Icon name="chevron_left" size="sm" />
             </Link>
@@ -49,11 +49,11 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
                     Adapted for you
                   </span>
                 )}
-                <span className="text-[11px] text-gray-400">
+                <span className="text-[11px] text-gray-500">
                   Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
                 {isOverdue && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600">Overdue</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Overdue</span>
                 )}
                 {shareStatus.hasLinkedParent && <SharedWithParentBadge />}
               </div>
@@ -63,13 +63,13 @@ export default async function StudentHomeworkPage({ params }: { params: Promise<
           {/* Status badge */}
           <div className="shrink-0">
             {isReturned && (
-              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-green-100 text-green-700">Returned</span>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-green-100 text-green-800">Returned</span>
             )}
             {isSubmitted && (
-              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-700">Awaiting Feedback</span>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800">Awaiting Feedback</span>
             )}
             {!hw.submission && (
-              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-500">To Do</span>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-gray-100 text-gray-600">To Do</span>
             )}
           </div>
         </div>

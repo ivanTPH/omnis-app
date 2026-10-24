@@ -123,11 +123,11 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
               i < step  ? 'bg-green-500 text-white' :
               i === step ? 'bg-blue-600 text-white' :
-              'bg-gray-200 text-gray-400'
+              'bg-gray-200 text-gray-600'
             }`}>
               {i < step ? <Icon name="check" size="sm" /> : i + 1}
             </div>
-            <span className={`text-[12px] hidden sm:block ${i === step ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+            <span className={`text-[12px] hidden sm:block ${i === step ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
               {label}
             </span>
             {i < STEPS.length - 1 && (
@@ -179,7 +179,7 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
               </div>
               <div>
                 <label className="block text-[12px] font-medium text-gray-700 mb-1">
-                  Email domain <span className="text-gray-400 font-normal">(used to auto-generate student emails from MIS)</span>
+                  Email domain <span className="text-gray-500 font-normal">(used to auto-generate student emails from MIS)</span>
                 </label>
                 <input
                   type="text" value={emailDomain} onChange={e => setEmailDomain(e.target.value)}
@@ -241,7 +241,7 @@ export default function OnboardingWizard({ school }: { school: SchoolData }) {
                     </select>
                   </div>
                   {invites.length > 1 && (
-                    <button onClick={() => removeInvite(i)} className="p-2 text-gray-400 hover:text-red-500 transition">
+                    <button onClick={() => removeInvite(i)} className="p-2 text-gray-500 hover:text-red-600 transition">
                       <Icon name="close" size="sm" />
                     </button>
                   )}

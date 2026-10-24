@@ -106,10 +106,10 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
     [PlanStatus.ARCHIVED]:             'Archived',
   }
   const planStatusStyle: Record<string, string> = {
-    [PlanStatus.DRAFT]:                'bg-gray-100 text-gray-500',
+    [PlanStatus.DRAFT]:                'bg-gray-100 text-gray-600',
     [PlanStatus.ACTIVE_INTERNAL]:      'bg-teal-50 text-teal-700',
-    [PlanStatus.ACTIVE_PARENT_SHARED]: 'bg-green-100 text-green-700',
-    [PlanStatus.ARCHIVED]:             'bg-gray-100 text-gray-400',
+    [PlanStatus.ACTIVE_PARENT_SHARED]: 'bg-green-100 text-green-800',
+    [PlanStatus.ARCHIVED]:             'bg-gray-100 text-gray-600',
   }
 
   return (
@@ -119,7 +119,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
 
           {/* Back + header */}
           <div className="flex items-start gap-3 mb-8">
-            <Link href="/send/ilp" className="mt-1 p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700 shrink-0">
+            <Link href="/send/ilp" className="mt-1 p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-600 hover:text-gray-700 shrink-0">
               <Icon name="chevron_left" size="sm" />
             </Link>
             <div className="flex-1 flex items-start justify-between gap-4 flex-wrap">
@@ -131,7 +131,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   <h1 className="text-[22px] font-bold text-gray-900 leading-tight">{student.firstName} {student.lastName}</h1>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     {student.yearGroup && (
-                      <span className="text-[11px] text-gray-400">Year {student.yearGroup}</span>
+                      <span className="text-[11px] text-gray-500">Year {student.yearGroup}</span>
                     )}
                     {sendStatus && sendStatus.activeStatus !== 'NONE' && (
                       <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
@@ -176,7 +176,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                     <div className="flex items-center gap-2">
                       {reviewDate && (
                         <span className={`text-[11px] font-semibold ${
-                          reviewUrgent ? 'text-red-600' : reviewWarn ? 'text-amber-600' : 'text-gray-400'
+                          reviewUrgent ? 'text-red-600' : reviewWarn ? 'text-amber-700' : 'text-gray-500'
                         }`}>
                           {reviewUrgent && <Icon name="warning" size="sm" className="inline mr-1" />}
                           Review {reviewDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -191,7 +191,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   {/* Targets */}
                   {plan.targets.length > 0 && (
                     <div className="px-5 py-4 border-b border-gray-100">
-                      <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Targets</h3>
+                      <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Targets</h3>
                       <div className="space-y-4">
                         {plan.targets.map(t => (
                           <div key={t.id} className="flex items-start gap-3">
@@ -206,18 +206,18 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                             <div className="flex-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-[13px] font-semibold text-gray-900">{t.metricKey}</p>
-                                <span className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">{t.needCategory}</span>
-                                {t.achieved && <span className="text-[10px] font-bold text-green-600">Achieved</span>}
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">{t.needCategory}</span>
+                                {t.achieved && <span className="text-[10px] font-bold text-green-700">Achieved</span>}
                               </div>
                               <div className="flex items-center gap-2 mt-1">
                                 {t.baselineValue && (
                                   <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded">From: {t.baselineValue}</span>
                                 )}
-                                <span className="text-[10px] text-gray-400">→</span>
+                                <span className="text-[10px] text-gray-500">→</span>
                                 <span className="text-[11px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-medium">{t.targetValue}</span>
                               </div>
                               {t.measurementWindow && (
-                                <p className="text-[10px] text-gray-400 mt-0.5">{t.measurementWindow}</p>
+                                <p className="text-[10px] text-gray-500 mt-0.5">{t.measurementWindow}</p>
                               )}
                             </div>
                           </div>
@@ -229,7 +229,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   {/* In-class strategies */}
                   {classroomStrats.length > 0 && (
                     <div className="px-5 py-4 border-b border-gray-100">
-                      <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">In-Classroom Strategies</h3>
+                      <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">In-Classroom Strategies</h3>
                       <div className="space-y-2">
                         {classroomStrats.map(s => (
                           <div key={s.id} className="flex items-start gap-2">
@@ -244,7 +244,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   {/* Homework strategies */}
                   {hwStrats.length > 0 && (
                     <div className="px-5 py-4">
-                      <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Homework Strategies</h3>
+                      <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Homework Strategies</h3>
                       <div className="space-y-2">
                         {hwStrats.map(s => (
                           <div key={s.id} className="flex items-start gap-2">
@@ -257,7 +257,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   )}
                 </div>
               ) : (
-                <div className="bg-white border border-dashed border-gray-200 rounded-xl py-10 text-center text-gray-400">
+                <div className="bg-white border border-dashed border-gray-200 rounded-xl py-10 text-center text-gray-500">
                   <Icon name="track_changes" size="lg" className="mx-auto mb-2 opacity-30" />
                   <p className="text-[13px] font-medium">No active plan</p>
                   <p className="text-[11px] mt-1">A plan can be created and assigned by the SENCo</p>
@@ -293,12 +293,12 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                           <div className="flex items-center gap-4 text-right">
                             <div>
                               <span className="text-[13px] font-bold text-gray-900">{subs.length}</span>
-                              <span className="text-[11px] text-gray-400 ml-1">submitted</span>
+                              <span className="text-[11px] text-gray-500 ml-1">submitted</span>
                             </div>
                             {avg != null && (
                               <div>
                                 <span className="text-[13px] font-bold text-blue-600">{formatRawScore(avg)}</span>
-                                <span className="text-[11px] text-gray-400 ml-1">avg</span>
+                                <span className="text-[11px] text-gray-500 ml-1">avg</span>
                               </div>
                             )}
                           </div>
@@ -320,7 +320,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                                 {sub.finalScore != null && !sub.grade && (
                                   <span className="text-[11px] font-semibold text-gray-600">{formatRawScore(sub.finalScore)}</span>
                                 )}
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[10px] text-gray-500">
                                   {new Date(sub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                 </span>
                               </div>
@@ -344,13 +344,13 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                   <h3 className="text-[12px] font-semibold text-gray-700">Classes</h3>
                 </div>
                 {enrolments.length === 0 ? (
-                  <p className="text-[12px] text-gray-400">Not enrolled in any classes</p>
+                  <p className="text-[12px] text-gray-500">Not enrolled in any classes</p>
                 ) : (
                   <div className="space-y-2">
                     {enrolments.map(e => (
                       <div key={e.classId} className="text-[12px]">
                         <p className="font-medium text-gray-800">{e.class.name}</p>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-gray-500">
                           {e.class.teachers.map(t => `${t.user.firstName} ${t.user.lastName}`).join(', ')}
                         </p>
                       </div>
@@ -370,7 +370,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                     </div>
                     <div className="flex justify-between text-[12px]">
                       <span className="text-gray-500">Achieved</span>
-                      <span className="font-semibold text-green-600">{plan.targets.filter(t => t.achieved).length}</span>
+                      <span className="font-semibold text-green-700">{plan.targets.filter(t => t.achieved).length}</span>
                     </div>
                     <div className="flex justify-between text-[12px]">
                       <span className="text-gray-500">Strategies</span>
@@ -379,7 +379,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                     {plan.parentSharedAt && (
                       <div className="flex justify-between text-[12px]">
                         <span className="text-gray-500">Shared</span>
-                        <span className="font-semibold text-green-600">
+                        <span className="font-semibold text-green-700">
                           {new Date(plan.parentSharedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
@@ -432,7 +432,7 @@ export default async function StudentIlpPage({ params }: { params: Promise<{ stu
                     </div>
                     <div className="flex justify-between text-[12px]">
                       <span className="text-gray-500">Returned / marked</span>
-                      <span className="font-semibold text-green-600">{submissions.filter(s => s.status === 'RETURNED').length}</span>
+                      <span className="font-semibold text-green-700">{submissions.filter(s => s.status === 'RETURNED').length}</span>
                     </div>
                     {(() => {
                       const scores = submissions.map(s => s.finalScore).filter(s => s != null) as number[]

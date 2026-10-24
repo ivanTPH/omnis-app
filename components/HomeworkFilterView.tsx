@@ -119,7 +119,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
 
   function HwStatusBadge({ status }: { status: string }) {
     const map = {
-      PUBLISHED: 'bg-green-100 text-green-700',
+      PUBLISHED: 'bg-green-100 text-green-800',
       DRAFT:     'bg-gray-100 text-gray-600',
       CLOSED:    'bg-orange-100 text-orange-700',
     } as Record<string,string>
@@ -157,7 +157,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
             <p className="text-[14px] font-semibold text-gray-900 truncate">{hw.title}</p>
             <HwStatusBadge status={hw.status} />
             {overdue && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 shrink-0">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 shrink-0">
                 Overdue
               </span>
             )}
@@ -166,12 +166,12 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
             {hw.class && (
               <span>{hw.class.subject} · {hw.class.name} · Year {hw.class.yearGroup}</span>
             )}
-            <span className="text-gray-300">·</span>
-            <span className="text-gray-400">
+            <span className="text-gray-500">·</span>
+            <span className="text-gray-500">
               Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </span>
             {hw.lesson && (
-              <span className="text-gray-400 truncate max-w-[180px]">↳ {hw.lesson.title}</span>
+              <span className="text-gray-500 truncate max-w-[180px]">↳ {hw.lesson.title}</span>
             )}
           </div>
         </div>
@@ -179,20 +179,20 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-right">
             <p className="text-[13px] font-semibold text-gray-900">
-              {hw.submittedCount}<span className="text-gray-400 font-normal">/{hw.totalEnrolled}</span>
+              {hw.submittedCount}<span className="text-gray-500 font-normal">/{hw.totalEnrolled}</span>
             </p>
-            <p className="text-[10px] text-gray-400">submitted</p>
+            <p className="text-[10px] text-gray-500">submitted</p>
           </div>
           {hw.needsMarkCount > 0 && (
             <div className="text-right">
-              <p className="text-[13px] font-semibold text-amber-600">{hw.needsMarkCount}</p>
-              <p className="text-[10px] text-gray-400">to mark</p>
+              <p className="text-[13px] font-semibold text-amber-700">{hw.needsMarkCount}</p>
+              <p className="text-[10px] text-gray-500">to mark</p>
             </div>
           )}
           {hw.needsMarkCount === 0 && hw.markedCount > 0 && (
             <div className="text-right">
-              <p className="text-[13px] font-semibold text-green-600">{hw.markedCount}</p>
-              <p className="text-[10px] text-gray-400">marked</p>
+              <p className="text-[13px] font-semibold text-green-700">{hw.markedCount}</p>
+              <p className="text-[10px] text-gray-500">marked</p>
             </div>
           )}
           <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-blue-400 transition-colors" />
@@ -256,7 +256,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
 
           {/* Subject */}
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Subject
             </label>
             <select
@@ -271,7 +271,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
 
           {/* Year Group */}
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Year Group
             </label>
             <select
@@ -286,7 +286,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
 
           {/* Class */}
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Class
             </label>
             <select
@@ -301,7 +301,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
 
           {/* Status */}
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Status
             </label>
             <select
@@ -332,7 +332,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
             >
               <Icon name="close" size="sm" />
             </button>
@@ -354,7 +354,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
             ))}
             <button
               onClick={() => { setSubject(''); setYear(''); setClassId(''); setStatus(''); setSearch('') }}
-              className="px-2 py-1 text-[11px] text-gray-400 hover:text-gray-700 underline"
+              className="px-2 py-1 text-[11px] text-gray-500 hover:text-gray-700 underline"
             >
               Clear all
             </button>
@@ -368,28 +368,28 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
           <div className="card-stat p-4 text-center">
             <p className="text-[24px] font-bold text-gray-900">{filtered.length}</p>
             <Tooltip content="Total assignments matching current filters">
-              <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">Assignment{filtered.length !== 1 ? 's' : ''}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 cursor-default">Assignment{filtered.length !== 1 ? 's' : ''}</p>
             </Tooltip>
           </div>
           <div className="card-stat p-4 text-center">
-            <p className={`text-[24px] font-bold ${totalToMark > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+            <p className={`text-[24px] font-bold ${totalToMark > 0 ? 'text-amber-700' : 'text-green-700'}`}>
               {totalToMark}
             </p>
             <Tooltip content="Submissions awaiting teacher marking">
-              <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">To Mark</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 cursor-default">To Mark</p>
             </Tooltip>
           </div>
           <div className="card-stat p-4 text-center">
             <p className={`text-[24px] font-bold ${
-              submissionRate === null ? 'text-gray-400' :
-              submissionRate < 60    ? 'text-rose-500'  :
-              submissionRate < 80    ? 'text-amber-600' :
-              'text-green-600'
+              submissionRate === null ? 'text-gray-500' :
+              submissionRate < 60    ? 'text-rose-600'  :
+              submissionRate < 80    ? 'text-amber-700' :
+              'text-green-700'
             }`}>
               {submissionRate !== null ? `${submissionRate}%` : '—'}
             </p>
             <Tooltip content="Percentage of enrolled students who submitted. Red < 60%, amber < 80%, green ≥ 80%">
-              <p className="text-[11px] text-gray-400 mt-0.5 cursor-default">Submission Rate</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 cursor-default">Submission Rate</p>
             </Tooltip>
           </div>
         </div>
@@ -415,7 +415,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
         <div className="space-y-8">
           {upcoming.length > 0 && (
             <section>
-              <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+              <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">
                 Active &amp; Upcoming
               </h2>
               <div className="space-y-2">
@@ -425,7 +425,7 @@ export default function HomeworkFilterView({ homework, fetchError }: { homework:
           )}
           {past.length > 0 && (
             <section>
-              <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Past</h2>
+              <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Past</h2>
               <div className="space-y-2">
                 {past.map(hw => <HomeworkCard key={hw.id} hw={hw} />)}
               </div>

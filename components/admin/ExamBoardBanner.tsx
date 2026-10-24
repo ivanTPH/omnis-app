@@ -36,7 +36,7 @@ export default function ExamBoardBanner({ subjects }: { subjects: string[] }) {
 
   return (
     <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-      <Icon name="school" size="md" className="text-amber-600 shrink-0 mt-0.5" />
+      <Icon name="school" size="md" className="text-amber-800 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-amber-900">
           {subjects.length === 1 ? 'Exam board not set' : `Exam board not set for ${subjects.length} subjects`}

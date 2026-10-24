@@ -36,14 +36,14 @@ export default function OmnisInferenceStatsPanel() {
           <Icon name="memory" size="sm" className="text-violet-600" />
           <div>
             <p className="text-[13px] font-semibold text-violet-900">Omnis Inference Layer</p>
-            <p className="text-[11px] text-violet-500">
+            <p className="text-[11px] text-violet-600">
               Claude call reduction via profile signature caching
             </p>
           </div>
         </div>
         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
           empty
-            ? 'bg-gray-100 text-gray-500'
+            ? 'bg-gray-100 text-gray-600'
             : 'bg-violet-100 text-violet-700'
         }`}>
           {empty ? 'No data yet' : 'Active'}
@@ -51,7 +51,7 @@ export default function OmnisInferenceStatsPanel() {
       </div>
 
       {empty ? (
-        <div className="px-5 py-6 text-center text-sm text-gray-400">
+        <div className="px-5 py-6 text-center text-sm text-gray-500">
           <Icon name="cached" size="md" className="mx-auto mb-2 opacity-30" />
           <p>Cache will populate after the nightly coach agent runs.</p>
           <p className="text-[11px] mt-0.5">
@@ -64,11 +64,11 @@ export default function OmnisInferenceStatsPanel() {
           <div className="grid grid-cols-4 gap-3">
             <div className="bg-violet-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-violet-700">{stats.totalEntries}</p>
-              <p className="text-[10px] text-violet-500">unique profiles</p>
+              <p className="text-[10px] text-violet-600">unique profiles</p>
             </div>
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-emerald-700">{stats.totalHits.toLocaleString()}</p>
-              <p className="text-[10px] text-emerald-500">cache hits</p>
+              <p className="text-[10px] text-emerald-700">cache hits</p>
             </div>
             <div className="bg-amber-50 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-amber-700">
@@ -76,20 +76,20 @@ export default function OmnisInferenceStatsPanel() {
                   ? Math.round((stats.totalHits / (stats.totalHits + stats.totalEntries)) * 100)
                   : 0}%
               </p>
-              <p className="text-[10px] text-amber-500">hit rate</p>
+              <p className="text-[10px] text-amber-700">hit rate</p>
             </div>
             <div className="bg-indigo-50 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-indigo-700">
                 ${stats.estimatedSavingsUsd.toFixed(2)}
               </p>
-              <p className="text-[10px] text-indigo-500">est. API savings</p>
+              <p className="text-[10px] text-indigo-600">est. API savings</p>
             </div>
           </div>
 
           {/* By type breakdown */}
           {Object.entries(stats.byType).length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Cache Breakdown
               </p>
               <div className="space-y-2">
@@ -99,11 +99,11 @@ export default function OmnisInferenceStatsPanel() {
                       <p className="text-[11px] font-medium text-gray-700">
                         {type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                       </p>
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-[10px] text-gray-500">
                         {d.entries} profile types · {d.hits} hits
                       </p>
                     </div>
-                    <span className="text-[11px] font-semibold text-emerald-600">
+                    <span className="text-[11px] font-semibold text-emerald-700">
                       ${d.estimatedSavingsUsd.toFixed(2)} saved
                     </span>
                   </div>
@@ -113,7 +113,7 @@ export default function OmnisInferenceStatsPanel() {
           )}
 
           {/* Dates */}
-          <div className="flex gap-4 text-[10px] text-gray-400">
+          <div className="flex gap-4 text-[10px] text-gray-500">
             {stats.oldestEntry && (
               <span>
                 First entry: {new Date(stats.oldestEntry).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
@@ -126,7 +126,7 @@ export default function OmnisInferenceStatsPanel() {
             )}
           </div>
 
-          <p className="text-[10px] text-gray-400">
+          <p className="text-[10px] text-gray-500">
             Profile signatures bucket: year group × SEND need area × performance tier × weak/retention topic counts.
             TTL: 30 days. Expired entries purged nightly by early-warning cron.
           </p>

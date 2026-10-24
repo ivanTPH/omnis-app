@@ -45,7 +45,7 @@ export default function StudentSendOverlay({ students }: Props) {
                       </span>
                     )}
                     {s.openConcerns > 0 && (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                      <span className="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
                         {s.openConcerns} concern{s.openConcerns > 1 ? 's' : ''}
                       </span>
                     )}

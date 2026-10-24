@@ -55,12 +55,12 @@ export default function AccessibilityToolbar({
               <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <h2 className="text-[14px] font-bold text-gray-900">Accessibility</h2>
-                  <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+                  <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
                     <span className="text-[13px]">✕</span>
                   </button>
                 </div>
                 <div className="flex-1 flex items-center justify-center p-6">
-                  <p className="text-[12px] text-gray-400 text-center">
+                  <p className="text-[12px] text-gray-500 text-center">
                     Sign in to save accessibility preferences across devices.
                   </p>
                 </div>

@@ -162,7 +162,7 @@ export default function DemoRoleSwitcher() {
 
             {/* School roles */}
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 px-1">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 px-1">
                 Omnis Demo School
               </p>
               <div className="space-y-1">
@@ -181,7 +181,7 @@ export default function DemoRoleSwitcher() {
                       }`}
                     >
                       <span className="flex-1 text-left">{r.label}</span>
-                      <span className="text-xs text-gray-400">{r.email.split('@')[0]}</span>
+                      <span className="text-xs text-gray-500">{r.email.split('@')[0]}</span>
                       {isLoading && <Icon name="refresh" size="sm" className="animate-spin text-blue-500" />}
                       {isCurrent && !isLoading && <Icon name="check_circle" size="sm" className="text-blue-500" />}
                     </button>
@@ -192,7 +192,7 @@ export default function DemoRoleSwitcher() {
 
             {/* Platform roles */}
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5 px-1">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 px-1">
                 Platform &amp; Academy
               </p>
               <div className="space-y-1">
@@ -211,7 +211,7 @@ export default function DemoRoleSwitcher() {
                       }`}
                     >
                       <span className="flex-1 text-left">{r.label}</span>
-                      <span className="text-xs text-gray-400">{r.email.split('@')[0]}</span>
+                      <span className="text-xs text-gray-500">{r.email.split('@')[0]}</span>
                       {isLoading && <Icon name="refresh" size="sm" className="animate-spin text-blue-500" />}
                       {isCurrent && !isLoading && <Icon name="check_circle" size="sm" className="text-blue-500" />}
                     </button>
@@ -226,7 +226,7 @@ export default function DemoRoleSwitcher() {
               {switchError}
             </div>
           )}
-          <div className="px-4 py-2 border-t border-gray-100 text-[10px] text-gray-400 text-center">
+          <div className="px-4 py-2 border-t border-gray-100 text-[10px] text-gray-500 text-center">
             Visible only to ivanyardley@me.com
           </div>
         </div>

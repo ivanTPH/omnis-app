@@ -31,9 +31,9 @@ const UK_EXAM_BOARDS = [
 
 const SUBJECT_COLOURS: Record<string, string> = {
   English:   'bg-blue-50 text-blue-700',
-  Maths:     'bg-green-50 text-green-700',
+  Maths:     'bg-green-50 text-green-800',
   Science:   'bg-teal-50 text-teal-700',
-  History:   'bg-amber-50 text-amber-700',
+  History:   'bg-amber-50 text-amber-800',
   Geography: 'bg-emerald-50 text-emerald-700',
   Art:       'bg-pink-50 text-pink-700',
   Drama:     'bg-purple-50 text-purple-700',
@@ -152,9 +152,9 @@ function ClassSlideOver({
             <p className="text-[15px] font-semibold text-gray-900">
               {mode === 'add' ? 'Create class' : `Edit — ${cls!.name}`}
             </p>
-            {mode === 'edit' && <p className="text-[12px] text-gray-400 mt-0.5">{cls!.subject} · Year {cls!.yearGroup}</p>}
+            {mode === 'edit' && <p className="text-[12px] text-gray-500 mt-0.5">{cls!.subject} · Year {cls!.yearGroup}</p>}
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -162,10 +162,10 @@ function ClassSlideOver({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="px-6 py-5 space-y-5">
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Class Details</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Class Details</p>
               <div className="space-y-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">Class name <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">Class name <span className="text-red-600">*</span></span>
                   <input required value={form.name} onChange={e => set('name', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                     placeholder="e.g. 9E/En1" />
@@ -173,14 +173,14 @@ function ClassSlideOver({
 
                 <div className="grid grid-cols-2 gap-3">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[12px] font-medium text-gray-700">Subject <span className="text-red-500">*</span></span>
+                    <span className="text-[12px] font-medium text-gray-700">Subject <span className="text-red-600">*</span></span>
                     <select required value={form.subject} onChange={e => set('subject', e.target.value)}
                       className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                       {CLASS_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[12px] font-medium text-gray-700">Year group <span className="text-red-500">*</span></span>
+                    <span className="text-[12px] font-medium text-gray-700">Year group <span className="text-red-600">*</span></span>
                     <select required value={form.yearGroup} onChange={e => set('yearGroup', e.target.value)}
                       className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                       {YEAR_OPTIONS.map(y => <option key={y} value={y}>Year {y}</option>)}
@@ -189,7 +189,7 @@ function ClassSlideOver({
                 </div>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">Department <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">Department <span className="text-red-600">*</span></span>
                   <select required value={form.department} onChange={e => set('department', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                     {CLASS_DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -199,7 +199,7 @@ function ClassSlideOver({
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Exam Board</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Exam Board</p>
               <div className="space-y-3">
                 <label className="flex flex-col gap-1">
                   <span className="text-[12px] font-medium text-gray-700">Examination board</span>
@@ -214,7 +214,7 @@ function ClassSlideOver({
                   <input value={form.modulesInput} onChange={e => set('modulesInput', e.target.value)}
                     placeholder="e.g. Paper 1: Language, Paper 2: Literature"
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200" />
-                  <span className="text-[11px] text-gray-400">Comma-separated. Used for AI mark scheme context.</span>
+                  <span className="text-[11px] text-gray-500">Comma-separated. Used for AI mark scheme context.</span>
                 </label>
               </div>
             </div>
@@ -315,7 +315,7 @@ function ClassManagePanel({ classId, onStudentCountChange }: { classId: string; 
   if (!loaded && !loading) { void load() }
 
   if (loading) return (
-    <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-2 text-[12px] text-gray-400">
+    <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-2 text-[12px] text-gray-500">
       <Icon name="refresh" size="sm" className="animate-spin" /> Loading…
     </div>
   )
@@ -336,18 +336,18 @@ function ClassManagePanel({ classId, onStudentCountChange }: { classId: string; 
 
           {/* Teachers */}
           <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Teachers ({detail.teachers.length})</p>
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">Teachers ({detail.teachers.length})</p>
             <div className="space-y-1 mb-3">
               {detail.teachers.map(t => (
                 <div key={t.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5">
                   <span className="text-[13px] text-gray-800">{t.firstName} {t.lastName}</span>
                   <button onClick={() => handleRemoveTeacher(t.id)} disabled={busy === t.id}
-                    className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40 transition">
+                    className="text-[11px] text-red-600 hover:text-red-700 disabled:opacity-40 transition">
                     {busy === t.id ? '…' : 'Remove'}
                   </button>
                 </div>
               ))}
-              {detail.teachers.length === 0 && <p className="text-[12px] text-gray-400 italic">No teachers assigned</p>}
+              {detail.teachers.length === 0 && <p className="text-[12px] text-gray-500 italic">No teachers assigned</p>}
             </div>
             <input value={staffSearch} onChange={e => setStaffSearch(e.target.value)}
               placeholder="Search staff to add…"
@@ -356,28 +356,28 @@ function ClassManagePanel({ classId, onStudentCountChange }: { classId: string; 
               {availableStaff.slice(0, 8).map(s => (
                 <button key={s.id} onClick={() => handleAssignTeacher(s.id)} disabled={busy === s.id}
                   className="w-full text-left flex items-center justify-between px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 disabled:opacity-40 text-[12px] transition">
-                  <span>{s.firstName} {s.lastName} <span className="text-gray-400">· {s.role.replace(/_/g,' ')}</span></span>
+                  <span>{s.firstName} {s.lastName} <span className="text-gray-500">· {s.role.replace(/_/g,' ')}</span></span>
                   <Icon name="add" size="sm" className="text-blue-500" />
                 </button>
               ))}
-              {availableStaff.length === 0 && staffSearch && <p className="text-[11px] text-gray-400 italic px-1">No matches</p>}
+              {availableStaff.length === 0 && staffSearch && <p className="text-[11px] text-gray-500 italic px-1">No matches</p>}
             </div>
           </div>
 
           {/* Students */}
           <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Students ({detail.students.length})</p>
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2">Students ({detail.students.length})</p>
             <div className="space-y-1 mb-3 max-h-36 overflow-y-auto">
               {detail.students.map(s => (
                 <div key={s.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-1.5">
                   <span className="text-[13px] text-gray-800">{s.firstName} {s.lastName}{s.yearGroup ? ` · Y${s.yearGroup}` : ''}</span>
                   <button onClick={() => handleRemoveStudent(s.id)} disabled={busy === s.id}
-                    className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40 transition">
+                    className="text-[11px] text-red-600 hover:text-red-700 disabled:opacity-40 transition">
                     {busy === s.id ? '…' : 'Remove'}
                   </button>
                 </div>
               ))}
-              {detail.students.length === 0 && <p className="text-[12px] text-gray-400 italic">No students enrolled</p>}
+              {detail.students.length === 0 && <p className="text-[12px] text-gray-500 italic">No students enrolled</p>}
             </div>
             <input value={stuSearch} onChange={e => setStuSearch(e.target.value)}
               placeholder="Search students to add…"
@@ -390,7 +390,7 @@ function ClassManagePanel({ classId, onStudentCountChange }: { classId: string; 
                   <Icon name="add" size="sm" className="text-blue-500" />
                 </button>
               ))}
-              {availableStudents.length === 0 && stuSearch && <p className="text-[11px] text-gray-400 italic px-1">No matches</p>}
+              {availableStudents.length === 0 && stuSearch && <p className="text-[11px] text-gray-500 italic px-1">No matches</p>}
             </div>
           </div>
         </div>
@@ -473,7 +473,7 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
             <option value="all">All year groups</option>
             {years.map(y => <option key={y} value={y}>Year {y}</option>)}
           </select>
-          <span className="text-[12px] text-gray-400">{filtered.length} classes</span>
+          <span className="text-[12px] text-gray-500">{filtered.length} classes</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -503,25 +503,25 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
                     </td>
                     <td className="px-5 py-3.5 text-gray-500">Year {c.yearGroup}</td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {c.teacherNames.length > 0 ? c.teacherNames.join(', ') : <span className="text-gray-300">—</span>}
+                      {c.teacherNames.length > 0 ? c.teacherNames.join(', ') : <span className="text-gray-500">—</span>}
                     </td>
                     <td className="px-5 py-3.5 font-medium text-gray-900">{c.studentCount}</td>
                     <td className="px-5 py-3.5">
                       {c.examBoard
                         ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">{c.examBoard}</span>
-                        : <span className="text-gray-300 text-[12px]">—</span>
+                        : <span className="text-gray-500 text-[12px]">—</span>
                       }
                     </td>
-                    <td className="px-5 py-3.5 text-gray-400">{c.department}</td>
+                    <td className="px-5 py-3.5 text-gray-500">{c.department}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => setEditTarget(c)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition" title="Edit class">
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition" title="Edit class">
                           <Icon name="edit" size="sm" />
                         </button>
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : c.id)}
-                          className={`p-1.5 rounded-lg transition text-gray-400 ${isExpanded ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100 hover:text-gray-600'}`}
+                          className={`p-1.5 rounded-lg transition text-gray-600 ${isExpanded ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 hover:text-gray-600'}`}
                           title="Manage teachers & students"
                         >
                           <Icon name={isExpanded ? 'expand_less' : 'manage_accounts'} size="sm" />
@@ -540,7 +540,7 @@ export default function AdminClassTable({ classes: initialClasses }: { classes: 
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-gray-400 text-[13px]">No classes found</td>
+                  <td colSpan={8} className="px-5 py-12 text-center text-gray-500 text-[13px]">No classes found</td>
                 </tr>
               )}
             </tbody>

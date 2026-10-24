@@ -34,7 +34,7 @@ function RagStatusDot({ status }: { status: RagStudent['ragStatus'] }) {
 // ── Sparkline (inline SVG, no chart library) ──────────────────────────────────
 
 function Sparkline({ grades }: { grades: number[] }) {
-  if (grades.length < 2) return <span className="text-[11px] text-gray-400 italic">not enough data</span>
+  if (grades.length < 2) return <span className="text-[11px] text-gray-500 italic">not enough data</span>
   const W = 80, H = 32
   const min = 1, max = 9
   const pts = grades.map((g, i) => {
@@ -109,11 +109,11 @@ function PredictionForm({
   return (
     <div className="bg-gray-50 border-t border-gray-100 px-5 py-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
           Teacher Prediction — {termLabel}
         </p>
         {isConfirmed && (
-          <span className="flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+          <span className="flex items-center gap-1 text-[10px] font-semibold text-green-800 bg-green-100 px-2 py-0.5 rounded-full">
             <Icon name="verified" size="sm" /> Grade confirmed
           </span>
         )}
@@ -123,17 +123,17 @@ function PredictionForm({
           <label className="text-[11px] text-gray-500">Baseline</label>
           <div className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 min-w-[60px] text-center">
             {student.baselineScore != null ? `${student.baselineScore}` : '—'}
-            {student.baselineSource && <span className="text-[10px] text-gray-400 ml-1">({student.baselineSource})</span>}
+            {student.baselineSource && <span className="text-[10px] text-gray-500 ml-1">({student.baselineSource})</span>}
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-gray-500">Predicted score <span className="text-gray-400">(0–100)</span></label>
+          <label className="text-[11px] text-gray-500">Predicted score <span className="text-gray-500">(0–100)</span></label>
           <input type="number" min={0} max={100} step={1} value={score} onChange={e => setScore(Number(e.target.value))}
             className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[11px] text-gray-500 flex items-center">
-            Adjustment <span className="text-gray-400 ml-1">(+/−)</span>
+            Adjustment <span className="text-gray-500 ml-1">(+/−)</span>
             <InfoTip content="Add a positive or negative adjustment to account for exceptional circumstances, e.g. illness or external factors. Range: −20 to +20." side="right" />
           </label>
           <input type="number" min={-20} max={20} step={1} value={adj} onChange={e => setAdj(Number(e.target.value))}
@@ -151,13 +151,13 @@ function PredictionForm({
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-[11px] text-gray-500">
-          Confirmation commentary <span className="text-gray-400">(required to formally sign off)</span>
+          Confirmation commentary <span className="text-gray-500">(required to formally sign off)</span>
         </label>
         <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
           placeholder="Evidence, observations, rationale for this grade — required for formal sign-off…"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
         {existing?.updatedAt && (
-          <p className="text-[10px] text-gray-400">
+          <p className="text-[10px] text-gray-500">
             Last updated {new Date(existing.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         )}
@@ -175,7 +175,7 @@ function PredictionForm({
         </button>
       </div>
       {!notes.trim() && (
-        <p className="text-[10px] text-amber-600">Add confirmation commentary to formally sign off this grade prediction.</p>
+        <p className="text-[10px] text-amber-700">Add confirmation commentary to formally sign off this grade prediction.</p>
       )}
     </div>
   )
@@ -227,10 +227,10 @@ function RagStudentPanel({
   const last3Hws      = file?.recentHomeworks.slice(0, 3) ?? []
 
   const ragCfg = {
-    green:   { pillCls: 'bg-green-100 text-green-700',  label: 'On track'           },
-    amber:   { pillCls: 'bg-amber-100 text-amber-700',  label: 'Slightly below'     },
+    green:   { pillCls: 'bg-green-100 text-green-800',  label: 'On track'           },
+    amber:   { pillCls: 'bg-amber-100 text-amber-800',  label: 'Slightly below'     },
     red:     { pillCls: 'bg-red-100 text-red-700',      label: 'Significantly below' },
-    no_data: { pillCls: 'bg-gray-100 text-gray-500',    label: 'No data'            },
+    no_data: { pillCls: 'bg-gray-100 text-gray-600',    label: 'No data'            },
   }[student.ragStatus]
 
   const sendBadge: Record<string, string> = {
@@ -270,7 +270,7 @@ function RagStudentPanel({
               )}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 shrink-0">
             <Icon name="close" size="sm" />
           </button>
         </div>
@@ -286,7 +286,7 @@ function RagStudentPanel({
               { label: 'Last score', value: student.lastScore       != null ? gradeLabel(percentToGcseGrade(student.lastScore)) : '—' },
             ].map(c => (
               <div key={c.label} className="flex flex-col items-center py-4 gap-1">
-                <span className="text-[11px] text-gray-400 uppercase tracking-wider">{c.label}</span>
+                <span className="text-[11px] text-gray-500 uppercase tracking-wider">{c.label}</span>
                 <span className="text-lg font-bold text-gray-900">{c.value}</span>
               </div>
             ))}
@@ -306,7 +306,7 @@ function RagStudentPanel({
                     Grade trend — last {sparkGrades.length} marked
                   </p>
                   {sparkGrades.length >= 2 && (
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-[11px] text-gray-500">
                       {gradeLabel(sparkGrades[0])} → {gradeLabel(sparkGrades[sparkGrades.length - 1])}
                     </span>
                   )}
@@ -315,9 +315,9 @@ function RagStudentPanel({
                   <Sparkline grades={sparkGrades} />
                   {sparkGrades.length >= 2 && (
                     <span className={`text-xs font-semibold ${
-                      sparkGrades[sparkGrades.length - 1] > sparkGrades[0] ? 'text-green-600'
+                      sparkGrades[sparkGrades.length - 1] > sparkGrades[0] ? 'text-green-700'
                       : sparkGrades[sparkGrades.length - 1] < sparkGrades[0] ? 'text-rose-600'
-                      : 'text-gray-400'
+                      : 'text-gray-500'
                     }`}>
                       {sparkGrades[sparkGrades.length - 1] > sparkGrades[0] ? '↑ Improving'
                        : sparkGrades[sparkGrades.length - 1] < sparkGrades[0] ? '↓ Declining'
@@ -355,7 +355,7 @@ function RagStudentPanel({
                           className={hw.submitted ? 'text-green-500 shrink-0' : 'text-gray-300 shrink-0'}
                         />
                         <span className="flex-1 text-gray-700 truncate min-w-0">{hw.title}</span>
-                        <span className="text-gray-400 text-xs shrink-0">
+                        <span className="text-gray-500 text-xs shrink-0">
                           {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         </span>
                         <span className="text-gray-800 font-medium text-xs shrink-0 w-14 text-right">
@@ -377,7 +377,7 @@ function RagStudentPanel({
                 {file?.notes.slice(0, 3).map(n => (
                   <div key={n.id} className="mb-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                     <p className="text-sm text-gray-700">{n.content}</p>
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-[10px] text-gray-500 mt-1">
                       {n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
                   </div>
@@ -405,7 +405,7 @@ function RagStudentPanel({
 
         {/* ── National average footer ── */}
         <div className="shrink-0 px-5 py-3 bg-gray-50 border-t border-gray-100">
-          <p className="text-[11px] text-gray-400 flex items-center gap-1.5">
+          <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
             <Icon name="public" size="sm" className="text-gray-300" />
             UK national average: Grade 4+ pass rate ≈ 67% · Grade 5+ ≈ 54%
           </p>
@@ -432,17 +432,17 @@ function RagRow({
   const sendLabel: Record<string, string> = { SEN_SUPPORT: 'SEN', EHCP: 'EHCP' }
 
   function scoreCell(val: number | null) {
-    if (val == null) return <span className="text-gray-300">—</span>
+    if (val == null) return <span className="text-gray-500">—</span>
     return <span className="font-semibold text-gray-800">{val}</span>
   }
 
   function effectiveCell() {
-    if (effectivePredicted == null) return <span className="text-gray-300">—</span>
+    if (effectivePredicted == null) return <span className="text-gray-500">—</span>
     return (
       <span className="font-semibold text-gray-800">
         {effectivePredicted}
         {student.prediction?.adjustment !== 0 && student.prediction != null && (
-          <span className={`text-[11px] ml-1 ${student.prediction.adjustment > 0 ? 'text-green-600' : 'text-rose-500'}`}>
+          <span className={`text-[11px] ml-1 ${student.prediction.adjustment > 0 ? 'text-green-700' : 'text-rose-600'}`}>
             {student.prediction.adjustment > 0 ? `+${student.prediction.adjustment}` : student.prediction.adjustment}
           </span>
         )}
@@ -497,8 +497,8 @@ function RagRow({
             expanded
               ? 'bg-blue-100 text-blue-600'
               : student.prediction?.notes?.startsWith('[Confirmed')
-                ? 'text-green-600 hover:bg-green-50'
-                : 'text-gray-300 hover:bg-gray-100 hover:text-gray-600'
+                ? 'text-green-700 hover:bg-green-50'
+                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-600'
           }`}
         >
           <Icon name={student.prediction?.notes?.startsWith('[Confirmed') ? 'verified' : 'edit'} size="sm" />
@@ -567,7 +567,7 @@ export default function RagView({ classId, subject, termLabel }: Props) {
 
   if (students.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl py-12 text-center text-sm text-gray-400">
+      <div className="bg-white border border-gray-200 rounded-xl py-12 text-center text-sm text-gray-500">
         No students enrolled in this class.
       </div>
     )
@@ -602,25 +602,25 @@ export default function RagView({ classId, subject, termLabel }: Props) {
         {ragFilter && (
           <button
             onClick={() => setRagFilter(null)}
-            className="text-xs text-gray-400 hover:text-gray-600 ml-1 flex items-center gap-0.5"
+            className="text-xs text-gray-600 hover:text-gray-600 ml-1 flex items-center gap-0.5"
           >
             <Icon name="filter_alt_off" size="sm" /> Clear filter
           </button>
         )}
-        <span className="ml-auto text-[11px] text-gray-400">{termLabel}</span>
+        <span className="ml-auto text-[11px] text-gray-600">{termLabel}</span>
       </div>
 
       {/* ── National benchmark ── */}
       {classPassPct != null && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-[12px]">
-          <Icon name="public" size="sm" className="text-blue-400 shrink-0" />
+          <Icon name="public" size="sm" className="text-blue-700 shrink-0" />
           <span className="text-blue-700">
             <strong>This class Grade 4+ pass rate: {classPassPct}%</strong>
             {' '}(based on working-at grades) ·{' '}
-            <span className="text-blue-500">National average ≈ 67%</span>
+            <span className="text-blue-600">National average ≈ 67%</span>
           </span>
           {classPassPct >= 67
-            ? <span className="ml-auto shrink-0 text-[11px] font-semibold text-green-600">▲ Above national</span>
+            ? <span className="ml-auto shrink-0 text-[11px] font-semibold text-green-700">▲ Above national</span>
             : <span className="ml-auto shrink-0 text-[11px] font-semibold text-rose-600">▼ Below national</span>
           }
         </div>
@@ -636,7 +636,7 @@ export default function RagView({ classId, subject, termLabel }: Props) {
 
       {/* ── Table ── */}
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[1fr_auto_80px_80px_80px_80px_32px] items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+        <div className="grid grid-cols-[1fr_auto_80px_80px_80px_80px_32px] items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
           <span>Student</span>
           <span className="flex items-center">
             Status
@@ -662,7 +662,7 @@ export default function RagView({ classId, subject, termLabel }: Props) {
         </div>
 
         {displayed.length === 0 ? (
-          <div className="py-10 text-center text-sm text-gray-400">No students in this category.</div>
+          <div className="py-10 text-center text-sm text-gray-500">No students in this category.</div>
         ) : (
           displayed.map(s => (
             <RagRow
@@ -679,7 +679,7 @@ export default function RagView({ classId, subject, termLabel }: Props) {
         )}
       </div>
 
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[11px] text-gray-500">
         Click a row to view student details · Click <Icon name="edit" size="sm" className="inline-block align-text-bottom" /> to enter or update a teacher prediction.
       </p>
 

@@ -34,7 +34,7 @@ export default function SchoolListTable({ schools: initial }: Props) {
     <div className="space-y-4">
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <p className="text-[12px] text-gray-400">{initial.length} school{initial.length !== 1 ? 's' : ''}</p>
+        <p className="text-[12px] text-gray-500">{initial.length} school{initial.length !== 1 ? 's' : ''}</p>
         <button
           onClick={() => setShowForm(s => !s)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
@@ -66,17 +66,17 @@ export default function SchoolListTable({ schools: initial }: Props) {
               <>
                 <tr key={s.id} className={`hover:bg-gray-50 transition-colors ${!s.isActive ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-3 font-semibold text-gray-800 whitespace-nowrap">{s.name}</td>
-                  <td className="px-3 py-3 text-gray-400 font-mono">{s.urn ?? '—'}</td>
+                  <td className="px-3 py-3 text-gray-500 font-mono">{s.urn ?? '—'}</td>
                   <td className="px-3 py-3 text-gray-600">{s.phase ? PHASE_LABELS[s.phase] ?? s.phase : '—'}</td>
                   <td className="px-3 py-3 text-gray-500">{s.region ?? '—'}</td>
                   <td className="px-3 py-3 text-center text-gray-700">{s.studentCount.toLocaleString()}</td>
                   <td className="px-3 py-3 text-center text-gray-700">{s.staffCount.toLocaleString()}</td>
                   <td className="px-3 py-3">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                       {s.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-3 py-3 text-gray-400 whitespace-nowrap">
+                  <td className="px-3 py-3 text-gray-500 whitespace-nowrap">
                     {s.onboardedAt ? new Date(s.onboardedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </td>
                   <td className="px-3 py-3">
@@ -90,7 +90,7 @@ export default function SchoolListTable({ schools: initial }: Props) {
                       <button
                         onClick={() => handleToggle(s.id)}
                         disabled={pending && togglingId === s.id}
-                        className="text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-40"
+                        className="text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-40"
                         title={s.isActive ? 'Deactivate' : 'Activate'}
                       >
                         {s.isActive
@@ -103,7 +103,7 @@ export default function SchoolListTable({ schools: initial }: Props) {
                 {expanded === s.id && (
                   <tr key={`${s.id}-flags`}>
                     <td colSpan={9} className="px-6 pb-3 bg-gray-50 border-b border-gray-100">
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide pt-2 mb-1">Feature Flags — {s.name}</p>
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide pt-2 mb-1">Feature Flags — {s.name}</p>
                       <FeatureFlagPanel schoolId={s.id} />
                     </td>
                   </tr>
@@ -113,7 +113,7 @@ export default function SchoolListTable({ schools: initial }: Props) {
           </tbody>
         </table>
         {initial.length === 0 && (
-          <p className="text-center py-8 text-[13px] text-gray-400">No schools yet. Add the first one above.</p>
+          <p className="text-center py-8 text-[13px] text-gray-500">No schools yet. Add the first one above.</p>
         )}
       </div>
     </div>

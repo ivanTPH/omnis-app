@@ -23,7 +23,7 @@ export default function HomeworkDetailError({
           There was a problem fetching this homework. It may have been deleted or you may not have access.
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-400 mb-4">Ref: {error.digest}</p>
+          <p className="text-xs text-gray-500 mb-4">Ref: {error.digest}</p>
         )}
         <button
           onClick={reset}

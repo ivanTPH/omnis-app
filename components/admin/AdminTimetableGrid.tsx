@@ -100,7 +100,7 @@ export default function AdminTimetableGrid({ entries }: { entries: TimetableRow[
 
   if (entries.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-16 text-center text-gray-400">
+      <div className="bg-white border border-gray-200 rounded-xl p-16 text-center text-gray-500">
         <Icon name="calendar_today" size="lg" className="mx-auto mb-3 opacity-30" />
         <p className="text-[14px] font-medium text-gray-600">No timetable data</p>
         <p className="text-[12px] mt-1">Run a Wonde sync to import timetable entries from your MIS</p>
@@ -134,7 +134,7 @@ export default function AdminTimetableGrid({ entries }: { entries: TimetableRow[
       </div>
 
       {/* Count */}
-      <span className="text-[12px] text-gray-400 ml-auto">
+      <span className="text-[12px] text-gray-500 ml-auto">
         {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
       </span>
 
@@ -196,7 +196,7 @@ export default function AdminTimetableGrid({ entries }: { entries: TimetableRow[
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-gray-600">{e.teacher}</td>
-                  <td className="px-4 py-2.5 text-gray-400 hidden lg:table-cell">
+                  <td className="px-4 py-2.5 text-gray-500 hidden lg:table-cell">
                     {roomLabel(e.room) ?? '—'}
                   </td>
                 </tr>
@@ -243,7 +243,7 @@ export default function AdminTimetableGrid({ entries }: { entries: TimetableRow[
                   {/* Time column — sticky on scroll */}
                   <td className="px-3 py-2 border-r border-gray-200 align-top sticky left-0 bg-inherit z-10 whitespace-nowrap">
                     <p className="font-semibold text-gray-700 text-[11px]">{fmt(slot.startTime)}</p>
-                    <p className="text-[10px] text-gray-400">{fmt(slot.endTime)}</p>
+                    <p className="text-[10px] text-gray-500">{fmt(slot.endTime)}</p>
                   </td>
 
                   {/* Day columns */}

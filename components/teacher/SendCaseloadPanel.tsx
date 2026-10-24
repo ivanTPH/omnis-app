@@ -37,7 +37,7 @@ function RaiseConcernModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
         {done ? (
           <>
-            <div className="flex items-center gap-2 text-green-700">
+            <div className="flex items-center gap-2 text-green-800">
               <Icon name="check_circle" size="md" />
               <p className="font-semibold">Concern raised — SENCO notified.</p>
             </div>
@@ -47,7 +47,7 @@ function RaiseConcernModal({
           <>
             <h3 className="font-semibold text-gray-900">Raise SEND concern — {student.firstName} {student.lastName}</h3>
             <div>
-              <label className="block text-[12px] text-gray-500 mb-1">Category</label>
+              <label className="block text-[12px] text-gray-600 mb-1">Category</label>
               <select value={category} onChange={e => setCategory(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px]">
                 {['Academic', 'Behaviour', 'Social/Emotional', 'Communication', 'Attendance', 'Medical', 'Safeguarding', 'Other'].map(c => (
@@ -129,11 +129,11 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
               {student.firstName} {student.lastName}
             </span>
             {student.yearGroup && (
-              <span className="text-[10px] text-gray-400">Yr {student.yearGroup}</span>
+              <span className="text-[10px] text-gray-600">Yr {student.yearGroup}</span>
             )}
             <SendBadge status={student.sendStatus} />
             {!student.hasIlp && (
-              <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
                 No ILP
               </span>
             )}
@@ -143,17 +143,17 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
               </span>
             )}
             {reviewSoon && !reviewUrgent && (
-              <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">
                 Review in {student.reviewDaysUntil}d
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {student.needArea && (
-              <span className="text-[11px] text-gray-500">{student.needArea}</span>
+              <span className="text-[11px] text-gray-600">{student.needArea}</span>
             )}
             {student.classNames.length > 0 && (
-              <span className="text-[10px] text-gray-400">· {student.classNames.join(', ')}</span>
+              <span className="text-[10px] text-gray-600">· {student.classNames.join(', ')}</span>
             )}
           </div>
         </div>
@@ -163,10 +163,10 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
           {student.avgGrade != null ? (
             <div className="text-right">
               <GradePill grade={student.avgGrade} />
-              <p className="text-[9px] text-gray-400 mt-0.5 text-center">avg (90d)</p>
+              <p className="text-[9px] text-gray-500 mt-0.5 text-center">avg (90d)</p>
             </div>
           ) : (
-            <span className="text-[11px] text-gray-300">No grades</span>
+            <span className="text-[11px] text-gray-500">No grades</span>
           )}
           <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400" />
         </div>
@@ -189,7 +189,7 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] text-gray-800">{t.target}</p>
                       <p className={`text-[10px] mt-0.5 font-medium ${
-                        t.daysLeft <= 14 ? 'text-red-600' : t.daysLeft <= 30 ? 'text-amber-600' : 'text-gray-400'
+                        t.daysLeft <= 14 ? 'text-red-600' : t.daysLeft <= 30 ? 'text-amber-700' : 'text-gray-500'
                       }`}>
                         Due {new Date(t.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         {t.daysLeft <= 14 && ` · ${t.daysLeft}d`}
@@ -200,15 +200,15 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
               </ul>
             </div>
           ) : student.hasIlp ? (
-            <p className="text-[12px] text-gray-400 italic">No active ILP targets.</p>
+            <p className="text-[12px] text-gray-600 italic">No active ILP targets.</p>
           ) : (
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-              <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
+              <Icon name="warning" size="sm" className="text-amber-800 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-[12px] text-amber-800">This student has no approved ILP.</p>
                 <button
                   onClick={() => onRaiseConcern(student, `${student.firstName} ${student.lastName} is on the SEND register but has no approved ILP. Please could the SENCO create one?`)}
-                  className="mt-1 text-[11px] font-semibold text-amber-700 underline hover:text-amber-900"
+                  className="mt-1 text-[11px] font-semibold text-amber-800 underline hover:text-amber-900"
                 >
                   Notify SENCO to create ILP →
                 </button>
@@ -219,9 +219,9 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
           {/* ILP review date */}
           {student.reviewDate && (
             <div className="flex items-center gap-2 text-[12px] text-gray-600">
-              <Icon name="event" size="sm" className="text-gray-400" />
+              <Icon name="event" size="sm" className="text-gray-600" />
               <span>ILP review due:</span>
-              <span className={`font-semibold ${reviewUrgent ? 'text-red-600' : reviewSoon ? 'text-amber-600' : 'text-gray-800'}`}>
+              <span className={`font-semibold ${reviewUrgent ? 'text-red-600' : reviewSoon ? 'text-amber-700' : 'text-gray-800'}`}>
                 {new Date(student.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
             </div>
@@ -230,7 +230,7 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
           {/* Open concerns */}
           {student.openConcerns > 0 && (
             <div className="flex items-center gap-2 text-[12px]">
-              <Icon name="warning" size="sm" className="text-amber-500" />
+              <Icon name="warning" size="sm" className="text-amber-700" />
               <span className="text-amber-800 font-medium">
                 {student.openConcerns} open SEND concern{student.openConcerns !== 1 ? 's' : ''}
               </span>
@@ -255,7 +255,7 @@ function StudentCard({ student, defaultOpen, onRaiseConcern }: {
             )}
             <button
               onClick={() => onRaiseConcern(student)}
-              className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 rounded-lg text-[11px] text-amber-700 font-medium transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 rounded-lg text-[11px] text-amber-800 font-medium transition-colors"
             >
               <Icon name="warning" size="sm" /> Raise concern
             </button>
@@ -285,9 +285,9 @@ export default function SendCaseloadPanel({ data }: Props) {
   if (data.totalSend === 0) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-xl p-10 text-center">
-        <Icon name="check_circle" size="lg" className="text-green-500 mx-auto mb-3" />
+        <Icon name="check_circle" size="lg" className="text-green-800 mx-auto mb-3" />
         <p className="font-semibold text-green-900">No SEND students in your classes</p>
-        <p className="text-sm text-green-700 mt-1">All students in your classes are not currently on the SEND register.</p>
+        <p className="text-sm text-green-800 mt-1">All students in your classes are not currently on the SEND register.</p>
       </div>
     )
   }
@@ -306,7 +306,7 @@ export default function SendCaseloadPanel({ data }: Props) {
         ].map(k => (
           <div key={k.label} className={`border rounded-xl p-4 ${k.bg}`}>
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{k.label}</p>
+              <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">{k.label}</p>
               <Icon name={k.icon} size="sm" className={k.colour} />
             </div>
             <p className={`text-3xl font-bold ${k.colour}`}>{k.value}</p>
@@ -317,7 +317,7 @@ export default function SendCaseloadPanel({ data }: Props) {
       {/* Alerts */}
       {noIlpStudents.length > 0 && (
         <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3.5">
-          <Icon name="warning" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
+          <Icon name="warning" size="sm" className="text-amber-800 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-900">
               {noIlpStudents.length} student{noIlpStudents.length !== 1 ? 's' : ''} without an approved ILP
@@ -326,13 +326,13 @@ export default function SendCaseloadPanel({ data }: Props) {
               {noIlpStudents.map(s => `${s.firstName} ${s.lastName}`).join(', ')} — contact the SENCO to create one.
             </p>
           </div>
-          <p className="shrink-0 text-[11px] text-amber-600">Expand a student below to raise a concern.</p>
+          <p className="shrink-0 text-[11px] text-amber-800">Expand a student below to raise a concern.</p>
         </div>
       )}
 
       {reviewDueStudents.length > 0 && (
         <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3.5">
-          <Icon name="schedule" size="sm" className="text-blue-600 shrink-0 mt-0.5" />
+          <Icon name="schedule" size="sm" className="text-blue-700 shrink-0 mt-0.5" />
           <p className="text-sm text-blue-900">
             <span className="font-semibold">{reviewDueStudents.length} ILP review{reviewDueStudents.length !== 1 ? 's' : ''} due within 14 days.</span>
             {' '}You may be asked to provide evidence of progress against targets.

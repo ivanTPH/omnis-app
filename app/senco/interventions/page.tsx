@@ -27,14 +27,14 @@ export default async function SencoInterventionsPage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/senco/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/senco/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> SENCO Dashboard
             </Link>
           </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Interventions Hub</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 All SEND students with active K Plans, ILPs, and open concerns
               </p>
             </div>
@@ -148,23 +148,23 @@ function InterventionTable({ rows, urgency }: {
                     {row.kPlanStatus}
                   </span>
                 ) : (
-                  <span className="text-gray-300">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </td>
               <td className="px-4 py-2.5 text-center">
                 {row.hasIlp ? (
-                  <span className={`font-semibold ${row.ilpTargetCount > 0 ? 'text-indigo-700' : 'text-gray-400'}`}>
+                  <span className={`font-semibold ${row.ilpTargetCount > 0 ? 'text-indigo-700' : 'text-gray-500'}`}>
                     {row.ilpTargetCount}
                   </span>
                 ) : (
-                  <span className="text-gray-300">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </td>
               <td className="px-4 py-2.5 text-center">
                 <span className={`font-semibold ${
                   row.openConcerns >= 2 ? 'text-rose-600'
-                  : row.openConcerns === 1 ? 'text-amber-600'
-                  : 'text-gray-400'
+                  : row.openConcerns === 1 ? 'text-amber-700'
+                  : 'text-gray-500'
                 }`}>
                   {row.openConcerns || '—'}
                 </span>
@@ -175,7 +175,7 @@ function InterventionTable({ rows, urgency }: {
                     {new Date(row.ehcpDue).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </span>
                 ) : (
-                  <span className="text-gray-300">—</span>
+                  <span className="text-gray-500">—</span>
                 )}
               </td>
               <td className="px-4 py-2.5">

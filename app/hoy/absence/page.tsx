@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 const ALLOWED = ['HEAD_OF_YEAR', 'SLT', 'SCHOOL_ADMIN']
 
 function RagBar({ pct }: { pct: number | null }) {
-  if (pct == null) return <span className="text-gray-400 text-[11px]">N/A</span>
+  if (pct == null) return <span className="text-gray-500 text-[11px]">N/A</span>
   const color = pct < 85 ? 'bg-rose-500' : pct < 90 ? 'bg-amber-400' : pct < 95 ? 'bg-yellow-300' : 'bg-emerald-400'
   return (
     <div className="flex items-center gap-2">
@@ -41,7 +41,7 @@ export default async function HoyAbsencePage() {
   const statCards = [
     { label: 'Total students', value: data.totalStudents,                  color: 'bg-blue-50 text-blue-700'   },
     { label: 'Below 95%',      value: data.below95,                        color: 'bg-yellow-50 text-yellow-700' },
-    { label: 'Below 90%',      value: data.below90,                        color: 'bg-amber-50 text-amber-700'  },
+    { label: 'Below 90%',      value: data.below90,                        color: 'bg-amber-50 text-amber-800'  },
     { label: 'Below 85%',      value: data.below85,                        color: 'bg-rose-50 text-rose-700'    },
     { label: 'School avg',     value: data.avgAttendance != null ? `${data.avgAttendance}%` : '—', color: 'bg-gray-50 text-gray-700' },
   ]
@@ -55,20 +55,20 @@ export default async function HoyAbsencePage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/hoy/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/hoy/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> HOY Dashboard
             </Link>
           </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Absence Hub</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {data.yearGroup ? `Year ${data.yearGroup} attendance overview` : 'School-wide attendance overview'}
               </p>
             </div>
             <Link
               href="/admin/attendance"
-              className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
             >
               <Icon name="open_in_new" size="sm" />
               Full overview
@@ -96,7 +96,7 @@ export default async function HoyAbsencePage() {
               <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                 <Icon name="warning" size="sm" className="text-amber-500" />
                 <h2 className="text-[14px] font-semibold text-gray-900">Students below 90% attendance</h2>
-                <span className="ml-auto text-[11px] text-gray-400">{flagged.length} students</span>
+                <span className="ml-auto text-[11px] text-gray-500">{flagged.length} students</span>
               </div>
               <table className="w-full text-[12px]">
                 <thead>
@@ -118,7 +118,7 @@ export default async function HoyAbsencePage() {
                         >
                           {s.name}
                         </Link>
-                        {s.yearGroup && <p className="text-[10px] text-gray-400">Year {s.yearGroup}</p>}
+                        {s.yearGroup && <p className="text-[10px] text-gray-500">Year {s.yearGroup}</p>}
                       </td>
                       <td className="px-4 py-2.5 hidden sm:table-cell">
                         <SendBadge status={s.sendStatus} />
@@ -127,7 +127,7 @@ export default async function HoyAbsencePage() {
                         {s.openConcerns > 0 ? (
                           <span className="text-rose-600 font-semibold">{s.openConcerns}</span>
                         ) : (
-                          <span className="text-gray-400">—</span>
+                          <span className="text-gray-500">—</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5 w-40">
@@ -138,7 +138,7 @@ export default async function HoyAbsencePage() {
                           <Link
                             href={`/api/export/attendance-letter/${s.id}`}
                             target="_blank"
-                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 transition-colors"
                           >
                             <Icon name="mail" size="sm" />
                             Letter

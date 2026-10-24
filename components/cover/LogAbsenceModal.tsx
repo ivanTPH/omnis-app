@@ -86,7 +86,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-[14px] font-bold text-gray-900">Log Absence</h2>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-500 hover:text-gray-700">
             <Icon name="close" size="sm" />
           </button>
         </div>
@@ -106,7 +106,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
             />
             <div className="max-h-44 overflow-auto border border-gray-200 rounded-lg">
               {filtered.length === 0 ? (
-                <p className="text-[12px] text-gray-400 px-3 py-2">No staff found.</p>
+                <p className="text-[12px] text-gray-500 px-3 py-2">No staff found.</p>
               ) : (
                 filtered.map(s => (
                   <label
@@ -150,7 +150,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-                To <span className="font-normal text-gray-300 normal-case">(multi-day)</span>
+                To <span className="font-normal text-gray-500 normal-case">(multi-day)</span>
               </label>
               <input
                 type="date"
@@ -185,7 +185,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
           {/* Cover teacher */}
           <div>
             <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-              Cover Teacher <span className="font-normal text-gray-300 normal-case">(optional — assigns all lessons immediately)</span>
+              Cover Teacher <span className="font-normal text-gray-500 normal-case">(optional — assigns all lessons immediately)</span>
             </label>
             <input
               type="text"
@@ -204,7 +204,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
                   onChange={() => setCoveredBy('')}
                   className="accent-blue-600"
                 />
-                <span className="text-[12px] text-gray-400 italic">None — assign cover later</span>
+                <span className="text-[12px] text-gray-500 italic">None — assign cover later</span>
               </label>
               {coverFiltered.map(s => (
                 <label
@@ -230,7 +230,7 @@ export default function LogAbsenceModal({ schoolId, date, staffList, onClose, on
           {/* Notes */}
           <div>
             <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-              Notes <span className="font-normal text-gray-300 normal-case">(optional)</span>
+              Notes <span className="font-normal text-gray-500 normal-case">(optional)</span>
             </label>
             <textarea
               value={notes}

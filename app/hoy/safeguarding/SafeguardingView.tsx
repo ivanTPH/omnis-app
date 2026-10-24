@@ -20,15 +20,15 @@ const STATUSES   = ['open', 'referred', 'monitoring', 'closed']
 
 const PRIORITY_PILL: Record<string, string> = {
   low:      'bg-gray-100 text-gray-600',
-  medium:   'bg-amber-100 text-amber-700',
+  medium:   'bg-amber-100 text-amber-800',
   high:     'bg-orange-100 text-orange-700',
   critical: 'bg-rose-100 text-rose-700',
 }
 const STATUS_PILL: Record<string, string> = {
   open:       'bg-blue-100 text-blue-700',
   referred:   'bg-purple-100 text-purple-700',
-  monitoring: 'bg-amber-100 text-amber-700',
-  closed:     'bg-green-100 text-green-700',
+  monitoring: 'bg-amber-100 text-amber-800',
+  closed:     'bg-green-100 text-green-800',
 }
 
 function RecordCard({
@@ -59,7 +59,7 @@ function RecordCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm text-gray-900">{record.studentName}</span>
-            {record.yearGroup && <span className="text-xs text-gray-400">Y{record.yearGroup}</span>}
+            {record.yearGroup && <span className="text-xs text-gray-500">Y{record.yearGroup}</span>}
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase ${PRIORITY_PILL[record.priority] ?? 'bg-gray-100 text-gray-600'}`}>
               {record.priority}
             </span>
@@ -109,7 +109,7 @@ function RecordCard({
           </div>
 
           {record.resolvedAt && (
-            <p className="text-xs text-gray-400">Resolved: {new Date(record.resolvedAt).toLocaleDateString('en-GB')}</p>
+            <p className="text-xs text-gray-500">Resolved: {new Date(record.resolvedAt).toLocaleDateString('en-GB')}</p>
           )}
 
           <div className="flex justify-end">
@@ -223,7 +223,7 @@ export default function SafeguardingView({ log }: { log: SafeguardingLog }) {
           <button
             key={s.key}
             onClick={() => switchSection(s.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeSection === s.key ? s.colour + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${activeSection === s.key ? s.colour + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
             {s.label} ({s.data.length})
           </button>
@@ -233,7 +233,7 @@ export default function SafeguardingView({ log }: { log: SafeguardingLog }) {
       {/* Records */}
       <div className="space-y-2">
         {showLog.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-500">
             <Icon name="shield" size="lg" className="mx-auto mb-2 opacity-40" />
             <p className="text-sm">No {activeSection} records</p>
           </div>
@@ -250,16 +250,16 @@ export default function SafeguardingView({ log }: { log: SafeguardingLog }) {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Log Safeguarding Concern</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-600">
                 <Icon name="close" size="sm" />
               </button>
             </div>
 
-            {error && <p className="text-sm text-rose-600 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
+            {error && <p className="text-sm text-rose-700 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Student ID <span className="text-rose-500">*</span></label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Student ID <span className="text-rose-600">*</span></label>
                 <input
                   className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Paste student user ID"
@@ -292,7 +292,7 @@ export default function SafeguardingView({ log }: { log: SafeguardingLog }) {
               </div>
 
               <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Description <span className="text-rose-500">*</span></label>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Description <span className="text-rose-600">*</span></label>
                 <textarea
                   className="w-full text-sm border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                   rows={4}

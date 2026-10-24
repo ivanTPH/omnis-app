@@ -97,7 +97,7 @@ export default async function AcademyReportsPage() {
             </div>
           </section>
 
-          <p className="text-[11px] text-gray-400 text-center">
+          <p className="text-[11px] text-gray-500 text-center">
             Data is live from the Omnis platform.
           </p>
         </div>
@@ -127,7 +127,7 @@ function ReportRow({
         <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
         <div>
           <p className="text-[13px] text-gray-700">{label}</p>
-          {detail && <p className="text-[11px] text-gray-400 mt-0.5">{detail}</p>}
+          {detail && <p className="text-[11px] text-gray-500 mt-0.5">{detail}</p>}
         </div>
       </div>
       <p className="text-[15px] font-bold text-gray-900">{value}</p>

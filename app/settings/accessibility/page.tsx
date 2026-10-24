@@ -14,7 +14,7 @@ export default async function AccessibilitySettingsPage() {
     <AppShell role={user.role} firstName={user.firstName} lastName={user.lastName} schoolName={user.schoolName}>
       <div className="p-6 max-w-2xl mx-auto">
         <div className="mb-6">
-          <Link href="/settings" className="inline-flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-gray-700 mb-4 transition-colors">
+          <Link href="/settings" className="inline-flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-700 mb-4 transition-colors">
             <Icon name="arrow_back" size="sm" />
             Settings
           </Link>

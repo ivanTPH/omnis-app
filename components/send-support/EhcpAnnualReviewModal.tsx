@@ -75,7 +75,7 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
               <p className="text-[11px] text-gray-500">{studentName}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-400 hover:text-gray-700">
+          <button onClick={onClose} aria-label="Close" className="p-1 text-gray-500 hover:text-gray-700">
             <Icon name="close" size="sm" />
           </button>
         </div>
@@ -98,7 +98,7 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
           {/* Progress rating */}
           <div>
             <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-2">
-              Overall progress rating <span className="text-red-500">*</span>
+              Overall progress rating <span className="text-red-600">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
               {PROGRESS_OPTIONS.map(opt => (
@@ -121,8 +121,8 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
           {/* Review summary */}
           <div>
             <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-              Review summary <span className="text-red-500">*</span>
-              <span className="font-normal text-gray-400 ml-1">(min. 20 characters)</span>
+              Review summary <span className="text-red-600">*</span>
+              <span className="font-normal text-gray-500 ml-1">(min. 20 characters)</span>
             </label>
             <textarea
               value={summary}
@@ -131,7 +131,7 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
               placeholder="Summarise progress against each EHCP outcome. Reference specific evidence where available. Note any provision changes recommended…"
               className="w-full px-3 py-2.5 text-[13px] border border-gray-200 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
-            <p className="text-[10px] text-gray-400 mt-1">{summary.length} characters</p>
+            <p className="text-[10px] text-gray-500 mt-1">{summary.length} characters</p>
           </div>
 
           {/* Parent / carer comments */}
@@ -151,7 +151,7 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
           {/* New review date */}
           <div>
             <label className="block text-[11px] font-semibold text-gray-600 uppercase tracking-wide mb-1.5">
-              Next review date <span className="text-red-500">*</span>
+              Next review date <span className="text-red-600">*</span>
             </label>
             <input
               type="date"
@@ -160,7 +160,7 @@ export default function EhcpAnnualReviewModal({ ehcpId, studentName, onClose, on
               min={today()}
               className="border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
-            <p className="text-[11px] text-gray-400 mt-1">This will update the EHCP plan&apos;s review date.</p>
+            <p className="text-[11px] text-gray-500 mt-1">This will update the EHCP plan&apos;s review date.</p>
           </div>
 
           {/* Checkboxes */}

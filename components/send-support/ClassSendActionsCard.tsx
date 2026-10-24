@@ -64,7 +64,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
   }, [classId])
 
   if (loading) return (
-    <div className="flex items-center gap-2 text-[12px] text-gray-400 py-2">
+    <div className="flex items-center gap-2 text-[12px] text-gray-500 py-2">
       <Icon name="refresh" size="sm" className="animate-spin" /> Loading SEND actions…
     </div>
   )
@@ -121,12 +121,12 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                 <span className="text-[13px] font-semibold text-gray-900">{a.studentName}</span>
                 <SendBadge status={a.sendStatus as 'EHCP' | 'SEN_SUPPORT' | 'NONE' | null} />
                 {resolvedNeed && (
-                  <span className="text-[10px] text-gray-400 truncate">{resolvedNeed}</span>
+                  <span className="text-[10px] text-gray-500 truncate">{resolvedNeed}</span>
                 )}
                 <button
                   onClick={() => openModal(a)}
                   disabled={loadingModal === a.studentId}
-                  className="ml-auto flex items-center gap-1 text-[10px] text-teal-600 hover:text-teal-800 font-medium disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1 text-[10px] text-teal-700 hover:text-teal-800 font-medium disabled:opacity-50"
                 >
                   {loadingModal === a.studentId ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="menu_book" size="sm" />}
                   K Plan
@@ -135,7 +135,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                   href={`/student/${a.studentId}/send`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-gray-300 hover:text-blue-500"
+                  className="text-gray-500 hover:text-blue-600"
                   title="Open full SEND record"
                 >
                   <Icon name="open_in_new" size="sm" />
@@ -165,7 +165,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
                   </li>
                 ))}
                 {a.teacherActions.length > 3 && (
-                  <li className="text-[11px] text-gray-400 pl-6">
+                  <li className="text-[11px] text-gray-500 pl-6">
                     +{a.teacherActions.length - 3} more — open K Plan to see all
                   </li>
                 )}
@@ -179,7 +179,7 @@ export default function ClassSendActionsCard({ classId }: { classId: string }) {
         {actions.length > SHOW_MAX && (
           <button
             onClick={() => setExpanded(e => !e)}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-teal-600 hover:bg-teal-50 border-t border-teal-100 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium text-teal-700 hover:bg-teal-50 border-t border-teal-100 transition-colors"
           >
             {expanded
               ? <><Icon name="expand_less" size="sm" /> Show fewer</>

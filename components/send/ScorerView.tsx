@@ -133,13 +133,13 @@ export default function ScorerView({ canRescore, initialSubjects }: Props) {
       )}
 
       {searched && lessons.length === 0 && (
-        <div className="text-center py-12 text-gray-400 text-[13px]">
+        <div className="text-center py-12 text-gray-500 text-[13px]">
           No lessons found. Try a different search term or filter.
         </div>
       )}
 
       {!searched && (
-        <div className="text-center py-12 text-gray-300 text-[13px]">
+        <div className="text-center py-12 text-gray-500 text-[13px]">
           Search for Oak National Academy lessons to score them for SEND accessibility.
         </div>
       )}

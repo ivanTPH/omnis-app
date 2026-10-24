@@ -22,7 +22,7 @@ const PHASE_LABEL: Record<string, string> = {
 export default function AcademySchoolsTable({ schools }: { schools: AcademySchoolRow[] }) {
   if (schools.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-400">
+      <div className="bg-white border border-gray-200 rounded-xl p-12 text-center text-gray-500">
         No schools yet.
       </div>
     )
@@ -65,35 +65,35 @@ export default function AcademySchoolsTable({ schools }: { schools: AcademySchoo
                   {s.staffCount.toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <span className={s.sendStudents > 0 ? 'text-purple-700 font-medium' : 'text-gray-400'}>
+                  <span className={s.sendStudents > 0 ? 'text-purple-700 font-medium' : 'text-gray-500'}>
                     {s.sendStudents > 0 ? s.sendStudents.toLocaleString() : '—'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <span className={s.activeIlps > 0 ? 'text-amber-700 font-medium' : 'text-gray-400'}>
+                  <span className={s.activeIlps > 0 ? 'text-amber-700 font-medium' : 'text-gray-500'}>
                     {s.activeIlps > 0 ? s.activeIlps : '—'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <span className={s.ehcps > 0 ? 'text-rose-700 font-medium' : 'text-gray-400'}>
+                  <span className={s.ehcps > 0 ? 'text-rose-700 font-medium' : 'text-gray-500'}>
                     {s.ehcps > 0 ? s.ehcps : '—'}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
                   {s.openConcerns > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-orange-600 font-medium">
+                    <span className="inline-flex items-center gap-1 text-orange-700 font-medium">
                       <Icon name="report_problem" size="sm" />
                       {s.openConcerns}
                     </span>
                   ) : (
-                    <span className="text-gray-300">—</span>
+                    <span className="text-gray-500">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 text-[11px] ${
-                    !s.lastSync ? 'text-gray-400' :
+                    !s.lastSync ? 'text-gray-500' :
                     Date.now() - new Date(s.lastSync).getTime() > 14 * 86_400_000
-                      ? 'text-amber-600' : 'text-green-600'
+                      ? 'text-amber-700' : 'text-green-700'
                   }`}>
                     <Icon name={s.lastSync ? 'sync' : 'sync_disabled'} size="sm" />
                     {ago(s.lastSync)}
@@ -101,12 +101,12 @@ export default function AcademySchoolsTable({ schools }: { schools: AcademySchoo
                 </td>
                 <td className="px-4 py-3">
                   {s.onboardedAt ? (
-                    <span className="inline-flex items-center gap-1 text-green-600 text-[11px]">
+                    <span className="inline-flex items-center gap-1 text-green-700 text-[11px]">
                       <Icon name="check_circle" size="sm" />
                       {new Date(s.onboardedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-amber-600 text-[11px]">
+                    <span className="inline-flex items-center gap-1 text-amber-700 text-[11px]">
                       <Icon name="pending" size="sm" />
                       Pending
                     </span>

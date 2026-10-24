@@ -113,16 +113,16 @@ export default function RevisionProgramList({
                           <Icon name="school" size="sm" /> Year
                         </span>
                       )}
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAssignment ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isAssignment ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-700'}`}>
                         {isAssignment ? 'Assignment' : 'Study Guide'}
                       </span>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        p.status === 'sent' || p.status === 'active' ? 'bg-green-100 text-green-700' :
-                        p.status === 'closed' ? 'bg-gray-100 text-gray-500' :
-                        'bg-amber-100 text-amber-700'
+                        p.status === 'sent' || p.status === 'active' ? 'bg-green-100 text-green-800' :
+                        p.status === 'closed' ? 'bg-gray-100 text-gray-600' :
+                        'bg-amber-100 text-amber-800'
                       }`}>{p.status}</span>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Icon name="calendar_today" size="sm" /> {new Date(p.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       <span className="flex items-center gap-1"><Icon name="people" size="sm" /> {p.completedCount}/{p.taskCount} complete</span>
                     </div>
@@ -134,7 +134,7 @@ export default function RevisionProgramList({
                   <div className="flex items-center gap-2 shrink-0">
                     <Link
                       href={`/revision-program/${p.id}`}
-                      className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
+                      className="flex items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-800 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
                     >
                       View <Icon name="chevron_right" size="sm" />
                     </Link>

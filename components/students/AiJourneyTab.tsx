@@ -39,10 +39,10 @@ export default function AiJourneyTab({
   const [skillFilter, setSkillFilter] = useState<string | null>(null)
 
   if (loading) {
-    return <div className="text-sm text-gray-400 py-8 text-center">Loading AI journey…</div>
+    return <div className="text-sm text-gray-500 py-8 text-center">Loading AI journey…</div>
   }
   if (!data) {
-    return <div className="text-sm text-gray-400 py-8 text-center">Nothing to show yet.</div>
+    return <div className="text-sm text-gray-500 py-8 text-center">Nothing to show yet.</div>
   }
 
   const filteredEntries = skillFilter

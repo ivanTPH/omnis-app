@@ -207,24 +207,24 @@ export default function SubmissionMarkingView({
                 )}
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-gray-500">
                   {hw.class?.name}
                   {' · '}Submitted {new Date(data.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   {' at '}
                   {new Date(data.submittedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                   {isReturned && data.markedAt &&
                     new Date(data.markedAt) >= new Date(data.submittedAt) && (
-                    <span className="text-green-600">
+                    <span className="text-green-700">
                       {' · '}Returned {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </span>
                   )}
                   {data.status === 'MARKED' && (
-                    <span className="text-amber-600">{' · '}Awaiting review</span>
+                    <span className="text-amber-700">{' · '}Awaiting review</span>
                   )}
                 </p>
                 <Link
                   href="/messages"
-                  className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 hover:underline"
+                  className="inline-flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800 hover:underline"
                   title="Message student"
                 >
                   <Icon name="chat" size="sm" /> Message
@@ -237,7 +237,7 @@ export default function SubmissionMarkingView({
           {isAutoMarkedPending && (
             <div className="bg-amber-50 border border-amber-300 rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-amber-200 flex items-center gap-2">
-                <Icon name="smart_toy" size="sm" className="text-amber-600 shrink-0" />
+                <Icon name="smart_toy" size="sm" className="text-amber-800 shrink-0" />
                 <span className="text-sm font-semibold text-amber-800">AI Suggested Mark</span>
                 <span className="ml-auto text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium">Auto-marked</span>
               </div>
@@ -269,7 +269,7 @@ export default function SubmissionMarkingView({
                     }
                     Approve &amp; Return
                   </button>
-                  <p className="flex items-center text-[11px] text-amber-700">
+                  <p className="flex items-center text-[11px] text-amber-800">
                     or edit score &amp; feedback in the panel →
                   </p>
                 </div>
@@ -281,14 +281,14 @@ export default function SubmissionMarkingView({
           {data.plan && (hwStrats.length > 0 || classStrats.length > 0) && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Icon name="warning" size="sm" className="text-amber-600 shrink-0" />
+                <Icon name="warning" size="sm" className="text-amber-800 shrink-0" />
                 <p className="text-[12px] font-semibold text-amber-900">
                   SEND Support Plan active — consider these strategies when marking
                 </p>
               </div>
               {hwStrats.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1.5">Homework strategies</p>
+                  <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-1.5">Homework strategies</p>
                   <div className="space-y-1">
                     {hwStrats.map(s => (
                       <div key={s.id} className="flex items-start gap-2">
@@ -301,12 +301,12 @@ export default function SubmissionMarkingView({
               )}
               {classStrats.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide mb-1.5">In-class strategies applied</p>
+                  <p className="text-[10px] font-bold text-amber-800 uppercase tracking-wide mb-1.5">In-class strategies applied</p>
                   <div className="space-y-1">
                     {classStrats.map(s => (
                       <div key={s.id} className="flex items-start gap-2">
                         <div className="w-1 h-1 rounded-full bg-amber-400 mt-1.5 shrink-0" />
-                        <p className="text-[12px] text-amber-700">{s.strategyText}</p>
+                        <p className="text-[12px] text-amber-800">{s.strategyText}</p>
                       </div>
                     ))}
                   </div>
@@ -318,8 +318,8 @@ export default function SubmissionMarkingView({
           {/* Homework instructions */}
           <div>
             <div className="flex items-center gap-1.5 mb-2">
-              <Icon name="menu_book" size="sm" className="text-gray-400" />
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Instructions</p>
+              <Icon name="menu_book" size="sm" className="text-gray-600" />
+              <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wide">Instructions</p>
             </div>
             <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3.5 text-[13px] text-gray-600 leading-relaxed whitespace-pre-wrap">
               {hw.instructions}
@@ -328,9 +328,9 @@ export default function SubmissionMarkingView({
 
           {/* Student submission */}
           <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s Submission</p>
+            <p className="text-[10px] font-bold text-gray-600 uppercase tracking-wide mb-2">Student&apos;s Submission</p>
             <div className="bg-white border border-gray-200 rounded-xl px-5 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[160px]">
-              {data.content || <span className="text-gray-400 italic">No answer recorded</span>}
+              {data.content || <span className="text-gray-600 italic">No answer recorded</span>}
             </div>
           </div>
 
@@ -342,10 +342,10 @@ export default function SubmissionMarkingView({
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition text-left"
               >
                 <div className="flex items-center gap-2">
-                  <Icon name="track_changes" size="sm" className="text-gray-500" />
+                  <Icon name="track_changes" size="sm" className="text-gray-600" />
                   <span className="text-[12px] font-semibold text-gray-700">Model Answer</span>
                 </div>
-                {showModelAnswer ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
+                {showModelAnswer ? <Icon name="expand_less" size="sm" className="text-gray-600" /> : <Icon name="expand_more" size="sm" className="text-gray-600" />}
               </button>
               {showModelAnswer && (
                 <div className="px-5 py-4 text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap border-t border-gray-100">
@@ -363,7 +363,7 @@ export default function SubmissionMarkingView({
                 className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition text-left"
               >
                 <span className="text-[12px] font-semibold text-gray-700">Mark Scheme</span>
-                {showBands ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
+                {showBands ? <Icon name="expand_less" size="sm" className="text-gray-600" /> : <Icon name="expand_more" size="sm" className="text-gray-600" />}
               </button>
               {showBands && (
                 <div className="divide-y divide-gray-100 border-t border-gray-100">
@@ -387,16 +387,16 @@ export default function SubmissionMarkingView({
 
           {canGrade ? (
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-4">
+              <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-4">
                 {isAlreadyMarked ? 'Update Mark' : 'Mark Submission'}
               </p>
 
               {/* Score */}
               <div className="mb-4">
-                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-2">
                   Score (out of {maxScore})
                   {isAutoMarkedPending && (
-                    <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI suggested</span>
+                    <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI suggested</span>
                   )}
                 </label>
                 <div className="flex items-center gap-3">
@@ -409,7 +409,7 @@ export default function SubmissionMarkingView({
                     className="w-20 border border-gray-300 rounded-xl px-3 py-2.5 text-[18px] font-bold text-gray-900 text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="—"
                   />
-                  <span className="text-[13px] text-gray-400">/ {maxScore}</span>
+                  <span className="text-[13px] text-gray-600">/ {maxScore}</span>
                 </div>
                 {score !== '' && (
                   <div className="mt-3">
@@ -419,14 +419,14 @@ export default function SubmissionMarkingView({
                         style={{ width: `${Math.min(pct, 100)}%` }}
                       />
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">{Math.round(pct)}%</p>
+                    <p className="text-[10px] text-gray-600 mt-1">{Math.round(pct)}%</p>
                   </div>
                 )}
               </div>
 
               {/* Grade */}
               <div className="mb-4">
-                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">Grade (GCSE 1–9)</label>
+                <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-2">Grade (GCSE 1–9)</label>
                 <input
                   type="text"
                   value={grade}
@@ -435,18 +435,18 @@ export default function SubmissionMarkingView({
                   placeholder="—"
                 />
                 <p className={`text-[10px] mt-1 ${
-                  gradeState === 'auto'      ? 'text-amber-600' :
-                  gradeState === 'confirmed' ? 'text-green-600' :
-                  'text-gray-400'
+                  gradeState === 'auto'      ? 'text-amber-700' :
+                  gradeState === 'confirmed' ? 'text-green-700' :
+                  'text-gray-500'
                 }`}>{gradeLabel}</p>
               </div>
 
               {/* Feedback */}
               <div className="mb-5">
-                <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-2">
+                <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-2">
                   Feedback to Student
                   {isAutoMarkedPending && (
-                    <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI pre-filled</span>
+                    <span className="ml-1.5 text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-medium normal-case tracking-normal">AI pre-filled</span>
                   )}
                 </label>
                 <textarea
@@ -460,7 +460,7 @@ export default function SubmissionMarkingView({
 
               {/* Error */}
               {error && (
-                <p className="text-[12px] text-rose-600 font-medium mb-3">{error}</p>
+                <p className="text-[12px] text-rose-700 font-medium mb-3">{error}</p>
               )}
 
               {/* Actions */}
@@ -481,7 +481,7 @@ export default function SubmissionMarkingView({
                 </button>
 
                 {saved && !isPending && (
-                  <p className="text-[11px] text-green-600 text-center font-medium">
+                  <p className="text-[11px] text-green-700 text-center font-medium">
                     <Icon name="check_circle" size="sm" className="inline mr-1" />
                     {data.nav.next ? 'Moving to next student…' : 'All done!'}
                   </p>
@@ -491,7 +491,7 @@ export default function SubmissionMarkingView({
               {/* Previously returned info */}
               {isReturned && (
                 <div className="border-t border-gray-200 mt-5 pt-4">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Previously Returned</p>
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-2">Previously Returned</p>
                   <div className="space-y-1 text-[12px] text-gray-500">
                     {data.finalScore != null && (
                       <p>Score: <span className="font-semibold text-gray-700">{displayFinalScore}</span></p>
@@ -507,15 +507,15 @@ export default function SubmissionMarkingView({
           ) : (
             /* READ-ONLY view for non-teaching staff (e.g. SENCO) */
             <div className="space-y-4">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Mark Summary</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Mark Summary</p>
 
               {data.grade != null && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Grade</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Grade</p>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-gray-900">{data.grade}</span>
                     {data.finalScore != null && (
-                      <span className="text-[12px] text-gray-400">({displayFinalScore})</span>
+                      <span className="text-[12px] text-gray-500">({displayFinalScore})</span>
                     )}
                   </div>
                 </div>
@@ -523,19 +523,19 @@ export default function SubmissionMarkingView({
 
               {data.feedback && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Teacher Feedback</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Teacher Feedback</p>
                   <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">{data.feedback}</p>
                 </div>
               )}
 
               {data.markedAt && new Date(data.markedAt) >= new Date(data.submittedAt) && (
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-gray-500">
                   Returned {new Date(data.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
               )}
 
               {!data.grade && (
-                <p className="text-[12px] text-gray-400 italic">Not yet graded.</p>
+                <p className="text-[12px] text-gray-500 italic">Not yet graded.</p>
               )}
 
               <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">

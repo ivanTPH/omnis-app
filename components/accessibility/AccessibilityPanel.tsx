@@ -110,7 +110,7 @@ export default function AccessibilityPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
         <h2 className="text-[14px] font-bold text-gray-900">Accessibility</h2>
-        <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+        <button onClick={onClose} aria-label="Close" className="text-gray-600 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
           <Icon name="close" size="sm" />
         </button>
       </div>
@@ -173,13 +173,13 @@ export default function AccessibilityPanel({
         <button
           onClick={resetAll}
           disabled={pending}
-          className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-gray-600 transition-colors"
+          className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-gray-600 transition-colors"
         >
           <Icon name="loop" size="sm" />
           Reset to defaults
         </button>
         {pending && (
-          <p className="text-[10px] text-gray-400 mt-1">Saving…</p>
+          <p className="text-[10px] text-gray-500 mt-1">Saving…</p>
         )}
       </div>
     </div>

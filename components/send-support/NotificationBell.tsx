@@ -17,21 +17,21 @@ type UnifiedNotification =
   | (PlatformNotificationRow & { source: 'platform'; isRead: boolean })
 
 const TYPE_META: Record<string, { icon: string; color: string; label: string }> = {
-  new_concern:         { icon: 'warning',          color: 'text-amber-500',  label: 'New concern' },
-  concern_escalated:   { icon: 'report_problem',   color: 'text-red-500',    label: 'Concern escalated' },
-  ilp_created:         { icon: 'description',      color: 'text-blue-500',   label: 'ILP created' },
-  ilp_review_due:      { icon: 'event',            color: 'text-orange-500', label: 'Review due' },
-  pattern_detected:    { icon: 'bar_chart',        color: 'text-purple-500', label: 'Pattern detected' },
-  review_requested:    { icon: 'visibility',       color: 'text-blue-500',   label: 'Review requested' },
-  HOMEWORK_SUBMITTED:  { icon: 'assignment',       color: 'text-indigo-500', label: 'Homework submitted' },
-  HOMEWORK_GRADED:     { icon: 'check_circle',     color: 'text-green-500',  label: 'Homework graded' },
-  PLAN_REVIEW_DUE:     { icon: 'event',            color: 'text-orange-500', label: 'Plan review due' },
-  SUBMISSION_FLAGGED:  { icon: 'flag',             color: 'text-red-500',    label: 'Submission flagged' },
-  new_message:         { icon: 'chat_bubble',      color: 'text-blue-500',   label: 'New message' },
-  GENERAL:             { icon: 'notifications',    color: 'text-gray-400',   label: 'Notification' },
-  ILP_EVIDENCE_REQUEST:{ icon: 'link',             color: 'text-teal-500',   label: 'Evidence request' },
-  ILP_EVIDENCE_SUGGESTED: { icon: 'auto_awesome', color: 'text-teal-500',   label: 'Evidence suggested' },
-  SYSTEM:              { icon: 'info',             color: 'text-blue-400',   label: 'System' },
+  new_concern:         { icon: 'warning',          color: 'text-amber-700',  label: 'New concern' },
+  concern_escalated:   { icon: 'report_problem',   color: 'text-red-600',    label: 'Concern escalated' },
+  ilp_created:         { icon: 'description',      color: 'text-blue-600',   label: 'ILP created' },
+  ilp_review_due:      { icon: 'event',            color: 'text-orange-700', label: 'Review due' },
+  pattern_detected:    { icon: 'bar_chart',        color: 'text-purple-600', label: 'Pattern detected' },
+  review_requested:    { icon: 'visibility',       color: 'text-blue-600',   label: 'Review requested' },
+  HOMEWORK_SUBMITTED:  { icon: 'assignment',       color: 'text-indigo-600', label: 'Homework submitted' },
+  HOMEWORK_GRADED:     { icon: 'check_circle',     color: 'text-green-700',  label: 'Homework graded' },
+  PLAN_REVIEW_DUE:     { icon: 'event',            color: 'text-orange-700', label: 'Plan review due' },
+  SUBMISSION_FLAGGED:  { icon: 'flag',             color: 'text-red-600',    label: 'Submission flagged' },
+  new_message:         { icon: 'chat_bubble',      color: 'text-blue-600',   label: 'New message' },
+  GENERAL:             { icon: 'notifications',    color: 'text-gray-500',   label: 'Notification' },
+  ILP_EVIDENCE_REQUEST:{ icon: 'link',             color: 'text-teal-700',   label: 'Evidence request' },
+  ILP_EVIDENCE_SUGGESTED: { icon: 'auto_awesome', color: 'text-teal-700',   label: 'Evidence suggested' },
+  SYSTEM:              { icon: 'info',             color: 'text-blue-600',   label: 'System' },
 }
 
 export default function NotificationBell() {
@@ -137,7 +137,7 @@ export default function NotificationBell() {
 
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
             {unified.length === 0 ? (
-              <p className="text-center text-sm text-gray-400 py-6">No notifications.</p>
+              <p className="text-center text-sm text-gray-500 py-6">No notifications.</p>
             ) : (
               unified.map(n => {
                 const hasLink = n.source === 'platform' && !!n.linkHref
@@ -159,14 +159,14 @@ export default function NotificationBell() {
                         </p>
                         <p className="text-sm font-medium text-gray-900 line-clamp-1">{n.title}</p>
                         <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{n.body}</p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           {new Date(n.createdAt).toLocaleDateString('en-GB')}
                         </p>
                       </div>
                       {isUnread(n) && (
                         <button
                           onClick={e => { e.stopPropagation(); handleMarkRead(n) }}
-                          className="shrink-0 p-1 hover:bg-blue-100 rounded text-blue-500"
+                          className="shrink-0 p-1 hover:bg-blue-100 rounded text-blue-700"
                           title="Mark as read"
                         >
                           <Icon name="check" size="sm" />

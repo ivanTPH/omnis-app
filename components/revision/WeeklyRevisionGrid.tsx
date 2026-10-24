@@ -112,16 +112,16 @@ export default function WeeklyRevisionGrid({
             />
           )}
           <span className="text-[11px] text-gray-500">{weekLabel} – {weekEndLabel}</span>
-          <button onClick={() => navigate(-1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+          <button onClick={() => navigate(-1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-600">
             <Icon name="chevron_left" size="sm" />
           </button>
           <button
             onClick={() => { setWeekStart(getMonday(new Date())); onWeekChange(getMonday(new Date())) }}
-            className="text-[10px] font-semibold text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50"
+            className="text-[10px] font-semibold text-blue-700 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50"
           >
             Today
           </button>
-          <button onClick={() => navigate(1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
+          <button onClick={() => navigate(1)} className="p-1 hover:bg-gray-100 rounded-lg text-gray-600">
             <Icon name="chevron_right" size="sm" />
           </button>
         </div>
@@ -171,7 +171,7 @@ export default function WeeklyRevisionGrid({
                   </button>
                 ))}
                 {daySessions.length === 0 && (
-                  <div className="text-[9px] text-gray-300 text-center pt-1">—</div>
+                  <div className="text-[9px] text-gray-500 text-center pt-1">—</div>
                 )}
               </div>
             </div>

@@ -123,7 +123,7 @@ export default function BetaForm() {
                   >
                     Go to sign in →
                   </Link>
-                  <p className="text-xs text-gray-400 mb-4">The verification link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 hover:underline">forgot password</Link> to get a new one.</p>
+                  <p className="text-xs text-gray-500 mb-4">The verification link expires in 24 hours. If it expires, use <Link href="/forgot-password" className="text-blue-600 hover:underline">forgot password</Link> to get a new one.</p>
                 </>
               )}
               <div>
@@ -135,7 +135,7 @@ export default function BetaForm() {
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Apply for beta access</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="beta-school-name" className="block text-sm font-medium text-gray-700 mb-1">School name <span className="text-red-500">*</span></label>
+                  <label htmlFor="beta-school-name" className="block text-sm font-medium text-gray-700 mb-1">School name <span className="text-red-600">*</span></label>
                   <input
                     id="beta-school-name"
                     name="organization"
@@ -150,7 +150,7 @@ export default function BetaForm() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="beta-name" className="block text-sm font-medium text-gray-700 mb-1">Your name <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-name" className="block text-sm font-medium text-gray-700 mb-1">Your name <span className="text-red-600">*</span></label>
                     <input
                       id="beta-name"
                       name="name"
@@ -164,7 +164,7 @@ export default function BetaForm() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="beta-job-title" className="block text-sm font-medium text-gray-700 mb-1">Job title <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-job-title" className="block text-sm font-medium text-gray-700 mb-1">Job title <span className="text-red-600">*</span></label>
                     <select
                       id="beta-job-title"
                       name="jobTitle"
@@ -179,7 +179,7 @@ export default function BetaForm() {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="beta-email" className="block text-sm font-medium text-gray-700 mb-1">School email <span className="text-red-500">*</span></label>
+                  <label htmlFor="beta-email" className="block text-sm font-medium text-gray-700 mb-1">School email <span className="text-red-600">*</span></label>
                   <input
                     id="beta-email"
                     name="email"
@@ -194,7 +194,7 @@ export default function BetaForm() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="beta-password" className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-password" className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-600">*</span></label>
                     <input
                       id="beta-password"
                       name="password"
@@ -208,7 +208,7 @@ export default function BetaForm() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="beta-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">Confirm password <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">Confirm password <span className="text-red-600">*</span></label>
                     <input
                       id="beta-confirm-password"
                       name="confirmPassword"
@@ -227,7 +227,7 @@ export default function BetaForm() {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label htmlFor="beta-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <label htmlFor="beta-phone" className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-gray-500 font-normal">(optional)</span></label>
                     <input
                       id="beta-phone"
                       name="phone"
@@ -240,7 +240,7 @@ export default function BetaForm() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="beta-school-size" className="block text-sm font-medium text-gray-700 mb-1">School size <span className="text-red-500">*</span></label>
+                    <label htmlFor="beta-school-size" className="block text-sm font-medium text-gray-700 mb-1">School size <span className="text-red-600">*</span></label>
                     <select
                       id="beta-school-size"
                       name="schoolSize"
@@ -255,7 +255,7 @@ export default function BetaForm() {
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="beta-message" className="block text-sm font-medium text-gray-700 mb-1">Anything else you&apos;d like to tell us? <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label htmlFor="beta-message" className="block text-sm font-medium text-gray-700 mb-1">Anything else you&apos;d like to tell us? <span className="text-gray-500 font-normal">(optional)</span></label>
                   <textarea
                     id="beta-message"
                     name="message"
@@ -281,7 +281,7 @@ export default function BetaForm() {
                   )}
                   {status === 'sending' ? 'Submitting…' : 'Submit application'}
                 </button>
-                <p className="text-xs text-gray-400 text-center">We&apos;ll never share your details. No spam — just a reply from the founding team.</p>
+                <p className="text-xs text-gray-500 text-center">We&apos;ll never share your details. No spam — just a reply from the founding team.</p>
               </form>
             </>
           )}

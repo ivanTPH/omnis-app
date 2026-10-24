@@ -138,14 +138,14 @@ export default function AppShell({
             <div className="flex items-center gap-3 px-4 h-12 border-b border-gray-200 bg-white shrink-0 md:hidden">
               <button
                 onClick={() => setOpen(true)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
                 aria-label="Open menu"
               >
                 <Icon name="menu" size="md" />
               </button>
               <OmnisLogo variant="sidebar" />
               <div className="flex-1" />
-              <Link href="/notifications" className="relative p-1.5 text-gray-400 hover:text-gray-600" aria-label="Notifications">
+              <Link href="/notifications" className="relative p-1.5 text-gray-500 hover:text-gray-600" aria-label="Notifications">
                 <Icon name="notifications" size="md" />
                 <span className="absolute top-0.5 right-0.5">
                   <NotificationUnreadBadge />

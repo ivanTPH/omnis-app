@@ -101,7 +101,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             <Icon name="check_circle" size="lg" className="text-green-600 shrink-0" />
             <div className="flex-1">
               <p className="text-[13px] font-semibold text-green-800">Marked &amp; Returned</p>
-              <p className="text-[12px] text-green-600">
+              <p className="text-[12px] text-green-700">
                 {sub!.markedAt
                   ? `Marked ${new Date(sub!.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
                   : 'Your work has been marked'}
@@ -110,12 +110,12 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             <div className="flex items-center gap-3 shrink-0">
               {showRawScore && (
                 <div className="text-center">
-                  <p className="text-[18px] font-bold text-green-800">{rawScore}<span className="text-[13px] font-medium text-green-600">/{totalMarks}</span></p>
-                  <p className="text-[10px] text-green-600 uppercase tracking-wide font-semibold">marks</p>
+                  <p className="text-[18px] font-bold text-green-800">{rawScore}<span className="text-[13px] font-medium text-green-700">/{totalMarks}</span></p>
+                  <p className="text-[10px] text-green-700 uppercase tracking-wide font-semibold">marks</p>
                 </div>
               )}
               {sub!.grade && (
-                <span className="text-[22px] font-bold text-green-700 bg-green-100 px-4 py-1 rounded-xl">
+                <span className="text-[22px] font-bold text-green-800 bg-green-100 px-4 py-1 rounded-xl">
                   {gradeLabel(Number(sub!.grade))}
                 </span>
               )}
@@ -128,19 +128,19 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {isReturned && (sub!.grade || hw.classAvgScore != null || hw.predictedGrade != null) && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-center">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Your Grade</p>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Your Grade</p>
             <p className="text-[18px] font-bold text-gray-900">
               {sub!.grade ? gradeLabel(Number(sub!.grade)) : '—'}
             </p>
           </div>
           <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-center">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Class Average</p>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Class Average</p>
             <p className="text-[18px] font-bold text-gray-900">
               {hw.classAvgScore != null ? gradeLabel(percentToGcseGrade(hw.classAvgScore)) : '—'}
             </p>
           </div>
           <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-center">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Predicted</p>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Predicted</p>
             <p className="text-[18px] font-bold text-gray-900">
               {hw.predictedGrade != null ? gradeLabel(hw.predictedGrade) : '—'}
             </p>
@@ -153,7 +153,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
           <Icon name="schedule" size="lg" className="text-amber-600 shrink-0" />
           <div>
             <p className="text-[13px] font-semibold text-amber-800">Submitted — Awaiting Feedback</p>
-            <p className="text-[12px] text-amber-600">
+            <p className="text-[12px] text-amber-700">
               Submitted {new Date(sub!.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </p>
           </div>
@@ -186,7 +186,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
 
       {/* Instructions */}
       <section>
-        <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Instructions</h2>
+        <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Instructions</h2>
         <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 text-[14px] text-gray-700 leading-relaxed whitespace-pre-wrap">
           {hw.instructions}
         </div>
@@ -195,7 +195,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
       {/* Teacher feedback */}
       {isReturned && sub!.feedback && (
         <section>
-          <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
             <Icon name="chat" size="sm" /> Teacher Feedback
           </h2>
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-5 text-[14px] text-blue-900 leading-relaxed whitespace-pre-wrap">
@@ -221,11 +221,11 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
           <>
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                <h2 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
                   {isReturned ? 'Your Answers' : isAwaitingFeedback ? 'Your Submission' : 'Your Answer'}
                 </h2>
                 {!isAwaitingFeedback && !hw.homeworkVariantType && (
-                  <span className="text-[11px] text-gray-400">
+                  <span className="text-[11px] text-gray-500">
                     {wordCount} word{wordCount !== 1 ? 's' : ''}
                   </span>
                 )}
@@ -254,7 +254,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
               ) : (
                 <>
                   <div className="w-full min-h-[220px] border border-gray-200 rounded-xl p-4 text-[14px] text-gray-800 leading-relaxed whitespace-pre-wrap bg-gray-50">
-                    {content || <span className="text-gray-400 italic">No answer provided</span>}
+                    {content || <span className="text-gray-500 italic">No answer provided</span>}
                   </div>
                   {/* Model answer for non-structured homework — collapsible below the answer */}
                   {isReturned && hw.modelAnswer && !hasStructuredQuestions && (
@@ -268,7 +268,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
             {(!sub || canResubmit) && !submitted && !multiQStepper && (
               <div className="flex items-center justify-between">
                 {canResubmit && (
-                  <p className="text-[12px] text-gray-400 flex items-center gap-1">
+                  <p className="text-[12px] text-gray-500 flex items-center gap-1">
                     <Icon name="error" size="sm" />
                     You can update your answer and resubmit.
                   </p>
@@ -308,7 +308,7 @@ export default function HomeworkSubmissionView({ hw }: { hw: HwData }) {
                           : `Keep going — review the model answers to improve.`}
                     </p>
                     {pred !== null && (
-                      <p className={`text-[13px] mt-0.5 ${exceeded ? 'text-emerald-600' : met ? 'text-blue-600' : 'text-gray-500'}`}>
+                      <p className={`text-[13px] mt-0.5 ${exceeded ? 'text-emerald-700' : met ? 'text-blue-600' : 'text-gray-500'}`}>
                         Predicted {gradeLabel(pred)} · You achieved {gradeLabel(grade)}
                       </p>
                     )}

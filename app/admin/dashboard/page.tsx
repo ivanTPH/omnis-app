@@ -46,7 +46,7 @@ export default async function AdminDashboardPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-[22px] font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-0.5">
               School-wide overview — {schoolName}
             </p>
           </div>
@@ -141,7 +141,7 @@ export default async function AdminDashboardPage() {
                   <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-700">
                     {label}
                   </p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{desc}</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{desc}</p>
                 </Link>
               ))}
             </div>

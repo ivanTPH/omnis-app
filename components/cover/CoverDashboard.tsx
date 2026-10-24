@@ -135,7 +135,7 @@ export default function CoverDashboard({ schoolId, initial, staffList, date }: P
               {selectedAbsenceId && (
                 <button
                   onClick={() => setSelectedAbsenceId(null)}
-                  className="text-[11px] text-gray-400 hover:text-gray-700 transition-colors"
+                  className="text-[11px] text-gray-500 hover:text-gray-700 transition-colors"
                 >
                   Show all
                 </button>

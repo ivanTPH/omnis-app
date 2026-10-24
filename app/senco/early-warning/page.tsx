@@ -53,7 +53,7 @@ export default async function EarlyWarningPage() {
                     <Link href={`/send/ilp/${s.id}`} className="text-[12px] font-medium text-rose-800 hover:underline">
                       {s.firstName} {s.lastName}
                     </Link>
-                    {s.yearGroup && <span className="text-[11px] text-rose-500">Y{s.yearGroup}</span>}
+                    {s.yearGroup && <span className="text-[11px] text-rose-600">Y{s.yearGroup}</span>}
                     <span className="ml-auto text-[11px] font-bold text-rose-700">{s.concernCount}× CONCERN</span>
                   </div>
                 ))}

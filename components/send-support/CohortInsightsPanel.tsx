@@ -48,7 +48,7 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
 
   if (!data || data.studentCount === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-400">
+      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">
         <Icon name="insights" size="md" className="mx-auto mb-2 opacity-40" />
         <p>Cohort insights not yet available.</p>
         <p className="text-[11px] mt-0.5">Profiles are computed nightly — check back tomorrow.</p>
@@ -90,7 +90,7 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
             <Icon name="insights" size="sm" className="text-purple-600" />
             <div>
               <p className="text-[13px] font-semibold text-purple-900">School Cohort Insights</p>
-              <p className="text-[11px] text-purple-500">{data.studentCount} students · updated nightly</p>
+              <p className="text-[11px] text-purple-600">{data.studentCount} students · updated nightly</p>
             </div>
           </div>
           <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Live</span>
@@ -130,20 +130,20 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
 
           {/* SEND overview */}
           <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">SEND Overview</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">SEND Overview</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-purple-50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-semibold text-purple-700">{data.sendCount}</p>
-                <p className="text-[10px] text-purple-500">{sendPct}% on register</p>
+                <p className="text-[10px] text-purple-600">{sendPct}% on register</p>
               </div>
               <a href="/senco/concerns" className="bg-rose-50 rounded-xl p-3 text-center block hover:bg-rose-100 transition">
                 <p className="text-2xl font-semibold text-rose-700">{data.highConcernCount}</p>
-                <p className="text-[10px] text-rose-500">high concern</p>
-                <p className="text-[9px] text-rose-400 mt-0.5">view all →</p>
+                <p className="text-[10px] text-rose-700">high concern</p>
+                <p className="text-[9px] text-rose-700 mt-0.5">view all →</p>
               </a>
             </div>
             {topNeedArea && (
-              <p className="text-[11px] text-gray-500 mt-2">
+              <p className="text-[11px] text-gray-600 mt-2">
                 Most common need: <span className="font-medium text-gray-700">{topNeedArea[0]}</span> ({topNeedArea[1]} students)
               </p>
             )}
@@ -151,7 +151,7 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
 
           {/* Attainment + completion */}
           <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Attainment</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">Attainment</p>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-gray-600">Avg score</span>
@@ -166,13 +166,13 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
 
           {/* Trend distribution */}
           <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Trends</p>
+            <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">Student Trends</p>
             <div className="flex gap-1 h-2 rounded-full overflow-hidden">
               <div className="bg-green-400" style={{ width: `${(improving / total) * 100}%` }} />
               <div className="bg-gray-200" style={{ width: `${(stable  / total) * 100}%` }} />
               <div className="bg-rose-400" style={{ width: `${(declining / total) * 100}%` }} />
             </div>
-            <div className="flex gap-3 mt-1.5 text-[10px] text-gray-500">
+            <div className="flex gap-3 mt-1.5 text-[10px] text-gray-600">
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400 inline-block"/>{improving} improving</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-200 inline-block"/>{stable} stable</span>
               <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400 inline-block"/>{declining} declining</span>
@@ -187,10 +187,10 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
           {/* Bloom's performance */}
           {bloomsEntries.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Bloom&apos;s Performance
                 {bestBlooms && (
-                  <span className="ml-1 normal-case font-normal text-gray-400">
+                  <span className="ml-1 normal-case font-normal text-gray-500">
                     (strongest: {bestBlooms[0]})
                   </span>
                 )}
@@ -209,7 +209,7 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
           {/* Best task type for SEND */}
           {bestSendType && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Best Task Type (SEND)
               </p>
               <div className="bg-indigo-50 rounded-xl p-3">
@@ -226,13 +226,13 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
           {/* Top ILP strategies */}
           {data.topStrategies.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Top ILP Strategies in School
               </p>
               <ul className="space-y-1">
                 {data.topStrategies.slice(0, 3).map((s, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-600">
-                    <span className="text-purple-400 font-semibold shrink-0">{i + 1}.</span>
+                    <span className="text-purple-600 font-semibold shrink-0">{i + 1}.</span>
                     <span className="capitalize">{s}</span>
                   </li>
                 ))}
@@ -243,7 +243,7 @@ export default function CohortInsightsPanel({ yearGroup: initialYearGroup }: { y
         </div>
       </div>
 
-      <div className="px-5 pb-4 text-[10px] text-gray-400">
+      <div className="px-5 pb-4 text-[10px] text-gray-500">
         Used automatically by AI to ground ILP generation in this school&apos;s evidence base.
       </div>
     </div>

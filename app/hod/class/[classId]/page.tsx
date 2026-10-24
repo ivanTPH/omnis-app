@@ -25,14 +25,14 @@ export default async function HodClassDetailPage({ params }: { params: Promise<{
         <div className="max-w-4xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/hod/performance" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/hod/performance" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> Department Performance
             </Link>
           </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">{detail.className}</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {detail.subject} · Year {detail.yearGroup} · {detail.students.length} students
               </p>
             </div>
@@ -50,7 +50,7 @@ export default async function HodClassDetailPage({ params }: { params: Promise<{
                   <Icon name="groups" size="sm" className="text-blue-600" />
                   <h2 className="text-[14px] font-semibold text-gray-900">Student breakdown</h2>
                 </div>
-                <p className="text-[11px] text-gray-400">Avg grade based on last 5 returned homeworks</p>
+                <p className="text-[11px] text-gray-500">Avg grade based on last 5 returned homeworks</p>
               </div>
               <table className="w-full text-[12px]">
                 <thead>
@@ -65,7 +65,7 @@ export default async function HodClassDetailPage({ params }: { params: Promise<{
                 <tbody className="divide-y divide-gray-50">
                   {detail.students.map(s => {
                     const grade = s.avgScore != null ? gradeLabel(Math.round(s.avgScore)) : '—'
-                    const pill  = s.avgScore != null ? gradePillClass(Math.round(s.avgScore)) : 'bg-gray-100 text-gray-400'
+                    const pill  = s.avgScore != null ? gradePillClass(Math.round(s.avgScore)) : 'bg-gray-100 text-gray-600'
                     return (
                       <tr key={s.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2.5 font-medium text-gray-900">
@@ -84,7 +84,7 @@ export default async function HodClassDetailPage({ params }: { params: Promise<{
                           </span>
                         </td>
                         <td className="px-4 py-2.5 text-right">
-                          <span className={s.lateCount > 0 ? 'text-amber-700 font-semibold' : 'text-gray-300'}>
+                          <span className={s.lateCount > 0 ? 'text-amber-700 font-semibold' : 'text-gray-500'}>
                             {s.lateCount > 0 ? s.lateCount : '—'}
                           </span>
                         </td>

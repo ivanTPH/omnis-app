@@ -16,8 +16,8 @@ type Props = { plan: EhcpPlanWithOutcomes }
 
 const STATUS_COLOURS: Record<string, string> = {
   active:               'bg-blue-100 text-blue-700',
-  achieved:             'bg-green-100 text-green-700',
-  partially_achieved:   'bg-amber-100 text-amber-700',
+  achieved:             'bg-green-100 text-green-800',
+  partially_achieved:   'bg-amber-100 text-amber-800',
   not_achieved:         'bg-red-100 text-red-700',
 }
 
@@ -203,7 +203,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                   <span className="text-xs text-gray-500">
                     {outcome.evidenceCount} evidence piece{outcome.evidenceCount !== 1 ? 's' : ''}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     Due {new Date(outcome.targetDate).toLocaleDateString('en-GB')}
                   </span>
                   {successFlash === outcome.id && (
@@ -258,7 +258,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                   </button>
                   <button
                     onClick={() => setStatusPrompt(null)}
-                    className="text-xs text-gray-400 hover:text-gray-600 px-1"
+                    className="text-xs text-gray-500 hover:text-gray-600 px-1"
                   >
                     <Icon name="close" size="sm" />
                   </button>
@@ -272,19 +272,19 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                   <div className="space-y-3 py-1">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-gray-700">Link homework evidence to this outcome</p>
-                      <button onClick={() => setEvidenceOutcomeId(null)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-0.5">
+                      <button onClick={() => setEvidenceOutcomeId(null)} className="text-xs text-gray-500 hover:text-gray-600 flex items-center gap-0.5">
                         <Icon name="close" size="sm" />
                         Close
                       </button>
                     </div>
                     {(linkedCounts[outcome.id] ?? 0) > 0 && (
-                      <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-2 py-1.5 rounded-lg">
+                      <div className="flex items-center gap-1.5 text-xs text-green-800 bg-green-50 px-2 py-1.5 rounded-lg">
                         <Icon name="check_circle" size="sm" />
                         {linkedCounts[outcome.id]} piece{(linkedCounts[outcome.id] ?? 0) !== 1 ? 's' : ''} linked this session — select another to add more
                       </div>
                     )}
                     {loadingSubs ? (
-                      <p className="text-xs text-gray-400 animate-pulse">Loading submissions…</p>
+                      <p className="text-xs text-gray-500 animate-pulse">Loading submissions…</p>
                     ) : !submissions || submissions.length === 0 ? (
                       <p className="text-xs text-gray-500">No graded submissions found for this student.</p>
                     ) : (
@@ -296,9 +296,9 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                             className={`w-full text-left text-xs px-2 py-1.5 rounded-lg border transition-colors ${selectedSubId === s.id ? 'border-purple-400 bg-purple-50 text-purple-900' : 'border-gray-200 hover:bg-gray-100 text-gray-700'}`}
                           >
                             <span className="font-medium">{s.homeworkTitle}</span>
-                            {s.subject && <span className="text-gray-400"> · {s.subject}</span>}
+                            {s.subject && <span className="text-gray-500"> · {s.subject}</span>}
                             {s.finalScore != null && <span className="ml-1 font-semibold text-purple-700">Gr {Math.round(s.finalScore)}</span>}
-                            {s.submittedAt && <span className="text-gray-400 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
+                            {s.submittedAt && <span className="text-gray-500 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
                           </button>
                         ))}
                       </div>
@@ -315,7 +315,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-600">Quality:</span>
                           {[1, 2, 3, 4, 5].map(r => (
-                            <button key={r} onClick={() => setQualityRating(r)} className={`text-sm ${r <= qualityRating ? 'text-amber-400' : 'text-gray-300'}`}>★</button>
+                            <button key={r} onClick={() => setQualityRating(r)} className={`text-sm ${r <= qualityRating ? 'text-amber-400' : 'text-gray-500'}`}>★</button>
                           ))}
                         </div>
                         {linkError && (
@@ -335,7 +335,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                       </div>
                     )}
                     {!selectedSubId && submissions && submissions.length > 0 && (
-                      <p className="text-xs text-gray-400">Select a submission above to link it as evidence.</p>
+                      <p className="text-xs text-gray-500">Select a submission above to link it as evidence.</p>
                     )}
                   </div>
                 ) : (
@@ -356,7 +356,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
       </div>
 
       {outcomes.length === 0 && (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8 text-gray-500">
           <Icon name="description" size="lg" className="mx-auto mb-2 opacity-30" />
           <p className="text-sm">No outcomes recorded for this EHCP plan.</p>
         </div>
@@ -380,7 +380,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
               </span>
             )}
             {suggestions != null && suggestions.length === 0 && !suggestionsLoading && (
-              <span className="text-xs text-purple-400">No pending suggestions</span>
+              <span className="text-xs text-purple-600">No pending suggestions</span>
             )}
           </div>
           <Icon
@@ -393,7 +393,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
         {suggestionsOpen && (
           <div className="border-t border-purple-100 bg-white p-4">
             {suggestionsLoading ? (
-              <p className="text-xs text-gray-400 animate-pulse">Checking for AI-suggested evidence…</p>
+              <p className="text-xs text-gray-500 animate-pulse">Checking for AI-suggested evidence…</p>
             ) : !suggestions || suggestions.length === 0 ? (
               <div className="flex items-center gap-2 text-xs text-gray-500 py-2">
                 <Icon name="check_circle" size="sm" className="text-green-500" />
@@ -416,7 +416,7 @@ export default function EhcpOutcomeTracker({ plan }: Props) {
                             <span className="font-medium">&ldquo;{s.homeworkTitle}&rdquo;</span>
                             {s.subject && <span className="text-gray-500"> · {s.subject}</span>}
                             {s.grade != null && <span className="ml-1 font-semibold text-purple-700"> · Gr {Math.round(s.grade)}</span>}
-                            {s.submittedAt && <span className="text-gray-400 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
+                            {s.submittedAt && <span className="text-gray-500 ml-1">· {new Date(s.submittedAt).toLocaleDateString('en-GB')}</span>}
                           </p>
                           {s.teacherNote && (
                             <p className="text-xs text-gray-500 italic mt-1">&ldquo;{s.teacherNote}&rdquo;</p>

@@ -128,7 +128,7 @@ export default function AdminCalendar({
 
       {/* Calendar list */}
       {entries.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-xl p-16 text-center text-gray-400">
+        <div className="bg-white border border-gray-200 rounded-xl p-16 text-center text-gray-500">
           <Icon name="calendar_today" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-[14px] font-medium">No calendar entries yet</p>
           <p className="text-[12px] mt-1">Add term dates, holidays and INSET days above</p>
@@ -147,7 +147,7 @@ export default function AdminCalendar({
                       <p className="text-[20px] font-bold text-gray-900 leading-none">
                         {new Date(entry.date).getUTCDate()}
                       </p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
+                      <p className="text-[10px] text-gray-500 mt-0.5">
                         {new Date(entry.date).toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })}
                       </p>
                     </div>
@@ -160,7 +160,7 @@ export default function AdminCalendar({
                     <button
                       onClick={() => handleDelete(entry.id)}
                       disabled={deleting === entry.id}
-                      className="p-1.5 text-gray-300 hover:text-red-500 disabled:opacity-30 transition-colors"
+                      className="p-1.5 text-gray-500 hover:text-red-600 disabled:opacity-30 transition-colors"
                       aria-label="Delete entry"
                     >
                       <Icon name="delete" size="sm" />

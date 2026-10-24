@@ -9,7 +9,7 @@ import { gradeLabel, gradePillClass } from '@/lib/grading'
 export const dynamic = 'force-dynamic'
 
 function ragGrade(g: number | null): string {
-  if (g == null) return 'text-gray-400'
+  if (g == null) return 'text-gray-500'
   if (g >= 6)   return 'text-emerald-700'
   if (g >= 4)   return 'text-amber-700'
   return 'text-rose-700'
@@ -73,7 +73,7 @@ export default async function SltStaffPage() {
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <Link href="/slt/analytics" className="text-gray-400 hover:text-gray-600">
+            <Link href="/slt/analytics" className="text-gray-500 hover:text-gray-600">
               <Icon name="arrow_back" size="sm" />
             </Link>
             <div>
@@ -117,9 +117,9 @@ export default async function SltStaffPage() {
           <span className="text-gray-500">School avg grade:</span>
           {overallAvg != null ? (
             <span className={`font-bold text-base ${ragGrade(overallAvg)}`}>
-              {gradeLabel(Math.round(overallAvg))} <span className="text-xs font-normal text-gray-400">({overallAvg.toFixed(1)} avg)</span>
+              {gradeLabel(Math.round(overallAvg))} <span className="text-xs font-normal text-gray-500">({overallAvg.toFixed(1)} avg)</span>
             </span>
-          ) : <span className="text-gray-400">No data</span>}
+          ) : <span className="text-gray-500">No data</span>}
           {lowGradeCount > 0 && (
             <span className="ml-auto flex items-center gap-1.5 text-rose-600 font-medium text-xs">
               <Icon name="warning" size="sm" />
@@ -148,7 +148,7 @@ export default async function SltStaffPage() {
             <tbody className="divide-y divide-gray-100">
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={10} className="px-4 py-12 text-center text-gray-500 text-sm">
                     No teacher data available. Run MIS sync or assign classes to staff.
                   </td>
                 </tr>
@@ -157,7 +157,7 @@ export default async function SltStaffPage() {
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">{r.name}</p>
-                    <p className="text-xs text-gray-400">{r.email}</p>
+                    <p className="text-xs text-gray-500">{r.email}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{r.department}</td>
                   <td className="px-4 py-3 text-center text-gray-700">{r.classCount}</td>
@@ -166,7 +166,7 @@ export default async function SltStaffPage() {
                     {r.sendCount > 0 ? (
                       <span className="text-purple-700 font-medium">{r.sendCount}</span>
                     ) : (
-                      <span className="text-gray-400">0</span>
+                      <span className="text-gray-500">0</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -175,7 +175,7 @@ export default async function SltStaffPage() {
                         {gradeLabel(Math.round(r.avgGrade))}
                       </span>
                     ) : (
-                      <span className="text-gray-300 text-xs">No data</span>
+                      <span className="text-gray-500 text-xs">No data</span>
                     )}
                   </td>
                   <td className="px-4 py-3 min-w-[120px]">
@@ -183,7 +183,7 @@ export default async function SltStaffPage() {
                   </td>
                   <td className="px-4 py-3 text-center text-gray-700">{r.homeworkSet30d}</td>
                   <td className="px-4 py-3 text-center text-gray-600 tabular-nums">
-                    {r.turnaroundDays != null ? `${r.turnaroundDays}d` : <span className="text-gray-300">—</span>}
+                    {r.turnaroundDays != null ? `${r.turnaroundDays}d` : <span className="text-gray-500">—</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <Link

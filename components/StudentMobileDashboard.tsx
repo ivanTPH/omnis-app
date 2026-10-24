@@ -109,10 +109,10 @@ const STATUS_BORDER: Record<MobileHw['status'], string> = {
 
 const STATUS_LABEL: Record<MobileHw['status'], { text: string; cls: string }> = {
   overdue:   { text: 'Overdue',   cls: 'text-red-600 font-semibold' },
-  due_soon:  { text: 'Due soon',  cls: 'text-amber-600 font-medium' },
+  due_soon:  { text: 'Due soon',  cls: 'text-amber-700 font-medium' },
   upcoming:  { text: 'To do',     cls: 'text-blue-600 font-medium'  },
   submitted: { text: 'Submitted', cls: 'text-purple-600 font-medium' },
-  graded:    { text: 'Graded',    cls: 'text-green-600 font-medium' },
+  graded:    { text: 'Graded',    cls: 'text-green-700 font-medium' },
 }
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
@@ -132,9 +132,9 @@ function ProgressBar({ pct, grade }: { pct: number; grade: number }) {
         />
       </div>
       <span className={`text-[12px] font-bold w-10 text-right ${
-        pct >= 70 ? 'text-green-700' : pct >= 55 ? 'text-amber-600' : 'text-red-600'
+        pct >= 70 ? 'text-green-700' : pct >= 55 ? 'text-amber-700' : 'text-red-600'
       }`}>{gradeLabel(grade)}</span>
-      <span className="text-[11px] text-gray-400 w-8 text-right">{pct}%</span>
+      <span className="text-[11px] text-gray-500 w-8 text-right">{pct}%</span>
     </div>
   )
 }
@@ -180,8 +180,8 @@ export default function StudentMobileDashboard({
 
   const stats = [
     { label: 'To do',     value: overdue.length + dueSoon.length + upcoming.length, colour: overdue.length > 0 ? 'text-red-600' : 'text-gray-900' },
-    { label: 'Awaiting',  value: submitted.length,  colour: 'text-amber-600' },
-    { label: 'Graded',    value: graded.length,      colour: 'text-green-600' },
+    { label: 'Awaiting',  value: submitted.length,  colour: 'text-amber-700' },
+    { label: 'Graded',    value: graded.length,      colour: 'text-green-700' },
   ]
 
   // ── Home tab content ─────────────────────────────────────────────────────────
@@ -228,15 +228,15 @@ export default function StudentMobileDashboard({
         {todayLessons.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Today&apos;s lessons</h2>
-              <Link href="/student/timetable" className="text-[11px] text-blue-600 font-medium">Full timetable →</Link>
+              <h2 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600">Today&apos;s lessons</h2>
+              <Link href="/student/timetable" className="text-[11px] text-blue-700 font-medium">Full timetable →</Link>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5">
               {todayLessons.map((l, i) => (
                 <div key={i} className="flex-shrink-0 bg-white rounded-xl border border-gray-100 shadow-sm px-3 py-2.5 min-w-[130px]">
                   <p className="text-[13px] font-semibold text-gray-900 truncate">{l.subject}</p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">{l.startTime}–{l.endTime}</p>
-                  {l.teacher && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{l.teacher}</p>}
+                  <p className="text-[11px] text-gray-600 mt-0.5">{l.startTime}–{l.endTime}</p>
+                  {l.teacher && <p className="text-[11px] text-gray-600 mt-0.5 truncate">{l.teacher}</p>}
                 </div>
               ))}
             </div>
@@ -245,14 +245,14 @@ export default function StudentMobileDashboard({
 
         {/* Homework groups */}
         {groups.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-600">
             <Icon name="assignment_turned_in" size="lg" className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">Nothing to do — you&apos;re all caught up!</p>
           </div>
         )}
         {groups.map(g => (
           <section key={g.title}>
-            <h2 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-2">{g.title}</h2>
+            <h2 className="text-[11px] font-semibold uppercase tracking-wide text-gray-600 mb-2">{g.title}</h2>
             <div className="space-y-2">
               {g.items.map(hw => (
                 <Link
@@ -263,7 +263,7 @@ export default function StudentMobileDashboard({
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-medium text-gray-900 truncate">{hw.title}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <p className="text-[12px] text-gray-500 truncate">{hw.className}</p>
+                      <p className="text-[12px] text-gray-600 truncate">{hw.className}</p>
                       {hw.homeworkType && (
                         <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                           hw.homeworkType === 'quiz' || hw.homeworkType === 'multiple_choice'
@@ -281,11 +281,11 @@ export default function StudentMobileDashboard({
                   </div>
                   <div className="shrink-0 text-right">
                     {hw.grade ? (
-                      <span className="text-[13px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">{gradeLabel(Number(hw.grade))}</span>
+                      <span className="text-[13px] font-bold text-green-800 bg-green-50 px-2 py-0.5 rounded-lg">{gradeLabel(Number(hw.grade))}</span>
                     ) : (
                       <span className={`text-[12px] ${STATUS_LABEL[hw.status].cls}`}>{STATUS_LABEL[hw.status].text}</span>
                     )}
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-gray-600 mt-0.5">
                       {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </p>
                   </div>
@@ -308,7 +308,7 @@ export default function StudentMobileDashboard({
         {unreadNotifs.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <Icon name="notifications_active" size="sm" className="text-blue-600" />
+              <Icon name="notifications_active" size="sm" className="text-blue-700" />
               <p className="text-sm font-semibold text-blue-800">New notifications</p>
             </div>
             <ul className="space-y-2">
@@ -316,7 +316,7 @@ export default function StudentMobileDashboard({
                 <li key={n.id}>
                   {n.linkHref ? (
                     <Link href={n.linkHref} className="flex items-start gap-2 group">
-                      <Icon name="chevron_right" size="sm" className="text-blue-400 mt-0.5 shrink-0 group-hover:text-blue-600" />
+                      <Icon name="chevron_right" size="sm" className="text-blue-700 mt-0.5 shrink-0 group-hover:text-blue-700" />
                       <div>
                         <p className="text-[13px] text-blue-900 font-medium leading-snug">{n.title}</p>
                         {n.body && <p className="text-[11px] text-blue-700 mt-0.5">{n.body}</p>}
@@ -324,7 +324,7 @@ export default function StudentMobileDashboard({
                     </Link>
                   ) : (
                     <div className="flex items-start gap-2">
-                      <Icon name="chevron_right" size="sm" className="text-blue-400 mt-0.5 shrink-0" />
+                      <Icon name="chevron_right" size="sm" className="text-blue-700 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-[13px] text-blue-900 font-medium leading-snug">{n.title}</p>
                         {n.body && <p className="text-[11px] text-blue-700 mt-0.5">{n.body}</p>}
@@ -339,7 +339,7 @@ export default function StudentMobileDashboard({
         {overdue.length > 0 && (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <Icon name="warning" size="sm" className="text-red-600" />
+              <Icon name="warning" size="sm" className="text-red-700" />
               <p className="text-sm font-semibold text-red-800">Overdue work</p>
             </div>
             <ul className="space-y-1">
@@ -356,7 +356,7 @@ export default function StudentMobileDashboard({
         {dueSoon.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <Icon name="schedule" size="sm" className="text-amber-600" />
+              <Icon name="schedule" size="sm" className="text-amber-800" />
               <p className="text-sm font-semibold text-amber-800">Due soon</p>
             </div>
             <ul className="space-y-1">
@@ -373,7 +373,7 @@ export default function StudentMobileDashboard({
         {graded.length > 0 && (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-2">
-              <Icon name="star" size="sm" className="text-green-600" />
+              <Icon name="star" size="sm" className="text-green-800" />
               <p className="text-sm font-semibold text-green-800">Recently graded</p>
             </div>
             <ul className="space-y-1">
@@ -388,7 +388,7 @@ export default function StudentMobileDashboard({
           </div>
         )}
         {unreadNotifs.length === 0 && overdue.length === 0 && dueSoon.length === 0 && graded.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-600">
             <Icon name="notifications_none" size="lg" className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No new notifications</p>
           </div>
@@ -402,9 +402,9 @@ export default function StudentMobileDashboard({
   function ProgressTab() {
     return (
       <div className="space-y-4">
-        <p className="text-[12px] text-gray-500">Your average score per subject this term.</p>
+        <p className="text-[12px] text-gray-600">Your average score per subject this term.</p>
         {subjectProgress.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-600">
             <Icon name="insights" size="lg" className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No graded work yet</p>
           </div>
@@ -414,7 +414,7 @@ export default function StudentMobileDashboard({
               <div key={sp.subject} className="px-5 py-4">
                 <div className="flex items-center justify-between mb-1.5">
                   <p className="text-[13px] font-medium text-gray-900">{sp.subject}</p>
-                  <p className="text-[11px] text-gray-400">{sp.count} piece{sp.count !== 1 ? 's' : ''}</p>
+                  <p className="text-[11px] text-gray-600">{sp.count} piece{sp.count !== 1 ? 's' : ''}</p>
                 </div>
                 <ProgressBar pct={sp.avgScore} grade={sp.grade} />
               </div>
@@ -431,20 +431,20 @@ export default function StudentMobileDashboard({
             <p className="text-[13px] font-semibold text-blue-900">Revision Planner</p>
             <p className="text-[11px] text-blue-700">Plan your revision schedule</p>
           </div>
-          <Icon name="chevron_right" size="md" className="text-blue-400" />
+          <Icon name="chevron_right" size="md" className="text-blue-700" />
         </Link>
 
         {/* Learning Passport — My View */}
         {passport && (passport.strengthAreas.length > 0 || passport.developmentAreas.length > 0 || passport.classroomStrategies.length > 0 || passport.studentVoice !== null) && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-50">
-              <Icon name="auto_stories" size="sm" className="text-indigo-500" />
+              <Icon name="auto_stories" size="sm" className="text-indigo-600" />
               <p className="text-[13px] font-semibold text-gray-900">My Learning Passport</p>
             </div>
             <div className="divide-y divide-gray-50">
               {passport.strengthAreas.length > 0 && (
                 <div className="px-5 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600 mb-1.5">My strengths</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-green-800 mb-1.5">My strengths</p>
                   <ul className="space-y-1">
                     {passport.strengthAreas.map((s, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-700">
@@ -457,7 +457,7 @@ export default function StudentMobileDashboard({
               )}
               {passport.developmentAreas.length > 0 && (
                 <div className="px-5 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 mb-1.5">Areas I&apos;m working on</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800 mb-1.5">Areas I&apos;m working on</p>
                   <ul className="space-y-1">
                     {passport.developmentAreas.map((d, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-700">
@@ -470,11 +470,11 @@ export default function StudentMobileDashboard({
               )}
               {passport.classroomStrategies.length > 0 && (
                 <div className="px-5 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 mb-1.5">What helps me in class</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-700 mb-1.5">What helps me in class</p>
                   <ul className="space-y-1">
                     {passport.classroomStrategies.map((s, i) => (
                       <li key={i} className="flex items-start gap-1.5 text-[12px] text-gray-700">
-                        <Icon name="lightbulb" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                        <Icon name="lightbulb" size="sm" className="text-blue-700 shrink-0 mt-0.5" />
                         {s}
                       </li>
                     ))}
@@ -504,7 +504,7 @@ export default function StudentMobileDashboard({
                     Save
                   </button>
                   {voiceSaved && (
-                    <span className="text-[11px] text-green-600 flex items-center gap-1">
+                    <span className="text-[11px] text-green-800 flex items-center gap-1">
                       <Icon name="check_circle" size="sm" />
                       Saved!
                     </span>
@@ -523,8 +523,8 @@ export default function StudentMobileDashboard({
   function MessagesTab() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16">
-        <Icon name="chat_bubble_outline" size="lg" className="text-gray-300" />
-        <p className="text-sm text-gray-500">Go to full messages view</p>
+        <Icon name="chat_bubble_outline" size="lg" className="text-gray-600" />
+        <p className="text-sm text-gray-600">Go to full messages view</p>
         <Link
           href="/messages"
           className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition"
@@ -563,7 +563,7 @@ export default function StudentMobileDashboard({
                 key={t.key}
                 onClick={() => setTab(t.key)}
                 className={`flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors relative border-b-2 ${
-                  active ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  active ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-600'
                 }`}
               >
                 <span className="relative">

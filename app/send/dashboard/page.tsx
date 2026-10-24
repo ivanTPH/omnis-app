@@ -78,8 +78,8 @@ export default async function SendDashboardPage() {
   function AlertRow({ plan, colour }: { plan: typeof plans[0]; colour: 'red' | 'amber' }) {
     const ss = ssById[plan.studentId]
     const c  = colour === 'red'
-      ? { bg: 'hover:bg-red-50 border-red-100', chip: 'text-red-600', icon: 'text-red-300 group-hover:text-red-500', avatar: 'bg-red-100 text-red-700' }
-      : { bg: 'hover:bg-amber-50 border-amber-100', chip: 'text-amber-600', icon: 'text-amber-300 group-hover:text-amber-500', avatar: 'bg-amber-100 text-amber-700' }
+      ? { bg: 'hover:bg-red-50 border-red-100', chip: 'text-red-600', icon: 'text-red-300 group-hover:text-red-600', avatar: 'bg-red-100 text-red-700' }
+      : { bg: 'hover:bg-amber-50 border-amber-100', chip: 'text-amber-700', icon: 'text-amber-300 group-hover:text-amber-700', avatar: 'bg-amber-100 text-amber-800' }
     return (
       <Link href={`/send/ilp/${plan.studentId}`}
         className={`flex items-center justify-between bg-white rounded-xl px-4 py-3 transition border group ${c.bg}`}
@@ -90,7 +90,7 @@ export default async function SendDashboardPage() {
           </div>
           <div>
             <p className="text-[13px] font-semibold text-gray-900">{ss?.student.firstName} {ss?.student.lastName}</p>
-            <p className="text-[11px] text-gray-400">{ss?.needArea} · Year {ss?.student.yearGroup}</p>
+            <p className="text-[11px] text-gray-500">{ss?.needArea} · Year {ss?.student.yearGroup}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ export default async function SendDashboardPage() {
           <div className="flex items-start justify-between mb-8">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">SEND & Inclusion</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">School-wide register and plan oversight</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">School-wide register and plan oversight</p>
             </div>
             {pendingReviews > 0 && (
               <Link href="/send/review-due" className="flex items-center gap-2 px-3 py-2 bg-amber-500 text-white text-[12px] font-semibold rounded-xl hover:bg-amber-600 transition">
@@ -129,19 +129,19 @@ export default async function SendDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <p className="text-[28px] font-bold text-gray-900">{sendStatuses.length}</p>
-              <p className="text-[12px] text-gray-400 mt-1">On Register</p>
+              <p className="text-[12px] text-gray-500 mt-1">On Register</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <p className="text-[28px] font-bold text-blue-600">{senSupport}</p>
-              <p className="text-[12px] text-gray-400 mt-1">SEN Support</p>
+              <p className="text-[12px] text-gray-500 mt-1">SEN Support</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <p className="text-[28px] font-bold text-purple-600">{ehcp}</p>
-              <p className="text-[12px] text-gray-400 mt-1">EHCP</p>
+              <p className="text-[12px] text-gray-500 mt-1">EHCP</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-xl p-5">
-              <p className={`text-[28px] font-bold ${reviewsDue > 0 ? 'text-amber-600' : 'text-gray-300'}`}>{reviewsDue}</p>
-              <p className="text-[12px] text-gray-400 mt-1">Reviews Due (30d)</p>
+              <p className={`text-[28px] font-bold ${reviewsDue > 0 ? 'text-amber-700' : 'text-gray-500'}`}>{reviewsDue}</p>
+              <p className="text-[12px] text-gray-500 mt-1">Reviews Due (30d)</p>
             </div>
           </div>
 
@@ -179,7 +179,7 @@ export default async function SendDashboardPage() {
               <div className="flex items-center gap-2">
                 <Icon name="people" size="sm" className="text-gray-400" />
                 <h2 className="text-[14px] font-semibold text-gray-900">SEND Register</h2>
-                <span className="text-[11px] font-medium px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{sendStatuses.length}</span>
+                <span className="text-[11px] font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{sendStatuses.length}</span>
               </div>
               <Link href="/send/ilp" className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline">
                 All ILP records <Icon name="chevron_right" size="sm" />
@@ -187,7 +187,7 @@ export default async function SendDashboardPage() {
             </div>
 
             {sendStatuses.length === 0 ? (
-              <div className="py-16 text-center text-gray-400">
+              <div className="py-16 text-center text-gray-500">
                 <Icon name="favorite" size="lg" className="mx-auto mb-3 opacity-30" />
                 <p className="text-[14px] font-medium">No students on the SEND register</p>
                 <p className="text-[12px] mt-1">Students are added when a SEND status is assigned</p>
@@ -216,7 +216,7 @@ export default async function SendDashboardPage() {
                       {/* Name + need area */}
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-gray-900">{ss.student.firstName} {ss.student.lastName}</p>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-gray-500">
                           Year {ss.student.yearGroup ?? '—'}
                           {ss.needArea && <span className="ml-2 text-blue-600">{ss.needArea}</span>}
                         </p>
@@ -232,12 +232,12 @@ export default async function SendDashboardPage() {
                       {/* Plan status */}
                       <span className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
                         !plan
-                          ? 'bg-gray-100 text-gray-400'
+                          ? 'bg-gray-100 text-gray-600'
                           : plan.status === PlanStatus.ACTIVE_PARENT_SHARED
-                            ? 'bg-green-100 text-green-700'
+                            ? 'bg-green-100 text-green-800'
                             : plan.status === PlanStatus.ACTIVE_INTERNAL
                               ? 'bg-teal-50 text-teal-700'
-                              : 'bg-gray-100 text-gray-500'
+                              : 'bg-gray-100 text-gray-600'
                       }`}>
                         {!plan
                           ? 'No Plan'
@@ -253,14 +253,14 @@ export default async function SendDashboardPage() {
                         {reviewDate ? (
                           <>
                             <p className={`text-[12px] font-semibold ${
-                              reviewUrgent ? 'text-red-600' : reviewWarning ? 'text-amber-600' : 'text-gray-500'
+                              reviewUrgent ? 'text-red-600' : reviewWarning ? 'text-amber-700' : 'text-gray-500'
                             }`}>
                               {reviewDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </p>
-                            <p className="text-[10px] text-gray-400">Review due</p>
+                            <p className="text-[10px] text-gray-500">Review due</p>
                           </>
                         ) : (
-                          <p className="text-[11px] text-gray-300">—</p>
+                          <p className="text-[11px] text-gray-500">—</p>
                         )}
                       </div>
 
@@ -280,7 +280,7 @@ export default async function SendDashboardPage() {
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-gray-900">ILP Records</p>
-                <p className="text-[11px] text-gray-400">All learning plans</p>
+                <p className="text-[11px] text-gray-500">All learning plans</p>
               </div>
             </Link>
             <Link href="/send/review-due" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 hover:border-amber-300 hover:shadow-sm transition group">
@@ -289,7 +289,7 @@ export default async function SendDashboardPage() {
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-gray-900">Review Due</p>
-                <p className="text-[11px] text-gray-400">{reviewsDue} plan{reviewsDue !== 1 ? 's' : ''} to review</p>
+                <p className="text-[11px] text-gray-500">{reviewsDue} plan{reviewsDue !== 1 ? 's' : ''} to review</p>
               </div>
             </Link>
             <Link href="/analytics/adaptive" className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5 hover:border-indigo-300 hover:shadow-sm transition group">
@@ -298,7 +298,7 @@ export default async function SendDashboardPage() {
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-gray-900">Adaptive Learning</p>
-                <p className="text-[11px] text-gray-400">Per-student differentiation</p>
+                <p className="text-[11px] text-gray-500">Per-student differentiation</p>
               </div>
             </Link>
           </div>

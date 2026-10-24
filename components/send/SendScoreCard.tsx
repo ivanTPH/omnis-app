@@ -48,7 +48,7 @@ export default function SendScoreCard({ score, onRescore, canRescore = false }: 
           <button
             onClick={handleRescore}
             disabled={pending}
-            className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
           >
             <Icon name="refresh" size="sm" className={pending ? 'animate-spin' : ''} />
             Re-score
@@ -81,7 +81,7 @@ export default function SendScoreCard({ score, onRescore, canRescore = false }: 
                   style={{ width: `${v}%` }}
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-0.5">{help}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{help}</p>
             </div>
           )
         })}
@@ -99,7 +99,7 @@ export default function SendScoreCard({ score, onRescore, canRescore = false }: 
           <ul className="space-y-1.5">
             {score.recommendations.map((r, i) => (
               <li key={i} className="flex gap-2 text-[12px] text-gray-600">
-                <span className="shrink-0 text-blue-500 font-bold">•</span>
+                <span className="shrink-0 text-blue-600 font-bold">•</span>
                 {r}
               </li>
             ))}
@@ -107,7 +107,7 @@ export default function SendScoreCard({ score, onRescore, canRescore = false }: 
         </div>
       )}
 
-      <p className="text-[10px] text-gray-300">
+      <p className="text-[10px] text-gray-500">
         Scored {new Date(score.scoredAt).toLocaleDateString('en-GB')} · {score.modelVersion}
       </p>
     </div>

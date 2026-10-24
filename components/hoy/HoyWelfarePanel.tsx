@@ -43,28 +43,28 @@ export default function HoyWelfarePanel({ data }: Props) {
       label:   'Needing attention',
       value:   data.studentsNeedingAttention,
       icon:    'priority_high',
-      colour:  data.studentsNeedingAttention > 0 ? 'text-red-600'    : 'text-gray-300',
+      colour:  data.studentsNeedingAttention > 0 ? 'text-red-600'    : 'text-gray-500',
       bg:      data.studentsNeedingAttention > 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200',
     },
     {
       label:   'Open concerns',
       value:   data.openConcernsCount,
       icon:    'warning',
-      colour:  data.openConcernsCount > 0 ? 'text-amber-600' : 'text-gray-300',
+      colour:  data.openConcernsCount > 0 ? 'text-amber-700' : 'text-gray-500',
       bg:      data.openConcernsCount > 0 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200',
     },
     {
       label:   'High-severity flags',
       value:   data.highFlagsCount,
       icon:    'radar',
-      colour:  data.highFlagsCount > 0 ? 'text-rose-600'   : 'text-gray-300',
+      colour:  data.highFlagsCount > 0 ? 'text-rose-600'   : 'text-gray-500',
       bg:      data.highFlagsCount > 0 ? 'bg-rose-50 border-rose-200' : 'bg-gray-50 border-gray-200',
     },
     {
       label:   'ILP reviews due/overdue',
       value:   data.ilpReviewsDue14d,
       icon:    'schedule',
-      colour:  data.ilpReviewsDue14d > 0 ? 'text-blue-600'  : 'text-gray-300',
+      colour:  data.ilpReviewsDue14d > 0 ? 'text-blue-600'  : 'text-gray-500',
       bg:      data.ilpReviewsDue14d > 0 ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200',
     },
   ]
@@ -113,7 +113,7 @@ export default function HoyWelfarePanel({ data }: Props) {
               }`}>
                 {/* Avatar */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                  a.riskLevel === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                  a.riskLevel === 'urgent' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'
                 }`}>
                   {a.studentName.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
@@ -123,7 +123,7 @@ export default function HoyWelfarePanel({ data }: Props) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-semibold text-gray-900">{a.studentName}</span>
                     {a.yearGroup && (
-                      <span className="text-[10px] text-gray-400">Yr {a.yearGroup}</span>
+                      <span className="text-[10px] text-gray-500">Yr {a.yearGroup}</span>
                     )}
                     <SendBadge status={a.sendStatus} />
                     {a.riskLevel === 'urgent' && (
@@ -142,7 +142,7 @@ export default function HoyWelfarePanel({ data }: Props) {
                 {/* Link to student file */}
                 <Link
                   href={`/students/${a.studentId}?tab=Pastoral`}
-                  className="shrink-0 p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-emerald-600 transition-colors"
+                  className="shrink-0 p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-emerald-700 transition-colors"
                   title="Open pastoral notes"
                 >
                   <Icon name="open_in_new" size="sm" />
@@ -166,7 +166,7 @@ export default function HoyWelfarePanel({ data }: Props) {
             </Link>
           </div>
           {data.concerns.length === 0 ? (
-            <p className="p-5 text-sm text-gray-400">No open concerns.</p>
+            <p className="p-5 text-sm text-gray-500">No open concerns.</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {data.concerns.map(c => (
@@ -181,7 +181,7 @@ export default function HoyWelfarePanel({ data }: Props) {
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize ${CONCERN_COLOURS[c.status] ?? 'bg-gray-100 text-gray-600'}`}>
                         {c.status.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-[10px] text-gray-400">{c.daysOpen}d open</span>
+                      <span className="text-[10px] text-gray-500">{c.daysOpen}d open</span>
                     </div>
                   </div>
                 </div>
@@ -198,18 +198,18 @@ export default function HoyWelfarePanel({ data }: Props) {
           >
             <Icon name="radar" size="sm" className="text-blue-500" />
             <h3 className="text-sm font-semibold text-gray-900">Early Warning Flags</h3>
-            <span className="ml-auto text-[11px] text-gray-400">{data.flags.length}</span>
+            <span className="ml-auto text-[11px] text-gray-500">{data.flags.length}</span>
             <Icon name={flagsExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0" />
           </button>
           {data.flags.length === 0 ? (
-            <p className="p-5 text-sm text-gray-400">No active flags.</p>
+            <p className="p-5 text-sm text-gray-500">No active flags.</p>
           ) : (
             <div className="divide-y divide-gray-50">
               {(flagsExpanded ? data.flags : data.flags.slice(0, 5)).map(f => (
                 <div key={f.id} className="px-4 py-3 flex items-start gap-3">
                   <span className={`mt-0.5 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded ${
                     f.severity === 'high'   ? 'bg-red-100 text-red-700' :
-                    f.severity === 'medium' ? 'bg-amber-100 text-amber-700' :
+                    f.severity === 'medium' ? 'bg-amber-100 text-amber-800' :
                                               'bg-gray-100 text-gray-600'
                   }`}>
                     {f.severity}
@@ -263,13 +263,13 @@ export default function HoyWelfarePanel({ data }: Props) {
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                       r.daysUntil < 0   ? 'bg-red-100 text-red-700' :
                       r.daysUntil <= 3  ? 'bg-red-100 text-red-700' :
-                      r.daysUntil <= 7  ? 'bg-amber-100 text-amber-700' :
+                      r.daysUntil <= 7  ? 'bg-amber-100 text-amber-800' :
                                           'bg-blue-100 text-blue-700'
                     }`}>
                       {reviewStatusLabel({ state: r.daysUntil < 0 ? 'overdue' : 'due_soon', daysUntil: r.daysUntil })}
                     </span>
                   </div>
-                  <Link href="/senco/ilp" className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-400 hover:text-blue-600 transition-colors" title="Open ILP records">
+                  <Link href="/senco/ilp" className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-700 hover:text-blue-700 transition-colors" title="Open ILP records">
                     <Icon name="arrow_forward" size="sm" />
                   </Link>
                 </div>

@@ -148,7 +148,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
                 <p className="text-sm text-gray-800 mt-1">{concern.evidenceNotes}</p>
               </div>
             )}
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               Raised by {concern.raiserName} · {new Date(concern.createdAt).toLocaleDateString('en-GB')}
             </p>
           </div>
@@ -172,7 +172,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
                 <p className="text-xs text-blue-900 whitespace-pre-wrap leading-relaxed">{aiAnalysis}</p>
               </div>
             ) : (
-              <p className="text-xs text-gray-400 italic">No AI analysis yet. Click above to generate one.</p>
+              <p className="text-xs text-gray-500 italic">No AI analysis yet. Click above to generate one.</p>
             )}
           </div>
 
@@ -199,7 +199,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
                   <div className="flex items-center gap-2 text-green-700">
                     <Icon name="check_circle" size="sm" />
                     <span className="text-sm font-medium">ILP created and ready for review.</span>
-                    <Link href="/senco/ilp" className="ml-auto text-xs text-green-600 hover:underline font-medium">View ILP →</Link>
+                    <Link href="/senco/ilp" className="ml-auto text-xs text-green-700 hover:underline font-medium">View ILP →</Link>
                   </div>
                 ) : (
                   <>
@@ -310,7 +310,7 @@ export default function ConcernReviewModal({ concern, onClose, staffList = [] }:
                     placeholder="e.g. Please monitor reading comprehension this week and report back with observations. Consider using pre-teaching vocabulary before Wednesday's lesson."
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-none"
                   />
-                  <p className="text-xs text-gray-400 mt-1">This message will be sent directly to the teacher via notification.</p>
+                  <p className="text-xs text-gray-500 mt-1">This message will be sent directly to the teacher via notification.</p>
                 </div>
               </div>
             )}

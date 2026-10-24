@@ -140,7 +140,7 @@ export default function GuideChatSlideOver({ onClose }: { onClose: () => void })
               <Icon name="send" size="sm" />
             </button>
           </div>
-          <p className="text-[9px] text-gray-400 mt-1.5 text-center">Powered by Claude · Answers are guidance only</p>
+          <p className="text-[9px] text-gray-500 mt-1.5 text-center">Powered by Claude · Answers are guidance only</p>
         </div>
       </div>
     </>

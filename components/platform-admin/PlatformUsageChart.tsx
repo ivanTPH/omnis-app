@@ -10,7 +10,7 @@ type Props = { data: WeeklyUsageStat[] }
 export default function PlatformUsageChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-[13px] text-gray-300">
+      <div className="flex items-center justify-center h-48 text-[13px] text-gray-500">
         No usage data yet
       </div>
     )

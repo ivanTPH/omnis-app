@@ -69,7 +69,7 @@ export default function RaiseConcernModal({ studentId, studentName, onClose }: P
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div>
               <p className="text-sm text-gray-500 mb-3">Raising concern about: <strong>{studentName}</strong></p>
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                 This concern will be reviewed by the SENCO. It is a professional observation, not a diagnosis.
               </p>
             </div>

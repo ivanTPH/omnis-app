@@ -118,7 +118,7 @@ export default function GlobalSearch() {
             placeholder="Search students, homework, staff…"
             className="flex-1 text-[14px] text-gray-900 placeholder-gray-400 outline-none bg-transparent"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-500 font-mono">
+          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 font-mono">
             ESC
           </kbd>
         </div>
@@ -128,7 +128,7 @@ export default function GlobalSearch() {
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-50 py-2">
             {types.map(type => (
               <div key={type}>
-                <p className="px-4 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                <p className="px-4 py-1.5 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
                   {TYPE_LABEL[type]}
                 </p>
                 {grouped[type].map(r => {
@@ -143,13 +143,13 @@ export default function GlobalSearch() {
                       }`}
                     >
                       <span className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-                        active === idx ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+                        active === idx ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
                       }`}>
                         <Icon name={TYPE_ICON[r.type]} size="sm" />
                       </span>
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-gray-900 truncate">{r.title}</p>
-                        <p className="text-[11px] text-gray-400 truncate">{r.subtitle}</p>
+                        <p className="text-[11px] text-gray-500 truncate">{r.subtitle}</p>
                       </div>
                       {active === idx && (
                         <Icon name="arrow_forward" size="sm" className="ml-auto text-blue-400 shrink-0" />
@@ -163,26 +163,26 @@ export default function GlobalSearch() {
         )}
 
         {query.length >= 2 && results.length === 0 && (
-          <div className="px-4 py-8 text-center text-[13px] text-gray-400">
+          <div className="px-4 py-8 text-center text-[13px] text-gray-500">
             No results for &ldquo;{query}&rdquo;
           </div>
         )}
 
         {query.length < 2 && (
-          <div className="px-4 py-5 text-center text-[12px] text-gray-400">
+          <div className="px-4 py-5 text-center text-[12px] text-gray-500">
             Type at least 2 characters to search
           </div>
         )}
 
         {/* Footer hint */}
         <div className="flex items-center gap-3 px-4 py-2 border-t border-gray-100 bg-gray-50">
-          <span className="text-[10px] text-gray-400 flex items-center gap-1">
+          <span className="text-[10px] text-gray-500 flex items-center gap-1">
             <kbd className="px-1 py-0.5 rounded bg-gray-200 font-mono text-[9px]">↑↓</kbd> navigate
           </span>
-          <span className="text-[10px] text-gray-400 flex items-center gap-1">
+          <span className="text-[10px] text-gray-500 flex items-center gap-1">
             <kbd className="px-1 py-0.5 rounded bg-gray-200 font-mono text-[9px]">↵</kbd> open
           </span>
-          <span className="text-[10px] text-gray-400 flex items-center gap-1">
+          <span className="text-[10px] text-gray-500 flex items-center gap-1">
             <kbd className="px-1 py-0.5 rounded bg-gray-200 font-mono text-[9px]">ESC</kbd> close
           </span>
         </div>

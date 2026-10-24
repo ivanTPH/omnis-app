@@ -6,11 +6,11 @@ import { saveTopicConfidence } from '@/app/actions/student'
 
 const LABELS = ['Not confident', 'Slightly confident', 'Fairly confident', 'Confident', 'Very confident']
 const COLORS  = [
-  'text-rose-600 border-rose-300 bg-rose-50',
-  'text-amber-600 border-amber-300 bg-amber-50',
-  'text-yellow-600 border-yellow-200 bg-yellow-50',
-  'text-blue-600 border-blue-300 bg-blue-50',
-  'text-emerald-600 border-emerald-300 bg-emerald-50',
+  'text-rose-700 border-rose-300 bg-rose-50',
+  'text-amber-800 border-amber-300 bg-amber-50',
+  'text-yellow-700 border-yellow-200 bg-yellow-50',
+  'text-blue-700 border-blue-300 bg-blue-50',
+  'text-emerald-700 border-emerald-300 bg-emerald-50',
 ]
 
 export default function TopicConfidencePanel({

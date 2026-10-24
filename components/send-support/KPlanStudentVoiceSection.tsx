@@ -304,7 +304,7 @@ export default function KPlanStudentVoiceSection({ kplan: initial, studentId, st
             </div>
           )}
           {kplan!.updatedAt && (
-            <p className="text-[10px] text-emerald-500 pt-1">
+            <p className="text-[10px] text-emerald-700 pt-1">
               Last updated {new Date(kplan!.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
           )}

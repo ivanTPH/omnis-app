@@ -9,10 +9,10 @@ export const dynamic = 'force-dynamic'
 
 const STATUS_STYLES: Record<string, string> = {
   active:             'bg-blue-100 text-blue-700',
-  deferred:           'bg-amber-100 text-amber-700',
+  deferred:           'bg-amber-100 text-amber-800',
   achieved:           'bg-emerald-100 text-emerald-700',
   not_achieved:       'bg-rose-100 text-rose-700',
-  partially_achieved: 'bg-amber-100 text-amber-700',
+  partially_achieved: 'bg-amber-100 text-amber-800',
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,12 +38,12 @@ export default async function StudentSupportPage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/student/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/student/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> Dashboard
             </Link>
           </div>
           <h1 className="text-[22px] font-bold text-gray-900 mb-1">My Support Plan</h1>
-          <p className="text-[13px] text-gray-400 mb-6">
+          <p className="text-[13px] text-gray-500 mb-6">
             Your SEND support information and learning targets set by your school
           </p>
 
@@ -51,7 +51,7 @@ export default async function StudentSupportPage() {
             <div className="bg-white border border-gray-200 rounded-xl py-16 text-center">
               <Icon name="check_circle" size="lg" color="#d1d5db" />
               <p className="text-sm text-gray-500 mt-3">No active support plan on record.</p>
-              <p className="text-[12px] text-gray-400 mt-1">
+              <p className="text-[12px] text-gray-500 mt-1">
                 Speak to your SENCO{profile.sencoName ? ` (${profile.sencoName})` : ''} if you think this is incorrect.
               </p>
             </div>
@@ -84,7 +84,7 @@ export default async function StudentSupportPage() {
                   </p>
                 )}
                 {profile.sencoName && (
-                  <p className="text-[12px] text-gray-400 mt-3 flex items-center gap-1">
+                  <p className="text-[12px] text-gray-500 mt-3 flex items-center gap-1">
                     <Icon name="person" size="sm" />
                     Your SENCO: <span className="font-medium text-gray-600 ml-1">{profile.sencoName}</span>
                   </p>
@@ -97,7 +97,7 @@ export default async function StudentSupportPage() {
                   <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                     <Icon name="flag" size="sm" className="text-blue-600" />
                     <h2 className="text-[14px] font-semibold text-gray-900">My Learning Targets</h2>
-                    <span className="ml-auto text-[11px] text-gray-400">{profile.ilp.targets.length} target{profile.ilp.targets.length !== 1 ? 's' : ''}</span>
+                    <span className="ml-auto text-[11px] text-gray-500">{profile.ilp.targets.length} target{profile.ilp.targets.length !== 1 ? 's' : ''}</span>
                   </div>
 
                   {profile.ilp.areasOfNeed && (
@@ -107,7 +107,7 @@ export default async function StudentSupportPage() {
                   )}
 
                   {profile.ilp.targets.length === 0 ? (
-                    <p className="px-5 py-4 text-[13px] text-gray-400">No active targets set yet.</p>
+                    <p className="px-5 py-4 text-[13px] text-gray-500">No active targets set yet.</p>
                   ) : (
                     <div className="divide-y divide-gray-50">
                       {profile.ilp.targets.map((t, i) => (
@@ -125,7 +125,7 @@ export default async function StudentSupportPage() {
                                 <span className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLES[t.status] ?? 'bg-gray-100 text-gray-600'}`}>
                                   {STATUS_LABEL[t.status] ?? t.status}
                                 </span>
-                                <span className="text-[11px] text-gray-400">
+                                <span className="text-[11px] text-gray-500">
                                   Target: {new Date(t.targetDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
                                 </span>
                               </div>
@@ -144,12 +144,12 @@ export default async function StudentSupportPage() {
                   <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
                     <Icon name="fact_check" size="sm" className="text-purple-600" />
                     <h2 className="text-[14px] font-semibold text-gray-900">EHCP Outcomes</h2>
-                    <span className="ml-auto text-[11px] text-gray-400">
+                    <span className="ml-auto text-[11px] text-gray-500">
                       Review: {new Date(profile.ehcp.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </span>
                   </div>
                   {profile.ehcp.outcomes.length === 0 ? (
-                    <p className="px-5 py-4 text-[13px] text-gray-400">No active EHCP outcomes on record.</p>
+                    <p className="px-5 py-4 text-[13px] text-gray-500">No active EHCP outcomes on record.</p>
                   ) : (
                     <div className="divide-y divide-gray-50">
                       {profile.ehcp.outcomes.map(o => (
@@ -170,7 +170,7 @@ export default async function StudentSupportPage() {
                 </div>
               )}
 
-              <p className="text-[11px] text-gray-400 mt-2">
+              <p className="text-[11px] text-gray-500 mt-2">
                 This information is set by your school. Talk to your SENCO{profile.sencoName ? ` (${profile.sencoName})` : ''} if you have any questions.
               </p>
 

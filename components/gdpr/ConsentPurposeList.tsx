@@ -8,7 +8,7 @@ import ConsentPurposeForm from './ConsentPurposeForm'
 
 const BASIS_LABELS: Record<string, { label: string; colour: string }> = {
   consent:             { label: 'Consent',              colour: 'bg-blue-100 text-blue-700'   },
-  legitimate_interest: { label: 'Legitimate Interest',  colour: 'bg-amber-100 text-amber-700' },
+  legitimate_interest: { label: 'Legitimate Interest',  colour: 'bg-amber-100 text-amber-800' },
   legal_obligation:    { label: 'Legal Obligation',     colour: 'bg-purple-100 text-purple-700' },
 }
 
@@ -47,18 +47,18 @@ export default function ConsentPurposeList({ purposes, schoolId }: Props) {
                     {basis.label}
                   </span>
                   {!p.isActive && (
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                       Inactive
                     </span>
                   )}
                 </div>
                 <p className="text-[12px] text-gray-500 leading-relaxed">{p.description}</p>
-                <p className="text-[11px] text-gray-300 mt-1.5 font-mono">{p.slug} · {p.recordCount} record{p.recordCount !== 1 ? 's' : ''}</p>
+                <p className="text-[11px] text-gray-500 mt-1.5 font-mono">{p.slug} · {p.recordCount} record{p.recordCount !== 1 ? 's' : ''}</p>
               </div>
               <button
                 onClick={() => handleToggle(p.id)}
                 disabled={pending && togglingId === p.id}
-                className="shrink-0 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-40"
+                className="shrink-0 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-40"
                 title={p.isActive ? 'Deactivate' : 'Activate'}
               >
                 {p.isActive
@@ -71,7 +71,7 @@ export default function ConsentPurposeList({ purposes, schoolId }: Props) {
       })}
 
       {purposes.length === 0 && !showForm && (
-        <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl text-gray-400 text-[13px]">
+        <div className="text-center py-10 border border-dashed border-gray-200 rounded-xl text-gray-500 text-[13px]">
           No consent purposes configured yet.
         </div>
       )}

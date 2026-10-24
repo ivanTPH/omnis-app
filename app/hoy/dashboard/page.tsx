@@ -22,8 +22,8 @@ function StatCard({
       </div>
       <div>
         <p className={`text-[26px] font-bold leading-none ${colour}`}>{value}</p>
-        <p className="text-[12px] text-gray-400 mt-1">{label}</p>
-        {sub && <p className="text-[11px] text-gray-300 mt-0.5">{sub}</p>}
+        <p className="text-[12px] text-gray-500 mt-1">{label}</p>
+        {sub && <p className="text-[11px] text-gray-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -55,7 +55,7 @@ function QuickLink({ href, icon, label, desc }: { href: string; icon: string; la
       </div>
       <div className="min-w-0">
         <p className="text-[13px] font-semibold text-gray-800 group-hover:text-blue-700 transition">{label}</p>
-        <p className="text-[11px] text-gray-400 truncate">{desc}</p>
+        <p className="text-[11px] text-gray-500 truncate">{desc}</p>
       </div>
     </Link>
   )
@@ -75,7 +75,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 const STATUS_COLOUR: Record<string, string> = {
   open:         'bg-red-100 text-red-700',
-  under_review: 'bg-amber-100 text-amber-700',
+  under_review: 'bg-amber-100 text-amber-800',
   escalated:    'bg-red-200 text-red-800 font-semibold',
   monitoring:   'bg-blue-100 text-blue-700',
 }
@@ -284,7 +284,7 @@ export default async function HoyDashboardPage() {
               <h1 className="text-[22px] font-bold text-gray-900">
                 {greeting}, {firstName}
               </h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {myYearGroup ? `Year ${myYearGroup} pastoral overview` : 'Pastoral overview — all year groups'}
                 {' · '}{schoolName}
               </p>
@@ -306,10 +306,10 @@ export default async function HoyDashboardPage() {
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <StatCard label="Students"       value={yearStudents.length}   icon="people"         href={myYearGroup ? `/analytics?year=${myYearGroup}` : '/analytics'} />
-            <StatCard label="SEND Register"  value={sendCount}             icon="support"        colour={sendCount > 0 ? 'text-purple-700' : 'text-gray-300'} href="/senco/concerns" />
-            <StatCard label="Open Concerns"  value={openConcerns.length}   icon="report_problem" colour={openConcerns.length > 0 ? 'text-red-600' : 'text-gray-300'} href="/senco/concerns" />
-            <StatCard label="Reviews Due"    value={reviewsDueCount}       icon="event"          colour={reviewsDueCount > 0 ? 'text-amber-600' : 'text-gray-300'} href="/send/review-due" />
-            <StatCard label="Low Attendance" value={lowAttendanceCount}    icon="directions_run" colour={lowAttendanceCount > 0 ? 'text-red-600' : 'text-gray-300'} href="/admin/attendance" />
+            <StatCard label="SEND Register"  value={sendCount}             icon="support"        colour={sendCount > 0 ? 'text-purple-700' : 'text-gray-500'} href="/senco/concerns" />
+            <StatCard label="Open Concerns"  value={openConcerns.length}   icon="report_problem" colour={openConcerns.length > 0 ? 'text-red-600' : 'text-gray-500'} href="/senco/concerns" />
+            <StatCard label="Reviews Due"    value={reviewsDueCount}       icon="event"          colour={reviewsDueCount > 0 ? 'text-amber-700' : 'text-gray-500'} href="/send/review-due" />
+            <StatCard label="Low Attendance" value={lowAttendanceCount}    icon="directions_run" colour={lowAttendanceCount > 0 ? 'text-red-600' : 'text-gray-500'} href="/admin/attendance" />
           </div>
 
           {/* Quick actions */}
@@ -329,7 +329,7 @@ export default async function HoyDashboardPage() {
               icon="directions_run"
               action={
                 attendanceAlerts.length > 0
-                  ? <span className="text-[11px] text-gray-400">{attendanceAlerts.length} flagged</span>
+                  ? <span className="text-[11px] text-gray-500">{attendanceAlerts.length} flagged</span>
                   : undefined
               }
             >
@@ -337,13 +337,13 @@ export default async function HoyDashboardPage() {
                 <div className="px-5 py-8 text-center">
                   <Icon name="sync" size="md" className="text-gray-300 mx-auto mb-2" />
                   <p className="text-[13px] text-gray-500 font-medium">No attendance data yet</p>
-                  <p className="text-[12px] text-gray-400 mt-1">Attendance is synced from your MIS via Wonde.</p>
+                  <p className="text-[12px] text-gray-500 mt-1">Attendance is synced from your MIS via Wonde.</p>
                   {canRunMisSync ? (
                     <Link href="/admin/wonde" className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:underline mt-2">
                       <Icon name="sync" size="sm" /> Run MIS sync
                     </Link>
                   ) : (
-                    <p className="text-[12px] text-gray-400 mt-2">
+                    <p className="text-[12px] text-gray-500 mt-2">
                       Attendance updates when your school admin syncs the MIS
                       {lastSync?.completedAt
                         ? ` · last synced ${lastSync.completedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -354,18 +354,18 @@ export default async function HoyDashboardPage() {
               ) : attendanceAlerts.length === 0 ? (
                 <div className="px-5 py-8 text-center">
                   <Icon name="check_circle" size="md" className="text-green-400 mx-auto mb-2" />
-                  <p className="text-[13px] text-gray-400">No students below 90% attendance</p>
+                  <p className="text-[13px] text-gray-500">No students below 90% attendance</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {attendanceAlerts.map(s => {
                     const pct = s.attendancePercentage!
-                    const colour = pct < 80 ? 'text-red-600 font-bold' : 'text-amber-600 font-semibold'
+                    const colour = pct < 80 ? 'text-red-600 font-bold' : 'text-amber-700 font-semibold'
                     return (
                       <li key={s.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50">
                         <Link href={`/students/${s.id}?tab=Pastoral`} className="text-[13px] font-medium text-gray-800 hover:text-emerald-700 transition">
                           {s.firstName} {s.lastName}
-                          {s.yearGroup && <span className="ml-1.5 text-[11px] text-gray-400">Yr {s.yearGroup}</span>}
+                          {s.yearGroup && <span className="ml-1.5 text-[11px] text-gray-500">Yr {s.yearGroup}</span>}
                         </Link>
                         <span className={`text-[13px] ${colour}`}>{pct.toFixed(1)}%</span>
                       </li>
@@ -388,7 +388,7 @@ export default async function HoyDashboardPage() {
               {openConcerns.length === 0 ? (
                 <div className="px-5 py-8 text-center">
                   <Icon name="check_circle" size="md" className="text-green-400 mx-auto mb-2" />
-                  <p className="text-[13px] text-gray-400">No open concerns</p>
+                  <p className="text-[13px] text-gray-500">No open concerns</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-100">
@@ -398,7 +398,7 @@ export default async function HoyDashboardPage() {
                         <Link href={`/students/${c.student.id}?tab=Pastoral`} className="text-[13px] font-medium text-gray-800 hover:text-emerald-700 transition">
                           {c.student.firstName} {c.student.lastName}
                         </Link>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLOUR[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_COLOUR[c.status] ?? 'bg-gray-100 text-gray-600'}`}>
                           {c.status.replace('_', ' ')}
                         </span>
                       </div>
@@ -432,9 +432,9 @@ export default async function HoyDashboardPage() {
                           <Link href={`/students/${r.studentId}`} className="text-[13px] font-medium text-gray-800 hover:text-blue-600 transition">
                             {r.name}
                           </Link>
-                          <span className="ml-2 text-[11px] text-gray-400">{r.type}</span>
+                          <span className="ml-2 text-[11px] text-gray-500">{r.type}</span>
                         </div>
-                        <span className={`text-[12px] font-medium ${urgent ? 'text-red-600' : 'text-amber-600'}`}>
+                        <span className={`text-[12px] font-medium ${urgent ? 'text-red-600' : 'text-amber-700'}`}>
                           {reviewStatusLabel(status)}
                         </span>
                       </div>
@@ -479,7 +479,7 @@ export default async function HoyDashboardPage() {
                           <td className="px-5 py-2.5 text-right text-gray-600">
                             {hwSet > 0 ? (
                               <span title={`${hwSet} assignment${hwSet !== 1 ? 's' : ''} × ${c.enrolments.length} students`}>
-                                {subCount} <span className="text-gray-400">/ {expected}</span>
+                                {subCount} <span className="text-gray-500">/ {expected}</span>
                               </span>
                             ) : '—'}
                           </td>
@@ -487,12 +487,12 @@ export default async function HoyDashboardPage() {
                             {rate != null ? (
                               <span
                                 className={`font-semibold ${
-                                  rate >= 0.8 ? 'text-green-600' : rate >= 0.6 ? 'text-amber-600' : 'text-red-600'
+                                  rate >= 0.8 ? 'text-green-700' : rate >= 0.6 ? 'text-amber-700' : 'text-red-600'
                                 }`}
                               >
                                 {Math.round(rate * 100)}%
                               </span>
-                            ) : <span className="text-gray-300">—</span>}
+                            ) : <span className="text-gray-500">—</span>}
                           </td>
                         </tr>
                       )

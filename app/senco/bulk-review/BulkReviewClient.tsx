@@ -17,7 +17,7 @@ const STATUS_PILL: Record<string, string> = {
   active:       'bg-blue-100 text-blue-700',
   achieved:     'bg-emerald-100 text-emerald-700',
   not_achieved: 'bg-rose-100 text-rose-700',
-  deferred:     'bg-amber-100 text-amber-700',
+  deferred:     'bg-amber-100 text-amber-800',
 }
 
 export default function BulkReviewClient() {
@@ -71,14 +71,14 @@ export default function BulkReviewClient() {
     <div className="max-w-5xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
-        <Link href="/senco/ilp" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+        <Link href="/senco/ilp" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
           <Icon name="chevron_left" size="sm" /> ILP Records
         </Link>
       </div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-[22px] font-bold text-gray-900">Bulk Target Review</h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">
+          <p className="text-[13px] text-gray-500 mt-0.5">
             Update ILP target statuses across all students in one action
           </p>
         </div>
@@ -117,13 +117,13 @@ export default function BulkReviewClient() {
             {key === 'active' ? 'Active only' : 'All targets'}
           </button>
         ))}
-        <span className="ml-auto text-[12px] text-gray-400">{displayed.length} targets</span>
+        <span className="ml-auto text-[12px] text-gray-500">{displayed.length} targets</span>
       </div>
 
       {loading ? (
         <div className="bg-white border border-gray-200 rounded-xl py-12 text-center">
           <Icon name="refresh" size="md" className="text-gray-300 animate-spin mx-auto mb-3" />
-          <p className="text-[13px] text-gray-400">Loading targets…</p>
+          <p className="text-[13px] text-gray-500">Loading targets…</p>
         </div>
       ) : displayed.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl py-12 text-center">
@@ -152,7 +152,7 @@ export default function BulkReviewClient() {
                   <tr key={t.targetId} className={`hover:bg-gray-50 transition-colors ${isDirty ? 'bg-blue-50/30' : ''}`}>
                     <td className="px-4 py-2.5">
                       <p className="font-medium text-gray-900">{t.studentName}</p>
-                      {t.yearGroup && <p className="text-[10px] text-gray-400">Year {t.yearGroup}</p>}
+                      {t.yearGroup && <p className="text-[10px] text-gray-500">Year {t.yearGroup}</p>}
                     </td>
                     <td className="px-4 py-2.5 max-w-[200px]">
                       <p className="truncate text-gray-700" title={t.target}>{t.target}</p>

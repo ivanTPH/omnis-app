@@ -139,7 +139,7 @@ function MatchingQuestion({
       <div className="grid grid-cols-2 gap-3">
         {/* Terms */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Terms</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Terms</p>
           {pairs.map(p => {
             const isMatched  = p.term in matches
             const isSelected = selectedTerm === p.term
@@ -156,7 +156,7 @@ function MatchingQuestion({
               >
                 {p.term}
                 {isMatched && !isSelected && (
-                  <span className="ml-1 text-green-500 text-[10px]">✓</span>
+                  <span className="ml-1 text-green-700 text-[10px]">✓</span>
                 )}
               </button>
             )
@@ -165,7 +165,7 @@ function MatchingQuestion({
 
         {/* Definitions */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Definitions</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Definitions</p>
           {shuffledDefs.map((def, i) => {
             const isMatched   = matchedDefs.has(def)
             const isClickable = !!selectedTerm && !isMatched
@@ -175,9 +175,9 @@ function MatchingQuestion({
                 type="button"
                 onClick={() => isClickable && handleDefClick(def)}
                 className={`w-full text-left px-3 py-2 border rounded-lg text-xs transition-colors ${
-                  isMatched   ? 'border-green-300 bg-green-50 text-green-700 cursor-default'
+                  isMatched   ? 'border-green-300 bg-green-50 text-green-800 cursor-default'
                   : isClickable ? 'border-blue-200 hover:border-blue-400 hover:bg-blue-50 text-gray-800 cursor-pointer'
-                  :               'border-gray-100 text-gray-400 cursor-default'
+                  :               'border-gray-100 text-gray-600 cursor-default'
                 }`}
               >
                 {def}
@@ -192,7 +192,7 @@ function MatchingQuestion({
           &ldquo;{selectedTerm}&rdquo; selected — click a definition to match
         </p>
       )}
-      <p className="text-xs text-gray-400 text-center">
+      <p className="text-xs text-gray-500 text-center">
         {matchedCount} of {pairs.length} pairs matched
         {matchedCount > 0 && ' · click a term to re-match it'}
       </p>
@@ -291,7 +291,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
           <Icon name="refresh" size="md" className="animate-spin text-blue-600" />
         </div>
         <p className="text-sm font-medium text-gray-700">Preparing your test…</p>
-        <p className="text-xs text-gray-400">Generating personalised exam-style questions</p>
+        <p className="text-xs text-gray-500">Generating personalised exam-style questions</p>
       </div>
     )
   }
@@ -316,8 +316,8 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
   if (state.status === 'results') {
     const { results, previousSessionId } = state
     const { percentage, estimatedGrade, areasToRevisit, totalScore, maxScore, questionCount } = results
-    const accent = percentage >= 70 ? 'text-green-700 bg-green-50 border-green-200'
-                 : percentage >= 40 ? 'text-amber-700 bg-amber-50 border-amber-200'
+    const accent = percentage >= 70 ? 'text-green-800 bg-green-50 border-green-200'
+                 : percentage >= 40 ? 'text-amber-800 bg-amber-50 border-amber-200'
                  :                    'text-rose-700 bg-rose-50 border-rose-200'
 
     return (
@@ -342,7 +342,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
             <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-2">Areas to Revisit</p>
             {areasToRevisit.map(a => (
               <div key={a.topic} className="flex items-start gap-2">
-                <span className="text-amber-500 text-xs mt-0.5 shrink-0">→</span>
+                <span className="text-amber-700 text-xs mt-0.5 shrink-0">→</span>
                 <div>
                   <span className="text-sm text-gray-800 font-medium">{a.topic}</span>
                   {a.questionTypes.length > 0 && (
@@ -395,7 +395,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span className="font-semibold text-gray-700">Question {number} of {total}</span>
-          <span className="text-gray-400">{TYPE_LABELS[question.type] ?? question.type}</span>
+          <span className="text-gray-500">{TYPE_LABELS[question.type] ?? question.type}</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
           <div
@@ -403,14 +403,14 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <p className="text-[11px] text-gray-400">Topic: {question.topic}</p>
+        <p className="text-[11px] text-gray-500">Topic: {question.topic}</p>
       </div>
 
       {/* Question card */}
       <div className="bg-white border border-gray-200 rounded-xl px-5 py-5 space-y-4">
         <div>
           <p className="text-sm font-semibold text-gray-900 leading-relaxed">{question.text}</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             [{question.marks} mark{question.marks !== 1 ? 's' : ''}]
           </p>
         </div>
@@ -439,7 +439,7 @@ export default function RevisionTestMode({ taskId, onDone }: Props) {
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <Icon name="menu_book" size="sm" />
           <span>Scores revealed at the end</span>
         </div>

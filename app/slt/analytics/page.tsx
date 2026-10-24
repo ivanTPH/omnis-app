@@ -164,7 +164,7 @@ export default async function SltAnalyticsPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">School Analytics</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">Performance overview across all classes</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">Performance overview across all classes</p>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-[11px] font-semibold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full">
@@ -219,11 +219,11 @@ export default async function SltAnalyticsPage() {
               { label: 'Homework Set',  value: totalHw,                                  colour: 'text-gray-900' },
               { label: 'Avg Completion',value: `${Math.round(schoolCompletion * 100)}%`, colour: 'text-blue-600' },
               { label: 'Avg Score',     value: formatAvgGrade(schoolScore).main,         colour: 'text-gray-900' },
-              { label: 'Flagged Classes',value: flaggedCount, colour: flaggedCount > 0 ? 'text-amber-600' : 'text-gray-300' },
+              { label: 'Flagged Classes',value: flaggedCount, colour: flaggedCount > 0 ? 'text-amber-700' : 'text-gray-500' },
             ].map(k => (
               <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-5">
                 <p className={`text-[26px] font-bold ${k.colour}`}>{k.value}</p>
-                <p className="text-[12px] text-gray-400 mt-1">{k.label}</p>
+                <p className="text-[12px] text-gray-500 mt-1">{k.label}</p>
               </div>
             ))}
           </div>
@@ -251,7 +251,7 @@ export default async function SltAnalyticsPage() {
                         <div key={cls.id} className="flex items-center gap-4 bg-white rounded-xl px-4 py-3 border border-amber-100">
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-semibold text-gray-900">{cls.name}</p>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-gray-500">
                               {cls.teachers.map(t => `${t.user.firstName} ${t.user.lastName}`).join(', ')}
                             </p>
                           </div>
@@ -261,13 +261,13 @@ export default async function SltAnalyticsPage() {
                                 <p className={`text-[13px] font-bold ${agg.completionRate < mJson.completionRate ? 'text-rose-600' : 'text-gray-700'}`}>
                                   {Math.round(agg.completionRate * 100)}%
                                 </p>
-                                <p className="text-[10px] text-gray-400">completion</p>
+                                <p className="text-[10px] text-gray-500">completion</p>
                               </div>
                               <div>
                                 <p className={`text-[13px] font-bold ${agg.avgScore < mJson.avgScore ? 'text-rose-600' : 'text-gray-700'}`}>
                                   {formatAvgGrade(agg.avgScore).main}
                                 </p>
-                                <p className="text-[10px] text-gray-400">avg score</p>
+                                <p className="text-[10px] text-gray-500">avg score</p>
                               </div>
                             </div>
                           )}
@@ -290,17 +290,17 @@ export default async function SltAnalyticsPage() {
                     <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50 border-b border-gray-200">
                       <div className="flex items-center gap-3">
                         <h2 className="text-[14px] font-bold text-gray-900">{subject}</h2>
-                        <span className="text-[11px] text-gray-400">{classes.length} class{classes.length !== 1 ? 'es' : ''}</span>
+                        <span className="text-[11px] text-gray-500">{classes.length} class{classes.length !== 1 ? 'es' : ''}</span>
                       </div>
                       {subAvgComp !== null && subAvgScore !== null && (
                         <div className="flex items-center gap-4 text-right">
                           <div>
                             <p className="text-[13px] font-bold text-blue-600">{Math.round(subAvgComp * 100)}%</p>
-                            <p className="text-[10px] text-gray-400">avg completion</p>
+                            <p className="text-[10px] text-gray-500">avg completion</p>
                           </div>
                           <div>
                             <p className="text-[13px] font-bold text-gray-900">{formatAvgGrade(subAvgScore).main}</p>
-                            <p className="text-[10px] text-gray-400">avg score</p>
+                            <p className="text-[10px] text-gray-500">avg score</p>
                           </div>
                         </div>
                       )}
@@ -319,7 +319,7 @@ export default async function SltAnalyticsPage() {
                           <div key={cls.id} className="flex items-center gap-4 px-5 py-3.5">
                             <div className="flex-1 min-w-0">
                               <p className="text-[13px] font-semibold text-gray-900">{cls.name}</p>
-                              <p className="text-[11px] text-gray-400">
+                              <p className="text-[11px] text-gray-500">
                                 Year {cls.yearGroup} · {enrolled} pupils
                                 {teacher && ` · ${teacher.firstName} ${teacher.lastName}`}
                               </p>
@@ -333,7 +333,7 @@ export default async function SltAnalyticsPage() {
                                     <span className="text-[11px] text-gray-500">{Math.round(agg.completionRate * 100)}%</span>
                                     {mJson && (
                                       <span className={`text-[10px] font-bold ${
-                                        agg.completionRate >= mJson.completionRate ? 'text-green-600' : 'text-rose-600'
+                                        agg.completionRate >= mJson.completionRate ? 'text-green-700' : 'text-rose-600'
                                       }`}>
                                         {agg.completionRate >= mJson.completionRate ? '▲' : '▼'}
                                         {Math.abs(Math.round((agg.completionRate - mJson.completionRate) * 100))}%
@@ -350,7 +350,7 @@ export default async function SltAnalyticsPage() {
                                   <p className="text-[12px] font-bold text-gray-900">{formatAvgGrade(agg.avgScore).main}</p>
                                   {mJson && (
                                     <p className={`text-[10px] font-bold ${
-                                      agg.avgScore >= mJson.avgScore ? 'text-green-600' : 'text-rose-600'
+                                      agg.avgScore >= mJson.avgScore ? 'text-green-700' : 'text-rose-600'
                                     }`}>
                                       {agg.avgScore >= mJson.avgScore ? '+' : ''}{(agg.avgScore - mJson.avgScore).toFixed(1)}
                                     </p>
@@ -370,7 +370,7 @@ export default async function SltAnalyticsPage() {
                                 )}
                               </div>
                             ) : (
-                              <span className="text-[11px] text-gray-300 shrink-0">No data</span>
+                              <span className="text-[11px] text-gray-500 shrink-0">No data</span>
                             )}
                           </div>
                         )
@@ -391,7 +391,7 @@ export default async function SltAnalyticsPage() {
                   {[
                     { label: 'Homework published', value: totalHw,     colour: 'text-gray-900' },
                     { label: 'Submissions received', value: totalSubs, colour: 'text-gray-900' },
-                    { label: 'Awaiting marking',  value: pendingMark,  colour: pendingMark > 0 ? 'text-amber-600' : 'text-gray-400' },
+                    { label: 'Awaiting marking',  value: pendingMark,  colour: pendingMark > 0 ? 'text-amber-700' : 'text-gray-500' },
                   ].map(s => (
                     <div key={s.label} className="flex items-center justify-between">
                       <span className="text-[12px] text-gray-500">{s.label}</span>
@@ -433,7 +433,7 @@ export default async function SltAnalyticsPage() {
                   <div className="h-1.5 bg-purple-200 rounded-full overflow-hidden">
                     <div className="h-full bg-teal-500 rounded-full" style={{ width: `${ilpCoveragePC}%` }} />
                   </div>
-                  <p className="text-[10px] text-purple-500 mt-1">{ilpCoverage} of {sendTotal} SEND students have an active ILP</p>
+                  <p className="text-[10px] text-purple-600 mt-1">{ilpCoverage} of {sendTotal} SEND students have an active ILP</p>
                 </div>
 
                 {/* Attainment gap */}
@@ -464,7 +464,7 @@ export default async function SltAnalyticsPage() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[10px] text-purple-400">No SEND submissions in last 30 days</p>
+                        <p className="text-[10px] text-purple-600">No SEND submissions in last 30 days</p>
                       )}
                     </div>
                   </div>
@@ -473,7 +473,7 @@ export default async function SltAnalyticsPage() {
                 <div className="flex items-center justify-between border-t border-purple-200 pt-3">
                   <div className="flex items-center justify-between flex-1">
                     <span className="text-[12px] text-purple-700">Reviews due (30d)</span>
-                    <span className={`text-[14px] font-bold ${reviewsDue > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{reviewsDue}</span>
+                    <span className={`text-[14px] font-bold ${reviewsDue > 0 ? 'text-amber-700' : 'text-gray-500'}`}>{reviewsDue}</span>
                   </div>
                 </div>
 
@@ -481,7 +481,7 @@ export default async function SltAnalyticsPage() {
                   <Link href="/slt/send" className="flex items-center gap-1 text-[11px] text-purple-700 font-semibold hover:underline">
                     SEND Reporting Dashboard <Icon name="chevron_right" size="sm" />
                   </Link>
-                  <Link href="/send/dashboard" className="flex items-center gap-1 text-[11px] text-purple-500 hover:underline">
+                  <Link href="/send/dashboard" className="flex items-center gap-1 text-[11px] text-purple-600 hover:underline">
                     SENCO Dashboard <Icon name="chevron_right" size="sm" />
                   </Link>
                 </div>
@@ -494,7 +494,7 @@ export default async function SltAnalyticsPage() {
                     <Icon name="public" size="sm" className="text-indigo-500" />
                     <h3 className="text-[13px] font-semibold text-gray-900">vs National Average</h3>
                   </div>
-                  <p className="text-[10px] text-gray-400 mb-3">2024 JCQ national GCSE averages</p>
+                  <p className="text-[10px] text-gray-500 mb-3">2024 JCQ national GCSE averages</p>
                   <div className="space-y-2">
                     {benchmarkRows.map(r => (
                       <div key={r.subject} className="flex items-center gap-2">
@@ -510,7 +510,7 @@ export default async function SltAnalyticsPage() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-3 italic">Positive = above national avg for that subject</p>
+                  <p className="text-[10px] text-gray-500 mt-3 italic">Positive = above national avg for that subject</p>
                 </div>
               )}
 
@@ -523,7 +523,7 @@ export default async function SltAnalyticsPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] text-gray-500">Classes with flags</span>
-                    <span className={`text-[14px] font-bold ${flaggedCount > 0 ? 'text-amber-600' : 'text-gray-300'}`}>{flaggedCount}</span>
+                    <span className={`text-[14px] font-bold ${flaggedCount > 0 ? 'text-amber-700' : 'text-gray-500'}`}>{flaggedCount}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] text-gray-500">School avg flag rate</span>

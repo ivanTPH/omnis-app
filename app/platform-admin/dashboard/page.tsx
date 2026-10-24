@@ -29,7 +29,7 @@ export default async function PlatformDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8 sm:py-8 space-y-6">
           <div>
             <h1 className="text-[22px] font-bold text-gray-900">Platform Dashboard</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">Omnis platform overview — all schools</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">Omnis platform overview — all schools</p>
           </div>
           <PlatformDashboardStats data={stats} />
           <PlatformInsightsPanel />

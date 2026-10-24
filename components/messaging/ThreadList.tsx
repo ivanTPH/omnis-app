@@ -17,7 +17,7 @@ function timeAgo(date: Date): string {
 const CONTEXT_COLOURS: Record<string, string> = {
   homework:       'bg-blue-100 text-blue-700',
   send:           'bg-purple-100 text-purple-700',
-  parent_evening: 'bg-amber-100 text-amber-700',
+  parent_evening: 'bg-amber-100 text-amber-800',
   general:        'bg-gray-100 text-gray-600',
 }
 
@@ -36,7 +36,7 @@ export default function ThreadList({
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-auto divide-y divide-gray-100">
         {threads.length === 0 && (
-          <p className="text-[12px] text-gray-400 text-center py-12 px-4">No messages yet</p>
+          <p className="text-[12px] text-gray-500 text-center py-12 px-4">No messages yet</p>
         )}
         {threads.map(t => {
           const isActive = t.id === activeThreadId
@@ -63,11 +63,11 @@ export default function ThreadList({
                     />
                   ))}
                   {t.participants.length > 3 && (
-                    <span className="text-[10px] text-gray-400 ml-1">+{t.participants.length - 3}</span>
+                    <span className="text-[10px] text-gray-500 ml-1">+{t.participants.length - 3}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-gray-400">{timeAgo(t.updatedAt)}</span>
+                  <span className="text-[10px] text-gray-500">{timeAgo(t.updatedAt)}</span>
                   {t.isPrivate && <Icon name="lock" size="sm" className="text-purple-400" />}
                   {t.unreadCount > 0 && (
                     <span className="w-4 h-4 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
@@ -88,7 +88,7 @@ export default function ThreadList({
                   </span>
                 )}
                 {t.lastMessage && (
-                  <p className="text-[11px] text-gray-400 truncate flex-1">
+                  <p className="text-[11px] text-gray-500 truncate flex-1">
                     {t.lastSender ? `${t.lastSender.split(' ')[0]}: ` : ''}{t.lastMessage}
                   </p>
                 )}
@@ -101,7 +101,7 @@ export default function ThreadList({
       <div className="border-t border-gray-100 px-4 py-2">
         <button
           onClick={() => setShowArchived(v => !v)}
-          className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600"
+          className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-600"
         >
           <Icon name="archive" size="sm" />
           {showArchived ? 'Hide archived' : 'Show archived'}

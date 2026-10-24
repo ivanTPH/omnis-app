@@ -116,9 +116,9 @@ export default function RevisionDashboard({
       {/* Stats bar */}
       <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
         <StatCard iconName="menu_book"    label="Planned"   value={stats.totalPlanned}   colour="bg-blue-100 text-blue-700" />
-        <StatCard iconName="check_circle" label="Completed" value={stats.totalCompleted} colour="bg-green-100 text-green-700" />
-        <StatCard iconName="skip_next"    label="Skipped"   value={stats.totalSkipped}   colour="bg-gray-100 text-gray-500" />
-        <StatCard iconName="local_fire_department" label="Day streak" value={`${stats.streakDays}🔥`} colour="bg-orange-100 text-orange-600" />
+        <StatCard iconName="check_circle" label="Completed" value={stats.totalCompleted} colour="bg-green-100 text-green-800" />
+        <StatCard iconName="skip_next"    label="Skipped"   value={stats.totalSkipped}   colour="bg-gray-100 text-gray-600" />
+        <StatCard iconName="local_fire_department" label="Day streak" value={`${stats.streakDays}🔥`} colour="bg-orange-100 text-orange-700" />
       </div>
 
       {/* Generate Plan button */}

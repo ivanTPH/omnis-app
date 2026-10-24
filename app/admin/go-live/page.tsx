@@ -43,7 +43,7 @@ export default async function GoLivePage() {
                   <div className="flex-1 text-[13px]">
                     <p className="font-semibold text-gray-900">{i.label}</p>
                     <p className="text-gray-600">{i.detail}</p>
-                    <p className="text-gray-400 mt-0.5">Usually done by: {i.who}</p>
+                    <p className="text-gray-500 mt-0.5">Usually done by: {i.who}</p>
                   </div>
                   {!i.done && <Link href={i.href} className="self-center text-[12px] font-medium text-blue-700 hover:underline whitespace-nowrap">Open</Link>}
                 </li>

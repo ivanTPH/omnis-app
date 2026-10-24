@@ -8,7 +8,7 @@ import { deleteAbsence } from '@/app/actions/cover'
 const REASON_COLOURS: Record<string, string> = {
   illness:  'bg-red-100 text-red-700',
   training: 'bg-blue-100 text-blue-700',
-  personal: 'bg-amber-100 text-amber-700',
+  personal: 'bg-amber-100 text-amber-800',
   other:    'bg-gray-100 text-gray-600',
 }
 
@@ -43,7 +43,7 @@ export default function AbsenceList({ absences, selectedAbsenceId, onSelect, onD
     return (
       <div className="flex flex-col items-center justify-center h-40 text-center">
         <Icon name="error" size="md" className="text-gray-300 mb-2" />
-        <p className="text-[12px] text-gray-400">No absences logged for this date.</p>
+        <p className="text-[12px] text-gray-500">No absences logged for this date.</p>
       </div>
     )
   }
@@ -65,7 +65,7 @@ export default function AbsenceList({ absences, selectedAbsenceId, onSelect, onD
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-[13px] font-semibold text-gray-900 truncate">{a.staffName}</p>
-                <p className="text-[11px] text-gray-400">{a.staffRole}</p>
+                <p className="text-[11px] text-gray-500">{a.staffRole}</p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${REASON_COLOURS[a.reason] ?? REASON_COLOURS.other}`}>
@@ -90,7 +90,7 @@ export default function AbsenceList({ absences, selectedAbsenceId, onSelect, onD
                 ) : (
                   <button
                     onClick={e => { e.stopPropagation(); setConfirmId(a.id) }}
-                    className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                    className="p-1 text-gray-500 hover:text-red-600 transition-colors"
                     title="Delete absence"
                   >
                     <Icon name="delete" size="sm" />
@@ -104,7 +104,7 @@ export default function AbsenceList({ absences, selectedAbsenceId, onSelect, onD
                 <span className="text-red-600 font-medium">{a.unassignedCount} unassigned</span>
               )}
               {a.unassignedCount === 0 && a.assignmentCount > 0 && (
-                <span className="text-green-600 font-medium">All covered</span>
+                <span className="text-green-700 font-medium">All covered</span>
               )}
             </div>
             {a.notes && (

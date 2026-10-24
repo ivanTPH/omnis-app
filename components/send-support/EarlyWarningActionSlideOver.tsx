@@ -97,7 +97,7 @@ export default function EarlyWarningActionSlideOver({ flag, onClose, onResolve, 
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 ml-3 shrink-0 mt-0.5"
+            className="text-gray-500 hover:text-gray-600 ml-3 shrink-0 mt-0.5"
           >
             <Icon name="close" size="md" />
           </button>
@@ -191,7 +191,7 @@ export default function EarlyWarningActionSlideOver({ flag, onClose, onResolve, 
             </h3>
 
             {error && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+              <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
                 {error}
               </p>
             )}
@@ -207,7 +207,7 @@ export default function EarlyWarningActionSlideOver({ flag, onClose, onResolve, 
                 : <><Icon name="check_circle" size="sm" /> Mark as actioned</>
               }
             </button>
-            <p className="text-xs text-gray-400 mt-2 text-center leading-relaxed">
+            <p className="text-xs text-gray-500 mt-2 text-center leading-relaxed">
               This will notify the class teacher that the flag has been reviewed and actioned.
             </p>
           </div>

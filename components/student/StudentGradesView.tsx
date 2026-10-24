@@ -208,7 +208,7 @@ function FormatBreakdownPanel({ breakdown }: { breakdown: FormatBreakdown[] }) {
               f.avgGrade >= 5 ? 'text-blue-700'  :
               f.avgGrade >= 4 ? 'text-amber-700' : 'text-red-700'
             }`}>{gradeLabel(f.avgGrade)}</span>
-            <span className="text-[10px] text-gray-400 w-12 text-right">{f.count} piece{f.count !== 1 ? 's' : ''}</span>
+            <span className="text-[10px] text-gray-500 w-12 text-right">{f.count} piece{f.count !== 1 ? 's' : ''}</span>
           </div>
         ))}
       </div>
@@ -236,10 +236,10 @@ function HomeworkRow({ hw }: { hw: GradeHistorySubmission }) {
         <Icon name={open ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-medium text-gray-800 truncate">{hw.title}</p>
-          <p className="text-[11px] text-gray-400">{hw.className} · {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          <p className="text-[11px] text-gray-500">{hw.className} · {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] text-gray-400">{hw.pct}%</span>
+          <span className="text-[10px] text-gray-500">{hw.pct}%</span>
           <GradePill grade={hw.gcseGrade} />
         </div>
       </button>
@@ -253,7 +253,7 @@ function HomeworkRow({ hw }: { hw: GradeHistorySubmission }) {
               <p className="text-[12px] text-gray-700 whitespace-pre-wrap">{hw.feedback}</p>
             </div>
           ) : (
-            <p className="text-[11px] text-gray-400 italic">No feedback recorded for this piece.</p>
+            <p className="text-[11px] text-gray-500 italic">No feedback recorded for this piece.</p>
           )}
           {hw.gcseGrade <= 4 && (
             <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 flex items-center gap-2">
@@ -303,11 +303,11 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
     trendStatus === 'declining'    ? 'Declining'    : 'Steady'
 
   const trendColor =
-    trendStatus === 'above_target' ? 'text-green-600' :
+    trendStatus === 'above_target' ? 'text-green-700' :
     trendStatus === 'on_target'    ? 'text-blue-600'  :
-    trendStatus === 'below_target' ? 'text-amber-600' :
-    trendStatus === 'improving'    ? 'text-green-600' :
-    trendStatus === 'declining'    ? 'text-red-500'   : 'text-gray-500'
+    trendStatus === 'below_target' ? 'text-amber-700' :
+    trendStatus === 'improving'    ? 'text-green-700' :
+    trendStatus === 'declining'    ? 'text-red-600'   : 'text-gray-500'
 
   const progressToPredict = summary.predictedGrade != null
     ? summary.avgGrade - summary.predictedGrade
@@ -331,10 +331,10 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
               </>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-[11px] text-gray-500 mt-0.5">
             {summary.submissions.length} marked piece{summary.submissions.length !== 1 ? 's' : ''}
             {summary.weakTopics.length > 0 && (
-              <span className="ml-2 text-amber-600 font-medium">· {summary.weakTopics.length} topic{summary.weakTopics.length !== 1 ? 's' : ''} to revise</span>
+              <span className="ml-2 text-amber-700 font-medium">· {summary.weakTopics.length} topic{summary.weakTopics.length !== 1 ? 's' : ''} to revise</span>
             )}
           </p>
         </div>
@@ -347,15 +347,15 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
 
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right">
-            <p className="text-[10px] text-gray-400 mb-0.5">Current avg</p>
+            <p className="text-[10px] text-gray-500 mb-0.5">Current avg</p>
             {hasEnoughWork
               ? <GradePill grade={summary.avgGrade} />
-              : <span className="text-[11px] text-gray-400 italic">Not enough work yet</span>}
+              : <span className="text-[11px] text-gray-500 italic">Not enough work yet</span>}
           </div>
           {summary.predictedGrade != null && (
             <div className="text-right">
-              <p className="text-[10px] text-gray-400 mb-0.5">Target</p>
-              <span className={`text-[12px] font-semibold ${progressToPredict != null && progressToPredict >= 0 ? 'text-green-600' : 'text-amber-600'}`}>
+              <p className="text-[10px] text-gray-500 mb-0.5">Target</p>
+              <span className={`text-[12px] font-semibold ${progressToPredict != null && progressToPredict >= 0 ? 'text-green-700' : 'text-amber-700'}`}>
                 {gradeLabel(summary.predictedGrade)}
               </span>
             </div>
@@ -371,8 +371,8 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-semibold text-blue-800">Progress toward target grade</p>
                 <div className="flex items-center gap-2 text-[11px]">
-                  <span className="text-gray-500">Current: <strong>{gradeLabel(summary.avgGrade)}</strong></span>
-                  <span className="text-gray-400">→</span>
+                  <span className="text-gray-600">Current: <strong>{gradeLabel(summary.avgGrade)}</strong></span>
+                  <span className="text-gray-600">→</span>
                   <span className="text-blue-700">Target: <strong>{gradeLabel(summary.predictedGrade)}</strong></span>
                 </div>
               </div>
@@ -383,11 +383,11 @@ function SubjectCard({ summary }: { summary: SubjectGradeSummary }) {
                 />
               </div>
               {progressToPredict != null && progressToPredict >= 0 ? (
-                <p className="text-[10px] text-green-700 mt-1.5 font-medium flex items-center gap-1">
+                <p className="text-[10px] text-green-800 mt-1.5 font-medium flex items-center gap-1">
                   <Icon name="check_circle" size="sm" />At or above target — keep it up!
                 </p>
               ) : progressToPredict != null && (
-                <p className="text-[10px] text-amber-700 mt-1.5 font-medium flex items-center gap-1">
+                <p className="text-[10px] text-amber-800 mt-1.5 font-medium flex items-center gap-1">
                   <Icon name="trending_up" size="sm" />{Math.abs(progressToPredict)} grade{Math.abs(progressToPredict) !== 1 ? 's' : ''} below target — focus on the areas highlighted below.
                 </p>
               )}
@@ -433,7 +433,7 @@ function AdaptiveProfilePanel({ profile }: { profile: NonNullable<SubjectGradeSu
   return (
     <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 mb-5">
       <div className="flex items-center gap-2 mb-3">
-        <Icon name="auto_fix_high" size="sm" className="text-emerald-600" />
+        <Icon name="auto_fix_high" size="sm" className="text-emerald-700" />
         <p className="text-[13px] font-semibold text-emerald-800">Your Learning Profile</p>
       </div>
 
@@ -444,7 +444,7 @@ function AdaptiveProfilePanel({ profile }: { profile: NonNullable<SubjectGradeSu
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {profile.preferredTypes.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider mb-1.5">You learn best with</p>
+            <p className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-1.5">You learn best with</p>
             <div className="flex flex-wrap gap-1">
               {profile.preferredTypes.map((t: string) => (
                 <span key={t} className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-[11px] font-medium capitalize">
@@ -456,7 +456,7 @@ function AdaptiveProfilePanel({ profile }: { profile: NonNullable<SubjectGradeSu
         )}
         {profile.strengthAreas.length > 0 && (
           <div>
-            <p className="text-[10px] font-semibold text-green-600 uppercase tracking-wider mb-1.5">Strengths</p>
+            <p className="text-[10px] font-semibold text-green-800 uppercase tracking-wider mb-1.5">Strengths</p>
             <div className="flex flex-wrap gap-1">
               {profile.strengthAreas.map((s: string) => (
                 <span key={s} className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-[11px] font-medium capitalize">
@@ -468,7 +468,7 @@ function AdaptiveProfilePanel({ profile }: { profile: NonNullable<SubjectGradeSu
         )}
         {profile.developmentAreas.length > 0 && (
           <div className="sm:col-span-2">
-            <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1.5">Areas to develop</p>
+            <p className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider mb-1.5">Areas to develop</p>
             <div className="flex flex-wrap gap-1">
               {profile.developmentAreas.map((d: string) => (
                 <span key={d} className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[11px] font-medium capitalize">
@@ -502,7 +502,7 @@ export default function StudentGradesView({ summaries, hasLinkedParent }: { summ
           <Icon name="school" size="lg" className="text-blue-700" />
         </div>
         <h1 className="text-page-title mb-2">My Grades</h1>
-        <p className="text-gray-500">No marked work yet. Your grades will appear here once your teacher has returned your homework.</p>
+        <p className="text-gray-600">No marked work yet. Your grades will appear here once your teacher has returned your homework.</p>
       </div>
     )
   }
@@ -522,7 +522,7 @@ export default function StudentGradesView({ summaries, hasLinkedParent }: { summ
         <h1 className="text-page-title">My Grades</h1>
         {hasLinkedParent && <SharedWithParentBadge />}
       </div>
-      <p className="text-[13px] text-gray-400 mb-6">
+      <p className="text-[13px] text-gray-600 mb-6">
         {totalPieces} piece{totalPieces !== 1 ? 's' : ''} marked across {summaries.length} subject{summaries.length !== 1 ? 's' : ''}
       </p>
 
@@ -535,7 +535,7 @@ export default function StudentGradesView({ summaries, hasLinkedParent }: { summ
               <p className="text-xs text-gray-500 mt-0.5">Overall avg</p>
             </>
           ) : (
-            <p className="text-gray-400 text-sm">—</p>
+            <p className="text-gray-500 text-sm">—</p>
           )}
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-4 text-center">
@@ -549,13 +549,13 @@ export default function StudentGradesView({ summaries, hasLinkedParent }: { summ
         <div className={`border rounded-xl p-4 text-center ${totalWeakTopics > 0 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
           {totalWeakTopics > 0 ? (
             <>
-              <p className="text-2xl font-bold text-amber-700">{totalWeakTopics}</p>
-              <p className="text-xs text-amber-600 mt-0.5">Topics to revise</p>
+              <p className="text-2xl font-bold text-amber-800">{totalWeakTopics}</p>
+              <p className="text-xs text-amber-800 mt-0.5">Topics to revise</p>
             </>
           ) : (
             <>
-              <p className="text-2xl font-bold text-green-700">✓</p>
-              <p className="text-xs text-green-600 mt-0.5">On track</p>
+              <p className="text-2xl font-bold text-green-800">✓</p>
+              <p className="text-xs text-green-800 mt-0.5">On track</p>
             </>
           )}
         </div>
@@ -580,7 +580,7 @@ export default function StudentGradesView({ summaries, hasLinkedParent }: { summ
                   <span className="text-[12px] text-gray-700 font-medium">{s.subject}</span>
                   <div className="flex items-center gap-2">
                     <GradePill grade={s.avgGrade} />
-                    <span className="text-[10px] text-gray-400">of target</span>
+                    <span className="text-[10px] text-gray-600">of target</span>
                     <span className={`text-[12px] font-semibold ${color}`}>{gradeLabel(s.predictedGrade!)}</span>
                     <Icon name={icon} size="sm" className={color} />
                   </div>
@@ -594,10 +594,10 @@ export default function StudentGradesView({ summaries, hasLinkedParent }: { summ
       {/* Global revision prompt if weak topics exist */}
       {totalWeakTopics > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5 flex items-start gap-3">
-          <Icon name="auto_stories" size="sm" className="text-amber-600 shrink-0 mt-0.5" />
+          <Icon name="auto_stories" size="sm" className="text-amber-800 shrink-0 mt-0.5" />
           <div>
             <p className="text-[12px] font-semibold text-amber-800 mb-0.5">Revision recommended</p>
-            <p className="text-[11px] text-amber-700">
+            <p className="text-[11px] text-amber-800">
               You have {totalWeakTopics} topic{totalWeakTopics !== 1 ? 's' : ''} scoring below your subject average.
               Open each subject below to see which topics to focus on, then add them to your{' '}
               <Link href="/student/revision" className="underline font-medium">revision planner</Link>.

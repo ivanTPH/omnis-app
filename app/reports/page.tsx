@@ -75,7 +75,7 @@ export default async function ReportsPage() {
                       <p className="text-[13px] font-semibold text-gray-900 group-hover:text-blue-700">
                         {d.label}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{d.desc}</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">{d.desc}</p>
                     </div>
                   </a>
                 ))}

@@ -33,7 +33,7 @@ const SEND_OPTIONS = [
 ]
 
 const LABEL = 'block text-[11px] font-semibold text-gray-600 mb-1.5 uppercase tracking-wide'
-const SELECT = 'w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed'
+const SELECT = 'w-full px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed'
 
 type Props = {
   schoolId:    string
@@ -198,7 +198,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             {subjects.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           {loadingSubjects && (
-            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           )}
         </div>
       </div>
@@ -223,7 +223,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             {yearGroups.map(y => <option key={y} value={y}>Year {y}</option>)}
           </select>
           {loadingYearGroups && (
-            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           )}
         </div>
       </div>
@@ -253,11 +253,11 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
             )}
           </select>
           {loadingTopics && (
-            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Icon name="refresh" size="sm" className="animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           )}
         </div>
         {topics.length === 0 && !loadingTopics && yearGroup !== '' && (
-          <p className="mt-1 text-[11px] text-amber-600 flex items-center gap-1">
+          <p className="mt-1 text-[11px] text-amber-700 flex items-center gap-1">
             <span>No curriculum topics found — type your topic below</span>
           </p>
         )}
@@ -288,7 +288,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
       {/* ── SEND Adaptations ────────────────────────────────────────────── */}
       <div>
         <label className={LABEL}>
-          SEND Adaptations <span className="text-gray-300 font-normal normal-case">(optional)</span>
+          SEND Adaptations <span className="text-gray-500 font-normal normal-case">(optional)</span>
         </label>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2">
           {SEND_OPTIONS.map(o => (
@@ -308,7 +308,7 @@ export default function ResourceGeneratorForm({ schoolId, lessonId, onGenerated 
       {/* ── Additional Notes ────────────────────────────────────────────── */}
       <div>
         <label className={LABEL}>
-          Additional Notes <span className="text-gray-300 font-normal normal-case">(optional)</span>
+          Additional Notes <span className="text-gray-500 font-normal normal-case">(optional)</span>
         </label>
         <textarea
           value={notes}

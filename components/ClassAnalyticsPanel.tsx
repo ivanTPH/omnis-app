@@ -21,10 +21,10 @@ const RAG_LABEL: Record<string, string> = {
   no_data: 'No data',
 }
 const RAG_CHIP: Record<string, string> = {
-  green:   'bg-green-100 text-green-700',
-  amber:   'bg-amber-100 text-amber-700',
-  red:     'bg-red-100 text-red-600',
-  no_data: 'bg-gray-100 text-gray-400',
+  green:   'bg-green-100 text-green-800',
+  amber:   'bg-amber-100 text-amber-800',
+  red:     'bg-red-100 text-red-700',
+  no_data: 'bg-gray-100 text-gray-600',
 }
 
 function avg(nums: number[]): number | null {
@@ -65,7 +65,7 @@ export default function ClassAnalyticsPanel({
       <div className="p-7">
         <div className="border border-dashed border-gray-200 rounded-2xl p-10 text-center">
           <Icon name="analytics" size="lg" className="mx-auto text-gray-300 mb-2" />
-          <p className="text-[12px] text-gray-400">No students or homework data yet for this class.</p>
+          <p className="text-[12px] text-gray-500">No students or homework data yet for this class.</p>
         </div>
       </div>
     )
@@ -113,7 +113,7 @@ export default function ClassAnalyticsPanel({
                                    'text-red-700'
               }`}>{avgGrade != null ? `Grade ${avgGrade}` : '—'}</p>
               {classAvg != null && (
-                <p className="text-[11px] text-gray-400 mt-0.5">{classAvg}% avg</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{classAvg}% avg</p>
               )}
               <p className="text-[11px] text-gray-500 mt-0.5">Class avg grade</p>
             </div>
@@ -215,8 +215,8 @@ export default function ClassAnalyticsPanel({
                 : '→'
                 : null
             const trendColor =
-              trend === '↑' ? 'text-green-600' :
-              trend === '↓' ? 'text-red-500'   : 'text-gray-400'
+              trend === '↑' ? 'text-green-700' :
+              trend === '↓' ? 'text-red-600'   : 'text-gray-500'
             return (
               <Link
                 key={s.id}
@@ -254,11 +254,11 @@ export default function ClassAnalyticsPanel({
                     {s.workingAtGrade}
                   </span>
                 ) : (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-400">—</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold shrink-0 bg-gray-100 text-gray-600">—</span>
                 )}
                 {/* Predicted grade */}
                 {s.predictedGrade != null && (
-                  <span className="text-[10px] text-gray-400 shrink-0" title={`Predicted: Grade ${s.predictedGrade}`}>
+                  <span className="text-[10px] text-gray-500 shrink-0" title={`Predicted: Grade ${s.predictedGrade}`}>
                     P{s.predictedGrade}
                   </span>
                 )}

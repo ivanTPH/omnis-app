@@ -6,9 +6,9 @@ import AssignCoverModal from './AssignCoverModal'
 
 const STATUS_BADGE: Record<string, string> = {
   unassigned: 'bg-red-100 text-red-700',
-  assigned:   'bg-amber-100 text-amber-700',
-  confirmed:  'bg-green-100 text-green-700',
-  cancelled:  'bg-gray-100 text-gray-500 line-through',
+  assigned:   'bg-amber-100 text-amber-800',
+  confirmed:  'bg-green-100 text-green-800',
+  cancelled:  'bg-gray-100 text-gray-600 line-through',
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -54,7 +54,7 @@ export default function CoverAssignmentGrid({
   if (visible.length === 0) {
     return (
       <div className="flex items-center justify-center h-48 text-center">
-        <p className="text-[12px] text-gray-400">
+        <p className="text-[12px] text-gray-500">
           {assignments.length === 0
             ? 'No lessons need cover for this date.'
             : 'Select an absence to see its lessons, or deselect to see all.'}
@@ -82,7 +82,7 @@ export default function CoverAssignmentGrid({
                     <div className="min-w-0">
                       <p className="text-[12px] font-semibold text-gray-900 truncate">{a.className}</p>
                       {a.classSubject && (
-                        <p className="text-[11px] text-gray-400">{a.classSubject}</p>
+                        <p className="text-[11px] text-gray-500">{a.classSubject}</p>
                       )}
                       <p className="text-[11px] text-gray-500 mt-0.5">
                         Absent: {a.absentStaffName}
@@ -97,7 +97,7 @@ export default function CoverAssignmentGrid({
                       Cover: {a.coverName}
                     </p>
                   )}
-                  <p className="mt-1 text-[10px] text-gray-400">
+                  <p className="mt-1 text-[10px] text-gray-500">
                     {a.periodStart}–{a.periodEnd}
                   </p>
                 </button>

@@ -20,8 +20,8 @@ function daysPill(days: number) {
   if (days === 0) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">Today</span>
   if (days <= 7)  return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">{days}d</span>
   if (days <= 14) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">{days}d</span>
-  if (days <= 30) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{days}d</span>
-  return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">{days}d</span>
+  if (days <= 30) return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">{days}d</span>
+  return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">{days}d</span>
 }
 
 function EvidenceDot({ target }: { target: IlpEvidenceTarget }) {
@@ -30,7 +30,7 @@ function EvidenceDot({ target }: { target: IlpEvidenceTarget }) {
   const overdue  = !hasEvid && !achieved && target.targetDate < new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
 
   if (achieved) return (
-    <span title="Achieved" className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">
+    <span title="Achieved" className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-800 font-semibold">
       <Icon name="check_circle" size="sm" /> Achieved
     </span>
   )
@@ -45,7 +45,7 @@ function EvidenceDot({ target }: { target: IlpEvidenceTarget }) {
     </span>
   )
   return (
-    <span title="No evidence linked yet" className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">
+    <span title="No evidence linked yet" className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-semibold">
       <Icon name="radio_button_unchecked" size="sm" /> Pending
     </span>
   )
@@ -107,8 +107,8 @@ function StudentRow({ student, expanded, onToggle }: {
     : 'info'
   const recColor =
     student.daysUntilReview <= 14 ? 'text-red-600'
-    : student.hasEvidenceGap ? 'text-amber-600'
-    : student.targetsOnTrack === student.totalTargets ? 'text-green-600'
+    : student.hasEvidenceGap ? 'text-amber-700'
+    : student.targetsOnTrack === student.totalTargets ? 'text-green-700'
     : 'text-blue-600'
 
   const initials = student.studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -148,7 +148,7 @@ function StudentRow({ student, expanded, onToggle }: {
             <div>
               <p className="text-[12px] font-medium text-gray-800">{student.reviewRecommendation}</p>
               {isEvidenceGapBanner && (
-                <p className="text-[11px] text-amber-600 mt-0.5">
+                <p className="text-[11px] text-amber-700 mt-0.5">
                   {gapCount} target{gapCount !== 1 ? 's' : ''} with no linked homework evidence.
                 </p>
               )}
@@ -160,7 +160,7 @@ function StudentRow({ student, expanded, onToggle }: {
               disabled={requesting || requestSent}
               className={`shrink-0 flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
                 requestSent
-                  ? 'bg-green-100 text-green-700 cursor-default'
+                  ? 'bg-green-100 text-green-800 cursor-default'
                   : 'bg-amber-600 text-white hover:bg-amber-700'
               }`}
             >
@@ -184,7 +184,7 @@ function StudentRow({ student, expanded, onToggle }: {
 
         {/* ILP targets */}
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">ILP Targets</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">ILP Targets</p>
           <div className="space-y-2">
             {student.targets.map(t => (
               <div key={t.id} className="bg-white border border-gray-200 rounded-lg px-3 py-2.5">
@@ -192,7 +192,7 @@ function StudentRow({ student, expanded, onToggle }: {
                   <p className="text-[12px] text-gray-800 leading-snug flex-1">{t.target}</p>
                   <div className="flex items-center gap-2 shrink-0">
                     {savedTargets.has(t.id) && (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold">
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-800 font-semibold">
                         <Icon name="check" size="sm" /> Saved
                       </span>
                     )}
@@ -200,11 +200,11 @@ function StudentRow({ student, expanded, onToggle }: {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-gray-500">
                     Target date: {new Date(t.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                   {t.lastLinkedAt && (
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-500">
                       Last evidence: {new Date(t.lastLinkedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                     </span>
                   )}
@@ -262,7 +262,7 @@ function StudentRow({ student, expanded, onToggle }: {
                       </button>
                       <button
                         onClick={() => setAddingFor(null)}
-                        className="text-[11px] text-gray-400 hover:text-gray-600"
+                        className="text-[11px] text-gray-500 hover:text-gray-600"
                       >
                         Cancel
                       </button>
@@ -341,21 +341,21 @@ export default function IlpEvidenceView({ data }: { data: IlpEvidenceSummary }) 
       id: 'review_soon',
       label: 'Review Due (30d)',
       count: reviewSoonCount,
-      color: reviewSoonCount > 0 ? 'text-orange-700 bg-orange-50 border-orange-200' : 'text-gray-400 bg-white border-gray-200',
+      color: reviewSoonCount > 0 ? 'text-orange-700 bg-orange-50 border-orange-200' : 'text-gray-500 bg-white border-gray-200',
       activeColor: 'bg-orange-500 text-white border-orange-500',
     },
     {
       id: 'evidence_gap',
       label: 'Evidence Gaps',
       count: evidenceGapCount,
-      color: evidenceGapCount > 0 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-gray-400 bg-white border-gray-200',
+      color: evidenceGapCount > 0 ? 'text-amber-800 bg-amber-50 border-amber-200' : 'text-gray-500 bg-white border-gray-200',
       activeColor: 'bg-amber-500 text-white border-amber-500',
     },
     {
       id: 'on_track',
       label: 'On Track',
       count: onTrackCount,
-      color: 'text-green-700 bg-green-50 border-green-200',
+      color: 'text-green-800 bg-green-50 border-green-200',
       activeColor: 'bg-green-600 text-white border-green-600',
     },
   ]
@@ -413,7 +413,7 @@ export default function IlpEvidenceView({ data }: { data: IlpEvidenceSummary }) 
 
       {/* Student list */}
       {visibleStudents.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="person_search" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">
             {search ? 'No students match your search.' : activeTab === 'on_track' ? 'No students currently on track in this filter.' : 'No students in this category.'}
@@ -428,7 +428,7 @@ export default function IlpEvidenceView({ data }: { data: IlpEvidenceSummary }) 
             {expandedIds.size > 0 && (
               <button
                 onClick={() => setExpandedIds(new Set())}
-                className="text-[11px] text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                className="text-[11px] text-gray-500 hover:text-gray-600 flex items-center gap-1"
               >
                 <Icon name="expand_less" size="sm" /> Collapse all
               </button>

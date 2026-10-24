@@ -348,7 +348,7 @@ export default function SettingsShell({
                   <Icon name="camera_alt" size="sm" />
                   {avatarUrl ? 'Replace photo' : 'Upload photo'}
                 </button>
-                <p className="text-xs text-gray-400">JPG or PNG, max 5 MB</p>
+                <p className="text-xs text-gray-500">JPG or PNG, max 5 MB</p>
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleAvatarChange} />
               </div>
             </div>
@@ -407,7 +407,7 @@ export default function SettingsShell({
                 </div>
                 <button
                   onClick={() => setShowEmailForm(!showEmailForm)}
-                  className="px-4 py-2.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap"
+                  className="px-4 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors whitespace-nowrap"
                 >
                   Request change
                 </button>
@@ -501,7 +501,7 @@ export default function SettingsShell({
                 <option value="">— None selected —</option>
                 {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <p className="mt-1 text-xs text-gray-400">Used to pre-fill lesson and resource filters.</p>
+              <p className="mt-1 text-xs text-gray-500">Used to pre-fill lesson and resource filters.</p>
             </div>
 
             <div>
@@ -525,7 +525,7 @@ export default function SettingsShell({
                   )
                 })}
               </div>
-              <p className="mt-1.5 text-xs text-gray-400">Select any other subjects you teach. Used to personalise homework and grading context.</p>
+              <p className="mt-1.5 text-xs text-gray-500">Select any other subjects you teach. Used to personalise homework and grading context.</p>
             </div>
 
             <div>
@@ -538,7 +538,7 @@ export default function SettingsShell({
                 <option value="">— None selected —</option>
                 {UK_EXAM_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <p className="mt-1 text-xs text-gray-400">Used to apply correct mark scheme guidelines when AI suggests homework grades.</p>
+              <p className="mt-1 text-xs text-gray-500">Used to apply correct mark scheme guidelines when AI suggests homework grades.</p>
             </div>
 
             <div>
@@ -550,7 +550,7 @@ export default function SettingsShell({
                 placeholder="e.g. Paper 1: Power & Conflict, Paper 2: An Inspector Calls"
                 className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-gray-400 transition-colors"
               />
-              <p className="mt-1 text-xs text-gray-400">Comma-separated list of modules or units you teach. Feeds into AI grading context.</p>
+              <p className="mt-1 text-xs text-gray-500">Comma-separated list of modules or units you teach. Feeds into AI grading context.</p>
             </div>
           </Section>
 
@@ -685,7 +685,7 @@ export default function SettingsShell({
                     <p className="mt-0.5 text-xs text-gray-500">{opt.desc}</p>
                   </div>
                   {opt.value === 'PRIVATE' && (
-                    <span className="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full shrink-0">Default</span>
+                    <span className="ml-auto text-[10px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full shrink-0">Default</span>
                   )}
                 </label>
               ))}
@@ -701,7 +701,7 @@ export default function SettingsShell({
                     <button
                       onMouseEnter={() => setShowTooltip(true)}
                       onMouseLeave={() => setShowTooltip(false)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-gray-500 hover:text-gray-600"
                     >
                       <Icon name="info" size="sm" />
                     </button>
@@ -757,7 +757,7 @@ export default function SettingsShell({
                   <button
                     type="button"
                     onClick={() => setShowPw(!showPw)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
                   >
                     {showPw ? <Icon name="visibility_off" size="sm" /> : <Icon name="visibility" size="sm" />}
                   </button>
@@ -789,7 +789,7 @@ export default function SettingsShell({
                 </div>
               )}
               {pwSuccess && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700">
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-800">
                   <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />
                   Password changed successfully. Use your new password next time you log in.
                 </div>
@@ -813,7 +813,7 @@ export default function SettingsShell({
                 <p className="mt-0.5 text-xs text-gray-500">Add a second layer of security to your account.</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-gray-400 bg-gray-200 px-2.5 py-1 rounded-full">Coming soon</span>
+                <span className="text-xs font-medium text-gray-600 bg-gray-200 px-2.5 py-1 rounded-full">Coming soon</span>
                 <Toggle value={false} onChange={() => {}} disabled />
               </div>
             </div>

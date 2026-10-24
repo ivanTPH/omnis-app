@@ -22,7 +22,7 @@ export default function ActivationPanel({
           <Icon name="schedule" size="md" className="text-amber-500" />
           <div>
             <p className="text-[14px] font-bold text-gray-900">Pending first login</p>
-            <p className="text-[12px] text-gray-400 mt-0.5">
+            <p className="text-[12px] text-gray-500 mt-0.5">
               {pending} of {total} students have not yet activated their account
             </p>
           </div>
@@ -42,7 +42,7 @@ export default function ActivationPanel({
           style={{ width: `${100 - pct}%` }}
         />
       </div>
-      <p className="text-[11px] text-gray-400 mb-4">
+      <p className="text-[11px] text-gray-500 mb-4">
         {100 - pct}% activated
       </p>
 
@@ -63,7 +63,7 @@ export default function ActivationPanel({
                 </span>
                 <span className="text-[12px] font-bold text-amber-700">
                   {row.pending}
-                  <span className="text-[10px] font-normal text-gray-400 ml-0.5">/ {row.total}</span>
+                  <span className="text-[10px] font-normal text-gray-500 ml-0.5">/ {row.total}</span>
                 </span>
               </div>
             ))}
@@ -71,10 +71,10 @@ export default function ActivationPanel({
         </div>
       )}
 
-      <p className="text-[11px] text-gray-400 mt-3">
+      <p className="text-[11px] text-gray-500 mt-3">
         Ask form tutors to remind students to check their school email and click the activation link.
         You can resend emails individually from{' '}
-        <Link href="/admin/users" className="text-blue-500 hover:underline">User Management</Link>.
+        <Link href="/admin/users" className="text-blue-600 hover:underline">User Management</Link>.
       </p>
     </div>
   )

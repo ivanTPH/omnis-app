@@ -151,9 +151,9 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
         <div className="px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-4 shrink-0">
           <div>
             <h2 className="font-bold text-gray-900 text-lg">Set Homework</h2>
-            <p className="text-sm text-gray-400">Link to a lesson, generate questions with AI, then publish</p>
+            <p className="text-sm text-gray-500">Link to a lesson, generate questions with AI, then publish</p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="p-2 rounded-xl hover:bg-gray-100 text-gray-600 shrink-0">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -195,11 +195,11 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                   <div className="mt-2 bg-gray-50 rounded-xl px-4 py-3 space-y-2.5">
                     {selectedLesson.objectives.length > 0 && (
                       <div>
-                        <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Learning Objectives</div>
+                        <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Learning Objectives</div>
                         <ul className="space-y-0.5">
                           {selectedLesson.objectives.map((o, i) => (
                             <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                              <span className="text-blue-400 mt-0.5 shrink-0">•</span>{o}
+                              <span className="text-blue-600 mt-0.5 shrink-0">•</span>{o}
                             </li>
                           ))}
                         </ul>
@@ -207,7 +207,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                     )}
                     {selectedLesson.resources.length > 0 && (
                       <div>
-                        <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Resources</div>
+                        <div className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Resources</div>
                         <div className="flex flex-wrap gap-1.5">
                           {selectedLesson.resources.map((r, i) => (
                             <span key={i} className="text-[10px] font-medium px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
@@ -218,7 +218,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                       </div>
                     )}
                     {selectedLesson.objectives.length === 0 && selectedLesson.resources.length === 0 && (
-                      <p className="text-xs text-gray-400">No objectives or resources attached to this lesson. AI will generate based on the lesson title.</p>
+                      <p className="text-xs text-gray-500">No objectives or resources attached to this lesson. AI will generate based on the lesson title.</p>
                     )}
                   </div>
                 )}
@@ -244,7 +244,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">{HW_TYPES.find(t => t.value === hwType)?.desc}</p>
+                <p className="text-xs text-gray-500 mt-1.5">{HW_TYPES.find(t => t.value === hwType)?.desc}</p>
               </section>
 
               {/* ── Class + Due date ── */}
@@ -314,20 +314,20 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                 )}
 
                 {genError && (
-                  <div className="flex items-center gap-2 text-sm text-rose-600 bg-rose-50 rounded-lg px-3 py-2 mb-3">
+                  <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 rounded-lg px-3 py-2 mb-3">
                     <Icon name="error" size="sm" className="shrink-0" />{genError}
                   </div>
                 )}
 
                 {generated && !genError && (
-                  <div className="flex items-center gap-1.5 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-1.5 mb-3">
+                  <div className="flex items-center gap-1.5 text-xs text-green-800 bg-green-50 rounded-lg px-3 py-1.5 mb-3">
                     <Icon name="check_circle" size="sm" />AI generated — review and edit below before publishing
                   </div>
                 )}
 
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">Instructions <span className="text-gray-400">(shown to students)</span></div>
+                    <div className="text-xs text-gray-500 mb-1">Instructions <span className="text-gray-500">(shown to students)</span></div>
                     <textarea
                       value={instructions}
                       onChange={e => setInstructions(e.target.value)}
@@ -337,7 +337,7 @@ export default function SetHomeworkModal({ onClose, onCreated }: {
                     />
                   </div>
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">Model Answer / Mark Scheme <span className="text-gray-400">(teacher-only)</span></div>
+                    <div className="text-xs text-gray-500 mb-1">Model Answer / Mark Scheme <span className="text-gray-500">(teacher-only)</span></div>
                     <textarea
                       value={modelAnswer}
                       onChange={e => setModelAnswer(e.target.value)}

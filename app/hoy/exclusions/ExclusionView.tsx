@@ -15,14 +15,14 @@ const TYPE_LABELS: Record<string, string> = {
   permanent:  'Permanent',
 }
 const TYPE_COLORS: Record<string, string> = {
-  internal:   'bg-amber-100 text-amber-700',
+  internal:   'bg-amber-100 text-amber-800',
   fixed_term: 'bg-orange-100 text-orange-700',
   permanent:  'bg-rose-100 text-rose-700',
 }
 const STATUS_COLORS: Record<string, string> = {
   active:    'bg-rose-100 text-rose-700',
   returned:  'bg-emerald-100 text-emerald-700',
-  appealed:  'bg-amber-100 text-amber-700',
+  appealed:  'bg-amber-100 text-amber-800',
   overturned:'bg-purple-100 text-purple-700',
 }
 
@@ -52,7 +52,7 @@ function ExclRow({ e, onResolved }: { e: ExclusionRow; onResolved: (id: string, 
           <Link href={`/students/${e.studentId}`} className="font-medium text-gray-900 hover:text-blue-600 text-[12px]">
             {e.studentName}
           </Link>
-          {e.yearGroup && <span className="ml-1.5 text-[10px] text-gray-400">Y{e.yearGroup}</span>}
+          {e.yearGroup && <span className="ml-1.5 text-[10px] text-gray-500">Y{e.yearGroup}</span>}
           {e.sendStatus && (
             <span className="ml-1.5 inline-block px-1 py-0.5 rounded text-[9px] font-semibold bg-amber-100 text-amber-800">
               {e.sendStatus.replace('_', ' ')}
@@ -67,19 +67,19 @@ function ExclRow({ e, onResolved }: { e: ExclusionRow; onResolved: (id: string, 
         <td className="px-4 py-2.5 text-[12px] text-gray-600 max-w-[180px] truncate">{e.reason}</td>
         <td className="px-4 py-2.5 text-[11px] text-gray-500 whitespace-nowrap">
           <div>{startDate}{endDate ? ` → ${endDate}` : ''}</div>
-          <div className="text-gray-400">{e.daysCount} day{e.daysCount !== 1 ? 's' : ''}</div>
+          <div className="text-gray-500">{e.daysCount} day{e.daysCount !== 1 ? 's' : ''}</div>
         </td>
         <td className="px-4 py-2.5">
-          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[e.status] ?? 'bg-gray-100 text-gray-500'}`}>
+          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[e.status] ?? 'bg-gray-100 text-gray-600'}`}>
             {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
           </span>
           {e.parentContacted && (
-            <div className="flex items-center gap-0.5 text-[10px] text-emerald-600 mt-0.5">
+            <div className="flex items-center gap-0.5 text-[10px] text-emerald-700 mt-0.5">
               <Icon name="call" size="sm" /><span>Parent contacted</span>
             </div>
           )}
         </td>
-        <td className="px-4 py-2.5 text-[11px] text-gray-400">{e.authorName}</td>
+        <td className="px-4 py-2.5 text-[11px] text-gray-500">{e.authorName}</td>
         <td className="px-4 py-2.5">
           {e.status === 'active' && (
             <div className="flex items-center gap-1">
@@ -91,7 +91,7 @@ function ExclRow({ e, onResolved }: { e: ExclusionRow; onResolved: (id: string, 
               </button>
               <button
                 onClick={() => resolve('appealed')}
-                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
               >
                 Appealed
               </button>
@@ -170,12 +170,12 @@ function LogForm({ onLogged }: { onLogged: () => void }) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[15px] font-semibold text-gray-900">Log Exclusion</h3>
-          <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
 
-        {error && <p className="mb-3 text-[12px] text-rose-600 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
+        {error && <p className="mb-3 text-[12px] text-rose-700 bg-rose-50 px-3 py-2 rounded-lg">{error}</p>}
 
         <div className="space-y-3">
           <div>
@@ -305,12 +305,12 @@ export default function ExclusionView({
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Link href="/hoy/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+              <Link href="/hoy/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
                 <Icon name="chevron_left" size="sm" /> Dashboard
               </Link>
             </div>
             <h1 className="text-[22px] font-bold text-gray-900">Exclusion Log</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-0.5">
               Current and historical exclusion records · last 3 months
             </p>
           </div>
@@ -321,14 +321,14 @@ export default function ExclusionView({
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
           {[
             { label: 'Total (3 mths)',  value: stats.total,     color: 'text-gray-900' },
-            { label: 'Active',          value: stats.active,    color: stats.active > 0 ? 'text-rose-600' : 'text-gray-300' },
-            { label: 'Fixed-Term',      value: stats.fixedTerm, color: 'text-orange-600' },
-            { label: 'Internal',        value: stats.internal,  color: 'text-amber-600' },
-            { label: 'Permanent',       value: stats.permanent, color: stats.permanent > 0 ? 'text-rose-700' : 'text-gray-300' },
+            { label: 'Active',          value: stats.active,    color: stats.active > 0 ? 'text-rose-600' : 'text-gray-500' },
+            { label: 'Fixed-Term',      value: stats.fixedTerm, color: 'text-orange-700' },
+            { label: 'Internal',        value: stats.internal,  color: 'text-amber-700' },
+            { label: 'Permanent',       value: stats.permanent, color: stats.permanent > 0 ? 'text-rose-700' : 'text-gray-500' },
           ].map(k => (
             <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-4">
               <p className={`text-[24px] font-bold ${k.color}`}>{k.value}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{k.label}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">{k.label}</p>
             </div>
           ))}
         </div>
@@ -374,12 +374,12 @@ export default function ExclusionView({
                   <table className="w-full text-[12px]">
                     <thead>
                       <tr className="border-b border-gray-100">
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Student</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Type</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Reason</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Dates</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Status</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Logged by</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Student</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Type</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Reason</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Dates</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Status</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Logged by</th>
                         <th className="px-4 py-2" />
                       </tr>
                     </thead>
@@ -402,12 +402,12 @@ export default function ExclusionView({
                   <table className="w-full text-[12px]">
                     <thead>
                       <tr className="border-b border-gray-100">
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Student</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Type</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Reason</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Dates</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Status</th>
-                        <th className="text-left px-4 py-2 font-semibold text-gray-400">Logged by</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Student</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Type</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Reason</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Dates</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Status</th>
+                        <th className="text-left px-4 py-2 font-semibold text-gray-500">Logged by</th>
                         <th className="px-4 py-2" />
                       </tr>
                     </thead>

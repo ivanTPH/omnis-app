@@ -55,12 +55,12 @@ function SendStatusBadge({ send }: { send: { activeStatus: string; needArea: str
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'RETURNED') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
       ✓ Returned
     </span>
   )
   if (status === 'MARKED') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
       ⚡ Awaiting Review
     </span>
   )
@@ -107,7 +107,7 @@ function QuestionCard({
       <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
         <span className="text-[11px] font-semibold text-gray-500">Q{index} of {total}</span>
         <div className="flex items-center gap-1.5">
-          <label className="text-[10px] text-gray-400">Marks:</label>
+          <label className="text-[10px] text-gray-500">Marks:</label>
           <input
             type="number"
             min={0}
@@ -117,7 +117,7 @@ function QuestionCard({
             className="w-14 border border-gray-300 rounded px-2 py-1 text-[12px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
             placeholder={`/${maxScore}`}
           />
-          <span className="text-[11px] text-gray-400">/{maxScore}</span>
+          <span className="text-[11px] text-gray-500">/{maxScore}</span>
         </div>
       </div>
       <div className="px-4 py-3 space-y-2.5">
@@ -136,7 +136,7 @@ function QuestionCard({
                 }`}>
                   <span className="font-semibold w-4 shrink-0">{letter}.</span>
                   <span>{opt}</span>
-                  {selected && <span className="ml-auto text-[10px] text-blue-500">selected</span>}
+                  {selected && <span className="ml-auto text-[10px] text-blue-600">selected</span>}
                 </div>
               )
             })}
@@ -145,11 +145,11 @@ function QuestionCard({
 
         {/* Student answer */}
         <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Student&apos;s Answer</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Student&apos;s Answer</p>
           <div className={`border rounded-lg px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
             studentAnswer ? 'bg-blue-50 border-blue-100 text-gray-800' : 'bg-gray-50 border-gray-200'
           }`}>
-            {studentAnswer || <span className="text-gray-400 italic">No answer recorded</span>}
+            {studentAnswer || <span className="text-gray-500 italic">No answer recorded</span>}
           </div>
         </div>
 
@@ -190,7 +190,7 @@ function QuestionCard({
         )}
 
         {explanationText != null && explanationText !== '' && (
-          <p className="text-[11px] text-gray-400 italic">{explanationText}</p>
+          <p className="text-[11px] text-gray-500 italic">{explanationText}</p>
         )}
       </div>
     </div>
@@ -815,7 +815,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             </p>
             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
               <SendStatusBadge send={send} />
-              <span className="text-[10px] text-gray-400">
+              <span className="text-[10px] text-gray-500">
                 {missing ? 'Not submitted' : sub ? statusLabel(sub.status) : ''}
               </span>
               {showAiBadge && autoScore != null && (() => {
@@ -823,7 +823,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 const pct   = isLegPct ? Math.round(autoScore) : Math.round((autoScore / maxScore) * 100)
                 const grade = percentToGcseGrade(pct)
                 return (
-                  <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+                  <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
                     AI: Gr {grade} ↗
                   </span>
                 )
@@ -847,7 +847,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <Link
               href={`/homework/${hw.id}/mark/${sub.id}`}
               title="Open full marking view"
-              className="px-2 py-1 text-gray-300 hover:text-blue-500 transition-colors"
+              className="px-2 py-1 text-gray-500 hover:text-blue-600 transition-colors"
               onClick={e => e.stopPropagation()}
             >
               <Icon name="open_in_new" size="sm" />
@@ -864,8 +864,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               title={reminded ? 'Reminder sent' : 'Send reminder notification'}
               className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded transition-colors ${
                 reminded
-                  ? 'bg-green-100 text-green-700 cursor-default'
-                  : 'bg-gray-100 hover:bg-amber-100 text-gray-500 hover:text-amber-700'
+                  ? 'bg-green-100 text-green-800 cursor-default'
+                  : 'bg-gray-100 hover:bg-amber-100 text-gray-600 hover:text-amber-800'
               }`}
             >
               {remindingId === pupil.id
@@ -877,11 +877,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <Link
               href={`/messages?new=1&recipient=${pupil.id}&context=${encodeURIComponent(`Re: ${hw.title}`)}`}
               title={isSend ? 'Message student (SEND — please use sensitive language)' : 'Message student'}
-              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-gray-100 hover:bg-blue-100 text-gray-500 hover:text-blue-700 transition-colors"
+              className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-700 transition-colors"
             >
               <Icon name="chat" size="sm" />
               Message
-              {isSend && <span className="ml-0.5 text-[8px] text-purple-500">SEND</span>}
+              {isSend && <span className="ml-0.5 text-[8px] text-purple-600">SEND</span>}
             </Link>
           </div>
         )}
@@ -909,10 +909,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     isAutoMarkedPending ? 'auto' :
     'empty'
   const gradeHasValue = !!(form?.grade && form.grade !== '')
-    gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-700' :
-    gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-700' :
+    gradeState === 'auto'      ? 'bg-amber-50 border-amber-300 text-amber-800' :
+    gradeState === 'confirmed' ? 'bg-green-50 border-green-300 text-green-800' :
     gradeState === 'final'     ? 'bg-white border-gray-300 text-gray-900 font-semibold' :
-    gradeHasValue              ? 'bg-amber-50 border-amber-200 text-amber-700' :
+    gradeHasValue              ? 'bg-amber-50 border-amber-200 text-amber-800' :
     'bg-white border-gray-300 text-gray-900'
   const gradeLabel =
     gradeState === 'auto'      ? 'Auto-suggested — confirm' :
@@ -1026,7 +1026,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
         {/* Left: back + title */}
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/homework" className="flex items-center gap-0.5 text-gray-400 hover:text-gray-600 transition-colors shrink-0 text-[12px] font-medium">
+          <Link href="/homework" className="flex items-center gap-0.5 text-gray-500 hover:text-gray-600 transition-colors shrink-0 text-[12px] font-medium">
             <Icon name="chevron_left" size="sm" />
             Back
           </Link>
@@ -1037,15 +1037,15 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 <span className="text-xs text-blue-700 font-medium">{hw.class.name}</span>
               )}
               <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
-                hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-500'   :
-                'bg-amber-100 text-amber-700'
+                hw.status === 'PUBLISHED' ? 'bg-green-100 text-green-800' :
+                hw.status === 'CLOSED'    ? 'bg-gray-200 text-gray-600'   :
+                'bg-amber-100 text-amber-800'
               }`}>{hw.status}</span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-500">
                 Due {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
               {hw.lesson && (
-                <span className="text-xs text-gray-400">↳ {hw.lesson.title}</span>
+                <span className="text-xs text-gray-500">↳ {hw.lesson.title}</span>
               )}
             </div>
           </div>
@@ -1079,7 +1079,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               onClick={() => handleFilterClick('ungraded')}
               title="Ungraded — submitted but not yet marked"
               className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-amber-200 ${
-                pupilFilter === 'ungraded' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700'
+                pupilFilter === 'ungraded' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-800'
               }`}
             >
               <span className="text-2xl font-bold leading-none">{ungradedCount}</span>
@@ -1091,7 +1091,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             onClick={() => handleFilterClick('returned')}
             title="Returned — homework marked and sent back to students"
             className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-green-200 ${
-              pupilFilter === 'returned' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700'
+              pupilFilter === 'returned' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-800'
             }`}
           >
             <span className="text-2xl font-bold leading-none">{returnedCount}</span>
@@ -1102,7 +1102,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             onClick={() => handleFilterClick('missing')}
             title="Missing — students who have not submitted yet"
             className={`flex flex-col items-center justify-center w-[4.5rem] h-[60px] rounded-xl border border-red-200 ${
-              pupilFilter === 'missing' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'
+              pupilFilter === 'missing' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'
             }`}
           >
             <span className="text-2xl font-bold leading-none">{missingCount}</span>
@@ -1152,7 +1152,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             onClick={() => handleFilterClick('review')}
             className={`w-full px-3 py-2 border-b border-amber-100 text-left transition-colors ${pupilFilter === 'review' ? 'bg-amber-100' : 'bg-amber-50 hover:bg-amber-100'}`}
           >
-            <p className="text-[10px] text-amber-600 font-medium">⚡ {needsReviewCount} awaiting AI review {pupilFilter === 'review' ? '· showing only these' : '· click to filter'}</p>
+            <p className="text-[10px] text-amber-700 font-medium">⚡ {needsReviewCount} awaiting AI review {pupilFilter === 'review' ? '· showing only these' : '· click to filter'}</p>
           </button>
         )}
 
@@ -1258,7 +1258,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             <>
               {pupilFilter !== 'missing' && (
                 <div className="px-2 pt-3 pb-1">
-                  <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Not submitted</span>
+                  <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Not submitted</span>
                 </div>
               )}
               {listMissing.map(p => (
@@ -1304,7 +1304,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   Homework Questions Preview
                 </p>
                 {qCount > 0 && (
-                  <span className="text-[10px] text-gray-400">{qCount} question{qCount !== 1 ? 's' : ''}</span>
+                  <span className="text-[10px] text-gray-500">{qCount} question{qCount !== 1 ? 's' : ''}</span>
                 )}
               </div>
               {hasStructuredQuestions ? (
@@ -1351,7 +1351,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   }
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-16 text-gray-500">
                   <Icon name="quiz" size="lg" className="mb-3 text-gray-300" />
                   <p className="text-[13px]">
                     {pupils.some(p => p.submission) ? 'Select a student on the left to view their submission.' : 'No questions available for this homework.'}
@@ -1382,11 +1382,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     )}
                     <StatusBadge status={selectedSub.status} />
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                  <p className="text-[11px] text-gray-500 mt-0.5">
                     Submitted {new Date(selectedSub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     {isReturned && selectedSub.markedAt &&
                       new Date(selectedSub.markedAt) >= new Date(selectedSub.submittedAt) && (
-                        <span className="text-green-600 ml-1">
+                        <span className="text-green-700 ml-1">
                           · Returned {new Date(selectedSub.markedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )
@@ -1439,7 +1439,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   </button>
                   {kPlanOpen && (
                     <div className="px-4 py-3 space-y-2 bg-white">
-                      <p className="text-[10px] text-gray-400 italic mb-2">Tick off as reminders — not saved</p>
+                      <p className="text-[10px] text-gray-500 italic mb-2">Tick off as reminders — not saved</p>
                       {selectedKPlan.teacherActions.map((action, i) => (
                         <label key={i} className="flex items-start gap-2.5 cursor-pointer">
                           <input
@@ -1455,7 +1455,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                             className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 cursor-pointer"
                             style={{ accentColor: sendInfo?.activeStatus === 'EHCP' ? '#7c3aed' : '#2563eb' }}
                           />
-                          <span className={`text-[12px] leading-snug ${kPlanChecked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                          <span className={`text-[12px] leading-snug ${kPlanChecked[i] ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                             {action}
                           </span>
                         </label>
@@ -1464,7 +1464,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                         href={`/student/${selectedId}/send`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 mt-1 transition-colors"
+                        className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-blue-600 mt-1 transition-colors"
                       >
                         <Icon name="open_in_new" size="sm" /> Full SEND record
                       </a>
@@ -1476,7 +1476,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               {/* ── Q&A Cards (structured questions) ─── */}
               {hasStructuredQuestions ? (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                     <Icon name="description" size="sm" /> Questions &amp; Answers
                   </p>
                   <div className="space-y-3">
@@ -1527,7 +1527,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       <span className="text-[12px] text-gray-600 font-medium">
                         Running total: <span className="font-bold text-blue-700">{perQRunningTotal}/{maxScore}</span>
                         {qCount > 0 && perQFilledCount < qCount && (
-                          <span className="text-gray-400 font-normal ml-1">({perQFilledCount}/{qCount} questions marked)</span>
+                          <span className="text-gray-500 font-normal ml-1">({perQFilledCount}/{qCount} questions marked)</span>
                         )}
                       </span>
                       {perQFilledCount === qCount && (
@@ -1547,14 +1547,14 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   {/* Task context — show what the student was asked to do */}
                   {(hw.instructions || hw.title) && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Task</p>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Task</p>
                       <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-[12px] text-gray-700 leading-relaxed">
                         {hw.instructions ?? hw.title}
                       </div>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s Response</p>
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Student&apos;s Response</p>
                     {(() => {
                       // Try to parse as upload JSON {text, fileName, dataUrl}
                       try {
@@ -1590,7 +1590,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       } catch { /* not JSON — render as plain text below */ }
                       return (
                         <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[80px]">
-                          {selectedSub.content || <span className="text-gray-400 italic">No content recorded</span>}
+                          {selectedSub.content || <span className="text-gray-500 italic">No content recorded</span>}
                         </div>
                       )
                     })()}
@@ -1601,7 +1601,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               {/* If structured questions + also a free-text content block that wasn't already shown in a QuestionCard, show it */}
               {hasStructuredQuestions && selectedSub.content && !contentUsedAsAnswer && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student&apos;s written response</p>
+                  <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">Student&apos;s written response</p>
                   <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
                     {selectedSub.content}
                   </div>
@@ -1616,7 +1616,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
                   >
                     <span className="text-[12px] font-semibold text-gray-700">Overall Model Answer</span>
-                    {showModelAnswer ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
+                    {showModelAnswer ? <Icon name="expand_less" size="sm" className="text-gray-600" /> : <Icon name="expand_more" size="sm" className="text-gray-600" />}
                   </button>
                   {showModelAnswer && (
                     <div className="px-4 py-4 text-[12px] text-gray-700 leading-relaxed bg-white whitespace-pre-wrap">
@@ -1634,7 +1634,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
                   >
                     <span className="text-[12px] font-semibold text-gray-700">Mark Scheme</span>
-                    {showBands ? <Icon name="expand_less" size="sm" className="text-gray-400" /> : <Icon name="expand_more" size="sm" className="text-gray-400" />}
+                    {showBands ? <Icon name="expand_less" size="sm" className="text-gray-600" /> : <Icon name="expand_more" size="sm" className="text-gray-600" />}
                   </button>
                   {showBands && (
                     <div className="divide-y divide-gray-100">
@@ -1656,7 +1656,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   <div className="px-4 py-2.5 bg-amber-400 flex items-center gap-2">
                     <Icon name="smart_toy" size="sm" className="text-white shrink-0" />
                     <span className="text-[12px] font-bold text-white uppercase tracking-wide">AI Suggested Grade</span>
-                    <span className="ml-auto text-[10px] font-bold bg-white text-amber-700 px-2 py-0.5 rounded-full">
+                    <span className="ml-auto text-[10px] font-bold bg-white text-amber-800 px-2 py-0.5 rounded-full">
                       NOT YET SENT
                     </span>
                   </div>
@@ -1693,11 +1693,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                             {grade}
                           </div>
                           <div>
-                            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Suggested Grade</p>
+                            <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wide">Suggested Grade</p>
                             <p className="text-sm font-bold text-gray-900">Grade {grade}</p>
                           </div>
                           <div className="ml-auto text-right">
-                            <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">AI Confidence</p>
+                            <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-wide mb-0.5">AI Confidence</p>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${confColor}`}>
                               {confidence}
                             </span>
@@ -1708,7 +1708,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
                     {selectedAutoFeedback && (
                       <div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Suggested Feedback</p>
+                        <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Suggested Feedback</p>
                         <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-line bg-white border border-amber-200 rounded-lg px-3 py-2.5">
                           {selectedAutoFeedback}
                         </p>
@@ -1728,7 +1728,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                         }
                         Approve &amp; Return to Student
                       </button>
-                      <span className="text-[11px] text-amber-700 font-medium flex items-center gap-1">
+                      <span className="text-[11px] text-amber-800 font-medium flex items-center gap-1">
                         <Icon name="edit" size="sm" />
                         or edit the form below first
                       </span>
@@ -1740,9 +1740,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               {/* ── Teacher Notes ─── */}
               <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <Icon name="sticky_note_2" size="sm" className="text-gray-400" />
+                  <Icon name="sticky_note_2" size="sm" className="text-gray-600" />
                   <p className="text-[12px] font-semibold text-gray-700">Teacher Notes</p>
-                  <span className="text-[10px] text-gray-400 ml-auto">Internal only — students never see these</span>
+                  <span className="text-[10px] text-gray-600 ml-auto">Internal only — students never see these</span>
                 </div>
                 <div className="px-4 py-4 space-y-3">
                   {/* Existing notes */}
@@ -1751,7 +1751,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       {selectedNotes.map(n => (
                         <div key={n.id} className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2.5">
                           <p className="text-[12px] text-gray-800 leading-relaxed whitespace-pre-wrap">{n.note}</p>
-                          <p className="text-[10px] text-gray-400 mt-1.5">
+                          <p className="text-[10px] text-gray-600 mt-1.5">
                             {n.teacherName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
@@ -1776,7 +1776,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       Add
                     </button>
                   </div>
-                  {noteError && <p className="text-[11px] text-rose-600">{noteError}</p>}
+                  {noteError && <p className="text-[11px] text-rose-700">{noteError}</p>}
                 </div>
               </div>
 
@@ -1785,7 +1785,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 <div className="border border-blue-200 bg-blue-50 rounded-xl px-4 py-3 flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-semibold text-blue-800">This student has an active ILP</p>
-                    <p className="text-[11px] text-blue-600 mt-0.5">Record this homework as ILP evidence?</p>
+                    <p className="text-[11px] text-blue-700 mt-0.5">Record this homework as ILP evidence?</p>
                   </div>
                   <button
                     onClick={handleOpenIlpModal}
@@ -1795,7 +1795,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   </button>
                   <button
                     onClick={() => { setIlpPromptData(null); setIlpCountdown(null) }}
-                    className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
+                    className="shrink-0 text-blue-700 hover:text-blue-700 transition-colors"
                   >
                     <Icon name="close" size="sm" />
                   </button>
@@ -1803,7 +1803,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               )}
               {ilpSaved && (
                 <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
-                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
+                  <p className="text-[12px] text-green-800 font-medium flex items-center gap-1.5">
                     <Icon name="check_circle" size="sm" /> ILP evidence recorded
                   </p>
                 </div>
@@ -1813,12 +1813,12 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               {gradeDrop && !passportAdded && (
                 <div className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
                   <div className="flex items-start gap-3">
-                    <Icon name="trending_down" size="sm" className="text-amber-600 mt-0.5 shrink-0" />
+                    <Icon name="trending_down" size="sm" className="text-amber-800 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-semibold text-amber-900">
                         Grade drop detected — {gradeDrop.studentName}
                       </p>
-                      <p className="text-[11px] text-amber-700 mt-0.5">
+                      <p className="text-[11px] text-amber-800 mt-0.5">
                         Grade {gradeDrop.previousGrade} → Grade {gradeDrop.newGrade} (↓{gradeDrop.drop}). Add a strategy to their Learning Passport?
                       </p>
                     </div>
@@ -1835,7 +1835,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       </button>
                       <button
                         onClick={() => setGradeDrop(null)}
-                        className="text-amber-400 hover:text-amber-600 transition-colors"
+                        className="text-amber-400 hover:text-amber-800 transition-colors"
                       >
                         <Icon name="close" size="sm" />
                       </button>
@@ -1845,7 +1845,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               )}
               {passportAdded && gradeDrop && (
                 <div className="border border-green-200 bg-green-50 rounded-xl px-4 py-3">
-                  <p className="text-[12px] text-green-700 font-medium flex items-center gap-1.5">
+                  <p className="text-[12px] text-green-800 font-medium flex items-center gap-1.5">
                     <Icon name="check_circle" size="sm" />
                     Strategy added to {gradeDrop.studentName}&apos;s Learning Passport
                   </p>
@@ -1868,8 +1868,8 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 onMouseDown={startPanelDrag}
                 title="Drag to resize marking panel"
               >
-                <Icon name="drag_handle" size="sm" className="text-gray-400 group-hover:text-blue-500 transition-colors" />
-                <span className="text-[10px] text-gray-400 group-hover:text-blue-500 transition-colors font-medium">drag to resize</span>
+                <Icon name="drag_handle" size="sm" className="text-gray-600 group-hover:text-blue-700 transition-colors" />
+                <span className="text-[10px] text-gray-600 group-hover:text-blue-700 transition-colors font-medium">drag to resize</span>
               </div>
               <div className="overflow-y-auto" style={{ height: 'calc(100% - 20px)' }}>
               {/* marking form — teacher only */}
@@ -1880,7 +1880,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     {isAlreadyMarked ? 'Update Mark' : isAutoMarkedPending ? 'Edit AI Suggestion (Optional)' : 'Mark Submission'}
                   </p>
                   {isAutoMarkedPending && (
-                    <span className="ml-auto text-[10px] text-amber-600 font-medium flex items-center gap-1">
+                    <span className="ml-auto text-[10px] text-amber-700 font-medium flex items-center gap-1">
                       <Icon name="info" size="sm" />
                       Pre-filled from AI — adjust if needed
                     </span>
@@ -1891,7 +1891,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   {/* score + grade row */}
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                      <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
                         Score (out of {maxScore})
                       </label>
                       <input
@@ -1917,11 +1917,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
-                        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                        <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
                           GCSE Grade
                         </label>
                         {gradeState === 'auto' && (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 uppercase tracking-wide">
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase tracking-wide">
                             AI suggested — click to confirm
                           </span>
                         )}
@@ -1933,7 +1933,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           const isAiSuggested = isSelected && gradeState === 'auto'
                           const colorCls = isSelected
                             ? (isAiSuggested
-                                ? 'bg-gray-200 text-gray-400 border-gray-300'
+                                ? 'bg-gray-200 text-gray-500 border-gray-300'
                                 : gNum >= 8 ? 'bg-green-700 text-white border-green-700' :
                                   gNum >= 6 ? 'bg-green-500 text-white border-green-500' :
                                   gNum >= 4 ? 'bg-amber-400 text-white border-amber-400' :
@@ -1953,10 +1953,10 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                         })}
                       </div>
                       <p className={`text-[10px] mt-1 ${
-                        gradeState === 'auto'      ? 'text-amber-600' :
-                        gradeState === 'confirmed' ? 'text-green-600' :
-                        gradeHasValue              ? 'text-amber-500' :
-                        'text-gray-400'
+                        gradeState === 'auto'      ? 'text-amber-700' :
+                        gradeState === 'confirmed' ? 'text-green-700' :
+                        gradeHasValue              ? 'text-amber-700' :
+                        'text-gray-500'
                       }`}>
                         {form.grade
                           ? `Grade ${form.grade} — ${gradeLabel}`
@@ -1967,7 +1967,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
 
                   {/* feedback */}
                   <div>
-                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
                       Feedback to Student
                     </label>
                     <textarea
@@ -1993,7 +1993,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                         }
                         {generatingAi ? 'Generating…' : 'Generate AI Feedback'}
                       </button>
-                      <span className="text-[11px] text-gray-400">AI will suggest a grade and feedback for this submission</span>
+                      <span className="text-[11px] text-gray-500">AI will suggest a grade and feedback for this submission</span>
                       {aiGenError && <span className="text-[11px] text-rose-600">{aiGenError}</span>}
                     </div>
                   )}
@@ -2006,7 +2006,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   {/* submit */}
                   <div className="flex items-center justify-between pt-1">
                     {savedId === selectedId ? (
-                      <span className="flex items-center gap-1.5 text-[12px] text-green-600 font-medium">
+                      <span className="flex items-center gap-1.5 text-[12px] text-green-700 font-medium">
                         <Icon name="check_circle" size="sm" /> Returned to student
                       </span>
                     ) : <span />}
@@ -2035,21 +2035,21 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 <div className="px-4 py-4 space-y-3">
                   {form.grade ? (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Grade</p>
+                      <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Grade</p>
                       <span className="text-2xl font-bold text-gray-900">{form.grade}</span>
                     </div>
                   ) : (
-                    <p className="text-[12px] text-gray-400 italic">Not yet graded.</p>
+                    <p className="text-[12px] text-gray-600 italic">Not yet graded.</p>
                   )}
                   {form.feedback && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Teacher Feedback</p>
+                      <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-1">Teacher Feedback</p>
                       <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">{form.feedback}</p>
                     </div>
                   )}
                   <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    <Icon name="info" size="sm" className="text-amber-600 shrink-0" />
-                    <p className="text-[11px] text-amber-700">Grades can only be set by the class teacher.</p>
+                    <Icon name="info" size="sm" className="text-amber-800 shrink-0" />
+                    <p className="text-[11px] text-amber-800">Grades can only be set by the class teacher.</p>
                   </div>
                 </div>
               </div>
@@ -2089,7 +2089,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               {/* ILP needs summary */}
               {selectedIlp.needsSummary && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Area of Need</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Area of Need</p>
                   <p className="text-[12px] text-gray-700 leading-snug">{selectedIlp.needsSummary}</p>
                 </div>
               )}
@@ -2098,9 +2098,9 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               {ilpTargets.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">ILP Goals</p>
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">ILP Goals</p>
                     {yearPlan && (
-                      <span className="text-[9px] font-semibold text-blue-500 flex items-center gap-0.5">
+                      <span className="text-[9px] font-semibold text-blue-600 flex items-center gap-0.5">
                         <Icon name="menu_book" size="sm" />
                         Year Plan aligned
                       </span>
@@ -2113,19 +2113,19 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       }`}>
                         <p className="text-[12px] text-gray-800 font-medium leading-snug">{target.description}</p>
                         {target.successCriteria && (
-                          <p className="text-[11px] text-gray-500 mt-1 leading-snug">
+                          <p className="text-[11px] text-gray-600 mt-1 leading-snug">
                             <span className="font-medium">Success:</span> {target.successCriteria}
                           </p>
                         )}
                         {target.subject && (
-                          <span className="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                          <span className="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
                             {target.subject}
                           </span>
                         )}
                         {/* Record as ILP evidence button */}
                         <div className="mt-2">
                           {evidenceSaved[target.id] ? (
-                            <span className="flex items-center gap-1 text-[11px] text-green-600 font-medium">
+                            <span className="flex items-center gap-1 text-[11px] text-green-800 font-medium">
                               <Icon name="check_circle" size="sm" /> Linked as evidence
                             </span>
                           ) : (
@@ -2153,7 +2153,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   {ilpTargets.length > 3 && (
                     <button
                       onClick={() => setShowAllTargets(v => !v)}
-                      className="mt-2 text-[11px] text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+                      className="mt-2 text-[11px] text-gray-600 hover:text-gray-700 flex items-center gap-1 transition-colors"
                     >
                       {showAllTargets
                         ? <><Icon name="expand_less" size="sm" /> Show fewer</>
@@ -2165,22 +2165,22 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               )}
 
               {ilpTargets.length === 0 && (
-                <p className="text-[12px] text-gray-400 italic">No active ILP goals recorded.</p>
+                <p className="text-[12px] text-gray-600 italic">No active ILP goals recorded.</p>
               )}
 
               {/* Adaptive learning suggestions */}
               {adaptiveSuggLoading && (
-                <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+                <div className="flex items-center gap-1.5 text-[11px] text-gray-600">
                   <Icon name="refresh" size="sm" className="animate-spin" /> Loading learning profile…
                 </div>
               )}
               {currentAdaptiveSugg && (currentAdaptiveSugg.alternativeType || currentAdaptiveSugg.scaffolding.length > 0 || currentAdaptiveSugg.adaptations.length > 0) && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Adaptive Insights</p>
+                  <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">Adaptive Insights</p>
                   <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 px-3 py-2.5 space-y-1.5">
                     {currentAdaptiveSugg.alternativeType && (
                       <div className="flex items-start gap-1.5">
-                        <Icon name="auto_fix_high" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+                        <Icon name="auto_fix_high" size="sm" className="text-emerald-700 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-emerald-800 leading-snug">
                           Best format for next homework: <span className="font-semibold">{currentAdaptiveSugg.alternativeType.replace(/_/g, ' ')}</span>
                         </p>
@@ -2188,13 +2188,13 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                     )}
                     {currentAdaptiveSugg.scaffolding.slice(0, 2).map((note, i) => (
                       <div key={i} className="flex items-start gap-1.5">
-                        <Icon name="tips_and_updates" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+                        <Icon name="tips_and_updates" size="sm" className="text-emerald-700 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-emerald-800 leading-snug">{note}</p>
                       </div>
                     ))}
                     {currentAdaptiveSugg.adaptations.slice(0, 2).map((note, i) => (
                       <div key={i} className="flex items-start gap-1.5">
-                        <Icon name="accessibility" size="sm" className="text-emerald-600 shrink-0 mt-0.5" />
+                        <Icon name="accessibility" size="sm" className="text-emerald-700 shrink-0 mt-0.5" />
                         <p className="text-[11px] text-emerald-800 leading-snug">{note}</p>
                       </div>
                     ))}
@@ -2207,7 +2207,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                 href={`/student/${selectedId}/send`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-blue-600 transition-colors"
               >
                 <Icon name="open_in_new" size="sm" /> Full SEND record
               </a>
@@ -2232,16 +2232,16 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                   <span className="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">{diffResults.length} student{diffResults.length !== 1 ? 's' : ''}</span>
                 )}
               </div>
-              <button onClick={() => setDiffOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setDiffOpen(false)} className="text-gray-600 hover:text-gray-600">
                 <Icon name="close" size="md" />
               </button>
             </div>
             <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
               {diffLoading && (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Icon name="refresh" size="lg" className="animate-spin text-indigo-500" />
-                  <p className="text-[13px] text-gray-500">Generating adaptations for SEND students…</p>
-                  <p className="text-[11px] text-gray-400">This may take up to 30 seconds</p>
+                  <Icon name="refresh" size="lg" className="animate-spin text-indigo-600" />
+                  <p className="text-[13px] text-gray-600">Generating adaptations for SEND students…</p>
+                  <p className="text-[11px] text-gray-600">This may take up to 30 seconds</p>
                 </div>
               )}
               {diffError && (
@@ -2271,7 +2271,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       {r.failedAi ? (
                         <>
                           <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5">
-                            <Icon name="warning" size="sm" className="text-amber-500 mt-0.5 shrink-0" />
+                            <Icon name="warning" size="sm" className="text-amber-800 mt-0.5 shrink-0" />
                             <p className="text-[12px] text-amber-800 flex-1">{r.adaptationNotes}</p>
                             <button
                               onClick={() => handleRetryDifferentiation(r.studentId)}
@@ -2284,12 +2284,12 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                           </div>
                           {r.ilpFallbackTargets && r.ilpFallbackTargets.length > 0 && (
                             <div className="mt-2">
-                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Active ILP targets (use as manual fallback)</p>
+                              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Active ILP targets (use as manual fallback)</p>
                               <ul className="space-y-1.5">
                                 {r.ilpFallbackTargets.map((t, i) => (
                                   <li key={i} className="text-[11px] text-gray-700 bg-gray-50 rounded-lg px-3 py-1.5">
                                     <span className="font-medium">{t.target}</span>
-                                    {t.strategy && <span className="text-gray-400"> — {t.strategy}</span>}
+                                    {t.strategy && <span className="text-gray-500"> — {t.strategy}</span>}
                                   </li>
                                 ))}
                               </ul>
@@ -2298,7 +2298,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                         </>
                       ) : (
                         <>
-                          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Teacher notes</p>
+                          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Teacher notes</p>
                           <p className="text-[12px] text-gray-700 leading-relaxed">{r.adaptationNotes}</p>
                           {r.adaptationType !== 'standard' && (
                             <details className="mt-2">
@@ -2316,7 +2316,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
               })}
             </div>
             <div className="border-t border-gray-200 px-5 py-3 bg-gray-50 shrink-0">
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-600">
                 Adaptations are generated per-student based on their SEND status, learning profile, and active ILP targets. Use these teacher notes to inform your manual adaptations.
               </p>
             </div>
@@ -2329,11 +2329,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div role="dialog" aria-modal="true" aria-label="Record ILP Evidence" className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 flex items-center gap-2 shrink-0">
-              <Icon name="track_changes" size="sm" className="text-blue-600" />
+              <Icon name="track_changes" size="sm" className="text-blue-700" />
               <h2 className="text-[15px] font-bold text-gray-900 flex-1">Record ILP Evidence</h2>
               <button
                 onClick={() => { setIlpModalOpen(false); setIlpPromptData(null) }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-600 hover:text-gray-600 transition-colors"
               >
                 <Icon name="close" size="md" />
               </button>
@@ -2343,17 +2343,17 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             {yearPlan && (
               <details className="border-b border-blue-100 bg-blue-50 group shrink-0">
                 <summary className="px-4 py-2.5 flex items-center gap-2 cursor-pointer list-none">
-                  <Icon name="menu_book" size="sm" className="text-blue-500 shrink-0" />
+                  <Icon name="menu_book" size="sm" className="text-blue-700 shrink-0" />
                   <span className="text-[11px] font-semibold text-blue-700 flex-1">
                     ILP targets are aligned to the Year Group Scheme of Work
                   </span>
-                  <Icon name="expand_more" size="sm" className="text-blue-400 group-open:rotate-180 transition-transform" />
+                  <Icon name="expand_more" size="sm" className="text-blue-700 group-open:rotate-180 transition-transform" />
                 </summary>
                 <div className="px-4 pb-3 pt-1">
-                  <p className="text-[11px] text-blue-600 leading-relaxed line-clamp-4 whitespace-pre-line">
+                  <p className="text-[11px] text-blue-700 leading-relaxed line-clamp-4 whitespace-pre-line">
                     {yearPlan}
                   </p>
-                  <p className="text-[10px] text-blue-400 mt-1 italic">
+                  <p className="text-[10px] text-blue-700 mt-1 italic">
                     Evidence recorded here links to both the student&apos;s ILP targets and the shared curriculum objectives above.
                   </p>
                 </div>
@@ -2361,18 +2361,18 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
             )}
 
             {ilpClassifying ? (
-              <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+              <div className="flex items-center justify-center py-12 gap-2 text-gray-600">
                 <Icon name="refresh" size="md" className="animate-spin" />
                 <span className="text-[13px]">Classifying against ILP goals…</span>
               </div>
             ) : (
               <div className="overflow-auto flex-1 px-5 py-4 space-y-4">
-                <p className="text-[12px] text-gray-500">AI has classified each ILP goal based on the homework score. Adjust if needed, then confirm.</p>
+                <p className="text-[12px] text-gray-600">AI has classified each ILP goal based on the homework score. Adjust if needed, then confirm.</p>
                 {(ilpClassifications ?? []).map(c => (
                   <div key={c.targetId} className="border border-gray-200 rounded-xl p-4 space-y-2.5">
                     <p className="text-[13px] font-medium text-gray-800 leading-snug">{c.description}</p>
                     <div className="flex items-center gap-3">
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-20 shrink-0">Classification</label>
+                      <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide w-20 shrink-0">Classification</label>
                       <select
                         value={c.evidenceType}
                         onChange={e => updateClassification(c.targetId, 'evidenceType', e.target.value)}
@@ -2388,7 +2388,7 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
                       </select>
                     </div>
                     <div className="flex items-start gap-3">
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-20 shrink-0 mt-1.5">AI note</label>
+                      <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide w-20 shrink-0 mt-1.5">AI note</label>
                       <input
                         type="text"
                         value={c.aiSummary}

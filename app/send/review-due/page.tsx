@@ -28,21 +28,21 @@ function PlanRow({ plan, ssById, now, in7 }: {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-gray-900">{ss?.student.firstName} {ss?.student.lastName}</p>
-        <p className="text-[11px] text-gray-400">
+        <p className="text-[11px] text-gray-500">
           Year {ss?.student.yearGroup ?? '—'}
           {ss?.needArea && <span className="ml-2 text-blue-600">{ss.needArea}</span>}
         </p>
       </div>
       <span className={`shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full ${
-        plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'bg-green-100 text-green-700' : 'bg-teal-50 text-teal-700'
+        plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'bg-green-100 text-green-800' : 'bg-teal-50 text-teal-700'
       }`}>
         {plan.status === PlanStatus.ACTIVE_PARENT_SHARED ? 'Shared w/ Parent' : 'Active (Internal)'}
       </span>
       <div className="shrink-0 text-right w-36">
-        <p className={`text-[13px] font-bold ${rd < now ? 'text-red-600' : rd <= in7 ? 'text-amber-600' : 'text-gray-600'}`}>
+        <p className={`text-[13px] font-bold ${rd < now ? 'text-red-600' : rd <= in7 ? 'text-amber-700' : 'text-gray-600'}`}>
           {rd.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
-        <p className="text-[10px] text-gray-400">
+        <p className="text-[10px] text-gray-500">
           {rd < now ? `${ago} day${ago !== 1 ? 's' : ''} overdue` : `${left} day${left !== 1 ? 's' : ''} left`}
         </p>
       </div>
@@ -113,19 +113,19 @@ export default async function ReviewDuePage() {
         <div className="max-w-4xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
           <div className="flex items-center gap-3 mb-8">
-            <Link href="/send/dashboard" className="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-400 hover:text-gray-700">
+            <Link href="/send/dashboard" className="p-1.5 rounded-lg hover:bg-gray-100 transition text-gray-600 hover:text-gray-700">
               <Icon name="chevron_left" size="sm" />
             </Link>
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Reviews Due</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {plans.length} plan{plans.length !== 1 ? 's' : ''} requiring review within 30 days
               </p>
             </div>
           </div>
 
           {plans.length === 0 ? (
-            <div className="bg-white border border-gray-200 rounded-xl py-16 text-center text-gray-400">
+            <div className="bg-white border border-gray-200 rounded-xl py-16 text-center text-gray-500">
               <Icon name="check_circle" size="lg" className="mx-auto mb-3 text-green-400 opacity-60" />
               <p className="text-[14px] font-medium text-green-700">All plans are up to date</p>
               <p className="text-[12px] mt-1">No reviews due in the next 30 days</p>

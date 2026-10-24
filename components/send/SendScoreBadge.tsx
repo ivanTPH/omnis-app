@@ -5,8 +5,8 @@ type Props = {
 }
 
 function colour(score: number) {
-  if (score >= 70) return 'bg-green-100 text-green-700'
-  if (score >= 40) return 'bg-amber-100 text-amber-700'
+  if (score >= 70) return 'bg-green-100 text-green-800'
+  if (score >= 40) return 'bg-amber-100 text-amber-800'
   return 'bg-red-100 text-red-700'
 }
 

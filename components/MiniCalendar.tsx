@@ -47,7 +47,7 @@ export default function MiniCalendar() {
           <span className="text-sm font-semibold text-gray-900 tracking-tight">
             {MONTHS[month]}
           </span>
-          <span className="text-sm text-gray-400 ml-1.5">{year}</span>
+          <span className="text-sm text-gray-500 ml-1.5">{year}</span>
         </div>
 
         <button
@@ -65,7 +65,7 @@ export default function MiniCalendar() {
           <div
             key={i}
             className={`text-center text-[11px] font-medium py-1 ${
-              i >= 5 ? 'text-gray-300' : 'text-gray-400'
+              i >= 5 ? 'text-gray-500' : 'text-gray-500'
             }`}
           >
             {d}
@@ -87,7 +87,7 @@ export default function MiniCalendar() {
                     ? 'bg-red-500 text-white font-semibold'
                     : day
                     ? weekend
-                      ? 'text-gray-400 hover:bg-gray-50 cursor-default'
+                      ? 'text-gray-600 hover:bg-gray-50 cursor-default'
                       : 'text-gray-800 hover:bg-gray-100 cursor-default'
                     : ''
                   }

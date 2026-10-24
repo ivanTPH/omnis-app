@@ -10,9 +10,9 @@ import NewDsrModal from './NewDsrModal'
 import ErasureConfirmModal from './ErasureConfirmModal'
 
 const STATUS_COLOURS: Record<string, string> = {
-  pending:     'bg-amber-100 text-amber-700',
+  pending:     'bg-amber-100 text-amber-800',
   in_progress: 'bg-blue-100 text-blue-700',
-  completed:   'bg-green-100 text-green-700',
+  completed:   'bg-green-100 text-green-800',
   rejected:    'bg-red-100 text-red-700',
 }
 
@@ -61,7 +61,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
     <>
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-[12px] text-gray-400">{dsrs.length} request{dsrs.length !== 1 ? 's' : ''}</p>
+          <p className="text-[12px] text-gray-500">{dsrs.length} request{dsrs.length !== 1 ? 's' : ''}</p>
           <button
             onClick={() => { setDone(null); setShowNew(true) }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
@@ -95,7 +95,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
                   <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                     {TYPE_LABELS[d.requestType] ?? d.requestType}
                   </td>
-                  <td className="px-3 py-3 text-gray-400 whitespace-nowrap">
+                  <td className="px-3 py-3 text-gray-500 whitespace-nowrap">
                     {new Date(d.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>
                   <td className="px-3 py-3 text-gray-500 max-w-[200px] truncate">
@@ -103,7 +103,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOURS[d.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLOURS[d.status] ?? 'bg-gray-100 text-gray-600'}`}>
                         {STATUS_LABELS[d.status] ?? d.status}
                       </span>
                       <select
@@ -119,7 +119,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
                       </select>
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-gray-400 whitespace-nowrap">
+                  <td className="px-3 py-3 text-gray-500 whitespace-nowrap">
                     {d.resolvedAt ? new Date(d.resolvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                   </td>
                   <td className="px-3 py-3">
@@ -162,7 +162,7 @@ export default function DataSubjectRequestList({ dsrs, students }: Props) {
             </tbody>
           </table>
           {dsrs.length === 0 && (
-            <p className="text-center py-8 text-[13px] text-gray-400">No data subject requests recorded.</p>
+            <p className="text-center py-8 text-[13px] text-gray-500">No data subject requests recorded.</p>
           )}
         </div>
       </div>

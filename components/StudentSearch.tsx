@@ -92,7 +92,7 @@ export default function StudentSearch({ role }: { role: string }) {
             <button
               type="button"
               onClick={() => { setQuery(''); setResults([]); setOpen(false) }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
             >
               <Icon name="close" size="sm" />
             </button>
@@ -117,7 +117,7 @@ export default function StudentSearch({ role }: { role: string }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-medium text-gray-900">{s.firstName} {s.lastName}</p>
                   {s.yearGroup != null && (
-                    <p className="text-[11px] text-gray-400">Year {s.yearGroup}</p>
+                    <p className="text-[11px] text-gray-500">Year {s.yearGroup}</p>
                   )}
                 </div>
                 <Icon name="chevron_right" size="sm" className="text-gray-300 shrink-0" />

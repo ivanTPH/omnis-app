@@ -49,15 +49,15 @@ export type PatternCaseRow = {
 const RISK_CHIP: Record<string, string> = {
   HIGH:   'bg-rose-100 text-rose-700 border-rose-200',
   MEDIUM: 'bg-orange-100 text-orange-700 border-orange-200',
-  LOW:    'bg-amber-100 text-amber-700 border-amber-200',
+  LOW:    'bg-amber-100 text-amber-800 border-amber-200',
 }
 
 const CASE_STATUS_STYLE: Record<string, string> = {
   OPEN:              'bg-rose-100 text-rose-700',
-  UNDER_REVIEW:      'bg-amber-100 text-amber-700',
+  UNDER_REVIEW:      'bg-amber-100 text-amber-800',
   ESCALATED:         'bg-purple-100 text-purple-700',
-  CLOSED_NO_ACTION:  'bg-gray-100 text-gray-500',
-  CLOSED_ACTIONED:   'bg-green-100 text-green-700',
+  CLOSED_NO_ACTION:  'bg-gray-100 text-gray-600',
+  CLOSED_ACTIONED:   'bg-green-100 text-green-800',
 }
 
 const CASE_STATUS_LABEL: Record<string, string> = {
@@ -117,10 +117,10 @@ function SignalTableRow({ signal, onDone }: { signal: SignalRow; onDone: () => v
         </td>
         <td className="px-4 py-2.5 text-gray-600 max-w-[200px]">
           <span className="truncate block">{signal.homeworkTitle}</span>
-          <span className="text-gray-400 text-[10px]">{signal.className}</span>
+          <span className="text-gray-500 text-[10px]">{signal.className}</span>
         </td>
         <td className="px-4 py-2.5">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${RISK_CHIP[signal.riskLevel] ?? 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${RISK_CHIP[signal.riskLevel] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
             {signal.riskLevel}
           </span>
         </td>
@@ -130,17 +130,17 @@ function SignalTableRow({ signal, onDone }: { signal: SignalRow; onDone: () => v
         <td className="px-4 py-2.5 text-gray-600 hidden lg:table-cell text-[12px]">
           {signal.focusLostCount}×
         </td>
-        <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-[12px]">
+        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-[12px]">
           {relativeTime(signal.createdAt)}
         </td>
         <td className="px-4 py-2.5 text-[11px]">
           {lastReview ? (
-            <span className="text-green-600 flex items-center gap-1">
+            <span className="text-green-700 flex items-center gap-1">
               <Icon name="check_circle" size="sm" />
               {lastReview.action.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())}
             </span>
           ) : (
-            <span className="text-gray-400 flex items-center gap-1">
+            <span className="text-gray-500 flex items-center gap-1">
               <Icon name="pending" size="sm" />
               Pending
             </span>
@@ -260,13 +260,13 @@ function PatternCaseTableRow({ c, role, onDone }: { c: PatternCaseRow; role: str
           {c.studentName}
         </td>
         <td className="px-4 py-2.5">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${CASE_STATUS_STYLE[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${CASE_STATUS_STYLE[c.status] ?? 'bg-gray-100 text-gray-600'}`}>
             {CASE_STATUS_LABEL[c.status] ?? c.status}
           </span>
         </td>
         <td className="px-4 py-2.5 text-gray-700 font-semibold text-[12px]">{c.triggerCount}</td>
         <td className="px-4 py-2.5 text-gray-600 text-[12px]">{c.subjectCount}</td>
-        <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-[12px]">{relativeTime(c.openedAt)}</td>
+        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-[12px]">{relativeTime(c.openedAt)}</td>
       </tr>
       {open && (
         <tr className="bg-amber-50">
@@ -451,7 +451,7 @@ export default function IntegrityView({
     { key: 'ALL',    label: 'All',    count: signals.length, style: 'bg-gray-100 text-gray-700' },
     { key: 'HIGH',   label: 'High',   count: highCount,      style: 'bg-rose-100 text-rose-700' },
     { key: 'MEDIUM', label: 'Medium', count: medCount,       style: 'bg-orange-100 text-orange-700' },
-    { key: 'LOW',    label: 'Low',    count: lowCount,       style: 'bg-amber-100 text-amber-700' },
+    { key: 'LOW',    label: 'Low',    count: lowCount,       style: 'bg-amber-100 text-amber-800' },
   ]
 
   return (
@@ -462,7 +462,7 @@ export default function IntegrityView({
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-page-title">Academic Integrity</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-0.5">
               {yearGroup ? `Year ${yearGroup} · ` : ''}Submission integrity signals collected automatically during homework
             </p>
           </div>
@@ -480,23 +480,23 @@ export default function IntegrityView({
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
         <div className="bg-white border border-gray-200 rounded-xl p-4">
           <p className="text-2xl font-bold text-gray-900">{signals.length}</p>
-          <p className="text-[11px] text-gray-400 mt-0.5">Total flagged</p>
+          <p className="text-[11px] text-gray-500 mt-0.5">Total flagged</p>
         </div>
         <div className="bg-rose-50 border border-rose-200 rounded-xl p-4">
           <p className="text-2xl font-bold text-rose-700">{highCount}</p>
-          <p className="text-[11px] text-rose-500 mt-0.5">High risk</p>
+          <p className="text-[11px] text-rose-600 mt-0.5">High risk</p>
         </div>
         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
           <p className="text-2xl font-bold text-orange-700">{medCount}</p>
-          <p className="text-[11px] text-orange-500 mt-0.5">Medium risk</p>
+          <p className="text-[11px] text-orange-700 mt-0.5">Medium risk</p>
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
           <p className="text-2xl font-bold text-amber-700">{openCases}</p>
-          <p className="text-[11px] text-amber-500 mt-0.5">Open cases</p>
+          <p className="text-[11px] text-amber-700 mt-0.5">Open cases</p>
         </div>
         <div className="bg-green-50 border border-green-200 rounded-xl p-4">
           <p className="text-2xl font-bold text-green-700">{reviewedCount}</p>
-          <p className="text-[11px] text-green-500 mt-0.5">Reviewed</p>
+          <p className="text-[11px] text-green-700 mt-0.5">Reviewed</p>
         </div>
       </div>
 
@@ -510,7 +510,7 @@ export default function IntegrityView({
                 key={chip.key}
                 onClick={() => setFilter(chip.key)}
                 className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
-                  filter === chip.key ? chip.style + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  filter === chip.key ? chip.style + ' ring-2 ring-offset-1 ring-current' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {chip.label} {chip.count > 0 && <span className="ml-0.5">({chip.count})</span>}
@@ -523,7 +523,7 @@ export default function IntegrityView({
           <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
             <Icon name="verified" size="lg" className="mx-auto mb-2 text-green-500" />
             <p className="text-[13px] text-green-700 font-medium">No flags at this risk level</p>
-            <p className="text-[11px] text-green-600 mt-1">All recent submissions appear authentic</p>
+            <p className="text-[11px] text-green-700 mt-1">All recent submissions appear authentic</p>
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -547,7 +547,7 @@ export default function IntegrityView({
               </tbody>
             </table>
             </div>
-            <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
+            <p className="px-4 py-2 text-[11px] text-gray-500 border-t border-gray-100">
               Click a row to expand review actions
             </p>
           </div>
@@ -566,7 +566,7 @@ export default function IntegrityView({
                 className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
                   caseFilter === key
                     ? 'bg-gray-800 text-white'
-                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {key === 'OPEN' ? 'Open only' : 'All cases'}
@@ -600,7 +600,7 @@ export default function IntegrityView({
               </tbody>
             </table>
             </div>
-            <p className="px-4 py-2 text-[11px] text-gray-400 border-t border-gray-100">
+            <p className="px-4 py-2 text-[11px] text-gray-500 border-t border-gray-100">
               Click a row to manage the case
             </p>
           </div>
@@ -608,7 +608,7 @@ export default function IntegrityView({
       </div>
 
       {/* Info footer */}
-      <div className="flex items-start gap-2 text-[11px] text-gray-400">
+      <div className="flex items-start gap-2 text-[11px] text-gray-500">
         <Icon name="info" size="sm" className="shrink-0 mt-0.5" />
         <p>
           Integrity signals are collected automatically when students complete homework.

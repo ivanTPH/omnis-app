@@ -64,7 +64,7 @@ export default function RevisionAnalysisPanel({
     <div className="space-y-4">
       <div className="space-y-1.5">
         {analysis.topicPerformance.length === 0 ? (
-          <p className="text-xs text-gray-400 italic">No homework data for this period.</p>
+          <p className="text-xs text-gray-500 italic">No homework data for this period.</p>
         ) : analysis.topicPerformance.map(tp => {
           const pct = Math.round((tp.classAvgScore / 9) * 100)
           const c   = scoreColour(pct)

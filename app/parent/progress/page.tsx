@@ -102,7 +102,7 @@ export default async function ParentProgressPage() {
 
           <div className="mb-8">
             <h1 className="text-[22px] font-bold text-gray-900">Progress & Grades</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">Subject-by-subject breakdown</p>
+            <p className="text-[13px] text-gray-600 mt-0.5">Subject-by-subject breakdown</p>
           </div>
 
           {childProgress.map(({ child, byClass, plans, ilp, ilpResponse }: any) => (
@@ -119,7 +119,7 @@ export default async function ParentProgressPage() {
                 <Link
                   href={`/api/export/student-progress/${child.id}`}
                   target="_blank"
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] text-[12px] font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] text-[12px] font-medium text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
                 >
                   <Icon name="picture_as_pdf" size="sm" />
                   Progress Report
@@ -132,8 +132,8 @@ export default async function ParentProgressPage() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[13px] font-semibold text-gray-800">Attendance</span>
                     <span className={`text-[14px] font-bold ${
-                      child.attendancePercentage >= 95 ? 'text-green-600' :
-                      child.attendancePercentage >= 90 ? 'text-amber-600' : 'text-rose-600'
+                      child.attendancePercentage >= 95 ? 'text-green-700' :
+                      child.attendancePercentage >= 90 ? 'text-amber-700' : 'text-rose-600'
                     }`}>{child.attendancePercentage}%</span>
                   </div>
                   <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden relative">
@@ -148,20 +148,20 @@ export default async function ParentProgressPage() {
                     <div className="absolute top-0 bottom-0 w-px bg-gray-400" style={{ left: '95%' }} />
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-gray-500">
                       {child.attendancePercentage >= 95
                         ? 'Excellent — above the 95% target'
                         : child.attendancePercentage >= 90
                         ? `${(95 - child.attendancePercentage).toFixed(0)}% below the 95% target`
                         : 'Persistent absence — please contact school'}
                     </span>
-                    <span className="text-[10px] text-gray-400">Target: 95%</span>
+                    <span className="text-[10px] text-gray-500">Target: 95%</span>
                   </div>
                 </div>
               )}
 
               {byClass.length === 0 && (
-                <div className="text-center py-10 border border-dashed border-gray-200 rounded-2xl text-gray-400">
+                <div className="text-center py-10 border border-dashed border-gray-200 rounded-2xl text-gray-500">
                   <Icon name="menu_book" size="lg" className="mx-auto mb-2 opacity-30" />
                   <p className="text-[13px]">No classes enrolled yet</p>
                 </div>
@@ -184,18 +184,18 @@ export default async function ParentProgressPage() {
                         <div>
                           <h3 className="text-[14px] font-semibold text-gray-900">{classInfo.name}</h3>
                           {teachers.length > 0 && (
-                            <p className="text-[11px] text-gray-400 mt-0.5">{teachers.join(', ')}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">{teachers.join(', ')}</p>
                           )}
                         </div>
                         <div className="flex items-center gap-5 text-right">
                           <div>
                             <p className="text-[18px] font-bold text-gray-900">{completion}%</p>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Completion</p>
+                            <p className="text-[10px] text-gray-600 uppercase tracking-wide">Completion</p>
                           </div>
                           {avgScore != null && (
                             <div>
-                              <p className="text-[18px] font-bold text-blue-600">{formatRawScore(avgScore)}</p>
-                              <p className="text-[10px] text-gray-400 uppercase tracking-wide">Avg Score</p>
+                              <p className="text-[18px] font-bold text-blue-700">{formatRawScore(avgScore)}</p>
+                              <p className="text-[10px] text-gray-600 uppercase tracking-wide">Avg Score</p>
                             </div>
                           )}
                         </div>
@@ -215,17 +215,17 @@ export default async function ParentProgressPage() {
                           <div key={h.id} className="flex items-center gap-3 px-5 py-3">
                             <div className="shrink-0">
                               {sub?.status === 'RETURNED'
-                                ? <Icon name="check_circle" size="sm" className="text-green-500" />
+                                ? <Icon name="check_circle" size="sm" className="text-green-700" />
                                 : sub
                                   ? <Icon name="schedule" size="sm" className="text-amber-400" />
-                                  : <Icon name="radio_button_unchecked" size="sm" className="text-gray-300" />
+                                  : <Icon name="radio_button_unchecked" size="sm" className="text-gray-500" />
                               }
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[13px] font-medium text-gray-900 truncate">{h.title}</p>
-                              <p className="text-[11px] text-gray-400">
+                              <p className="text-[11px] text-gray-500">
                                 Due {new Date(h.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                                {h.isAdapted && <span className="ml-1.5 text-purple-500 font-medium">· Adapted</span>}
+                                {h.isAdapted && <span className="ml-1.5 text-purple-600 font-medium">· Adapted</span>}
                               </p>
                             </div>
                             <div className="shrink-0 text-right">
@@ -236,7 +236,7 @@ export default async function ParentProgressPage() {
                                 <span className="text-[12px] font-semibold text-gray-700">{formatRawScore(sub.finalScore)}</span>
                               )}
                               {!sub && (
-                                <span className={`text-[11px] font-medium ${overdue ? 'text-rose-500' : 'text-gray-400'}`}>
+                                <span className={`text-[11px] font-medium ${overdue ? 'text-rose-600' : 'text-gray-500'}`}>
                                   {overdue ? 'Overdue' : 'Pending'}
                                 </span>
                               )}
@@ -245,7 +245,7 @@ export default async function ParentProgressPage() {
                         )
                       })}
                       {hw.length === 0 && (
-                        <p className="px-5 py-4 text-center text-[13px] text-gray-400">No homework yet</p>
+                        <p className="px-5 py-4 text-center text-[13px] text-gray-500">No homework yet</p>
                       )}
                     </div>
                   </div>
@@ -255,7 +255,7 @@ export default async function ParentProgressPage() {
               {/* Active ILP goals */}
               {ilp && ilp.targets.length > 0 && (
                 <div className="mt-2">
-                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                     <Icon name="flag" size="sm" /> Active Learning Goals
                   </h3>
                   <IlpAcknowledgementPanel
@@ -272,21 +272,21 @@ export default async function ParentProgressPage() {
               {/* Shared SEND plans */}
               {plans.length > 0 && (
                 <div className="mt-2">
-                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <h3 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                     <Icon name="track_changes" size="sm" /> Support Plan
                   </h3>
                   {plans.map((plan: any) => (
                     <div key={plan.id} className="bg-purple-50 border border-purple-100 rounded-xl p-5">
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-[13px] font-semibold text-purple-900">Active Support Plan</span>
-                        <span className="text-[11px] text-purple-500">
+                        <span className="text-[11px] text-purple-600">
                           Review {new Date(plan.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
 
                       {plan.targets.length > 0 && (
                         <div className="mb-5">
-                          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2">Targets</p>
+                          <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-2">Targets</p>
                           <div className="space-y-3">
                             {plan.targets.map((t: any) => (
                               <div key={t.id} className="flex items-start gap-3">
@@ -298,7 +298,7 @@ export default async function ParentProgressPage() {
                                 </div>
                                 <div>
                                   <p className="text-[13px] font-medium text-purple-900">{t.metricKey}</p>
-                                  <p className="text-[11px] text-purple-500">
+                                  <p className="text-[11px] text-purple-600">
                                     {t.needCategory}
                                     {t.baselineValue ? ` · From: ${t.baselineValue}` : ''} → {t.targetValue}
                                   </p>
@@ -312,7 +312,7 @@ export default async function ParentProgressPage() {
                       {/* Home strategies only */}
                       {plan.strategies.filter((s: any) => s.appliesTo === 'HOMEWORK' || s.appliesTo === 'BOTH').length > 0 && (
                         <div>
-                          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider mb-2">How you can help at home</p>
+                          <p className="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-2">How you can help at home</p>
                           <div className="space-y-1.5">
                             {plan.strategies
                               .filter((s: any) => s.appliesTo === 'HOMEWORK' || s.appliesTo === 'BOTH')

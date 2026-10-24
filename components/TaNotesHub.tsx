@@ -109,10 +109,11 @@ export default function TaNotesHub() {
         <div className="flex items-end gap-4">
 
           <div className="w-44">
-            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+            <label htmlFor="ta-year-group" className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Year Group
             </label>
             <select
+              id="ta-year-group"
               value={selectedYear ?? ''}
               onChange={e => handleYearChange(e.target.value ? Number(e.target.value) : null)}
               className="w-full text-[13px] border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-700"
@@ -125,10 +126,11 @@ export default function TaNotesHub() {
           </div>
 
           <div className="w-56">
-            <label className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">
+            <label htmlFor="ta-class" className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
               Class
             </label>
             <select
+              id="ta-class"
               value={selectedClass?.id ?? ''}
               onChange={e => handleClassChange(e.target.value)}
               disabled={!selectedYear || classesForYear.length === 0}
@@ -155,7 +157,7 @@ export default function TaNotesHub() {
         )}
 
         {selectedClass && studentsLoading && (
-          <div className="flex items-center justify-center py-12 gap-2 text-gray-400">
+          <div className="flex items-center justify-center py-12 gap-2 text-gray-500">
             <Icon name="refresh" size="md" className="animate-spin" />
             <span className="text-sm">Loading students…</span>
           </div>
@@ -200,7 +202,7 @@ export default function TaNotesHub() {
                       </span>
                     )}
                     {notes.length > 0 && urgentCount === 0 && (
-                      <span className="text-[10px] text-gray-400">{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
+                      <span className="text-[10px] text-gray-500">{notes.length} note{notes.length !== 1 ? 's' : ''}</span>
                     )}
                   </div>
                 </div>
@@ -218,7 +220,7 @@ export default function TaNotesHub() {
                   {student.sendStatus !== 'NONE' && (() => {
                     const profile = sendProfiles[student.id]
                     if (profile === undefined) return (
-                      <div className="flex items-center gap-2 text-[11px] text-purple-500 bg-purple-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2 text-[11px] text-purple-600 bg-purple-50 rounded-lg px-3 py-2">
                         <Icon name="refresh" size="sm" className="animate-spin" /> Loading SEND profile…
                       </div>
                     )
@@ -249,25 +251,25 @@ export default function TaNotesHub() {
                         )}
                         {profile.ilpTargets.length > 0 && (
                           <div className="pt-1 border-t border-purple-100">
-                            <p className="text-[10px] font-semibold text-purple-500 uppercase tracking-wide mb-1">ILP targets</p>
+                            <p className="text-[10px] font-semibold text-purple-600 uppercase tracking-wide mb-1">ILP targets</p>
                             {profile.ilpTargets.map(t => (
                               <p key={t.id} className="text-[11px] text-purple-700 leading-snug">• {t.target}</p>
                             ))}
                           </div>
                         )}
                         {profile.classroomStrategies.length === 0 && !profile.supportSnapshot && profile.ilpTargets.length === 0 && (
-                          <p className="text-[11px] text-purple-500 italic">No strategies recorded yet — SENCO can add these in the student&apos;s SEND profile.</p>
+                          <p className="text-[11px] text-purple-600 italic">No strategies recorded yet — SENCO can add these in the student&apos;s SEND profile.</p>
                         )}
                       </div>
                     )
                   })()}
 
                   {cachedNotes === 'loading' ? (
-                    <div className="flex items-center gap-2 text-[12px] text-gray-400">
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <Icon name="refresh" size="sm" className="animate-spin" /> Loading notes…
                     </div>
                   ) : notes.length === 0 ? (
-                    <p className="text-[12px] text-gray-400 italic">No TA notes yet for this student.</p>
+                    <p className="text-[12px] text-gray-500 italic">No TA notes yet for this student.</p>
                   ) : (
                     <div className="space-y-2">
                       {notes.map(n => (
@@ -284,7 +286,7 @@ export default function TaNotesHub() {
                                 {!n.isRead && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Unread</span>
                                 )}
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[10px] text-gray-500">
                                   {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </span>
                               </div>
@@ -295,7 +297,7 @@ export default function TaNotesHub() {
                                 type="button"
                                 onClick={() => handleMarkRead(student.id, n.id)}
                                 title="Mark as read"
-                                className="shrink-0 text-blue-400 hover:text-blue-600 transition-colors"
+                                className="shrink-0 text-blue-600 hover:text-blue-600 transition-colors"
                               >
                                 <Icon name="mark_email_read" size="sm" />
                               </button>

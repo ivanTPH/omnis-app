@@ -64,7 +64,7 @@ export default function YearRolloverPanel() {
           {state === 'idle' && (
             <button
               onClick={handlePreview}
-              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition"
+              className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium rounded-lg border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 transition"
             >
               <Icon name="preview" size="sm" />
               Preview rollover
@@ -72,7 +72,7 @@ export default function YearRolloverPanel() {
           )}
 
           {state === 'previewing' && (
-            <p className="mt-3 text-[12px] text-gray-400 flex items-center gap-1.5">
+            <p className="mt-3 text-[12px] text-gray-500 flex items-center gap-1.5">
               <Icon name="refresh" size="sm" className="animate-spin" /> Calculating…
             </p>
           )}
@@ -102,7 +102,7 @@ export default function YearRolloverPanel() {
           )}
 
           {state === 'running' && (
-            <p className="mt-3 text-[12px] text-gray-400 flex items-center gap-1.5">
+            <p className="mt-3 text-[12px] text-gray-500 flex items-center gap-1.5">
               <Icon name="refresh" size="sm" className="animate-spin" /> Running rollover…
             </p>
           )}
@@ -118,7 +118,7 @@ export default function YearRolloverPanel() {
             <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-[12px] text-red-700 flex items-center gap-2">
               <Icon name="error" size="sm" className="text-red-500" />
               {errorMsg}
-              <button onClick={() => setState('idle')} className="ml-auto text-red-500 hover:text-red-700">
+              <button onClick={() => setState('idle')} className="ml-auto text-red-600 hover:text-red-700">
                 <Icon name="close" size="sm" />
               </button>
             </div>

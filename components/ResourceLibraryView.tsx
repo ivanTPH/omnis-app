@@ -19,9 +19,9 @@ const TYPE_ICONS: Record<string, string> = {
 const TYPE_COLORS: Record<string, string> = {
   PLAN:      'bg-blue-100 text-blue-700',
   SLIDES:    'bg-violet-100 text-violet-700',
-  WORKSHEET: 'bg-green-100 text-green-700',
+  WORKSHEET: 'bg-green-100 text-green-800',
   VIDEO:     'bg-red-100 text-red-700',
-  LINK:      'bg-amber-100 text-amber-700',
+  LINK:      'bg-amber-100 text-amber-800',
   OTHER:     'bg-gray-100 text-gray-600',
 }
 
@@ -36,7 +36,7 @@ const TYPE_CHIPS = [
 
 function SendScoreBadge({ score }: { score: number | null }) {
   if (score == null) return null
-  const color = score >= 70 ? 'text-green-600' : score >= 40 ? 'text-amber-600' : 'text-red-500'
+  const color = score >= 70 ? 'text-green-700' : score >= 40 ? 'text-amber-700' : 'text-red-600'
   return (
     <span className={`text-[10px] font-semibold ${color} flex items-center gap-0.5`}>
       <Icon name="accessibility_new" size="sm" />{score}
@@ -93,10 +93,10 @@ function ResourcePreviewSlideOver({
   }
 
   const score = resource.sendScore
-  const scoreColor = score == null ? 'text-gray-400'
-    : score >= 70 ? 'text-green-600'
-    : score >= 40 ? 'text-amber-600'
-    : 'text-red-500'
+  const scoreColor = score == null ? 'text-gray-500'
+    : score >= 70 ? 'text-green-700'
+    : score >= 40 ? 'text-amber-700'
+    : 'text-red-600'
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -121,12 +121,12 @@ function ResourcePreviewSlideOver({
             </div>
             <h2 className="text-[15px] font-semibold text-gray-900 leading-snug">{resource.label}</h2>
             {resource.lessonTitle && (
-              <p className="text-[12px] text-gray-400 mt-0.5">
+              <p className="text-[12px] text-gray-500 mt-0.5">
                 {resource.lessonTitle}{resource.subject ? ` · ${resource.subject}` : ''}
               </p>
             )}
           </div>
-          <button onClick={onClose} className="ml-3 text-gray-400 hover:text-gray-600 shrink-0">
+          <button onClick={onClose} className="ml-3 text-gray-500 hover:text-gray-600 shrink-0">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -138,10 +138,10 @@ function ResourcePreviewSlideOver({
             <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
               <Icon name="accessibility_new" size="sm" className={scoreColor} />
               <div>
-                <p className="text-[11px] text-gray-400 font-medium">SEND Accessibility Score</p>
+                <p className="text-[11px] text-gray-500 font-medium">SEND Accessibility Score</p>
                 <p className={`text-[18px] font-bold ${scoreColor}`}>{score}/100</p>
               </div>
-              <p className="text-[11px] text-gray-400 ml-2">
+              <p className="text-[11px] text-gray-500 ml-2">
                 {score >= 70 ? 'Good accessibility' : score >= 40 ? 'Some accessibility features present' : 'Needs improvement'}
               </p>
             </div>
@@ -184,7 +184,7 @@ function ResourcePreviewSlideOver({
             {lessons !== null && (
               <div className="border-t border-gray-100 px-4 py-3 space-y-3">
                 {lessons.length === 0 ? (
-                  <p className="text-[12px] text-gray-400">No lessons found in the next 14 days. Add lessons via your Calendar first.</p>
+                  <p className="text-[12px] text-gray-500">No lessons found in the next 14 days. Add lessons via your Calendar first.</p>
                 ) : (
                   <>
                     <select
@@ -218,7 +218,7 @@ function ResourcePreviewSlideOver({
           </div>
 
           {/* Meta */}
-          <div className="text-[11px] text-gray-400 space-y-1 pt-2">
+          <div className="text-[11px] text-gray-500 space-y-1 pt-2">
             <p>Added {relativeTime(resource.createdAt)}</p>
             {resource.lessonTitle && <p>From lesson: {resource.lessonTitle}</p>}
           </div>
@@ -283,7 +283,7 @@ export default function ResourceLibraryView({
       )}
       <div className="mb-6">
         <h1 className="text-page-title">Resource Library</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">{resources.length} resource{resources.length !== 1 ? 's' : ''} in your school library</p>
+        <p className="text-[13px] text-gray-500 mt-0.5">{resources.length} resource{resources.length !== 1 ? 's' : ''} in your school library</p>
       </div>
 
       {/* Search */}
@@ -313,14 +313,14 @@ export default function ResourceLibraryView({
               }`}
             >
               {chip.label}
-              <span className={`text-[10px] ${active ? 'text-gray-300' : 'text-gray-400'}`}>{count}</span>
+              <span className={`text-[10px] ${active ? 'text-gray-500' : 'text-gray-500'}`}>{count}</span>
             </button>
           )
         })}
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="folder_open" size="lg" className="mx-auto mb-3 text-gray-300" />
           <p>No resources match this filter.</p>
         </div>
@@ -359,16 +359,16 @@ export default function ResourceLibraryView({
                   <td className="px-4 py-3 hidden md:table-cell text-gray-500">
                     {r.lessonTitle ? (
                       <span className="max-w-[180px] truncate block">{r.lessonTitle}
-                        {r.subject && <span className="text-gray-400 ml-1">· {r.subject}</span>}
+                        {r.subject && <span className="text-gray-500 ml-1">· {r.subject}</span>}
                       </span>
                     ) : (
-                      <span className="text-gray-300 italic">Standalone</span>
+                      <span className="text-gray-500 italic">Standalone</span>
                     )}
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <SendScoreBadge score={r.sendScore} />
                   </td>
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{relativeTime(r.createdAt)}</td>
+                  <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{relativeTime(r.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

@@ -31,7 +31,7 @@ export default function RevisionProgressChart({
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-400">
+      <div className="text-center py-8 text-gray-500">
         <p className="text-sm">No revision progress data yet for {subject}</p>
       </div>
     )
@@ -54,7 +54,7 @@ export default function RevisionProgressChart({
         </BarChart>
       </ResponsiveContainer>
       {avgImprovement != null && (
-        <p className="text-xs text-center text-green-600 font-semibold">
+        <p className="text-xs text-center text-green-700 font-semibold">
           Average improvement: +{avgImprovement} grades across revised topics
         </p>
       )}

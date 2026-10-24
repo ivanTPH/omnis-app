@@ -23,7 +23,7 @@ const DOC_META: Record<DocSlideOverDocType, { label: string; iconName: string; h
 
 const TARGET_STATUS_CLS: Record<string, string> = {
   active:       'bg-blue-100 text-blue-700',
-  achieved:     'bg-green-100 text-green-700',
+  achieved:     'bg-green-100 text-green-800',
   not_achieved: 'bg-red-100 text-red-700',
   deferred:     'bg-orange-100 text-orange-700',
 }
@@ -113,13 +113,13 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
   // Status badge
   function statusBadge(status: string) {
     const map: Record<string, string> = {
-      active:       'bg-green-100 text-green-700',
-      under_review: 'bg-amber-100 text-amber-700',
-      draft:        'bg-gray-100 text-gray-500',
-      approved:     'bg-green-100 text-green-700',
-      archived:     'bg-gray-100 text-gray-400',
+      active:       'bg-green-100 text-green-800',
+      under_review: 'bg-amber-100 text-amber-800',
+      draft:        'bg-gray-100 text-gray-600',
+      approved:     'bg-green-100 text-green-800',
+      archived:     'bg-gray-100 text-gray-600',
     }
-    const cls = map[status.toLowerCase()] ?? 'bg-gray-100 text-gray-500'
+    const cls = map[status.toLowerCase()] ?? 'bg-gray-100 text-gray-600'
     return (
       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${cls}`}>
         {status.replace(/_/g, ' ')}
@@ -178,11 +178,11 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
               <>
                 <section className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">SEND Category</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">SEND Category</p>
                     <p className="text-[13px] text-gray-800">{ilp.sendCategory}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Review Date</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Review Date</p>
                     <p className="text-[13px] text-gray-800">
                       {new Date(ilp.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
@@ -190,12 +190,12 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                 </section>
 
                 <section>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Current Strengths</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-1">Current Strengths</p>
                   <p className="text-[13px] text-gray-700 leading-relaxed">{ilp.currentStrengths}</p>
                 </section>
 
                 <section>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Areas of Need</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-red-600 mb-1">Areas of Need</p>
                   <p className="text-[13px] text-gray-700 leading-relaxed">{ilp.areasOfNeed}</p>
                 </section>
 
@@ -215,7 +215,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
 
                 {ilp.successCriteria && (
                   <section>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 mb-1">Success Criteria</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-700 mb-1">Success Criteria</p>
                     <p className="text-[13px] text-gray-700 leading-relaxed">{ilp.successCriteria}</p>
                   </section>
                 )}
@@ -223,7 +223,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                 <section>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-2">SMART Goals</p>
                   {ilp.targets.length === 0 ? (
-                    <p className="text-[12px] text-gray-400 italic">No active targets.</p>
+                    <p className="text-[12px] text-gray-500 italic">No active targets.</p>
                   ) : (
                     <div className="space-y-2.5">
                       {ilp.targets.map((t, i) => (
@@ -236,7 +236,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                           </div>
                           <p className="text-[11px] text-gray-500">Strategy: {t.strategy}</p>
                           <p className="text-[11px] text-gray-500">Success: {t.successMeasure}</p>
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-[10px] text-gray-500">
                             Due {new Date(t.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
@@ -246,7 +246,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                 </section>
               </>
             ) : (
-              <p className="text-[13px] text-gray-400 italic">No active ILP found for this student.</p>
+              <p className="text-[13px] text-gray-500 italic">No active ILP found for this student.</p>
             )
           )}
 
@@ -256,23 +256,23 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
               <>
                 <section className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Local Authority</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Local Authority</p>
                     <p className="text-[13px] text-gray-800">{ehcp.localAuthority}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Annual Review</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Annual Review</p>
                     <p className="text-[13px] text-gray-800">
                       {new Date(ehcp.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
                   {ehcp.coordinatorName && (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">SEND Coordinator</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">SEND Coordinator</p>
                       <p className="text-[13px] text-gray-800">{ehcp.coordinatorName}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Plan Date</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Plan Date</p>
                     <p className="text-[13px] text-gray-800">
                       {new Date(ehcp.planDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
@@ -309,7 +309,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                           {o.provisionRequired && (
                             <p className="text-[11px] text-purple-600">Provision: {o.provisionRequired}</p>
                           )}
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-[10px] text-gray-500">
                             Target {new Date(o.targetDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             {o.evidenceCount > 0 && ` · ${o.evidenceCount} evidence item${o.evidenceCount !== 1 ? 's' : ''}`}
                           </p>
@@ -320,7 +320,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                 )}
               </>
             ) : (
-              <p className="text-[13px] text-gray-400 italic">No active EHCP found for this student.</p>
+              <p className="text-[13px] text-gray-500 italic">No active EHCP found for this student.</p>
             )
           )}
 
@@ -329,7 +329,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
             kplan ? (
               <>
                 <section>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-2">SEND Information</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-2">SEND Information</p>
                   <div className="border-l-4 border-amber-400 pl-4">
                     <p className="text-[13px] text-amber-900 italic leading-relaxed whitespace-pre-wrap">
                       {kplan.sendInformation}
@@ -357,7 +357,7 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
 
                 {kplan.studentCommitments.length > 0 && (
                   <section>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-600 mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-700 mb-2">
                       I will help myself by
                     </p>
                     <ul className="space-y-1.5">
@@ -383,13 +383,13 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                 </section>
 
                 <section>
-                  <p className="text-[11px] text-gray-400 italic">
+                  <p className="text-[11px] text-gray-500 italic">
                     No formal amendment log for K Plan — use the notes section below to add classroom observations.
                   </p>
                 </section>
               </>
             ) : (
-              <p className="text-[13px] text-gray-400 italic">No K Plan found for this student.</p>
+              <p className="text-[13px] text-gray-500 italic">No K Plan found for this student.</p>
             )
           )}
 
@@ -406,9 +406,9 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
               {auditOpen && (
                 <div className="mt-3">
                   {auditLoading ? (
-                    <p className="text-[11px] text-gray-400 animate-pulse">Loading…</p>
+                    <p className="text-[11px] text-gray-500 animate-pulse">Loading…</p>
                   ) : !auditEntries || auditEntries.length === 0 ? (
-                    <p className="text-[11px] text-gray-400">No amendments recorded yet.</p>
+                    <p className="text-[11px] text-gray-500">No amendments recorded yet.</p>
                   ) : (
                     <ol className="border-l border-gray-200 pl-4 space-y-3">
                       {auditEntries.map(entry => {
@@ -422,17 +422,17 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
                             <span className={`absolute -left-[1.2rem] top-1 w-2 h-2 rounded-full border-2 border-white ${dotCls}`} />
                             <p className="text-[11px] font-medium text-gray-700 flex flex-wrap items-center gap-1">
                               {entry.userName}
-                              <span className="font-normal text-gray-400"> · {entry.fieldChanged} · </span>
+                              <span className="font-normal text-gray-500"> · {entry.fieldChanged} · </span>
                               {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                               {isPending && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Pending</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Pending</span>
                               )}
                               {isRejected && (
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">Not approved</span>
                               )}
                             </p>
                             {(entry.previousValue || entry.newValue) && (
-                              <p className="text-[11px] text-gray-400 mt-0.5">
+                              <p className="text-[11px] text-gray-500 mt-0.5">
                                 &ldquo;{(entry.newValue ?? entry.previousValue ?? '').slice(0, 100)}&rdquo;
                               </p>
                             )}
@@ -448,9 +448,9 @@ export default function DocSlideOver({ studentId, studentName, docType, onClose 
 
           {/* Teacher note */}
           <section className="border-t border-gray-100 pt-4">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-2">Add classroom observation</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 mb-2">Add classroom observation</p>
             {noteSaved ? (
-              <div className="flex items-center gap-2 text-[12px] text-green-700 bg-green-50 rounded-lg px-3 py-2">
+              <div className="flex items-center gap-2 text-[12px] text-green-800 bg-green-50 rounded-lg px-3 py-2">
                 <Icon name="check_circle" size="sm" /> Note saved.
               </div>
             ) : (

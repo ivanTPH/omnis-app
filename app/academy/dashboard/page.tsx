@@ -21,7 +21,7 @@ export default async function AcademyDashboardPage() {
 
           <div>
             <h1 className="text-[22px] font-bold text-gray-900">Academy Dashboard</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-0.5">
               Cross-school overview — {schools.length} {schools.length === 1 ? 'school' : 'schools'}
             </p>
           </div>

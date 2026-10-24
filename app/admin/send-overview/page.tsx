@@ -34,7 +34,7 @@ export default async function AdminSendOverviewPage() {
   const topStats = [
     { label: 'On SEND register',   value: data.sendStudents,    sub: `${sendPct}% of roll`,     color: 'bg-blue-50 text-blue-700'    },
     { label: 'Active ILPs',        value: data.activeIlps,      sub: `${data.ilpsUnderReview} under review`, color: 'bg-indigo-50 text-indigo-700' },
-    { label: 'EHCP Plans',         value: data.ehcps,           sub: data.ehcpsDue30d > 0 ? `${data.ehcpsDue30d} due in 30d` : 'All on track', color: data.ehcpsDue30d > 0 ? 'bg-amber-50 text-amber-700' : 'bg-purple-50 text-purple-700' },
+    { label: 'EHCP Plans',         value: data.ehcps,           sub: data.ehcpsDue30d > 0 ? `${data.ehcpsDue30d} due in 30d` : 'All on track', color: data.ehcpsDue30d > 0 ? 'bg-amber-50 text-amber-800' : 'bg-purple-50 text-purple-700' },
     { label: 'Open concerns',      value: data.openConcerns,    sub: 'open / under review',     color: data.openConcerns > 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700' },
   ]
 
@@ -45,14 +45,14 @@ export default async function AdminSendOverviewPage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/admin/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/admin/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> Dashboard
             </Link>
           </div>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">SEND Overview</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">School-wide SEND register, ILP and EHCP summary</p>
+              <p className="text-[13px] text-gray-500 mt-0.5">School-wide SEND register, ILP and EHCP summary</p>
             </div>
             <div className="flex items-center gap-2">
               <a
@@ -63,7 +63,7 @@ export default async function AdminSendOverviewPage() {
               </a>
               <Link
                 href="/senco/concerns"
-                className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
               >
                 <Icon name="open_in_new" size="sm" /> Concerns
               </Link>
@@ -90,7 +90,7 @@ export default async function AdminSendOverviewPage() {
                 <h2 className="text-[14px] font-semibold text-gray-900">By year group</h2>
               </div>
               {data.byYear.length === 0 ? (
-                <p className="px-5 py-4 text-[13px] text-gray-400">No year group data available.</p>
+                <p className="px-5 py-4 text-[13px] text-gray-500">No year group data available.</p>
               ) : (
                 <table className="w-full text-[12px]">
                   <thead>
@@ -110,12 +110,12 @@ export default async function AdminSendOverviewPage() {
                         <td className="px-4 py-2.5 text-right text-gray-500">{row.students}</td>
                         <td className="px-4 py-2.5 text-right">
                           <span className="font-semibold text-blue-700">{row.sendStudents}</span>
-                          <span className="text-gray-400 ml-1">({row.sendPct}%)</span>
+                          <span className="text-gray-500 ml-1">({row.sendPct}%)</span>
                         </td>
                         <td className="px-4 py-2.5 text-right text-gray-700">{row.activeIlps}</td>
                         <td className="px-4 py-2.5 text-right text-purple-700">{row.ehcps}</td>
                         <td className="px-4 py-2.5 text-right">
-                          <span className={row.openConcerns > 0 ? 'text-rose-600 font-semibold' : 'text-gray-400'}>
+                          <span className={row.openConcerns > 0 ? 'text-rose-600 font-semibold' : 'text-gray-500'}>
                             {row.openConcerns}
                           </span>
                         </td>
@@ -135,7 +135,7 @@ export default async function AdminSendOverviewPage() {
               {data.concernsByCategory.length === 0 ? (
                 <div className="px-5 py-8 text-center">
                   <Icon name="check_circle" size="lg" color="#d1d5db" />
-                  <p className="text-[13px] text-gray-400 mt-2">No open concerns.</p>
+                  <p className="text-[13px] text-gray-500 mt-2">No open concerns.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50">
@@ -170,7 +170,7 @@ export default async function AdminSendOverviewPage() {
                     <p className="text-[13px] font-semibold text-amber-800">
                       {data.ehcpsDue30d} EHCP annual review{data.ehcpsDue30d !== 1 ? 's' : ''} due in the next 30 days
                     </p>
-                    <p className="text-[12px] text-amber-600 mt-0.5">Review in EHCP Plans to action.</p>
+                    <p className="text-[12px] text-amber-700 mt-0.5">Review in EHCP Plans to action.</p>
                   </div>
                   <Link href="/senco/ehcp" className="text-[12px] font-semibold text-amber-700 underline shrink-0">View</Link>
                 </div>

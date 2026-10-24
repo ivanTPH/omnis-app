@@ -67,14 +67,14 @@ function LessonDetail({ lesson }: { lesson: OakLessonFull }) {
 
       {lesson.pupilLessonOutcome && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Learning outcome</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Learning outcome</p>
           <p className="text-[12px] text-gray-700 leading-relaxed">{lesson.pupilLessonOutcome}</p>
         </div>
       )}
 
       {keywords.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">Keywords</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">Keywords</p>
           <div className="flex flex-wrap gap-1.5">
             {keywords.map((kw, i) => (
               <span key={i} className="text-[11px] px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
@@ -87,7 +87,7 @@ function LessonDetail({ lesson }: { lesson: OakLessonFull }) {
 
       {keyPoints.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Key learning points</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Key learning points</p>
           <ul className="space-y-1">
             {keyPoints.map((pt, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700 leading-snug">
@@ -103,7 +103,7 @@ function LessonDetail({ lesson }: { lesson: OakLessonFull }) {
 
       {tips.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Teacher tips</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Teacher tips</p>
           <ul className="space-y-1">
             {tips.map((tip, i) => (
               <li key={i} className="text-[12px] text-gray-600 leading-snug pl-2 border-l border-amber-200">
@@ -116,7 +116,7 @@ function LessonDetail({ lesson }: { lesson: OakLessonFull }) {
 
       {misconceptions.length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Common misconceptions</p>
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Common misconceptions</p>
           <ul className="space-y-1">
             {misconceptions.map((m, i) => (
               <li key={i} className="text-[12px] text-gray-600 leading-snug pl-2 border-l border-red-200">
@@ -171,7 +171,7 @@ function ResultRow({
       >
         <div className="flex-1 min-w-0">
           <p className="text-[12px] font-semibold text-gray-800 leading-tight">{result.title}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5 truncate">{result.unitTitle}</p>
+          <p className="text-[10px] text-gray-500 mt-0.5 truncate">{result.unitTitle}</p>
           {result.pupilLessonOutcome && !isExpanded && (
             <p className="text-[11px] text-gray-500 mt-1 line-clamp-1">{result.pupilLessonOutcome}</p>
           )}
@@ -191,14 +191,14 @@ function ResultRow({
           {result.tier && (
             <Badge label={result.tier.charAt(0).toUpperCase() + result.tier.slice(1)} color="bg-teal-100 text-teal-700" />
           )}
-          {result.hasQuiz      && <Badge label="Quiz"      color="bg-amber-100 text-amber-700" />}
+          {result.hasQuiz      && <Badge label="Quiz"      color="bg-amber-100 text-amber-800" />}
           {result.hasVideo     && <Badge label="Video"     color="bg-rose-100 text-rose-700"   />}
           {result.hasWorksheet && <Badge label="Worksheet" color="bg-purple-100 text-purple-700" />}
           {result.hasSlides    && <Badge label="Slides"    color="bg-blue-100 text-blue-700"   />}
         </div>
 
         {/* Expand chevron */}
-        <div className="shrink-0 text-gray-300">
+        <div className="shrink-0 text-gray-500">
           {isExpanded ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
         </div>
       </div>
@@ -207,7 +207,7 @@ function ResultRow({
       {isExpanded && (
         <div className="px-3 pb-3 bg-gray-50 border-t border-gray-100">
           {loadingDetail && !expandedDetail ? (
-            <div className="flex items-center justify-center py-6 text-gray-300">
+            <div className="flex items-center justify-center py-6 text-gray-500">
               <Icon name="refresh" size="md" className="animate-spin" />
             </div>
           ) : (
@@ -224,7 +224,7 @@ function ResultRow({
               onClick={e => { e.stopPropagation(); onAdd() }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                 added
-                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
                   : 'bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white'
               }`}
             >
@@ -398,7 +398,7 @@ export default function OakResourcePanel({
 
             {/* Row 2: Year group chips */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">Year</span>
+              <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide shrink-0">Year</span>
               <button
                 onClick={() => setYearGroup('')}
                 className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-colors ${
@@ -448,23 +448,23 @@ export default function OakResourcePanel({
           {/* Results */}
           <div className="p-3 space-y-2 max-h-96 overflow-auto">
             {searching ? (
-              <div className="flex items-center justify-center py-10 text-gray-300">
+              <div className="flex items-center justify-center py-10 text-gray-500">
                 <Icon name="refresh" size="md" className="animate-spin" />
               </div>
             ) : !hasSearched ? (
-              <p className="text-[12px] text-gray-400 text-center py-8">
+              <p className="text-[12px] text-gray-500 text-center py-8">
                 Set filters above and click Search to browse Oak lessons.
               </p>
             ) : results.length === 0 ? (
-              <p className="text-[12px] text-gray-400 text-center py-8">
+              <p className="text-[12px] text-gray-500 text-center py-8">
                 No lessons found — try adjusting your filters.
               </p>
             ) : (
               <>
-                <p className="text-[10px] text-gray-400 px-0.5">
+                <p className="text-[10px] text-gray-500 px-0.5">
                   {results.length} lessons
                   {yearFallback && (
-                    <span className="ml-1.5 text-amber-600">
+                    <span className="ml-1.5 text-amber-700">
                       (no results for Year {presetYearGroup} — showing all year groups)
                     </span>
                   )}

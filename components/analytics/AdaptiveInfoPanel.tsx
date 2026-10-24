@@ -24,7 +24,7 @@ export default function AdaptiveInfoPanel() {
       <button
         onClick={dismiss}
         title="Dismiss"
-        className="absolute top-3 right-3 p-1 rounded-lg hover:bg-blue-100 text-gray-400 hover:text-gray-700 transition-colors"
+        className="absolute top-3 right-3 p-1 rounded-lg hover:bg-blue-100 text-gray-600 hover:text-gray-700 transition-colors"
       >
         <Icon name="close" size="sm" />
       </button>

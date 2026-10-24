@@ -39,7 +39,7 @@ export function PageHeader({
                   {crumb.label}
                 </Link>
               ) : (
-                <span className="text-gray-400">{crumb.label}</span>
+                <span className="text-gray-500">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -48,7 +48,7 @@ export function PageHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="flex flex-col gap-0.5">
           <h1 className="text-page-title">{title}</h1>
-          {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
         </div>
         {action && <div className="flex-shrink-0">{action}</div>}
       </div>

@@ -54,8 +54,8 @@ export default function AiDecisionExplanation({
         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
           {entry.skillLabel}
         </span>
-        <span className="text-xs text-gray-400">v{entry.skillVersion}</span>
-        <span className="text-xs text-gray-400">{formatDate(entry.createdAt)}</span>
+        <span className="text-xs text-gray-600">v{entry.skillVersion}</span>
+        <span className="text-xs text-gray-600">{formatDate(entry.createdAt)}</span>
       </div>
 
       <p className="text-gray-800 leading-relaxed">

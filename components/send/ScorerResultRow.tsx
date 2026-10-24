@@ -31,7 +31,7 @@ export default function ScorerResultRow({ lesson, canRescore }: Props) {
       <div className="flex items-center gap-3 px-3 py-2.5 bg-white">
         <div className="flex-1 min-w-0">
           <p className="text-[13px] font-semibold text-gray-800 leading-tight truncate">{lesson.title}</p>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-[11px] text-gray-500 mt-0.5">
             {lesson.subjectSlug} · {lesson.keystage}{lesson.yearGroup ? ` · Y${lesson.yearGroup}` : ''}
           </p>
         </div>

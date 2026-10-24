@@ -59,7 +59,7 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
 
   if (childList.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-400 text-[13px] border border-dashed border-gray-200 rounded-xl">
+      <div className="text-center py-12 text-gray-500 text-[13px] border border-dashed border-gray-200 rounded-xl">
         No children linked to your account. Please contact the school.
       </div>
     )
@@ -88,7 +88,7 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
               </div>
               <div>
                 <p className="text-[14px] font-semibold text-gray-900">{child.firstName} {child.lastName}</p>
-                {child.yearGroup && <p className="text-[12px] text-gray-400">Year {child.yearGroup}</p>}
+                {child.yearGroup && <p className="text-[12px] text-gray-500">Year {child.yearGroup}</p>}
               </div>
             </div>
           </div>
@@ -108,11 +108,11 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-[13px] font-semibold text-gray-800">{p.title}</p>
-                        <span className="text-[10px] text-gray-400">{BASIS_LABELS[p.lawfulBasis] ?? p.lawfulBasis}</span>
+                        <span className="text-[10px] text-gray-500">{BASIS_LABELS[p.lawfulBasis] ?? p.lawfulBasis}</span>
                       </div>
                       <p className="text-[12px] text-gray-500 leading-relaxed">{p.description}</p>
                       {currentDecision && (
-                        <p className="text-[11px] text-gray-300 mt-1.5">
+                        <p className="text-[11px] text-gray-500 mt-1.5">
                           Last updated:{' '}
                           {child.purposes.find(x => x.purposeId === p.purposeId)?.decidedAt
                             ? new Date(child.purposes.find(x => x.purposeId === p.purposeId)!.decidedAt!).toLocaleDateString('en-GB')
@@ -138,7 +138,7 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
                         />
                       </button>
                     ) : (
-                      <div className="shrink-0 flex items-center gap-1 text-[11px] text-gray-400">
+                      <div className="shrink-0 flex items-center gap-1 text-[11px] text-gray-500">
                         <Icon name="info" size="sm" />
                         Not applicable
                       </div>
@@ -149,13 +149,13 @@ export default function ParentConsentPortal({ consents: childList }: Props) {
                   {needsConsent && (
                     <div className="mt-2">
                       {currentDecision === 'granted' && (
-                        <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">Consent granted</span>
+                        <span className="text-[11px] font-medium text-green-800 bg-green-50 px-2 py-0.5 rounded-full">Consent granted</span>
                       )}
                       {currentDecision === 'withdrawn' && (
                         <span className="text-[11px] font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full">Consent withdrawn</span>
                       )}
                       {!currentDecision && (
-                        <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">No decision recorded</span>
+                        <span className="text-[11px] font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">No decision recorded</span>
                       )}
                     </div>
                   )}

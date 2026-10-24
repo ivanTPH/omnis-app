@@ -17,7 +17,7 @@ function barColour(avg: number) {
 export default function ConfidenceChart({ data }: { data: ConfidenceEntry[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-32 text-[12px] text-gray-400">
+      <div className="flex items-center justify-center h-32 text-[12px] text-gray-500">
         Complete revision sessions to track confidence.
       </div>
     )
@@ -57,7 +57,7 @@ export default function ConfidenceChart({ data }: { data: ConfidenceEntry[] }) {
                 <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-[11px] shadow-sm">
                   <p className="font-semibold text-gray-900">{d.fullSubject}</p>
                   <p className="text-gray-600">Confidence: {d.confidence}/5</p>
-                  <p className="text-gray-400">{d.sessions} session{d.sessions !== 1 ? 's' : ''}</p>
+                  <p className="text-gray-500">{d.sessions} session{d.sessions !== 1 ? 's' : ''}</p>
                 </div>
               )
             }}

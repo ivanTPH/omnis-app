@@ -17,8 +17,8 @@ type Props = {
 
 const TYPE_COLOURS: Record<string, string> = {
   worksheet:           'bg-blue-100 text-blue-700',
-  quiz:                'bg-amber-100 text-amber-700',
-  lesson_plan:         'bg-green-100 text-green-700',
+  quiz:                'bg-amber-100 text-amber-800',
+  lesson_plan:         'bg-green-100 text-green-800',
   exit_ticket:         'bg-rose-100 text-rose-700',
   knowledge_organiser: 'bg-purple-100 text-purple-700',
 }
@@ -61,7 +61,7 @@ export default function ResourceCard({ resource, canDelete, onDelete, onSelect }
             )}
           </div>
           <p className="text-[13px] font-semibold text-gray-800 leading-snug truncate">{resource.title}</p>
-          <p className="text-[11px] text-gray-400 mt-0.5">
+          <p className="text-[11px] text-gray-500 mt-0.5">
             {resource.subject} · {resource.yearGroup} · {new Date(resource.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function ResourceCard({ resource, canDelete, onDelete, onSelect }
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="p-1 text-gray-300 hover:text-red-500 transition-colors disabled:opacity-40"
+              className="p-1 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-40"
               title="Delete"
             >
               <Icon name="delete" size="sm" />

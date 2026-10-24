@@ -111,7 +111,7 @@ export default function InvestorsForm() {
               <p className="text-gray-500 text-sm mb-6">Interested in learning more about Omnis? We&apos;d love to share our deck and discuss the opportunity.</p>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Your name <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your name <span className="text-red-600">*</span></label>
                   <input
                     type="text"
                     required
@@ -122,7 +122,7 @@ export default function InvestorsForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Organisation <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Organisation <span className="text-gray-500 font-normal">(optional)</span></label>
                   <input
                     type="text"
                     value={form.organisation}
@@ -132,7 +132,7 @@ export default function InvestorsForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-600">*</span></label>
                   <input
                     type="email"
                     required
@@ -143,7 +143,7 @@ export default function InvestorsForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Message <span className="text-gray-500 font-normal">(optional)</span></label>
                   <textarea
                     value={form.message}
                     onChange={e => update('message', e.target.value)}

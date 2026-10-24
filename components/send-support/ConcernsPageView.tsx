@@ -45,7 +45,7 @@ export default function ConcernsPageView({ initialConcerns, staffList = [], foll
                 <div key={c.id} className="flex items-center gap-2">
                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${isOverdue ? 'bg-red-500' : 'bg-amber-400'}`} />
                   <span className="text-[12px] font-medium text-amber-900">{c.studentName}</span>
-                  <span className="text-[11px] text-amber-600">{c.category.replace(/_/g, ' ')}</span>
+                  <span className="text-[11px] text-amber-700">{c.category.replace(/_/g, ' ')}</span>
                   {c.nextReviewDate && (
                     <span className={`ml-auto text-[11px] font-medium ${isOverdue ? 'text-red-600' : 'text-amber-700'}`}>
                       {isOverdue ? 'Overdue — ' : ''}{new Date(c.nextReviewDate).toLocaleDateString('en-GB')}

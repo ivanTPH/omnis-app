@@ -17,7 +17,7 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_COLOUR: Record<string, string> = {
-  active:       'bg-green-100 text-green-700',
+  active:       'bg-green-100 text-green-800',
   under_review: 'bg-yellow-100 text-yellow-800',
   ceased:       'bg-gray-100 text-gray-600',
 }
@@ -100,7 +100,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
             <p className="text-label">DUE WITHIN 30 DAYS</p>
             <Icon name="schedule" size="sm" className="text-amber-500" />
           </div>
-          <p className="text-3xl font-semibold text-amber-600 mt-1">{dueWithin30.length}</p>
+          <p className="text-3xl font-semibold text-amber-700 mt-1">{dueWithin30.length}</p>
           <p className="text-meta">{dueWithin30.length > 0 ? 'Schedule annual reviews' : 'None due soon'}</p>
         </div>
         <div className="card-stat">
@@ -108,7 +108,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
             <p className="text-label">ON TRACK</p>
             <Icon name="check_circle" size="sm" className="text-green-500" />
           </div>
-          <p className="text-3xl font-semibold text-green-600 mt-1">{onTrack.length}</p>
+          <p className="text-3xl font-semibold text-green-700 mt-1">{onTrack.length}</p>
           <p className="text-meta">{onTrack.length > 0 ? 'Reviews scheduled' : 'No active plans'}</p>
         </div>
         <div className="card-stat">
@@ -142,7 +142,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
           {studentsWithoutEhcp.length > 0 && (
             <button
               onClick={() => setViewMode('no_ehcp')}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ehcp' ? 'bg-amber-500 text-white' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ehcp' ? 'bg-amber-500 text-white' : 'text-amber-800 bg-amber-50 hover:bg-amber-100'}`}
             >
               <Icon name="warning" size="sm" />
               SEND without EHCP ({studentsWithoutEhcp.length})
@@ -182,7 +182,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
       {/* SEND without EHCP view */}
       {viewMode === 'no_ehcp' ? (
         filteredWithoutEhcp.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-500">
             <Icon name="check_circle" size="lg" className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">All SEND students have an EHCP plan.</p>
           </div>
@@ -210,7 +210,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
           </div>
         )
       ) : filteredPlans.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="task_alt" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">{searchQuery || yearFilter ? 'No plans match your search.' : 'No active EHCP plans recorded.'}</p>
         </div>
@@ -248,7 +248,7 @@ export default function EhcpPageClient({ plans, studentsWithoutEhcp, isSenco }: 
                 badges={badges}
                 rightContent={
                   needsApproval ? (
-                    <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+                    <span className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
                       Expand to review &amp; approve
                     </span>
                   ) : (

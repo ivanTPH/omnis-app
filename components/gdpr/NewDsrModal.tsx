@@ -41,7 +41,7 @@ export default function NewDsrModal({ students, onClose }: Props) {
       <div role="dialog" aria-modal="true" aria-label="New data subject request" className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-[15px] font-semibold text-gray-900">New Data Subject Request</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -94,7 +94,7 @@ export default function NewDsrModal({ students, onClose }: Props) {
           </div>
 
           {error && (
-            <p className="text-[12px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-[12px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
           {requestType === 'erasure' && (

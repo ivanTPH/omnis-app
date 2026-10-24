@@ -17,9 +17,9 @@ const SECTIONS: { key: SectionKey; label: string; hint: string }[] = [
 const EMPTY: ReportNarrativeSections = { performance: '', potential: '', areasForImprovement: '' }
 
 function gapColor(gap: number | null): string {
-  if (gap == null) return 'text-gray-400'
-  if (gap >= 0) return 'text-green-600'
-  if (gap >= -1) return 'text-amber-600'
+  if (gap == null) return 'text-gray-500'
+  if (gap >= 0) return 'text-green-700'
+  if (gap >= -1) return 'text-amber-700'
   return 'text-red-600'
 }
 
@@ -95,12 +95,12 @@ export default function NarrativeReportView({ source }: { source: ReportSourceDa
       <div className="bg-white border border-gray-200 rounded-xl p-5">
         <h2 className="text-[13px] font-semibold text-gray-900 mb-3">Predicted vs Actual — by Subject</h2>
         {source.subjects.length === 0 ? (
-          <p className="text-[12px] text-gray-400">No subject data recorded for this student yet.</p>
+          <p className="text-[12px] text-gray-500">No subject data recorded for this student yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="text-left text-gray-400 border-b border-gray-100">
+                <tr className="text-left text-gray-500 border-b border-gray-100">
                   <th className="py-1.5 font-medium">Subject</th>
                   <th className="py-1.5 font-medium text-center">Predicted</th>
                   <th className="py-1.5 font-medium text-center">Actual</th>
@@ -125,30 +125,30 @@ export default function NarrativeReportView({ source }: { source: ReportSourceDa
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100">
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Attendance</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Attendance</p>
             <p className="text-[16px] font-bold text-gray-900">{source.attendancePct != null ? `${source.attendancePct.toFixed(1)}%` : '—'}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Target grade</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Target grade</p>
             <p className="text-[16px] font-bold text-gray-900">{gradeLabel(source.passport.targetGrade)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Positive points</p>
-            <p className="text-[16px] font-bold text-green-600">{source.behaviour.positiveCount}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Positive points</p>
+            <p className="text-[16px] font-bold text-green-700">{source.behaviour.positiveCount}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Negative points</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide">Negative points</p>
             <p className="text-[16px] font-bold text-gray-900">{source.behaviour.negativeCount}</p>
           </div>
         </div>
 
         {source.ilpTargets.length > 0 && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1.5">Active ILP targets</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wide mb-1.5">Active ILP targets</p>
             <ul className="space-y-1">
               {source.ilpTargets.map((t, i) => (
                 <li key={i} className="text-[12px] text-gray-700">
-                  {t.target} <span className="text-gray-400">({t.status.replace(/_/g, ' ')})</span>
+                  {t.target} <span className="text-gray-500">({t.status.replace(/_/g, ' ')})</span>
                 </li>
               ))}
             </ul>
@@ -181,7 +181,7 @@ export default function NarrativeReportView({ source }: { source: ReportSourceDa
         </div>
 
         {!generated ? (
-          <p className="text-[12px] text-gray-400">
+          <p className="text-[12px] text-gray-500">
             Generate a first draft grounded only in the data above — grades, attendance, ILP targets, and
             behaviour points. Nothing else is used. You&apos;ll review and edit every word before export.
           </p>
@@ -201,7 +201,7 @@ export default function NarrativeReportView({ source }: { source: ReportSourceDa
                     Regenerate
                   </button>
                 </div>
-                <p className="text-[11px] text-gray-400 mb-1.5">{hint}</p>
+                <p className="text-[11px] text-gray-500 mb-1.5">{hint}</p>
                 <textarea
                   value={narrative[key]}
                   onChange={e => setNarrative(prev => ({ ...prev, [key]: e.target.value }))}

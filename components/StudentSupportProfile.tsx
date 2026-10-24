@@ -16,7 +16,7 @@ const SEND_BADGE: Record<string, string> = {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">{label}</p>
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{label}</p>
       {children}
     </div>
   )
@@ -64,7 +64,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
         <div className="px-5 py-4 space-y-5">
 
           {noSend ? (
-            <p className="text-sm text-gray-400 italic">No SEND support recorded for this student.</p>
+            <p className="text-sm text-gray-500 italic">No SEND support recorded for this student.</p>
           ) : (
             <>
               {/* SEND status */}
@@ -94,7 +94,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
           {/* Active ILP goals */}
           <Section label={`Active ILP Goals${allTargets.length > 0 ? ` (${allTargets.length})` : ''}`}>
             {allTargets.length === 0 ? (
-              <p className="text-[13px] text-gray-400 italic">No active goals recorded.</p>
+              <p className="text-[13px] text-gray-500 italic">No active goals recorded.</p>
             ) : (
               <>
                 <ul className="space-y-2.5">
@@ -104,7 +104,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
                       <div className="min-w-0">
                         <p className="text-[13px] text-gray-700 leading-snug">{t.target}</p>
                         {t.progressNotes && (
-                          <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">{t.progressNotes}</p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">{t.progressNotes}</p>
                         )}
                       </div>
                     </li>
@@ -132,7 +132,7 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
                   <Icon name="chat" size="sm" className="text-blue-400 mt-0.5 shrink-0" />
                   <p className="text-[13px] text-gray-700 leading-relaxed">{latestTeacherNote.notes}</p>
                 </div>
-                <p className="text-[10px] text-gray-400 pl-5">
+                <p className="text-[10px] text-gray-500 pl-5">
                   {latestTeacherNote.subject} · {latestTeacherNote.termLabel} ·{' '}
                   {new Date(latestTeacherNote.updatedAt).toLocaleDateString('en-GB', {
                     day: 'numeric', month: 'short', year: 'numeric',
@@ -140,13 +140,13 @@ export default function StudentSupportProfile({ profile }: { profile: SupportPro
                 </p>
               </div>
             ) : (
-              <p className="text-[13px] text-gray-400 italic">No teacher notes recorded.</p>
+              <p className="text-[13px] text-gray-500 italic">No teacher notes recorded.</p>
             )}
           </Section>
 
           {/* Last ILP evidence — placeholder (no ILPEvidenceEntry model yet) */}
           <Section label="Last ILP Evidence">
-            <div className="flex items-center gap-2 text-[13px] text-gray-400 italic">
+            <div className="flex items-center gap-2 text-[13px] text-gray-500 italic">
               <Icon name="description" size="sm" className="text-gray-300 shrink-0" />
               No evidence entries linked yet.
             </div>

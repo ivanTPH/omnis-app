@@ -72,23 +72,23 @@ export default function ResourcePreviewModal({
         <div className="flex items-start gap-3 px-6 py-4 border-b border-gray-100 shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-800">
                 <Icon name="menu_book" size="sm" />Oak National
               </span>
               {detail?.keystage && (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{detail.keystage}</span>
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">{detail.keystage}</span>
               )}
             </div>
             <h2 className="text-[15px] font-semibold text-gray-900 leading-tight">
               {loading ? 'Loading…' : (detail?.title ?? 'Unknown lesson')}
             </h2>
             {detail?.unit?.title && (
-              <p className="text-[11px] text-gray-400 mt-0.5">{detail.unit.title}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">{detail.unit.title}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 flex items-center gap-1 text-[12px] font-medium text-gray-500 hover:text-gray-800 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100"
+            className="shrink-0 flex items-center gap-1 text-[12px] font-medium text-gray-600 hover:text-gray-800 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100"
           >
             <Icon name="arrow_back" size="sm" /> Back to resources
           </button>
@@ -134,7 +134,7 @@ export default function ResourcePreviewModal({
               {/* Pupil lesson outcome */}
               {detail.pupilLessonOutcome && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Learning outcome</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Learning outcome</p>
                   <p className="text-[13px] text-gray-800 leading-relaxed">{detail.pupilLessonOutcome}</p>
                 </div>
               )}
@@ -142,11 +142,11 @@ export default function ResourcePreviewModal({
               {/* Key learning points */}
               {learningPts.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Key learning points</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Key learning points</p>
                   <ul className="space-y-1.5">
                     {learningPts.map((pt, i) => (
                       <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
-                        <span className="w-4 h-4 shrink-0 mt-0.5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
+                        <span className="w-4 h-4 shrink-0 mt-0.5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[9px] font-bold">{i + 1}</span>
                         {pt.keyLearningPoint}
                       </li>
                     ))}
@@ -157,13 +157,13 @@ export default function ResourcePreviewModal({
               {/* Keywords */}
               {keywords.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Key vocabulary</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Key vocabulary</p>
                   <div className="flex flex-wrap gap-1.5">
                     {keywords.map((kw, i) => (
                       <span
                         key={i}
                         title={kw.description}
-                        className="px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-[11px] font-medium border border-amber-200 cursor-help"
+                        className="px-2 py-1 bg-amber-50 text-amber-800 rounded-full text-[11px] font-medium border border-amber-200 cursor-help"
                       >
                         {kw.keyword}
                       </span>
@@ -182,7 +182,7 @@ export default function ResourcePreviewModal({
                       </li>
                     ))}
                     {starterQuiz.length > 5 && (
-                      <li className="text-[11px] text-gray-400">…and {starterQuiz.length - 5} more</li>
+                      <li className="text-[11px] text-gray-500">…and {starterQuiz.length - 5} more</li>
                     )}
                   </ol>
                 </CollapsibleSection>
@@ -198,7 +198,7 @@ export default function ResourcePreviewModal({
                       </li>
                     ))}
                     {exitQuiz.length > 5 && (
-                      <li className="text-[11px] text-gray-400">…and {exitQuiz.length - 5} more</li>
+                      <li className="text-[11px] text-gray-500">…and {exitQuiz.length - 5} more</li>
                     )}
                   </ol>
                 </CollapsibleSection>
@@ -207,7 +207,7 @@ export default function ResourcePreviewModal({
               {/* Downloads / Preview */}
               {(detail.worksheetUrl || detail.presentationUrl) && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Resources</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Resources</p>
                   <div className="flex flex-wrap gap-2">
                     {detail.worksheetUrl && (
                       <button
@@ -245,7 +245,7 @@ export default function ResourcePreviewModal({
             disabled={added || loading || !detail}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold transition-colors ${
               added
-                ? 'bg-green-100 text-green-700 cursor-default'
+                ? 'bg-green-100 text-green-800 cursor-default'
                 : 'bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white'
             }`}
           >

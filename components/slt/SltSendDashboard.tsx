@@ -23,10 +23,10 @@ function gap(send: number | null, all: number | null): string {
 }
 
 function gapColour(send: number | null, all: number | null): string {
-  if (send == null || all == null) return 'text-gray-400'
+  if (send == null || all == null) return 'text-gray-500'
   const diff = send - all
-  if (diff >= -0.5) return 'text-green-600'
-  if (diff >= -1.5) return 'text-amber-600'
+  if (diff >= -0.5) return 'text-green-700'
+  if (diff >= -1.5) return 'text-amber-700'
   return 'text-red-600'
 }
 
@@ -41,13 +41,13 @@ const FLAG_LABELS: Record<string, string> = {
 // Derive gap trend direction from the first and last month that have full data
 function gapTrend(trend: TrendPoint[]): { label: string; icon: string; colour: string } {
   const withGap = trend.filter(t => t.gap != null)
-  if (withGap.length < 2) return { label: 'Insufficient data', icon: 'remove', colour: 'text-gray-400' }
+  if (withGap.length < 2) return { label: 'Insufficient data', icon: 'remove', colour: 'text-gray-500' }
   const first = withGap[0].gap!
   const last  = withGap[withGap.length - 1].gap!
   const delta = last - first  // more negative = gap widening; closer to 0 or positive = improving
-  if (delta >= 0.3)       return { label: 'Gap narrowing',  icon: 'trending_up',   colour: 'text-green-600' }
+  if (delta >= 0.3)       return { label: 'Gap narrowing',  icon: 'trending_up',   colour: 'text-green-700' }
   if (delta <= -0.3)      return { label: 'Gap widening',   icon: 'trending_down', colour: 'text-red-600'   }
-  return                         { label: 'Gap stable',     icon: 'trending_flat', colour: 'text-amber-600' }
+  return                         { label: 'Gap stable',     icon: 'trending_flat', colour: 'text-amber-700' }
 }
 
 export default function SltSendDashboard({ data }: Props) {
@@ -102,7 +102,7 @@ export default function SltSendDashboard({ data }: Props) {
         <div className="ml-auto text-right">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-1">Attainment gap</p>
           <p className={`text-2xl font-bold ${gapColour(sendAvgScore, schoolAvgScore)}`}>{gap(sendAvgScore, schoolAvgScore)}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">grades (SEND vs school)</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">grades (SEND vs school)</p>
         </div>
       </div>
 
@@ -112,11 +112,11 @@ export default function SltSendDashboard({ data }: Props) {
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
               <h2 className="text-[13px] font-semibold text-gray-900">Attainment Gap Trend — last 6 months</h2>
-              <p className="text-[11px] text-gray-400 mt-0.5">Monthly average grade: school-wide vs SEND cohort</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Monthly average grade: school-wide vs SEND cohort</p>
             </div>
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border ${
-              trendStatus.colour === 'text-green-600' ? 'bg-green-50 border-green-200' :
-              trendStatus.colour === 'text-red-600'   ? 'bg-red-50 border-red-200'     :
+              trendStatus.colour === 'text-green-800' ? 'bg-green-50 border-green-200' :
+              trendStatus.colour === 'text-red-700'   ? 'bg-red-50 border-red-200'     :
                                                         'bg-amber-50 border-amber-200'
             } ${trendStatus.colour}`}>
               <Icon name={trendStatus.icon} size="sm" />
@@ -171,15 +171,15 @@ export default function SltSendDashboard({ data }: Props) {
             return (
               <p className="text-[11px] text-gray-500 mt-3 text-right">
                 Gap moved from{' '}
-                <span className={`font-semibold ${firstGap >= -0.5 ? 'text-green-600' : firstGap >= -1.5 ? 'text-amber-600' : 'text-red-600'}`}>
+                <span className={`font-semibold ${firstGap >= -0.5 ? 'text-green-700' : firstGap >= -1.5 ? 'text-amber-700' : 'text-red-600'}`}>
                   {firstGap >= 0 ? '+' : ''}{firstGap.toFixed(1)}
                 </span>
                 {' '}({trend.filter(t => t.gap != null)[0].month}) to{' '}
-                <span className={`font-semibold ${lastGap >= -0.5 ? 'text-green-600' : lastGap >= -1.5 ? 'text-amber-600' : 'text-red-600'}`}>
+                <span className={`font-semibold ${lastGap >= -0.5 ? 'text-green-700' : lastGap >= -1.5 ? 'text-amber-700' : 'text-red-600'}`}>
                   {lastGap >= 0 ? '+' : ''}{lastGap.toFixed(1)}
                 </span>
                 {' '}({trend.filter(t => t.gap != null)[withGap.length - 1].month}){' '}
-                <span className={delta >= 0 ? 'text-green-600' : 'text-red-600'}>
+                <span className={delta >= 0 ? 'text-green-700' : 'text-red-600'}>
                   ({delta >= 0 ? '▲' : '▼'}{Math.abs(delta).toFixed(1)} grades)
                 </span>
               </p>
@@ -249,7 +249,7 @@ export default function SltSendDashboard({ data }: Props) {
                     </tr>
                   ))}
                   {yearGroupRows.length === 0 && (
-                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No SEND data by year group</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No SEND data by year group</td></tr>
                   )}
                 </tbody>
               </table>
@@ -271,11 +271,11 @@ export default function SltSendDashboard({ data }: Props) {
                     <div className="flex items-center gap-6 shrink-0 text-right">
                       <div>
                         <p className="text-[13px] font-bold text-purple-700">{n.count}</p>
-                        <p className="text-[10px] text-gray-400">students</p>
+                        <p className="text-[10px] text-gray-500">students</p>
                       </div>
                       <div>
                         <p className={`text-[12px] font-medium ${gapColour(n.avgScore, schoolAvgScore)}`}>{gradeLabel(n.avgScore)}</p>
-                        <p className="text-[10px] text-gray-400">avg grade</p>
+                        <p className="text-[10px] text-gray-500">avg grade</p>
                       </div>
                     </div>
                   </div>
@@ -297,10 +297,10 @@ export default function SltSendDashboard({ data }: Props) {
             <div className="space-y-2.5">
               {[
                 { label: 'Total plans',       value: ehcp.total,           colour: 'text-gray-900' },
-                { label: 'Approved',          value: ehcp.approved,        colour: 'text-green-600' },
-                { label: 'Pending sign-off',  value: ehcp.pendingApproval, colour: ehcp.pendingApproval > 0 ? 'text-amber-600' : 'text-gray-300' },
-                { label: 'Reviews overdue',   value: ehcp.reviewOverdue,   colour: ehcp.reviewOverdue > 0   ? 'text-red-600'   : 'text-gray-300' },
-                { label: 'Reviews due (30d)', value: ehcp.reviewDue30,     colour: ehcp.reviewDue30 > 0     ? 'text-amber-600' : 'text-gray-300' },
+                { label: 'Approved',          value: ehcp.approved,        colour: 'text-green-700' },
+                { label: 'Pending sign-off',  value: ehcp.pendingApproval, colour: ehcp.pendingApproval > 0 ? 'text-amber-700' : 'text-gray-500' },
+                { label: 'Reviews overdue',   value: ehcp.reviewOverdue,   colour: ehcp.reviewOverdue > 0   ? 'text-red-600'   : 'text-gray-500' },
+                { label: 'Reviews due (30d)', value: ehcp.reviewDue30,     colour: ehcp.reviewDue30 > 0     ? 'text-amber-700' : 'text-gray-500' },
               ].map(r => (
                 <div key={r.label} className="flex items-center justify-between">
                   <span className="text-[12px] text-gray-500">{r.label}</span>
@@ -321,7 +321,7 @@ export default function SltSendDashboard({ data }: Props) {
                 <div className="flex flex-wrap gap-x-4 gap-y-1">
                   <span className="text-[10px] text-green-700 font-medium">{ehcp.outcomesAchieved} achieved</span>
                   <span className="text-[10px] text-blue-600 font-medium">{ehcp.outcomesActive} active</span>
-                  <span className="text-[10px] text-gray-400">{ehcp.outcomesTotal} total</span>
+                  <span className="text-[10px] text-gray-500">{ehcp.outcomesTotal} total</span>
                 </div>
               </div>
             )}
@@ -332,8 +332,8 @@ export default function SltSendDashboard({ data }: Props) {
                 <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Evidence audit</p>
                 <div className="space-y-1.5">
                   {[
-                    { label: 'Sufficient (≥2 pieces)', value: ehcp.evidenceGood, colour: 'text-green-600', bg: 'bg-green-100' },
-                    { label: 'Partial (1 piece)',       value: ehcp.evidenceSome, colour: 'text-amber-600', bg: 'bg-amber-100' },
+                    { label: 'Sufficient (≥2 pieces)', value: ehcp.evidenceGood, colour: 'text-green-700', bg: 'bg-green-100' },
+                    { label: 'Partial (1 piece)',       value: ehcp.evidenceSome, colour: 'text-amber-700', bg: 'bg-amber-100' },
                     { label: 'No evidence',            value: ehcp.evidenceNone, colour: 'text-red-600',   bg: 'bg-red-100' },
                   ].map(e => (
                     <div key={e.label} className="flex items-center justify-between">
@@ -367,7 +367,7 @@ export default function SltSendDashboard({ data }: Props) {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-[12px] text-gray-500">ILP coverage</span>
-                <span className={`text-[14px] font-bold ${ilp.coveragePct >= 80 ? 'text-green-600' : ilp.coveragePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                <span className={`text-[14px] font-bold ${ilp.coveragePct >= 80 ? 'text-green-700' : ilp.coveragePct >= 50 ? 'text-amber-700' : 'text-red-600'}`}>
                   {ilp.coveragePct}%
                 </span>
               </div>
@@ -377,15 +377,15 @@ export default function SltSendDashboard({ data }: Props) {
                   style={{ width: `${ilp.coveragePct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-gray-400 mt-1">{ilp.activeIlps} of {data.sendTotal} SEND students have an active approved ILP</p>
+              <p className="text-[10px] text-gray-500 mt-1">{ilp.activeIlps} of {data.sendTotal} SEND students have an active approved ILP</p>
             </div>
 
             <div className="space-y-2.5 border-t border-gray-100 pt-3">
               {[
                 { label: 'Active targets',   value: ilp.targetsActive,   colour: 'text-blue-700' },
-                { label: 'Achieved targets', value: ilp.targetsAchieved, colour: 'text-green-600' },
-                { label: 'Not achieved',     value: ilp.targetsNotAch,   colour: ilp.targetsNotAch > 0 ? 'text-red-500' : 'text-gray-300' },
-                { label: 'ILPs overdue review', value: ilp.reviewOverdue, colour: ilp.reviewOverdue > 0 ? 'text-amber-600' : 'text-gray-300' },
+                { label: 'Achieved targets', value: ilp.targetsAchieved, colour: 'text-green-700' },
+                { label: 'Not achieved',     value: ilp.targetsNotAch,   colour: ilp.targetsNotAch > 0 ? 'text-red-600' : 'text-gray-500' },
+                { label: 'ILPs overdue review', value: ilp.reviewOverdue, colour: ilp.reviewOverdue > 0 ? 'text-amber-700' : 'text-gray-500' },
               ].map(r => (
                 <div key={r.label} className="flex items-center justify-between">
                   <span className="text-[12px] text-gray-500">{r.label}</span>
@@ -394,7 +394,7 @@ export default function SltSendDashboard({ data }: Props) {
               ))}
             </div>
 
-            <Link href="/senco/ilp" className="mt-4 flex items-center gap-1 text-[11px] text-teal-600 font-medium hover:underline">
+            <Link href="/senco/ilp" className="mt-4 flex items-center gap-1 text-[11px] text-teal-700 font-medium hover:underline">
               View ILP Records <Icon name="chevron_right" size="sm" />
             </Link>
           </div>
@@ -402,13 +402,13 @@ export default function SltSendDashboard({ data }: Props) {
           {/* Early warning flags */}
           <div className={`border rounded-xl p-5 ${flags.high > 0 ? 'bg-red-50 border-red-200' : flags.medium > 0 ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}`}>
             <div className="flex items-center gap-2 mb-4">
-              <Icon name="warning" size="sm" className={flags.high > 0 ? 'text-red-600' : flags.medium > 0 ? 'text-amber-600' : 'text-gray-400'} />
+              <Icon name="warning" size="sm" className={flags.high > 0 ? 'text-red-600' : flags.medium > 0 ? 'text-amber-700' : 'text-gray-500'} />
               <h3 className="text-[13px] font-semibold text-gray-900">Early Warning Flags</h3>
             </div>
             <div className="flex gap-4 mb-3">
               {[
                 { label: 'High',   value: flags.high,   colour: 'text-red-600',   bg: 'bg-red-100' },
-                { label: 'Medium', value: flags.medium, colour: 'text-amber-600', bg: 'bg-amber-100' },
+                { label: 'Medium', value: flags.medium, colour: 'text-amber-700', bg: 'bg-amber-100' },
                 { label: 'Low',    value: flags.low,    colour: 'text-gray-600',  bg: 'bg-gray-100' },
               ].map(s => (
                 <div key={s.label} className={`flex-1 text-center rounded-lg py-2 ${s.bg}`}>
@@ -428,7 +428,7 @@ export default function SltSendDashboard({ data }: Props) {
               </div>
             )}
             {flags.totalActive === 0 && (
-              <p className="text-[12px] text-gray-400 text-center py-2">No active flags</p>
+              <p className="text-[12px] text-gray-500 text-center py-2">No active flags</p>
             )}
             <Link href="/senco/early-warning" className="mt-3 flex items-center gap-1 text-[11px] text-gray-600 font-medium hover:underline">
               View Early Warning <Icon name="chevron_right" size="sm" />

@@ -16,9 +16,9 @@ type Props = {
 }
 
 const TYPE_OPTS: { value: 'PROGRESS' | 'CONCERN' | 'NEUTRAL'; label: string; cls: string }[] = [
-  { value: 'PROGRESS', label: 'Progress', cls: 'bg-green-100 text-green-700'  },
+  { value: 'PROGRESS', label: 'Progress', cls: 'bg-green-100 text-green-800'  },
   { value: 'CONCERN',  label: 'Concern',  cls: 'bg-rose-100 text-rose-700'    },
-  { value: 'NEUTRAL',  label: 'Neutral',  cls: 'bg-gray-100 text-gray-500'    },
+  { value: 'NEUTRAL',  label: 'Neutral',  cls: 'bg-gray-100 text-gray-600'    },
 ]
 
 const FORMAT_LABELS: Record<string, string> = {
@@ -88,7 +88,7 @@ export default function IlpEvidenceLinkPanel({ submissions, ilpTargets }: Props)
       <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
         <Icon name="link" size="sm" className="text-indigo-500" />
         <h2 className="text-[14px] font-semibold text-gray-900">Link Homework Evidence to ILP</h2>
-        <span className="ml-auto text-[11px] text-gray-400">
+        <span className="ml-auto text-[11px] text-gray-500">
           {unlinked.length} unlinked · {linked.length} linked
         </span>
       </div>
@@ -110,12 +110,12 @@ export default function IlpEvidenceLinkPanel({ submissions, ilpTargets }: Props)
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-[13px] font-medium text-gray-900">{sub.title}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
+                      <p className="text-[11px] text-gray-500 mt-0.5">
                         {sub.subject} · {sub.className} · {new Date(sub.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                         {sub.grade && <> · <span className="font-semibold text-blue-600">Gr {sub.grade}</span></>}
                       </p>
                     </div>
-                    <button onClick={() => setLinking(null)} className="text-gray-300 hover:text-gray-500">
+                    <button onClick={() => setLinking(null)} className="text-gray-500 hover:text-gray-500">
                       <Icon name="close" size="sm" />
                     </button>
                   </div>
@@ -175,7 +175,7 @@ export default function IlpEvidenceLinkPanel({ submissions, ilpTargets }: Props)
                         : <><Icon name="link" size="sm" /> Link evidence</>
                       }
                     </button>
-                    <button onClick={() => setLinking(null)} className="text-[12px] text-gray-400 hover:text-gray-600">
+                    <button onClick={() => setLinking(null)} className="text-[12px] text-gray-500 hover:text-gray-600">
                       Cancel
                     </button>
                   </div>
@@ -184,10 +184,10 @@ export default function IlpEvidenceLinkPanel({ submissions, ilpTargets }: Props)
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-medium text-gray-800 truncate">{sub.title}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
+                    <p className="text-[11px] text-gray-500 mt-0.5">
                       {sub.subject}
                       {sub.homeworkVariantType && (
-                        <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
+                        <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px]">
                           {FORMAT_LABELS[sub.homeworkVariantType] ?? sub.homeworkVariantType}
                         </span>
                       )}
@@ -221,7 +221,7 @@ export default function IlpEvidenceLinkPanel({ submissions, ilpTargets }: Props)
         <div className="border-t border-gray-100">
           <button
             onClick={() => setShowLinked(v => !v)}
-            className="w-full flex items-center gap-2 px-5 py-3 text-[12px] text-gray-400 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-2 px-5 py-3 text-[12px] text-gray-500 hover:bg-gray-50 transition-colors"
           >
             <Icon name={showLinked ? 'expand_less' : 'expand_more'} size="sm" />
             {showLinked ? 'Hide' : 'Show'} {linked.length} already-linked submission{linked.length !== 1 ? 's' : ''}
@@ -233,7 +233,7 @@ export default function IlpEvidenceLinkPanel({ submissions, ilpTargets }: Props)
                   <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-medium text-gray-700 truncate">{sub.title}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-gray-500 mt-0.5">
                       {sub.subject} · linked to {sub.linkedTargetIds.length} target{sub.linkedTargetIds.length !== 1 ? 's' : ''}
                     </p>
                   </div>

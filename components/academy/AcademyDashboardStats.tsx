@@ -8,7 +8,7 @@ function StatCard({ label, value, colour, icon }: CardProps) {
       <span className={`material-icons text-[28px] ${colour}`}>{icon}</span>
       <div>
         <p className={`text-[28px] font-bold leading-none ${colour}`}>{value.toLocaleString()}</p>
-        <p className="text-[12px] text-gray-400 mt-1">{label}</p>
+        <p className="text-[12px] text-gray-500 mt-1">{label}</p>
       </div>
     </div>
   )
@@ -18,12 +18,12 @@ export default function AcademyDashboardStats({ stats }: { stats: AcademyStats }
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-7 gap-3">
       <StatCard label="Schools"          value={stats.totalSchools}     colour="text-gray-900"   icon="business"          />
-      <StatCard label="Onboarded"        value={stats.onboardedSchools} colour="text-green-600"  icon="check_circle"      />
+      <StatCard label="Onboarded"        value={stats.onboardedSchools} colour="text-green-700"  icon="check_circle"      />
       <StatCard label="Students"         value={stats.totalStudents}    colour="text-blue-600"   icon="people"            />
       <StatCard label="Staff"            value={stats.totalStaff}       colour="text-purple-600" icon="badge"             />
-      <StatCard label="Active ILPs"      value={stats.totalActiveIlps}  colour="text-amber-600"  icon="description"       />
+      <StatCard label="Active ILPs"      value={stats.totalActiveIlps}  colour="text-amber-700"  icon="description"       />
       <StatCard label="EHCP Plans"       value={stats.totalEhcps}       colour="text-rose-600"   icon="fact_check"        />
-      <StatCard label="Open Concerns"    value={stats.openConcerns}     colour="text-orange-600" icon="report_problem"    />
+      <StatCard label="Open Concerns"    value={stats.openConcerns}     colour="text-orange-700" icon="report_problem"    />
     </div>
   )
 }

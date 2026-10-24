@@ -19,7 +19,7 @@ export default async function ParentConsentPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-[22px] font-bold text-gray-900">Consent Settings</h1>
-                <p className="text-[13px] text-gray-400 mt-0.5">
+                <p className="text-[13px] text-gray-500 mt-0.5">
                   Manage how the school uses your child&apos;s personal data
                 </p>
               </div>

@@ -33,7 +33,7 @@ const YEAR_COLORS = [
   'bg-blue-50 border-blue-200 text-blue-700',
   'bg-violet-50 border-violet-200 text-violet-700',
   'bg-emerald-50 border-emerald-200 text-emerald-700',
-  'bg-amber-50 border-amber-200 text-amber-700',
+  'bg-amber-50 border-amber-200 text-amber-800',
   'bg-rose-50 border-rose-200 text-rose-700',
   'bg-cyan-50 border-cyan-200 text-cyan-700',
   'bg-indigo-50 border-indigo-200 text-indigo-700',
@@ -107,7 +107,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                 {/* Class name + subject */}
                 <div className="flex-1 min-w-0">
                   <span className="font-semibold text-gray-900 text-sm">{cls.name}</span>
-                  <span className="text-gray-400 text-xs ml-2">{cls.subject}</span>
+                  <span className="text-gray-500 text-xs ml-2">{cls.subject}</span>
                 </div>
 
                 {/* Stats */}
@@ -117,7 +117,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                     {cls.students.length} students
                   </span>
                   {sendCount > 0 && (
-                    <span className="flex items-center gap-1 text-amber-600">
+                    <span className="flex items-center gap-1 text-amber-700">
                       <Icon name="favorite" size="sm" />
                       {sendCount} SEND
                     </span>
@@ -129,11 +129,11 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
               {isOpen && (
                 <div className="border-t border-gray-100">
                   {cls.students.length === 0 ? (
-                    <div className="px-5 py-6 text-sm text-gray-400 text-center">No students enrolled.</div>
+                    <div className="px-5 py-6 text-sm text-gray-500 text-center">No students enrolled.</div>
                   ) : (
                     <>
                       {/* Column header */}
-                      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_100px_120px] px-5 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_100px_120px] px-5 py-2 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                         <span>Student</span>
                         <span className="hidden sm:block text-right">Year</span>
                         <span className="text-right">SEND</span>
@@ -161,7 +161,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                             </div>
 
                             {/* Year */}
-                            <div className="hidden sm:block text-right text-xs text-gray-400">
+                            <div className="hidden sm:block text-right text-xs text-gray-500">
                               {s.yearGroup != null ? `Year ${s.yearGroup}` : '—'}
                             </div>
 
@@ -173,7 +173,7 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                                   {SEND_LABEL[s.sendStatus] ?? s.sendStatus}
                                 </span>
                               ) : (
-                                <span className="text-xs text-gray-300">—</span>
+                                <span className="text-xs text-gray-500">—</span>
                               )}
                             </div>
                           </div>
@@ -181,11 +181,11 @@ export default function ClassListView({ classes }: { classes: ClassData[] }) {
                       </div>
 
                       {/* Footer summary */}
-                      <div className="px-5 py-2.5 border-t border-gray-50 bg-gray-50 flex items-center gap-4 text-[11px] text-gray-400">
+                      <div className="px-5 py-2.5 border-t border-gray-50 bg-gray-50 flex items-center gap-4 text-[11px] text-gray-500">
                         <Icon name="menu_book" size="sm" />
                         <span>{cls.students.length} enrolled</span>
                         {sendCount > 0 && (
-                          <span className="text-amber-600">{sendCount} with SEND</span>
+                          <span className="text-amber-700">{sendCount} with SEND</span>
                         )}
                         <Link
                           href={`/api/export/homework-tracker?classId=${cls.id}`}

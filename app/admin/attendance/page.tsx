@@ -11,9 +11,9 @@ import AttendanceExportButton from '@/components/admin/AttendanceExportButton'
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function pctColour(pct: number) {
-  if (pct >= 95) return 'text-green-600'
-  if (pct >= 90) return 'text-amber-600'
-  if (pct >= 85) return 'text-orange-600'
+  if (pct >= 95) return 'text-green-700'
+  if (pct >= 90) return 'text-amber-700'
+  if (pct >= 85) return 'text-orange-700'
   return 'text-red-600 font-semibold'
 }
 
@@ -141,18 +141,18 @@ export default async function AttendancePage() {
                 {schoolAvg != null && (
                   <div className="bg-white border border-gray-200 rounded-xl p-5 sm:col-span-1">
                     <p className={`text-[26px] font-bold ${pctColour(schoolAvg)}`}>{schoolAvg.toFixed(1)}%</p>
-                    <p className="text-[12px] text-gray-400 mt-1">School average</p>
+                    <p className="text-[12px] text-gray-500 mt-1">School average</p>
                   </div>
                 )}
                 {[
-                  { label: '≥95% Excellent',  value: dist.excellent, colour: 'text-green-600' },
-                  { label: '90–94% Good',      value: dist.good,      colour: 'text-amber-600' },
-                  { label: '85–89% Concern',   value: dist.concern,   colour: 'text-orange-600' },
-                  { label: '<85% Serious',     value: dist.serious,   colour: dist.serious > 0 ? 'text-red-600 font-bold' : 'text-gray-300' },
+                  { label: '≥95% Excellent',  value: dist.excellent, colour: 'text-green-700' },
+                  { label: '90–94% Good',      value: dist.good,      colour: 'text-amber-700' },
+                  { label: '85–89% Concern',   value: dist.concern,   colour: 'text-orange-700' },
+                  { label: '<85% Serious',     value: dist.serious,   colour: dist.serious > 0 ? 'text-red-600 font-bold' : 'text-gray-500' },
                 ].map(k => (
                   <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-5">
                     <p className={`text-[26px] font-bold ${k.colour}`}>{k.value}</p>
-                    <p className="text-[12px] text-gray-400 mt-1">{k.label}</p>
+                    <p className="text-[12px] text-gray-500 mt-1">{k.label}</p>
                   </div>
                 ))}
               </div>
@@ -183,7 +183,7 @@ export default async function AttendancePage() {
                           <td className="px-4 py-3 text-right">
                             {ys.avg != null
                               ? <span className={`font-semibold ${pctColour(ys.avg)}`}>{ys.avg.toFixed(1)}%</span>
-                              : <span className="text-gray-300">—</span>
+                              : <span className="text-gray-500">—</span>
                             }
                           </td>
                           <td className="px-4 py-3">
@@ -191,14 +191,14 @@ export default async function AttendancePage() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             {ys.below90 > 0
-                              ? <span className="text-amber-600 font-medium">{ys.below90}</span>
-                              : <span className="text-gray-300">0</span>
+                              ? <span className="text-amber-700 font-medium">{ys.below90}</span>
+                              : <span className="text-gray-500">0</span>
                             }
                           </td>
                           <td className="px-5 py-3 text-right">
                             {ys.below85 > 0
                               ? <span className="text-red-600 font-semibold">{ys.below85}</span>
-                              : <span className="text-gray-300">0</span>
+                              : <span className="text-gray-500">0</span>
                             }
                           </td>
                         </tr>
@@ -215,13 +215,13 @@ export default async function AttendancePage() {
                     <Icon name="warning" size="sm" className="text-amber-500" />
                     <h2 className="text-[13px] font-semibold text-gray-800">Students Below 90%</h2>
                   </div>
-                  <span className="text-[11px] text-gray-400">{concerns.length} students</span>
+                  <span className="text-[11px] text-gray-500">{concerns.length} students</span>
                 </div>
 
                 {concerns.length === 0 ? (
                   <div className="px-5 py-10 text-center">
                     <Icon name="check_circle" size="md" className="text-green-400 mx-auto mb-2" />
-                    <p className="text-[13px] text-gray-400">All students are above 90%</p>
+                    <p className="text-[13px] text-gray-500">All students are above 90%</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -278,7 +278,7 @@ export default async function AttendancePage() {
               </section>
 
               {withoutData.length > 0 && (
-                <p className="text-[11px] text-gray-400 text-center">
+                <p className="text-[11px] text-gray-500 text-center">
                   {withoutData.length} student{withoutData.length !== 1 ? 's' : ''} have no attendance data (not yet synced from MIS).
                 </p>
               )}

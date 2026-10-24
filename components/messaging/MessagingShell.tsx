@@ -47,7 +47,7 @@ export default function MessagingShell({
           <h1 className="text-[14px] font-semibold text-gray-900">Messages</h1>
           <button
             onClick={() => setShowNew(true)}
-            className="flex items-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-[12px] font-medium text-blue-700 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition-colors"
           >
             <Icon name="edit_note" size="sm" />
             New
@@ -75,12 +75,12 @@ export default function MessagingShell({
             onArchived={handleArchived}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-3">
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 gap-3">
             <Icon name="edit_note" size="lg" className="opacity-20" />
             <p className="text-[13px]">Select a conversation or start a new one</p>
             <button
               onClick={() => setShowNew(true)}
-              className="text-[13px] font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
+              className="text-[13px] font-medium text-blue-700 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
             >
               + New Message
             </button>

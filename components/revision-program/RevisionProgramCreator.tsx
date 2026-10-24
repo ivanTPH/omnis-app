@@ -114,7 +114,7 @@ function Step1({
           ))}
         </select>
         {state.classId && weekCount != null && (
-          <p className={`mt-1.5 text-xs font-medium ${weekCount >= 3 ? 'text-red-600' : weekCount === 2 ? 'text-amber-600' : 'text-gray-500'}`}>
+          <p className={`mt-1.5 text-xs font-medium ${weekCount >= 3 ? 'text-red-600' : weekCount === 2 ? 'text-amber-700' : 'text-gray-500'}`}>
             {weekCount} of 3 programs used this week{weekCount >= 3 ? ' — limit reached' : ''}
           </p>
         )}
@@ -153,11 +153,11 @@ function Step1({
         {state.periodPreset === 'custom' && (
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">From</label>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wide block mb-1">From</label>
               <input type="date" value={state.periodStart.slice(0, 10)} onChange={e => onChange({ periodStart: new Date(e.target.value).toISOString() })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="flex-1">
-              <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">To</label>
+              <label className="text-[10px] text-gray-500 uppercase tracking-wide block mb-1">To</label>
               <input type="date" value={state.periodEnd.slice(0, 10)} onChange={e => onChange({ periodEnd: new Date(e.target.value).toISOString() })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
@@ -244,7 +244,7 @@ function Step2({
       <div>
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Topic Performance</h3>
         {analysis.topicPerformance.length === 0 ? (
-          <p className="text-sm text-gray-400 italic">No homework data found for this period — program will be based on lesson topics only.</p>
+          <p className="text-sm text-gray-500 italic">No homework data found for this period — program will be based on lesson topics only.</p>
         ) : (
           <div className="space-y-2">
             {analysis.topicPerformance.map(tp => {
@@ -307,10 +307,10 @@ function Step2({
                       <td className="px-3 py-2">
                         {s.avgScore === 0 ? (
                           <Tooltip content="No graded homework found for this student in the selected period. Revision will be based on lesson topics.">
-                            <span className="text-gray-400 italic">—</span>
+                            <span className="text-gray-500 italic">—</span>
                           </Tooltip>
                         ) : (
-                          <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-600' : s.avgScore >= 4.5 ? 'text-amber-600' : 'text-rose-600'}`}>
+                          <span className={`font-semibold ${s.avgScore >= 6.75 ? 'text-green-700' : s.avgScore >= 4.5 ? 'text-amber-700' : 'text-rose-600'}`}>
                             {gradeLabel(Math.round(s.avgScore))}
                           </span>
                         )}
@@ -333,7 +333,7 @@ function Step2({
                             <div>
                               <p className="font-semibold text-rose-700 mb-1 uppercase tracking-wide text-[10px]">Weak topics</p>
                               {s.weakTopics.length === 0
-                                ? <span className="text-gray-400 italic">None identified</span>
+                                ? <span className="text-gray-500 italic">None identified</span>
                                 : <div className="flex flex-wrap gap-1">{s.weakTopics.map(t => (
                                     <span key={t} className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-medium">{t}</span>
                                   ))}</div>
@@ -343,7 +343,7 @@ function Step2({
                             <div>
                               <p className="font-semibold text-green-700 mb-1 uppercase tracking-wide text-[10px]">Strong topics</p>
                               {s.strongTopics.length === 0
-                                ? <span className="text-gray-400 italic">None identified</span>
+                                ? <span className="text-gray-500 italic">None identified</span>
                                 : <div className="flex flex-wrap gap-1">{s.strongTopics.map(t => (
                                     <span key={t} className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-medium">{t}</span>
                                   ))}</div>
@@ -391,7 +391,7 @@ function Step2({
           </table>
         </div>
         {analysis.studentAnalysis.some(s => s.avgScore === 0) && (
-          <p className="text-[10px] text-gray-400 mt-1.5 pl-1">
+          <p className="text-[10px] text-gray-500 mt-1.5 pl-1">
             — indicates no graded homework was found in the selected period. Revision tasks will be generated from lesson topics instead.
           </p>
         )}
@@ -415,7 +415,7 @@ function Step2({
                     <p className="text-[10px] text-gray-500 mt-0.5 truncate">{unit.topics.slice(0, 3).join(' · ')}{unit.topics.length > 3 ? ` +${unit.topics.length - 3} more` : ''}</p>
                   )}
                 </div>
-                <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded ${unit.taught ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded ${unit.taught ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
                   {unit.taught ? 'Taught' : 'Gap'}
                 </span>
               </div>
@@ -553,8 +553,8 @@ function TopicReview({
                   onClick={() => updateTopic(topic.id, { showSource: !topic.showSource })}
                   className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 transition-colors ${
                     topic.sourceMaterial?.trim()
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                   }`}
                 >
                   {topic.sourceMaterial?.trim() ? 'Source ✓' : 'Add source'}
@@ -562,7 +562,7 @@ function TopicReview({
               )}
               <button
                 onClick={() => removeTopic(topic.id)}
-                className="text-gray-300 hover:text-rose-500 shrink-0 transition-colors"
+                className="text-gray-500 hover:text-rose-600 shrink-0 transition-colors"
                 title="Remove topic"
               >
                 <Icon name="close" size="sm" />
@@ -587,7 +587,7 @@ function TopicReview({
         ))}
 
         {topics.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-4">No topics yet — add one below.</p>
+          <p className="text-sm text-gray-500 text-center py-4">No topics yet — add one below.</p>
         )}
       </div>
 
@@ -687,7 +687,7 @@ function Step3({ studentCount }: { studentCount: number }) {
         <div className="h-full bg-blue-500 rounded-full animate-pulse w-3/4" />
       </div>
       <p className="text-sm text-gray-500">Creating {studentCount} personalised tasks. Please wait.</p>
-      <p className="text-xs text-gray-400">This takes 1–2 minutes for larger classes.</p>
+      <p className="text-xs text-gray-500">This takes 1–2 minutes for larger classes.</p>
     </div>
   )
 }
@@ -803,7 +803,7 @@ function Step4({
         <Icon name="check_circle" size="md" className="text-green-600 shrink-0" />
         <div>
           <p className="text-sm font-semibold text-green-800">{tasks.length} personalised revision tasks generated</p>
-          <p className="text-xs text-green-600 mt-0.5">Expand each student to edit questions, then approve to publish.</p>
+          <p className="text-xs text-green-700 mt-0.5">Expand each student to edit questions, then approve to publish.</p>
         </div>
       </div>
 
@@ -862,7 +862,7 @@ function Step4({
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">Edited — unsaved</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-gray-500 mt-0.5">
                     {questions.length} question{questions.length !== 1 ? 's' : ''} ·{' '}
                     {task.taskType?.replace(/_/g, ' ') ?? 'retrieval practice'} ·{' '}
                     {(task.weakTopics ?? []).slice(0, 2).join(', ') || 'general revision'}
@@ -880,7 +880,7 @@ function Step4({
                     return (
                     <div key={q.id ?? qi} className={`bg-white rounded-lg border p-3 space-y-2 transition-colors ${isFocus ? 'border-blue-400' : 'border-gray-200'}`}>
                       <div className="flex items-start gap-2">
-                        <span className="shrink-0 font-bold text-gray-400 text-xs w-5 pt-2">{qi + 1}.</span>
+                        <span className="shrink-0 font-bold text-gray-500 text-xs w-5 pt-2">{qi + 1}.</span>
                         <textarea
                           rows={2}
                           value={q.question}
@@ -907,13 +907,13 @@ function Step4({
                           type="button"
                           title="Delete this question"
                           onClick={() => deleteQuestion(task.id, qi)}
-                          className="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-rose-50 text-gray-300 hover:text-rose-500 transition-colors"
+                          className="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-rose-50 text-gray-500 hover:text-rose-600 transition-colors"
                         >
                           <Icon name="delete" size="sm" />
                         </button>
                       </div>
                       <div className="flex items-center gap-3 pl-7">
-                        <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <div className="flex items-center gap-1 text-[10px] text-gray-500">
                           <input
                             type="number"
                             min={1}
@@ -924,9 +924,9 @@ function Step4({
                           />
                           <span>marks</span>
                         </div>
-                        <span className="text-[10px] text-gray-400 capitalize">{q.bloomsLevel}</span>
+                        <span className="text-[10px] text-gray-500 capitalize">{q.bloomsLevel}</span>
                         {q.lessonTitle && (
-                          <span className="text-[10px] text-gray-400 italic truncate max-w-[140px]" title={q.lessonTitle}>{q.lessonTitle}</span>
+                          <span className="text-[10px] text-gray-500 italic truncate max-w-[140px]" title={q.lessonTitle}>{q.lessonTitle}</span>
                         )}
                       </div>
                       {/* Optional teacher note */}
@@ -1115,10 +1115,10 @@ export default function RevisionProgramCreator({
           const done   = step > n
           return (
             <div key={label} className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? 'bg-green-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${done ? 'bg-green-500 text-white' : active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
                 {done ? '✓' : n}
               </div>
-              <span className={`text-xs font-medium ${active ? 'text-blue-700' : done ? 'text-green-600' : 'text-gray-400'}`}>{label}</span>
+              <span className={`text-xs font-medium ${active ? 'text-blue-700' : done ? 'text-green-800' : 'text-gray-600'}`}>{label}</span>
               {i < stepLabels.length - 1 && <div className="w-6 h-px bg-gray-300" />}
             </div>
           )

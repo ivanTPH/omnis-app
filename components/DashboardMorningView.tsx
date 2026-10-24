@@ -73,7 +73,7 @@ const CATEGORY_COLOURS: Record<string, string> = {
   attendance:       'bg-yellow-100 text-yellow-700',
   social_emotional: 'bg-pink-100 text-pink-700',
   communication:    'bg-teal-100 text-teal-700',
-  physical:         'bg-green-100 text-green-700',
+  physical:         'bg-green-100 text-green-800',
   sensory:          'bg-indigo-100 text-indigo-700',
   other:            'bg-gray-100 text-gray-700',
 }
@@ -162,7 +162,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
         <div className="border-t border-red-200 bg-white px-4 pb-4 pt-3 space-y-4">
 
           {/* Raised info */}
-          <p className="text-xs text-gray-400">Raised {formatDate(concern.createdAt)} · Status: <span className="capitalize">{concern.status.replace('_', ' ')}</span></p>
+          <p className="text-xs text-gray-500">Raised {formatDate(concern.createdAt)} · Status: <span className="capitalize">{concern.status.replace('_', ' ')}</span></p>
 
           {/* Today's lesson */}
           {concern.todayLesson ? (
@@ -171,7 +171,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
               <span>Next in class: <strong>{concern.todayLesson.className}</strong> at {formatTime(concern.todayLesson.scheduledAt)}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
               <Icon name="schedule" size="sm" className="shrink-0" />
               <span>Not in your class today</span>
             </div>
@@ -180,7 +180,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
           {/* Existing evidence notes */}
           {concern.evidenceNotes && (
             <div className="rounded-md bg-amber-50 border border-amber-200 p-3">
-              <p className="text-xs font-semibold text-amber-700 mb-1">Evidence notes</p>
+              <p className="text-xs font-semibold text-amber-800 mb-1">Evidence notes</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{concern.evidenceNotes}</p>
             </div>
           )}
@@ -188,7 +188,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
           {/* Homework evidence links */}
           {concern.recentHomework.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1">Recent homework submissions</p>
+              <p className="text-xs font-semibold text-gray-600 mb-1">Recent homework submissions</p>
               <div className="space-y-1">
                 {concern.recentHomework.map(hw => (
                   <Link
@@ -196,18 +196,18 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
                     href={hw.isOwnHomework
                       ? `/homework/${hw.id}/mark/${hw.submissionId}`
                       : `/students/${concern.studentId}?tab=Homework`}
-                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    className="flex items-center gap-2 text-sm text-blue-700 hover:text-blue-800 hover:underline"
                   >
-                    <Icon name="assignment_turned_in" size="sm" className="shrink-0 text-gray-400" />
+                    <Icon name="assignment_turned_in" size="sm" className="shrink-0 text-gray-600" />
                     <span className="truncate">{hw.title}</span>
                     {hw.grade && (
                       <span className="shrink-0 text-[11px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
                         Gr {hw.grade}
                       </span>
                     )}
-                    <span className="text-gray-400 shrink-0">· due {formatDate(hw.dueAt)}</span>
+                    <span className="text-gray-600 shrink-0">· due {formatDate(hw.dueAt)}</span>
                     {!hw.isOwnHomework && (
-                      <span className="shrink-0 text-[10px] text-gray-400 italic">other teacher</span>
+                      <span className="shrink-0 text-[10px] text-gray-600 italic">other teacher</span>
                     )}
                   </Link>
                 ))}
@@ -217,7 +217,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
 
           {/* Add note */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-1">Add a note</p>
+            <p className="text-xs font-semibold text-gray-600 mb-1">Add a note</p>
             <textarea
               value={note}
               onChange={e => setNote(e.target.value)}
@@ -275,7 +275,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
 
           {/* Success / error flash */}
           {successMsg && (
-            <p className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1.5">
+            <p className="text-xs font-medium text-green-800 bg-green-50 border border-green-200 rounded px-3 py-1.5">
               {successMsg}
             </p>
           )}
@@ -283,7 +283,7 @@ function ConcernCard({ concern, onUpdate }: { concern: OpenConcern; onUpdate: ()
           {/* Link to student profile */}
           <Link
             href={`/students/${concern.studentId}`}
-            className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:text-blue-800 hover:underline"
           >
             <Icon name="person" size="sm" />
             View full student profile
@@ -345,7 +345,7 @@ export default function DashboardMorningView({
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-2">
             <Icon name="event_note" size="sm" className="text-gray-400" />
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
               Your timetable today · from school MIS
             </p>
           </div>
@@ -365,7 +365,7 @@ export default function DashboardMorningView({
                   <p className="text-[11px] text-gray-500 leading-tight truncate">{lesson.subject}</p>
                 )}
                 {lesson.room && (
-                  <p className="text-[10px] text-gray-400 mt-0.5 truncate">{lesson.room}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 truncate">{lesson.room}</p>
                 )}
               </div>
             ))}
@@ -385,7 +385,7 @@ export default function DashboardMorningView({
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-amber-900">{alert.title}</p>
                 <p className="text-[12px] text-amber-800 mt-0.5 leading-relaxed">{alert.body}</p>
-                <p className="text-[10px] text-amber-600 mt-1">
+                <p className="text-[10px] text-amber-700 mt-1">
                   {new Date(alert.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   {alert.linkHref && (
                     <>
@@ -515,7 +515,7 @@ export default function DashboardMorningView({
                     <p className="text-data truncate">{hw.title}</p>
                     <p className="text-meta">{hw.ungradedCount} ungraded · due {formatDate(hw.dueAt)}</p>
                   </div>
-                  <span className="text-xs font-medium bg-amber-100 text-amber-700 px-2 py-1 rounded-full flex-shrink-0">
+                  <span className="text-xs font-medium bg-amber-100 text-amber-800 px-2 py-1 rounded-full flex-shrink-0">
                     {hw.ungradedCount} to mark
                   </span>
                 </Link>
@@ -553,7 +553,7 @@ export default function DashboardMorningView({
                 </div>
                 {sectionConcerns.length === 0 ? (
                   <div className="px-4 py-3 bg-white">
-                    <p className="text-[12px] text-gray-400 italic">No concerns in this category.</p>
+                    <p className="text-[12px] text-gray-500 italic">No concerns in this category.</p>
                   </div>
                 ) : (
                   <div className="bg-white divide-y divide-gray-100">

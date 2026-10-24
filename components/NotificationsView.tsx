@@ -20,10 +20,10 @@ function timeAgo(date: Date | string) {
 
 const TYPE_COLOURS: Record<string, string> = {
   HOMEWORK_REMINDER:  'bg-blue-100 text-blue-700',
-  CONCERN_RAISED:     'bg-amber-100 text-amber-700',
+  CONCERN_RAISED:     'bg-amber-100 text-amber-800',
   ILP_REVIEW_DUE:     'bg-purple-100 text-purple-700',
   EARLY_WARNING:      'bg-rose-100 text-rose-700',
-  NEW_MESSAGE:        'bg-green-100 text-green-700',
+  NEW_MESSAGE:        'bg-green-100 text-green-800',
   SUBMISSION_MARKED:  'bg-teal-100 text-teal-700',
   SEND_WARNING_ACTION: 'bg-rose-100 text-rose-700',
 }
@@ -127,7 +127,7 @@ export default function NotificationsView({
           <div className="flex items-center gap-2">
             {readCount > 0 && (
               <button onClick={handleClearRead} disabled={isPending}
-                className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-600 font-medium transition-colors disabled:opacity-40">
+                className="flex items-center gap-1 text-[12px] text-gray-500 hover:text-gray-600 font-medium transition-colors disabled:opacity-40">
                 <Icon name="delete_sweep" size="sm" />
                 Clear read
               </button>
@@ -162,7 +162,7 @@ export default function NotificationsView({
             >
               {c.label}
               {count > 0 && (
-                <span className={`text-[10px] font-bold ${filterKey === c.key ? 'text-blue-100' : 'text-gray-400'}`}>
+                <span className={`text-[10px] font-bold ${filterKey === c.key ? 'text-blue-100' : 'text-gray-500'}`}>
                   {count}
                 </span>
               )}
@@ -202,7 +202,7 @@ export default function NotificationsView({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     {typeBadge(n.type)}
-                    <span className="text-[11px] text-gray-400">{timeAgo(n.createdAt)}</span>
+                    <span className="text-[11px] text-gray-500">{timeAgo(n.createdAt)}</span>
                   </div>
                   <p className="text-sm font-medium text-gray-900">{n.title}</p>
                   {n.body && (
@@ -215,7 +215,7 @@ export default function NotificationsView({
                     <Link
                       href={n.linkHref}
                       onClick={() => !n.read && handleRead(n.id)}
-                      className="text-blue-500 hover:text-blue-700 transition-colors"
+                      className="text-blue-600 hover:text-blue-700 transition-colors"
                       title="Go to"
                     >
                       <Icon name="open_in_new" size="sm" />
@@ -224,14 +224,14 @@ export default function NotificationsView({
                   {!n.read && (
                     <button
                       onClick={() => handleRead(n.id)}
-                      className="text-[11px] text-gray-400 hover:text-blue-600 transition-colors font-medium"
+                      className="text-[11px] text-gray-500 hover:text-blue-600 transition-colors font-medium"
                     >
                       Mark read
                     </button>
                   )}
                   <button
                     onClick={() => handleDismiss(n.id)}
-                    className="text-gray-300 hover:text-gray-500 transition-colors"
+                    className="text-gray-500 hover:text-gray-500 transition-colors"
                     title="Dismiss"
                   >
                     <Icon name="close" size="sm" />
@@ -272,7 +272,7 @@ export default function NotificationsView({
                           </button>
                           <button
                             onClick={() => setInterventionOpen(prev => ({ ...prev, [n.id]: false }))}
-                            className="text-[11px] text-gray-400 hover:text-gray-600"
+                            className="text-[11px] text-gray-500 hover:text-gray-600"
                           >
                             Cancel
                           </button>

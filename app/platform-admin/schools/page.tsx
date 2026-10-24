@@ -16,7 +16,7 @@ export default async function PlatformSchoolsPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
           <div className="mb-6">
             <h1 className="text-[22px] font-bold text-gray-900">Schools</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-0.5">
               Manage all schools on the Omnis platform
             </p>
           </div>

@@ -31,8 +31,8 @@ type SyncLog = {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { colour: string; iconName: string; spin?: boolean }> = {
     running:   { colour: 'bg-blue-100 text-blue-700',   iconName: 'refresh',       spin: true },
-    completed: { colour: 'bg-green-100 text-green-700', iconName: 'check_circle' },
-    partial:   { colour: 'bg-amber-100 text-amber-700', iconName: 'error' },
+    completed: { colour: 'bg-green-100 text-green-800', iconName: 'check_circle' },
+    partial:   { colour: 'bg-amber-100 text-amber-800', iconName: 'error' },
     failed:    { colour: 'bg-red-100 text-red-700',     iconName: 'cancel' },
   }
   const { colour, iconName, spin } = map[status] ?? map.partial
@@ -72,12 +72,12 @@ function SyncLogRow({ log }: { log: SyncLog }) {
         </div>
         <div className="w-12 shrink-0 text-[11px] text-gray-500 text-right">{durationSec}s</div>
         <div className="flex-1 flex items-center gap-3 text-[11px] text-gray-500">
-          <span className="text-green-600">+{log.newLessons} lessons</span>
+          <span className="text-green-700">+{log.newLessons} lessons</span>
           {log.updatedLessons > 0 && <span className="text-blue-600">~{log.updatedLessons}</span>}
-          {log.deletedLessons > 0 && <span className="text-red-500">-{log.deletedLessons}</span>}
+          {log.deletedLessons > 0 && <span className="text-red-600">-{log.deletedLessons}</span>}
           {log.errorCount > 0 && <span className="text-red-600 font-semibold">{log.errorCount} errors</span>}
         </div>
-        <div className="shrink-0 text-gray-300">
+        <div className="shrink-0 text-gray-500">
           {open ? <Icon name="expand_less" size="sm" /> : <Icon name="expand_more" size="sm" />}
         </div>
       </div>
@@ -92,9 +92,9 @@ function SyncLogRow({ log }: { log: SyncLog }) {
             ].map(s => (
               <div key={s.label} className="bg-white border border-gray-200 rounded-lg px-3 py-2">
                 <p className="font-semibold text-gray-600 mb-1">{s.label}</p>
-                <p className="text-green-600">+{s.n} new</p>
+                <p className="text-green-700">+{s.n} new</p>
                 <p className="text-blue-600">~{s.u} updated</p>
-                <p className="text-red-500">-{s.d} deleted</p>
+                <p className="text-red-600">-{s.d} deleted</p>
               </div>
             ))}
           </div>
@@ -161,7 +161,7 @@ export default function OakSyncStatus({ logs: initialLogs }: Props) {
 
       {result && (
         <p className={`mb-4 text-[12px] px-3 py-2 rounded-lg ${
-          result.includes('failed') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+          result.includes('failed') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-800'
         }`}>
           {result}
         </p>
@@ -180,7 +180,7 @@ export default function OakSyncStatus({ logs: initialLogs }: Props) {
 
         {logs.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-[12px] text-gray-400">No sync logs yet. Run the first delta sync above.</p>
+            <p className="text-[12px] text-gray-500">No sync logs yet. Run the first delta sync above.</p>
           </div>
         ) : (
           logs.map(log => <SyncLogRow key={log.id} log={log} />)

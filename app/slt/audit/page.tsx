@@ -9,8 +9,8 @@ import Icon from '@/components/ui/Icon'
 const ACTION_COLOR: Record<string, string> = {
   HOMEWORK_CREATED:       'bg-blue-100 text-blue-700',
   HOMEWORK_PUBLISHED:     'bg-blue-100 text-blue-700',
-  SUBMISSION_GRADED:      'bg-green-100 text-green-700',
-  GRADE_OVERRIDDEN:       'bg-amber-100 text-amber-700',
+  SUBMISSION_GRADED:      'bg-green-100 text-green-800',
+  GRADE_OVERRIDDEN:       'bg-amber-100 text-amber-800',
   ILP_CREATED:            'bg-purple-100 text-purple-700',
   ILP_ACTIVATED:          'bg-purple-100 text-purple-700',
   ILP_REVIEWED:           'bg-purple-100 text-purple-700',
@@ -22,7 +22,7 @@ const ACTION_COLOR: Record<string, string> = {
   WONDE_SYNC_COMPLETED:   'bg-cyan-100 text-cyan-700',
   USER_SETTINGS_CHANGED:  'bg-gray-100 text-gray-600',
   HOMEWORK_ADAPTED:       'bg-orange-100 text-orange-700',
-  TA_NOTE_ADDED:          'bg-amber-100 text-amber-700',
+  TA_NOTE_ADDED:          'bg-amber-100 text-amber-800',
 }
 
 const CATEGORY_CHIPS = [
@@ -94,7 +94,7 @@ export default async function SltAuditPage({
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-page-title">Audit Log</h1>
-            <p className="text-[13px] text-gray-400 mt-0.5">{total.toLocaleString()} event{total !== 1 ? 's' : ''} recorded</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">{total.toLocaleString()} event{total !== 1 ? 's' : ''} recorded</p>
           </div>
           <div className="flex items-center gap-3">
             <Link
@@ -104,7 +104,7 @@ export default async function SltAuditPage({
               <Icon name="download" size="sm" />
               Export CSV
             </Link>
-            <span className="flex items-center gap-1 text-[11px] text-gray-400">
+            <span className="flex items-center gap-1 text-[11px] text-gray-500">
               <Icon name="lock" size="sm" />
               Immutable — read only
             </span>
@@ -152,7 +152,7 @@ export default async function SltAuditPage({
         </div>
 
         {entries.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
+          <div className="text-center py-16 text-gray-500">
             <Icon name="history" size="lg" className="mx-auto mb-3 text-gray-300" />
             <p>No audit events for this filter.</p>
           </div>
@@ -171,7 +171,7 @@ export default async function SltAuditPage({
               <tbody className="divide-y divide-gray-100">
                 {entries.map(e => (
                   <tr key={e.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap" title={new Date(e.createdAt).toLocaleString('en-GB')}>
+                    <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap" title={new Date(e.createdAt).toLocaleString('en-GB')}>
                       {relativeTime(e.createdAt)}
                     </td>
                     <td className="px-4 py-2.5">
@@ -181,13 +181,13 @@ export default async function SltAuditPage({
                     </td>
                     <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">
                       {e.actorName}
-                      <span className="text-gray-400 ml-1">({e.actorRole.replace(/_/g, ' ').toLowerCase()})</span>
+                      <span className="text-gray-500 ml-1">({e.actorRole.replace(/_/g, ' ').toLowerCase()})</span>
                     </td>
                     <td className="px-4 py-2.5 text-gray-500">
                       <span className="font-medium text-gray-700">{e.targetType}</span>
-                      <span className="text-gray-400 ml-1 font-mono text-[10px]">{e.targetId.slice(0, 12)}…</span>
+                      <span className="text-gray-500 ml-1 font-mono text-[10px]">{e.targetId.slice(0, 12)}…</span>
                     </td>
-                    <td className="px-4 py-2.5 hidden lg:table-cell text-gray-400 max-w-xs truncate">
+                    <td className="px-4 py-2.5 hidden lg:table-cell text-gray-500 max-w-xs truncate">
                       {e.metadata ? Object.entries(e.metadata).map(([k, v]) => `${k}: ${v}`).join(' · ') : '—'}
                     </td>
                   </tr>
@@ -199,7 +199,7 @@ export default async function SltAuditPage({
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
-            <p className="text-[12px] text-gray-400">Page {page + 1} of {totalPages}</p>
+            <p className="text-[12px] text-gray-500">Page {page + 1} of {totalPages}</p>
             <div className="flex gap-2">
               {page > 0 && (
                 <Link

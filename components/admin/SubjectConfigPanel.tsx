@@ -83,7 +83,7 @@ export default function SubjectConfigPanel({ configs: initial, canEdit, role }: 
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">{rows.length} subject{rows.length !== 1 ? 's' : ''}</p>
         {canEdit && (
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-gray-500">
             {canApplyAll ? 'Set default or apply to all classes' : 'Set default exam board for your subjects'}
           </p>
         )}
@@ -121,10 +121,10 @@ export default function SubjectConfigPanel({ configs: initial, canEdit, role }: 
                     {row.examBoard}
                   </span>
                 ) : (
-                  <span className="text-[12px] text-gray-400 italic">Not set</span>
+                  <span className="text-[12px] text-gray-500 italic">Not set</span>
                 )}
                 {feedback[row.subject] && (
-                  <span className="ml-2 text-[11px] text-green-600 font-medium">{feedback[row.subject]}</span>
+                  <span className="ml-2 text-[11px] text-green-700 font-medium">{feedback[row.subject]}</span>
                 )}
               </td>
 
@@ -140,7 +140,7 @@ export default function SubjectConfigPanel({ configs: initial, canEdit, role }: 
                 ) : row.tier ? (
                   <span className="text-[12px] text-gray-600">{row.tier}</span>
                 ) : (
-                  <span className="text-[12px] text-gray-400">—</span>
+                  <span className="text-[12px] text-gray-500">—</span>
                 )}
               </td>
 
@@ -197,7 +197,7 @@ export default function SubjectConfigPanel({ configs: initial, canEdit, role }: 
       </table>
 
       <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/30">
-        <p className="text-[11px] text-gray-400">
+        <p className="text-[11px] text-gray-500">
           Defaults apply to classes with no exam board set and are used in AI homework generation, marking, and grade suggestions.
           Level sets the qualification (GCSE/A-Level/BTEC) and, for GCSE, the tier (Foundation/Higher).
           {canApplyAll && ' "Apply all" overwrites the exam board on every class in that subject.'}

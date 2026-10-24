@@ -17,9 +17,9 @@ type EvidenceEntry = {
 }
 
 const TYPE_OPTS: { value: 'PROGRESS' | 'CONCERN' | 'NEUTRAL'; label: string; cls: string }[] = [
-  { value: 'PROGRESS', label: 'Progress',  cls: 'bg-green-100 text-green-700' },
+  { value: 'PROGRESS', label: 'Progress',  cls: 'bg-green-100 text-green-800' },
   { value: 'CONCERN',  label: 'Concern',   cls: 'bg-rose-100 text-rose-700'   },
-  { value: 'NEUTRAL',  label: 'Neutral',   cls: 'bg-gray-100 text-gray-500'   },
+  { value: 'NEUTRAL',  label: 'Neutral',   cls: 'bg-gray-100 text-gray-600'   },
 ]
 
 const DOT_CLS: Record<string, string> = {
@@ -72,7 +72,7 @@ export default function IlpEvidenceTimeline({
       <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
         <Icon name="task_alt" size="sm" className="text-blue-500" />
         <h2 className="text-[14px] font-semibold text-gray-900">ILP Evidence Timeline</h2>
-        <span className="ml-auto text-[11px] text-gray-400">
+        <span className="ml-auto text-[11px] text-gray-500">
           {entries.length} entr{entries.length !== 1 ? 'ies' : 'y'}
         </span>
       </div>
@@ -88,7 +88,7 @@ export default function IlpEvidenceTimeline({
 
                   {/* Classification select */}
                   <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-24 shrink-0">Classification</label>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide w-24 shrink-0">Classification</label>
                     <select
                       value={editType}
                       onChange={e => setEditType(e.target.value as any)}
@@ -102,7 +102,7 @@ export default function IlpEvidenceTimeline({
 
                   {/* Teacher note */}
                   <div className="flex items-start gap-2">
-                    <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide w-24 shrink-0 pt-1.5">Note</label>
+                    <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide w-24 shrink-0 pt-1.5">Note</label>
                     <textarea
                       rows={2}
                       value={editNote}
@@ -127,7 +127,7 @@ export default function IlpEvidenceTimeline({
                     </button>
                     <button
                       onClick={cancelEdit}
-                      className="text-xs text-gray-400 hover:text-gray-600"
+                      className="text-xs text-gray-500 hover:text-gray-600"
                     >
                       Cancel
                     </button>
@@ -139,7 +139,7 @@ export default function IlpEvidenceTimeline({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-[12px] font-medium text-gray-800 truncate">{entry.homeworkTitle}</p>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${typeMeta?.cls ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${typeMeta?.cls ?? 'bg-gray-100 text-gray-600'}`}>
                         {typeMeta?.label ?? entry.evidenceType}
                       </span>
                     </div>
@@ -149,7 +149,7 @@ export default function IlpEvidenceTimeline({
                     {entry.teacherNote && (
                       <p className="text-[11px] text-blue-600 italic mt-0.5">{entry.teacherNote}</p>
                     )}
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-gray-500 mt-0.5">
                       {new Date(entry.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       {entry.subject && ` · ${entry.subject}`}
                       {entry.score != null && ` · ${formatRawScore(entry.score)}`}
@@ -158,7 +158,7 @@ export default function IlpEvidenceTimeline({
                   <button
                     onClick={() => openEdit(entry)}
                     title="Edit classification"
-                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-300 hover:text-blue-500 transition-colors"
+                    className="shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-gray-100 text-gray-600 hover:text-blue-700 transition-colors"
                   >
                     <Icon name="edit" size="sm" />
                   </button>

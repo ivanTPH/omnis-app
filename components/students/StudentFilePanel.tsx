@@ -60,8 +60,8 @@ function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     active:        'bg-emerald-100 text-emerald-700',
     APPROVED:      'bg-emerald-100 text-emerald-700',
-    under_review:  'bg-amber-100 text-amber-700',
-    UNDER_REVIEW:  'bg-amber-100 text-amber-700',
+    under_review:  'bg-amber-100 text-amber-800',
+    UNDER_REVIEW:  'bg-amber-100 text-amber-800',
     DRAFT:         'bg-gray-100 text-gray-600',
     draft:         'bg-gray-100 text-gray-600',
   }
@@ -147,7 +147,7 @@ function LearningPassportSection({
           )}
           {passport.targetGrade != null && (
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
-              <p className="text-xs text-blue-500 mb-1">Target</p>
+              <p className="text-xs text-blue-600 mb-1">Target</p>
               <p className="text-lg font-bold text-blue-700">Grade {passport.targetGrade}</p>
             </div>
           )}
@@ -196,7 +196,7 @@ function LearningPassportSection({
             <button
               onClick={() => { setStrategiesText(passport.classroomStrategies.join('\n')); setEditingStrategies(true) }}
               title="Edit classroom strategies"
-              className="w-5 h-5 flex items-center justify-center rounded hover:bg-gray-100 text-gray-300 hover:text-blue-500 transition-colors"
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-gray-100 text-gray-600 hover:text-blue-700 transition-colors"
             >
               <Icon name="edit" size="sm" />
             </button>
@@ -204,7 +204,7 @@ function LearningPassportSection({
         </div>
         {editingStrategies ? (
           <div className="space-y-2">
-            <p className="text-[11px] text-gray-400">One strategy per line</p>
+            <p className="text-[11px] text-gray-500">One strategy per line</p>
             <textarea
               rows={5}
               value={strategiesText}
@@ -221,7 +221,7 @@ function LearningPassportSection({
                 {savingStrategies ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />}
                 Save
               </button>
-              <button onClick={() => setEditingStrategies(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+              <button onClick={() => setEditingStrategies(false)} className="text-xs text-gray-500 hover:text-gray-600">Cancel</button>
             </div>
           </div>
         ) : passport.classroomStrategies.length > 0 ? (
@@ -236,12 +236,12 @@ function LearningPassportSection({
         ) : canEditStrategies ? (
           <button
             onClick={() => setEditingStrategies(true)}
-            className="text-xs text-blue-500 hover:underline"
+            className="text-xs text-blue-600 hover:underline"
           >
             + Add classroom strategies
           </button>
         ) : (
-          <p className="text-sm text-gray-400 italic">No strategies recorded</p>
+          <p className="text-sm text-gray-500 italic">No strategies recorded</p>
         )}
       </div>
 
@@ -249,7 +249,7 @@ function LearningPassportSection({
         <div className="flex items-center justify-between mb-1">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Learning format notes</p>
           {canEditStrategies && !editingFormatNotes && (
-            <button onClick={() => setEditingFormatNotes(true)} className="text-xs text-blue-500 hover:underline">
+            <button onClick={() => setEditingFormatNotes(true)} className="text-xs text-blue-600 hover:underline">
               {formatNotesText ? 'Edit' : '+ Add'}
             </button>
           )}
@@ -280,7 +280,7 @@ function LearningPassportSection({
             {formatNotesText}
           </p>
         ) : canEditStrategies ? null : (
-          <p className="text-sm text-gray-400 italic">No format notes recorded</p>
+          <p className="text-sm text-gray-500 italic">No format notes recorded</p>
         )}
       </div>
 
@@ -300,13 +300,13 @@ function LearningPassportSection({
         </div>
       )}
       {approved && passport.approvedAt && (
-        <p className="text-xs text-gray-400 flex items-center gap-1">
+        <p className="text-xs text-gray-500 flex items-center gap-1">
           <Icon name="verified" size="sm" className="text-green-500" />
           Approved {new Date(passport.approvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
       )}
       {passport.lastUpdated && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           Last updated {new Date(passport.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
         </p>
       )}
@@ -366,7 +366,7 @@ function KPlanSection({ kPlan, isSenco, studentId }: { kPlan: KPlanDoc; isSenco:
                   onChange={e => { const copy = [...actions]; copy[i] = e.target.value; setActions(copy) }}
                   className="flex-1 text-sm border border-gray-200 rounded px-2 py-1"
                 />
-                <button onClick={() => setActions(actions.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600">
+                <button onClick={() => setActions(actions.filter((_, j) => j !== i))} className="text-red-600 hover:text-red-600">
                   <Icon name="remove_circle_outline" size="sm" />
                 </button>
               </div>
@@ -393,7 +393,7 @@ function KPlanSection({ kPlan, isSenco, studentId }: { kPlan: KPlanDoc; isSenco:
                   onChange={e => { const copy = [...commitments]; copy[i] = e.target.value; setCommitments(copy) }}
                   className="flex-1 text-sm border border-gray-200 rounded px-2 py-1"
                 />
-                <button onClick={() => setCommitments(commitments.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600">
+                <button onClick={() => setCommitments(commitments.filter((_, j) => j !== i))} className="text-red-600 hover:text-red-600">
                   <Icon name="remove_circle_outline" size="sm" />
                 </button>
               </div>
@@ -721,7 +721,7 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
                       <span className="text-sm text-gray-600">{formatRawScore(row.avgScore)} avg</span>
                     )}
                     {row.predictedScore != null && (
-                      <span className="text-xs text-gray-400">pred. {formatRawScore(row.predictedScore)}</span>
+                      <span className="text-xs text-gray-500">pred. {formatRawScore(row.predictedScore)}</span>
                     )}
                     <RagDot rag={row.rag} />
                   </div>
@@ -744,12 +744,12 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
                             >
                               <span className="text-blue-700 truncate max-w-[55%]">{hw.title}</span>
                               <div className="flex items-center gap-2">
-                                <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                                <span className="text-gray-500">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                                 {hw.finalScore != null
                                   ? <span className="font-medium text-gray-800">{formatRawScore(hw.finalScore)}</span>
                                   : hw.submitted
                                     ? <span className="text-blue-600">Submitted</span>
-                                    : <span className="text-red-500">Missing</span>
+                                    : <span className="text-red-600">Missing</span>
                                 }
                                 <Icon name="chevron_right" size="sm" className="text-gray-300 group-hover:text-gray-500 shrink-0" />
                               </div>
@@ -766,12 +766,12 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
                           >
                             <span className="text-blue-700 hover:underline truncate max-w-[60%]">{hw.title}</span>
                             <div className="flex items-center gap-3">
-                              <span className="text-gray-400">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                              <span className="text-gray-500">{new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                               {hw.finalScore != null
                                 ? <span className="font-medium text-gray-800">{formatRawScore(hw.finalScore)}</span>
                                 : hw.submitted
                                   ? <span className="text-blue-600">Submitted</span>
-                                  : <span className="text-red-500">Missing</span>
+                                  : <span className="text-red-600">Missing</span>
                               }
                             </div>
                           </a>
@@ -804,7 +804,7 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
       >
         {suggestions
           ? <p className="text-sm text-gray-800 whitespace-pre-wrap">{suggestions}</p>
-          : <p className="text-sm text-gray-400">Click Generate to get AI-powered revision recommendations based on this student&apos;s performance.</p>
+          : <p className="text-sm text-gray-500">Click Generate to get AI-powered revision recommendations based on this student&apos;s performance.</p>
         }
       </SectionCard>
     </div>
@@ -860,13 +860,13 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
               <div className="flex gap-3">
                 {selectedHw.grade && (
                   <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">GCSE Grade</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">GCSE Grade</p>
                     <p className="text-3xl font-bold text-gray-900">{selectedHw.grade}</p>
                   </div>
                 )}
                 {selectedHw.finalScore != null && (
                   <div className="flex-1 bg-white border border-gray-200 rounded-xl p-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Score</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">Score</p>
                     <p className="text-3xl font-bold text-gray-900">{formatRawScore(selectedHw.finalScore)}</p>
                   </div>
                 )}
@@ -888,7 +888,7 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
                 {/* Instructions */}
                 {subDetail.instructions && (
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Instructions</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">Instructions</p>
                     <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 leading-relaxed">
                       {subDetail.instructions}
                     </div>
@@ -897,16 +897,16 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
 
                 {/* Student's answer */}
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Student&apos;s Answer</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-600 mb-2">Student&apos;s Answer</p>
                   <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 whitespace-pre-wrap min-h-20">
-                    {subDetail.content || <span className="text-gray-400 italic">No written answer recorded.</span>}
+                    {subDetail.content || <span className="text-gray-600 italic">No written answer recorded.</span>}
                   </div>
                 </div>
 
                 {/* Teacher feedback */}
                 {selectedHw.feedback && (
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-2">Teacher Feedback</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-600 mb-2">Teacher Feedback</p>
                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-900 whitespace-pre-wrap">
                       {selectedHw.feedback}
                     </div>
@@ -920,7 +920,7 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
                       onClick={() => setMarkSchemeOpen(o => !o)}
                       className="w-full flex items-center justify-between text-left group"
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 group-hover:text-gray-600">Model Answer</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-600 group-hover:text-gray-600">Model Answer</p>
                       <Icon name={markSchemeOpen ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-300 group-hover:text-gray-500" />
                     </button>
                     {markSchemeOpen && (
@@ -937,7 +937,7 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
             {data.ilp && data.ilp.targets.filter(t => t.status === 'active').length > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Icon name="flag" size="sm" className="text-blue-600" />
+                  <Icon name="flag" size="sm" className="text-blue-700" />
                   <p className="text-sm font-semibold text-blue-900">ILP Targets</p>
                 </div>
                 <p className="text-xs text-blue-700 mb-3">
@@ -946,12 +946,12 @@ function PerformanceTab({ data, studentName, onClose: _onClose, role = '' }: { d
                 <div className="space-y-2">
                   {data.ilp.targets.filter(t => t.status === 'active').map(t => (
                     <div key={t.id} className="flex items-start gap-2">
-                      <Icon name="radio_button_unchecked" size="sm" className="text-blue-400 mt-0.5 shrink-0" />
+                      <Icon name="radio_button_unchecked" size="sm" className="text-blue-600 mt-0.5 shrink-0" />
                       <p className="text-xs text-blue-800">{t.target}</p>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-blue-500 mt-3">
+                <p className="text-xs text-blue-600 mt-3">
                   To link evidence, use the ILP Evidence page or notify the class teacher from there.
                 </p>
               </div>
@@ -1070,7 +1070,7 @@ function NotesTab({
           </div>
 
           {localNotes.length === 0
-            ? <p className="text-sm text-gray-400 text-center py-4">No staff notes yet.</p>
+            ? <p className="text-sm text-gray-500 text-center py-4">No staff notes yet.</p>
             : (
               <div className="space-y-2">
                 {localNotes.map(n => (
@@ -1093,15 +1093,15 @@ function NotesTab({
                         <div className="flex items-start justify-between gap-3">
                           <p className="text-sm text-gray-800 flex-1 whitespace-pre-wrap">{n.content}</p>
                           <div className="flex items-center gap-1 shrink-0">
-                            <button onClick={() => startEditNote(n)} className="text-gray-300 hover:text-blue-500">
+                            <button onClick={() => startEditNote(n)} className="text-gray-500 hover:text-blue-600">
                               <Icon name="edit" size="sm" />
                             </button>
-                            <button onClick={() => handleDelete(n.id)} className="text-gray-300 hover:text-red-500">
+                            <button onClick={() => handleDelete(n.id)} className="text-gray-500 hover:text-red-600">
                               <Icon name="delete_outline" size="sm" />
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        <p className="text-xs text-gray-500 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                       </>
                     )}
                   </div>
@@ -1116,7 +1116,7 @@ function NotesTab({
       {localTaNotes.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 mb-2">
-            <Icon name="support_agent" size="sm" className="text-amber-600" />
+            <Icon name="support_agent" size="sm" className="text-amber-700" />
             <h4 className="text-xs font-semibold text-amber-700 uppercase tracking-wide">TA Notes</h4>
           </div>
           {localTaNotes.map(n => (
@@ -1136,24 +1136,24 @@ function NotesTab({
                     <div className="flex-1">
                       {n.isUrgent && (
                         <div className="flex items-center gap-1 mb-1">
-                          <Icon name="priority_high" size="sm" className="text-red-500" />
+                          <Icon name="priority_high" size="sm" className="text-red-600" />
                           <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide">Urgent</span>
                         </div>
                       )}
                       <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.content}</p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => { setEditTaNoteId(n.id); setEditTaNoteText(n.content) }} className="text-gray-300 hover:text-amber-500">
+                      <button onClick={() => { setEditTaNoteId(n.id); setEditTaNoteText(n.content) }} className="text-gray-500 hover:text-amber-700">
                         <Icon name="edit" size="sm" />
                       </button>
                       {canDeleteTaNote && (
-                        <button onClick={() => handleDeleteTaNote(n.id)} className="text-gray-300 hover:text-red-500">
+                        <button onClick={() => handleDeleteTaNote(n.id)} className="text-gray-500 hover:text-red-600">
                           <Icon name="delete_outline" size="sm" />
                         </button>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  <p className="text-xs text-gray-500 mt-2">{n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </>
               )}
             </div>
@@ -1196,7 +1196,7 @@ function NotesTab({
 
       {/* Empty state when TA has no notes yet */}
       {userRole === 'TEACHING_ASSISTANT' && localTaNotes.length === 0 && (
-        <p className="text-sm text-gray-400 text-center py-4">No TA notes for this student yet.</p>
+        <p className="text-sm text-gray-500 text-center py-4">No TA notes for this student yet.</p>
       )}
     </div>
   )
@@ -1280,7 +1280,7 @@ function ContactsTab({
       {/* Parent / carer contacts */}
       <SectionCard title="Parent / Carer contacts">
         {parentContacts.length === 0
-          ? <p className="text-sm text-gray-400">No parent/carer contacts linked.</p>
+          ? <p className="text-sm text-gray-600">No parent/carer contacts linked.</p>
           : (
             <div className="divide-y divide-gray-50 -my-1">
               {parentContacts.map((c, i) => (
@@ -1288,7 +1288,7 @@ function ContactsTab({
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-gray-800">{c.name}</p>
                     {c.relationship && (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{c.relationship}</span>
+                      <span className="text-xs text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{c.relationship}</span>
                     )}
                     {c.source === 'wonde' && (
                       <span className="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">MIS</span>
@@ -1316,11 +1316,11 @@ function ContactsTab({
       {/* Communication log */}
       <SectionCard title="Communication Log">
         <div className="mb-3 flex items-center justify-between">
-          <p className="text-[11px] text-gray-400">{entries.length} entr{entries.length === 1 ? 'y' : 'ies'} recorded</p>
+          <p className="text-[11px] text-gray-500">{entries.length} entr{entries.length === 1 ? 'y' : 'ies'} recorded</p>
           {!showForm && (
             <button
               onClick={() => setShowForm(true)}
-              className="inline-flex items-center gap-1 text-[12px] text-blue-600 hover:text-blue-800 font-medium"
+              className="inline-flex items-center gap-1 text-[12px] text-blue-700 hover:text-blue-800 font-medium"
             >
               <Icon name="add" size="sm" /> Log contact
             </button>
@@ -1332,12 +1332,12 @@ function ContactsTab({
             <p className="text-[12px] font-semibold text-blue-800">New communication entry</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Date</label>
+                <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-1">Date</label>
                 <input type="date" value={date} onChange={e => setDate(e.target.value)}
                   className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
               </div>
               <div>
-                <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Method</label>
+                <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-1">Method</label>
                 <select value={method} onChange={e => setMethod(e.target.value as typeof method)}
                   className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300">
                   {Object.entries(METHOD_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -1345,16 +1345,16 @@ function ContactsTab({
               </div>
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Summary *</label>
+              <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-1">Summary *</label>
               <textarea rows={2} value={summary} onChange={e => setSummary(e.target.value)} placeholder="What was discussed…"
                 className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">Outcome (optional)</label>
+              <label className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide block mb-1">Outcome (optional)</label>
               <input type="text" value={outcome} onChange={e => setOutcome(e.target.value)} placeholder="e.g. Parent will follow up, meeting arranged…"
                 className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300" />
             </div>
-            {err && <p className="text-[11px] text-red-600">{err}</p>}
+            {err && <p className="text-[11px] text-red-700">{err}</p>}
             <div className="flex items-center gap-2">
               <button onClick={handleAdd} disabled={saving}
                 className="px-3 py-1.5 bg-blue-600 text-white text-[12px] font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
@@ -1369,7 +1369,7 @@ function ContactsTab({
         )}
 
         {entries.length === 0 ? (
-          <p className="text-[12px] text-gray-400 italic">No communication entries yet. Log a call, email, or meeting above.</p>
+          <p className="text-[12px] text-gray-500 italic">No communication entries yet. Log a call, email, or meeting above.</p>
         ) : (
           <div className="space-y-2">
             {entries.map(e => (
@@ -1385,17 +1385,17 @@ function ContactsTab({
                     <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
                       {METHOD_LABELS[e.method] ?? e.method}
                     </span>
-                    <span className="text-[10px] text-gray-400">{e.authorName}</span>
+                    <span className="text-[10px] text-gray-600">{e.authorName}</span>
                   </div>
                   <p className="text-[12px] text-gray-800">{e.summary}</p>
                   {e.outcome && (
-                    <p className="text-[11px] text-gray-500 mt-0.5">
+                    <p className="text-[11px] text-gray-600 mt-0.5">
                       <span className="font-medium">Outcome:</span> {e.outcome}
                     </p>
                   )}
                 </div>
                 <button onClick={() => handleDelete(e.id)}
-                  className="text-gray-300 hover:text-red-400 shrink-0 transition-colors"
+                  className="text-gray-600 hover:text-red-700 shrink-0 transition-colors"
                   aria-label="Delete entry">
                   <Icon name="close" size="sm" />
                 </button>
@@ -1492,7 +1492,7 @@ function ApdrSectionEditor({
           </div>
         </div>
       ) : (
-        <p className="text-sm text-gray-800 whitespace-pre-wrap">{value || <span className="text-gray-400 italic">{placeholder ?? 'Not yet completed.'}</span>}</p>
+        <p className="text-sm text-gray-800 whitespace-pre-wrap">{value || <span className="text-gray-500 italic">{placeholder ?? 'Not yet completed.'}</span>}</p>
       )}
     </div>
   )
@@ -1571,12 +1571,12 @@ function ApdrCycleCard({
             {cycle.status.toLowerCase()}
           </span>
           {approved && (
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
               <Icon name="verified" size="sm" />Approved
             </span>
           )}
         </div>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-600">
           Review due: {new Date(cycle.reviewDate).toLocaleDateString('en-GB')}
         </span>
       </div>
@@ -1656,7 +1656,7 @@ function ApdrCycleCard({
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                Progress outcome <span className="text-red-500">*</span>
+                Progress outcome <span className="text-red-600">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {OUTCOME_OPTIONS.map(opt => (
@@ -1722,7 +1722,7 @@ function ApdrCycleCard({
 
         {isComplete && (
           <div className="flex items-center justify-between pt-1">
-            <p className="text-xs text-gray-400 flex items-center gap-1">
+            <p className="text-xs text-gray-500 flex items-center gap-1">
               <Icon name="check" size="sm" />Cycle completed {new Date(cycle.updatedAt).toLocaleDateString('en-GB')}
             </p>
             <a
@@ -1881,7 +1881,7 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
       <div className="flex justify-end">
         <button
           onClick={() => setShowForm(v => !v)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full transition"
         >
           <Icon name={showForm ? 'remove' : 'add'} size="sm" />
           {showForm ? 'Cancel' : 'Add assessment'}
@@ -1969,8 +1969,8 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
       ) : rows.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-xl px-5 py-10 text-center">
           <Icon name="fact_check" size="lg" color="#d1d5db" />
-          <p className="text-sm text-gray-400 mt-2">No assessment records yet.</p>
-          <p className="text-xs text-gray-400 mt-1">Click &quot;Add assessment&quot; to record a test or exam score.</p>
+          <p className="text-sm text-gray-500 mt-2">No assessment records yet.</p>
+          <p className="text-xs text-gray-500 mt-1">Click &quot;Add assessment&quot; to record a test or exam score.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -1981,7 +1981,7 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
                   <p className="text-[13px] font-semibold text-gray-900">{r.title}</p>
                   <div className="flex items-center gap-4">
                     <div>
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Grade (1–9)</label>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-wide block mb-1">Grade (1–9)</label>
                       <input
                         type="number" min={1} max={9}
                         value={editScore}
@@ -1990,7 +1990,7 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] text-gray-400 uppercase tracking-wide block mb-1">Notes</label>
+                      <label className="text-[10px] text-gray-500 uppercase tracking-wide block mb-1">Notes</label>
                       <input
                         type="text"
                         value={editNotes}
@@ -2008,7 +2008,7 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
                     >
                       {pending ? <Icon name="refresh" size="sm" className="animate-spin" /> : <Icon name="save" size="sm" />} Save
                     </button>
-                    <button onClick={() => setEditingId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                    <button onClick={() => setEditingId(null)} className="text-xs text-gray-500 hover:text-gray-600">Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -2024,17 +2024,17 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
                       <span className="text-[11px] text-gray-500">
                         {new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
-                      <span className="text-[11px] text-gray-400">
+                      <span className="text-[11px] text-gray-600">
                         {ASSESSMENT_TYPES.find(t => t.value === r.assessmentType)?.label ?? r.assessmentType}
                       </span>
-                      {r.className && <span className="text-[11px] text-gray-400">{r.className}</span>}
+                      {r.className && <span className="text-[11px] text-gray-600">{r.className}</span>}
                     </div>
                     {r.notes && <p className="text-[12px] text-gray-600 mt-1 italic">{r.notes}</p>}
                   </div>
                   {/* Edit + Delete */}
                   <button
                     onClick={() => openEdit(r)}
-                    className="shrink-0 p-1 hover:bg-blue-50 rounded-lg transition text-gray-300 hover:text-blue-500"
+                    className="shrink-0 p-1 hover:bg-blue-50 rounded-lg transition text-gray-600 hover:text-blue-700"
                     title="Edit score or notes"
                   >
                     <Icon name="edit" size="sm" />
@@ -2042,7 +2042,7 @@ function AssessmentTab({ studentId, classIds: _classIds }: { studentId: string; 
                   <button
                     onClick={() => handleDelete(r.id)}
                     disabled={pending}
-                    className="shrink-0 p-1 hover:bg-red-50 rounded-lg transition text-gray-300 hover:text-red-500"
+                    className="shrink-0 p-1 hover:bg-red-50 rounded-lg transition text-gray-600 hover:text-red-700"
                     title="Delete record"
                   >
                     <Icon name="delete" size="sm" />
@@ -2118,7 +2118,7 @@ function PastoralNotesTab({
 
   if (!canWrite) {
     return (
-      <div className="p-6 text-center text-gray-400 text-sm">
+      <div className="p-6 text-center text-gray-600 text-sm">
         <Icon name="eco" size="lg" className="mx-auto mb-2 opacity-30" />
         <p>Pastoral notes are not available for your role.</p>
       </div>
@@ -2172,7 +2172,7 @@ function PastoralNotesTab({
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
 
-          {error && <p className="text-xs text-rose-600">{error}</p>}
+          {error && <p className="text-xs text-rose-700">{error}</p>}
 
           <button
             onClick={handleAdd}
@@ -2192,7 +2192,7 @@ function PastoralNotesTab({
       )}
 
       {!loading && notes.length === 0 && (
-        <div className="text-center py-8 text-gray-400">
+        <div className="text-center py-8 text-gray-600">
           <Icon name="eco" size="lg" className="mx-auto mb-2 opacity-30" />
           <p className="text-xs">No pastoral notes yet.</p>
         </div>
@@ -2211,7 +2211,7 @@ function PastoralNotesTab({
                 )}
               </div>
               <p className="text-sm text-gray-800 whitespace-pre-wrap">{n.content}</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 {n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
             </div>
@@ -2219,7 +2219,7 @@ function PastoralNotesTab({
               <button
                 onClick={() => handleDelete(n.id)}
                 disabled={deleting}
-                className="text-gray-300 hover:text-rose-500 shrink-0"
+                className="text-gray-500 hover:text-rose-600 shrink-0"
               >
                 <Icon name="delete_outline" size="sm" />
               </button>
@@ -2366,7 +2366,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 href={`/api/export/student-progress/${student.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
                 title="Export parent-facing progress report as PDF"
               >
                 <Icon name="picture_as_pdf" size="sm" />
@@ -2394,7 +2394,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 href={`/api/export/revision-progress/${student.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-green-700 border border-green-200 rounded-lg hover:bg-green-50 transition"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-green-800 border border-green-200 rounded-lg hover:bg-green-50 transition"
                 title="Export student revision progress as PDF"
               >
                 <Icon name="auto_stories" size="sm" />
@@ -2404,7 +2404,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 href={`/api/export/intervention-log/${student.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-rose-600 border border-rose-200 rounded-lg hover:bg-rose-50 transition"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-50 transition"
                 title="Export full intervention log as PDF"
               >
                 <Icon name="timeline" size="sm" />
@@ -2414,7 +2414,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 href={`/api/export/student/${student.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
                 title="Export full staff student record as PDF"
               >
                 <Icon name="description" size="sm" />
@@ -2423,8 +2423,8 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-            {student.yearGroup && <span className="text-xs text-gray-500">Year {student.yearGroup}</span>}
-            {student.tutorGroup && <span className="text-xs text-gray-400">· {student.tutorGroup}</span>}
+            {student.yearGroup && <span className="text-xs text-gray-600">Year {student.yearGroup}</span>}
+            {student.tutorGroup && <span className="text-xs text-gray-600">· {student.tutorGroup}</span>}
             {student.sendStatus && student.sendStatus !== 'NONE' && (
               <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
             )}
@@ -2545,20 +2545,20 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                     <div className="space-y-1 pl-4 border-l-2 border-gray-100">
                       {att.possibleSessions != null && (
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Sessions absent</span>
+                          <span className="text-gray-600">Sessions absent</span>
                           <span className="font-medium text-gray-800">{absent} of {att.possibleSessions}</span>
                         </div>
                       )}
                       {att.authorisedAbsences != null && att.authorisedAbsences > 0 && (
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Authorised</span>
+                          <span className="text-gray-600">Authorised</span>
                           <span className="font-medium text-gray-800">{att.authorisedAbsences}</span>
                         </div>
                       )}
                       {att.unauthorisedAbsences != null && att.unauthorisedAbsences > 0 && (
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-500">Unauthorised</span>
-                          <span className="font-medium text-amber-700">{att.unauthorisedAbsences}</span>
+                          <span className="text-gray-600">Unauthorised</span>
+                          <span className="font-medium text-amber-800">{att.unauthorisedAbsences}</span>
                         </div>
                       )}
                     </div>
@@ -2573,8 +2573,8 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                   </div>
                 )}
                 {student.hasExclusion && (
-                  <div className="flex items-center gap-1.5 text-sm text-amber-700">
-                    <Icon name="report_problem" size="sm" className="text-amber-500" />
+                  <div className="flex items-center gap-1.5 text-sm text-amber-800">
+                    <Icon name="report_problem" size="sm" className="text-amber-800" />
                     Exclusion on record
                   </div>
                 )}
@@ -2590,11 +2590,11 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 )}
                 {data.agentInsights.quality.issues.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wider mb-1.5">Flagged Issues</p>
+                    <p className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider mb-1.5">Flagged Issues</p>
                     <ul className="space-y-1">
                       {data.agentInsights.quality.issues.map((issue, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                          <Icon name="warning" size="sm" className="text-amber-500 shrink-0 mt-0.5" />
+                          <Icon name="warning" size="sm" className="text-amber-800 shrink-0 mt-0.5" />
                           {issue}
                         </li>
                       ))}
@@ -2603,7 +2603,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 )}
                 {data.agentInsights.quality.sendAdaptationScore != null && (
                   <div className="flex items-center gap-3">
-                    <p className="text-xs text-gray-500 shrink-0">SEND Adaptation Score</p>
+                    <p className="text-xs text-gray-600 shrink-0">SEND Adaptation Score</p>
                     <div className="flex-1 bg-gray-200 rounded-full h-1.5">
                       <div
                         className={`h-1.5 rounded-full ${data.agentInsights.quality.sendAdaptationScore >= 70 ? 'bg-green-500' : data.agentInsights.quality.sendAdaptationScore >= 40 ? 'bg-amber-400' : 'bg-red-500'}`}
@@ -2614,7 +2614,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                   </div>
                 )}
                 {data.agentInsights.lastRunAt.quality && (
-                  <p className="text-[10px] text-gray-400 italic">
+                  <p className="text-[10px] text-gray-500 italic">
                     Last reviewed {new Date(data.agentInsights.lastRunAt.quality).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 )}
@@ -2638,7 +2638,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                   href={`/api/export/attendance-letter/${student.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
                 >
                   <Icon name="mail" size="sm" />
                   Attendance letter
@@ -2666,10 +2666,10 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
               {data.student.sendStatus && data.student.sendStatus !== 'NONE' ? (
                 <>
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
-                    <Icon name="description" size="md" className="text-amber-600" />
+                    <Icon name="description" size="md" className="text-amber-800" />
                   </div>
                   <p className="text-sm font-semibold text-gray-700">No SEND documents yet</p>
-                  <p className="text-xs text-gray-500 max-w-xs mx-auto">
+                  <p className="text-xs text-gray-600 max-w-xs mx-auto">
                     {student.firstName} is on the SEND register ({data.student.sendStatus === 'EHCP' ? 'EHCP' : 'SEN Support'}) but has no ILP or Learning Passport on file.
                   </p>
                   {isSenco ? (
@@ -2681,11 +2681,11 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                       Generate ILP in SENCO Hub
                     </Link>
                   ) : (
-                    <p className="text-xs text-gray-400">Contact your SENCO to create an ILP for this student.</p>
+                    <p className="text-xs text-gray-500">Contact your SENCO to create an ILP for this student.</p>
                   )}
                 </>
               ) : (
-                <p className="text-sm text-gray-400">No SEND documents on file for this student.</p>
+                <p className="text-sm text-gray-500">No SEND documents on file for this student.</p>
               )}
             </div>
           )}
@@ -2765,17 +2765,17 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center">
               <p className="text-[22px] font-bold text-emerald-700">{student.behaviourPositive ?? '—'}</p>
-              <p className="text-[11px] text-emerald-600 mt-0.5">Positive (MIS)</p>
+              <p className="text-[11px] text-emerald-700 mt-0.5">Positive (MIS)</p>
             </div>
             <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 text-center">
               <p className="text-[22px] font-bold text-rose-700">{student.behaviourNegative ?? '—'}</p>
               <p className="text-[11px] text-rose-600 mt-0.5">Negative (MIS)</p>
             </div>
             <div className={`${student.hasExclusion ? 'bg-rose-100 border-rose-200' : 'bg-gray-50 border-gray-100'} border rounded-xl p-4 text-center`}>
-              <p className={`text-[22px] font-bold ${student.hasExclusion ? 'text-rose-700' : 'text-gray-400'}`}>
+              <p className={`text-[22px] font-bold ${student.hasExclusion ? 'text-rose-700' : 'text-gray-500'}`}>
                 {student.hasExclusion == null ? '—' : student.hasExclusion ? 'Yes' : 'No'}
               </p>
-              <p className={`text-[11px] mt-0.5 ${student.hasExclusion ? 'text-rose-600' : 'text-gray-400'}`}>Exclusion (MIS)</p>
+              <p className={`text-[11px] mt-0.5 ${student.hasExclusion ? 'text-rose-600' : 'text-gray-500'}`}>Exclusion (MIS)</p>
             </div>
           </div>
 
@@ -2852,9 +2852,9 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
               </h4>
             </div>
             {bhvLoading ? (
-              <div className="px-4 py-6 text-center text-[12px] text-gray-400">Loading…</div>
+              <div className="px-4 py-6 text-center text-[12px] text-gray-500">Loading…</div>
             ) : bhvRecords.length === 0 ? (
-              <div className="px-4 py-6 text-center text-[12px] text-gray-400">No manual records yet.</div>
+              <div className="px-4 py-6 text-center text-[12px] text-gray-500">No manual records yet.</div>
             ) : (
               <div className="divide-y divide-gray-50">
                 {bhvRecords.map(r => (
@@ -2862,7 +2862,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                     <span className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${r.type === 'positive' ? 'bg-emerald-500' : r.type === 'negative' ? 'bg-rose-500' : 'bg-gray-400'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] text-gray-800">{r.description}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
+                      <p className="text-[10px] text-gray-500 mt-0.5">
                         {new Date(r.recordDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         {' · '}{r.category}{r.points ? ` · ${r.points}pts` : ''}
                         {' · '}{r.authorName}
@@ -2870,7 +2870,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                     </div>
                     <button
                       onClick={() => handleDeleteBhv(r.id)}
-                      className="shrink-0 text-gray-300 hover:text-rose-500 transition-colors"
+                      className="shrink-0 text-gray-500 hover:text-rose-600 transition-colors"
                     >
                       <Icon name="delete" size="sm" />
                     </button>
@@ -2884,7 +2884,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
           {detentions.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
               <div className="px-4 py-2.5 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <Icon name="timer" size="sm" className="text-amber-500" />
+                <Icon name="timer" size="sm" className="text-amber-700" />
                 <h4 className="text-[12px] font-semibold text-gray-700">Detentions ({detentions.length})</h4>
               </div>
               <div className="divide-y divide-gray-50">
@@ -2895,7 +2895,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                       <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[d.status] ?? 'bg-gray-400'}`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] text-gray-800">{d.reason}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
+                        <p className="text-[10px] text-gray-500 mt-0.5">
                           {d.type.replace('_', ' ')} · {new Date(d.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {d.durationMins}min
                           {d.location ? ` · ${d.location}` : ''} · {d.status}
                         </p>
@@ -2911,7 +2911,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
           {exclusions.length > 0 && (
             <div className="bg-white border border-rose-200 rounded-xl overflow-hidden">
               <div className="px-4 py-2.5 border-b border-rose-100 bg-rose-50/50 flex items-center gap-2">
-                <Icon name="block" size="sm" className="text-rose-500" />
+                <Icon name="block" size="sm" className="text-rose-700" />
                 <h4 className="text-[12px] font-semibold text-rose-800">Exclusions ({exclusions.length})</h4>
               </div>
               <div className="divide-y divide-gray-50">
@@ -2920,7 +2920,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] text-gray-800">{e.reason}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
+                        <p className="text-[10px] text-gray-600 mt-0.5">
                           {e.type.replace('_', ' ')} · {new Date(e.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           {e.daysCount > 0 ? ` · ${e.daysCount} day${e.daysCount !== 1 ? 's' : ''}` : ''}
                           {' · '}{e.status}
@@ -2949,7 +2949,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
       {/* ── Tab: Safeguarding ── */}
       {activeTab === 'Safeguarding' && (
         <div className="p-4 space-y-3">
-          <p className="text-[11px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-center gap-2">
+          <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 flex items-center gap-2">
             <Icon name="lock" size="sm" className="shrink-0" />
             Confidential — visible to authorised staff only. Not shared with parents or students.
           </p>
@@ -2961,7 +2961,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
           )}
 
           {!sfgLoading && sfgRecords.length === 0 && (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-gray-600">
               <Icon name="shield" size="lg" className="mx-auto mb-2 opacity-40" />
               <p className="text-xs">No safeguarding records</p>
             </div>
@@ -2994,7 +2994,7 @@ export default function StudentFilePanel({ data, role, onClose, backHref }: { da
                 {r.dslNotes && (
                   <p className="text-[10px] text-purple-700 mt-1 italic">DSL: {r.dslNotes}</p>
                 )}
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="text-[10px] text-gray-500 mt-1">
                   Logged by {r.authorName} · {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   {r.resolvedAt && ` · Resolved ${new Date(r.resolvedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
                 </p>

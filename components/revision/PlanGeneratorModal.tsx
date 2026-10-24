@@ -106,7 +106,7 @@ export default function PlanGeneratorModal({
             <Icon name="auto_fix_high" size="sm" className="text-blue-600" />
             <h2 className="text-[15px] font-bold text-gray-900">Generate Revision Plan</h2>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600"><Icon name="close" size="md" /></button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-gray-600"><Icon name="close" size="md" /></button>
         </div>
 
         {/* Step indicator */}
@@ -115,11 +115,11 @@ export default function PlanGeneratorModal({
             {([1,2,3] as const).map(n => (
               <div key={n} className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                  step === n ? 'bg-blue-600 text-white' : step > n ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'
+                  step === n ? 'bg-blue-600 text-white' : step > n ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {step > n ? <Icon name="check" size="sm" /> : n}
                 </div>
-                <span className={`text-[11px] ${step === n ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                <span className={`text-[11px] ${step === n ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
                   {n === 1 ? 'Select Exams' : n === 2 ? 'Availability' : 'Confidence'}
                 </span>
                 {n < 3 && <div className="w-8 h-px bg-gray-200" />}
@@ -136,7 +136,7 @@ export default function PlanGeneratorModal({
             <div className="space-y-2">
               <p className="text-[12px] text-gray-500 mb-3">Select the exams you want to plan for:</p>
               {exams.length === 0 && (
-                <p className="text-[12px] text-gray-400 text-center py-4">
+                <p className="text-[12px] text-gray-500 text-center py-4">
                   No exams added yet. Close this and add exams first.
                 </p>
               )}
@@ -152,7 +152,7 @@ export default function PlanGeneratorModal({
                     <span className="text-[13px] font-semibold text-gray-900">{exam.subject}</span>
                     {exam.paperName && <span className="text-[11px] text-gray-500 ml-2">{exam.paperName}</span>}
                   </div>
-                  <span className="text-[10px] text-gray-400 shrink-0">{weeksUntilLabel(exam.examDate)}</span>
+                  <span className="text-[10px] text-gray-500 shrink-0">{weeksUntilLabel(exam.examDate)}</span>
                 </label>
               ))}
             </div>
@@ -218,7 +218,7 @@ export default function PlanGeneratorModal({
                     onChange={e => setConfidence(prev => ({ ...prev, [subj]: Number(e.target.value) }))}
                     className="w-full accent-blue-600"
                   />
-                  <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+                  <div className="flex justify-between text-[9px] text-gray-500 mt-0.5">
                     <span>Not confident</span>
                     <span>Very confident</span>
                   </div>
@@ -231,7 +231,7 @@ export default function PlanGeneratorModal({
           {step === 'preview' && (
             <div>
               {aiError && (
-                <div className="mb-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <div className="mb-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                   {aiError}
                 </div>
               )}

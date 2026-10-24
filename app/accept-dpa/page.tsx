@@ -198,7 +198,7 @@ export default function AcceptDpaPage() {
                 }`}
               />
             ))}
-            <span className="text-[11px] text-gray-400 shrink-0">
+            <span className="text-[11px] text-gray-500 shrink-0">
               {acceptedCount}/{CONSENT_ITEMS.length} accepted
             </span>
           </div>
@@ -222,7 +222,7 @@ export default function AcceptDpaPage() {
         {/* Footer */}
         <div className="px-5 sm:px-8 py-5 border-t border-gray-100 shrink-0 space-y-3">
           {attempted && !allRequired && (
-            <div className="flex items-center gap-2 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
               <Icon name="error" size="sm" className="shrink-0" />
               <p className="text-[12px] font-medium">
                 You cannot access pupil data until all required policies have been accepted.
@@ -230,7 +230,7 @@ export default function AcceptDpaPage() {
             </div>
           )}
           {error && (
-            <p className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-[12px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{error}</p>
           )}
           <button
             type="button"
@@ -243,7 +243,7 @@ export default function AcceptDpaPage() {
               : <><Icon name="check_circle" size="sm" />Confirm and Continue</>
             }
           </button>
-          <p className="text-[11px] text-center text-gray-400">
+          <p className="text-[11px] text-center text-gray-500">
             Your acknowledgement is recorded with a timestamp for GDPR compliance.
           </p>
         </div>

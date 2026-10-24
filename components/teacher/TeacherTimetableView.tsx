@@ -62,7 +62,7 @@ export default function TeacherTimetableView({ timetable }: { timetable: Teacher
           <Icon name="event_note" size="lg" className="text-gray-400" />
         </div>
         <h2 className="text-[16px] font-semibold text-gray-700 mb-2">No lessons found this week</h2>
-        <p className="text-[13px] text-gray-400 max-w-xs mx-auto">
+        <p className="text-[13px] text-gray-500 max-w-xs mx-auto">
           Your timetable is built from lessons added to your calendar. Add lessons via the Calendar
           page, or ask your admin to connect the school MIS for automatic timetable import.
         </p>
@@ -74,7 +74,7 @@ export default function TeacherTimetableView({ timetable }: { timetable: Teacher
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-page-title">My Timetable</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">Your weekly lesson schedule</p>
+        <p className="text-[13px] text-gray-500 mt-0.5">Your weekly lesson schedule</p>
       </div>
 
       {/* Today strip (school days only) */}
@@ -88,7 +88,7 @@ export default function TeacherTimetableView({ timetable }: { timetable: Teacher
               <span className="text-[13px] font-semibold text-blue-800">
                 Today — {DAY_LABELS[today]}
               </span>
-              <span className="ml-auto text-[11px] text-blue-500">
+              <span className="ml-auto text-[11px] text-blue-600">
                 {todayDay.lessons.length} lesson{todayDay.lessons.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -120,14 +120,14 @@ export default function TeacherTimetableView({ timetable }: { timetable: Teacher
                     Today
                   </span>
                 )}
-                <span className="ml-auto text-[11px] text-gray-400">
+                <span className="ml-auto text-[11px] text-gray-500">
                   {day.lessons.length} lesson{day.lessons.length !== 1 ? 's' : ''}
                 </span>
               </div>
 
               {/* Lessons */}
               {day.lessons.length === 0 ? (
-                <p className="text-[11px] text-gray-300 py-4 text-center">No lessons</p>
+                <p className="text-[11px] text-gray-500 py-4 text-center">No lessons</p>
               ) : (
                 day.lessons.map((l, i) => <LessonCard key={i} lesson={l} />)
               )}

@@ -33,8 +33,8 @@ type RevTask = {
 const BLOOMS_COLOURS: Record<string, string> = {
   remember:  'bg-blue-100 text-blue-700',
   understand:'bg-cyan-100 text-cyan-700',
-  apply:     'bg-green-100 text-green-700',
-  analyse:   'bg-amber-100 text-amber-700',
+  apply:     'bg-green-100 text-green-800',
+  analyse:   'bg-amber-100 text-amber-800',
   evaluate:  'bg-orange-100 text-orange-700',
   create:    'bg-purple-100 text-purple-700',
 }
@@ -67,9 +67,9 @@ function QuestionPanel({ q, idx, studentAnswer, isMarked }: {
       {/* Student answer */}
       {studentAnswer != null && (
         <div className="px-4 py-3 border-t border-gray-100">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Student Answer</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Student Answer</p>
           <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap min-h-[2.5rem]">
-            {studentAnswer.trim() || <span className="text-gray-400 italic">No answer given</span>}
+            {studentAnswer.trim() || <span className="text-gray-500 italic">No answer given</span>}
           </div>
         </div>
       )}
@@ -93,11 +93,11 @@ function QuestionPanel({ q, idx, studentAnswer, isMarked }: {
             )}
             {Array.isArray(q.modelAnswerBullets) && q.modelAnswerBullets.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Award marks for:</p>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Award marks for:</p>
                 <ul className="space-y-1">
                   {q.modelAnswerBullets.map((b: string, i: number) => (
                     <li key={i} className="flex items-start gap-2 text-[12px] text-gray-700">
-                      <span className="shrink-0 mt-0.5 text-green-500 font-bold">✓</span>
+                      <span className="shrink-0 mt-0.5 text-green-700 font-bold">✓</span>
                       {b}
                     </li>
                   ))}
@@ -235,14 +235,14 @@ export default function RevisionProgramDetail({
       {/* header */}
       <div className="flex items-center justify-between px-6 py-3 border-b bg-white shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/revision-program" className="text-gray-400 hover:text-gray-600 transition-colors shrink-0">
+          <Link href="/revision-program" className="text-gray-500 hover:text-gray-600 transition-colors shrink-0">
             <Icon name="chevron_left" size="md" />
           </Link>
           <div className="min-w-0">
             <h1 className="font-semibold text-gray-900 truncate text-sm">{program.title}</h1>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-xs text-blue-700 font-medium">{program.subject}</span>
-              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${isAssignment ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${isAssignment ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-700'}`}>
                 {isAssignment ? 'Assignment' : 'Study Guide'}
               </span>
             </div>
@@ -280,7 +280,7 @@ export default function RevisionProgramDetail({
           {completionStats.total > 0 ? Math.round((completionStats.marked / completionStats.total) * 100) : 0}% complete
           {overdueCount > 0 && <span className="text-purple-600 ml-2">· {overdueCount} overdue</span>}
           {isAssignment && program.deadline && (
-            <span className="text-gray-400 ml-2">
+            <span className="text-gray-500 ml-2">
               · Due {new Date(program.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </span>
           )}
@@ -308,7 +308,7 @@ export default function RevisionProgramDetail({
                   <StudentAvatar firstName={s.firstName} lastName={s.lastName} avatarUrl={s.avatarUrl ?? null} size="xs" userId={t.studentId} />
                   <div className="flex-1 min-w-0">
                     <p className={`text-[12px] font-medium truncate ${active ? 'text-blue-700' : 'text-gray-800'}`}>{s.firstName} {s.lastName}</p>
-                    <p className="text-[10px] text-gray-400">{statusLabel(t.status)}</p>
+                    <p className="text-[10px] text-gray-500">{statusLabel(t.status)}</p>
                   </div>
                   {isDone && <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" />}
                   {isPending2 && !isDone && <Icon name="schedule" size="sm" className="text-amber-400 shrink-0" />}
@@ -318,7 +318,7 @@ export default function RevisionProgramDetail({
                     <button
                       title={remindedIds.has(t.id) ? 'Reminder sent' : 'Send reminder'}
                       onClick={e => { e.stopPropagation(); void handleSendReminder(t.id) }}
-                      className={`shrink-0 transition-colors ${remindedIds.has(t.id) ? 'text-green-500' : 'text-purple-400 hover:text-purple-600'}`}
+                      className={`shrink-0 transition-colors ${remindedIds.has(t.id) ? 'text-green-700' : 'text-purple-600 hover:text-purple-600'}`}
                     >
                       <Icon name={remindedIds.has(t.id) ? 'check_circle' : 'notifications'} size="sm" />
                     </button>
@@ -327,7 +327,7 @@ export default function RevisionProgramDetail({
               )
             })}
             {filtered.length === 0 && (
-              <p className="text-[11px] text-gray-400 px-3 py-4 text-center">No students in this filter</p>
+              <p className="text-[11px] text-gray-500 px-3 py-4 text-center">No students in this filter</p>
             )}
           </div>
         </div>
@@ -335,7 +335,7 @@ export default function RevisionProgramDetail({
         {/* right: task detail */}
         <div className="flex-1 overflow-auto">
           {!selected || !selectedStudent ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
+            <div className="flex items-center justify-center h-full text-gray-500">
               <p className="text-[13px]">Select a student to view their task</p>
             </div>
           ) : (
@@ -345,7 +345,7 @@ export default function RevisionProgramDetail({
                 <StudentAvatar firstName={selectedStudent.firstName} lastName={selectedStudent.lastName} avatarUrl={selectedStudent.avatarUrl ?? null} size="md" userId={selected.studentId} />
                 <div>
                   <p className="text-base font-semibold text-gray-900">{selectedStudent.firstName} {selectedStudent.lastName}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 capitalize">{statusLabel(selected.status)}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 capitalize">{statusLabel(selected.status)}</p>
                 </div>
               </div>
 
@@ -371,10 +371,10 @@ export default function RevisionProgramDetail({
               {/* focus topics */}
               {selected.focusTopics.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Focus Topics</p>
+                  <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Focus Topics</p>
                   <div className="flex flex-wrap gap-1.5">
                     {selected.focusTopics.map(t => (
-                      <span key={t} className="text-xs px-2 py-1 rounded-lg bg-amber-100 text-amber-700 font-medium">{t}</span>
+                      <span key={t} className="text-xs px-2 py-1 rounded-lg bg-amber-100 text-amber-800 font-medium">{t}</span>
                     ))}
                   </div>
                 </div>
@@ -382,7 +382,7 @@ export default function RevisionProgramDetail({
 
               {/* instructions */}
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Task Instructions</p>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Task Instructions</p>
                 <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
                   {selected.instructions}
                 </div>
@@ -412,9 +412,9 @@ export default function RevisionProgramDetail({
                   const text = typeof resp === 'string' ? resp : (resp?.text ?? JSON.stringify(resp, null, 2))
                   return (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Student Response</p>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Student Response</p>
                       <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-4 text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{text}</div>
-                      {selected.timeSpentMins && <p className="text-xs text-gray-400 mt-1.5">Time spent: {selected.timeSpentMins} min</p>}
+                      {selected.timeSpentMins && <p className="text-xs text-gray-500 mt-1.5">Time spent: {selected.timeSpentMins} min</p>}
                     </div>
                   )
                 }
@@ -422,8 +422,8 @@ export default function RevisionProgramDetail({
                 return (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Questions ({questions.length})</p>
-                      <span className="text-[11px] text-gray-400">Total: {questions.reduce((s: number, q: any) => s + (q.marks ?? 0), 0)} marks</span>
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Questions ({questions.length})</p>
+                      <span className="text-[11px] text-gray-500">Total: {questions.reduce((s: number, q: any) => s + (q.marks ?? 0), 0)} marks</span>
                     </div>
                     {questions.map((q: any, idx: number) => (
                       <QuestionPanel
@@ -435,7 +435,7 @@ export default function RevisionProgramDetail({
                       />
                     ))}
                     {hasSubmission && selected.timeSpentMins && (
-                      <p className="text-xs text-gray-400">Time spent: {selected.timeSpentMins} min</p>
+                      <p className="text-xs text-gray-500">Time spent: {selected.timeSpentMins} min</p>
                     )}
                   </div>
                 )
@@ -455,7 +455,7 @@ export default function RevisionProgramDetail({
                   <p className="text-xs text-gray-500">Self-confidence:</p>
                   <div className="flex gap-0.5">
                     {[1,2,3,4,5].map(n => (
-                      <Icon key={n} name="star" size="sm" className={n <= (selected.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-300'} />
+                      <Icon key={n} name="star" size="sm" className={n <= (selected.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-500'} />
                     ))}
                   </div>
                 </div>
@@ -479,7 +479,7 @@ export default function RevisionProgramDetail({
                   {selected.finalScore != null && (
                     <p className="text-2xl font-bold text-green-800">
                       {selected.finalScore}/9
-                      <span className="text-[13px] font-normal text-green-600 ml-2">GCSE grade</span>
+                      <span className="text-[13px] font-normal text-green-700 ml-2">GCSE grade</span>
                     </p>
                   )}
                   {selected.feedback && (
@@ -497,18 +497,18 @@ export default function RevisionProgramDetail({
                   <div className="px-4 py-4 space-y-4">
                     <div className="flex items-start gap-4">
                       <div>
-                        <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Score (out of 9)</label>
+                        <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Score (out of 9)</label>
                         <input type="number" min={0} max={9} value={formScore} onChange={e => setFormScore(e.target.value)} className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-[14px] font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="—" />
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">Sign-off feedback (returned to student)</label>
+                      <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">Sign-off feedback (returned to student)</label>
                       <textarea rows={4} value={formFeedback} onChange={e => setFormFeedback(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Write constructive feedback…" />
                     </div>
                     {error && <p className="text-xs text-rose-600">{error}</p>}
                     <div className="flex items-center justify-between pt-1">
                       {savedId === selected.id ? (
-                        <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium"><Icon name="check_circle" size="sm" /> Saved & returned</span>
+                        <span className="flex items-center gap-1.5 text-xs text-green-700 font-medium"><Icon name="check_circle" size="sm" /> Saved & returned</span>
                       ) : <span />}
                       <button onClick={handleMark} disabled={isPending || formScore === ''} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors">
                         {isPending && <Icon name="refresh" size="sm" className="animate-spin" />}

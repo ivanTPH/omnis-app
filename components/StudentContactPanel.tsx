@@ -87,7 +87,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
           <h2 className="text-sm font-semibold text-gray-900">Student Profile</h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-700 transition-colors"
           >
             <Icon name="close" size="sm" />
           </button>
@@ -102,7 +102,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
           )}
 
           {!loading && !data && studentId && (
-            <div className="p-6 text-sm text-gray-400 text-center">Could not load student data.</div>
+            <div className="p-6 text-sm text-gray-500 text-center">Could not load student data.</div>
           )}
 
           {!loading && data && (
@@ -171,7 +171,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
               {/* ── Parents / carers ── */}
               <Section label={`Parents / Carers${data.parents.length > 0 ? ` (${data.parents.length})` : ''}`}>
                 {data.parents.length === 0 ? (
-                  <p className="text-[12px] text-gray-400 italic">No carer contact data available.</p>
+                  <p className="text-[12px] text-gray-500 italic">No carer contact data available.</p>
                 ) : (
                   <div className="space-y-4">
                     {data.parents.map((p, i) => (
@@ -181,7 +181,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                           <span className="text-[13px] font-medium text-gray-800">
                             {p.firstName} {p.lastName}
                           </span>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-gray-500">
                             {p.relationship}
                             {p.hasParentalResp && ' · PR'}
                           </span>
@@ -189,7 +189,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                         {p.email && <ContactRow iconName="email" value={p.email} href={`mailto:${p.email}`} indent />}
                         {p.phone && <ContactRow iconName="phone" value={p.phone} href={`tel:${p.phone}`} indent />}
                         {!p.email && !p.phone && (
-                          <p className="text-[11px] text-gray-400 italic pl-4">No contact details on record.</p>
+                          <p className="text-[11px] text-gray-500 italic pl-4">No contact details on record.</p>
                         )}
                       </div>
                     ))}
@@ -230,7 +230,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
                           <Icon name="chat" size="sm" className="text-amber-400 mt-0.5 shrink-0" />
                           <p className="text-[12px] text-gray-700 leading-relaxed">{n.content}</p>
                         </div>
-                        <p className="text-[10px] text-gray-400 pl-4">
+                        <p className="text-[10px] text-gray-500 pl-4">
                           {n.authorName} · {new Date(n.createdAt).toLocaleDateString('en-GB', {
                             day: 'numeric', month: 'short', year: 'numeric',
                           })}
@@ -254,7 +254,7 @@ export default function StudentContactPanel({ studentId, onClose, zIndex = 50 }:
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="px-5 py-4 border-b border-gray-100">
-      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">{label}</p>
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">{label}</p>
       {children}
     </div>
   )

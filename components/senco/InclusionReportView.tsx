@@ -136,7 +136,7 @@ export default function InclusionReportView() {
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">{yearGroups.length ? `${yearGroups.length} selected` : 'All year groups'}</p>
+                <p className="text-[10px] text-gray-500 mt-1">{yearGroups.length ? `${yearGroups.length} selected` : 'All year groups'}</p>
               </div>
 
               <div>
@@ -157,10 +157,10 @@ export default function InclusionReportView() {
                 <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date range</label>
                 <div className="flex items-center gap-1.5">
                   <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-[13px]" />
-                  <span className="text-gray-300">–</span>
+                  <span className="text-gray-500">–</span>
                   <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-[13px]" />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Defaults to the current term if left blank</p>
+                <p className="text-[10px] text-gray-500 mt-1">Defaults to the current term if left blank</p>
               </div>
             </div>
           </>
@@ -199,7 +199,7 @@ export default function InclusionReportView() {
       )}
 
       {!data && !pending && !error && (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="fact_check" size="lg" className="mx-auto mb-2 opacity-40" />
           <p className="text-[13px]">Set your filters and click Generate report to see the inclusion evidence summary.</p>
         </div>
@@ -207,7 +207,7 @@ export default function InclusionReportView() {
 
       {data && (
         <div className="space-y-6">
-          <p className="text-[12px] text-gray-400">
+          <p className="text-[12px] text-gray-500">
             {data.filters.yearGroupsLabel} &middot; {data.filters.sendStatusLabel} &middot; {data.filters.periodLabel}
             {data.filters.studentName ? ` · ${data.filters.studentName}` : ''}
             {' · Generated ' + new Date(data.generatedAt).toLocaleString('en-GB')}
@@ -224,7 +224,7 @@ export default function InclusionReportView() {
                   <StatCard label="SEN Support" value={String(data.section1Register.senSupport)} />
                   <StatCard label="EHCP" value={String(data.section1Register.ehcp)} />
                 </div>
-                <p className="text-[11px] text-gray-400 mt-2">
+                <p className="text-[11px] text-gray-500 mt-2">
                   New identifications this period: <strong>{data.section1Register.newIdentificationsThisPeriod}</strong> (prior period: {data.section1Register.newIdentificationsPriorPeriod})
                 </p>
               </section>
@@ -304,7 +304,7 @@ export default function InclusionReportView() {
               <section>
                 <h2 className="text-[15px] font-bold text-gray-900 mb-3">Register — click a student for a case-study report</h2>
                 {data.registerRows.length === 0 ? (
-                  <p className="text-[13px] text-gray-400">No students match these filters.</p>
+                  <p className="text-[13px] text-gray-500">No students match these filters.</p>
                 ) : (
                   <div className="overflow-x-auto border border-gray-200 rounded-xl">
                     <table className="w-full text-[12px]">
@@ -360,7 +360,7 @@ export default function InclusionReportView() {
                 <h3 className="text-[12px] font-semibold text-gray-700 mt-4 mb-1">Plan — targets ({data.section7CaseStudy.targets.length})</h3>
                 {data.section7CaseStudy.targets.map((t, i) => (
                   <div key={i} className="text-[13px] text-gray-600 border-l-2 border-blue-200 pl-2 mb-1.5">
-                    {t.target} — <span className="text-gray-400">{t.status.replace('_', ' ')}</span>
+                    {t.target} — <span className="text-gray-500">{t.status.replace('_', ' ')}</span>
                   </div>
                 ))}
 
@@ -373,7 +373,7 @@ export default function InclusionReportView() {
 
                 <h3 className="text-[12px] font-semibold text-gray-700 mt-4 mb-1">Parent &amp; pupil voice ({data.section7CaseStudy.parentVoice.length})</h3>
                 {data.section7CaseStudy.parentVoice.length === 0
-                  ? <p className="text-[13px] text-gray-400">No parent responses recorded yet.</p>
+                  ? <p className="text-[13px] text-gray-500">No parent responses recorded yet.</p>
                   : data.section7CaseStudy.parentVoice.map((p, i) => (
                     <div key={i} className="text-[13px] text-gray-600 border-l-2 border-purple-200 pl-2 mb-1.5">
                       {new Date(p.reviewedAt).toLocaleDateString('en-GB')} — {p.homeProgress ?? 'No note'} {p.meetingRequested ? '(meeting requested)' : ''}

@@ -127,11 +127,11 @@ export default function StudentImportModal({ onClose, onImported }: {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-[15px] font-bold text-gray-900">Import students from CSV</h2>
-            <p className="text-[12px] text-gray-400 mt-0.5">
+            <p className="text-[12px] text-gray-500 mt-0.5">
               Upload a CSV file to create student accounts and send activation emails
             </p>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-600">
             <Icon name="close" size="sm" />
           </button>
         </div>

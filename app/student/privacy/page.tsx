@@ -27,12 +27,12 @@ export default async function StudentPrivacyPage() {
         <div className="max-w-2xl mx-auto px-4 py-4 sm:px-8 sm:py-8">
 
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/student/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/student/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> Dashboard
             </Link>
           </div>
           <h1 className="text-[22px] font-bold text-gray-900 mb-1">How your data is used</h1>
-          <p className="text-[13px] text-gray-400 mb-6">In plain language, and who to ask if you have questions</p>
+          <p className="text-[13px] text-gray-500 mb-6">In plain language, and who to ask if you have questions</p>
 
           <div className="space-y-4">
 

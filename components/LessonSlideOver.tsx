@@ -87,7 +87,7 @@ function SelectField({
         >
           {children}
         </select>
-        <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
       </div>
     </div>
   )
@@ -234,11 +234,11 @@ export default function LessonSlideOver({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
           <div>
             <h2 className="text-[15px] font-semibold text-gray-900">New lesson</h2>
-            <p className="text-[11px] text-gray-400 mt-0.5">Step {step} of 3 — {STEPS[step - 1].label}</p>
-            {step === 3 && <p className="text-[10px] text-blue-600 mt-0.5 font-medium">Review your details, then click Save lesson</p>}
+            <p className="text-[11px] text-gray-600 mt-0.5">Step {step} of 3 — {STEPS[step - 1].label}</p>
+            {step === 3 && <p className="text-[10px] text-blue-700 mt-0.5 font-medium">Review your details, then click Save lesson</p>}
           </div>
           <button onClick={onClose} aria-label="Close" className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
-            <Icon name="close" size="sm" className="text-gray-500" />
+            <Icon name="close" size="sm" className="text-gray-600" />
           </button>
         </div>
 
@@ -248,10 +248,10 @@ export default function LessonSlideOver({
             <div key={s.n} className="flex items-center gap-1.5">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors ${
                 step === s.n ? 'bg-blue-600 text-white' :
-                step > s.n  ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                step > s.n  ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
               }`}>{s.n}</div>
-              <span className={`text-[11px] font-medium hidden sm:block ${step === s.n ? 'text-gray-700' : 'text-gray-400'}`}>{s.label}</span>
-              {s.n < 3 && <Icon name="chevron_right" size="sm" className="text-gray-300 ml-1" />}
+              <span className={`text-[11px] font-medium hidden sm:block ${step === s.n ? 'text-gray-700' : 'text-gray-500'}`}>{s.label}</span>
+              {s.n < 3 && <Icon name="chevron_right" size="sm" className="text-gray-600 ml-1" />}
             </div>
           ))}
         </div>
@@ -274,7 +274,7 @@ export default function LessonSlideOver({
                   ))}
                 </SelectField>
                 {teacherSubjects.length > 0 && (
-                  <p className="text-[11px] text-gray-400 mt-1.5">Teaching cover? Select a different subject above</p>
+                  <p className="text-[11px] text-gray-600 mt-1.5">Teaching cover? Select a different subject above</p>
                 )}
               </div>
 
@@ -318,7 +318,7 @@ export default function LessonSlideOver({
               {/* Primary required field — always visible */}
               <div>
                 <label className="block text-[12px] font-medium text-gray-500 mb-1.5">
-                  Lesson title <span className="text-red-400">*</span>
+                  Lesson title <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="text"
@@ -340,7 +340,7 @@ export default function LessonSlideOver({
               {/* Optional topic field */}
               <div>
                 <label className="block text-[12px] font-medium text-gray-500 mb-1.5">
-                  Topic <span className="text-gray-400 font-normal">(optional)</span>
+                  Topic <span className="text-gray-500 font-normal">(optional)</span>
                 </label>
                 {curriculumData ? (
                   <SelectField label="" value={topicId} onChange={setTopic}>
@@ -424,7 +424,7 @@ export default function LessonSlideOver({
                     >
                       {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                   </div>
                 </div>
                 <div>
@@ -438,7 +438,7 @@ export default function LessonSlideOver({
                     >
                       {TIME_OPTIONS.filter(t => t > startTime).map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
-                    <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <Icon name="expand_more" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                   </div>
                 </div>
               </div>
@@ -484,40 +484,40 @@ export default function LessonSlideOver({
                 <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">Review before saving</p>
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
-                    <Icon name="title" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                    <Icon name="title" size="sm" className="text-blue-700 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[11px] text-blue-500">Lesson title</p>
+                      <p className="text-[11px] text-blue-700">Lesson title</p>
                       <p className="text-[13px] font-semibold text-gray-900">{lessonTitle}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Icon name="school" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                    <Icon name="school" size="sm" className="text-blue-700 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[11px] text-blue-500">Subject &amp; Year</p>
+                      <p className="text-[11px] text-blue-700">Subject &amp; Year</p>
                       <p className="text-[13px] text-gray-800">{subject} · Year {yearGroup}{qualification ? ` (${qualification})` : ''}{examBoard ? ` · ${examBoard}` : ''}</p>
                     </div>
                   </div>
                   {classId && (
                     <div className="flex items-start gap-2">
-                      <Icon name="groups" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                      <Icon name="groups" size="sm" className="text-blue-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[11px] text-blue-500">Class</p>
+                        <p className="text-[11px] text-blue-600">Class</p>
                         <p className="text-[13px] text-gray-800">{allClasses.find(c => c.id === classId)?.name ?? '—'}</p>
                       </div>
                     </div>
                   )}
                   <div className="flex items-start gap-2">
-                    <Icon name="schedule" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                    <Icon name="schedule" size="sm" className="text-blue-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[11px] text-blue-500">Date &amp; Time</p>
+                      <p className="text-[11px] text-blue-600">Date &amp; Time</p>
                       <p className="text-[13px] text-gray-800">{date ? new Date(date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' }) : '—'} · {startTime}–{endTime}</p>
                     </div>
                   </div>
                   {topicLabel && (
                     <div className="flex items-start gap-2">
-                      <Icon name="bookmark" size="sm" className="text-blue-400 shrink-0 mt-0.5" />
+                      <Icon name="bookmark" size="sm" className="text-blue-700 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-[11px] text-blue-500">Topic</p>
+                        <p className="text-[11px] text-blue-700">Topic</p>
                         <p className="text-[13px] text-gray-800">{topicLabel}</p>
                       </div>
                     </div>
@@ -529,7 +529,7 @@ export default function LessonSlideOver({
 
           {/* Footer navigation */}
           {submitError && (
-            <p className="px-6 py-2 text-[12px] text-red-600 bg-red-50 border-t border-red-100">{submitError}</p>
+            <p className="px-6 py-2 text-[12px] text-red-700 bg-red-50 border-t border-red-100">{submitError}</p>
           )}
           <div className="px-6 py-4 border-t border-gray-200 flex gap-2 shrink-0">
             {step > 1 ? (

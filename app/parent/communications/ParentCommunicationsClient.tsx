@@ -39,7 +39,7 @@ function CommItem({ item }: { item: ParentCommunicationRow }) {
               {item.title}
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-0.5">{item.authorName} · {dateStr(item.createdAt)}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{item.authorName} · {dateStr(item.createdAt)}</p>
         </div>
       </button>
 
@@ -76,7 +76,7 @@ export default function ParentCommunicationsClient() {
           {[1,2,3].map(n => <div key={n} className="h-14 bg-gray-100 rounded-lg animate-pulse" />)}
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="mail_outline" size="lg" className="mx-auto mb-3 opacity-40" />
           <p className="text-sm">No messages from school yet</p>
         </div>

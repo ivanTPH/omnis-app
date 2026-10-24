@@ -41,13 +41,13 @@ function FocusPanel({ topics }: { topics: string[] }) {
     <div className="border border-amber-200 rounded-xl overflow-hidden">
       <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 text-left">
         <span className="text-xs font-semibold text-amber-800">Your revision focus areas</span>
-        <span className="text-amber-500 text-xs">{open ? '▲' : '▼'}</span>
+        <span className="text-amber-700 text-xs">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="px-4 py-3 space-y-1.5 bg-white">
           {topics.map(t => (
             <div key={t} className="flex items-start gap-2 text-xs text-gray-700">
-              <span className="text-amber-500 mt-0.5">→</span>
+              <span className="text-amber-700 mt-0.5">→</span>
               <span>{t} — let&apos;s work on this together!</span>
             </div>
           ))}
@@ -83,7 +83,7 @@ function QuizTask({ content, value, onChange }: { content: any; value: Record<st
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="text-sm font-medium text-gray-800">{i + 1}. {q.question}</p>
               {q.marks != null && (
-                <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                <span className="shrink-0 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap">
                   {q.marks} mark{q.marks !== 1 ? 's' : ''}
                 </span>
               )}
@@ -103,7 +103,7 @@ function QuizTask({ content, value, onChange }: { content: any; value: Record<st
                 {/* Writing frame — shown before student starts typing */}
                 {q.writingFrame && !value[key] && (
                   <div className="mb-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg">
-                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide mb-0.5">Writing frame</p>
+                    <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wide mb-0.5">Writing frame</p>
                     <p className="text-xs text-indigo-700 italic">{q.writingFrame}</p>
                   </div>
                 )}
@@ -129,7 +129,7 @@ function QuizTask({ content, value, onChange }: { content: any; value: Record<st
                       <ul className="mt-1.5 space-y-1">
                         {q.guidancePrompts.map((p: string, pi: number) => (
                           <li key={pi} className="flex items-start gap-1.5 text-xs text-blue-700">
-                            <span className="shrink-0 text-blue-400 mt-0.5">→</span>
+                            <span className="shrink-0 text-blue-600 mt-0.5">→</span>
                             {p}
                           </li>
                         ))}
@@ -205,7 +205,7 @@ function MarkSchemeReview({ task, response, onContinue }: {
                 <p className="text-sm font-medium text-gray-800">
                   Q{i + 1}. {q.question}
                 </p>
-                <span className="shrink-0 text-xs text-gray-400 bg-white border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                <span className="shrink-0 text-xs text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                   {q.marks} mark{q.marks !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -213,7 +213,7 @@ function MarkSchemeReview({ task, response, onContinue }: {
                 {/* Student answer */}
                 {studentAnswer && (
                   <div>
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1">Your answer</p>
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase mb-1">Your answer</p>
                     <p className="text-sm text-gray-700 bg-blue-50 rounded-lg px-3 py-2 whitespace-pre-wrap">{studentAnswer}</p>
                   </div>
                 )}
@@ -274,7 +274,7 @@ function MarkSchemeReview({ task, response, onContinue }: {
               <ul className="space-y-1">
                 {objectivesToRevisit.map((obj: string, i: number) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                    <span className="text-amber-500 shrink-0 mt-0.5">→</span>
+                    <span className="text-amber-700 shrink-0 mt-0.5">→</span>
                     {obj}
                   </li>
                 ))}
@@ -420,7 +420,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
         <div className="flex justify-center gap-3">
           {[1,2,3,4,5].map(n => (
             <button key={n} onClick={() => setConfidence(n)} className="transition-transform hover:scale-110">
-              <Icon name="star" size="lg" className={n <= confidence ? 'text-amber-400' : 'text-gray-300'} />
+              <Icon name="star" size="lg" className={n <= confidence ? 'text-amber-400' : 'text-gray-500'} />
             </button>
           ))}
         </div>
@@ -431,7 +431,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
         )}
         {error && <p className="text-xs text-rose-600 text-center">{error}</p>}
         {saved ? (
-          <p className="text-center text-sm text-green-600 font-medium">Saved! Returning…</p>
+          <p className="text-center text-sm text-green-700 font-medium">Saved! Returning…</p>
         ) : (
           <button
             onClick={handleSelfAssess}
@@ -496,7 +496,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
       )}
       {/* instructions */}
       <div>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Task Instructions</p>
+        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Task Instructions</p>
         <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
           {task.instructions}
         </div>
@@ -506,7 +506,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
 
       {/* response area */}
       <div>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Your Response</p>
+        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Your Response</p>
         {needsQuiz ? (
           <QuizTask
             content={task.structuredContent}
@@ -537,7 +537,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
 
       {/* submit */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <p className="text-xs text-gray-400 flex items-center gap-1">
+        <p className="text-xs text-gray-500 flex items-center gap-1">
           <Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins · auto-saved every minute
         </p>
         <div className="flex gap-2">
@@ -565,7 +565,7 @@ export default function RevisionTaskView({ task }: { task: RevTask }) {
           </button>
         </div>
       </div>
-      <p className="text-xs text-gray-400 text-right">
+      <p className="text-xs text-gray-500 text-right">
         {isStudyGuide ? 'No deadline — take your time.' : 'Once submitted your teacher will review and return with feedback.'}
       </p>
     </div>
@@ -594,14 +594,14 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
         <div className="flex items-center gap-2 mb-4">
           <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">A</span>
           <h2 className="text-base font-semibold text-gray-900">Revision Guide</h2>
-          <span className="text-xs text-gray-400">All topics covered this year</span>
+          <span className="text-xs text-gray-500">All topics covered this year</span>
         </div>
         <div className="space-y-4">
           {guide.map((topic: any, i: number) => (
             <TopicCard key={i} topic={topic} />
           ))}
           {guide.length === 0 && (
-            <p className="text-sm text-gray-400 italic">Revision guide will appear here.</p>
+            <p className="text-sm text-gray-500 italic">Revision guide will appear here.</p>
           )}
         </div>
       </section>
@@ -611,10 +611,10 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
         <div className="flex items-center gap-2 mb-4">
           <span className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0">B</span>
           <h2 className="text-base font-semibold text-gray-900">Focus Areas</h2>
-          <span className="text-xs text-amber-600 font-medium">Personalised for you</span>
+          <span className="text-xs text-amber-700 font-medium">Personalised for you</span>
         </div>
         {focusTopics.length === 0 ? (
-          <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-4 text-sm text-green-700">
+          <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-4 text-sm text-green-800">
             Great work! No specific focus areas identified — your scores are on track across all topics.
           </div>
         ) : (
@@ -628,12 +628,12 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
 
       {/* ── Response ── */}
       <section>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Your Notes / Response</p>
+        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Your Notes / Response</p>
         <FreeTextTask
           value={typeof response === 'string' ? response : (response?.text ?? '')}
           onChange={v => setResponse({ text: v })}
         />
-        <p className="text-xs text-gray-400 mt-1">Use this space to make notes, answer exam questions, or summarise key points.</p>
+        <p className="text-xs text-gray-500 mt-1">Use this space to make notes, answer exam questions, or summarise key points.</p>
       </section>
 
       {task.sendAdaptations.length > 0 && (
@@ -650,7 +650,7 @@ function YearRevisionView({ task, response, setResponse, isPending, error, isStu
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <p className="text-xs text-gray-400 flex items-center gap-1">
+        <p className="text-xs text-gray-500 flex items-center gap-1">
           <Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins · auto-saved every minute
         </p>
         <div className="flex gap-2">
@@ -685,17 +685,17 @@ function TopicCard({ topic }: { topic: any }) {
         className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50 text-left transition-colors"
       >
         <span className="text-sm font-semibold text-gray-800">{topic.name}</span>
-        <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
+        <span className="text-gray-500 text-xs">{open ? '▲' : '▼'}</span>
       </button>
       {open && (
         <div className="px-4 pb-4 space-y-3 bg-white border-t border-gray-100">
           {topic.keyFacts?.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-1.5">Key Facts</p>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1.5">Key Facts</p>
               <ul className="space-y-1">
                 {topic.keyFacts.map((f: string, i: number) => (
                   <li key={i} className="flex items-start gap-2 text-xs text-gray-700">
-                    <span className="text-blue-400 mt-0.5 shrink-0">•</span>
+                    <span className="text-blue-600 mt-0.5 shrink-0">•</span>
                     {f}
                   </li>
                 ))}
@@ -704,7 +704,7 @@ function TopicCard({ topic }: { topic: any }) {
           )}
           {topic.vocabulary?.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Key Vocabulary</p>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Key Vocabulary</p>
               <div className="space-y-1">
                 {topic.vocabulary.map((v: any, i: number) => (
                   <div key={i} className="flex gap-2 text-xs">
@@ -717,11 +717,11 @@ function TopicCard({ topic }: { topic: any }) {
           )}
           {topic.examQuestions?.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Exam-Style Questions</p>
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Exam-Style Questions</p>
               <div className="space-y-2">
                 {topic.examQuestions.map((q: any, i: number) => (
                   <div key={i} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                    <p className="text-xs font-medium text-gray-800">{q.question} <span className="text-gray-400 font-normal">({q.marks} marks)</span></p>
+                    <p className="text-xs font-medium text-gray-800">{q.question} <span className="text-gray-500 font-normal">({q.marks} marks)</span></p>
                     <details className="mt-1">
                       <summary className="text-[10px] text-blue-600 cursor-pointer hover:text-blue-800">Show mark scheme</summary>
                       <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">{q.markScheme}</p>
@@ -748,12 +748,12 @@ function FocusTopicCard({ topic }: { topic: any }) {
       </div>
       {topic.practiceQuestions?.length > 0 && (
         <div className="px-4 py-3 space-y-2 bg-white border-t border-amber-100">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Practice Questions</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Practice Questions</p>
           {topic.practiceQuestions.map((q: any, i: number) => (
             <div key={i} className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              <p className="text-xs font-medium text-gray-800">{q.question} <span className="text-gray-400 font-normal">({q.marks} marks)</span></p>
+              <p className="text-xs font-medium text-gray-800">{q.question} <span className="text-gray-500 font-normal">({q.marks} marks)</span></p>
               <details className="mt-1">
-                <summary className="text-[10px] text-amber-600 cursor-pointer hover:text-amber-800">Show mark scheme</summary>
+                <summary className="text-[10px] text-amber-700 cursor-pointer hover:text-amber-800">Show mark scheme</summary>
                 <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">{q.markScheme}</p>
               </details>
             </div>

@@ -392,7 +392,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
 
                 {aiModal.goals.map((goal, idx) => (
                   <div key={idx} className="border border-gray-200 rounded-xl p-4 space-y-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Goal {idx + 1}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Goal {idx + 1}</p>
 
                     <div>
                       <label className="block text-[11px] font-medium text-gray-500 mb-1">Target</label>
@@ -456,7 +456,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                 <p className="text-sm text-gray-700 font-medium">
                   ILP created for <strong>{aiModal.studentName}</strong>
                 </p>
-                <p className="text-xs text-gray-400">Refreshing…</p>
+                <p className="text-xs text-gray-500">Refreshing…</p>
               </div>
             )}
 
@@ -518,9 +518,9 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                   style={{ width: `${ilpProgress}%` }}
                 />
               </div>
-              <p className="text-[10px] text-gray-400 text-right">{Math.round(ilpProgress)}%</p>
+              <p className="text-[10px] text-gray-500 text-right">{Math.round(ilpProgress)}%</p>
             </div>
-            <p className="text-[11px] text-gray-400">This may take up to 60 seconds</p>
+            <p className="text-[11px] text-gray-500">This may take up to 60 seconds</p>
           </div>
         </div>
       )}
@@ -558,7 +558,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
           {studentsWithoutIlp.length > 0 && (
             <button
               onClick={() => setViewMode('no_ilp')}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ilp' ? 'bg-amber-500 text-white' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5 ${viewMode === 'no_ilp' ? 'bg-amber-500 text-white' : 'text-amber-800 bg-amber-50 hover:bg-amber-100'}`}
             >
               <Icon name="warning" size="sm" />
               SEND without ILP ({studentsWithoutIlp.length})
@@ -651,7 +651,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                     <p className="text-[12px] text-gray-500">Proposed by {edit.proposerName}</p>
                     <div className="mt-1 flex items-center gap-2 text-[12px]">
                       {edit.previousValue && (
-                        <span className="line-through text-gray-400">&ldquo;{edit.previousValue.slice(0, 60)}&rdquo;</span>
+                        <span className="line-through text-gray-500">&ldquo;{edit.previousValue.slice(0, 60)}&rdquo;</span>
                       )}
                       <span className="text-green-700">&rarr; &ldquo;{edit.newValue?.slice(0, 80)}&rdquo;</span>
                     </div>
@@ -704,7 +704,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
       {viewMode === 'no_ilp' ? (
         <div className="space-y-3">
           {filteredWithoutIlp.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-gray-500">
               <Icon name="check_circle" size="lg" className="mx-auto mb-3 opacity-30" />
               <p className="text-sm">All SEND students have an ILP.</p>
             </div>
@@ -763,7 +763,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
           )}
         </div>
       ) : filteredIlps.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-500">
           <Icon name="favorite_border" size="lg" className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">{searchQuery || yearFilter ? 'No ILPs match your search.' : 'No active ILPs.'}</p>
         </div>
@@ -825,7 +825,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                 isDraft
                   ? { label: 'Draft', variant: 'draft' as const }
                   : { label: 'Published', variant: 'published' as const },
-                (ilp as any).parentMeetingRequested ? { label: 'Meeting req.', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700' } : null,
+                (ilp as any).parentMeetingRequested ? { label: 'Meeting req.', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800' } : null,
                 (ilp as any).parentAcknowledged && !(ilp as any).parentMeetingRequested ? { label: 'Parent ✓', variant: 'custom' as const, customClass: 'text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700' } : null,
               ].filter(Boolean) as typeof ilp extends never ? never : { label: string; variant: 'custom'|'draft'|'published'; customClass?: string }[]
 
@@ -954,7 +954,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                 <div className="flex flex-col items-center gap-3 py-4">
                   <Icon name="check_circle" size="lg" className="text-green-500" />
                   <p className="text-sm font-medium text-gray-800">Review date confirmed and added to your schedule.</p>
-                  <p className="text-[11px] text-gray-400">Refreshing…</p>
+                  <p className="text-[11px] text-gray-500">Refreshing…</p>
                 </div>
               ) : (
                 <>
@@ -978,7 +978,7 @@ export default function IlpPageView({ ilps: initial, studentsWithoutIlp = [], us
                         className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-purple-300"
                       />
                     </div>
-                    <p className="text-[11px] text-gray-400 mt-1.5">
+                    <p className="text-[11px] text-gray-500 mt-1.5">
                       Default: {reviewModal.reviewDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (13 weeks)
                     </p>
                   </div>

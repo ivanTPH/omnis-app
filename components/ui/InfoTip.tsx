@@ -12,7 +12,7 @@ export default function InfoTip({
     <Tooltip content={content} side={side}>
       <span
         tabIndex={0}
-        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-200 text-gray-500 text-[9px] font-bold cursor-help select-none ml-1 shrink-0 hover:bg-gray-300 transition-colors"
+        className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gray-200 text-gray-600 text-[9px] font-bold cursor-help select-none ml-1 shrink-0 hover:bg-gray-300 transition-colors"
         aria-label={content}
       >
         i

@@ -10,6 +10,7 @@ export default function SubjectPerformanceDropdown({ subjects }: { subjects: str
   return (
     <div className="flex items-center gap-1">
       <select
+        aria-label="Subject"
         value={subject}
         onChange={e => setSubject(e.target.value)}
         className="text-[11px] font-semibold px-2 py-1.5 border border-gray-200 rounded-lg bg-white text-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-400"

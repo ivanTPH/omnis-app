@@ -29,7 +29,7 @@ export default function CoverPageTabs({ today, schoolId, summary, history, staff
             className={`px-4 py-2 text-[12px] font-semibold rounded-lg transition-colors capitalize ${
               tab === t
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
             {t === 'today' ? "Today's Cover" : 'History'}

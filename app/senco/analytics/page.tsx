@@ -28,9 +28,9 @@ function StatCard({ label, value, sub, colour = 'text-gray-900' }: {
 }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
       <p className={`text-[28px] font-bold mt-1 ${colour}`}>{value}</p>
-      {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
+      {sub && <p className="text-[11px] text-gray-500 mt-0.5">{sub}</p>}
     </div>
   )
 }
@@ -53,12 +53,12 @@ export default async function SencoAnalyticsPage() {
 
           {/* Header */}
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/senco/dashboard" className="text-[12px] text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <Link href="/senco/dashboard" className="text-[12px] text-gray-500 hover:text-gray-600 flex items-center gap-1">
               <Icon name="chevron_left" size="sm" /> SENCO Dashboard
             </Link>
           </div>
           <h1 className="text-[22px] font-bold text-gray-900 mb-1">SEND Analytics</h1>
-          <p className="text-[13px] text-gray-400 mb-6">
+          <p className="text-[13px] text-gray-500 mb-6">
             APDR completion, ILP evidence coverage, SEND register, and early warning signals.
           </p>
 
@@ -81,7 +81,7 @@ export default async function SencoAnalyticsPage() {
               label="Active flags"
               value={totalFlags}
               sub="last 30 days"
-              colour={totalFlags > 0 ? 'text-rose-600' : 'text-emerald-600'}
+              colour={totalFlags > 0 ? 'text-rose-600' : 'text-emerald-700'}
             />
           </div>
 
@@ -95,12 +95,12 @@ export default async function SencoAnalyticsPage() {
               </div>
 
               {data.apdrTotal === 0 ? (
-                <p className="text-sm text-gray-400">No APDR cycles recorded yet.</p>
+                <p className="text-sm text-gray-500">No APDR cycles recorded yet.</p>
               ) : (
                 <>
                   <div className="flex items-end gap-2 mb-2">
                     <span className="text-[32px] font-bold text-indigo-700">{apdrCompletePct}%</span>
-                    <span className="text-[12px] text-gray-400 pb-1">
+                    <span className="text-[12px] text-gray-500 pb-1">
                       {data.apdrCompleted} of {data.apdrTotal} cycles complete
                     </span>
                   </div>
@@ -116,7 +116,7 @@ export default async function SencoAnalyticsPage() {
                         <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${row.colour}`} />
                         <span className="text-[12px] text-gray-600 flex-1">{row.label}</span>
                         <span className={`text-[12px] font-semibold ${row.text}`}>{row.count}</span>
-                        <span className="text-[11px] text-gray-400 w-8 text-right">
+                        <span className="text-[11px] text-gray-500 w-8 text-right">
                           {pct(row.count, data.apdrTotal)}%
                         </span>
                       </div>
@@ -141,14 +141,14 @@ export default async function SencoAnalyticsPage() {
               </div>
 
               {data.ilpTargetsTotal === 0 ? (
-                <p className="text-sm text-gray-400">No active ILP targets found.</p>
+                <p className="text-sm text-gray-500">No active ILP targets found.</p>
               ) : (
                 <>
                   <div className="flex items-end gap-2 mb-2">
                     <span className={`text-[32px] font-bold ${evidencePct >= 50 ? 'text-emerald-700' : 'text-rose-600'}`}>
                       {evidencePct}%
                     </span>
-                    <span className="text-[12px] text-gray-400 pb-1">
+                    <span className="text-[12px] text-gray-500 pb-1">
                       {data.ilpTargetsEvidenced} of {data.ilpTargetsTotal} targets evidenced
                     </span>
                   </div>
@@ -202,7 +202,7 @@ export default async function SencoAnalyticsPage() {
               </div>
 
               {data.totalSend === 0 ? (
-                <p className="text-sm text-gray-400">No students on SEND register.</p>
+                <p className="text-sm text-gray-500">No students on SEND register.</p>
               ) : (
                 <div className="space-y-4">
                   {[
@@ -225,10 +225,10 @@ export default async function SencoAnalyticsPage() {
                       <div className="flex items-center justify-between mb-1">
                         <div>
                           <span className={`text-[12px] font-semibold ${row.text}`}>{row.tier}</span>
-                          <span className="text-[11px] text-gray-400 ml-2">{row.desc}</span>
+                          <span className="text-[11px] text-gray-500 ml-2">{row.desc}</span>
                         </div>
                         <span className={`text-[13px] font-bold ${row.text}`}>
-                          {row.count} <span className="font-normal text-gray-400 text-[11px]">({pct(row.count, data.totalSend)}%)</span>
+                          {row.count} <span className="font-normal text-gray-500 text-[11px]">({pct(row.count, data.totalSend)}%)</span>
                         </span>
                       </div>
                       <ProgressBar value={row.count} max={data.totalSend} colour={row.colour} />
@@ -250,14 +250,14 @@ export default async function SencoAnalyticsPage() {
               <div className="flex items-center gap-2 mb-4">
                 <Icon name="notifications_active" size="sm" className="text-rose-600" />
                 <h2 className="text-[14px] font-semibold text-gray-900">Early Warning Signals</h2>
-                <span className="text-[11px] text-gray-400 ml-auto">last 30 days</span>
+                <span className="text-[11px] text-gray-500 ml-auto">last 30 days</span>
               </div>
 
               {/* Flag severity breakdown */}
               <div className="space-y-2 mb-4">
                 {[
                   { label: 'High severity',   count: data.flagsHigh,   colour: 'bg-rose-100 text-rose-700 border-rose-200' },
-                  { label: 'Medium severity', count: data.flagsMedium, colour: 'bg-amber-100 text-amber-700 border-amber-200' },
+                  { label: 'Medium severity', count: data.flagsMedium, colour: 'bg-amber-100 text-amber-800 border-amber-200' },
                   { label: 'Low severity',    count: data.flagsLow,    colour: 'bg-blue-100 text-blue-700 border-blue-200' },
                 ].map(row => (
                   <div key={row.label} className="flex items-center justify-between">

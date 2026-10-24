@@ -31,8 +31,8 @@ function badgeClass(b: BadgeDef): string {
   if (b.variant === 'medium')    return 'badge-medium'
   if (b.variant === 'low')       return 'badge-low'
   if (b.variant === 'resolved')  return 'badge-resolved'
-  if (b.variant === 'published') return 'text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700'
-  if (b.variant === 'draft')     return 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700'
+  if (b.variant === 'published') return 'text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800'
+  if (b.variant === 'draft')     return 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800'
   if (b.variant === 'custom')    return b.customClass ?? 'badge-open'
   return 'badge-open'
 }

@@ -67,13 +67,13 @@ function ThreadRow({
             Parent
           </span>
         </div>
-        <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(thread.updatedAt)}</span>
+        <span className="text-[10px] text-gray-500 shrink-0">{timeAgo(thread.updatedAt)}</span>
       </div>
 
       <p className="text-[12px] font-medium text-gray-700 truncate mb-0.5">{thread.subject}</p>
 
       {thread.lastMessage && (
-        <p className="text-[11px] text-gray-400 truncate">
+        <p className="text-[11px] text-gray-500 truncate">
           {thread.lastSender?.split(' ')[0]}: {thread.lastMessage}
         </p>
       )}
@@ -85,9 +85,9 @@ function ThreadRow({
           </span>
         ))}
         {others.length > 2 && (
-          <span className="text-[9px] text-gray-400">+{others.length - 2}</span>
+          <span className="text-[9px] text-gray-500">+{others.length - 2}</span>
         )}
-        <span className="ml-auto text-[10px] text-gray-400">
+        <span className="ml-auto text-[10px] text-gray-500">
           {thread.messageCount} msg{thread.messageCount !== 1 ? 's' : ''}
         </span>
       </div>
@@ -117,7 +117,7 @@ function ReadOnlyThreadView({ threadId }: { threadId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400 gap-2">
+      <div className="flex items-center justify-center h-full text-gray-500 gap-2">
         <Icon name="refresh" size="md" className="animate-spin" />
         <span className="text-sm">Loading conversation…</span>
       </div>
@@ -141,7 +141,7 @@ function ReadOnlyThreadView({ threadId }: { threadId: string }) {
       <div className="shrink-0 px-5 py-4 border-b border-gray-200 bg-white">
         <div className="flex items-start justify-between gap-3 mb-2">
           <h2 className="text-[14px] font-semibold text-gray-900 leading-snug">{detail.subject}</h2>
-          <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold shrink-0">
+          <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold shrink-0">
             Read-only
           </span>
         </div>
@@ -152,7 +152,7 @@ function ReadOnlyThreadView({ threadId }: { threadId: string }) {
             </span>
           ))}
         </div>
-        <p className="text-[10px] text-gray-400 mt-1.5">
+        <p className="text-[10px] text-gray-500 mt-1.5">
           Started {new Date(detail.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
           {' · '}{detail.messages.length} message{detail.messages.length !== 1 ? 's' : ''}
         </p>
@@ -185,7 +185,7 @@ function ReadOnlyThreadView({ threadId }: { threadId: string }) {
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-semibold text-gray-600">{m.senderName}</span>
                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
-                      isParent ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'
+                      isParent ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {isParent ? 'Parent' : (staffParticipants.find(p => p.id === m.senderId)?.role ?? 'Staff').replace(/_/g, ' ')}
                     </span>
@@ -197,7 +197,7 @@ function ReadOnlyThreadView({ threadId }: { threadId: string }) {
                   }`}>
                     {m.body}
                   </div>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-gray-500">
                     {new Date(m.sentAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -252,7 +252,7 @@ export default function ParentMessagesMonitor({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Icon name="shield" size="sm" className="text-amber-500" />
-            <span className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+            <span className="text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
               Read-only
             </span>
           </div>

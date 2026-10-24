@@ -21,7 +21,7 @@ export default async function StudentRevisionTaskPage({ params }: { params: Prom
     <AppShell role={role} firstName={firstName} lastName={lastName} schoolName={schoolName}>
       <div className="flex-1 overflow-auto">
         <div className="px-6 py-3 border-b bg-white flex items-center gap-3">
-          <Link href="/student/revision" className="text-gray-400 hover:text-gray-600 text-sm">← Back</Link>
+          <Link href="/student/revision" className="text-gray-500 hover:text-gray-600 text-sm">← Back</Link>
           <h1 className="text-sm font-semibold text-gray-900 truncate">{task.program.title}</h1>
           <span className="text-xs text-blue-700 font-medium shrink-0">{task.program.subject}</span>
         </div>

@@ -188,7 +188,7 @@ export default function TermsPage() {
         ))}
       </div>
 
-      <div className="mt-16 pt-8 border-t border-gray-100 text-sm text-gray-400">
+      <div className="mt-16 pt-8 border-t border-gray-100 text-sm text-gray-500">
         Questions about these Terms? Email{' '}
         <a href="mailto:legal@omnis.education" className="text-blue-600 hover:underline">
           legal@omnis.education

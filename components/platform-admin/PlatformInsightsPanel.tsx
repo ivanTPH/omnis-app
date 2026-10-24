@@ -42,7 +42,7 @@ export default function PlatformInsightsPanel() {
 
   if (!data || !data.attainment) {
     return (
-      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-400">
+      <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center text-sm text-gray-500">
         <Icon name="insights" size="md" className="mx-auto mb-2 opacity-40" />
         <p className="font-medium">Cross-school insights not yet available.</p>
         <p className="text-[11px] mt-0.5">
@@ -83,7 +83,7 @@ export default function PlatformInsightsPanel() {
           <Icon name="public" size="sm" className="text-indigo-600" />
           <div>
             <p className="text-[13px] font-semibold text-indigo-900">Cross-School Intelligence</p>
-            <p className="text-[11px] text-indigo-500">
+            <p className="text-[11px] text-indigo-600">
               {data.schoolCount} schools · {data.studentCount.toLocaleString()} students · updated {updatedStr}
             </p>
           </div>
@@ -99,24 +99,24 @@ export default function PlatformInsightsPanel() {
 
         {/* Column 1: Attainment benchmarks */}
         <div className="space-y-4">
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">National Benchmarks</p>
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">National Benchmarks</p>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-indigo-50 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-indigo-700">{attainment.avgScore}%</p>
-              <p className="text-[10px] text-indigo-500">avg score</p>
+              <p className="text-[10px] text-indigo-600">avg score</p>
             </div>
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-emerald-700">{attainment.avgCompletion}%</p>
-              <p className="text-[10px] text-emerald-500">completion</p>
+              <p className="text-[10px] text-emerald-700">completion</p>
             </div>
             <div className="bg-purple-50 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-purple-700">{attainment.sendPct}%</p>
-              <p className="text-[10px] text-purple-500">SEND register</p>
+              <p className="text-[10px] text-purple-600">SEND register</p>
             </div>
             <div className="bg-amber-50 rounded-xl p-3 text-center">
               <p className="text-xl font-bold text-amber-700">{attainment.improvingPct}%</p>
-              <p className="text-[10px] text-amber-500">improving</p>
+              <p className="text-[10px] text-amber-700">improving</p>
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export default function PlatformInsightsPanel() {
               <p className="text-[11px] text-rose-600">
                 SEND students avg: <span className="font-semibold">{attainment.sendAvgScore}%</span>
                 {' '}
-                <span className="text-rose-400">
+                <span className="text-rose-600">
                   ({attainment.avgScore - attainment.sendAvgScore > 0
                     ? `${attainment.avgScore - attainment.sendAvgScore}pt gap vs cohort`
                     : 'matching cohort'})
@@ -139,7 +139,7 @@ export default function PlatformInsightsPanel() {
         <div className="space-y-4">
           {bloomsEntries.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Bloom&apos;s Distribution (national)
               </p>
               <div className="space-y-1.5">
@@ -155,7 +155,7 @@ export default function PlatformInsightsPanel() {
 
           {topTasks.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Best Task Types (SEND students)
               </p>
               <div className="space-y-1.5">
@@ -163,7 +163,7 @@ export default function PlatformInsightsPanel() {
                   <div key={type}>
                     <div className="flex justify-between text-[10px] mb-0.5">
                       <span className="text-gray-600 capitalize">{type.replace(/_/g, ' ').toLowerCase()}</span>
-                      <span className="text-gray-400">{d.studentCount.toLocaleString()} students</span>
+                      <span className="text-gray-500">{d.studentCount.toLocaleString()} students</span>
                     </div>
                     <Bar value={d.avg} />
                   </div>
@@ -177,7 +177,7 @@ export default function PlatformInsightsPanel() {
         <div className="space-y-4">
           {topNeedAreas.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 SEND Need Area Prevalence
               </p>
               <div className="space-y-1.5">
@@ -185,7 +185,7 @@ export default function PlatformInsightsPanel() {
                   <div key={area}>
                     <div className="flex justify-between text-[10px] mb-0.5">
                       <span className="text-gray-600">{area}</span>
-                      <span className="text-gray-400">{pct as number}%</span>
+                      <span className="text-gray-500">{pct as number}%</span>
                     </div>
                     <Bar value={pct as number} max={50} />
                   </div>
@@ -196,15 +196,15 @@ export default function PlatformInsightsPanel() {
 
           {topStrats.length > 0 && (
             <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                 Top ILP Strategies (by school adoption)
               </p>
               <ol className="space-y-1">
                 {topStrats.map((s, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-[11px] text-gray-600">
-                    <span className="text-indigo-400 font-semibold shrink-0">{i + 1}.</span>
+                    <span className="text-indigo-600 font-semibold shrink-0">{i + 1}.</span>
                     <span className="capitalize">{s.strategy}</span>
-                    <span className="ml-auto text-[10px] text-gray-400 shrink-0">{s.schoolCount}s</span>
+                    <span className="ml-auto text-[10px] text-gray-500 shrink-0">{s.schoolCount}s</span>
                   </li>
                 ))}
               </ol>
@@ -214,7 +214,7 @@ export default function PlatformInsightsPanel() {
 
       </div>
 
-      <div className="px-5 pb-4 text-[10px] text-gray-400">
+      <div className="px-5 pb-4 text-[10px] text-gray-500">
         Insights are anonymised, aggregated, and injected into every ILP generation prompt to ground recommendations in national evidence. No school or student identifiers are stored.
       </div>
     </div>

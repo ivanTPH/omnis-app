@@ -44,25 +44,25 @@ export default function PlatformSchoolHealthTable({ rows }: { rows: SchoolHealth
                     <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
                       {r.name}
                       {!r.isActive && (
-                        <span className="ml-2 text-[10px] text-gray-400 font-normal">(inactive)</span>
+                        <span className="ml-2 text-[10px] text-gray-500 font-normal">(inactive)</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right text-gray-700">{r.studentCount.toLocaleString()}</td>
                     <td className="px-4 py-3 text-right text-gray-700">{r.staffCount.toLocaleString()}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 ${syncStale ? 'text-amber-600' : 'text-green-600'}`}>
+                      <span className={`inline-flex items-center gap-1 ${syncStale ? 'text-amber-700' : 'text-green-700'}`}>
                         <Icon name={syncStale ? 'warning' : 'check_circle'} size="sm" />
                         {ago(r.lastSync)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {r.onboardedAt ? (
-                        <span className="text-green-600 flex items-center gap-1">
+                        <span className="text-green-700 flex items-center gap-1">
                           <Icon name="check_circle" size="sm" />
                           {new Date(r.onboardedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
                         </span>
                       ) : (
-                        <span className="text-amber-600 flex items-center gap-1">
+                        <span className="text-amber-700 flex items-center gap-1">
                           <Icon name="pending" size="sm" />
                           Not onboarded
                         </span>
@@ -75,7 +75,7 @@ export default function PlatformSchoolHealthTable({ rows }: { rows: SchoolHealth
                           {r.openIssues}
                         </span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-500">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">

@@ -63,11 +63,11 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
               <ResourceTypeIcon type={resource.resourceType} />
               {typeLabel}
             </span>
-            <span className="text-gray-300">·</span>
+            <span className="text-gray-500">·</span>
             <span className="text-[11px] text-gray-500">{resource.subject} · {resource.yearGroup}</span>
             {resource.sendAdapted && (
               <>
-                <span className="text-gray-300">·</span>
+                <span className="text-gray-500">·</span>
                 <span className="text-[11px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
                   SEND adapted
                 </span>
@@ -80,22 +80,22 @@ export default function ResourcePreview({ resource, onDelete, onRegenerate, user
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {onRegenerate && (
             <button onClick={onRegenerate} title="Regenerate"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+              className="p-1.5 rounded-lg text-gray-600 hover:text-blue-700 hover:bg-blue-50 transition-colors">
               <Icon name="refresh" size="sm" />
             </button>
           )}
           {userLessons.length > 0 && (
             <button onClick={() => setShowLinkModal(true)} title="Link to lesson"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors">
+              className="p-1.5 rounded-lg text-gray-600 hover:text-green-800 hover:bg-green-50 transition-colors">
               <Icon name="link" size="sm" />
             </button>
           )}
           <button onClick={handleCopy} title="Copy to clipboard"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+            className="p-1.5 rounded-lg text-gray-600 hover:text-blue-700 hover:bg-blue-50 transition-colors">
             {copied ? <Icon name="check" size="sm" className="text-green-600" /> : <Icon name="content_copy" size="sm" />}
           </button>
           <button onClick={handleDelete} disabled={deleting} title="Delete resource"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40">
+            className="p-1.5 rounded-lg text-gray-600 hover:text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40">
             <Icon name="delete" size="sm" />
           </button>
         </div>

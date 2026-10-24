@@ -159,7 +159,7 @@ export default async function HoyAnalyticsPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">Year Group Analytics</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 {myYearGroup ? `Year ${myYearGroup}` : 'All year groups'}
               </p>
             </div>
@@ -178,11 +178,11 @@ export default async function HoyAnalyticsPage() {
               { label: 'Classes',        value: allClasses.length,                    colour: 'text-gray-900' },
               { label: 'Avg Completion', value: `${Math.round(avgCompletion * 100)}%`, colour: 'text-blue-600' },
               { label: 'Avg Score',      value: aggsArr.length ? formatAvgGrade(avgScore).main : '—', colour: 'text-gray-900' },
-              { label: 'SEND Register',  value: sendCount, colour: sendCount > 0 ? 'text-purple-600' : 'text-gray-300' },
+              { label: 'SEND Register',  value: sendCount, colour: sendCount > 0 ? 'text-purple-600' : 'text-gray-500' },
             ].map(k => (
               <div key={k.label} className="bg-white border border-gray-200 rounded-xl p-5">
                 <p className={`text-[24px] font-bold ${k.colour}`}>{k.value}</p>
-                <p className="text-[12px] text-gray-400 mt-1">{k.label}</p>
+                <p className="text-[12px] text-gray-500 mt-1">{k.label}</p>
               </div>
             ))}
           </div>
@@ -197,7 +197,7 @@ export default async function HoyAnalyticsPage() {
                 .map(([yg, classes]) => (
                   <div key={yg}>
                     {byYearGroup.size > 1 && (
-                      <h2 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-3">Year {yg}</h2>
+                      <h2 className="text-[12px] font-bold text-gray-500 uppercase tracking-widest mb-3">Year {yg}</h2>
                     )}
                     <div className="space-y-3">
                       {classes.map(cls => {
@@ -216,13 +216,13 @@ export default async function HoyAnalyticsPage() {
                                 <div className="flex items-center gap-2">
                                   <h3 className="text-[14px] font-bold text-gray-900">{cls.name}</h3>
                                   {agg && agg.integrityFlagRate > 0.02 && (
-                                    <span className="text-[10px] text-amber-600 font-medium flex items-center gap-0.5">
+                                    <span className="text-[10px] text-amber-700 font-medium flex items-center gap-0.5">
                                       <Icon name="warning" size="sm" />
                                       {Math.round(agg.integrityFlagRate * 100)}% flagged
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-[11px] text-gray-400 mt-0.5">
+                                <p className="text-[11px] text-gray-500 mt-0.5">
                                   {cls.subject} · {teacherNames} · {cls.enrolments.length} pupils
                                 </p>
                               </div>
@@ -232,11 +232,11 @@ export default async function HoyAnalyticsPage() {
                                     ? <Icon name="trending_up"   size="sm" className="text-green-500" />
                                     : <Icon name="trending_down" size="sm" className="text-rose-500"  />}
                                   <span className={`text-[13px] font-bold ${
-                                    agg.predictedDelta >= 0 ? 'text-green-600' : 'text-rose-600'
+                                    agg.predictedDelta >= 0 ? 'text-green-700' : 'text-rose-600'
                                   }`}>
                                     {agg.predictedDelta >= 0 ? '+' : ''}{agg.predictedDelta.toFixed(1)}
                                   </span>
-                                  <span className="text-[10px] text-gray-400">pts</span>
+                                  <span className="text-[10px] text-gray-500">pts</span>
                                 </div>
                               )}
                             </div>
@@ -246,12 +246,12 @@ export default async function HoyAnalyticsPage() {
                                 {/* Completion */}
                                 <div>
                                   <div className="flex items-center justify-between mb-1.5">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Completion</p>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Completion</p>
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-[13px] font-bold text-gray-900">{Math.round(agg.completionRate * 100)}%</span>
                                       {compDelta !== null && (
                                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                          compDelta >= 0 ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'
+                                          compDelta >= 0 ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-700'
                                         }`}>
                                           {compDelta >= 0 ? '+' : ''}{Math.round(compDelta * 100)}%
                                         </span>
@@ -261,18 +261,18 @@ export default async function HoyAnalyticsPage() {
                                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                                     <div className="h-full bg-blue-500 rounded-full" style={{ width: `${agg.completionRate * 100}%` }} />
                                   </div>
-                                  {mJson && <p className="text-[10px] text-gray-400 mt-1">Median {Math.round(mJson.completionRate * 100)}%</p>}
+                                  {mJson && <p className="text-[10px] text-gray-500 mt-1">Median {Math.round(mJson.completionRate * 100)}%</p>}
                                 </div>
 
                                 {/* Avg Score */}
                                 <div>
                                   <div className="flex items-center justify-between mb-1.5">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Avg Score</p>
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Avg Score</p>
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-[13px] font-bold text-gray-900">{formatAvgGrade(agg.avgScore).main}</span>
                                       {scoreDelta !== null && (
                                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                          scoreDelta >= 0 ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'
+                                          scoreDelta >= 0 ? 'bg-green-100 text-green-800' : 'bg-rose-100 text-rose-700'
                                         }`}>
                                           {scoreDelta >= 0 ? '+' : ''}{scoreDelta.toFixed(1)}
                                         </span>
@@ -285,11 +285,11 @@ export default async function HoyAnalyticsPage() {
                                       agg.avgScore / 9 >= 0.5 ? 'bg-amber-500' : 'bg-rose-500'
                                     }`} style={{ width: `${(agg.avgScore / 9) * 100}%` }} />
                                   </div>
-                                  {mJson && <p className="text-[10px] text-gray-400 mt-1">Median {formatAvgGrade(mJson.avgScore).main}</p>}
+                                  {mJson && <p className="text-[10px] text-gray-500 mt-1">Median {formatAvgGrade(mJson.avgScore).main}</p>}
                                 </div>
                               </div>
                             ) : (
-                              <p className="text-[12px] text-gray-400 italic">No aggregate data yet</p>
+                              <p className="text-[12px] text-gray-500 italic">No aggregate data yet</p>
                             )}
                           </div>
                         )
@@ -299,7 +299,7 @@ export default async function HoyAnalyticsPage() {
                 ))}
 
               {allClasses.length === 0 && (
-                <div className="bg-white border border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-400">
+                <div className="bg-white border border-dashed border-gray-200 rounded-xl p-12 text-center text-gray-500">
                   <Icon name="bar_chart" size="lg" className="mx-auto mb-3 opacity-30" />
                   <p className="text-[14px] font-medium">No classes found for this year group</p>
                 </div>
@@ -316,11 +316,11 @@ export default async function HoyAnalyticsPage() {
                     <Icon name="warning" size="sm" className="text-rose-500" />
                     <p className="text-[12px] font-bold text-gray-700">At-Risk Students</p>
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-0.5">&lt;50% submission rate</p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">&lt;50% submission rate</p>
                 </div>
                 {atRisk.length === 0 ? (
                   <div className="px-5 py-6 text-center">
-                    <p className="text-[12px] text-gray-400">No at-risk students identified</p>
+                    <p className="text-[12px] text-gray-500">No at-risk students identified</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -344,7 +344,7 @@ export default async function HoyAnalyticsPage() {
                             </div>
                             <div className="text-right">
                               <p className="text-[13px] font-bold text-rose-600">{rate}%</p>
-                              <p className="text-[10px] text-gray-400">{s.submissionCount}/{s.expectedCount}</p>
+                              <p className="text-[10px] text-gray-500">{s.submissionCount}/{s.expectedCount}</p>
                             </div>
                           </div>
                           <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -355,7 +355,7 @@ export default async function HoyAnalyticsPage() {
                     })}
                     {atRisk.length > 8 && (
                       <div className="px-5 py-2.5 text-center">
-                        <p className="text-[11px] text-gray-400">+{atRisk.length - 8} more students</p>
+                        <p className="text-[11px] text-gray-500">+{atRisk.length - 8} more students</p>
                       </div>
                     )}
                   </div>
@@ -390,7 +390,7 @@ export default async function HoyAnalyticsPage() {
                 <div className="space-y-2">
                   {[
                     { label: 'Set this term', value: totalHwSet },
-                    { label: 'Pending mark',  value: toMark,   colour: toMark > 0 ? 'text-amber-600' : undefined },
+                    { label: 'Pending mark',  value: toMark,   colour: toMark > 0 ? 'text-amber-700' : undefined },
                   ].map(row => (
                     <div key={row.label} className="flex items-center justify-between">
                       <p className="text-[12px] text-gray-500">{row.label}</p>

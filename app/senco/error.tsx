@@ -23,7 +23,7 @@ export default function SencoError({
           There was a problem fetching SEND information. This is usually a temporary issue.
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-400 font-mono mb-4">Digest: {error.digest}</p>
+          <p className="text-xs text-gray-500 font-mono mb-4">Digest: {error.digest}</p>
         )}
         <button
           onClick={reset}

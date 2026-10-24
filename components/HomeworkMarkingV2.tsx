@@ -226,7 +226,7 @@ function MarkingPanel({
             <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
               {sub.content
                 ? sub.content
-                : <span className="text-gray-400 italic">No written response submitted</span>
+                : <span className="text-gray-500 italic">No written response submitted</span>
               }
             </div>
           </div>
@@ -280,13 +280,13 @@ function MarkingPanel({
                   <button
                     type="button"
                     onClick={() => setSuggestion(null)}
-                    className="text-blue-400 hover:text-blue-600 flex-shrink-0"
+                    className="text-blue-700 hover:text-blue-700 flex-shrink-0"
                     title="Dismiss"
                   >
                     <Icon name="close" size="sm" />
                   </button>
                 </div>
-                <p className="text-xs text-blue-600 leading-relaxed mb-1">{suggestion.rationale}</p>
+                <p className="text-xs text-blue-700 leading-relaxed mb-1">{suggestion.rationale}</p>
                 {suggestion.feedback && (
                   <p className="text-xs text-blue-700 italic leading-relaxed border-t border-blue-200 pt-1.5 mt-1.5">
                     &ldquo;{suggestion.feedback}&rdquo;
@@ -324,7 +324,7 @@ function MarkingPanel({
                 <div className="flex items-center gap-2">
                   <label className="text-label">GCSE GRADE</label>
                   {suggesting && (
-                    <span className="flex items-center gap-1 text-[10px] text-gray-400">
+                    <span className="flex items-center gap-1 text-[10px] text-gray-600">
                       <Icon name="refresh" size="sm" className="animate-spin" />
                       AI loading…
                     </span>
@@ -349,10 +349,10 @@ function MarkingPanel({
                   ))}
                 </div>
                 {!suggesting && suggestion && grade === suggestion.grade && !saved && (
-                  <span className="text-[10px] text-blue-500 font-medium">AI suggested — click to confirm</span>
+                  <span className="text-[10px] text-blue-600 font-medium">AI suggested — click to confirm</span>
                 )}
                 {!suggesting && suggestionFailed && !suggestion && (
-                  <span className="text-[10px] text-amber-600">Could not auto-suggest grade — please grade manually</span>
+                  <span className="text-[10px] text-amber-700">Could not auto-suggest grade — please grade manually</span>
                 )}
               </div>
 
@@ -413,8 +413,8 @@ function MarkingPanel({
               </div>
             )}
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              <Icon name="info" size="sm" className="text-amber-600 shrink-0" />
-              <p className="text-xs text-amber-700">Grades can only be set by the class teacher.</p>
+              <Icon name="info" size="sm" className="text-amber-800 shrink-0" />
+              <p className="text-xs text-amber-800">Grades can only be set by the class teacher.</p>
             </div>
           </div>
         )}
@@ -508,7 +508,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
             hw.lesson ? (
               <Link
                 href={`/dashboard`}
-                className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                className="text-xs text-gray-600 hover:text-gray-700 flex items-center gap-1"
               >
                 <Icon name="calendar_today" size="sm" />
                 {hw.lesson.title}
@@ -526,7 +526,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
           onClick={() => stepSelection(-1)}
           disabled={selectedIndex <= 0}
           aria-label="Previous student"
-          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
+          className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
         >
           <Icon name="chevron_left" size="sm" />
         </button>
@@ -545,7 +545,7 @@ export default function HomeworkMarkingV2({ hw, canGrade = true }: { hw: HW; can
           onClick={() => stepSelection(1)}
           disabled={selectedIndex === -1 || selectedIndex >= visibleSubmissions.length - 1}
           aria-label="Next student"
-          className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
+          className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent shrink-0"
         >
           <Icon name="chevron_right" size="sm" />
         </button>

@@ -76,7 +76,7 @@ export default function ErasureConfirmModal({ dsrId, studentId, studentName, onC
             <h2 className="text-[15px] font-semibold text-red-900">Execute erasure — irreversible</h2>
             <p className="text-[12px] text-red-700">This will permanently delete personal data for <strong>{studentName}</strong>.</p>
           </div>
-          <button onClick={onClose} className="ml-auto text-red-400 hover:text-red-600">
+          <button onClick={onClose} className="ml-auto text-red-600 hover:text-red-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -157,7 +157,7 @@ export default function ErasureConfirmModal({ dsrId, studentId, studentName, onC
           </div>
 
           {error && (
-            <p className="text-[12px] text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-[12px] text-red-700 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
         </div>
 

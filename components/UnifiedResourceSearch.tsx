@@ -42,14 +42,14 @@ const TYPE_LABELS: Record<string, string> = {
   VIDEO: 'Video', LINK: 'Link', OTHER: 'Other',
 }
 const TYPE_COLORS: Record<string, string> = {
-  PLAN: 'bg-green-100 text-green-700', SLIDES: 'bg-blue-100 text-blue-700',
+  PLAN: 'bg-green-100 text-green-800', SLIDES: 'bg-blue-100 text-blue-700',
   WORKSHEET: 'bg-purple-100 text-purple-700', VIDEO: 'bg-rose-100 text-rose-700',
-  LINK: 'bg-amber-100 text-amber-700', OTHER: 'bg-gray-100 text-gray-600',
+  LINK: 'bg-amber-100 text-amber-800', OTHER: 'bg-gray-100 text-gray-600',
 }
 
 function sendScoreColor(s: number) {
-  if (s >= 70) return 'bg-green-100 text-green-700'
-  if (s >= 40) return 'bg-amber-100 text-amber-700'
+  if (s >= 70) return 'bg-green-100 text-green-800'
+  if (s >= 40) return 'bg-amber-100 text-amber-800'
   return 'bg-red-100 text-red-700'
 }
 
@@ -182,7 +182,7 @@ function QuickUpload({
           <Icon name="check_circle" size="sm" className="shrink-0" />
           Objectives added to lesson!
           <button onClick={() => { setExtracted(null); setFile(null); setLabel(''); setMode(null); if (fileRef.current) fileRef.current.value = '' }}
-            className="ml-auto text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
+            className="ml-auto text-gray-500 hover:text-gray-600"><Icon name="close" size="sm" /></button>
         </div>
       ) : null}
     </div>
@@ -192,7 +192,7 @@ function QuickUpload({
     <form onSubmit={handleUpload} className="border border-dashed border-blue-300 rounded-xl p-4 space-y-3 bg-blue-50/40">
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-semibold text-blue-700">Upload a file</p>
-        <button type="button" onClick={() => setMode(null)} aria-label="Close" className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
+        <button type="button" onClick={() => setMode(null)} aria-label="Close" className="text-gray-500 hover:text-gray-600"><Icon name="close" size="sm" /></button>
       </div>
       <label className="flex items-center gap-3 border border-dashed border-gray-300 rounded-lg p-3 cursor-pointer bg-white hover:border-blue-400 transition-colors">
         <Icon name="upload" size="md" className="text-gray-400 shrink-0" />
@@ -216,7 +216,7 @@ function QuickUpload({
     <form onSubmit={handleLink} className="border border-dashed border-blue-300 rounded-xl p-4 space-y-3 bg-blue-50/40">
       <div className="flex items-center justify-between">
         <p className="text-[12px] font-semibold text-blue-700">Add a link</p>
-        <button type="button" onClick={() => setMode(null)} aria-label="Close" className="text-gray-400 hover:text-gray-600"><Icon name="close" size="sm" /></button>
+        <button type="button" onClick={() => setMode(null)} aria-label="Close" className="text-gray-500 hover:text-gray-600"><Icon name="close" size="sm" /></button>
       </div>
       <input type="url" required value={url} onChange={e => setUrl(e.target.value)} placeholder="https://…"
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[12px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
@@ -436,25 +436,25 @@ export default function UnifiedResourceSearch({
     <div className="space-y-3">
       {/* Search bar */}
       <div className="relative">
-        <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
         <input
           value={query}
           onChange={e => handleQueryChange(e.target.value)}
           placeholder="Search Oak Academy &amp; school library…"
           className="w-full pl-8 pr-3 py-2.5 text-[13px] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
         />
-        {loading && <Icon name="refresh" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" />}
+        {loading && <Icon name="refresh" size="sm" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 animate-spin" />}
       </div>
 
       {/* Broadened year notice */}
       {broadened && yearGroup && !browseMode && (
-        <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+        <p className="text-[11px] text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
           Showing resources across all year groups — fewer than 3 exact Year {yearGroup} matches found
         </p>
       )}
       {/* Browse-mode notice: topic not in Oak, showing available subject content */}
       {browseMode && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+        <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
           No Oak content matched this lesson topic — showing available Oak resources for this subject to browse and add
         </p>
       )}
@@ -463,7 +463,7 @@ export default function UnifiedResourceSearch({
       {showHwBanner && onGenerateHomework && (
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
           <div className="flex items-center gap-2 min-w-0">
-            <Icon name="auto_awesome" size="sm" className="text-blue-500 shrink-0" />
+            <Icon name="auto_awesome" size="sm" className="text-blue-700 shrink-0" />
             <p className="text-[12px] text-blue-800 font-medium truncate">Resource added! Generate homework based on this?</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -473,7 +473,7 @@ export default function UnifiedResourceSearch({
             >
               Generate Homework →
             </button>
-            <button onClick={() => setShowHwBanner(false)} className="text-gray-400 hover:text-gray-600">
+            <button onClick={() => setShowHwBanner(false)} className="text-gray-600 hover:text-gray-600">
               <Icon name="close" size="sm" />
             </button>
           </div>
@@ -500,7 +500,7 @@ export default function UnifiedResourceSearch({
       {/* Results */}
       <div className="space-y-2 max-h-72 overflow-auto pr-1">
         {filtered.length === 0 && !loading && (
-          <p className="text-[12px] text-gray-400 text-center py-6">
+          <p className="text-[12px] text-gray-500 text-center py-6">
             {query ? 'No results — try a different search term' : 'No resources found for this subject/year'}
           </p>
         )}
@@ -513,21 +513,21 @@ export default function UnifiedResourceSearch({
             return (
               <div key={`oak-${r.slug}`} className="flex items-start gap-3 p-3 border border-gray-100 rounded-xl bg-white hover:border-gray-200 transition-colors">
                 <div className="shrink-0 mt-0.5">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-800">
                     <Icon name="menu_book" size="sm" />Oak
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-semibold text-gray-900 leading-tight truncate">{r.title}</p>
                   {r.pupilLessonOutcome && (
-                    <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{r.pupilLessonOutcome}</p>
+                    <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">{r.pupilLessonOutcome}</p>
                   )}
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {r.yearGroup && <span className="text-[10px] text-gray-400">Yr {r.yearGroup}</span>}
+                    {r.yearGroup && <span className="text-[10px] text-gray-600">Yr {r.yearGroup}</span>}
                     {r.hasWorksheet && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-purple-50 text-purple-600">Worksheet</span>}
-                    {r.hasSlides    && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">Slides</span>}
-                    {r.hasVideo     && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-rose-50 text-rose-600">Video</span>}
-                    {r.hasQuiz      && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-600">Quiz</span>}
+                    {r.hasSlides    && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">Slides</span>}
+                    {r.hasVideo     && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-rose-50 text-rose-700">Video</span>}
+                    {r.hasQuiz      && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-50 text-amber-800">Quiz</span>}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5 shrink-0">
@@ -576,7 +576,7 @@ export default function UnifiedResourceSearch({
                     </span>
                   )}
                   {r.url && (
-                    <a href={r.url} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gray-500">
+                    <a href={r.url} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-gray-500">
                       <Icon name="open_in_new" size="sm" />
                     </a>
                   )}

@@ -70,12 +70,12 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
             Class briefing
           </span>
           {students.length > 0 && (
-            <span className="text-[11px] text-blue-500">
+            <span className="text-[11px] text-blue-600">
               — {students.length} student{students.length !== 1 ? 's' : ''} need preparation
             </span>
           )}
           {students.length === 0 && !loading && (
-            <span className="text-[11px] text-blue-400">— no preparation notes yet</span>
+            <span className="text-[11px] text-blue-700">— no preparation notes yet</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
             type="button"
             onClick={e => { e.stopPropagation(); handleGenerate() }}
             disabled={generating}
-            className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium disabled:opacity-50 px-2 py-1 rounded hover:bg-blue-100 transition"
+            className="flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800 font-medium disabled:opacity-50 px-2 py-1 rounded hover:bg-blue-100 transition"
             title="Auto-generate Learning Passports for all students in this class"
           >
             <Icon
@@ -108,8 +108,8 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
       {urgentNotes.length > 0 && (
         <div className="mx-4 mb-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
           <div className="flex items-center gap-1.5 mb-2">
-            <Icon name="priority_high" size="sm" className="text-red-500" />
-            <span className="text-[11px] font-bold text-red-600 uppercase tracking-wide">
+            <Icon name="priority_high" size="sm" className="text-red-700" />
+            <span className="text-[11px] font-bold text-red-700 uppercase tracking-wide">
               Urgent TA {urgentNotes.length === 1 ? 'note' : 'notes'}
             </span>
           </div>
@@ -121,7 +121,7 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
                   {group.notes[0].content.slice(0, 100)}{group.notes[0].content.length > 100 ? '…' : ''}
                 </span>
                 {group.notes.length > 1 && (
-                  <span className="text-[10px] text-amber-500 ml-1">+{group.notes.length - 1} more</span>
+                  <span className="text-[10px] text-amber-700 ml-1">+{group.notes.length - 1} more</span>
                 )}
               </div>
             ))}
@@ -133,7 +133,7 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
       {expanded && (
         <div className="border-t border-blue-100 px-4 py-3 space-y-3">
           {students.length === 0 ? (
-            <p className="text-[12px] text-blue-500 text-center py-2">
+            <p className="text-[12px] text-blue-600 text-center py-2">
               No classroom strategies recorded yet. Click &ldquo;Generate passports&rdquo; to create them from homework performance data.
             </p>
           ) : (
@@ -159,12 +159,12 @@ export default function ClassBriefingCard({ classId }: { classId: string }) {
                   <ul className="space-y-0.5">
                     {s.classroomStrategies.slice(0, 3).map((strat, i) => (
                       <li key={i} className="text-[11px] text-gray-600 flex items-start gap-1">
-                        <span className="text-blue-400 mt-0.5 shrink-0">•</span>
+                        <span className="text-blue-600 mt-0.5 shrink-0">•</span>
                         {strat}
                       </li>
                     ))}
                     {s.classroomStrategies.length > 3 && (
-                      <li className="text-[11px] text-blue-500">
+                      <li className="text-[11px] text-blue-600">
                         +{s.classroomStrategies.length - 3} more
                       </li>
                     )}

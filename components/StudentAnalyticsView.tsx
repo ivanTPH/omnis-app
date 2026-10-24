@@ -36,7 +36,7 @@ const YR_COLORS = [
   'bg-blue-50 border-blue-200 text-blue-700',
   'bg-violet-50 border-violet-200 text-violet-700',
   'bg-emerald-50 border-emerald-200 text-emerald-700',
-  'bg-amber-50 border-amber-200 text-amber-700',
+  'bg-amber-50 border-amber-200 text-amber-800',
   'bg-rose-50 border-rose-200 text-rose-700',
   'bg-cyan-50 border-cyan-200 text-cyan-700',
 ]
@@ -341,7 +341,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             {isRestrictedRole && (
               <div className="px-2.5 py-1.5 bg-gray-100 border border-gray-200 rounded-lg text-[12px] text-gray-600">
                 <span className="font-semibold">{teacherDefaults.teacherName}</span>
-                <span className="text-gray-400"> · your classes</span>
+                <span className="text-gray-600"> · your classes</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">
@@ -361,7 +361,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
           <div className="flex flex-wrap items-center gap-2 mb-4">
             <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700" />
-            <span className="text-gray-400 text-sm">to</span>
+            <span className="text-gray-500 text-sm">to</span>
             <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700" />
           </div>
@@ -464,7 +464,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
               {sendCat   && <Chip label={sendCat === '__send_only__' ? 'Has SEND' : sendCat.replace(/_/g, ' ')} onRemove={() => setSendCat('')} />}
               {studentId && <Chip label={(() => { const s = filterOptions.students.find(s => s.id === studentId); return s ? `${s.lastName}, ${s.firstName}` : '' })()} onRemove={() => setStudentId('')} />}
               {perfFilter !== 'all' && <Chip label={PERF_OPTIONS.find(o => o.value === perfFilter)?.label ?? ''} onRemove={() => setPerfFilter('all')} />}
-              <button onClick={clearFilters} className="text-xs text-gray-400 hover:text-gray-600 ml-1">Clear all</button>
+              <button onClick={clearFilters} className="text-xs text-gray-600 hover:text-gray-600 ml-1">Clear all</button>
             </div>
           )}
         </div>
@@ -478,7 +478,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <Icon name="bar_chart" size="lg" className="text-gray-200 mb-4" />
             <p className="text-gray-600 font-medium mb-1">No data loaded</p>
-            <p className="text-sm text-gray-400">Select filters above and click <strong className="text-gray-600">Run</strong> to view analytics</p>
+            <p className="text-sm text-gray-600">Select filters above and click <strong className="text-gray-600">Run</strong> to view analytics</p>
           </div>
         )}
 
@@ -512,10 +512,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 return true
               })
               return filteredClassSummaries.length === 0 ? (
-                <div className="text-center py-16 text-sm text-gray-400">No classes match the selected filters.</div>
+                <div className="text-center py-16 text-sm text-gray-600">No classes match the selected filters.</div>
               ) : (
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="hidden sm:grid grid-cols-[1fr_90px_130px_90px_70px_32px] px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                  <div className="hidden sm:grid grid-cols-[1fr_90px_130px_90px_70px_32px] px-4 py-2.5 bg-gray-50 border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wider text-gray-600">
                     <span>Class</span>
                     <span className="text-right">Students</span>
                     <span className="text-right">Avg Completion</span>
@@ -612,7 +612,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 {/* Class stats bar */}
                 {studentScores.length > 0 && (
                   <div className="bg-white border border-gray-200 rounded-xl px-5 py-3 mb-5 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                    <span className="text-gray-500">Class average: <strong className="text-gray-900">{data.avgScore != null ? gradeLabel(percentToGcseGrade(data.avgScore)) : '—'}</strong></span>
+                    <span className="text-gray-600">Class average: <strong className="text-gray-900">{data.avgScore != null ? gradeLabel(percentToGcseGrade(data.avgScore)) : '—'}</strong></span>
                     <span className="text-gray-500">Highest: <strong className="text-green-700">{classHighest}</strong></span>
                     <span className="text-gray-500">Lowest: <strong className="text-rose-600">{classLowest}</strong></span>
                     <span className="text-gray-500">SEND: <strong className="text-amber-700">{data.sendCount}</strong></span>
@@ -624,7 +624,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                       return (
                         <>
                           {g > 0 && <span className="text-emerald-700"><strong>{g}</strong> on track</span>}
-                          {a > 0 && <span className="text-amber-600"><strong>{a}</strong> borderline</span>}
+                          {a > 0 && <span className="text-amber-700"><strong>{a}</strong> borderline</span>}
                           {r > 0 && <span className="text-rose-600"><strong>{r}</strong> need support</span>}
                         </>
                       )
@@ -643,15 +643,15 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                 {data.students.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-xl py-14 text-center">
                     <Icon name="menu_book" size="lg" className="text-gray-200 mx-auto mb-3" />
-                    <p className="text-gray-500 text-sm">No students match the selected filters.</p>
+                    <p className="text-gray-600 text-sm">No students match the selected filters.</p>
                   </div>
                 ) : sorted.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-xl py-14 text-center">
-                    <p className="text-gray-500 text-sm">No students match the performance filter.</p>
+                    <p className="text-gray-600 text-sm">No students match the performance filter.</p>
                   </div>
                 ) : (
                   <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                    <div className="hidden sm:grid grid-cols-[1fr_130px_110px_110px_60px_80px] px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    <div className="hidden sm:grid grid-cols-[1fr_130px_110px_110px_60px_80px] px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
                       <SortBtn col="name"       active={sortBy} asc={sortAsc} toggle={toggleSort}>Name</SortBtn>
                       <SortBtn col="completion" active={sortBy} asc={sortAsc} toggle={toggleSort}>Completion</SortBtn>
                       <SortBtn col="score"      active={sortBy} asc={sortAsc} toggle={toggleSort}>
@@ -684,7 +684,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
 
             {/* No marked homework yet */}
             {data && !isPending && data.students.length > 0 && studentScores.length === 0 && (
-              <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl px-5 py-4 text-sm text-amber-700">
+              <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl px-5 py-4 text-sm text-amber-800">
                 No marked homework yet for this selection. Scores will appear here once homework has been marked.
               </div>
             )}
@@ -717,10 +717,10 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
       {calibrationReport && calibrationReport.teacherRows.length > 0 && !sendCat && (
         <div className="mt-8 bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-            <Icon name="balance" size="sm" className="text-blue-600" />
+            <Icon name="balance" size="sm" className="text-blue-700" />
             <div>
               <h3 className="text-[13px] font-bold text-gray-800">Grade Calibration</h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">
+              <p className="text-[11px] text-gray-600 mt-0.5">
                 Per-teacher grade distribution vs school median (Gr {calibrationReport.schoolMedian}) — current term
               </p>
             </div>
@@ -730,17 +730,17 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             <table className="w-full text-[12px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-left px-6 py-2.5 font-semibold text-gray-500">Teacher</th>
-                  <th className="text-right px-4 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Graded</th>
-                  <th className="text-right px-4 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Avg Grade</th>
-                  <th className="text-right px-4 py-2.5 font-semibold text-gray-500 whitespace-nowrap">Drift</th>
-                  <th className="px-6 py-2.5 font-semibold text-gray-500">Distribution (1–9)</th>
+                  <th className="text-left px-6 py-2.5 font-semibold text-gray-600">Teacher</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Graded</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Avg Grade</th>
+                  <th className="text-right px-4 py-2.5 font-semibold text-gray-600 whitespace-nowrap">Drift</th>
+                  <th className="px-6 py-2.5 font-semibold text-gray-600">Distribution (1–9)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {calibrationReport.teacherRows.map(row => {
                   const driftColour = Math.abs(row.drift) < 0.5
-                    ? 'text-green-600 bg-green-50'
+                    ? 'text-green-700 bg-green-50'
                     : row.drift > 0
                       ? 'text-amber-700 bg-amber-50'
                       : 'text-blue-700 bg-blue-50'
@@ -766,7 +766,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
                             return (
                               <div key={g} className="flex flex-col items-center gap-0.5 w-4" title={`Grade ${g}: ${count}`}>
                                 <div className={`w-3 rounded-sm ${barColour}`} style={{ height: `${Math.max(pct * 20, count > 0 ? 3 : 0)}px` }} />
-                                <span className="text-[9px] text-gray-400">{g}</span>
+                                <span className="text-[9px] text-gray-600">{g}</span>
                               </div>
                             )
                           })}
@@ -779,7 +779,7 @@ export default function StudentAnalyticsView({ filterOptions, teacherDefaults, i
             </table>
           </div>
 
-          <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100 flex items-center gap-4 text-[11px] text-gray-400">
+          <div className="px-6 py-3 bg-gray-50/50 border-t border-gray-100 flex items-center gap-4 text-[11px] text-gray-600">
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-2 h-2 rounded-full bg-green-400" />Drift ±0.4 = within normal range
             </span>
@@ -839,10 +839,10 @@ function KpiCard({ iconName, label, value, color }: {
 }
 
 function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => void }) {
-  const completionColor = cls.avgCompletion == null ? 'text-gray-400'
-    : cls.avgCompletion >= 75 ? 'text-green-600' : cls.avgCompletion >= 50 ? 'text-amber-600' : 'text-rose-600'
-  const scoreColor = cls.avgScore == null ? 'text-gray-400'
-    : cls.avgScore >= 75 ? 'text-green-600' : cls.avgScore >= 55 ? 'text-amber-600' : 'text-rose-600'
+  const completionColor = cls.avgCompletion == null ? 'text-gray-500'
+    : cls.avgCompletion >= 75 ? 'text-green-700' : cls.avgCompletion >= 50 ? 'text-amber-700' : 'text-rose-600'
+  const scoreColor = cls.avgScore == null ? 'text-gray-500'
+    : cls.avgScore >= 75 ? 'text-green-700' : cls.avgScore >= 55 ? 'text-amber-700' : 'text-rose-600'
   const barColor = cls.avgCompletion == null ? 'bg-gray-200'
     : cls.avgCompletion >= 75 ? 'bg-green-500' : cls.avgCompletion >= 50 ? 'bg-amber-400' : 'bg-rose-400'
 
@@ -857,7 +857,7 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
         </span>
         <div className="min-w-0">
           <div className="text-sm font-medium text-gray-900 truncate">{cls.name}</div>
-          <div className="text-xs text-gray-400">{cls.subject}</div>
+          <div className="text-xs text-gray-600">{cls.subject}</div>
         </div>
       </div>
 
@@ -872,7 +872,7 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
             <span className={`text-xs font-semibold ${completionColor}`}>{cls.avgCompletion}%</span>
           </>
         ) : (
-          <span className="text-xs text-gray-300">No homework</span>
+          <span className="text-xs text-gray-600">No homework</span>
         )}
       </div>
 
@@ -886,17 +886,17 @@ function ClassRow({ cls, onDrillDown }: { cls: ClassSummary; onDrillDown: () => 
             <Icon name="favorite" size="sm" />{cls.sendCount}
           </span>
         ) : (
-          <span className="text-xs text-gray-300">—</span>
+          <span className="text-xs text-gray-500">—</span>
         )}
       </div>
 
-      <Icon name="chevron_right" size="sm" className="text-gray-400 shrink-0" />
+      <Icon name="chevron_right" size="sm" className="text-gray-500 shrink-0" />
     </div>
   )
 }
 
 function RagPill({ rag }: { rag: RagStatus | null }) {
-  if (!rag || rag === 'no_data') return <span className="text-gray-300 text-xs">—</span>
+  if (!rag || rag === 'no_data') return <span className="text-gray-500 text-xs">—</span>
   const styles: Record<string, string> = {
     green: 'bg-emerald-100 text-emerald-700',
     amber: 'bg-amber-100 text-amber-700',
@@ -931,7 +931,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
       <div className="flex sm:grid sm:grid-cols-[1fr_130px_110px_110px_60px_80px] items-center gap-3 sm:gap-0 px-4 py-3 border-b border-gray-50 hover:bg-gray-50 select-none">
         {/* Name + expand */}
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <button onClick={onExpand} aria-label={expanded ? 'Collapse student row' : 'Expand student row'} className="shrink-0 text-gray-400">
+          <button onClick={onExpand} aria-label={expanded ? 'Collapse student row' : 'Expand student row'} className="shrink-0 text-gray-500">
             {expanded ? <Icon name="expand_more" size="sm" /> : <Icon name="chevron_right" size="sm" />}
           </button>
           {/* Avatar — click to open contact panel */}
@@ -954,7 +954,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
           <button
             type="button"
             onClick={onOpenContact}
-            className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 transition-colors text-left min-w-0 cursor-pointer"
+            className="text-sm font-medium text-gray-900 truncate hover:text-blue-700 transition-colors text-left min-w-0 cursor-pointer"
           >
             {student.lastName}, {student.firstName}
           </button>
@@ -993,7 +993,7 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
           {student.avgScore != null ? (
             <span>{gradeLabel(scoreToGrade(student.avgScore))}</span>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span className="text-gray-500">—</span>
           )}
         </div>
 
@@ -1009,13 +1009,13 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         >
           {delta != null ? (
             delta === 0 ? (
-              <span className="text-xs text-gray-400 font-medium">≈ avg</span>
+              <span className="text-xs text-gray-500 font-medium">≈ avg</span>
             ) : (
-              <span className={`font-semibold ${delta > 0 ? 'text-green-600' : 'text-rose-600'}`}>
+              <span className={`font-semibold ${delta > 0 ? 'text-green-700' : 'text-rose-600'}`}>
                 {delta > 0 ? `+${delta}` : delta}
               </span>
             )
-          ) : <span className="text-gray-400">—</span>}
+          ) : <span className="text-gray-600">—</span>}
         </div>
 
         {/* RAG */}
@@ -1026,23 +1026,23 @@ function StudentTableRow({ student, expanded, onExpand, onOpenSubmission, subLoa
         {/* Navigate */}
         <div className="hidden sm:flex items-center justify-end">
           <button onClick={onNavigate} title="Open student dashboard"
-            className="p-1 rounded hover:bg-gray-200 text-gray-400 hover:text-blue-600 transition-colors">
+            className="p-1 rounded hover:bg-gray-200 text-gray-600 hover:text-blue-700 transition-colors">
             <Icon name="open_in_new" size="sm" />
           </button>
         </div>
 
         {/* Mobile */}
         <div className="flex sm:hidden items-center gap-2 shrink-0">
-          <span className="text-xs text-gray-500">{student.completionRate}%</span>
+          <span className="text-xs text-gray-600">{student.completionRate}%</span>
           {student.hasSend && <span className="text-[10px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">SEN</span>}
-          <button onClick={onNavigate} aria-label="Open student dashboard" className="p-1 text-gray-400"><Icon name="open_in_new" size="sm" /></button>
+          <button onClick={onNavigate} aria-label="Open student dashboard" className="p-1 text-gray-600"><Icon name="open_in_new" size="sm" /></button>
         </div>
       </div>
 
       {expanded && (
         <div className="bg-gray-50 border-b border-gray-100 px-6 py-2">
           {student.homeworks.length === 0 ? (
-            <p className="text-xs text-gray-500 py-3 text-center">No homework assigned in this period.</p>
+            <p className="text-xs text-gray-600 py-3 text-center">No homework assigned in this period.</p>
           ) : (
             <div className="divide-y divide-gray-100">
               {student.homeworks.map(hw => (
@@ -1071,19 +1071,19 @@ function HomeworkTimelineRow({ hw, onOpen, loading, scoreToGrade }: {
       onClick={!loading ? onOpen : undefined}
       onKeyDown={onOpen && !loading ? e => (e.key === 'Enter' || e.key === ' ') && onOpen() : undefined}
       className={`flex items-center gap-3 py-2.5 px-1 rounded text-xs ${onOpen ? 'cursor-pointer hover:bg-white transition-colors' : 'opacity-60'}`}>
-      {hw.submitted ? <Icon name="check_circle" size="sm" className="text-green-500 shrink-0" /> : <Icon name="cancel" size="sm" className="text-gray-300 shrink-0" />}
+      {hw.submitted ? <Icon name="check_circle" size="sm" className="text-green-700 shrink-0" /> : <Icon name="cancel" size="sm" className="text-gray-500 shrink-0" />}
       <span className="flex-1 text-gray-700 truncate">{hw.subject} — {hw.title}</span>
-      <span className="text-gray-400 shrink-0">{dateStr}</span>
+      <span className="text-gray-500 shrink-0">{dateStr}</span>
       {hw.submitted && hw.score != null ? (
         <span className="text-gray-700 shrink-0 font-medium w-20 text-right">
           {grade ? gradeLabel(Number(grade)) : gradeLabel(percentToGcseGrade(Math.round(hw.score)))}
         </span>
       ) : hw.submitted ? (
-        <span className="text-gray-400 shrink-0">Submitted</span>
+        <span className="text-gray-500 shrink-0">Submitted</span>
       ) : (
-        <span className="text-rose-400 shrink-0">Not submitted</span>
+        <span className="text-rose-600 shrink-0">Not submitted</span>
       )}
-      {hw.submissionId && <Icon name="open_in_new" size="sm" className="text-gray-300 shrink-0" />}
+      {hw.submissionId && <Icon name="open_in_new" size="sm" className="text-gray-500 shrink-0" />}
     </div>
   )
 }
@@ -1097,9 +1097,9 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
           <div>
             <h2 className="font-semibold text-gray-900 text-base">{detail.studentName}</h2>
             <p className="text-sm text-gray-600 mt-0.5">{detail.homework.title}</p>
-            <p className="text-xs text-gray-400 mt-0.5">Submitted {submittedDate}</p>
+            <p className="text-xs text-gray-600 mt-0.5">Submitted {submittedDate}</p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 shrink-0"><Icon name="close" size="sm" /></button>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 shrink-0"><Icon name="close" size="sm" /></button>
         </div>
         <div className="px-6 py-5 space-y-4">
           {(detail.finalScore != null || detail.grade) && (
@@ -1107,26 +1107,26 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
               {detail.grade && (
                 <div className="bg-purple-50 rounded-xl px-4 py-2.5 text-center min-w-[60px]">
                   <div className="text-2xl font-bold text-purple-700">{gradeLabel(Number(detail.grade))}</div>
-                  <div className="text-[10px] text-purple-500 mt-0.5">Grade</div>
+                  <div className="text-[10px] text-purple-600 mt-0.5">Grade</div>
                 </div>
               )}
               {!detail.grade && detail.finalScore != null && (
                 <div className="bg-blue-50 rounded-xl px-4 py-2.5 text-center min-w-[60px]">
                   <div className="text-2xl font-bold text-blue-700">{formatRawScore(detail.finalScore)}</div>
-                  <div className="text-[10px] text-blue-500 mt-0.5">Score</div>
+                  <div className="text-[10px] text-blue-700 mt-0.5">Score</div>
                 </div>
               )}
             </div>
           )}
           <div>
-            <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Student&apos;s Answer</div>
+            <div className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-2">Student&apos;s Answer</div>
             <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap max-h-52 overflow-y-auto leading-relaxed">
-              {detail.content || <span className="text-gray-400 italic">No content recorded</span>}
+              {detail.content || <span className="text-gray-600 italic">No content recorded</span>}
             </div>
           </div>
           {detail.feedback && (
             <div>
-              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Teacher Feedback</div>
+              <div className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-2">Teacher Feedback</div>
               <div className="bg-amber-50 rounded-xl px-4 py-3 text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{detail.feedback}</div>
             </div>
           )}
@@ -1145,8 +1145,8 @@ function SubmissionModal({ detail, onClose }: { detail: SubmissionDetail; onClos
 function RagDot({ rag }: { rag: 'green' | 'amber' | 'red' | null }) {
   if (!rag) return null
   const styles: Record<'green' | 'amber' | 'red', { cls: string; label: string }> = {
-    green: { cls: 'text-emerald-600', label: 'On track' },
-    amber: { cls: 'text-amber-500',   label: 'Borderline' },
+    green: { cls: 'text-emerald-700', label: 'On track' },
+    amber: { cls: 'text-amber-700',   label: 'Borderline' },
     red:   { cls: 'text-rose-600',    label: 'Needs support' },
   }
   const s = styles[rag]
@@ -1179,7 +1179,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             {student.sendStatus && student.sendStatus !== 'NONE' && (
               <SendBadge status={student.sendStatus as 'EHCP' | 'SEN_SUPPORT'} />
             )}
-            {student.needArea != null && <span className="text-xs text-gray-400">{student.needArea}</span>}
+            {student.needArea != null && <span className="text-xs text-gray-500">{student.needArea}</span>}
           </div>
           {/* Quick stats */}
           <div className="flex flex-wrap gap-3 mt-2">
@@ -1187,13 +1187,13 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
               title={`${recentHomeworks.filter(h => h.submitted).length} submitted of ${recentHomeworks.length} assigned across all classes`}
               className="text-[11px] text-gray-500 cursor-help"
             >
-              <span className={`font-semibold ${completionRate >= 75 ? 'text-green-600' : completionRate >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>{completionRate}%</span>
+              <span className={`font-semibold ${completionRate >= 75 ? 'text-green-700' : completionRate >= 50 ? 'text-amber-700' : 'text-rose-600'}`}>{completionRate}%</span>
               {' '}completion ({recentHomeworks.filter(h => h.submitted).length}/{recentHomeworks.length} tasks)
             </span>
             {avgScore != null && (
               <span className="text-[11px] text-gray-500">
                 Avg grade: <span className="font-semibold text-gray-700">{gradeLabel(percentToGcseGrade(avgScore))}</span>
-                <span className="text-gray-400 ml-1" title="Running average across all marked homework">(all subjects)</span>
+                <span className="text-gray-500 ml-1" title="Running average across all marked homework">(all subjects)</span>
               </span>
             )}
             {student.attendancePercentage != null && (
@@ -1203,8 +1203,8 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
               >
                 Attendance:{' '}
                 <span className={`font-semibold ${
-                  student.attendancePercentage >= 95 ? 'text-green-600'
-                  : student.attendancePercentage >= 90 ? 'text-amber-600'
+                  student.attendancePercentage >= 95 ? 'text-green-700'
+                  : student.attendancePercentage >= 90 ? 'text-amber-700'
                   : 'text-rose-600'
                 }`}>
                   {student.attendancePercentage.toFixed(1)}%
@@ -1214,7 +1214,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
           </div>
         </div>
         <Link href={`/students/${student.id}`}
-          className="ml-auto shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+          className="ml-auto shrink-0 text-xs text-blue-700 hover:text-blue-800 font-medium flex items-center gap-1">
           Full file <Icon name="open_in_new" size="sm" />
         </Link>
       </div>
@@ -1223,7 +1223,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
       {(hasSendProfile || ilp || latestNote) && (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100 bg-amber-50 flex items-center gap-2">
-            <Icon name="favorite" size="sm" className="text-amber-600" />
+            <Icon name="favorite" size="sm" className="text-amber-800" />
             <h4 className="font-semibold text-sm text-amber-800">Support Profile</h4>
           </div>
           <div className="px-5 py-4 space-y-3">
@@ -1237,14 +1237,14 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             {/* ILP areas of need */}
             {ilp?.areasOfNeed && (
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Areas of Need</p>
+                <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Areas of Need</p>
                 <p className="text-sm text-gray-700 line-clamp-2">{ilp.areasOfNeed}</p>
               </div>
             )}
             {/* Active SMART goals — max 3 */}
             {activeTargets.length > 0 && (
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Active Targets</p>
+                <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1.5">Active Targets</p>
                 <div className="space-y-1">
                   {activeTargets.slice(0, 3).map(t => (
                     <div key={t.id} className="flex items-start gap-2">
@@ -1253,7 +1253,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
                     </div>
                   ))}
                   {activeTargets.length > 3 && (
-                    <p className="text-xs text-gray-400 pl-3.5">+{activeTargets.length - 3} more</p>
+                    <p className="text-xs text-gray-600 pl-3.5">+{activeTargets.length - 3} more</p>
                   )}
                 </div>
               </div>
@@ -1261,10 +1261,10 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             {/* Most recent teacher note */}
             {latestNote && (
               <div>
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Latest Note</p>
+                <p className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider mb-1">Latest Note</p>
                 <div className="bg-yellow-50 border border-yellow-100 rounded-lg px-3 py-2">
                   <p className="text-sm text-gray-800 line-clamp-2">{latestNote.content}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">{latestNote.authorName} · {new Date(latestNote.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  <p className="text-[11px] text-gray-600 mt-1">{latestNote.authorName} · {new Date(latestNote.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
               </div>
             )}
@@ -1276,7 +1276,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
       {(learningPassport?.profileSummary || (learningPassport?.preferredTypes && learningPassport.preferredTypes.length > 0)) && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3">
           <div className="flex items-center gap-2 mb-1.5">
-            <Icon name="auto_fix_high" size="sm" className="text-emerald-600" />
+            <Icon name="auto_fix_high" size="sm" className="text-emerald-700" />
             <p className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">Adaptive Learning Profile</p>
           </div>
           {learningPassport?.profileSummary && (
@@ -1297,7 +1297,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             <Icon name="smart_toy" size="sm" className="text-indigo-600" />
             <h4 className="font-semibold text-sm text-indigo-800">AI Coach Insights</h4>
             {agentInsights.lastRunAt.coach && (
-              <span className="ml-auto text-[10px] text-indigo-400">
+              <span className="ml-auto text-[10px] text-indigo-600">
                 {new Date(agentInsights.lastRunAt.coach).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
               </span>
             )}
@@ -1308,7 +1308,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             )}
             {agentInsights.coach.recommendedFocus.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wider mb-1.5">Recommended Focus</p>
+                <p className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider mb-1.5">Recommended Focus</p>
                 <div className="flex flex-wrap gap-1.5">
                   {agentInsights.coach.recommendedFocus.map((t, i) => (
                     <span key={i} className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700 font-medium">{t}</span>
@@ -1318,7 +1318,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             )}
             {agentInsights.coach.weakTopics.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-rose-500 uppercase tracking-wider mb-1.5">Needs Work</p>
+                <p className="text-[10px] font-semibold text-rose-700 uppercase tracking-wider mb-1.5">Needs Work</p>
                 <div className="flex flex-wrap gap-1.5">
                   {agentInsights.coach.weakTopics.slice(0, 4).map((t, i) => (
                     <span key={i} className="px-2 py-0.5 bg-rose-50 border border-rose-200 rounded-full text-xs text-rose-700">{t}</span>
@@ -1328,10 +1328,10 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
             )}
             {agentInsights.coach.retentionRisk.length > 0 && (
               <div>
-                <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider mb-1.5">Retention Risk (not tested 21d+)</p>
+                <p className="text-[10px] font-semibold text-amber-800 uppercase tracking-wider mb-1.5">Retention Risk (not tested 21d+)</p>
                 <div className="flex flex-wrap gap-1.5">
                   {agentInsights.coach.retentionRisk.slice(0, 4).map((t, i) => (
-                    <span key={i} className="px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700">{t}</span>
+                    <span key={i} className="px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-800">{t}</span>
                   ))}
                 </div>
               </div>
@@ -1346,10 +1346,10 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
           <div className="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
             <h4 className="font-semibold text-sm text-gray-800">Performance vs Predicted</h4>
             {subjectPerf.every(r => r.predictedScore == null) && (
-              <span className="text-[11px] text-amber-600 italic">No predicted grades on record</span>
+              <span className="text-[11px] text-amber-800 italic">No predicted grades on record</span>
             )}
           </div>
-          <div className="px-5 py-1.5 grid grid-cols-[1fr_72px_90px_120px] gap-3 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
+          <div className="px-5 py-1.5 grid grid-cols-[1fr_72px_90px_120px] gap-3 text-[10px] font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-50">
             <span>Subject</span><span className="text-right">Avg</span>
             <span className="text-right" title="Predicted grade set by teacher — add via class analytics">Predicted</span>
             <span className="text-right">Status</span>
@@ -1359,7 +1359,7 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
               <div key={row.subject} className="grid grid-cols-[1fr_72px_90px_120px] items-center gap-3 px-5 py-2.5 text-sm">
                 <span className="font-medium text-gray-800 truncate">{row.subject}</span>
                 <span className="text-right text-gray-700">{row.avgScore != null ? gradeLabel(percentToGcseGrade(row.avgScore)) : '—'}</span>
-                <span className="text-right text-gray-400 text-xs">{row.predictedScore != null ? gradeLabel(percentToGcseGrade(Math.round(row.predictedScore))) : '—'}</span>
+                <span className="text-right text-gray-500 text-xs">{row.predictedScore != null ? gradeLabel(percentToGcseGrade(Math.round(row.predictedScore))) : '—'}</span>
                 <div className="text-right"><RagDot rag={row.rag} /></div>
               </div>
             ))}
@@ -1424,14 +1424,14 @@ function StudentDeepDive({ file }: { file: StudentFileData }) {
                 <Icon name={hw.submitted ? 'check_circle' : 'cancel'} size="sm"
                   className={hw.submitted ? 'text-green-500 shrink-0' : 'text-gray-300 shrink-0'} />
                 <span className="flex-1 text-gray-700 group-hover:text-blue-700 truncate min-w-0">{hw.subject} — {hw.title}</span>
-                <span className="text-gray-400 text-xs shrink-0">
+                <span className="text-gray-500 text-xs shrink-0">
                   {new Date(hw.dueAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                 </span>
                 {hw.finalScore != null
                   ? <span className="text-gray-800 font-medium shrink-0">{formatRawScore(hw.finalScore)}</span>
                   : hw.submitted
                     ? <span className="text-blue-600 text-xs shrink-0">Submitted</span>
-                    : <span className="text-rose-400 text-xs shrink-0">Missing</span>
+                    : <span className="text-rose-600 text-xs shrink-0">Missing</span>
                 }
               </Link>
             ))}

@@ -24,14 +24,14 @@ function daysUntil(date: Date): number {
 
 function DaysChip({ days }: { days: number }) {
   const colour = days < 14 ? 'bg-red-100 text-red-700'
-    : days < 28            ? 'bg-amber-100 text-amber-700'
-    : 'bg-green-100 text-green-700'
+    : days < 28            ? 'bg-amber-100 text-amber-800'
+    : 'bg-green-100 text-green-800'
   const label = days < 0 ? 'Past' : days === 0 ? 'Today' : `${days}d`
   return <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${colour}`}>{label}</span>
 }
 
 function BoardBadge({ board }: { board: string }) {
-  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{board}</span>
+  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">{board}</span>
 }
 
 export default function ExamList({
@@ -149,7 +149,7 @@ export default function ExamList({
       )}
 
       {exams.length === 0 && !showForm && (
-        <p className="text-[12px] text-gray-400 text-center py-6">
+        <p className="text-[12px] text-gray-500 text-center py-6">
           No exams added yet.<br />Add your exams to start planning.
         </p>
       )}
@@ -172,19 +172,19 @@ export default function ExamList({
                     <p className="text-[11px] text-gray-500 truncate">{exam.paperName}</p>
                   )}
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
                       <Icon name="calendar_today" size="sm" />
                       {new Date(exam.examDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                     {total > 0 && (
-                      <span className="text-[10px] text-gray-400">{completed}/{total} sessions done</span>
+                      <span className="text-[10px] text-gray-500">{completed}/{total} sessions done</span>
                     )}
                   </div>
                 </div>
                 <button
                   onClick={() => handleDelete(exam.id)}
                   disabled={deleting === exam.id}
-                  className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5"
+                  className="text-gray-500 hover:text-red-600 transition-colors shrink-0 mt-0.5"
                 >
                   <Icon name="delete" size="sm" />
                 </button>

@@ -129,9 +129,9 @@ function StudentSlideOver({
             <p className="text-[15px] font-semibold text-gray-900">
               {mode === 'add' ? 'Add student' : `Edit — ${student!.firstName} ${student!.lastName}`}
             </p>
-            {mode === 'edit' && <p className="text-[12px] text-gray-400 mt-0.5">{student!.email}</p>}
+            {mode === 'edit' && <p className="text-[12px] text-gray-500 mt-0.5">{student!.email}</p>}
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -140,23 +140,23 @@ function StudentSlideOver({
           <div className="px-6 py-5 space-y-5">
             {/* Personal details */}
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Personal Details</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Personal Details</p>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">First name <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">First name <span className="text-red-600">*</span></span>
                   <input required value={form.firstName} onChange={e => set('firstName', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                     placeholder="First name" />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">Last name <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">Last name <span className="text-red-600">*</span></span>
                   <input required value={form.lastName} onChange={e => set('lastName', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                     placeholder="Last name" />
                 </label>
               </div>
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-gray-700">Email address <span className="text-red-500">*</span></span>
+                <span className="text-[12px] font-medium text-gray-700">Email address <span className="text-red-600">*</span></span>
                 <input required type="email" value={form.email} onChange={e => set('email', e.target.value)}
                   className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                   placeholder="student@students.school.ac.uk" />
@@ -165,10 +165,10 @@ function StudentSlideOver({
 
             {/* Year & tutor group */}
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Year &amp; Form</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Year &amp; Form</p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">Year group <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">Year group <span className="text-red-600">*</span></span>
                   <select required value={form.yearGroup} onChange={e => set('yearGroup', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
                     {YEAR_OPTIONS.map(y => <option key={y} value={y}>Year {y}</option>)}
@@ -186,7 +186,7 @@ function StudentSlideOver({
             {/* Temp password (add only) */}
             {mode === 'add' && (
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Account Setup</p>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Account Setup</p>
                 <label className="flex flex-col gap-1">
                   <span className="text-[12px] font-medium text-gray-700">Temporary password</span>
                   <div className="flex gap-2">
@@ -197,12 +197,12 @@ function StudentSlideOver({
                       {copied ? 'Copied!' : 'Copy'}
                     </button>
                     <button type="button" onClick={() => set('tempPassword', genPassword())}
-                      className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition" title="Regenerate">
+                      className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-600 transition" title="Regenerate">
                       <Icon name="refresh" size="sm" />
                     </button>
                   </div>
                 </label>
-                <p className="text-[11px] text-gray-400 mt-1.5">Share with the student. They should change it on first sign-in.</p>
+                <p className="text-[11px] text-gray-500 mt-1.5">Share with the student. They should change it on first sign-in.</p>
               </div>
             )}
 
@@ -254,11 +254,11 @@ function DeleteModal({ student, onClose, onDeleted }: {
           </div>
           <div>
             <p className="text-[14px] font-semibold text-gray-900">Remove student account?</p>
-            <p className="text-[12px] text-gray-400">Their records will be preserved</p>
+            <p className="text-[12px] text-gray-500">Their records will be preserved</p>
           </div>
         </div>
         <p className="text-[14px] font-medium text-gray-900">{student.firstName} {student.lastName}</p>
-        <p className="text-[12px] text-gray-400 mb-4">{student.email}</p>
+        <p className="text-[12px] text-gray-500 mb-4">{student.email}</p>
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5">
           <p className="text-[12px] text-amber-800">
             Submissions, ILP records, and SEND data will be preserved. Only login access will be removed.
@@ -423,21 +423,21 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
                   <td className="px-5 py-3.5 font-medium text-gray-900">
                     <div className="flex items-center gap-2.5">
                       <StudentAvatar firstName={s.firstName} lastName={s.lastName} avatarUrl={s.avatarUrl} userId={s.id} size="xs" />
-                      <span className={s.isActive ? 'text-gray-900' : 'text-gray-400'}>{s.firstName} {s.lastName}</span>
+                      <span className={s.isActive ? 'text-gray-900' : 'text-gray-500'}>{s.firstName} {s.lastName}</span>
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-gray-500">{s.yearGroup ? `Year ${s.yearGroup}` : '—'}</td>
-                  <td className="px-5 py-3.5 text-gray-400">{s.tutorGroup ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-gray-500">{s.tutorGroup ?? '—'}</td>
                   <td className="px-5 py-3.5 text-gray-500">{s.className}</td>
                   <td className="px-5 py-3.5">
                     {s.hasSend && (
                       <span className="text-[11px] font-semibold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">SEND</span>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-gray-400 text-[12px] max-w-[160px] truncate">{s.email}</td>
+                  <td className="px-5 py-3.5 text-gray-500 text-[12px] max-w-[160px] truncate">{s.email}</td>
                   <td className="px-5 py-3.5">
                     <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                      s.isActive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'
+                      s.isActive ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {s.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -445,16 +445,16 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => setOptionsTarget(s)}
-                        className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition" title="Subject options">
+                        className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-500 hover:text-purple-600 transition" title="Subject options">
                         <Icon name="menu_book" size="sm" />
                       </button>
                       <button onClick={() => setEditTarget(s)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition" title="Edit">
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition" title="Edit">
                         <Icon name="edit" size="sm" />
                       </button>
                       <button onClick={() => handleToggle(s)} disabled={toggling === s.id}
                         className={`p-1.5 rounded-lg transition ${toggling === s.id ? 'opacity-40 cursor-not-allowed' :
-                          s.isActive ? 'hover:bg-red-50 text-gray-400 hover:text-red-500' : 'hover:bg-green-50 text-gray-400 hover:text-green-600'
+                          s.isActive ? 'hover:bg-red-50 text-gray-600 hover:text-red-700' : 'hover:bg-green-50 text-gray-600 hover:text-green-800'
                         }`}
                         title={s.isActive ? 'Deactivate' : 'Reactivate'}>
                         {toggling === s.id
@@ -462,11 +462,11 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
                           : <Icon name={s.isActive ? 'person_off' : 'person'} size="sm" />}
                       </button>
                       <button onClick={() => setDeleteTarget(s)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition" title="Remove">
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-600 hover:text-red-700 transition" title="Remove">
                         <Icon name="delete" size="sm" />
                       </button>
                       <Link href="/messages" title="Message parent"
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition">
+                        className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-600 hover:text-blue-700 transition">
                         <Icon name="chat" size="sm" />
                       </Link>
                     </div>
@@ -475,7 +475,7 @@ export default function AdminStudentTable({ students: initialStudents }: { stude
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-gray-400 text-[13px]">No students found</td>
+                  <td colSpan={8} className="px-5 py-12 text-center text-gray-500 text-[13px]">No students found</td>
                 </tr>
               )}
             </tbody>

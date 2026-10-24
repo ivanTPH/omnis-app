@@ -51,7 +51,7 @@ export default function ResourceLibrary({
           className={`px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${
             tab === 'mine'
               ? 'bg-blue-600 text-white'
-              : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
           }`}
         >
           My Resources
@@ -62,7 +62,7 @@ export default function ResourceLibrary({
             className={`px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${
               tab === 'school'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
             All School
@@ -84,8 +84,8 @@ export default function ResourceLibrary({
       <div className="flex-1 overflow-auto space-y-2">
         {list.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
-            <p className="text-[13px] text-gray-400">No resources yet.</p>
-            <p className="text-[11px] text-gray-300 mt-1">Generate your first resource using the form.</p>
+            <p className="text-[13px] text-gray-500">No resources yet.</p>
+            <p className="text-[11px] text-gray-500 mt-1">Generate your first resource using the form.</p>
           </div>
         ) : (
           list.map(r => (

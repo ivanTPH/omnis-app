@@ -21,7 +21,7 @@ export default function MessageBubble({
   if (message.isSystem) {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-[11px] italic text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+        <span className="text-[11px] italic text-gray-500 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
           {message.body}
         </span>
       </div>
@@ -45,8 +45,8 @@ export default function MessageBubble({
       <div className={`max-w-[70%] ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
         <div className={`flex items-center gap-1.5 ${isOwn ? 'flex-row-reverse' : ''}`}>
           <span className="text-[11px] font-medium text-gray-600">{message.senderName}</span>
-          <span className="text-[10px] text-gray-400">{timeStr(message.sentAt)}</span>
-          {message.editedAt && <span className="text-[10px] text-gray-300">(edited)</span>}
+          <span className="text-[10px] text-gray-500">{timeStr(message.sentAt)}</span>
+          {message.editedAt && <span className="text-[10px] text-gray-500">(edited)</span>}
         </div>
         <div className={`px-3 py-2 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ${
           isOwn

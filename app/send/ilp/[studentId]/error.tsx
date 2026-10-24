@@ -23,7 +23,7 @@ export default function IlpDetailError({
           There was a problem fetching the ILP. The student may have been removed or you may not have access.
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-400 mb-4">Ref: {error.digest}</p>
+          <p className="text-xs text-gray-500 mb-4">Ref: {error.digest}</p>
         )}
         <button
           onClick={reset}

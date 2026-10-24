@@ -388,7 +388,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                         <button
                           onClick={() => setObjectives(prev => prev.map((o, i) => i === idx ? { ...o, showSource: !o.showSource } : o))}
                           className={`text-[10px] font-semibold px-2 py-0.5 rounded shrink-0 transition-colors ${
-                            obj.sourceMaterial?.trim() ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                            obj.sourceMaterial?.trim() ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                           }`}
                         >
                           {obj.sourceMaterial?.trim() ? 'Source ✓' : 'Add source'}
@@ -396,7 +396,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                       )}
                       <button
                         onClick={() => setObjectives(prev => prev.filter((_, i) => i !== idx))}
-                        className="text-gray-300 hover:text-rose-500 shrink-0 transition-colors"
+                        className="text-gray-500 hover:text-rose-600 shrink-0 transition-colors"
                         title="Remove objective"
                       >
                         <Icon name="close" size="sm" />
@@ -419,7 +419,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                   </div>
                 ))}
                 {objectives.length === 0 && (
-                  <p className="text-xs text-gray-400 text-center py-2">No objectives yet — add one below.</p>
+                  <p className="text-xs text-gray-500 text-center py-2">No objectives yet — add one below.</p>
                 )}
               </div>
 
@@ -485,7 +485,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                     <div className="flex items-center gap-2">
                       <Icon name="library_books" size="sm" className="text-blue-500" />
                       <span className="text-xs font-semibold text-gray-700">Curriculum context</span>
-                      <span className="text-[10px] text-gray-400">({sowTopics.length} SoW topics)</span>
+                      <span className="text-[10px] text-gray-500">({sowTopics.length} SoW topics)</span>
                     </div>
                     <Icon name={sowExpanded ? 'expand_less' : 'expand_more'} size="sm" className="text-gray-400 shrink-0" />
                   </button>
@@ -511,7 +511,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                               }}
                               className={`text-[10px] font-medium px-2 py-0.5 rounded border transition-colors ${
                                 alreadyAdded
-                                  ? 'bg-green-50 text-green-700 border-green-200 cursor-default'
+                                  ? 'bg-green-50 text-green-800 border-green-200 cursor-default'
                                   : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
                               }`}
                             >
@@ -598,7 +598,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
                     <p className="font-medium">{t.label}</p>
                     <p className="text-xs text-gray-500 capitalize">Bloom&apos;s: {t.blooms}</p>
                     {extraction.suggestedHomeworkTypes.includes(t.id) && (
-                      <span className="text-xs text-green-600 font-medium">✓ Suggested</span>
+                      <span className="text-xs text-green-700 font-medium">✓ Suggested</span>
                     )}
                   </button>
                 ))}
@@ -606,7 +606,7 @@ export default function HomeworkCreatorV2({ lessons, classes, onClose, onCreated
 
               {/* SEND format insight */}
               {loadingInsight && (
-                <div className="flex items-center gap-2 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Icon name="refresh" size="sm" className="animate-spin" /> Checking SEND format preferences…
                 </div>
               )}

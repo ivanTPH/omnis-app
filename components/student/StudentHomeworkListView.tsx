@@ -46,11 +46,11 @@ function CalendarView({ homework }: { homework: MobileHw[] }) {
     <div>
       {/* Week nav */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => setWeekOffset(w => w - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+        <button onClick={() => setWeekOffset(w => w - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
           <Icon name="chevron_left" size="md" />
         </button>
         <span className="text-[13px] font-semibold text-gray-700">{weekLabel}</span>
-        <button onClick={() => setWeekOffset(w => w + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">
+        <button onClick={() => setWeekOffset(w => w + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
           <Icon name="chevron_right" size="md" />
         </button>
       </div>
@@ -63,7 +63,7 @@ function CalendarView({ homework }: { homework: MobileHw[] }) {
           return (
             <div key={i} className="min-h-[100px]">
               <div className={`text-center mb-1.5 px-1 py-1 rounded-lg text-[10px] font-semibold ${
-                isToday ? 'bg-blue-600 text-white' : 'text-gray-400'
+                isToday ? 'bg-blue-600 text-white' : 'text-gray-500'
               }`}>
                 <div>{DAY_LABELS[i]}</div>
                 <div className={`text-[12px] font-bold ${isToday ? 'text-white' : 'text-gray-700'}`}>
@@ -96,7 +96,7 @@ function CalendarView({ homework }: { homework: MobileHw[] }) {
           if (dayHw.length === 0) return null
           return (
             <div key={i}>
-              <div className={`text-[11px] font-bold mb-1.5 px-1 ${isToday ? 'text-blue-700' : 'text-gray-400'}`}>
+              <div className={`text-[11px] font-bold mb-1.5 px-1 ${isToday ? 'text-blue-700' : 'text-gray-500'}`}>
                 {DAY_LABELS[i]} {day.getDate()} {day.toLocaleDateString('en-GB', { month: 'short' })}
                 {isToday && <span className="ml-1.5 bg-blue-600 text-white px-1.5 py-0.5 rounded text-[10px]">Today</span>}
               </div>
@@ -121,7 +121,7 @@ function CalendarView({ homework }: { homework: MobileHw[] }) {
       </div>
 
       {byDay.size === 0 && (
-        <p className="text-center text-[13px] text-gray-400 py-6">No homework due this week.</p>
+        <p className="text-center text-[13px] text-gray-500 py-6">No homework due this week.</p>
       )}
     </div>
   )
@@ -138,10 +138,10 @@ const STATUS_CHIPS = [
 
 const STATUS_STYLES: Record<string, string> = {
   overdue:   'bg-red-100 text-red-700',
-  due_soon:  'bg-amber-100 text-amber-700',
+  due_soon:  'bg-amber-100 text-amber-800',
   upcoming:  'bg-gray-100 text-gray-600',
   submitted: 'bg-blue-100 text-blue-700',
-  graded:    'bg-green-100 text-green-700',
+  graded:    'bg-green-100 text-green-800',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -197,19 +197,19 @@ export default function StudentHomeworkListView({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-page-title">My Homework</h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">{homework.length} piece{homework.length !== 1 ? 's' : ''} assigned</p>
+          <p className="text-[13px] text-gray-500 mt-0.5">{homework.length} piece{homework.length !== 1 ? 's' : ''} assigned</p>
         </div>
         <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-0.5 bg-white">
           <button
             onClick={() => setView('list')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${view === 'list' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${view === 'list' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             <Icon name="list" size="sm" />
             List
           </button>
           <button
             onClick={() => setView('calendar')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${view === 'calendar' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${view === 'calendar' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
           >
             <Icon name="calendar_month" size="sm" />
             Calendar
@@ -250,7 +250,7 @@ export default function StudentHomeworkListView({
               }`}
             >
               {chip.label}
-              <span className={`text-[10px] ${active ? 'text-gray-300' : 'text-gray-400'}`}>{count}</span>
+              <span className={`text-[10px] ${active ? 'text-gray-500' : 'text-gray-500'}`}>{count}</span>
             </button>
           )
         })}
@@ -258,7 +258,7 @@ export default function StudentHomeworkListView({
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-500">
           <Icon name="assignment" size="lg" className="mx-auto mb-3 text-gray-300" />
           <p>No homework matches this filter.</p>
         </div>
@@ -275,12 +275,12 @@ export default function StudentHomeworkListView({
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${STATUS_STYLES[hw.status] ?? ''}`}>
                     {STATUS_LABELS[hw.status]}
                   </span>
-                  <span className="text-[10px] text-gray-400">{hw.subject}</span>
-                  <span className="text-[10px] text-gray-300">·</span>
-                  <span className="text-[10px] text-gray-400">{hw.className}</span>
+                  <span className="text-[10px] text-gray-500">{hw.subject}</span>
+                  <span className="text-[10px] text-gray-500">·</span>
+                  <span className="text-[10px] text-gray-500">{hw.className}</span>
                 </div>
                 <p className="text-[13px] font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">{hw.title}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{daysUntil(hw.dueAt)}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{daysUntil(hw.dueAt)}</p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">

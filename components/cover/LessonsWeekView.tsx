@@ -77,10 +77,10 @@ export default function LessonsWeekView({
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-page-title">School Lessons</h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">
+          <p className="text-[13px] text-gray-500 mt-0.5">
             Week of {formatDate(weekStart)} · {lessons.length} lesson{lessons.length !== 1 ? 's' : ''}
             {totalAbsences > 0 && (
-              <span className="ml-2 text-amber-600 font-medium">· {totalAbsences} absence{totalAbsences !== 1 ? 's' : ''} this week</span>
+              <span className="ml-2 text-amber-700 font-medium">· {totalAbsences} absence{totalAbsences !== 1 ? 's' : ''} this week</span>
             )}
           </p>
         </div>
@@ -162,7 +162,7 @@ export default function LessonsWeekView({
 
       {/* Weekly grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-gray-500">
           <Icon name="calendar_today" size="lg" className="mx-auto mb-3 text-gray-300" />
           <p>No lessons found for this filter.</p>
         </div>
@@ -179,7 +179,7 @@ export default function LessonsWeekView({
                   <p className="text-[13px] font-bold text-gray-900">
                     {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </p>
-                  <p className="text-[10px] text-gray-400">{dayLess.length} lesson{dayLess.length !== 1 ? 's' : ''}</p>
+                  <p className="text-[10px] text-gray-500">{dayLess.length} lesson{dayLess.length !== 1 ? 's' : ''}</p>
                 </div>
                 {dayLess.map(l => (
                   <div
@@ -193,7 +193,7 @@ export default function LessonsWeekView({
                     )}
                     <p className="font-medium text-gray-900 line-clamp-2 leading-snug mb-1">{l.title}</p>
                     <p className="text-[11px] text-gray-500">{l.className} · {l.subject}</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">{l.teacherName}</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">{l.teacherName}</p>
 
                     {l.resourceCount > 0 && (
                       <p className="text-[10px] text-blue-600 mt-1.5 flex items-center gap-0.5">
@@ -211,7 +211,7 @@ export default function LessonsWeekView({
                   </div>
                 ))}
                 {dayLess.length === 0 && (
-                  <div className="border border-dashed border-gray-200 rounded-xl px-3 py-4 text-center text-[11px] text-gray-300">
+                  <div className="border border-dashed border-gray-200 rounded-xl px-3 py-4 text-center text-[11px] text-gray-500">
                     No lessons
                   </div>
                 )}

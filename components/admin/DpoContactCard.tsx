@@ -73,17 +73,17 @@ export default function DpoContactCard({
         isSet ? (
           <div className="text-[13px] text-gray-700 pl-12">
             <p className="font-medium">{saved.name || 'Unnamed DPO'}</p>
-            {saved.email && <p className="text-gray-500">{saved.email}</p>}
+            {saved.email && <p className="text-gray-600">{saved.email}</p>}
           </div>
         ) : (
-          <p className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 ml-12">
+          <p className="text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 ml-12">
             Not set — students currently see a generic &quot;ask your school office&quot; fallback.
           </p>
         )
       ) : (
         <div className="pl-12 space-y-3">
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1">Name</label>
+            <label className="block text-[11px] font-medium text-gray-600 mb-1">Name</label>
             <input
               type="text" value={name} onChange={e => setName(e.target.value)}
               placeholder="e.g. Jane Smith, School Business Manager"
@@ -91,14 +91,14 @@ export default function DpoContactCard({
             />
           </div>
           <div>
-            <label className="block text-[11px] font-medium text-gray-500 mb-1">Email</label>
+            <label className="block text-[11px] font-medium text-gray-600 mb-1">Email</label>
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)}
               placeholder="dpo@yourschool.sch.uk"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
-          {error && <p className="text-[12px] text-red-600">{error}</p>}
+          {error && <p className="text-[12px] text-red-700">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={handleSave}

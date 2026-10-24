@@ -33,7 +33,7 @@ const DOC_CONFIGS: DocConfig[] = [
     bg:      'bg-amber-50 hover:bg-amber-100',
     border:  'border-amber-200',
     iconBg:  'bg-amber-100',
-    iconCls: 'text-amber-600',
+    iconCls: 'text-amber-700',
   },
   {
     type:    'ilp',
@@ -57,9 +57,9 @@ const DOC_CONFIGS: DocConfig[] = [
 
 function statusPill(status: string) {
   if (status === 'APPROVED' || status === 'active') {
-    return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">Approved</span>
+    return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-800">Approved</span>
   }
-  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">Draft</span>
+  return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">Draft</span>
 }
 
 export default function SendDocumentThumbnails({ studentId, studentName, userRole }: Props) {
@@ -86,7 +86,7 @@ export default function SendDocumentThumbnails({ studentId, studentName, userRol
 
   if (loading) {
     return (
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+      <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
         <Icon name="refresh" size="sm" className="animate-spin" /> Loading documents…
       </div>
     )
@@ -119,7 +119,7 @@ export default function SendDocumentThumbnails({ studentId, studentName, userRol
               <div className="text-left">
                 <p className={`text-[11px] font-bold ${cfg.iconCls}`}>{cfg.label}</p>
                 {updatedAt && (
-                  <p className="text-[10px] text-gray-400 mt-0.5">
+                  <p className="text-[10px] text-gray-500 mt-0.5">
                     Updated {new Date(updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </p>
                 )}

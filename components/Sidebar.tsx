@@ -237,7 +237,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
       <div className="px-4 py-3 border-b border-gray-100 shrink-0">
         <OmnisLogo variant="sidebar" />
         {schoolName && (
-          <div className="text-[10px] text-gray-400 truncate mt-0.5 pl-[52px]">{schoolName}</div>
+          <div className="text-[10px] text-gray-500 truncate mt-0.5 pl-[52px]">{schoolName}</div>
         )}
       </div>
 
@@ -254,7 +254,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
           if ('divider' in item) {
             return (
               <div key={`d-${i}`} className="pt-2 pb-0.5 px-2">
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{item.label}</span>
+                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">{item.label}</span>
               </div>
             )
           }
@@ -351,7 +351,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
           )}
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-medium text-gray-900 truncate">{firstName} {lastName}</div>
-            <div className="text-[11px] text-gray-400">{role.replace(/_/g, ' ')}</div>
+            <div className="text-[11px] text-gray-500">{role.replace(/_/g, ' ')}</div>
           </div>
         </Link>
         <button
@@ -359,7 +359,7 @@ export default function Sidebar({ role, firstName, lastName, schoolName, onClose
             await recordSignOut()
             await signOut({ callbackUrl: '/login' })
           }}
-          className="flex items-center gap-2 text-[12px] text-gray-400 hover:text-red-500 transition-colors"
+          className="flex items-center gap-2 text-[12px] text-gray-500 hover:text-red-600 transition-colors"
         >
           <Icon name="logout" size="sm" />Sign out
         </button>

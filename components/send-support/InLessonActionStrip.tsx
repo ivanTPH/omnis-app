@@ -180,7 +180,7 @@ function LogConcernModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Student *</label>
               {loading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-400">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Icon name="refresh" size="sm" className="animate-spin" />Loading students…
                 </div>
               ) : (
@@ -289,11 +289,11 @@ function KPlansOverlay({
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 px-4 py-4 text-sm text-gray-400">
+        <div className="flex items-center gap-2 px-4 py-4 text-sm text-gray-500">
           <Icon name="refresh" size="sm" className="animate-spin" />Loading…
         </div>
       ) : sendStudents.length === 0 ? (
-        <div className="px-4 py-6 text-center text-sm text-gray-400">
+        <div className="px-4 py-6 text-center text-sm text-gray-500">
           No SEND students currently in this class.
         </div>
       ) : (
@@ -334,7 +334,7 @@ function KPlansOverlay({
                   )}
                 </div>
               ) : (
-                <p className="text-[11px] text-gray-400 italic">No K Plan content yet.</p>
+                <p className="text-[11px] text-gray-500 italic">No K Plan content yet.</p>
               )}
             </div>
           ))}

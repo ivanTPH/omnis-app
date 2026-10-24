@@ -20,9 +20,9 @@ type Props = {
 }
 
 function UpliftChip({ value }: { value: number }) {
-  if (value > 0) return <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">+{value}%</span>
+  if (value > 0) return <span className="text-xs font-semibold text-green-800 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">+{value}%</span>
   if (value < 0) return <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">{value}%</span>
-  return <span className="text-xs text-gray-400">—</span>
+  return <span className="text-xs text-gray-500">—</span>
 }
 
 export default function AttainmentBenchmarkPanel({ bySchool, network }: Props) {
@@ -36,13 +36,13 @@ export default function AttainmentBenchmarkPanel({ bySchool, network }: Props) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-base font-semibold text-gray-900">Outcome Benchmarking</h2>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
               Internal — do not share externally
             </span>
           </div>
           <p className="text-[13px] text-gray-500">
             Consent-gated · suppressed below {10} consented students ·{' '}
-            <span className="text-gray-400 italic">uplift model is a placeholder — requires academic review</span>
+            <span className="text-gray-500 italic">uplift model is a placeholder — requires academic review</span>
           </p>
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function AttainmentBenchmarkPanel({ bySchool, network }: Props) {
         <div className="py-8 text-center">
           <span className="material-icons text-3xl text-gray-300 mb-2 block">bar_chart</span>
           <p className="text-sm text-gray-500">No benchmark data yet.</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             Data populates once parents opt in to outcome benchmarking and the
             aggregation job runs (triggered manually or via cron).
           </p>
@@ -90,7 +90,7 @@ export default function AttainmentBenchmarkPanel({ bySchool, network }: Props) {
                 </div>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-[11px] text-gray-400 uppercase tracking-wide border-b border-gray-100">
+                    <tr className="text-[11px] text-gray-500 uppercase tracking-wide border-b border-gray-100">
                       <th className="px-4 py-2 text-left">Year</th>
                       <th className="px-4 py-2 text-right">Period</th>
                       <th className="px-4 py-2 text-right">Consented</th>
@@ -117,12 +117,12 @@ export default function AttainmentBenchmarkPanel({ bySchool, network }: Props) {
                           {row.suppressed ? '—' : `Gr ${row.avgActualOutcome}`}
                         </td>
                         <td className="px-4 py-2 text-right">
-                          {row.suppressed ? <span className="text-xs text-gray-400">—</span> : <UpliftChip value={row.upliftPercent} />}
+                          {row.suppressed ? <span className="text-xs text-gray-500">—</span> : <UpliftChip value={row.upliftPercent} />}
                         </td>
                         <td className="px-4 py-2 text-center">
                           {row.suppressed
-                            ? <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Suppressed</span>
-                            : <span className="text-[10px] text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Active</span>
+                            ? <span className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Suppressed</span>
+                            : <span className="text-[10px] text-green-800 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">Active</span>
                           }
                         </td>
                       </tr>

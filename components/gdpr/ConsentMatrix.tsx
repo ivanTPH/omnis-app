@@ -14,10 +14,10 @@ type Props = {
 type DecisionFilter = 'all' | 'granted' | 'withdrawn' | 'unknown'
 
 function DecisionCell({ decision }: { decision: { decision: string; recordedAt: Date } | null }) {
-  if (!decision) return <span className="text-gray-300 text-[16px]">—</span>
+  if (!decision) return <span className="text-gray-500 text-[16px]">—</span>
   if (decision.decision === 'granted')
-    return <span className="text-green-600 font-bold text-[14px]">✓</span>
-  return <span className="text-red-500 font-bold text-[14px]">✗</span>
+    return <span className="text-green-700 font-bold text-[14px]">✓</span>
+  return <span className="text-red-600 font-bold text-[14px]">✗</span>
 }
 
 export default function ConsentMatrix({ purposes, students, schoolId }: Props) {
@@ -101,7 +101,7 @@ export default function ConsentMatrix({ purposes, students, schoolId }: Props) {
         </div>
       </div>
 
-      <p className="text-[12px] text-gray-400">{filtered.length} student{filtered.length !== 1 ? 's' : ''}</p>
+      <p className="text-[12px] text-gray-500">{filtered.length} student{filtered.length !== 1 ? 's' : ''}</p>
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
@@ -123,7 +123,7 @@ export default function ConsentMatrix({ purposes, students, schoolId }: Props) {
                 <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">
                   {s.lastName}, {s.firstName}
                 </td>
-                <td className="px-3 py-2.5 text-gray-400 text-center">{s.yearGroup ?? '—'}</td>
+                <td className="px-3 py-2.5 text-gray-500 text-center">{s.yearGroup ?? '—'}</td>
                 {purposes.map(p => (
                   <td key={p.id} className="px-3 py-2.5 text-center">
                     <DecisionCell decision={s.decisions[p.id]} />
@@ -134,7 +134,7 @@ export default function ConsentMatrix({ purposes, students, schoolId }: Props) {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <p className="text-center py-8 text-[13px] text-gray-400">No students match the current filters.</p>
+          <p className="text-center py-8 text-[13px] text-gray-500">No students match the current filters.</p>
         )}
       </div>
     </div>

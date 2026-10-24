@@ -83,13 +83,13 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
   }
 
   if (loading) return (
-    <div className="flex items-center gap-2 py-10 text-gray-400">
+    <div className="flex items-center gap-2 py-10 text-gray-500">
       <Icon name="refresh" size="sm" className="animate-spin" />
       <span className="text-sm">Loading student data…</span>
     </div>
   )
   if (error || !data) return (
-    <div className="flex flex-col items-center gap-2 py-14 text-gray-400">
+    <div className="flex flex-col items-center gap-2 py-14 text-gray-500">
       <Icon name="error_outline" size="lg" className="text-red-300" />
       <p className="text-sm">{error || 'Could not load student data. Please go back and try again.'}</p>
     </div>
@@ -110,20 +110,20 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       </button>
     )
     if (gen === 'generating') return (
-      <span className="inline-flex items-center gap-1.5 text-gray-400 text-[11px]">
+      <span className="inline-flex items-center gap-1.5 text-gray-500 text-[11px]">
         <Icon name="refresh" size="sm" className="animate-spin" />
         Generating…
       </span>
     )
     if (gen === 'error') return (
-      <button onClick={() => handleGenerate(topic)} className="text-[11px] text-red-500 hover:text-red-700">
+      <button onClick={() => handleGenerate(topic)} className="text-[11px] text-red-600 hover:text-red-700">
         Failed — retry
       </button>
     )
     return (
       <Link
         href="/ai-generator"
-        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-700 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 text-green-800 text-[11px] font-semibold border border-green-200 hover:bg-green-100 transition-colors"
       >
         <Icon name="check" size="sm" />
         {(gen as { title: string }).title.length > 22
@@ -160,11 +160,11 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
         <div className="text-right flex-shrink-0">
           {data.predictedGradeBaseline ? (
             <>
-              <div className="text-[10px] text-gray-400 uppercase tracking-wide">Predicted baseline</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wide">Predicted baseline</div>
               <div className="text-[22px] font-bold text-gray-900">{data.predictedGradeBaseline}</div>
             </>
           ) : (
-            <div className="text-[11px] text-gray-400">No grade data</div>
+            <div className="text-[11px] text-gray-500">No grade data</div>
           )}
         </div>
       </div>
@@ -179,7 +179,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 mb-1 cursor-default">AI Adaptive Summary</p>
               </Tooltip>
               {generatingNarrative ? (
-                <div className="flex items-center gap-1.5 text-[12px] text-indigo-500">
+                <div className="flex items-center gap-1.5 text-[12px] text-indigo-600">
                   <Icon name="refresh" size="sm" className="animate-spin" />
                   Generating summary…
                 </div>
@@ -188,7 +188,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
               ) : narrativeError ? (
                 <p className="text-[12px] text-red-600 italic">Failed to generate — try again.</p>
               ) : (
-                <p className="text-[12px] text-indigo-400 italic">Click &ldquo;Generate&rdquo; for an AI-powered teaching summary for this student.</p>
+                <p className="text-[12px] text-indigo-600 italic">Click &ldquo;Generate&rdquo; for an AI-powered teaching summary for this student.</p>
               )}
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           <Tooltip content="Notes about how this student learns best — used when generating adaptive revision tasks">
             <h3 className="text-[13px] font-semibold text-gray-900 cursor-default">Learning Format Notes</h3>
           </Tooltip>
-          <span className="text-[10px] text-gray-400 ml-1">— feeds into revision generation</span>
+          <span className="text-[10px] text-gray-500 ml-1">— feeds into revision generation</span>
         </div>
         <textarea
           value={notes}
@@ -220,13 +220,13 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           className="w-full text-[12px] border border-gray-200 rounded-lg px-3 py-2 text-gray-700 placeholder-gray-300 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />
         <div className="flex items-center justify-between mt-2">
-          <p className="text-[10px] text-gray-400">These notes are used when generating targeted revision for this student.</p>
+          <p className="text-[10px] text-gray-500">These notes are used when generating targeted revision for this student.</p>
           <button
             onClick={handleSaveNotes}
             disabled={notesLoading}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
               notesSaved
-                ? 'bg-green-50 text-green-700 border border-green-200'
+                ? 'bg-green-50 text-green-800 border border-green-200'
                 : 'bg-indigo-600 hover:bg-indigo-700 text-white'
             } disabled:opacity-60`}
           >
@@ -246,7 +246,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
           <div className="flex items-center gap-2 mb-3">
             <Icon name="trending_up" size="sm" className="text-blue-500" />
             <h3 className="text-[13px] font-semibold text-gray-900">Grade Trend Over Time</h3>
-            <span className="text-[10px] text-gray-400 ml-1">— impact of adaptive homework</span>
+            <span className="text-[10px] text-gray-500 ml-1">— impact of adaptive homework</span>
           </div>
           <div className="flex items-end gap-2 h-16 overflow-x-auto pb-1">
             {data.gradeTrend.map((pt, i) => {
@@ -258,14 +258,14 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
                 <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0" style={{ minWidth: 32 }}
                   title={`${pt.title}\n${new Date(pt.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}: Grade ${pt.grade}`}
                 >
-                  <span className="text-[9px] text-gray-400">
-                    {arrow && <span className={arrow === '↑' ? 'text-green-500' : 'text-red-500'}>{arrow}</span>}
+                  <span className="text-[9px] text-gray-500">
+                    {arrow && <span className={arrow === '↑' ? 'text-green-700' : 'text-red-600'}>{arrow}</span>}
                     {pt.grade}
                   </span>
                   <div className="w-5 rounded-sm" style={{ height: `${Math.max(4, pct * 0.44)}px` }}>
                     <div className={`w-full h-full rounded-sm ${color}`} />
                   </div>
-                  <span className="text-[8px] text-gray-300 rotate-0">
+                  <span className="text-[8px] text-gray-500 rotate-0">
                     {new Date(pt.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </span>
                 </div>
@@ -280,8 +280,8 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
             return diff !== 0 ? (
               <p className="text-[11px] mt-2 text-gray-500">
                 {diff > 0
-                  ? <span className="text-green-600 font-medium">↑ Improved {diff} grade{diff > 1 ? 's' : ''}</span>
-                  : <span className="text-red-500 font-medium">↓ Declined {Math.abs(diff)} grade{Math.abs(diff) > 1 ? 's' : ''}</span>}
+                  ? <span className="text-green-700 font-medium">↑ Improved {diff} grade{diff > 1 ? 's' : ''}</span>
+                  : <span className="text-red-600 font-medium">↓ Declined {Math.abs(diff)} grade{Math.abs(diff) > 1 ? 's' : ''}</span>}
                 {' '}since first submission (Grade {first} → Grade {last})
               </p>
             ) : (
@@ -348,7 +348,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-[13px] font-semibold text-gray-900">Full Topic Breakdown</h3>
-          <div className="flex items-center gap-3 text-[11px] text-gray-400">
+          <div className="flex items-center gap-3 text-[11px] text-gray-500">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> ≥60%</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> 40–59%</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" /> &lt;40%</span>
@@ -356,7 +356,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
         </div>
 
         {data.topics.length === 0 ? (
-          <div className="py-10 text-center text-gray-400 text-sm">
+          <div className="py-10 text-center text-gray-500 text-sm">
             No marked homework found for this student in the last term.
           </div>
         ) : (
@@ -371,7 +371,7 @@ export default function AdaptiveStudentView({ studentId, classId }: Props) {
 
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] text-gray-800 truncate font-medium">{t.topic}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">
+                  <p className="text-[11px] text-gray-500 mt-0.5">
                     {t.myScore != null
                       ? `My score: ${t.myScore}%`
                       : <span className="italic">Not submitted</span>}

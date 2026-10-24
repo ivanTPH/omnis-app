@@ -23,7 +23,7 @@ export default function StudentHomeworkError({
           There was a problem loading your homework. It may no longer be available.
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-400 mb-4">Ref: {error.digest}</p>
+          <p className="text-xs text-gray-500 mb-4">Ref: {error.digest}</p>
         )}
         <button
           onClick={reset}

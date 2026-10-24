@@ -27,7 +27,16 @@ async function expectNoSeriousOrCriticalViolations(page: import('@playwright/tes
     .withTags(['wcag2a', 'wcag2aa'])
     .analyze()
   const seriousOrCritical = results.violations.filter(v => v.impact === 'serious' || v.impact === 'critical')
-  expect(seriousOrCritical, `${label}: ${seriousOrCritical.map(v => `${v.id} (${v.impact}): ${v.description}`).join('; ')}`).toEqual([])
+  // Name the offending elements (first few per rule) so a failure is fixable
+  // from the CI report alone, e.g. "color-contrast: p.text-gray-400 (2.6:1)".
+  const detail = seriousOrCritical.map(v => {
+    const nodes = v.nodes.slice(0, 4).map(n => {
+      const ratio = (n.any[0]?.data as { contrastRatio?: number } | undefined)?.contrastRatio
+      return `${n.target.join(' ')}${ratio ? ` (${ratio}:1)` : ''}`
+    }).join(', ')
+    return `${v.id} (${v.impact}, ${v.nodes.length} el): ${nodes}`
+  }).join('; ')
+  expect(seriousOrCritical, `${label}: ${detail}`).toEqual([])
 }
 
 test.describe('Accessibility — no serious/critical axe violations', () => {

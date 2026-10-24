@@ -163,7 +163,7 @@ html.line-spacing-wider body { line-height: 2.2 !important; }
 
   /* Metadata — timestamps, secondary info, helper text */
   .text-meta {
-    @apply text-xs text-gray-400;
+    @apply text-xs text-gray-500;
   }
 
   /* Data value — grades, scores, counts shown as key numbers */

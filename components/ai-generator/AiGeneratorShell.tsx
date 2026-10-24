@@ -80,7 +80,7 @@ export default function AiGeneratorShell({
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors disabled:opacity-40 ${
               rightPanel === 'preview'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
             <Icon name="auto_fix_high" size="sm" />
@@ -91,7 +91,7 @@ export default function AiGeneratorShell({
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold rounded-lg transition-colors ${
               rightPanel === 'library'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
             }`}
           >
             <Icon name="grid_view" size="sm" />

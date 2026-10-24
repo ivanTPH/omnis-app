@@ -53,12 +53,12 @@ export default function GoLiveChecklistModal() {
               <Icon name={item.required ? 'radio_button_unchecked' : 'lightbulb'} size="sm" className={item.required ? 'text-amber-600 mt-0.5' : 'text-gray-400 mt-0.5'} />
               <div className="text-[13px]">
                 <p className="font-semibold text-gray-900">
-                  {item.label}{!item.required && <span className="font-normal text-gray-400"> (recommended)</span>}
+                  {item.label}{!item.required && <span className="font-normal text-gray-500"> (recommended)</span>}
                 </p>
                 <p className="text-gray-600">{item.detail}</p>
                 {status.canManage
                   ? <Link href={item.href} onClick={dismiss} className="text-blue-700 hover:underline">Sort this out</Link>
-                  : <p className="text-gray-400">Usually done by: {item.who}</p>}
+                  : <p className="text-gray-500">Usually done by: {item.who}</p>}
               </div>
             </li>
           ))}

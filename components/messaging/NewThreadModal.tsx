@@ -114,7 +114,7 @@ export default function NewThreadModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">New Message</h2>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -147,12 +147,12 @@ export default function NewThreadModal({
                 />
               </div>
               {loading ? (
-                <p className="text-[12px] text-gray-400 text-center py-6">Loading contacts…</p>
+                <p className="text-[12px] text-gray-500 text-center py-6">Loading contacts…</p>
               ) : (
                 <div className="space-y-3 max-h-72 overflow-auto">
                   {filtered.map(group => (
                     <div key={group.role}>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide px-1 mb-1">
+                      <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wide px-1 mb-1">
                         {ROLE_LABELS[group.role] ?? group.role}
                       </p>
                       <div className="space-y-0.5">
@@ -170,7 +170,7 @@ export default function NewThreadModal({
                               <span className="text-[13px] font-medium text-gray-800 flex-1">
                                 {c.firstName} {c.lastName}
                               </span>
-                              <span className="text-[10px] text-gray-400 capitalize">{c.role.toLowerCase().replace(/_/g, ' ')}</span>
+                              <span className="text-[10px] text-gray-500 capitalize">{c.role.toLowerCase().replace(/_/g, ' ')}</span>
                               {isSelected && <Icon name="check" size="sm" className="text-blue-600 shrink-0" />}
                             </button>
                           )
@@ -179,7 +179,7 @@ export default function NewThreadModal({
                     </div>
                   ))}
                   {filtered.length === 0 && search && (
-                    <p className="text-[12px] text-gray-400 text-center py-4">No contacts found</p>
+                    <p className="text-[12px] text-gray-500 text-center py-4">No contacts found</p>
                   )}
                 </div>
               )}

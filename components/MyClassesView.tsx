@@ -94,7 +94,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
 
           {/* Subject */}
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Subject
             </label>
             <select
@@ -109,7 +109,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
 
           {/* Year Group */}
           <div>
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Year Group
             </label>
             <select
@@ -124,7 +124,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
 
           {/* Class pills */}
           <div className="sm:col-span-2">
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Class
             </label>
             <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
@@ -158,7 +158,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
 
           {/* Generate passports */}
           <div className="flex flex-col justify-end">
-            <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide block mb-1 opacity-0 select-none">
+            <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1 opacity-0 select-none">
               Actions
             </label>
             {rosterSelectedIds.length > 0 ? (
@@ -184,7 +184,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                   type="button"
                   onClick={() => setRosterSelectedIds([])}
                   aria-label="Clear selection"
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-500 hover:text-gray-600"
                 >
                   <Icon name="close" size="sm" />
                 </button>
@@ -221,7 +221,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
             <button
               onClick={() => setSearch('')}
               aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
             >
               <Icon name="close" size="sm" />
             </button>
@@ -244,7 +244,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
             ))}
             <button
               onClick={() => { setSubject(''); setYear(''); setSelectedId(''); setSearch('') }}
-              className="text-[11px] text-gray-400 hover:text-gray-600 px-1"
+              className="text-[11px] text-gray-500 hover:text-gray-600 px-1"
             >
               Clear all
             </button>
@@ -257,10 +257,10 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
           <Icon name="check_circle" size="sm" />
           Generated {genResult.created} Learning Passport{genResult.created !== 1 ? 's' : ''}.
           {genResult.skipped > 0 && (
-            <span className="text-blue-500">{genResult.skipped} already had one.</span>
+            <span className="text-blue-600">{genResult.skipped} already had one.</span>
           )}
           {genResult.errors > 0 && (
-            <span className="text-red-500">{genResult.errors} failed.</span>
+            <span className="text-red-600">{genResult.errors} failed.</span>
           )}
         </div>
       )}
@@ -272,7 +272,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
           <span className="text-[12px] font-medium text-indigo-800">
             {effectiveClass.examBoard
               ? <>Exam board: <strong>{effectiveClass.examBoard}</strong>{effectiveClass.examModules?.length > 0 && <span className="text-indigo-600 font-normal"> · {effectiveClass.examModules.join(', ')}</span>}</>
-              : <span className="text-indigo-500 italic">No exam board set for this class</span>
+              : <span className="text-indigo-600 italic">No exam board set for this class</span>
             }
           </span>
           {canEditExamBoard && !examEditing && (
@@ -297,7 +297,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                 {UK_EXAM_BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               {examSaving && <Icon name="refresh" size="sm" className="animate-spin text-indigo-500" />}
-              <button onClick={() => setExamEditing(false)} aria-label="Cancel exam board edit" className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setExamEditing(false)} aria-label="Cancel exam board edit" className="text-gray-500 hover:text-gray-600">
                 <Icon name="close" size="sm" />
               </button>
             </div>
@@ -315,7 +315,7 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                 <Icon name="groups" size="sm" className="text-blue-600" />
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Students</p>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Students</p>
                 <p className="text-lg font-bold text-gray-900 leading-none">{kpi.students}</p>
               </div>
             </div>
@@ -324,16 +324,16 @@ export default function MyClassesView({ classes, role, kpiData }: { classes: Cla
                 <Icon name="support" size="sm" className="text-amber-600" />
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">SEND</p>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">SEND</p>
                 <p className="text-lg font-bold text-gray-900 leading-none">{kpi.sendCount}</p>
               </div>
             </div>
             <div className={`card p-3 flex items-center gap-3 ${kpi.needsMarking > 0 ? 'border-rose-200 bg-rose-50' : ''}`}>
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${kpi.needsMarking > 0 ? 'bg-rose-100' : 'bg-gray-50'}`}>
-                <Icon name="grading" size="sm" className={kpi.needsMarking > 0 ? 'text-rose-600' : 'text-gray-400'} />
+                <Icon name="grading" size="sm" className={kpi.needsMarking > 0 ? 'text-rose-600' : 'text-gray-500'} />
               </div>
               <div>
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Needs Marking</p>
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Needs Marking</p>
                 <p className={`text-lg font-bold leading-none ${kpi.needsMarking > 0 ? 'text-rose-700' : 'text-gray-900'}`}>{kpi.needsMarking}</p>
               </div>
             </div>

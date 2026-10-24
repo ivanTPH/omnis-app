@@ -65,7 +65,7 @@ export default function ThreadView({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-gray-400">
+          <div className="flex items-center gap-1 text-[11px] text-gray-500">
             <Icon name="people" size="sm" />
             <span>{thread.participants.map(p => `${p.firstName} ${p.lastName}`).join(', ')}</span>
           </div>
@@ -81,7 +81,7 @@ export default function ThreadView({
         <button
           onClick={handleArchive}
           disabled={archiving}
-          className="shrink-0 flex items-center gap-1.5 text-[11px] text-gray-400 hover:text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 text-[11px] text-gray-600 hover:text-gray-600 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           title="Archive thread"
         >
           <Icon name="archive" size="sm" />

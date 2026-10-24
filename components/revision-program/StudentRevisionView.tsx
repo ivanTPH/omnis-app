@@ -37,8 +37,8 @@ function subjectColour(subject: string) {
   const map: Record<string, string> = {
     English: 'bg-purple-100 text-purple-700',
     Maths:   'bg-blue-100 text-blue-700',
-    Science: 'bg-green-100 text-green-700',
-    History: 'bg-amber-100 text-amber-700',
+    Science: 'bg-green-100 text-green-800',
+    History: 'bg-amber-100 text-amber-800',
   }
   return map[subject] ?? 'bg-gray-100 text-gray-700'
 }
@@ -61,7 +61,7 @@ function TaskCard({ task }: { task: RevTask }) {
               {task.program.subject}
             </span>
             {hasSend && (
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200">
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
                 Adapted for you
               </span>
             )}
@@ -76,13 +76,13 @@ function TaskCard({ task }: { task: RevTask }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-gray-400">
+      <div className="flex items-center gap-4 text-xs text-gray-500">
         <span className="capitalize">{task.taskType.replace(/_/g, ' ')}</span>
         <span className="flex items-center gap-1"><Icon name="schedule" size="sm" /> ~{task.estimatedMins} mins</span>
       </div>
 
       {isAssignment && task.program.deadline && (
-        <p className={`text-xs font-semibold flex items-center gap-1 ${overdue ? 'text-rose-600' : dueSoon ? 'text-amber-600' : 'text-gray-500'}`}>
+        <p className={`text-xs font-semibold flex items-center gap-1 ${overdue ? 'text-rose-600' : dueSoon ? 'text-amber-700' : 'text-gray-500'}`}>
           {overdue && <Icon name="error" size="sm" />}
           {overdue ? `Overdue by ${Math.abs(due!)} day${Math.abs(due!) !== 1 ? 's' : ''}` :
            due === 0 ? 'Due today' :
@@ -117,7 +117,7 @@ function CompletedCard({ task }: { task: RevTask }) {
           <p className="text-sm font-semibold text-gray-900">{task.program.title}</p>
         </div>
         {score != null && (
-          <span className="text-lg font-bold text-green-600 shrink-0">{gradeLabel(score)}</span>
+          <span className="text-lg font-bold text-green-700 shrink-0">{gradeLabel(score)}</span>
         )}
       </div>
 
@@ -126,7 +126,7 @@ function CompletedCard({ task }: { task: RevTask }) {
           <p className="text-xs text-gray-500">Your confidence:</p>
           <div className="flex gap-0.5">
             {[1,2,3,4,5].map(n => (
-              <Icon key={n} name="star" size="sm" className={n <= (task.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-300'} />
+              <Icon key={n} name="star" size="sm" className={n <= (task.selfConfidence ?? 0) ? 'text-amber-400' : 'text-gray-500'} />
             ))}
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function StudentRevisionView({
         <Icon name="bookmark" size="md" className="text-gray-500" />
         <h1 className="text-page-title">My Revision</h1>
       </div>
-      <p className="text-xs text-gray-400 mb-5">
+      <p className="text-xs text-gray-500 mb-5">
         {activeCount} active{dueThisWeek > 0 ? ` · ${dueThisWeek} due this week` : ''} · {completed.length} completed
       </p>
 
@@ -197,7 +197,7 @@ export default function StudentRevisionView({
 
       {/* content */}
       {shown.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-gray-400">
+        <div className="flex flex-col items-center py-16 text-gray-500">
           <Icon name="bookmark" size="lg" className="mb-3 opacity-30" />
           <p className="text-sm">{tab === 'completed' ? 'No completed tasks yet' : 'No revision tasks assigned yet'}</p>
         </div>

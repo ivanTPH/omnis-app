@@ -23,7 +23,7 @@ export default function StudentError({
           There was a problem loading this page. Please try again.
         </p>
         {error.digest && (
-          <p className="text-xs text-gray-400 font-mono mb-4">Digest: {error.digest}</p>
+          <p className="text-xs text-gray-500 font-mono mb-4">Digest: {error.digest}</p>
         )}
         <button
           onClick={reset}

@@ -58,14 +58,14 @@ export default function SencoDashboard({ data }: Props) {
   }
 
   const kpis = [
-    { label: 'Open Concerns',       value: data.openConcerns,      iconName: 'warning',         color: data.openConcerns > 0 ? 'text-amber-600' : 'text-gray-400',    href: '/senco/concerns' },
-    { label: 'High Severity Flags', value: data.highSeverityFlags, iconName: 'radar',           color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-400', href: '/senco/early-warning' },
+    { label: 'Open Concerns',       value: data.openConcerns,      iconName: 'warning',         color: data.openConcerns > 0 ? 'text-amber-700' : 'text-gray-500',    href: '/senco/concerns' },
+    { label: 'High Severity Flags', value: data.highSeverityFlags, iconName: 'radar',           color: data.highSeverityFlags > 0 ? 'text-red-600' : 'text-gray-500', href: '/senco/early-warning' },
     { label: 'Students with ILP',   value: data.studentsWithIlp,   iconName: 'favorite_border', color: 'text-blue-600',                                                href: '/senco/ilp' },
     // Always visible, even at 0 — distinct from "Reviews Due (14d)" below so
     // an overdue review is never silently folded into a "due soon" count
     // (see lib/send/review-status.ts for why that used to happen).
-    { label: 'Overdue Reviews',     value: data.overdueReviews,    iconName: 'error',           color: data.overdueReviews > 0 ? 'text-red-600' : 'text-gray-400',    href: '/senco/ilp' },
-    { label: 'Reviews Due (14d)',    value: data.ilpReviewsDue,     iconName: 'schedule',        color: data.ilpReviewsDue > 0 ? 'text-orange-600' : 'text-gray-400',  href: '/senco/ilp' },
+    { label: 'Overdue Reviews',     value: data.overdueReviews,    iconName: 'error',           color: data.overdueReviews > 0 ? 'text-red-600' : 'text-gray-500',    href: '/senco/ilp' },
+    { label: 'Reviews Due (14d)',    value: data.ilpReviewsDue,     iconName: 'schedule',        color: data.ilpReviewsDue > 0 ? 'text-orange-700' : 'text-gray-500',  href: '/senco/ilp' },
   ]
 
   return (
@@ -108,7 +108,7 @@ export default function SencoDashboard({ data }: Props) {
                     <p className="text-[12px] font-medium text-gray-800 truncate">
                       {item.studentName} — <span className="text-gray-500">{item.label}</span>
                     </p>
-                    <p className="text-[10px] text-gray-400">{item.daysOld}d old</p>
+                    <p className="text-[10px] text-gray-500">{item.daysOld}d old</p>
                   </div>
                   <Link
                     href={item.href}
@@ -119,7 +119,7 @@ export default function SencoDashboard({ data }: Props) {
                 </div>
               ))}
               {items.length > 8 && (
-                <p className="px-4 py-2 text-[11px] text-gray-400">
+                <p className="px-4 py-2 text-[11px] text-gray-500">
                   + {items.length - 8} more items
                 </p>
               )}
@@ -144,7 +144,7 @@ export default function SencoDashboard({ data }: Props) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{c.studentName}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{c.category} · {c.description.slice(0, 60)}{c.description.length > 60 ? '…' : ''}</p>
-                  {ilpError[c.studentId] && <p className="text-xs text-red-500 mt-1">{ilpError[c.studentId]}</p>}
+                  {ilpError[c.studentId] && <p className="text-xs text-red-600 mt-1">{ilpError[c.studentId]}</p>}
                 </div>
                 <div className="shrink-0">
                   {ilpDone[c.studentId] ? (
@@ -298,7 +298,7 @@ export default function SencoDashboard({ data }: Props) {
                       {reviewStatusLabel({ state: r.daysUntil < 0 ? 'overdue' : 'due_soon', daysUntil: r.daysUntil })}
                     </span>
                   </div>
-                  <Link href="/senco/ilp" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Go to ILP records">
+                  <Link href="/senco/ilp" className="p-1.5 rounded-lg text-gray-600 hover:text-blue-700 hover:bg-blue-50 transition-colors" title="Go to ILP records">
                     <Icon name="arrow_forward" size="sm" />
                   </Link>
                 </div>
@@ -338,8 +338,8 @@ export default function SencoDashboard({ data }: Props) {
               const isOpen    = expandedAlert === a.studentId
               const badgeCls  = (v: string) =>
                 v === 'URGENT'        ? 'bg-red-100 text-red-700 border border-red-200' :
-                v === 'REVIEW_NEEDED' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                                        'bg-green-100 text-green-700 border border-green-200'
+                v === 'REVIEW_NEEDED' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                                        'bg-green-100 text-green-800 border border-green-200'
               return (
                 <div key={a.studentId} className={hasUrgent ? 'bg-red-50/30' : ''}>
                   <button
@@ -421,7 +421,7 @@ export default function SencoDashboard({ data }: Props) {
                 {alertsExpanded ? 'Show less' : `Show all ${data.planCoherenceAlerts.length}`}
               </button>
             )}
-            <p className="text-[10px] text-gray-400 italic ml-auto">AI plan review — advisory only</p>
+            <p className="text-[10px] text-gray-500 italic ml-auto">AI plan review — advisory only</p>
           </div>
         </div>
       )}

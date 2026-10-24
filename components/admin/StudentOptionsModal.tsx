@@ -134,16 +134,16 @@ export default function StudentOptionsModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-[15px] font-bold text-gray-900">Subject options</h2>
-            <p className="text-[12px] text-gray-400 mt-0.5">{studentName}</p>
+            <p className="text-[12px] text-gray-500 mt-0.5">{studentName}</p>
           </div>
-          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-600">
             <Icon name="close" size="sm" />
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-6">
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-gray-400 gap-2">
+            <div className="flex items-center justify-center py-12 text-gray-500 gap-2">
               <Icon name="refresh" size="sm" className="animate-spin" />
               <span className="text-[13px]">Loading…</span>
             </div>
@@ -151,7 +151,7 @@ export default function StudentOptionsModal({
             <>
               {/* Core subjects — always selected */}
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-3">
                   Core subjects (compulsory)
                 </p>
                 <div className="space-y-2">
@@ -180,7 +180,7 @@ export default function StudentOptionsModal({
 
               {/* Option subjects */}
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 mb-3">
                   Option subjects — tick to add
                 </p>
                 <div className="space-y-2">
@@ -279,10 +279,10 @@ function SubjectRow({
         </button>
 
         {/* Subject name */}
-        <span className={`text-[13px] font-medium flex-1 ${selected ? 'text-gray-900' : 'text-gray-400'}`}>
+        <span className={`text-[13px] font-medium flex-1 ${selected ? 'text-gray-900' : 'text-gray-500'}`}>
           {subject}
           {isCore && (
-            <span className="ml-2 text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">core</span>
+            <span className="ml-2 text-[10px] font-semibold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-full">core</span>
           )}
         </span>
 

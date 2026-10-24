@@ -62,7 +62,7 @@ export default function StudentTimetableView({ timetable }: { timetable: Timetab
           <Icon name="calendar_today" size="lg" className="text-gray-400" />
         </div>
         <h2 className="text-[16px] font-semibold text-gray-700 mb-2">No timetable available</h2>
-        <p className="text-[13px] text-gray-400 max-w-xs mx-auto">
+        <p className="text-[13px] text-gray-500 max-w-xs mx-auto">
           Your timetable will appear here once your school&apos;s MIS has been synced with Omnis.
           Contact your school admin if you think this is an error.
         </p>
@@ -74,7 +74,7 @@ export default function StudentTimetableView({ timetable }: { timetable: Timetab
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-page-title">My Timetable</h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">Your weekly lesson schedule</p>
+        <p className="text-[13px] text-gray-500 mt-0.5">Your weekly lesson schedule</p>
       </div>
 
       {/* Today highlight (when it's a school day) */}
@@ -84,7 +84,7 @@ export default function StudentTimetableView({ timetable }: { timetable: Timetab
         return (
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-3">
-              <Icon name="today" size="sm" className="text-blue-600" />
+              <Icon name="today" size="sm" className="text-blue-700" />
               <span className="text-[13px] font-semibold text-blue-800">Today — {DAY_LABELS[today]}</span>
             </div>
             <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -115,12 +115,12 @@ export default function StudentTimetableView({ timetable }: { timetable: Timetab
                     Today
                   </span>
                 )}
-                <span className="ml-auto text-[11px] text-gray-400">{day.lessons.length} lesson{day.lessons.length !== 1 ? 's' : ''}</span>
+                <span className="ml-auto text-[11px] text-gray-500">{day.lessons.length} lesson{day.lessons.length !== 1 ? 's' : ''}</span>
               </div>
 
               {/* Lessons */}
               {day.lessons.length === 0 ? (
-                <p className="text-[11px] text-gray-300 py-4 text-center">No lessons</p>
+                <p className="text-[11px] text-gray-500 py-4 text-center">No lessons</p>
               ) : (
                 day.lessons.map((l, i) => <LessonCard key={i} lesson={l} />)
               )}

@@ -20,7 +20,7 @@ function fmt(iso: string) {
 function StatusPill({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-      ok ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+      ok ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
     }`}>
       <Icon name={ok ? 'check_circle' : 'radio_button_unchecked'} size="sm" />
       {label}
@@ -129,7 +129,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
         {[
           { label: 'Real applicants',  value: real.length,                         icon: 'people',        color: 'text-blue-600'   },
           { label: 'Account created',  value: real.filter(r => r.hasAccount).length, icon: 'person_add',   color: 'text-indigo-600' },
-          { label: 'Activated',        value: real.filter(r => r.activated).length,  icon: 'verified_user', color: 'text-green-600'  },
+          { label: 'Activated',        value: real.filter(r => r.activated).length,  icon: 'verified_user', color: 'text-green-700'  },
           { label: 'DPA accepted',     value: real.filter(r => r.dpaAccepted).length, icon: 'gavel',        color: 'text-purple-600' },
           { label: 'Total (incl test)', value: stats.total,                          icon: 'list',          color: 'text-gray-500'   },
         ].map(k => (
@@ -160,7 +160,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
             <tbody className="divide-y divide-gray-100">
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-gray-400 text-sm">
+                  <td colSpan={8} className="px-4 py-8 text-center text-gray-500 text-sm">
                     No real applicants yet &mdash; check &ldquo;Show test accounts&rdquo; to see test data
                   </td>
                 </tr>
@@ -169,7 +169,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
                 <tr key={r.id} className={`hover:bg-gray-50 ${TEST_EMAILS.has(r.email) ? 'opacity-60' : ''}`}>
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900">{r.name}</div>
-                    <div className="text-xs text-gray-400">{r.email}</div>
+                    <div className="text-xs text-gray-500">{r.email}</div>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{r.schoolName}</td>
                   <td className="px-4 py-3 text-gray-600">{r.jobTitle}</td>
@@ -184,7 +184,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
                   </td>
                   <td className="px-4 py-3">
                     {!r.hasAccount ? (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-gray-500">—</span>
                     ) : r.trialEndsAt === null ? (
                       <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
                         <Icon name="all_inclusive" size="sm" /> Permanent
@@ -194,7 +194,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
                         <Icon name="lock" size="sm" /> Expired
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                         <Icon name="timer" size="sm" /> Active
                       </span>
                     )}
@@ -216,7 +216,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
                           Mark reviewed
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
                           <Icon name="check" size="sm" /> Reviewed
                         </span>
                       )}
@@ -236,9 +236,9 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Email {compose.name.split(' ')[0]}</h2>
-                <p className="text-xs text-gray-400 mt-0.5">{compose.email}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{compose.email}</p>
               </div>
-              <button onClick={() => setCompose(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setCompose(null)} className="text-gray-500 hover:text-gray-600">
                 <Icon name="close" size="md" />
               </button>
             </div>
@@ -261,7 +261,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-y font-mono"
                 />
               </div>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-500">
                 Sends from <span className="font-medium">notifications@omnis.education</span> · replies go to <span className="font-medium">ivanyardley@me.com</span>
               </p>
               {sendResult && !sendResult.ok && (
@@ -270,7 +270,7 @@ export default function SignupsDashboard({ data }: { data: { rows: SignupRow[]; 
                 </div>
               )}
               {sendResult?.ok && (
-                <div className="bg-green-50 border border-green-200 text-green-700 text-xs px-3 py-2 rounded-lg flex items-center gap-1.5">
+                <div className="bg-green-50 border border-green-200 text-green-800 text-xs px-3 py-2 rounded-lg flex items-center gap-1.5">
                   <Icon name="check_circle" size="sm" /> Email sent successfully
                 </div>
               )}

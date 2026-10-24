@@ -120,7 +120,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
               rightContent={
                 <button
                   onClick={() => setActioningFlag(f)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100"
+                  className="flex items-center gap-1 px-3 py-1.5 bg-green-50 border border-green-200 text-green-800 rounded-lg text-xs font-medium hover:bg-green-100"
                 >
                   <Icon name="check_circle" size="sm" />
                   Action
@@ -169,7 +169,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
         )}
 
         {flags.length === 0 && actionedFlags.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-gray-500">
             <Icon name="radar" size="lg" className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No active early warning flags.</p>
             <p className="text-xs mt-1">Run an analysis to detect patterns in student performance data.</p>
@@ -213,7 +213,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
                             { label: 'ACTIONED BY', value: f.resolvedByName },
                           ]}
                           rightContent={
-                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-800 rounded-lg text-xs font-medium">
                               <Icon name="check_circle" size="sm" />
                               Actioned
                             </span>
@@ -230,7 +230,7 @@ export default function EarlyWarningPanel({ flags: initialFlags, compact }: Prop
                               {f.resolvedNotes && (
                                 <p className="text-xs text-green-700">{f.resolvedNotes}</p>
                               )}
-                              <p className="text-xs text-green-600">
+                              <p className="text-xs text-green-700">
                                 Actioned by {f.resolvedByName} · {f.resolvedAt.toLocaleDateString('en-GB')}
                               </p>
                             </div>

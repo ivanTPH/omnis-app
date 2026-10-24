@@ -197,7 +197,8 @@ export default async function MarketingHomePage() {
           ].map(({ stat, label }) => (
             <div key={stat}>
               <div className="text-2xl font-bold text-white mb-1">{stat}</div>
-              <div className="text-gray-400 text-sm">{label}</div>
+              {/* contrast-ok: light text on the bg-gray-900 stats band */}
+              <div className="text-gray-300 text-sm">{label}</div>
             </div>
           ))}
         </div>

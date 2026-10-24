@@ -345,7 +345,7 @@ function AccordionSection({ section }: { section: Section }) {
         className="w-full flex items-center gap-3 px-5 py-4 bg-white hover:bg-gray-50 transition-colors text-left"
       >
         <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-          <Icon name={section.icon} size="sm" className="text-blue-600" />
+          <Icon name={section.icon} size="sm" className="text-blue-700" />
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">{section.title}</p>
@@ -443,10 +443,10 @@ export default function HelpView({ role }: { role: string }) {
 
       {/* Guide chat prompt */}
       <div className="mb-6 flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3.5">
-        <Icon name="auto_awesome" size="sm" className="text-blue-500 mt-0.5 shrink-0" />
+        <Icon name="auto_awesome" size="sm" className="text-blue-700 mt-0.5 shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-medium text-blue-800">Need step-by-step help?</p>
-          <p className="text-[12px] text-blue-600 mt-0.5">
+          <p className="text-[12px] text-blue-700 mt-0.5">
             Click the <strong>?</strong> button in the bottom-right corner to chat with the Omnis Guide — ask it anything and it will walk you through it.
           </p>
         </div>
@@ -454,7 +454,7 @@ export default function HelpView({ role }: { role: string }) {
 
       {/* Search */}
       <div className="relative mb-5">
-        <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <Icon name="search" size="sm" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
         <input
           type="text"
           value={search}
@@ -465,7 +465,7 @@ export default function HelpView({ role }: { role: string }) {
         {search && (
           <button
             onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
           >
             <Icon name="close" size="sm" />
           </button>
@@ -479,7 +479,7 @@ export default function HelpView({ role }: { role: string }) {
 
       {/* Sections */}
       {sections.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-500">
           <Icon name="search_off" size="lg" className="mx-auto mb-2" />
           <p className="text-sm">No results for &ldquo;{search}&rdquo;</p>
           <p className="text-xs mt-1">Try the Guide chat (bottom-right) for a conversational answer.</p>
@@ -490,7 +490,7 @@ export default function HelpView({ role }: { role: string }) {
         </div>
       )}
 
-      <p className="text-[11px] text-gray-400 text-center mt-8 pb-4">
+      <p className="text-[11px] text-gray-500 text-center mt-8 pb-4">
         Still stuck? Use the Guide chat (bottom-right) or message your School Admin.
       </p>
     </div>
@@ -575,7 +575,7 @@ function RoleQuickStart({ role }: { role: string }) {
       <ul className="space-y-1.5">
         {cfg.bullets.map((b, i) => (
           <li key={i} className="flex gap-2 text-sm text-gray-700">
-            <span className="shrink-0 text-green-500 mt-0.5">→</span>
+            <span className="shrink-0 text-green-700 mt-0.5">→</span>
             <span className="leading-relaxed">{b}</span>
           </li>
         ))}

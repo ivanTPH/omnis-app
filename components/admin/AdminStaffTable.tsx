@@ -33,7 +33,7 @@ const ROLE_COLOUR: Record<string, string> = {
   HEAD_OF_DEPT:        'bg-indigo-50 text-indigo-700',
   HEAD_OF_YEAR:        'bg-violet-50 text-violet-700',
   SENCO:               'bg-purple-50 text-purple-700',
-  SCHOOL_ADMIN:        'bg-green-50 text-green-700',
+  SCHOOL_ADMIN:        'bg-green-50 text-green-800',
   SLT:                 'bg-teal-50 text-teal-700',
   COVER_MANAGER:       'bg-orange-50 text-orange-700',
   TEACHING_ASSISTANT:  'bg-sky-50 text-sky-700',
@@ -204,10 +204,10 @@ function StaffSlideOver({
               {mode === 'add' ? 'Add staff member' : `Edit — ${staff!.firstName} ${staff!.lastName}`}
             </p>
             {mode === 'edit' && (
-              <p className="text-[12px] text-gray-400 mt-0.5">{staff!.email}</p>
+              <p className="text-[12px] text-gray-500 mt-0.5">{staff!.email}</p>
             )}
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -218,10 +218,10 @@ function StaffSlideOver({
 
             {/* Personal details */}
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Personal Details</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Personal Details</p>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">First name <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">First name <span className="text-red-600">*</span></span>
                   <input
                     required value={form.firstName} onChange={e => set('firstName', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -229,7 +229,7 @@ function StaffSlideOver({
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">Last name <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">Last name <span className="text-red-600">*</span></span>
                   <input
                     required value={form.lastName} onChange={e => set('lastName', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -238,7 +238,7 @@ function StaffSlideOver({
                 </label>
               </div>
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] font-medium text-gray-700">Email address <span className="text-red-500">*</span></span>
+                <span className="text-[12px] font-medium text-gray-700">Email address <span className="text-red-600">*</span></span>
                 <input
                   required type="email" value={form.email} onChange={e => set('email', e.target.value)}
                   className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
@@ -249,10 +249,10 @@ function StaffSlideOver({
 
             {/* Role & Department */}
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Role &amp; Access</p>
+              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Role &amp; Access</p>
               <div className="space-y-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[12px] font-medium text-gray-700">Role <span className="text-red-500">*</span></span>
+                  <span className="text-[12px] font-medium text-gray-700">Role <span className="text-red-600">*</span></span>
                   <select
                     required value={form.role} onChange={e => set('role', e.target.value)}
                     className="px-3 py-2 text-[13px] border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white"
@@ -278,11 +278,11 @@ function StaffSlideOver({
             {/* Class / Year Group assignment (edit only) */}
             {mode === 'edit' && (
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Class &amp; Year Group Assignment</p>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Class &amp; Year Group Assignment</p>
                 {!classesLoaded ? (
-                  <p className="text-[12px] text-gray-400">Loading classes…</p>
+                  <p className="text-[12px] text-gray-500">Loading classes…</p>
                 ) : allClasses.length === 0 ? (
-                  <p className="text-[12px] text-gray-400">No classes found. Add classes first.</p>
+                  <p className="text-[12px] text-gray-500">No classes found. Add classes first.</p>
                 ) : (
                   <div className="space-y-3">
                     {Array.from(new Set(allClasses.map(c => c.yearGroup).filter((y): y is number => y != null))).sort((a, b) => a - b).map(yr => {
@@ -314,7 +314,7 @@ function StaffSlideOver({
             {/* Temporary password (add only) */}
             {mode === 'add' && (
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Account Setup</p>
+                <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Account Setup</p>
                 <label className="flex flex-col gap-1">
                   <span className="text-[12px] font-medium text-gray-700">Temporary password</span>
                   <div className="flex gap-2">
@@ -335,14 +335,14 @@ function StaffSlideOver({
                     <button
                       type="button"
                       onClick={() => set('tempPassword', genPassword())}
-                      className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition"
+                      className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-600 transition"
                       title="Regenerate password"
                     >
                       <Icon name="refresh" size="sm" />
                     </button>
                   </div>
                 </label>
-                <p className="text-[11px] text-gray-400 mt-1.5">
+                <p className="text-[11px] text-gray-500 mt-1.5">
                   Share this with the staff member. They will be asked to change it on first sign-in.
                 </p>
               </div>
@@ -406,13 +406,13 @@ function DeleteModal({
           </div>
           <div>
             <p className="text-[14px] font-semibold text-gray-900">Remove staff member?</p>
-            <p className="text-[12px] text-gray-400">This will remove their login access</p>
+            <p className="text-[12px] text-gray-500">This will remove their login access</p>
           </div>
         </div>
 
         <p className="text-[13px] text-gray-600 mb-1">You are removing access for:</p>
         <p className="text-[14px] font-medium text-gray-900">{staff.firstName} {staff.lastName}</p>
-        <p className="text-[12px] text-gray-400 mb-4">{staff.email}</p>
+        <p className="text-[12px] text-gray-500 mb-4">{staff.email}</p>
 
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-5">
           <p className="text-[12px] text-amber-800">
@@ -479,7 +479,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
       <div role="dialog" aria-modal="true" aria-label="Edit staff member" className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <p className="text-[15px] font-semibold text-gray-900">Invite staff member</p>
-          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
             <Icon name="close" size="md" />
           </button>
         </div>
@@ -715,11 +715,11 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
                   <td className="px-5 py-3.5 font-medium text-gray-900">
                     <div className="flex items-center gap-2.5">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${s.isActive ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                        <span className={`font-bold text-[10px] ${s.isActive ? 'text-blue-700' : 'text-gray-400'}`}>
+                        <span className={`font-bold text-[10px] ${s.isActive ? 'text-blue-700' : 'text-gray-500'}`}>
                           {s.firstName[0]}{s.lastName[0]}
                         </span>
                       </div>
-                      <span className={s.isActive ? 'text-gray-900' : 'text-gray-400'}>
+                      <span className={s.isActive ? 'text-gray-900' : 'text-gray-500'}>
                         {s.firstName} {s.lastName}
                       </span>
                     </div>
@@ -741,7 +741,7 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
                   {/* Year groups */}
                   <td className="px-5 py-3.5">
                     {s.yearGroups.length === 0 ? (
-                      <span className="text-gray-300">—</span>
+                      <span className="text-gray-500">—</span>
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {s.yearGroups.map(yg => (
@@ -754,12 +754,12 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
                   </td>
 
                   {/* Email */}
-                  <td className="px-5 py-3.5 text-gray-400 text-[12px] max-w-[180px] truncate">{s.email}</td>
+                  <td className="px-5 py-3.5 text-gray-500 text-[12px] max-w-[180px] truncate">{s.email}</td>
 
                   {/* Status */}
                   <td className="px-5 py-3.5">
                     <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                      s.isActive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'
+                      s.isActive ? 'bg-green-50 text-green-800' : 'bg-gray-100 text-gray-600'
                     }`}>
                       {s.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -771,7 +771,7 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
                       {/* Edit */}
                       <button
                         onClick={() => setEditTarget(s)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition"
                         title="Edit"
                       >
                         <Icon name="edit" size="sm" />
@@ -785,8 +785,8 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
                           toggling === s.id
                             ? 'opacity-40 cursor-not-allowed'
                             : s.isActive
-                              ? 'hover:bg-red-50 text-gray-400 hover:text-red-500'
-                              : 'hover:bg-green-50 text-gray-400 hover:text-green-600'
+                              ? 'hover:bg-red-50 text-gray-600 hover:text-red-700'
+                              : 'hover:bg-green-50 text-gray-600 hover:text-green-800'
                         }`}
                         title={s.isActive ? 'Deactivate account' : 'Reactivate account'}
                       >
@@ -799,7 +799,7 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
                       {/* Delete */}
                       <button
                         onClick={() => setDeleteTarget(s)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-600 hover:text-red-700 transition"
                         title="Remove staff member"
                       >
                         <Icon name="delete" size="sm" />
@@ -811,7 +811,7 @@ export default function AdminStaffTable({ staff: initialStaff }: { staff: StaffM
 
               {filteredSorted.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-gray-400 text-[13px]">
+                  <td colSpan={8} className="px-5 py-12 text-center text-gray-500 text-[13px]">
                     No staff found
                   </td>
                 </tr>

@@ -126,7 +126,7 @@ export default function AccessibilitySettingsView({
           className="bg-white border border-gray-200 rounded-2xl p-5 flex items-start gap-4"
         >
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-            settings[key] ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+            settings[key] ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
           }`}>
             <Icon name={iconName} size="md" />
           </div>
@@ -147,7 +147,7 @@ export default function AccessibilitySettingsView({
       <div className="bg-white border border-gray-200 rounded-2xl p-5">
         <div className="flex items-start gap-4">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-            settings.lineSpacing !== 'normal' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+            settings.lineSpacing !== 'normal' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
           }`}>
             <Icon name="format_align_left" size="md" />
           </div>
@@ -183,19 +183,19 @@ export default function AccessibilitySettingsView({
         <button
           onClick={resetAll}
           disabled={!anyActive || pending}
-          className="flex items-center gap-1.5 text-[13px] text-gray-400 hover:text-gray-600 disabled:opacity-40 transition-colors"
+          className="flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-gray-600 disabled:opacity-40 transition-colors"
         >
           <Icon name="loop" size="sm" />
           Reset all to defaults
         </button>
         {saved && (
-          <span className="flex items-center gap-1.5 text-[12px] text-green-600 font-medium">
+          <span className="flex items-center gap-1.5 text-[12px] text-green-700 font-medium">
             <Icon name="check_circle" size="sm" />
             Saved
           </span>
         )}
         {pending && !saved && (
-          <span className="text-[12px] text-gray-400">Saving…</span>
+          <span className="text-[12px] text-gray-500">Saving…</span>
         )}
       </div>
     </div>

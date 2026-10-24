@@ -138,16 +138,16 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
       </div>
 
       {/* Step indicator */}
-      <div className="flex items-center gap-2 text-xs text-gray-400">
-        <span className={step === 'configure' ? 'font-semibold text-blue-600' : 'text-green-600'}>
+      <div className="flex items-center gap-2 text-xs text-gray-500">
+        <span className={step === 'configure' ? 'font-semibold text-blue-600' : 'text-green-700'}>
           1 Configure
         </span>
         <Icon name="chevron_right" size="sm" />
-        <span className={step === 'topics' ? 'font-semibold text-blue-600' : 'text-gray-400'}>
+        <span className={step === 'topics' ? 'font-semibold text-blue-600' : 'text-gray-500'}>
           2 Select Topics
         </span>
         <Icon name="chevron_right" size="sm" />
-        <span className="text-gray-400">3 Generate</span>
+        <span className="text-gray-500">3 Generate</span>
       </div>
 
       {error && (
@@ -284,7 +284,7 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
                 >
                   Select all
                 </button>
-                <span className="text-gray-300">|</span>
+                <span className="text-gray-500">|</span>
                 <button
                   type="button"
                   onClick={() => setSelected(new Set())}
@@ -308,10 +308,10 @@ export default function YearRevisionCreator({ subjectsYearGroups }: { subjectsYe
                   }
                   <span className="text-sm text-gray-800 flex-1">{topic}</span>
                   {weakTopics.has(topic) && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">Needs revision</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 shrink-0">Needs revision</span>
                   )}
                   {strongTopics.has(topic) && (
-                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 shrink-0">Strong</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-green-100 text-green-800 shrink-0">Strong</span>
                   )}
                 </button>
               ))}

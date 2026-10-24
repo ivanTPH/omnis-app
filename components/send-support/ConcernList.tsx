@@ -20,7 +20,7 @@ function followUpBadge(c: ConcernRow) {
     variant:     'custom' as const,
     customClass: isOverdue
       ? 'text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700'
-      : 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700',
+      : 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800',
   }
 }
 
@@ -39,7 +39,7 @@ const STATUS_COLOURS: Record<string, string> = {
   escalated:    'bg-red-100 text-red-800',
   monitoring:   'bg-purple-100 text-purple-800',
   closed:       'bg-gray-100 text-gray-600',
-  no_action:    'bg-gray-100 text-gray-500',
+  no_action:    'bg-gray-100 text-gray-600',
 }
 
 const CATEGORY_COLOURS: Record<string, string> = {
@@ -63,7 +63,7 @@ export const CONCERN_SECTIONS = [
     categories:  ['attendance', 'behaviour'],
     headerClass: 'bg-amber-50 border-amber-200',
     badgeClass:  'bg-amber-200 text-amber-800',
-    iconClass:   'text-amber-500',
+    iconClass:   'text-amber-700',
     description: 'Non-submission, late work, and behavioural issues linked to homework engagement',
   },
   {
@@ -73,7 +73,7 @@ export const CONCERN_SECTIONS = [
     categories:  ['social_emotional', 'communication', 'physical', 'sensory'],
     headerClass: 'bg-violet-50 border-violet-200',
     badgeClass:  'bg-violet-200 text-violet-800',
-    iconClass:   'text-violet-500',
+    iconClass:   'text-violet-600',
     description: 'Concerns relating to the student\'s identified SEND requirements',
   },
   {
@@ -193,7 +193,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
 
   if (concerns.length === 0) {
     return (
-      <div className="text-center py-10 text-gray-400">
+      <div className="text-center py-10 text-gray-500">
         <Icon name="check_circle" size="lg" className="mx-auto mb-2 opacity-30" />
         <p className="text-sm">No concerns on record.</p>
       </div>
@@ -223,7 +223,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                 </div>
                 {sectionConcerns.length === 0 ? (
                   <div className="px-4 py-3 bg-white">
-                    <p className="text-[12px] text-gray-400 italic">No concerns in this category.</p>
+                    <p className="text-[12px] text-gray-500 italic">No concerns in this category.</p>
                   </div>
                 ) : (
                   <div className="bg-white divide-y divide-gray-50">
@@ -265,7 +265,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                               {isSenco && (
                                 <button
                                   onClick={() => setAlertTarget({ id: c.studentId, name: c.studentName })}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100"
                                   title="Send a SENCO alert to subject teachers"
                                 >
                                   <Icon name="notification_important" size="sm" /> Alert
@@ -273,14 +273,14 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                               )}
                               {isSenco && !c.hasActiveIlp && !['closed','no_action'].includes(c.status) && (
                                 ilpDoneFor.has(c.id) ? (
-                                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-800 bg-green-50">
                                     <Icon name="check_circle" size="sm" /> ILP created
                                   </span>
                                 ) : (
                                   <button
                                     onClick={() => handleGenerateIlp(c.id)}
                                     disabled={generatingIlpFor === c.id}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-800 bg-green-50 hover:bg-green-100 disabled:opacity-50"
                                     title="Generate ILP from this concern"
                                   >
                                     {generatingIlpFor === c.id
@@ -394,7 +394,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                   {isSenco && (
                     <button
                       onClick={() => setAlertTarget({ id: c.studentId, name: c.studentName })}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-amber-200 rounded-lg text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100"
                       title="Send a SENCO alert to subject teachers"
                     >
                       <Icon name="notification_important" size="sm" /> Alert
@@ -402,14 +402,14 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                   )}
                   {isSenco && !c.hasActiveIlp && !['closed','no_action'].includes(c.status) && (
                     ilpDoneFor.has(c.id) ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-800 bg-green-50">
                         <Icon name="check_circle" size="sm" /> ILP created
                       </span>
                     ) : (
                       <button
                         onClick={() => handleGenerateIlp(c.id)}
                         disabled={generatingIlpFor === c.id}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 border border-green-200 rounded-lg text-xs font-medium text-green-800 bg-green-50 hover:bg-green-100 disabled:opacity-50"
                         title="Generate ILP from this concern"
                       >
                         {generatingIlpFor === c.id
@@ -458,7 +458,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                     <p className="text-xs font-medium text-gray-500 mb-1">SENCO review notes</p>
                     <p className="text-sm text-gray-800">{c.reviewNotes}</p>
                     {c.reviewedAt && (
-                      <p className="text-xs text-gray-400 mt-1">Reviewed {new Date(c.reviewedAt).toLocaleDateString('en-GB')}</p>
+                      <p className="text-xs text-gray-500 mt-1">Reviewed {new Date(c.reviewedAt).toLocaleDateString('en-GB')}</p>
                     )}
                   </div>
                 )}
@@ -466,7 +466,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                 {c.aiAnalysis && (
                   <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Icon name="smart_toy" size="sm" className="text-blue-600" />
+                      <Icon name="smart_toy" size="sm" className="text-blue-700" />
                       <span className="text-xs font-medium text-blue-700">AI-assisted analysis</span>
                     </div>
                     <p className="text-xs text-blue-900 whitespace-pre-wrap leading-relaxed">{c.aiAnalysis}</p>
@@ -476,7 +476,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                 {/* Action items */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-gray-500">
+                    <p className="text-xs font-medium text-gray-600">
                       Action points {c.actionItems.length > 0 ? `(${c.actionItems.length})` : ''}
                     </p>
                     {isSenco && (
@@ -485,7 +485,7 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                           setAddingAction(addingAction === c.id ? null : c.id)
                           setActionDraft({ text: '', dueDate: '', responsibleUserId: '' })
                         }}
-                        className="flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800"
+                        className="flex items-center gap-1 text-[11px] text-blue-700 hover:text-blue-800"
                       >
                         <Icon name="add_circle" size="sm" /> Add action
                       </button>
@@ -495,10 +495,10 @@ export default function ConcernList({ concerns, isSenco = false, staffList = [],
                     <div className="space-y-1.5 mb-2">
                       {c.actionItems.map((a, i) => (
                         <div key={i} className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                          <Icon name="task_alt" size="sm" className="text-blue-500 mt-0.5 shrink-0" />
+                          <Icon name="task_alt" size="sm" className="text-blue-700 mt-0.5 shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[12px] text-gray-800">{a.text}</p>
-                            <p className="text-[10px] text-gray-500 mt-0.5">
+                            <p className="text-[10px] text-gray-600 mt-0.5">
                               {a.responsibleUserName && <span className="font-medium">{a.responsibleUserName} · </span>}
                               {a.dueDate ? `Due ${new Date(a.dueDate).toLocaleDateString('en-GB')}` : 'No due date'}
                               {' · '}Added {new Date(a.createdAt).toLocaleDateString('en-GB')}

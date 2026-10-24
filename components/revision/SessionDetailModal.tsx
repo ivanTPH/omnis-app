@@ -20,7 +20,7 @@ type Session = {
 const SUBJECT_COLOURS: Record<string, string> = {
   'English':     'bg-purple-100 text-purple-700',
   'Maths':       'bg-blue-100 text-blue-700',
-  'Science':     'bg-green-100 text-green-700',
+  'Science':     'bg-green-100 text-green-800',
   'Biology':     'bg-emerald-100 text-emerald-700',
   'Chemistry':   'bg-yellow-100 text-yellow-700',
   'Physics':     'bg-cyan-100 text-cyan-700',
@@ -31,7 +31,7 @@ const SUBJECT_COLOURS: Record<string, string> = {
   'German':      'bg-rose-100 text-rose-700',
   'Art':         'bg-fuchsia-100 text-fuchsia-700',
   'Music':       'bg-violet-100 text-violet-700',
-  'Drama':       'bg-amber-100 text-amber-700',
+  'Drama':       'bg-amber-100 text-amber-800',
   'Computing':   'bg-sky-100 text-sky-700',
   'RE':          'bg-lime-100 text-lime-700',
   'PE':          'bg-red-100 text-red-700',
@@ -49,7 +49,7 @@ function ConfidenceStars({ value, onChange }: { value: number; onChange: (v: num
           <Icon
             name="star"
             size="md"
-            className={n <= value ? 'text-amber-400' : 'text-gray-300'}
+            className={n <= value ? 'text-amber-400' : 'text-gray-500'}
           />
         </button>
       ))}
@@ -75,8 +75,8 @@ export default function SessionDetailModal({
   const [marking,    setMarking]     = useState(false)
 
   const statusColour =
-    session.status === 'completed' ? 'bg-green-100 text-green-700'
-    : session.status === 'skipped' ? 'bg-gray-100 text-gray-500'
+    session.status === 'completed' ? 'bg-green-100 text-green-800'
+    : session.status === 'skipped' ? 'bg-gray-100 text-gray-600'
     : 'bg-blue-100 text-blue-700'
 
   function handleComplete() {
@@ -118,7 +118,7 @@ export default function SessionDetailModal({
               {' · '}{session.durationMins} min
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 ml-3 shrink-0">
+          <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-gray-600 ml-3 shrink-0">
             <Icon name="close" size="md" />
           </button>
         </div>

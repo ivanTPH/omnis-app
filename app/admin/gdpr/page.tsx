@@ -25,7 +25,7 @@ export default async function AdminGdprPage() {
           <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-[22px] font-bold text-gray-900">GDPR &amp; Consent Management</h1>
-              <p className="text-[13px] text-gray-400 mt-0.5">
+              <p className="text-[13px] text-gray-500 mt-0.5">
                 Configure consent purposes, review the consent matrix, manage data subject requests and set your retention schedule
               </p>
             </div>

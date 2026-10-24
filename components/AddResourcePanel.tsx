@@ -20,13 +20,13 @@ const TYPE_LABELS: Record<string, string> = {
   VIDEO: 'Video', LINK: 'Link', OTHER: 'Other',
 }
 const TYPE_COLORS: Record<string, string> = {
-  PLAN: 'bg-green-100 text-green-700', SLIDES: 'bg-blue-100 text-blue-700',
+  PLAN: 'bg-green-100 text-green-800', SLIDES: 'bg-blue-100 text-blue-700',
   WORKSHEET: 'bg-purple-100 text-purple-700', VIDEO: 'bg-rose-100 text-rose-700',
-  LINK: 'bg-amber-100 text-amber-700', OTHER: 'bg-gray-100 text-gray-600',
+  LINK: 'bg-amber-100 text-amber-800', OTHER: 'bg-gray-100 text-gray-600',
 }
 function scoreColor(s: number) {
-  if (s >= 8) return 'bg-green-100 text-green-700'
-  if (s >= 5) return 'bg-amber-100 text-amber-700'
+  if (s >= 8) return 'bg-green-100 text-green-800'
+  if (s >= 5) return 'bg-amber-100 text-amber-800'
   return 'bg-red-100 text-red-700'
 }
 function scoreBarColor(s: number) {
@@ -88,7 +88,7 @@ function SendResult({
         title="Double-click to edit label and description"
       >
         <span className="text-[12px] font-semibold text-gray-800 flex-1 truncate">{editLabel}</span>
-        <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <span className="text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           double-click to edit
         </span>
       </div>
@@ -145,7 +145,7 @@ function SendResult({
           <div>
             <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
               Description
-              <span className="text-gray-400 normal-case font-normal ml-1">(AI uses this to score SEND accessibility)</span>
+              <span className="text-gray-500 normal-case font-normal ml-1">(AI uses this to score SEND accessibility)</span>
             </label>
             <textarea
               rows={3}
@@ -375,11 +375,11 @@ export default function AddResourcePanel({
               </div>
 
               {libLoading ? (
-                <div className="flex items-center justify-center py-8 text-gray-400">
+                <div className="flex items-center justify-center py-8 text-gray-500">
                   <Icon name="refresh" size="md" className="animate-spin" />
                 </div>
               ) : filteredLibrary.length === 0 ? (
-                <p className="text-[12px] text-gray-400 text-center py-6">
+                <p className="text-[12px] text-gray-500 text-center py-6">
                   {libSearch ? 'No resources match your search' : 'No resources in school library yet'}
                 </p>
               ) : (
@@ -396,7 +396,7 @@ export default function AddResourcePanel({
                         </span>
                       )}
                       {r.url && (
-                        <a href={r.url} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-gray-500 shrink-0">
+                        <a href={r.url} target="_blank" rel="noreferrer" className="text-gray-500 hover:text-gray-500 shrink-0">
                           <Icon name="open_in_new" size="sm" />
                         </a>
                       )}
@@ -457,7 +457,7 @@ export default function AddResourcePanel({
                   </div>
                   <div>
                     <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                      Description <span className="text-gray-400 normal-case font-normal">(helps Claude score accurately)</span>
+                      Description <span className="text-gray-500 normal-case font-normal">(helps Claude score accurately)</span>
                     </label>
                     <textarea
                       rows={2}
@@ -478,7 +478,7 @@ export default function AddResourcePanel({
                     }
                   </button>
                   {linkError && (
-                    <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">{linkError}</p>
+                    <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">{linkError}</p>
                   )}
                 </form>
               ) : (
@@ -505,7 +505,7 @@ export default function AddResourcePanel({
                         ) : (
                           <>
                             <p className="text-[12px] font-medium text-gray-600">Click to choose file</p>
-                            <p className="text-[10px] text-gray-400 mt-0.5">PDF, PPTX, DOCX supported</p>
+                            <p className="text-[10px] text-gray-500 mt-0.5">PDF, PPTX, DOCX supported</p>
                           </>
                         )}
                       </div>
@@ -513,7 +513,7 @@ export default function AddResourcePanel({
                         <button
                           type="button"
                           onClick={e => { e.preventDefault(); setUploadFile(null); setUploadLabel(''); if (fileRef.current) fileRef.current.value = '' }}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-gray-500 hover:text-gray-600"
                         >
                           <Icon name="close" size="sm" />
                         </button>
@@ -553,7 +553,7 @@ export default function AddResourcePanel({
 
                   <div>
                     <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide block mb-1">
-                      Description <span className="text-gray-400 normal-case font-normal">(helps Claude score accurately)</span>
+                      Description <span className="text-gray-500 normal-case font-normal">(helps Claude score accurately)</span>
                     </label>
                     <textarea
                       rows={2}
@@ -575,7 +575,7 @@ export default function AddResourcePanel({
                     }
                   </button>
                   {uploadError && (
-                    <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">{uploadError}</p>
+                    <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-1">{uploadError}</p>
                   )}
                 </form>
               ) : (

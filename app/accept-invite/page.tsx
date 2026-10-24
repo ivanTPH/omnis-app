@@ -138,7 +138,7 @@ function AcceptInviteForm() {
   }
 
   if (loading) {
-    return <div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-sm">Verifying invitation…</div>
+    return <div className="bg-white rounded-2xl p-8 text-center text-gray-500 text-sm">Verifying invitation…</div>
   }
 
   if (invalid) {
@@ -227,7 +227,7 @@ function AcceptInviteForm() {
             <h3 className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">
               2. Accept required policies
             </h3>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-gray-500">
               {acceptedCount}/{DPA_ITEMS.length} accepted
             </span>
           </div>
@@ -242,7 +242,7 @@ function AcceptInviteForm() {
               />
             ))}
           </div>
-          <p className="text-[12px] text-gray-400">
+          <p className="text-[12px] text-gray-500">
             Click <span className="text-indigo-600 font-medium">View full policy →</span> to read
             each policy, then tick the box to accept.
           </p>
@@ -257,7 +257,7 @@ function AcceptInviteForm() {
         {/* Errors + submit */}
         <div className="px-6 pb-6 space-y-3">
           {attempted && !allConsents && (
-            <div className="flex items-center gap-2 text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
               <Icon name="error" size="sm" className="shrink-0" />
               <p className="text-[12px] font-medium">
                 You must accept all required policies to create your account.
@@ -279,7 +279,7 @@ function AcceptInviteForm() {
               : <><Icon name="check_circle" size="sm" />Create account</>
             }
           </button>
-          <p className="text-[11px] text-center text-gray-400">
+          <p className="text-[11px] text-center text-gray-500">
             Your policy acceptance is recorded with a timestamp for compliance.
           </p>
         </div>
@@ -296,7 +296,7 @@ export default function AcceptInvitePage() {
           <OmnisLogo variant="login" background="dark" />
           <p className="text-blue-200 mt-2 text-sm">Learning &amp; SEND Intelligence Platform</p>
         </div>
-        <Suspense fallback={<div className="bg-white rounded-2xl p-8 text-center text-gray-400 text-sm">Loading…</div>}>
+        <Suspense fallback={<div className="bg-white rounded-2xl p-8 text-center text-gray-500 text-sm">Loading…</div>}>
           <AcceptInviteForm />
         </Suspense>
       </div>

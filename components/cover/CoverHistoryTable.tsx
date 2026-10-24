@@ -12,7 +12,7 @@ const REASON_LABELS: Record<string, string> = {
 const REASON_COLOURS: Record<string, string> = {
   illness:  'bg-red-100 text-red-700',
   training: 'bg-blue-100 text-blue-700',
-  personal: 'bg-amber-100 text-amber-700',
+  personal: 'bg-amber-100 text-amber-800',
   other:    'bg-gray-100 text-gray-600',
 }
 
@@ -22,7 +22,7 @@ export default function CoverHistoryTable({ history }: Props) {
   if (history.length === 0) {
     return (
       <div className="flex items-center justify-center h-48">
-        <p className="text-[12px] text-gray-400">No absences in the last 30 days.</p>
+        <p className="text-[12px] text-gray-500">No absences in the last 30 days.</p>
       </div>
     )
   }
@@ -54,8 +54,8 @@ export default function CoverHistoryTable({ history }: Props) {
               <td className="py-2.5 px-3 text-center text-gray-700">{h.lessonsAffected}</td>
               <td className="py-2.5 px-3 text-center">
                 <span className={`font-semibold ${
-                  h.coverageRate === 100 ? 'text-green-600' :
-                  h.coverageRate >= 50  ? 'text-amber-600' :
+                  h.coverageRate === 100 ? 'text-green-700' :
+                  h.coverageRate >= 50  ? 'text-amber-700' :
                   'text-red-600'
                 }`}>
                   {h.lessonsAffected === 0 ? '—' : `${h.coverageRate}%`}

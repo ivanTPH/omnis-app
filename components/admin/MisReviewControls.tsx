@@ -18,7 +18,7 @@ export function ClassTeacherAssigner({ classes, teachers }: { classes: ClassNoTe
         <tbody className="divide-y divide-gray-100">
           {shown.map(c => (
             <tr key={c.id}>
-              <td className="py-1.5 pr-2"><span className="font-medium text-gray-900">{c.name}</span> <span className="text-gray-400">{c.subject}</span></td>
+              <td className="py-1.5 pr-2"><span className="font-medium text-gray-900">{c.name}</span> <span className="text-gray-500">{c.subject}</span></td>
               <td className="py-1.5 pr-2">{c.yearGroup}</td>
               <td className="py-1.5 pr-2">{c.pupils}</td>
               <td className="py-1.5">
@@ -62,7 +62,7 @@ export function StaffRoleEditor({ staff }: { staff: StaffRow[] }) {
           <tbody className="divide-y divide-gray-100">
             {shown.map(s => (
               <tr key={s.id}>
-                <td className="py-1.5 pr-2 font-medium text-gray-900">{s.name}{s.fromMis && <span className="ml-1 text-[10px] text-gray-400">MIS</span>}</td>
+                <td className="py-1.5 pr-2 font-medium text-gray-900">{s.name}{s.fromMis && <span className="ml-1 text-[10px] text-gray-500">MIS</span>}</td>
                 <td className="py-1.5 pr-2 text-gray-500">{s.email}</td>
                 <td className="py-1.5 pr-2">{s.signedIn ? 'Yes' : 'Not yet'}</td>
                 <td className="py-1.5">
@@ -123,7 +123,7 @@ export function ClassImportForm({ view }: { view: ClassImportView }) {
               {view.subjects.map(s => (
                 <label key={s.key} className="flex items-center gap-2 text-[12px] text-gray-700">
                   <input type="checkbox" checked={!!included[s.key]} onChange={e => setIncluded({ ...included, [s.key]: e.target.checked })} />
-                  {s.label} <span className="text-gray-400">({s.classes})</span>
+                  {s.label} <span className="text-gray-500">({s.classes})</span>
                 </label>
               ))}
             </div>

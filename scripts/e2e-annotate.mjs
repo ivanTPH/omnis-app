@@ -41,7 +41,7 @@ function walk(suite, trail, specFile) {
       const msg = (lines.slice(0, 3).join(' | ').slice(0, 600) + (where ? ` [${where}]` : ''))
       // For timeouts, the last lines the test printed show how far it got.
       const out = (test.results ?? []).flatMap(x => (x.stdout ?? []).map(o => (o.text ?? '').trim())).filter(Boolean)
-      const trail = /timeout/i.test(msg) && out.length ? ` {${out.slice(-3).join(' / ').slice(0, 300)}}` : ''
+      const trail = /timeout/i.test(msg) && out.length ? ` {${out.slice(-1).join(' / ').slice(0, 1500)}}` : ''
       void trail
       if (test.status === 'unexpected') failed.push({ file: fileName, name, msg: msg + trail })
       else if (test.status === 'flaky') flaky.push({ file: fileName, name })

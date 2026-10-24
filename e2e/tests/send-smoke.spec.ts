@@ -83,7 +83,7 @@ async function openFirstLesson(page: Page): Promise<boolean> {
     await lessonCard.click({ timeout: 15_000 })
   } catch (err) {
     // Playwright's message names the element intercepting the click.
-    console.info(`[openFirstLesson] click failed: ${String(err).split('\n').slice(0, 4).join(' ')}`)
+    console.info(`[openFirstLesson] click failed: ${String(err).replace(/\u001b\[[0-9;]*m/g, '').split('\n').slice(2, 14).join(' ¦ ')}`)
     throw err
   }
   mark('clicked')

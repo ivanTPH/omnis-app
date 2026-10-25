@@ -60,7 +60,8 @@ export function hashMap<K extends string>(rows: Array<Record<K, string> & { sync
 }
 
 /** True when any of `fields` differs between the stored row and the new values. */
-export function differs<T extends Record<string, unknown>>(stored: Partial<T> | undefined, next: T): boolean {
+export function differs(stored: object | null | undefined, next: Record<string, unknown>): boolean {
   if (!stored) return true
-  return Object.keys(next).some(k => stableHash({ v: stored[k] ?? null }) !== stableHash({ v: next[k] ?? null }))
+  const cur = stored as Record<string, unknown>
+  return Object.keys(next).some(k => stableHash({ v: cur[k] ?? null }) !== stableHash({ v: next[k] ?? null }))
 }

@@ -17,6 +17,7 @@
  * Requires env var: OAK_API_KEY
  */
 
+import { writeIfChanged } from '@/lib/sync/change-only'
 import JSZip   from 'jszip'
 import { prisma } from '@/lib/prisma'
 
@@ -161,15 +162,15 @@ async function upsertSubject(
   title:       string,
   syncedAt:    Date,
   counts:      BulkSyncCounts,
+  prev:        Map<string, string | null>,
 ): Promise<void> {
-  const existing = await prisma.oakSubject.findUnique({ where: { slug: subjectSlug } })
-  await prisma.oakSubject.upsert({
-    where:  { slug: subjectSlug },
-    create: { slug: subjectSlug, title, phase: 'secondary', lastSeenAt: syncedAt },
-    update: { title, phase: 'secondary', lastSeenAt: syncedAt, deletedAt: null },
-  })
-  if (!existing) counts.newSubjects++
-  else           counts.updatedSubjects++
+  const existed = prev.has(subjectSlug)
+  const wrote = await writeIfChanged(prev, subjectSlug,
+    { slug: subjectSlug, title, phase: 'secondary', lastSeenAt: syncedAt },
+    { title, phase: 'secondary', lastSeenAt: syncedAt, deletedAt: null },
+    (create, update) => prisma.oakSubject.upsert({ where: { slug: subjectSlug }, create, update, select: { slug: true } }))
+  if (!existed) counts.newSubjects++
+  else if (wrote) counts.updatedSubjects++
 }
 
 async function upsertUnits(
@@ -178,13 +179,12 @@ async function upsertUnits(
   sequenceSlug: string,
   syncedAt:     Date,
   counts:       BulkSyncCounts,
+  prev:         Map<string, string | null>,
 ): Promise<void> {
   for (const unit of sequence) {
     try {
-      const existing = await prisma.oakUnit.findUnique({ where: { slug: unit.unitSlug } })
-      await prisma.oakUnit.upsert({
-        where:  { slug: unit.unitSlug },
-        create: {
+      const existed = prev.has(unit.unitSlug)
+      const wrote = await writeIfChanged(prev, unit.unitSlug, {
           slug:             unit.unitSlug,
           title:            unit.unitTitle,
           subjectSlug,
@@ -203,8 +203,7 @@ async function upsertUnits(
           plannedLessonCount: unit.unitLessons?.filter(l => l.state === 'published').length ?? 0,
           isLegacy:         false,
           lastSeenAt:       syncedAt,
-        },
-        update: {
+        }, {
           title:            unit.unitTitle,
           keystage:         unit.keyStageSlug,
           yearGroup:        unit.year ?? null,
@@ -218,9 +217,9 @@ async function upsertUnits(
           lastSeenAt:       syncedAt,
           deletedAt:        null,
         },
-      })
-      if (!existing) counts.newUnits++
-      else           counts.updatedUnits++
+        (create, update) => prisma.oakUnit.upsert({ where: { slug: unit.unitSlug }, create, update, select: { slug: true } }))
+      if (!existed) counts.newUnits++
+      else if (wrote) counts.updatedUnits++
     } catch (err) {
       counts.errors.push({ slug: unit.unitSlug, message: String(err) })
       counts.errorCount++
@@ -234,6 +233,7 @@ async function upsertLessons(
   unitOrderMap:  Map<string, Map<string, number>>,
   syncedAt:      Date,
   counts:        BulkSyncCounts,
+  prev:          Map<string, string | null>,
 ): Promise<void> {
   for (const lesson of lessons) {
     try {
@@ -247,15 +247,8 @@ async function upsertLessons(
         ? lesson.transcript_sentences.split('\n').filter(l => l.trim().length > 0)
         : []
 
-      const existing = await prisma.oakLesson.findUnique({ where: { slug: lesson.lessonSlug } })
-      const changed  = existing && (
-        existing.title              !== lesson.lessonTitle ||
-        existing.pupilLessonOutcome !== (lesson.pupilLessonOutcome ?? null)
-      )
-
-      await prisma.oakLesson.upsert({
-        where:  { slug: lesson.lessonSlug },
-        create: {
+      const existed = prev.has(lesson.lessonSlug)
+      const wrote = await writeIfChanged(prev, lesson.lessonSlug, {
           slug:               lesson.lessonSlug,
           title:              lesson.lessonTitle,
           unitSlug:           lesson.unitSlug,
@@ -285,8 +278,7 @@ async function upsertLessons(
           expired:            false,
           loginRequired:      false,
           lastSeenAt:         syncedAt,
-        },
-        update: {
+        }, {
           title:              lesson.lessonTitle,
           unitSlug:           lesson.unitSlug,
           yearGroup,
@@ -305,9 +297,9 @@ async function upsertLessons(
           // Preserve existing quiz + video data from previous scrape runs
           // (bulk API doesn't include these fields)
         },
-      })
-      if (!existing) counts.newLessons++
-      else if (changed) counts.updatedLessons++
+        (create, update) => prisma.oakLesson.upsert({ where: { slug: lesson.lessonSlug }, create, update, select: { slug: true } }))
+      if (!existed) counts.newLessons++
+      else if (wrote) counts.updatedLessons++
     } catch (err) {
       counts.errors.push({ slug: lesson.lessonSlug, message: String(err) })
       counts.errorCount++
@@ -337,6 +329,17 @@ export async function runBulkSync(): Promise<{ counts: BulkSyncCounts; durationM
     errors:         [],
   }
 
+  // What is stored, as slug → hash. Rows marked deleted get no hash, so if
+  // Oak still publishes them they are rewritten (and so restored).
+  const asPrev = (rows: Array<{ slug: string; syncHash: string | null; deletedAt: Date | null }>) =>
+    new Map(rows.map(r => [r.slug, r.deletedAt ? null : r.syncHash]))
+  const sel = { select: { slug: true, syncHash: true, deletedAt: true } } as const
+  const [prevSubjects, prevUnits, prevLessons] = await Promise.all([
+    prisma.oakSubject.findMany(sel).then(asPrev),
+    prisma.oakUnit.findMany(sel).then(asPrev),
+    prisma.oakLesson.findMany(sel).then(asPrev),
+  ])
+
   try {
     const subjectSlugs = await getSubjectSlugs()
     console.log(`[oak-bulk-sync] ${subjectSlugs.length} subjects found: ${subjectSlugs.join(', ')}`)
@@ -355,7 +358,7 @@ export async function runBulkSync(): Promise<{ counts: BulkSyncCounts; durationM
         const title = SUBJECT_TITLES[subjectSlug] ?? data.subjectTitle ?? subjectSlug
 
         // 1. Subject
-        await upsertSubject(subjectSlug, title, syncedAt, counts)
+        await upsertSubject(subjectSlug, title, syncedAt, counts, prevSubjects)
 
         // 2. Build lookup maps from the sequence
         //    unitYearMap:  unitSlug → yearGroup
@@ -372,10 +375,10 @@ export async function runBulkSync(): Promise<{ counts: BulkSyncCounts; durationM
         }
 
         // 3. Units (must exist before lessons due to FK)
-        await upsertUnits(data.sequence, subjectSlug, data.sequenceSlug, syncedAt, counts)
+        await upsertUnits(data.sequence, subjectSlug, data.sequenceSlug, syncedAt, counts, prevUnits)
 
         // 4. Lessons
-        await upsertLessons(data.lessons, unitYearMap, unitOrderMap, syncedAt, counts)
+        await upsertLessons(data.lessons, unitYearMap, unitOrderMap, syncedAt, counts, prevLessons)
 
         console.log(`[oak-bulk-sync] ${subjectPhase}: ${data.sequence.length} units, ${data.lessons.length} lessons`)
       } catch (err) {

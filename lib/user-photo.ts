@@ -9,11 +9,17 @@ export { photoProxyUrl, parseDataUrl } from '@/lib/user-photo-url'
  * photo route. Writes nothing when the photo is unchanged, and never asks the
  * database to send the row back, so a nightly sync costs almost no egress.
  */
-export async function saveUserPhoto(userId: string, contentType: string, bytes: Buffer): Promise<'unchanged' | 'saved'> {
+export async function saveUserPhoto(
+  userId: string, contentType: string, bytes: Buffer,
+  /** The stored photo's hash if already known (null = no photo); looked up when omitted. */
+  knownHash?: string | null,
+): Promise<'unchanged' | 'saved'> {
   const data = new Uint8Array(bytes) // a plain Uint8Array<ArrayBuffer>, as Prisma's Bytes type expects
   const hash = createHash('sha256').update(bytes).digest('hex')
-  const existing = await prisma.userPhoto.findUnique({ where: { userId }, select: { hash: true } })
-  if (existing?.hash === hash) return 'unchanged'
+  const existing = knownHash !== undefined
+    ? knownHash
+    : (await prisma.userPhoto.findUnique({ where: { userId }, select: { hash: true } }))?.hash ?? null
+  if (existing === hash) return 'unchanged'
   await prisma.$transaction([
     prisma.userPhoto.upsert({
       where:  { userId },

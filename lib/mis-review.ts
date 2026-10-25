@@ -70,6 +70,9 @@ function summaryLines(summary: unknown, recordsProcessed: number): string[] {
   } else {
     lines.push(`Read ${recordsProcessed} records from your MIS.`)
   }
+  if (typeof s.changed === 'number') lines.push(s.changed === 0
+    ? 'Nothing had changed since the last sync, so nothing was rewritten.'
+    : `${s.changed} record(s) were new or had changed and were updated; everything else was already up to date.`)
   const stu = (s.students ?? {}) as Record<string, number>
   if (stu.markedLeft) lines.push(`${stu.markedLeft} pupil record(s) no longer in your MIS were marked as left. Their Omnis accounts were not changed.`)
   if (prov.students) lines.push(`Created ${prov.students} new pupil account(s). No emails were sent.`)

@@ -44,10 +44,21 @@ export async function resolveWondeTarget(callerSchoolId?: string): Promise<Wonde
   return { ok: true, omnisSchoolId: link.schoolId, wondeSchoolId, token }
 }
 
+/** Records read from the MIS: written (new or changed) plus unchanged. */
+const seen = (c: { upserted: number; unchanged: number }) => c.upserted + c.unchanged
+
 export function totalRecords(r: WondeSyncResult): number {
+  return seen(r.employees) + seen(r.students) + seen(r.contacts) +
+    seen(r.groups) + seen(r.classes) + seen(r.enrolments) +
+    seen(r.periods) + seen(r.timetable)
+}
+
+/** Records the sync actually wrote because they were new or had changed. */
+export function changedRecords(r: WondeSyncResult): number {
   return r.employees.upserted + r.students.upserted + r.contacts.upserted +
     r.groups.upserted + r.classes.upserted + r.enrolments.upserted +
-    r.periods.upserted + r.timetable.upserted
+    r.periods.upserted + r.timetable.upserted + r.sen.upserted + r.attendance.upserted +
+    r.behaviours.upserted + r.exclusions.upserted + r.assessments.upserted + r.baselines.upserted
 }
 
 /** Run a sync and record it in WondeSyncLog. Never throws. */
@@ -77,9 +88,10 @@ export async function runLoggedWondeSync(
         errors:           result.errors,
         summary: {
           counts: {
-            students: result.students.upserted, employees: result.employees.upserted,
-            classes: result.classes.upserted, contacts: result.contacts.upserted,
+            students: seen(result.students), employees: seen(result.employees),
+            classes: seen(result.classes), contacts: seen(result.contacts),
           },
+          changed: changedRecords(result),
           provisioned: result.provisioned,
           omnis: result.omnis ?? null,
           students: { markedLeft: result.students.markedLeft ?? 0 },

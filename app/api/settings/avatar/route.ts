@@ -8,7 +8,13 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png']
 const MAX_BYTES     = 5 * 1024 * 1024   // 5 MB
 
 export async function POST(req: NextRequest) {
-  const { id: userId, schoolId } = await requireAuth()
+  const { id: userId, schoolId, role } = await requireAuth()
+
+  // A pupil's photo comes only from the school's MIS (via Wonde). Staff use it
+  // to recognise the child, so pupils cannot replace it with an upload.
+  if (role === 'STUDENT') {
+    return Response.json({ error: 'Pupil photos come from your school records.' }, { status: 403 })
+  }
 
   let formData: FormData
   try {

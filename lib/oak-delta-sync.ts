@@ -302,6 +302,29 @@ async function syncOneLesson(
 
 // ─── Main exported function ───────────────────────────────────────────────────
 
+/**
+ * Marks rows Oak no longer lists as deleted, but only when this run saw at
+ * least 80% of the rows currently live. A scrape that breaks and sees almost
+ * nothing (as on 27 Sep 2026, which hid 8,147 lessons) must never be taken as
+ * Oak deleting everything.
+ */
+async function safeDeleteSweep(
+  model: 'oakSubject' | 'oakUnit' | 'oakLesson', seen: Set<string>, syncedAt: Date,
+  counts: { errors: { slug: string; message: string }[]; errorCount: number },
+): Promise<{ count: number }> {
+  const delegate = prisma[model] as unknown as {
+    count(a: object): Promise<number>
+    updateMany(a: object): Promise<{ count: number }>
+  }
+  const live = await delegate.count({ where: { deletedAt: null } })
+  if (seen.size < live * 0.8) {
+    counts.errors.push({ slug: model, message: `Saw ${seen.size} of ${live} live ${model} rows; nothing was marked deleted` })
+    counts.errorCount++
+    return { count: 0 }
+  }
+  return delegate.updateMany({ where: { slug: { notIn: Array.from(seen) }, deletedAt: null }, data: { deletedAt: syncedAt } })
+}
+
 export async function runDeltaSync(): Promise<{ counts: DeltaSyncCounts; durationMs: number }> {
   const startTime = Date.now()
   const syncedAt  = new Date()
@@ -358,10 +381,7 @@ export async function runDeltaSync(): Promise<{ counts: DeltaSyncCounts; duratio
       })
       if (!existing) counts.newSubjects++
     }
-    const dsResult = await prisma.oakSubject.updateMany({
-      where: { slug: { notIn: Array.from(seenSubjectSlugs) }, deletedAt: null },
-      data:  { deletedAt: syncedAt },
-    })
+    const dsResult = await safeDeleteSweep('oakSubject', seenSubjectSlugs, syncedAt, counts)
     counts.deletedSubjects = dsResult.count
 
     // Units
@@ -373,10 +393,7 @@ export async function runDeltaSync(): Promise<{ counts: DeltaSyncCounts; duratio
         counts.errorCount++
       }
     })
-    const duResult = await prisma.oakUnit.updateMany({
-      where: { slug: { notIn: Array.from(seenUnitSlugs) }, deletedAt: null },
-      data:  { deletedAt: syncedAt },
-    })
+    const duResult = await safeDeleteSweep('oakUnit', seenUnitSlugs, syncedAt, counts)
     counts.deletedUnits = duResult.count
 
     // Lessons
@@ -388,10 +405,7 @@ export async function runDeltaSync(): Promise<{ counts: DeltaSyncCounts; duratio
         counts.errorCount++
       }
     })
-    const dlResult = await prisma.oakLesson.updateMany({
-      where: { slug: { notIn: Array.from(seenLessonSlugs) }, deletedAt: null },
-      data:  { deletedAt: syncedAt },
-    })
+    const dlResult = await safeDeleteSweep('oakLesson', seenLessonSlugs, syncedAt, counts)
     counts.deletedLessons = dlResult.count
 
     const durationMs = Date.now() - startTime

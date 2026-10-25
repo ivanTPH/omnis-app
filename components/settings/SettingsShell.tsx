@@ -138,7 +138,8 @@ export default function SettingsShell({
   const [lastName,  setLastName]        = useState(user.lastName)
   const [phone,     setPhone]           = useState(initialSettings.phone ?? '')
   const [bio,       setBio]             = useState(initialSettings.bio   ?? '')
-  const [avatarUrl, setAvatarUrl]       = useState(initialSettings.profilePictureUrl ?? '')
+  // Pupils see their school (MIS) photo; staff see the one they uploaded.
+  const [avatarUrl, setAvatarUrl]       = useState(initialSettings.profilePictureUrl ?? (user.role === 'STUDENT' ? `/api/student-photo/${user.id}` : ''))
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [newEmail,  setNewEmail]        = useState('')
   const [showEmailForm, setShowEmailForm]     = useState(false)
@@ -339,6 +340,11 @@ export default function SettingsShell({
                   </div>
                 )}
               </div>
+              {user.role === 'STUDENT' ? (
+                <p className="text-sm text-gray-600 max-w-sm">
+                  Your photo comes from your school&apos;s records. Ask the school office if it needs changing.
+                </p>
+              ) : (
               <div className="space-y-2">
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -351,6 +357,7 @@ export default function SettingsShell({
                 <p className="text-xs text-gray-500">JPG or PNG, max 5 MB</p>
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleAvatarChange} />
               </div>
+              )}
             </div>
           </Section>
 

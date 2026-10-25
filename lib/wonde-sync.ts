@@ -19,6 +19,7 @@
  */
 
 import { saveUserPhoto } from '@/lib/user-photo'
+import { writeIfChanged, hashMap, differs } from '@/lib/sync/change-only'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma, writeAudit } from '@/lib/prisma'
@@ -45,20 +46,20 @@ import {
 } from '@/lib/wonde-client'
 
 export interface WondeSyncResult {
-  employees:   { upserted: number }
-  students:    { upserted: number; markedLeft?: number }
-  contacts:    { upserted: number }
-  groups:      { upserted: number }
-  classes:     { upserted: number }
-  enrolments:  { upserted: number }
-  periods:     { upserted: number }
-  timetable:   { upserted: number }
-  sen:         { upserted: number }
-  attendance:  { upserted: number }
-  behaviours:  { upserted: number }
-  exclusions:  { upserted: number }
-  assessments:  { upserted: number }
-  baselines:    { upserted: number }
+  employees:   { upserted: number; unchanged: number }
+  students:    { upserted: number; unchanged: number; markedLeft?: number }
+  contacts:    { upserted: number; unchanged: number }
+  groups:      { upserted: number; unchanged: number }
+  classes:     { upserted: number; unchanged: number }
+  enrolments:  { upserted: number; unchanged: number }
+  periods:     { upserted: number; unchanged: number }
+  timetable:   { upserted: number; unchanged: number }
+  sen:         { upserted: number; unchanged: number }
+  attendance:  { upserted: number; unchanged: number }
+  behaviours:  { upserted: number; unchanged: number }
+  exclusions:  { upserted: number; unchanged: number }
+  assessments:  { upserted: number; unchanged: number }
+  baselines:    { upserted: number; unchanged: number }
   provisioned: { students: number; parents: number; needsReview?: number }
   omnis?:      ProvisionResult   // staff accounts, classes, teachers and enrolments created from MIS data
   errors:       string[]
@@ -110,26 +111,43 @@ export async function runWondeSync(
   const errors: string[] = []
 
   const result: WondeSyncResult = {
-    employees:   { upserted: 0 },
-    students:    { upserted: 0 },
-    contacts:    { upserted: 0 },
-    groups:      { upserted: 0 },
-    classes:     { upserted: 0 },
-    enrolments:  { upserted: 0 },
-    periods:     { upserted: 0 },
-    timetable:   { upserted: 0 },
-    sen:         { upserted: 0 },
-    attendance:  { upserted: 0 },
-    behaviours:  { upserted: 0 },
-    exclusions:  { upserted: 0 },
-    assessments:  { upserted: 0 },
-    baselines:    { upserted: 0 },
+    employees:   { upserted: 0, unchanged: 0 },
+    students:    { upserted: 0, unchanged: 0 },
+    contacts:    { upserted: 0, unchanged: 0 },
+    groups:      { upserted: 0, unchanged: 0 },
+    classes:     { upserted: 0, unchanged: 0 },
+    enrolments:  { upserted: 0, unchanged: 0 },
+    periods:     { upserted: 0, unchanged: 0 },
+    timetable:   { upserted: 0, unchanged: 0 },
+    sen:         { upserted: 0, unchanged: 0 },
+    attendance:  { upserted: 0, unchanged: 0 },
+    behaviours:  { upserted: 0, unchanged: 0 },
+    exclusions:  { upserted: 0, unchanged: 0 },
+    assessments:  { upserted: 0, unchanged: 0 },
+    baselines:    { upserted: 0, unchanged: 0 },
     provisioned:  { students: 0, parents: 0 },
     errors,
     durationMs:   0,
   }
 
   const now = new Date()
+
+  // What is already stored, as key → hash. Only new or changed records are
+  // written below (lib/sync/change-only.ts); unchanged ones are skipped.
+  const [prevEmployees, prevStudents, prevContacts, prevGroups, prevClasses, prevPeriods, prevTimetable, prevSen, prevAttendance, prevBehaviours, prevExclusions, prevAssessments] = await Promise.all([
+    prisma.wondeEmployee.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeStudent.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeContact.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeGroup.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeClass.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondePeriod.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeTimetableEntry.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeSenRecord.findMany({ where: { schoolId: omnisSchoolId }, select: { studentId: true, syncHash: true } }).then(r => hashMap(r, 'studentId')),
+    prisma.wondeAttendanceRecord.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeBehaviourRecord.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeExclusionRecord.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+    prisma.wondeAssessmentResult.findMany({ where: { schoolId: omnisSchoolId }, select: { id: true, syncHash: true } }).then(r => hashMap(r, 'id')),
+  ])
 
   // ID sets built as each section completes — used for FK existence checks later.
   // This removes all per-record findUnique existence checks entirely.
@@ -172,9 +190,7 @@ export async function runWondeSync(
     const employees = await fetchWondeEmployees(wondeSchoolId, wondeToken)
     await inBatches(employees, async emp => {
       const subjects = emp.subjects?.data.map(s => s.name) ?? []
-      await prisma.wondeEmployee.upsert({
-        where:  { id: emp.id },
-        create: {
+      const wrote = await writeIfChanged(prevEmployees, emp.id, {
           id:             emp.id,
           schoolId:       omnisSchoolId,
           misId:          emp.mis_id ?? null,
@@ -186,8 +202,7 @@ export async function runWondeSync(
           subjects,
           wondeUpdatedAt: parseWondeDate(emp.updated_at),
           syncedAt:       now,
-        },
-        update: {
+        }, {
           misId:          emp.mis_id ?? null,
           firstName:      emp.forename,
           lastName:       emp.surname,
@@ -198,9 +213,9 @@ export async function runWondeSync(
           wondeUpdatedAt: parseWondeDate(emp.updated_at),
           updatedAt:      now,
         },
-      })
+        (create, update) => prisma.wondeEmployee.upsert({ where: { id: emp.id }, create, update, select: { id: true } }))
       knownEmployeeIds.add(emp.id)
-      result.employees.upserted++
+      if (wrote) result.employees.upserted++; else result.employees.unchanged++
     })
   } catch (err) {
     errors.push(`Employees: ${String(err)}`)
@@ -211,8 +226,13 @@ export async function runWondeSync(
   try {
     const details = await fetchWondeEmployeeDetails(wondeSchoolId, wondeToken)
     employeeClassIds = details.classIds
+    const storedEmail = new Map((await prisma.wondeEmployee.findMany({
+      where: { schoolId: omnisSchoolId }, select: { id: true, email: true },
+    })).map(e => [e.id, e.email]))
     for (const [id, email] of details.emails) {
-      if (knownEmployeeIds.has(id)) await prisma.wondeEmployee.update({ where: { id }, data: { email } })
+      if (knownEmployeeIds.has(id) && storedEmail.get(id) !== email) {
+        await prisma.wondeEmployee.update({ where: { id }, data: { email }, select: { id: true } })
+      }
     }
   } catch (err) {
     errors.push(`Employee details: ${String(err)}`)
@@ -222,6 +242,12 @@ export async function runWondeSync(
   // every later step. Pupils are matched by Wonde ID only, never by name
   // (see lib/accounts/student-matching.ts).
   const studentUserByWondeId = new Map<string, string>()
+  type PupilUser = {
+    id: string; tutorGroup: string | null; dateOfBirth: Date | null; avatarUrl: string | null
+    attendancePercentage: number | null; behaviourPositive: number | null; behaviourNegative: number | null
+    hasExclusion: boolean | null; photo: { hash: string } | null; sendStatus: { studentId: string } | null
+  }
+  let pupilUsers = new Map<string, PupilUser>()
 
   // ── 3. Students (+ contacts) ──────────────────────────────────────────────
   try {
@@ -301,6 +327,17 @@ export async function runWondeSync(
       errors.push(`Student accounts: ${String(err)}`)
     }
 
+    // Current values on pupils' Omnis accounts, so the MIS fields below are
+    // only written when they differ.
+    pupilUsers = new Map((await prisma.user.findMany({
+      where:  { schoolId: omnisSchoolId, role: 'STUDENT', wondeId: { not: null } },
+      select: {
+        id: true, tutorGroup: true, dateOfBirth: true, avatarUrl: true, attendancePercentage: true,
+        behaviourPositive: true, behaviourNegative: true, hasExclusion: true,
+        photo: { select: { hash: true } }, sendStatus: { select: { studentId: true } },
+      },
+    })).map(u => [u.id, u]))
+
     await inBatches(students, async stu => {
       const yearInt     = yearCodeToInt(stu.year?.data?.code)
       const photoData   = stu.photo?.data ?? null
@@ -309,9 +346,7 @@ export async function runWondeSync(
       // so reading pupil rows never drags image bytes out of the database.
       const photoBytes  = photoData?.content ? Buffer.from(photoData.content, 'base64') : null
       const photoUrl    = photoData?.url ?? null
-      await prisma.wondeStudent.upsert({
-        where:  { id: stu.id },
-        create: {
+      const wrote = await writeIfChanged(prevStudents, stu.id, {
           id:             stu.id,
           schoolId:       omnisSchoolId,
           misId:          stu.mis_id ?? null,
@@ -325,8 +360,7 @@ export async function runWondeSync(
           photoUrl,
           wondeUpdatedAt: parseWondeDate(stu.updated_at),
           syncedAt:       now,
-        },
-        update: {
+        }, {
           misId:          stu.mis_id ?? null,
           upn:            stu.upn ?? null,
           firstName:      stu.forename,
@@ -340,18 +374,17 @@ export async function runWondeSync(
           updatedAt:      now,
           syncedAt:       now,
         },
-        select: { id: true },
-      })
+        (create, update) => prisma.wondeStudent.upsert({ where: { id: stu.id }, create, update, select: { id: true } }))
       knownStudentIds.add(stu.id)
-      result.students.upserted++
+      if (wrote) result.students.upserted++; else result.students.unchanged++
 
-      // Bridge MIS fields (tutorGroup, dateOfBirth, photo) to User record.
-      // Always update tutorGroup + dateOfBirth when a matching User exists.
+      // Bridge MIS fields (tutorGroup, dateOfBirth) to the pupil's account,
+      // only when they differ from what is already there.
       try {
         const matchedUserId = studentUserByWondeId.get(stu.id)
-        if (matchedUserId) {
-          const formGroup = stu.form_group?.data?.name ?? null
-          const dob       = parseWondeDate(stu.date_of_birth)
+        const formGroup = stu.form_group?.data?.name ?? null
+        const dob       = parseWondeDate(stu.date_of_birth)
+        if (matchedUserId && differs(pupilUsers.get(matchedUserId), { tutorGroup: formGroup, dateOfBirth: dob })) {
           await prisma.user.update({
             where: { id: matchedUserId },
             data: {
@@ -370,9 +403,10 @@ export async function runWondeSync(
       const photoUserId = studentUserByWondeId.get(stu.id)
       if (photoUserId && (photoBytes || photoUrl)) {
         try {
+          const known = pupilUsers.get(photoUserId)
           if (photoBytes) {
-            await saveUserPhoto(photoUserId, 'image/jpeg', photoBytes)
-          } else if (photoUrl) {
+            await saveUserPhoto(photoUserId, 'image/jpeg', photoBytes, known ? (known.photo?.hash ?? null) : undefined)
+          } else if (photoUrl && known?.avatarUrl !== photoUrl) {
             await prisma.user.update({ where: { id: photoUserId }, data: { avatarUrl: photoUrl }, select: { id: true } })
           }
         } catch {
@@ -395,9 +429,7 @@ export async function runWondeSync(
               ? (relObj.parental_responsibility ?? false)
               : false
 
-            await prisma.wondeContact.upsert({
-              where:  { id: c.id },
-              create: {
+            const wrote = await writeIfChanged(prevContacts, c.id, {
                 id:                    c.id,
                 school:                { connect: { id: omnisSchoolId } },
                 student:               { connect: { id: stu.id } },
@@ -408,8 +440,7 @@ export async function runWondeSync(
                 relationship:          relationshipStr,
                 parentalResponsibility:parentalResp,
                 syncedAt:              now,
-              },
-              update: {
+              }, {
                 firstName:             c.forename ?? '',
                 lastName:              c.surname  ?? '',
                 email:                 c.email ?? null,
@@ -417,8 +448,8 @@ export async function runWondeSync(
                 relationship:          relationshipStr,
                 parentalResponsibility:parentalResp,
               },
-            })
-            result.contacts.upserted++
+              (create, update) => prisma.wondeContact.upsert({ where: { id: c.id }, create, update, select: { id: true } }))
+            if (wrote) result.contacts.upserted++; else result.contacts.unchanged++
           } catch (contactErr) {
             errors.push(`Contact ${c.id}: ${String(contactErr)}`)
           }
@@ -436,7 +467,7 @@ export async function runWondeSync(
     if (students.length > 0 && students.length >= onRecord * 0.8) {
       const stale = await prisma.wondeStudent.updateMany({
         where: { schoolId: omnisSchoolId, isLeaver: false, id: { notIn: students.map(st => st.id) } },
-        data:  { isLeaver: true, syncedAt: now },
+        data:  { isLeaver: true, syncedAt: now, syncHash: null }, // cleared so a returning pupil is rewritten
       })
       if (stale.count > 0) result.students.markedLeft = stale.count
     } else if (students.length > 0) {
@@ -450,9 +481,7 @@ export async function runWondeSync(
   try {
     const groups = await fetchWondeGroups(wondeSchoolId, wondeToken)
     await inBatches(groups, async g => {
-      await prisma.wondeGroup.upsert({
-        where:  { id: g.id },
-        create: {
+      const wrote = await writeIfChanged(prevGroups, g.id, {
           id:             g.id,
           schoolId:       omnisSchoolId,
           misId:          g.mis_id ?? null,
@@ -461,17 +490,16 @@ export async function runWondeSync(
           type:           g.type ?? null,
           wondeUpdatedAt: parseWondeDate(g.updated_at),
           syncedAt:       now,
-        },
-        update: {
+        }, {
           misId:          g.mis_id ?? null,
           name:           g.name,
           description:    g.description ?? null,
           type:           g.type ?? null,
           wondeUpdatedAt: parseWondeDate(g.updated_at),
         },
-      })
+        (create, update) => prisma.wondeGroup.upsert({ where: { id: g.id }, create, update, select: { id: true } }))
       knownGroupIds.add(g.id)
-      result.groups.upserted++
+      if (wrote) result.groups.upserted++; else result.groups.unchanged++
     })
   } catch (err) {
     errors.push(`Groups: ${String(err)}`)
@@ -496,9 +524,7 @@ export async function runWondeSync(
       const employeeId = cls.employee?.data?.id ?? null
       const groupId    = cls.group?.data?.id    ?? null
 
-      await prisma.wondeClass.upsert({
-        where:  { id: cls.id },
-        create: {
+      const wrote = await writeIfChanged(prevClasses, cls.id, {
           id:             cls.id,
           schoolId:       omnisSchoolId,
           misId:          cls.mis_id ?? null,
@@ -509,8 +535,7 @@ export async function runWondeSync(
           groupId:        (groupId    && knownGroupIds.has(groupId))       ? groupId    : null,
           wondeUpdatedAt: parseWondeDate(cls.updated_at),
           syncedAt:       now,
-        },
-        update: {
+        }, {
           misId:          cls.mis_id ?? null,
           name:           cls.name,
           subject:        cls.subject?.data?.name ?? null,
@@ -519,9 +544,9 @@ export async function runWondeSync(
           groupId:        (groupId    && knownGroupIds.has(groupId))       ? groupId    : null,
           wondeUpdatedAt: parseWondeDate(cls.updated_at),
         },
-      })
+        (create, update) => prisma.wondeClass.upsert({ where: { id: cls.id }, create, update, select: { id: true } }))
       knownClassIds.add(cls.id)
-      result.classes.upserted++
+      if (wrote) result.classes.upserted++; else result.classes.unchanged++
     })
 
     // Pass 2: upsert all enrolments in parallel batches (all classes now in DB)
@@ -535,14 +560,17 @@ export async function runWondeSync(
         }
       }
     }
-    await inBatches(allEnrolments, async ({ classId, studentId }) => {
-      await prisma.wondeClassStudent.upsert({
-        where:  { classId_studentId: { classId, studentId } },
-        create: { classId, studentId },
-        update: {},
-      })
-      result.enrolments.upserted++
-    })
+    // Only pairs not already stored are inserted.
+    const storedPairs = new Set((await prisma.wondeClassStudent.findMany({
+      where:  { class: { schoolId: omnisSchoolId } },
+      select: { classId: true, studentId: true },
+    })).map(r => `${r.classId}|${r.studentId}`))
+    const newPairs = allEnrolments.filter(e => !storedPairs.has(`${e.classId}|${e.studentId}`))
+    for (let i = 0; i < newPairs.length; i += 1000) {
+      await prisma.wondeClassStudent.createMany({ data: newPairs.slice(i, i + 1000), skipDuplicates: true })
+    }
+    result.enrolments.upserted  = newPairs.length
+    result.enrolments.unchanged = allEnrolments.length - newPairs.length
   } catch (err) {
     errors.push(`Classes/Enrolments: ${String(err)}`)
   }
@@ -557,25 +585,22 @@ export async function runWondeSync(
     await inBatches(periods, async p => {
       // API returns day as a string ("monday") — map to ISO weekday int (1=Mon…7=Sun)
       const dayOfWeek = p.day_number ?? (p.day ? (DAY_MAP[p.day.toLowerCase()] ?? null) : null)
-      await prisma.wondePeriod.upsert({
-        where:  { id: p.id },
-        create: {
+      const wrote = await writeIfChanged(prevPeriods, p.id, {
           id:        p.id,
           schoolId:  omnisSchoolId,
           name:      p.name,
           startTime: p.start_time ?? '',
           endTime:   p.end_time ?? '',
           dayOfWeek,
-        },
-        update: {
+        }, {
           name:      p.name,
           startTime: p.start_time ?? '',
           endTime:   p.end_time ?? '',
           dayOfWeek,
         },
-      })
+        (create, update) => prisma.wondePeriod.upsert({ where: { id: p.id }, create, update, select: { id: true } }))
       knownPeriodIds.add(p.id)
-      result.periods.upserted++
+      if (wrote) result.periods.upserted++; else result.periods.unchanged++
     })
   } catch (err) {
     const msg = String(err)
@@ -602,9 +627,7 @@ export async function runWondeSync(
         ? (e.employee as string)
         : null
 
-      await prisma.wondeTimetableEntry.upsert({
-        where:  { id: e.id },
-        create: {
+      const wrote = await writeIfChanged(prevTimetable, e.id, {
           id:            e.id,
           schoolId:      omnisSchoolId,
           classId,
@@ -613,16 +636,15 @@ export async function runWondeSync(
           // room is a flat string name in the API response
           roomName:      e.room ?? null,
           effectiveDate: parseWondeDate(e.start_at ?? e.effective_date),
-        },
-        update: {
+        }, {
           classId,
           employeeId,
           periodId,
           roomName:      e.room ?? null,
           effectiveDate: parseWondeDate(e.start_at ?? e.effective_date),
         },
-      })
-      result.timetable.upserted++
+        (create, update) => prisma.wondeTimetableEntry.upsert({ where: { id: e.id }, create, update, select: { id: true } }))
+      if (wrote) result.timetable.upserted++; else result.timetable.unchanged++
     })
   } catch (err) {
     const msg = String(err)
@@ -663,18 +685,16 @@ export async function runWondeSync(
       const sorted      = isSen ? [...senData!].sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99)) : []
       const primaryNeed = sorted[0]?.sen_category?.data?.name ?? null
 
-      await prisma.wondeSenRecord.upsert({
-        where:  { studentId: stu.id },
-        create: { schoolId: omnisSchoolId, studentId: stu.id, isSen, isEhcp, primaryNeed, syncedAt: now },
-        update: { isSen, isEhcp, primaryNeed, syncedAt: now },
-      })
-      result.sen.upserted++
+      const wrote = await writeIfChanged(prevSen, stu.id, { schoolId: omnisSchoolId, studentId: stu.id, isSen, isEhcp, primaryNeed, syncedAt: now }, { isSen, isEhcp, primaryNeed, syncedAt: now },
+        (create, update) => prisma.wondeSenRecord.upsert({ where: { studentId: stu.id }, create, update, select: { id: true } }))
+      if (wrote) result.sen.upserted++; else result.sen.unchanged++
 
-      // Mirror to User.sendStatus so the existing SEND system picks it up
+      // Mirror to the pupil's SEND status when the MIS record changed, or the
+      // pupil has none yet. (Rewriting it every night would undo SENCO edits.)
       if (isSen) {
         const nameKey       = wondeNameByIdForSen.get(stu.id)
         const matchedUserId = nameKey ? userByNameForSen.get(nameKey) : undefined
-        if (matchedUserId) {
+        if (matchedUserId && (wrote || !pupilUsers.get(matchedUserId)?.sendStatus)) {
           const sendValue = isEhcp ? 'EHCP' : 'SEN_SUPPORT'
           try {
             await prisma.sendStatus.upsert({
@@ -693,6 +713,7 @@ export async function runWondeSync(
                 latestMisStatus: sendValue as any,
                 misLastSyncedAt: now,
               },
+              select: { studentId: true },
             })
           } catch {
             // SEND status update is best-effort
@@ -730,9 +751,7 @@ export async function runWondeSync(
       const pct = s.attendance_percentage
 
       // Store full attendance record
-      await prisma.wondeAttendanceRecord.upsert({
-        where:  { id: s.id },
-        create: {
+      const wrote = await writeIfChanged(prevAttendance, s.id, {
           id:                   s.id,
           schoolId:             omnisSchoolId,
           studentId:            stuId,
@@ -742,28 +761,28 @@ export async function runWondeSync(
           authorisedAbsences:   s.authorised_absences != null ? Math.round(s.authorised_absences) : null,
           unauthorisedAbsences: s.unauthorised_absences != null ? Math.round(s.unauthorised_absences) : null,
           syncedAt:             now,
-        },
-        update: {
+        }, {
           possibleSessions:     s.possible_sessions   != null ? Math.round(s.possible_sessions)   : null,
           presentSessions:      s.present_sessions    != null ? Math.round(s.present_sessions)    : null,
           attendancePercentage: pct,
           authorisedAbsences:   s.authorised_absences != null ? Math.round(s.authorised_absences) : null,
           unauthorisedAbsences: s.unauthorised_absences != null ? Math.round(s.unauthorised_absences) : null,
         },
-      })
+        (create, update) => prisma.wondeAttendanceRecord.upsert({ where: { id: s.id }, create, update, select: { id: true } }))
 
       // Also update User.attendancePercentage via name match
       const nameKey = wondeStudentNameById.get(stuId)
       if (nameKey && pct != null) {
         const userId = userByNameForAtt.get(nameKey)
-        if (userId) {
+        if (userId && differs(pupilUsers.get(userId), { attendancePercentage: pct })) {
           await prisma.user.update({
             where: { id: userId },
             data:  { attendancePercentage: pct },
+            select: { id: true },
           })
         }
       }
-      result.attendance.upserted++
+      if (wrote) result.attendance.upserted++; else result.attendance.unchanged++
     })
   } catch (err) {
     const msg = String(err)
@@ -794,9 +813,7 @@ export async function runWondeSync(
       const stuId = b.student?.data?.id
       if (!stuId || !knownStudentIds.has(stuId)) return
 
-      await prisma.wondeBehaviourRecord.upsert({
-        where:  { id: b.id },
-        create: {
+      const wrote = await writeIfChanged(prevBehaviours, b.id, {
           id:        b.id,
           schoolId:  omnisSchoolId,
           studentId: stuId,
@@ -805,15 +822,14 @@ export async function runWondeSync(
           points:    b.points ? Math.round(b.points) : null,
           occurredAt: b.date?.date ? new Date(b.date.date) : null,
           syncedAt:   now,
-        },
-        update: {
+        }, {
           type:      b.type ?? null,
           category:  b.category ?? null,
           points:    b.points ? Math.round(b.points) : null,
           occurredAt: b.date?.date ? new Date(b.date.date) : null,
         },
-      })
-      result.behaviours.upserted++
+        (create, update) => prisma.wondeBehaviourRecord.upsert({ where: { id: b.id }, create, update, select: { id: true } }))
+      if (wrote) result.behaviours.upserted++; else result.behaviours.unchanged++
 
       const isPositive = (b.type ?? '').toLowerCase() === 'positive'
       if (isPositive) positiveCount.set(stuId, (positiveCount.get(stuId) ?? 0) + 1)
@@ -827,13 +843,12 @@ export async function runWondeSync(
       if (!nameKey) return
       const userId = userByNameForBeh.get(nameKey)
       if (!userId) return
-      await prisma.user.update({
-        where: { id: userId },
-        data:  {
-          behaviourPositive: positiveCount.get(stuId) ?? 0,
-          behaviourNegative: negativeCount.get(stuId) ?? 0,
-        },
-      })
+      const totals = {
+        behaviourPositive: positiveCount.get(stuId) ?? 0,
+        behaviourNegative: negativeCount.get(stuId) ?? 0,
+      }
+      if (!differs(pupilUsers.get(userId), totals)) return
+      await prisma.user.update({ where: { id: userId }, data: totals, select: { id: true } })
     })
   } catch (err) {
     const msg = String(err)
@@ -862,9 +877,7 @@ export async function runWondeSync(
       const stuId = ex.student?.data?.id
       if (!stuId || !knownStudentIds.has(stuId)) return
 
-      await prisma.wondeExclusionRecord.upsert({
-        where:  { id: ex.id },
-        create: {
+      const wrote = await writeIfChanged(prevExclusions, ex.id, {
           id:        ex.id,
           schoolId:  omnisSchoolId,
           studentId: stuId,
@@ -874,16 +887,15 @@ export async function runWondeSync(
           endDate:   ex.end_date?.date   ? new Date(ex.end_date.date)   : null,
           lengthDays: ex.length ? Math.round(ex.length) : null,
           syncedAt:   now,
-        },
-        update: {
+        }, {
           type:      ex.type ?? null,
           reason:    ex.reason ?? null,
           startDate: ex.start_date?.date ? new Date(ex.start_date.date) : null,
           endDate:   ex.end_date?.date   ? new Date(ex.end_date.date)   : null,
           lengthDays: ex.length ? Math.round(ex.length) : null,
         },
-      })
-      result.exclusions.upserted++
+        (create, update) => prisma.wondeExclusionRecord.upsert({ where: { id: ex.id }, create, update, select: { id: true } }))
+      if (wrote) result.exclusions.upserted++; else result.exclusions.unchanged++
       studentsWithExclusions.add(stuId)
     })
 
@@ -892,8 +904,8 @@ export async function runWondeSync(
       const nameKey = wondeStudentNameByIdExc.get(stuId)
       if (!nameKey) return
       const userId = userByNameForExc.get(nameKey)
-      if (!userId) return
-      await prisma.user.update({ where: { id: userId }, data: { hasExclusion: true } })
+      if (!userId || pupilUsers.get(userId)?.hasExclusion === true) return
+      await prisma.user.update({ where: { id: userId }, data: { hasExclusion: true }, select: { id: true } })
     })
   } catch (err) {
     const msg = String(err)
@@ -910,9 +922,7 @@ export async function runWondeSync(
     await inBatches(assessments, async a => {
       const stuId = a.student?.data?.id
       if (!stuId || !knownStudentIds.has(stuId)) return
-      await prisma.wondeAssessmentResult.upsert({
-        where:  { id: a.id },
-        create: {
+      const wrote = await writeIfChanged(prevAssessments, a.id, {
           id:            a.id,
           schoolId:      omnisSchoolId,
           studentId:     stuId,
@@ -923,8 +933,7 @@ export async function runWondeSync(
           gradeValue:    a.grade?.data?.value   ?? null,
           collectionDate: a.collection_date?.date ? new Date(a.collection_date.date) : null,
           syncedAt:       now,
-        },
-        update: {
+        }, {
           subjectName:   a.subject?.data?.name  ?? null,
           resultSetName: a.result_set?.data?.name ?? null,
           aspectName:    a.aspect?.data?.name   ?? null,
@@ -932,8 +941,8 @@ export async function runWondeSync(
           gradeValue:    a.grade?.data?.value   ?? null,
           collectionDate: a.collection_date?.date ? new Date(a.collection_date.date) : null,
         },
-      })
-      result.assessments.upserted++
+        (create, update) => prisma.wondeAssessmentResult.upsert({ where: { id: a.id }, create, update, select: { id: true } }))
+      if (wrote) result.assessments.upserted++; else result.assessments.unchanged++
     })
   } catch (err) {
     const msg = String(err)
@@ -974,6 +983,11 @@ export async function runWondeSync(
       return true
     })
 
+    const storedBaselines = new Map((await prisma.studentBaseline.findMany({
+      where:  { schoolId: omnisSchoolId, source: 'MIS' },
+      select: { studentId: true, subject: true, baselineScore: true, recordedAt: true },
+    })).map(b => [`${b.studentId}|${b.subject}`, b]))
+
     await inBatches(latest, async a => {
       if (!a.subjectName) return
       const score = assessmentToBaselineScore(a.result, a.gradeValue)
@@ -983,6 +997,11 @@ export async function runWondeSync(
       if (!wondeName) return
       const userId = userByNameForBaseline.get(wondeName)
       if (!userId) return
+      const stored = storedBaselines.get(`${userId}|${a.subjectName}`)
+      if (stored && a.collectionDate && !differs(stored, { baselineScore: score, recordedAt: a.collectionDate })) {
+        result.baselines.unchanged++
+        return
+      }
 
       await prisma.studentBaseline.upsert({
         where:  { studentId_subject: { studentId: userId, subject: a.subjectName } },
@@ -999,6 +1018,7 @@ export async function runWondeSync(
           source:        'MIS',
           recordedAt:    a.collectionDate ?? now,
         },
+        select: { id: true },
       })
       result.baselines.upserted++
     })

@@ -1425,6 +1425,7 @@ model WondeSchool {
 
 model WondeStudent {
   id             String    @id              // Wonde ID
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school         School    @relation(fields: [schoolId], references: [id])
   schoolId       String
   misId          String?
@@ -1455,6 +1456,7 @@ model WondeStudent {
 
 model WondeContact {
   id                     String       @id
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school                 School       @relation(fields: [schoolId], references: [id])
   schoolId               String
   student                WondeStudent @relation(fields: [studentId], references: [id])
@@ -1472,6 +1474,7 @@ model WondeContact {
 
 model WondeEmployee {
   id             String    @id              // Wonde ID
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school         School    @relation(fields: [schoolId], references: [id])
   schoolId       String
   misId          String?
@@ -1493,6 +1496,7 @@ model WondeEmployee {
 
 model WondeGroup {
   id             String    @id
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school         School    @relation(fields: [schoolId], references: [id])
   schoolId       String
   misId          String?
@@ -1509,6 +1513,7 @@ model WondeGroup {
 
 model WondeClass {
   id             String         @id
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school         School         @relation(fields: [schoolId], references: [id])
   schoolId       String
   misId          String?
@@ -1540,6 +1545,7 @@ model WondeClassStudent {
 
 model WondePeriod {
   id        String @id
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school    School @relation(fields: [schoolId], references: [id])
   schoolId  String
   name      String
@@ -1554,6 +1560,7 @@ model WondePeriod {
 
 model WondeTimetableEntry {
   id            String         @id
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school        School         @relation(fields: [schoolId], references: [id])
   schoolId      String
   wondeClass    WondeClass     @relation(fields: [classId], references: [id])
@@ -1571,6 +1578,7 @@ model WondeTimetableEntry {
 
 model WondeAssessmentResult {
   id             String       @id
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school         School       @relation(fields: [schoolId], references: [id])
   schoolId       String
   student        WondeStudent @relation(fields: [studentId], references: [id])
@@ -1589,6 +1597,7 @@ model WondeAssessmentResult {
 
 model WondeSenRecord {
   id          String       @id @default(cuid())
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school      School       @relation(fields: [schoolId], references: [id])
   schoolId    String
   student     WondeStudent @relation(fields: [studentId], references: [id])
@@ -1603,6 +1612,7 @@ model WondeSenRecord {
 
 model WondeBehaviourRecord {
   id         String       @id            // Wonde ID
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school     School       @relation(fields: [schoolId], references: [id])
   schoolId   String
   student    WondeStudent @relation(fields: [studentId], references: [id])
@@ -1619,6 +1629,7 @@ model WondeBehaviourRecord {
 
 model WondeExclusionRecord {
   id         String       @id            // Wonde ID
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school     School       @relation(fields: [schoolId], references: [id])
   schoolId   String
   student    WondeStudent @relation(fields: [studentId], references: [id])
@@ -1636,6 +1647,7 @@ model WondeExclusionRecord {
 
 model WondeAttendanceRecord {
   id                   String       @id            // Wonde summary ID
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   school               School       @relation(fields: [schoolId], references: [id])
   schoolId             String
   student              WondeStudent @relation(fields: [studentId], references: [id])
@@ -1868,6 +1880,7 @@ model SendScoreCache {
 
 model OakSubject {
   slug      String   @id          // "english" | "maths" | "history" …
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   title     String                // "English" | "Maths" | "History" …
   phase     String                // "primary" | "secondary"
   syncedAt  DateTime @default(now())
@@ -1883,6 +1896,7 @@ model OakSubject {
 
 model OakUnit {
   slug        String @id           // "modern-text-first-study-4896"
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   title       String
   subjectSlug String
   subject     OakSubject @relation(fields: [subjectSlug], references: [slug])
@@ -1926,6 +1940,7 @@ model OakUnit {
 
 model OakLesson {
   slug        String   @id          // "understanding-context-and-priestleys-influences-65k3gd"
+  syncHash  String? // hash of the synced data; unchanged records are not rewritten (lib/sync/change-only.ts)
   title       String
   unitSlug    String
   unit        OakUnit  @relation(fields: [unitSlug], references: [slug])

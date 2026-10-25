@@ -129,11 +129,12 @@ export async function provisionStaffAndClasses(opts: {
 
   // ── Classes, teachers and enrolments ───────────────────────────────────────
   const [omnisClasses, pupilYears] = await Promise.all([
-    prisma.schoolClass.findMany({ where: { schoolId }, select: { id: true, name: true, wondeClassId: true } }),
+    prisma.schoolClass.findMany({ where: { schoolId }, select: { id: true, name: true, yearGroup: true, wondeClassId: true } }),
     prisma.wondeStudent.findMany({ where: { schoolId }, select: { id: true, yearGroup: true } }),
   ])
   const yearByPupil = new Map(pupilYears.map(p => [p.id, p.yearGroup]))
   const classByWonde = new Map(omnisClasses.filter(c => c.wondeClassId).map(c => [c.wondeClassId!, c.id]))
+  const classById = new Map(omnisClasses.map(c => [c.id, c]))
   const unlinkedByName = new Map<string, string[]>()
   for (const c of omnisClasses) {
     if (c.wondeClassId) continue
@@ -156,7 +157,7 @@ export async function provisionStaffAndClasses(opts: {
       const cands = unlinkedByName.get(k) ?? []
       if (cands.length === 1 && misNameCounts.get(k) === 1) {
         classId = cands[0]
-        await prisma.schoolClass.update({ where: { id: classId }, data: { wondeClassId: mc.id } })
+        await prisma.schoolClass.update({ where: { id: classId }, data: { wondeClassId: mc.id }, select: { id: true } })
         unlinkedByName.delete(k)
         r.classesLinked++
       }
@@ -169,7 +170,11 @@ export async function provisionStaffAndClasses(opts: {
       classId = created.id
       r.classesCreated++
     } else {
-      await prisma.schoolClass.update({ where: { id: classId }, data: { name: mc.name, yearGroup } })
+      // Only when the MIS name or year actually changed
+      const cur = classById.get(classId)
+      if (cur?.name !== mc.name || cur?.yearGroup !== yearGroup) {
+        await prisma.schoolClass.update({ where: { id: classId }, data: { name: mc.name, yearGroup }, select: { id: true } })
+      }
     }
 
     // Teachers: add MIS teachers, remove MIS-managed teachers who no longer teach it

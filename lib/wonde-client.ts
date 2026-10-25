@@ -130,6 +130,9 @@ export interface WondeTimetableEntry {
   /** Flat string room name (not nested) */
   room: string | null
   effective_date: { date: string } | null
+  /** The dated occurrence of this lesson. /lessons returns one row per
+   *  occurrence across the year, so this is what tells the rows apart. */
+  start_at?: { date: string } | null
   /** Nested object only when include=class */
   class?: { data: WondeClass | null }
   /** Flat string employee ID (not nested) */

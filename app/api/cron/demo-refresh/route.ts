@@ -47,8 +47,11 @@ const DEMO_LESSONS = [
   { id: 'demo-lesson-7B-maths',    weekOffset: 0, day: 3, startH: 9,  endH: 10 },
   // Next week (future unscheduled)
   { id: 'demo-future-9E-d0',  weekOffset: 1, day: 0, startH: 9,  endH: 10 },
-  { id: 'demo-future-10E-d1', weekOffset: 1, day: 1, startH: 11, endH: 12 },
-  { id: 'demo-future-11E-d2', weekOffset: 1, day: 2, startH: 9,  endH: 10 },
+  // Each on one of its own class's timetable slots (see CLASS_TIMETABLE in
+  // demo-advance), so the generator recognises it instead of creating a
+  // clashing lesson. 11E used to sit at Wed 09:00, on top of 9E.
+  { id: 'demo-future-10E-d1', weekOffset: 1, day: 3, startH: 11, endH: 12 },
+  { id: 'demo-future-11E-d2', weekOffset: 1, day: 1, startH: 10, endH: 11 },
 ]
 
 // Demo homework: daysAhead for dueAt

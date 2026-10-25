@@ -625,14 +625,14 @@ export async function runWondeSync(
           periodId,
           // room is a flat string name in the API response
           roomName:      e.room ?? null,
-          effectiveDate: parseWondeDate(e.effective_date),
+          effectiveDate: parseWondeDate(e.start_at ?? e.effective_date),
         },
         update: {
           classId,
           employeeId,
           periodId,
           roomName:      e.room ?? null,
-          effectiveDate: parseWondeDate(e.effective_date),
+          effectiveDate: parseWondeDate(e.start_at ?? e.effective_date),
         },
       })
       result.timetable.upserted++

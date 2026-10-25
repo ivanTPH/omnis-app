@@ -1,5 +1,6 @@
 'use server'
 import { requireAuth } from '@/lib/session'
+import { timetableWeekWhere, dedupeTimetableEntries } from '@/lib/timetable'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { getAssignmentCounts } from '@/lib/metrics/homework'
@@ -411,18 +412,21 @@ async function fetchTeacherTodayTimetable(
   })
   if (!employee) return []
 
-  const entries = await prisma.wondeTimetableEntry.findMany({
+  // This week's occurrences only, each lesson once — see lib/timetable.ts.
+  const weekWhere = await timetableWeekWhere(schoolId)
+  const entries = dedupeTimetableEntries(await prisma.wondeTimetableEntry.findMany({
     where: {
       schoolId,
       employeeId: employee.id,
       period: { dayOfWeek: todayNum },
+      ...weekWhere,
     },
     include: {
       wondeClass: { select: { name: true, subject: true } },
       period:     { select: { startTime: true, endTime: true } },
     },
     orderBy: { period: { startTime: 'asc' } },
-  })
+  }))
 
   return entries.map(e => {
     const raw  = e.roomName
@@ -465,13 +469,15 @@ export async function getTeacherTimetable(): Promise<TeacherTimetableDay[]> {
   })
 
   if (employee) {
-    const entries = await prisma.wondeTimetableEntry.findMany({
-      where: { schoolId, employeeId: employee.id },
+    // One week, each lesson once — see lib/timetable.ts.
+    const weekWhere = await timetableWeekWhere(schoolId)
+    const entries = dedupeTimetableEntries(await prisma.wondeTimetableEntry.findMany({
+      where: { schoolId, employeeId: employee.id, ...weekWhere },
       include: {
         wondeClass: { select: { name: true, subject: true } },
         period:     { select: { startTime: true, endTime: true, dayOfWeek: true } },
       },
-    })
+    }))
 
     if (entries.length > 0) {
       const byDay = new Map<number, TeacherTimetableLesson[]>()

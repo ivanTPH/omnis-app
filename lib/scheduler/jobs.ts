@@ -36,6 +36,9 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
   { path: '/api/cron/engagement-digest',     cron: '30 8 1 * *' },
   { path: '/api/cron/year-rollover',         cron: '0 1 1 9 *' },
   // Demo school upkeep
-  { path: '/api/cron/demo-advance',          cron: '0 0 * * 1', timeoutMs: 310_000 },
-  { path: '/api/cron/demo-refresh',          cron: '30 0 * * 1' },
+  // demo-refresh first: it moves the seeded demo lessons (with their homework
+  // and slides) into this week, so demo-advance then sees those slots are taken
+  // instead of creating empty duplicates on top of them.
+  { path: '/api/cron/demo-refresh',          cron: '0 0 * * 1' },
+  { path: '/api/cron/demo-advance',          cron: '30 0 * * 1', timeoutMs: 310_000 },
 ]

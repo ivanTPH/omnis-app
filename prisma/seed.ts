@@ -315,8 +315,8 @@ async function main() {
   // Future unscheduled lessons
   const futureLessons = [
     { id: 'demo-future-9E-d0',  classKey: '9E/En1',  title: 'An Inspector Calls — Essay Planning',  topic: 'An Inspector Calls', examBoard: 'AQA', day: 0, startH: 9  },
-    { id: 'demo-future-10E-d1', classKey: '10E/En2', title: 'Macbeth — Key Quotations Review',       topic: 'Macbeth',            examBoard: 'AQA', day: 1, startH: 11 },
-    { id: 'demo-future-11E-d2', classKey: '11E/En1', title: 'Mock Exam Paper 1 — Timed Practice',   topic: 'Paper 1: Explorations in Creative Reading and Writing', examBoard: 'AQA', day: 2, startH: 9  },
+    { id: 'demo-future-10E-d1', classKey: '10E/En2', title: 'Macbeth — Key Quotations Review',       topic: 'Macbeth',            examBoard: 'AQA', day: 3, startH: 11 },
+    { id: 'demo-future-11E-d2', classKey: '11E/En1', title: 'Mock Exam Paper 1 — Timed Practice',   topic: 'Paper 1: Explorations in Creative Reading and Writing', examBoard: 'AQA', day: 1, startH: 10 },
   ]
   for (const l of futureLessons) {
     await prisma.lesson.upsert({

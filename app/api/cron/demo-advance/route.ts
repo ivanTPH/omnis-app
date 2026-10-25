@@ -444,9 +444,16 @@ export async function GET(req: NextRequest) {
         const scheduledAt = slotDate(weekMonday, slot.day, slot.hour)
         const endsAt      = new Date(scheduledAt.getTime() + slot.durationMins * 60_000)
 
-        // Idempotency: skip if a lesson already exists for this class at this exact time
+        // Idempotency: skip if this teacher already has any lesson overlapping
+        // this slot (same class or not). Checking only "same class at this exact
+        // time" let the generator create clashing and duplicate lessons.
         const existingLesson = await prisma.lesson.findFirst({
-          where: { schoolId, classId: hw.classId, scheduledAt },
+          where: {
+            schoolId,
+            OR: [{ classId: hw.classId }, { createdBy: teacherId }],
+            scheduledAt: { lt: endsAt },
+            endsAt:      { gt: scheduledAt },
+          },
           select: { id: true },
         })
         if (existingLesson) continue

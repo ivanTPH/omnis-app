@@ -1,6 +1,7 @@
 'use server'
 
 import { requireAuth } from '@/lib/session'
+import { timetableWeekWhere, dedupeTimetableEntries } from '@/lib/timetable'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -218,13 +219,18 @@ export async function logAbsence(
 
   // Find timetable entries for this employee on that day
   const dayOfWeek = validated.date.getDay()
-  const entries = await prisma.wondeTimetableEntry.findMany({
+  // Narrow to the absence's week and one row per lesson — Wonde stores every
+  // dated occurrence, so without this one absence created ~37 cover slots
+  // per lesson (see lib/timetable.ts).
+  const weekWhere = await timetableWeekWhere(schoolId, validated.date)
+  const entries = dedupeTimetableEntries(await prisma.wondeTimetableEntry.findMany({
     where: {
       schoolId,
       employeeId: validated.staffId,
       period: { dayOfWeek },
+      ...weekWhere,
     },
-  })
+  }))
 
   // Create cover slots for each lesson; pre-assign if coveredBy provided
   const coverTeacher = validated.coveredBy ?? null

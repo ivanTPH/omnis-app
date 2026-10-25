@@ -1,4 +1,5 @@
 'use client'
+import { layoutOverlaps, type EventPosition, type TimedEvent } from '@/lib/calendar-layout'
 import { useState, useEffect, useTransition, useMemo } from 'react'
 import Icon from '@/components/ui/Icon'
 import Tooltip from '@/components/ui/Tooltip'
@@ -214,6 +215,23 @@ export default function WeeklyCalendar({
     slotMap.set(newKey, [...(slotMap.get(newKey) ?? []), moved])
   }
 
+  // Side-by-side layout for lessons that overlap in time on the same day.
+  // In a personal calendar an overlap is a clash, so those tiles are flagged.
+  const overlapLayout = new Map<string, EventPosition>()
+  {
+    const byDay = new Map<number, TimedEvent[]>()
+    for (const l of displayLessons) {
+      const move  = optimisticMoves.get(l.id)
+      const orig  = new Date(l.scheduledAt)
+      const dur   = l.endsAt ? Math.max(1800_000, new Date(l.endsAt).getTime() - orig.getTime()) : 3600_000
+      const di    = move ? move.di : days.findIndex(d => toLocalDateStr(d) === toLocalDateStr(orig))
+      if (di < 0) continue
+      const start = move ? new Date(days[di]).setHours(move.hr, 0, 0, 0) : orig.getTime()
+      byDay.set(di, [...(byDay.get(di) ?? []), { id: l.id, start, end: start + dur }])
+    }
+    for (const evs of byDay.values()) for (const [id, pos] of layoutOverlaps(evs)) overlapLayout.set(id, pos)
+  }
+
   const prevWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setWeekStart(d) }
   const nextWeek = () => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setWeekStart(d) }
   const goToday  = () => setWeekStart(getWeekStart(today))
@@ -383,8 +401,10 @@ export default function WeeklyCalendar({
                               )}
 
                               {/* FIX 3 — Apple Calendar: lessons positioned by actual start time + duration */}
-                              {slotLessons.map((lesson, ti) => {
+                              {slotLessons.map(lesson => {
                                 const c = palette(lesson.subject)
+                                const pos = overlapLayout.get(lesson.id) ?? { col: 0, cols: 1 }
+                                const clash = pos.cols > 1
                                 const isOptimistic = optimisticMoves.has(lesson.id)
                                 const dt = new Date(lesson.scheduledAt)
                                 // Sub-hour offset within the slot (0 when optimistically moved)
@@ -406,12 +426,24 @@ export default function WeeklyCalendar({
                                     onMouseUp={e => e.stopPropagation()}
                                     onDragStart={e => { e.dataTransfer.setData('id', lesson.id); setDragging(lesson.id) }}
                                     onDragEnd={() => setDragging(null)}
-                                    style={{ top: topPx, height: heightPx, left: 2 + ti * 5, right: 2 }}
+                                    style={{
+                                      top: topPx, height: heightPx,
+                                      left: `calc(${(pos.col * 100) / pos.cols}% + 2px)`,
+                                      width: `calc(${100 / pos.cols}% - 4px)`,
+                                    }}
+                                    title={clash ? `Clash: ${lesson.title} overlaps another lesson` : undefined}
+                                    data-clash={clash ? 'true' : undefined}
                                     className={`absolute rounded-md border-l-[3px] px-2 py-1 cursor-pointer z-[6] transition-opacity select-none
                                       ${c.bg} ${c.border} ${c.text}
                                       ${dragging === lesson.id ? 'opacity-40' : 'opacity-100'}
+                                      ${clash ? 'ring-2 ring-red-500 overflow-hidden' : ''}
                                     `}
                                   >
+                                    {clash && (
+                                      <span className="inline-flex items-center gap-0.5 mb-0.5 px-1 rounded bg-red-600 text-white text-[9px] font-bold leading-4 uppercase tracking-wide">
+                                        <Icon name="warning" size="sm" />Clash
+                                      </span>
+                                    )}
                                     <p className="text-[11px] font-semibold leading-tight truncate">{lesson.title}</p>
                                     <p className="text-[10px] opacity-60 truncate mt-0.5">{lesson.className}</p>
 

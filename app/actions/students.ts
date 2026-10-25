@@ -1,5 +1,6 @@
 'use server'
 import { requireAuth } from '@/lib/session'
+import { timetableWeekWhere, dedupeTimetableEntries } from '@/lib/timetable'
 import { prisma, writeAudit } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { SafeAnthropic } from '@/lib/ai/safe-anthropic'
@@ -1243,14 +1244,16 @@ export async function getStudentTimetable(): Promise<TimetableDay[]> {
   const classIds = classStudents.map((cs: { classId: string }) => cs.classId)
 
   // Get timetable entries for those classes
-  const entries = await prisma.wondeTimetableEntry.findMany({
-    where: { classId: { in: classIds }, schoolId },
+  // One week, each lesson once — see lib/timetable.ts.
+  const weekWhere = await timetableWeekWhere(schoolId)
+  const entries = dedupeTimetableEntries(await prisma.wondeTimetableEntry.findMany({
+    where: { classId: { in: classIds }, schoolId, ...weekWhere },
     include: {
       wondeClass: { select: { name: true, subject: true } },
       period:     { select: { name: true, startTime: true, endTime: true, dayOfWeek: true } },
       employee:   { select: { title: true, firstName: true, lastName: true } },
     },
-  })
+  }))
 
   // Group by day of week
   const byDay = new Map<number, TimetableLesson[]>()

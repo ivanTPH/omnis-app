@@ -39,6 +39,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@auth/prisma-adapter": "^2.11.1",
+    "@dicebear/collection": "9.4.3",
+    "@dicebear/core": "9.4.3",
     "@prisma/client": "^6.19.2",
     "@sentry/nextjs": "^10.57.0",
     "@sparticuz/chromium": "^149.0.0",

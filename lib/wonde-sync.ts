@@ -18,6 +18,7 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 
+import { saveUserPhoto } from '@/lib/user-photo'
 import crypto from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma, writeAudit } from '@/lib/prisma'
@@ -303,10 +304,11 @@ export async function runWondeSync(
     await inBatches(students, async stu => {
       const yearInt     = yearCodeToInt(stu.year?.data?.code)
       const photoData   = stu.photo?.data ?? null
-      // Wonde returns photo as base64 content (not a URL). Build a data URL.
-      const photoUrl    = photoData?.content
-        ? `data:image/jpeg;base64,${photoData.content}`
-        : (photoData?.url ?? null)
+      // Wonde returns the photo as base64 content. The image is stored once, in
+      // UserPhoto (see below); WondeStudent only keeps a URL if Wonde gives one,
+      // so reading pupil rows never drags image bytes out of the database.
+      const photoBytes  = photoData?.content ? Buffer.from(photoData.content, 'base64') : null
+      const photoUrl    = photoData?.url ?? null
       await prisma.wondeStudent.upsert({
         where:  { id: stu.id },
         create: {
@@ -338,19 +340,11 @@ export async function runWondeSync(
           updatedAt:      now,
           syncedAt:       now,
         },
+        select: { id: true },
       })
       knownStudentIds.add(stu.id)
       result.students.upserted++
 
-      // Bridge photo URL to User.avatarUrl AND UserSettings.profilePictureUrl.
-      // User.avatarUrl is read by homework, messaging, and SEND queries directly.
-      // UserSettings.profilePictureUrl is read by the teacher class roster and AppShell.
-      // Both must be set so photos appear everywhere after a Wonde sync.
-      // Matched by Wonde ID (studentUserByWondeId), never by name.
-      //
-      // We store a proxy URL (/api/student-photo/{userId}) rather than the raw Wonde URL.
-      // The proxy route fetches the image server-side with the Wonde API token, so the
-      // browser never needs to supply an Authorization header.
       // Bridge MIS fields (tutorGroup, dateOfBirth, photo) to User record.
       // Always update tutorGroup + dateOfBirth when a matching User exists.
       try {
@@ -364,32 +358,25 @@ export async function runWondeSync(
               tutorGroup:  formGroup,
               dateOfBirth: dob,
             },
+            select: { id: true },
           })
         }
       } catch {
         // Best-effort — don't fail the sync
       }
 
-      if (photoUrl) {
+      // Photo: stored once per pupil in UserPhoto, and only rewritten when it
+      // changes. User.avatarUrl points at /api/student-photo/{id}, which serves it.
+      const photoUserId = studentUserByWondeId.get(stu.id)
+      if (photoUserId && (photoBytes || photoUrl)) {
         try {
-          const matchedUserId = studentUserByWondeId.get(stu.id)
-          if (matchedUserId) {
-            // Store the direct Wonde CDN URL in both User.avatarUrl and
-            // UserSettings.profilePictureUrl — no proxy needed; URL is publicly accessible.
-            await Promise.all([
-              prisma.user.update({
-                where: { id: matchedUserId },
-                data:  { avatarUrl: photoUrl },
-              }),
-              prisma.userSettings.upsert({
-                where:  { userId: matchedUserId },
-                create: { userId: matchedUserId, profilePictureUrl: photoUrl },
-                update: { profilePictureUrl: photoUrl },
-              }),
-            ])
+          if (photoBytes) {
+            await saveUserPhoto(photoUserId, 'image/jpeg', photoBytes)
+          } else if (photoUrl) {
+            await prisma.user.update({ where: { id: photoUserId }, data: { avatarUrl: photoUrl }, select: { id: true } })
           }
         } catch {
-          // Photo bridge is best-effort; don't fail the sync
+          // Photo is best-effort; don't fail the sync
         }
       }
 

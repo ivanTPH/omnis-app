@@ -1,0 +1,26 @@
+import { createHash } from 'node:crypto'
+import { prisma } from '@/lib/prisma'
+
+import { photoProxyUrl } from '@/lib/user-photo-url'
+export { photoProxyUrl, parseDataUrl } from '@/lib/user-photo-url'
+
+/**
+ * Stores a user's photo once, in UserPhoto, and points User.avatarUrl at the
+ * photo route. Writes nothing when the photo is unchanged, and never asks the
+ * database to send the row back, so a nightly sync costs almost no egress.
+ */
+export async function saveUserPhoto(userId: string, contentType: string, bytes: Buffer): Promise<'unchanged' | 'saved'> {
+  const hash = createHash('sha256').update(bytes).digest('hex')
+  const existing = await prisma.userPhoto.findUnique({ where: { userId }, select: { hash: true } })
+  if (existing?.hash === hash) return 'unchanged'
+  await prisma.$transaction([
+    prisma.userPhoto.upsert({
+      where:  { userId },
+      create: { userId, contentType, data: bytes, hash },
+      update: { contentType, data: bytes, hash },
+      select: { userId: true },
+    }),
+    prisma.user.update({ where: { id: userId }, data: { avatarUrl: photoProxyUrl(userId) }, select: { id: true } }),
+  ])
+  return 'saved'
+}

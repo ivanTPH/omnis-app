@@ -584,6 +584,7 @@ model User {
 
   // Settings
   settings             UserSettings?
+  photo                UserPhoto?
   accessibilitySettings UserAccessibilitySettings?
 
   // Phase 5 — SEND Monitoring
@@ -1781,6 +1782,17 @@ model AuditLog {
 }
 
 // ─── User Settings ────────────────────────────────────────────────────────────
+
+/// One stored photo per user (pupil photos from the MIS). Kept out of User so
+/// ordinary user queries never pull image bytes; served by /api/student-photo.
+model UserPhoto {
+  userId      String   @id
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentType String
+  data        Bytes
+  hash        String
+  updatedAt   DateTime @updatedAt
+}
 
 model UserSettings {
   id     String @id @default(cuid())

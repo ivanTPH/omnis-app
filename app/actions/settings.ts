@@ -344,11 +344,12 @@ export async function getMyAvatarUrl(): Promise<string | null> {
     const { id: userId } = await requireAuth()
     return await unstable_cache(
       async () => {
-        const settings = await prisma.userSettings.findUnique({
-          where:  { userId },
-          select: { profilePictureUrl: true },
+        // An uploaded picture wins; otherwise the MIS photo (a /api/student-photo link).
+        const u = await prisma.user.findUnique({
+          where:  { id: userId },
+          select: { avatarUrl: true, settings: { select: { profilePictureUrl: true } } },
         })
-        return settings?.profilePictureUrl ?? null
+        return u?.settings?.profilePictureUrl ?? u?.avatarUrl ?? null
       },
       [`avatar-${userId}`],
       { revalidate: 3600, tags: [`avatar-${userId}`] },

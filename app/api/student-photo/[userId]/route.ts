@@ -1,25 +1,26 @@
 /**
  * /api/student-photo/[userId]
  *
- * Server-side proxy for student photos.
+ * Serves a user's photo to signed-in staff and pupils of the same school.
  *
- * Wonde photo URLs require an Authorization: Basic header which browsers
- * cannot supply via a plain <img src="...">. This route:
- *   1. Verifies the caller is authenticated (NextAuth session)
- *   2. Reads User.avatarUrl directly from the DB
- *   3. If avatarUrl is a data URI, decodes and returns it directly (no fetch)
- *   4. Otherwise fetches it server-side — Wonde URLs get Basic auth, public URLs get none
- *   5. Returns the image bytes with a 1-hour private cache header
- *   6. Returns 404 if avatarUrl is null
+ *   1. A stored photo (UserPhoto, written by the MIS sync) is served as-is.
+ *   2. Legacy: a data: URL or an external URL in User.avatarUrl (Wonde URLs are
+ *      fetched with Basic auth, which a browser <img> cannot supply).
+ *   3. Pupils in a demo school with no photo get a cartoon avatar generated
+ *      here, seeded by their id, so demo pages look real without sending any
+ *      name to a third-party service.
+ *   4. Everyone else gets an initials SVG.
  *
- * The Wonde sync stores the raw photo URL in User.avatarUrl.
- * StudentAvatar always requests /api/student-photo/{userId} so the browser
- * never needs to supply an Authorization header.
+ * Responses are privately cached for an hour.
  */
 
 import { auth }   from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { createAvatar } from '@dicebear/core'
+import { avataaars } from '@dicebear/collection'
+
+const CACHE = 'private, max-age=3600'
 
 function svgInitials(firstName: string | null, lastName: string | null): NextResponse {
   const initials = [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?'
@@ -56,14 +57,29 @@ export async function GET(
   // school so one school can never fetch another school's student/staff photos ─
   const user = await prisma.user.findFirst({
     where:  { id: userId, schoolId: caller.schoolId },
-    select: { avatarUrl: true, firstName: true, lastName: true },
+    select: {
+      avatarUrl: true, firstName: true, lastName: true, role: true,
+      school: { select: { isDemo: true } },
+      photo:  { select: { contentType: true, data: true } },
+    },
   })
 
-  if (!user?.avatarUrl) {
-    return svgInitials(user?.firstName ?? null, user?.lastName ?? null)
+  if (user?.photo) {
+    return new NextResponse(new Uint8Array(user.photo.data), {
+      status:  200,
+      headers: { 'Content-Type': user.photo.contentType, 'Cache-Control': CACHE },
+    })
   }
 
-  const photoUrl = user.avatarUrl
+  // A link back to this route (or no URL at all) means there is no stored photo.
+  const photoUrl = user?.avatarUrl && !user.avatarUrl.startsWith('/api/student-photo/') ? user.avatarUrl : null
+  if (!user || !photoUrl) {
+    if (user?.school.isDemo && user.role === 'STUDENT') {
+      const svg = createAvatar(avataaars, { seed: userId, backgroundColor: ['b6e3f4', 'c0aede', 'd1d4f9', 'ffd5dc', 'ffdfbf'] }).toString()
+      return new NextResponse(svg, { status: 200, headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': CACHE } })
+    }
+    return svgInitials(user?.firstName ?? null, user?.lastName ?? null)
+  }
 
   // ── 2. Data URIs — return directly without a network fetch ───────────────
   if (photoUrl.startsWith('data:')) {

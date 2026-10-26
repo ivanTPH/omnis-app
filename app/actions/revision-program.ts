@@ -1,4 +1,6 @@
 'use server'
+import { markDirty } from '@/lib/agents/snapshot'
+import { AgentType } from '@prisma/client'
 import { requireAuth } from '@/lib/session'
 import { prisma }       from '@/lib/prisma'
 import { redirect }     from 'next/navigation'
@@ -487,6 +489,7 @@ export async function selfAssessRevisionTask(
       data: { selfConfidence: Math.min(5, Math.max(1, confidence)) },
     })
 
+    void markDirty(user.id, user.schoolId, [AgentType.COACH]).catch(() => {})
     // Update RevisionProgress for each focus topic
     for (const topic of task.focusTopics) {
       try {
@@ -551,6 +554,7 @@ export async function markRevisionTask(
       },
     })
 
+    void markDirty(task.studentId, user.schoolId, [AgentType.COACH]).catch(() => {})
     // Update RevisionProgress with post-revision score
     for (const topic of task.focusTopics) {
       try {

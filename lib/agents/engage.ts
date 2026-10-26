@@ -302,24 +302,25 @@ export async function runEngageForStudent(
     return { ran: false, packagesGenerated: 0, fromCache: false }
   }
 
-  // Check if ENGAGE snapshot already exists and is recent
-  const existing = await getSnapshot(studentId, AgentType.ENGAGE) as EngageKnowledge | null
-  if (existing) {
-    const lastGenAt = new Date(existing.lastGeneratedAt)
-    const ageMs     = Date.now() - lastGenAt.getTime()
-    if (ageMs < ENGAGE_CACHE_TTL * 86_400_000) {
-      return { ran: false, packagesGenerated: 0, fromCache: true }
-    }
-  }
-
   // Determine primary subject from COACH weak topics
   const topWeakTopics  = coachSnap.weakTopics.slice(0, MAX_TOPICS_PER_RUN)
   const primarySubject = (coachSnap.weakTopics[0] as unknown as { subject?: string })?.subject
     ?? 'english'
   const subjectSlug    = primarySubject.toLowerCase().replace(/\s+/g, '-')
+  const hash           = buildEngageHash(studentId, topWeakTopics, subjectSlug)
+
+  // Only when the pupil's weak topics changed. Same topics = the packages the
+  // teacher already has are still right: no AI call and no repeat
+  // recommendations, however long ago they were made.
+  const existing = await getSnapshot(studentId, AgentType.ENGAGE) as EngageKnowledge | null
+  if (existing) {
+    const sameTopics = existing.topicsHash
+      ? existing.topicsHash === hash
+      : [...existing.packages].sort().join('|') === [...topWeakTopics].sort().join('|')
+    if (sameTopics) return { ran: false, packagesGenerated: 0, fromCache: true }
+  }
 
   // Check inference cache
-  const hash       = buildEngageHash(studentId, topWeakTopics, subjectSlug)
   const cachedJson = await lookupEngageCache(hash)
 
   let packages: EngagePackage[]
@@ -383,6 +384,7 @@ export async function runEngageForStudent(
     packages:         packages.map(p => p.topic),
     lastGeneratedAt:  new Date().toISOString(),
     summaryNarrative: narrative,
+    topicsHash:       hash,
   }
   await saveSnapshot(studentId, schoolId, AgentType.ENGAGE, knowledge, inOneWeek())
 

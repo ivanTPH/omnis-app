@@ -714,10 +714,7 @@ export async function runPlanSynthesisBatchForSchool(
     where: {
       schoolId,
       agentType: AgentType.PLAN_SYNTHESIS,
-      OR: [
-        { dirtyAt: { not: null } },
-        { nextReviewAt: { lte: new Date() } },
-      ],
+      dirtyAt: { not: null },   // only pupils whose data changed; no periodic re-check
     },
     select:  { studentId: true },
     take:    100,

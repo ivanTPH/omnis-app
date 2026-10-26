@@ -1346,6 +1346,7 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
     data: { autoScore: score, autoFeedback: feedback, finalScore: score, feedback, status: 'MARKED', autoMarked: true, teacherReviewed: false },
   })
   void updateLearningProfile(sub.studentId).catch(() => {})
+  void markDirty(sub.studentId, sub.schoolId, [AgentType.COACH, AgentType.QUALITY]).catch(() => {})
   return { score, maxScore, feedback }
 }
 
@@ -2578,6 +2579,8 @@ export async function bulkApproveAiMarks(
       })
     )
   )
+
+  for (const s of subs) void markDirty(s.studentId, schoolId, [AgentType.COACH, AgentType.QUALITY, AgentType.EVIDENCE]).catch(() => {})
 
   // Fire-and-forget return emails
   void (async () => {

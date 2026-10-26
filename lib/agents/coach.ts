@@ -613,10 +613,7 @@ export async function runCoachBatchForSchool(
     where: {
       schoolId,
       agentType: AgentType.COACH,
-      OR: [
-        { dirtyAt: { not: null } },
-        { nextReviewAt: { lte: new Date() } },
-      ],
+      dirtyAt: { not: null },   // only pupils whose data changed; no periodic re-check
     },
     select:  { studentId: true },
     take:    100,

@@ -64,6 +64,7 @@ export type EvidenceKnowledge = {
 
 export type EngageKnowledge = {
   packages:         string[]   // topic slugs for which engagement packages were generated
+  topicsHash?:      string     // weak topics + subject the packages were made for; unchanged = no new run
   lastGeneratedAt:  string     // ISO timestamp
   summaryNarrative: string
 }
@@ -179,13 +180,16 @@ export async function studentsWithSnapshot(schoolId: string, agentType: AgentTyp
 
 // ── Cron query ───────────────────────────────────────────────────────────────
 
-/** Returns student IDs that need processing: dirty since last run OR overdue for periodic refresh */
+/**
+ * Returns pupils that need processing: only those whose data changed since the
+ * last run (dirtyAt set by markDirty). There is no periodic re-check of
+ * unchanged pupils: re-analysing identical data costs AI calls and adds nothing.
+ */
 export async function getDueSnapshots(
   schoolId:  string,
   agentType: AgentType,
   limit = 100,
 ): Promise<{ studentId: string; knowledgeJson: unknown; lastRunAt: Date | null }[]> {
-  const now = new Date()
   return prisma.agentSnapshot.findMany({
     where: {
       schoolId,
@@ -193,8 +197,6 @@ export async function getDueSnapshots(
       OR: [
         // Dirty: saveSnapshot clears dirtyAt to null, so any non-null dirtyAt = unprocessed
         { dirtyAt: { not: null } },
-        // Overdue: periodic warm refresh regardless of dirty
-        { nextReviewAt: { lte: now } },
       ],
     },
     select: { studentId: true, knowledgeJson: true, lastRunAt: true },
@@ -215,10 +217,7 @@ export async function getDirtyStudentIds(
     where: {
       schoolId,
       agentType,
-      OR: [
-        { dirtyAt: { not: null } },
-        { nextReviewAt: { lte: new Date() } },
-      ],
+      dirtyAt: { not: null },   // changed since the last run; no periodic re-check
     },
     select: { studentId: true },
   })

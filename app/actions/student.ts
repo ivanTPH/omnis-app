@@ -1,4 +1,6 @@
 'use server'
+import { markDirty } from '@/lib/agents/snapshot'
+import { AgentType } from '@prisma/client'
 import { requireAuth } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
@@ -188,6 +190,9 @@ export async function submitHomework(homeworkId: string, content: string) {
       feedback:    null,
     },
   })
+
+  // New work: the overnight agents look at this pupil again (they skip unchanged pupils)
+  void markDirty(userId, schoolId, [AgentType.COACH, AgentType.QUALITY, AgentType.EVIDENCE]).catch(() => {})
 
   // Fire SEND risk screen asynchronously — never blocks or delays the submission
   void screenSendRisk(saved.id, content.trim(), homeworkId, schoolId, userId).catch(() => {})

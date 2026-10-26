@@ -586,10 +586,7 @@ export async function runQualityBatchForSchool(
     where: {
       schoolId,
       agentType: AgentType.QUALITY,
-      OR: [
-        { dirtyAt: { not: null } },
-        { nextReviewAt: { lte: new Date() } },
-      ],
+      dirtyAt: { not: null },   // only pupils whose data changed; no periodic re-check
     },
     select:  { studentId: true },
     take:    100,

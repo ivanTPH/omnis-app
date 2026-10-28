@@ -12,7 +12,6 @@ import { sendHomeworkReminderEmail, sendNewHomeworkEmail, sendGradeBelowTargetEm
 import { markDirty }            from '@/lib/agents/snapshot'
 import { AgentType }            from '@prisma/client'
 import { checkAiRateLimit }     from '@/lib/kv'
-import { getOakPedagogicalContext } from '@/lib/oak-content'
 import { AI_ONE_SHOT_OPTS } from '@/lib/ai-timeouts'
 import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
 
@@ -490,6 +489,10 @@ export async function createHomework(input: {
 
 export type { MCQQuestion, ProposalResult } from '@/lib/homework-helpers'
 import { buildTypePrompt, noApiKeyFallback, defaultBands, type ProposalResult } from '@/lib/homework-helpers'
+import { buildHomeworkContext, underDailyLimit, DAILY_GENERATION_LIMIT } from '@/lib/homework/context'
+import { generateHomework, toProposal } from '@/lib/homework/generate'
+import { homeworkPipelineEnabled } from '@/lib/homework/flags'
+import { anthropicLlm } from '@/lib/homework/llm'
 
 // ── Generate from lesson content (objectives + resources) ─────────────────────
 
@@ -498,460 +501,34 @@ export async function generateHomeworkFromResources(
   forceType?: HomeworkType,
   preferredResourceId?: string,
 ): Promise<ProposalResult> {
+  // Same prompt, validation and optional staged pipeline as the streaming
+  // route (app/api/ai/generate-homework) — see lib/homework/.
   const { schoolId, id: userId } = await requireAuth()
-
-  const lesson = await prisma.lesson.findFirst({
-    where:   { id: lessonId, schoolId },
-    include: {
-      resources: { orderBy: { createdAt: 'asc' } },
-      class: { select: { subject: true, yearGroup: true, examBoard: true, examModules: true } },
-    },
-  })
-  if (!lesson) throw new Error('Lesson not found')
-
-  const subject       = lesson.class?.subject   ?? 'the subject'
-  const yearGroup     = lesson.class?.yearGroup ?? 10
-  const qualification = yearGroup <= 9 ? 'KS3' : yearGroup <= 11 ? 'GCSE' : 'A-Level'
-  // Prefer lesson-level exam board, fall back to class-level
-  const examBoard     = lesson.examBoard ?? lesson.class?.examBoard ?? ''
-  const topic         = (lesson as any).topic ?? ''
-  const type          = forceType ?? 'SHORT_ANSWER'
-
-  // Learning objectives are the primary curriculum context
-  const objectivesContext = lesson.objectives.length > 0
-    ? lesson.objectives.map((o, i) => `  ${i + 1}. ${o}`).join('\n')
-    : '  (No learning objectives specified — generate questions appropriate for the lesson title and topic)'
-
-  // Enrich Oak resources (type=LINK with oakContentId) with lesson outcome text
-  const oakSlugs = lesson.resources
-    .filter(r => r.oakContentId)
-    .map(r => r.oakContentId as string)
-  const oakDetails = oakSlugs.length
-    ? await prisma.oakLesson.findMany({
-        where:  { slug: { in: oakSlugs } },
-        select: {
-          slug: true, title: true, pupilLessonOutcome: true,
-          keyLearningPoints: true, lessonKeywords: true, lessonOutline: true,
-          starterQuiz: true, exitQuiz: true,
-          misconceptionsAndCommonMistakes: true, teacherTips: true,
-          transcriptSentences: true,
-        },
-      })
-    : []
-  const oakBySlug = Object.fromEntries(oakDetails.map(o => [o.slug, o]))
-
-  // Reorder resources: put teacher's preferred resource first if specified
-  const orderedResources = preferredResourceId
-    ? [
-        ...lesson.resources.filter(r => r.id === preferredResourceId),
-        ...lesson.resources.filter(r => r.id !== preferredResourceId),
-      ]
-    : lesson.resources
-  const primaryResource = orderedResources[0]
-  const hasPrimaryNonOak = !!(primaryResource && !primaryResource.oakContentId && preferredResourceId)
-
-  // Build rich Oak content block from all available curriculum data
-  function buildOakContentBlock(oak: (typeof oakDetails)[number]): string {
-    const lines: string[] = []
-
-    if (oak.pupilLessonOutcome) {
-      lines.push(`  Learning outcome: ${oak.pupilLessonOutcome}`)
-    }
-
-    const klp = Array.isArray(oak.keyLearningPoints) ? oak.keyLearningPoints as any[] : []
-    if (klp.length > 0) {
-      lines.push(`  Key learning points:`)
-      klp.slice(0, 6).forEach((p: any, i: number) => {
-        const text = typeof p === 'string' ? p : p?.keyLearningPoint ?? ''
-        if (text) lines.push(`    ${i + 1}. ${text}`)
-      })
-    }
-
-    const kw = Array.isArray(oak.lessonKeywords) ? oak.lessonKeywords as any[] : []
-    if (kw.length > 0) {
-      const vocabList = kw.slice(0, 8)
-        .map((k: any) => {
-          const word = typeof k === 'string' ? k : k?.keyword ?? ''
-          const desc = typeof k === 'object' ? k?.description ?? '' : ''
-          return desc ? `${word}: ${desc}` : word
-        })
-        .filter(Boolean)
-      if (vocabList.length > 0) {
-        lines.push(`  Key vocabulary: ${vocabList.join('; ')}`)
-      }
-    }
-
-    const sq = Array.isArray(oak.starterQuiz) ? oak.starterQuiz as any[] : []
-    const eq = Array.isArray(oak.exitQuiz) ? oak.exitQuiz as any[] : []
-    const quizItems = [...sq, ...eq].slice(0, 4)
-    if (quizItems.length > 0) {
-      lines.push(`  Curriculum quiz questions (use these as models for depth and style):`)
-      quizItems.forEach((q: any, i: number) => {
-        const stem = q?.questionStem ?? q?.question ?? ''
-        if (!stem) return
-        lines.push(`    Q${i + 1}: ${stem}`)
-        const answers = Array.isArray(q?.answers) ? q.answers as any[] : []
-        const correct = answers.find((a: any) => a?.answerIsCorrect)
-        if (correct) {
-          const ans = correct?.answer ?? ''
-          if (ans) lines.push(`         → ${ans}`)
-        }
-      })
-    }
-
-    const misc = Array.isArray(oak.misconceptionsAndCommonMistakes) ? oak.misconceptionsAndCommonMistakes as any[] : []
-    if (misc.length > 0) {
-      lines.push(`  Common misconceptions to probe with questions:`)
-      misc.slice(0, 3).forEach((m: any) => {
-        const mc = typeof m === 'string' ? m : m?.misconception ?? ''
-        if (mc) lines.push(`    - ${mc}`)
-      })
-    }
-
-    const trans = Array.isArray(oak.transcriptSentences) ? oak.transcriptSentences as any[] : []
-    if (trans.length > 0) {
-      // Include transcript excerpt — shorter when structured content already present
-      const limit  = klp.length > 0 ? 4 : 8
-      const maxLen = klp.length > 0 ? 300 : 600
-      const excerpt = trans.slice(0, limit)
-        .map((t: any) => typeof t === 'string' ? t : t?.transcriptSentence ?? '')
-        .filter(Boolean)
-        .join(' ')
-        .slice(0, maxLen)
-      if (excerpt) lines.push(`  Lesson transcript excerpt: ${excerpt}`)
-    }
-
-    return lines.join('\n')
+  const type = forceType ?? 'SHORT_ANSWER'
+  const ctx = await buildHomeworkContext({ schoolId, lessonId, type, preferredResourceId })
+  if (!ctx) throw new Error('Lesson not found')
+  if (!(await underDailyLimit(schoolId, userId))) {
+    throw new Error(`Daily AI generation limit reached (${DAILY_GENERATION_LIMIT} per day). Try again tomorrow.`)
   }
-
-  // Build resource context — primary resource is clearly marked for the AI
-  const resourceContext = orderedResources.length > 0
-    ? orderedResources.map((r, idx) => {
-        const isPrimary = idx === 0 && !!preferredResourceId
-        if (r.oakContentId && oakBySlug[r.oakContentId]) {
-          const oak = oakBySlug[r.oakContentId]
-          const contentBlock = buildOakContentBlock(oak)
-          const header = isPrimary
-            ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [Oak Lesson] "${oak.title}"`
-            : `  - [Oak Lesson] "${oak.title}"`
-          return contentBlock ? `${header}\n${contentBlock}` : header
-        }
-        const urlPart = r.url ? ` (${r.url})` : ''
-        const extractedText = (r as any).extractedText as string | null | undefined
-        if (r.fileKey && !r.url && extractedText) {
-          // Uploaded file with extracted text — give the AI the actual content
-          const header = isPrimary
-            ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}" (uploaded file)`
-            : `  - [${r.type}] "${r.label}" (uploaded file)`
-          const excerpt = extractedText.slice(0, 3000)
-          return `${header}\n  Slide/page content:\n${excerpt.split('\n').map(l => `    ${l}`).join('\n')}`
-        }
-        return isPrimary
-          ? `  - [PRIMARY RESOURCE — BASE ALL QUESTIONS ON THIS] [${r.type}] "${r.label}"${urlPart}`
-          : `  - [${r.type}] "${r.label}"${urlPart}`
-      }).join('\n')
-    : '  - No lesson resources attached'
-
-  // Fetch SEND context for the lesson's class (best-effort — don't fail generation if this errors)
-  let sendContextBlock = ''
-  let promptIlpTargetIds: string[] = []
-  try {
-    if (lesson.classId) {
-      const ehcpStudentIdsForOutcomes: string[] = []
-      const [classSize, sendStatuses, ilpData] = await Promise.all([
-        prisma.enrolment.count({ where: { classId: lesson.classId } }),
-        prisma.sendStatus.findMany({
-          where: {
-            student: { enrolments: { some: { classId: lesson.classId } } },
-            NOT: { activeStatus: 'NONE' },
-          },
-          select: { studentId: true, activeStatus: true, needArea: true },
-        }),
-        prisma.individualLearningPlan.findMany({
-          where: {
-            approvedBySenco: true,
-            status: 'active',
-            student: { enrolments: { some: { classId: lesson.classId } } },
-          },
-          select: {
-            studentId:    true,
-            sendCategory: true,
-            areasOfNeed:  true,
-            strategies:   true,
-            targets: {
-              where: { status: 'active' },
-              select: { id: true, target: true, strategy: true, successMeasure: true },
-              take: 3,
-            },
-          },
-        }),
-      ])
-      if (sendStatuses.length > 0) {
-        const ilpByStudent: Record<string, {
-          sendCategory: string; areasOfNeed: string; strategies: string[];
-          targets: { id: string; target: string; strategy: string; successMeasure: string }[]
-        }> = Object.fromEntries(ilpData.map((i: any) => [i.studentId, i]))
-
-        const ehcpStudents = sendStatuses.filter(s => s.activeStatus === 'EHCP')
-        const senStudents  = sendStatuses.filter(s => s.activeStatus === 'SEN_SUPPORT')
-        const noneCount    = Math.max(0, classSize - sendStatuses.length)
-
-        // Fetch active EHCP outcomes for EHCP students in this class
-        ehcpStudentIdsForOutcomes.push(...ehcpStudents.map(s => s.studentId))
-        const ehcpOutcomes = ehcpStudentIdsForOutcomes.length > 0
-          ? await prisma.ehcpOutcome.findMany({
-              where: {
-                ehcp: { studentId: { in: ehcpStudentIdsForOutcomes }, schoolId, status: 'active' },
-                status: 'active',
-              },
-              select: { outcomeText: true, provisionRequired: true, section: true },
-              take: 4,
-              orderBy: { section: 'asc' },
-            })
-          : []
-
-        // SEN Support: collect unique needs + per-student ILP targets with strategies
-        const senNeeds = [...new Set(
-          senStudents.map(s => ilpByStudent[s.studentId]?.sendCategory || s.needArea || 'SEN Support').filter(Boolean)
-        )].slice(0, 4)
-
-        // Collect ILP targets WITH strategies for the prompt (deduplicated, max 4)
-        const senIlpTargets = senStudents
-          .flatMap(s => (ilpByStudent[s.studentId]?.targets ?? []).map(t => ({
-            id:       t.id,
-            target:   t.target,
-            strategy: t.strategy,
-          })))
-          .slice(0, 4)
-        // Track target IDs used in the prompt for auto-linking after homework creation
-        promptIlpTargetIds = senIlpTargets.map(t => t.id)
-        const senIlpLines = senIlpTargets
-          .map(t => `    • Target: "${t.target}"\n      Strategy: "${t.strategy}"`)
-
-        // ILP-level classroom strategies (from the ILP strategies[] array)
-        const senClassroomStrategies = [...new Set(
-          senStudents.flatMap(s => ilpByStudent[s.studentId]?.strategies ?? [])
-        )].slice(0, 4)
-
-        // EHCP: needs, areas of need, outcomes
-        const ehcpNeeds = [...new Set(
-          ehcpStudents.map(s => ilpByStudent[s.studentId]?.sendCategory || s.needArea || 'EHCP').filter(Boolean)
-        )].slice(0, 4)
-
-        const ehcpAreas = ehcpStudents
-          .map(s => ilpByStudent[s.studentId]?.areasOfNeed)
-          .filter(Boolean)
-          .slice(0, 2)
-
-        const ehcpOutcomeLines = ehcpOutcomes
-          .map(o => `    • [Section ${o.section}] "${o.outcomeText}"${o.provisionRequired ? ` — provision: ${o.provisionRequired}` : ''}`)
-
-        sendContextBlock = `
-CLASS SEND PROFILE — use this to generate all accessibility fields in every question
-=====================================================================================
-Standard (no SEND): ${noneCount} student${noneCount !== 1 ? 's' : ''}
-
-SEN SUPPORT — ${senStudents.length} student${senStudents.length !== 1 ? 's' : ''}:
-  Support needs: ${senNeeds.join(', ') || 'general learning support'}
-${senIlpLines.length > 0 ? '  Active ILP targets and classroom strategies:\n' + senIlpLines.join('\n') : '  No ILP targets recorded yet.'}
-${senClassroomStrategies.length > 0 ? '  ILP classroom strategies to apply: ' + senClassroomStrategies.join(' | ') : ''}
-  → scaffolding_hint for EVERY question: write a sentence starter OR step-by-step thinking scaffold that directly applies the ILP strategies above. It must reduce the cognitive load for this specific target without giving away the answer.
-
-EHCP — ${ehcpStudents.length} student${ehcpStudents.length !== 1 ? 's' : ''}:
-  Categories: ${ehcpNeeds.join(', ') || 'EHCP'}
-  Areas of need: ${ehcpAreas.join('; ') || 'not recorded'}
-${ehcpOutcomeLines.length > 0 ? '  EHCP outcomes this homework can evidence:\n' + ehcpOutcomeLines.join('\n') : ''}
-  → ehcp_adaptation for EVERY question: rewrite the question in plain English (max 2 sentences, no complex clauses), broken into numbered steps if multi-part. Reference the EHCP outcome where relevant.
-  → vocab_support for EVERY question: define exactly 5 key subject terms in simple language (format: "word: plain definition").
-
-ALL questions MUST include scaffolding_hint, ehcp_adaptation, and vocab_support fields regardless of class size.
-`
-      }
-    }
-  } catch {
-    // SEND fetch is best-effort; don't block generation
-  }
-
-  // Fetch year group plan context (best-effort — don't fail generation if this errors)
-  let ygPlanContext = ''
-  try {
-    const { getYearGroupPlanContext } = await import('./year-group-plans')
-    const ygPlan = await getYearGroupPlanContext(schoolId as string, subject, yearGroup)
-    if (ygPlan) {
-      ygPlanContext = `\nSCHEME OF WORK — use this to ensure homework aligns with the curriculum plan:\n${ygPlan.slice(0, 800)}\n`
-    }
-  } catch { /* best-effort */ }
-
-  // Layer A: Oak pedagogical quality context — inject when no Oak resources are linked
-  // Fetches richest Oak lessons for subject+yearGroup as a curriculum-level quality benchmark
-  let layerASection = ''
-  if (oakDetails.length === 0) {
-    try {
-      const subjectSlugForOak = subject.toLowerCase().trim()
-        .replace(/math.*/, 'maths')
-        .replace(/english lit.*/, 'english')
-        .replace(/.*science.*/, 'science')
-        .replace(/physical.*|^pe$/, 'physical-education')
-        .replace(/religious.*|^r[se]$/, 'religious-education')
-        .replace(/computer.*|computing/, 'computing')
-        .replace(/\s+/g, '-')
-      // Exam board filtering only applies from GCSE (Year 10) upward
-      const ctx = await getOakPedagogicalContext(subjectSlugForOak, yearGroup, 8, yearGroup >= 10 ? (examBoard || null) : null)
-      if (ctx.lessonCount > 0) {
-        const parts: string[] = [
-          `\nOAK NATIONAL ACADEMY — CURRICULUM QUALITY BENCHMARK (Year ${yearGroup} ${subject})`,
-          `Use this as a quality and depth guide — questions must reach this curriculum standard.`,
-        ]
-        if (ctx.klps.length > 0)
-          parts.push(`Key learning points at this level:\n${ctx.klps.slice(0, 6).map(k => `  • ${k}`).join('\n')}`)
-        if (ctx.vocabulary.length > 0)
-          parts.push(`Subject vocabulary at this level:\n${ctx.vocabulary.slice(0, 8).map(v => `  • ${v}`).join('\n')}`)
-        if (ctx.misconceptions.length > 0)
-          parts.push(`Common misconceptions to address:\n${ctx.misconceptions.slice(0, 4).map(m => `  • ${m}`).join('\n')}`)
-        if (ctx.outcomePatterns.length > 0)
-          parts.push(`Example learning outcomes (match this depth and specificity):\n${ctx.outcomePatterns.slice(0, 3).map(o => `  • ${o}`).join('\n')}`)
-        layerASection = parts.join('\n') + '\n'
-      }
-    } catch { /* best-effort */ }
-  }
-
-  // P1-8: Rate limit — max 10 AI homework generations per teacher per calendar day.
-  // Checked against AuditLog so it's durable across server restarts.
-  const generatingUserId = userId
-  const todayMidnight = new Date(); todayMidnight.setHours(0, 0, 0, 0)
-  const todayGenerationCount = await prisma.auditLog.count({
-    where: {
-      schoolId,
-      actorId: generatingUserId,
-      action:  'AI_HOMEWORK_GENERATED',
-      createdAt: { gte: todayMidnight },
-    },
-  })
-  if (todayGenerationCount >= 10) {
-    throw new Error('Daily AI generation limit reached (10 per day). Try again tomorrow.')
-  }
-
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return noApiKeyFallback(type, lesson.title, subject)
-
-  const typePrompt = buildTypePrompt(type, subject, qualification)
-
-  // Task instruction — respect the teacher's chosen primary resource
-  const taskInstruction = hasPrimaryNonOak
-    ? `Your homework questions MUST be based on the PRIMARY RESOURCE marked above (the teacher's own uploaded material). The slide/page content extracted from that file is provided above — use it as your primary source. Generate questions that test the SPECIFIC facts, arguments, and evidence from those slides. Each model answer MUST be drawn directly from the content shown, including specific details, dates, names, and key vocabulary. Do NOT generate generic questions.`
-    : preferredResourceId
-      ? `Your homework questions MUST be based primarily on the PRIMARY RESOURCE marked in the resource list above. Generate questions that test the specific content and learning outcome of that resource. Other resources and learning objectives are supplementary context — do not let them override the PRIMARY RESOURCE selection.`
-      : lesson.objectives.length > 0
-        ? `Your homework questions MUST directly test the learning objectives listed above. Students should be able to answer from what they learned in this lesson.`
-        : `Your homework questions MUST be based on the lesson resources listed above. Use the Oak lesson learning outcomes as your targets — generate questions that test exactly what those outcomes describe. Questions must be specific to "${lesson.title}" — do not generate generic "describe key concepts" questions.`
-
-  const prompt = `You are an expert UK secondary school ${subject} teacher creating homework for a ${qualification} class${examBoard ? ` (${examBoard})` : ''}.
-
-LESSON CONTEXT
-==============
-Title: "${lesson.title}"${topic ? `\nTopic: ${topic}` : ''}
-Year Group: Year ${yearGroup} (${qualification})${examBoard ? `\nExam Board: ${examBoard}` : ''}
-
-LEARNING OBJECTIVES — what was taught in this lesson:
-${objectivesContext}
-
-LESSON RESOURCES — source material for questions:
-${resourceContext}
-${sendContextBlock}${ygPlanContext}${layerASection}
-TASK
-====
-${taskInstruction}
-
-${typePrompt}`
+  if (!apiKey) return noApiKeyFallback(type, ctx.lessonTitle, ctx.subject)
 
   try {
-    const client  = new SafeAnthropic({ apiKey })
-    const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
-      max_tokens: 4000,
-      system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
-      messages:   [{ role: 'user', content: prompt }],
-    })
-    const raw     = (message.content[0] as any).text.trim()
-    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-
-    // Multi-strategy JSON extractor — handles control chars, missing braces, unescaped newlines
-    const extractJson = (text: string) => {
-      let t = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-      t = t.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '')
-      try { return JSON.parse(t) } catch { /* continue */ }
-      const m = t.match(/\{[\s\S]*\}/)
-      if (!m) throw new Error('no JSON object found')
-      try { return JSON.parse(m[0]) } catch { /* continue */ }
-      const escaped = m[0].replace(/"(?:[^"\\]|\\.)*"/g,
-        (s: string) => s.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t'))
-      return JSON.parse(escaped)
-    }
-
-    let parsed: any
-    try {
-      parsed = extractJson(cleaned)
-    } catch {
-      console.error('[generateHomeworkFromResources] JSON parse FAILED:', cleaned.slice(0, 300))
-      return noApiKeyFallback(type, lesson.title, subject)
-    }
-
-    // Validate questionsJson for structured types
-    const needsQuestions = type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER'
-    const minQuestions   = type === 'SHORT_ANSWER' ? 5 : 4
-    const hasQuestions   = parsed.questionsJson?.questions && Array.isArray(parsed.questionsJson.questions) && parsed.questionsJson.questions.length >= minQuestions
-    if (needsQuestions && !hasQuestions) {
-      // Retry once with a more directive prompt
-      const retryMsg = await client.messages.create({
-        model:      'claude-sonnet-4-6',
-        max_tokens: 4000,
-        system:     'You are a JSON API. Return ONLY valid JSON. No markdown. No code fences. No comments. In JSON string values, represent newlines as \\n — never use literal line breaks inside string values.',
-        messages:   [
-          { role: 'user',      content: prompt },
-          { role: 'assistant', content: cleaned },
-          { role: 'user',      content: 'The questionsJson field is missing or has too few questions. Please resend the complete JSON with questionsJson containing all required questions. Return ONLY valid JSON, no extra text.' },
-        ],
-      })
-      const retryRaw     = (retryMsg.content[0] as any).text.trim()
-      const retryCleaned = retryRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
-      try { parsed = extractJson(retryCleaned) } catch { /* use original parsed */ }
-    }
-
-    // Defensive: Claude sometimes returns questions at root level instead of inside questionsJson
-    let questionsJson = parsed.questionsJson ?? undefined
-    if (!questionsJson && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
-      questionsJson = { questions: parsed.questions }
-    }
-    // Last resort: fall back to stub questions rather than silently returning none
-    if ((type === 'MCQ_QUIZ' || type === 'SHORT_ANSWER') && (!questionsJson || !Array.isArray((questionsJson as any).questions) || (questionsJson as any).questions.length === 0)) {
-        const fallback = noApiKeyFallback(type, lesson.title, subject)
-      questionsJson = fallback.questionsJson
-    }
-
-    // P1-8: Write audit entry on successful generation so the daily counter is accurate.
-    // Fire-and-forget — don't block the return on the audit write.
-    writeAudit({
+    const llm = anthropicLlm(new SafeAnthropic({ apiKey }))
+    const { result, meta } = await generateHomework(ctx, llm, { staged: await homeworkPipelineEnabled(schoolId) })
+    if (!result) console.error('[generateHomeworkFromResources] no usable AI output — returning editable stubs', meta)
+    else writeAudit({
       schoolId,
-      actorId:    generatingUserId,
+      actorId:    userId,
       action:     'AI_HOMEWORK_GENERATED',
       targetType: 'Lesson',
       targetId:   lessonId,
-      metadata:   { homeworkType: type, lessonTitle: lesson.title },
+      metadata:   { homeworkType: type, lessonTitle: ctx.lessonTitle, generation: meta },
     }).catch(() => { /* non-blocking */ })
-
-    return {
-      type:                 type,
-      instructions:         parsed.instructions    ?? '',
-      modelAnswer:          parsed.modelAnswer     ?? '',
-      gradingBands:         parsed.gradingBands    ?? {},
-      targetWordCount:      parsed.targetWordCount ?? (type === 'EXTENDED_WRITING' ? 300 : 0),
-      questionsJson,
-      basedOnSchemeOfWork:  !!ygPlanContext,
-      ilpTargetIds:         promptIlpTargetIds.length > 0 ? promptIlpTargetIds : undefined,
-    }
+    return toProposal(ctx, result)
   } catch (err) {
     console.error('[generateHomeworkFromResources] API call failed:', err)
-    return noApiKeyFallback(type, lesson.title, subject)
+    return noApiKeyFallback(type, ctx.lessonTitle, ctx.subject)
   }
 }
 

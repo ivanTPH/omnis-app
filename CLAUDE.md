@@ -11,6 +11,15 @@
 > signing in to view logs. Demo owner sessions may be revoked only by the owner (`recordSignOut`):
 > `revokePreviousDemoSession` refuses the owner's email, because demo passwords are public.
 >
+> **28 Oct 2026: AI homework generation has one code path** (`lib/homework/`; see
+> `docs/audit/2026-10-28-homework-generation-and-mcq-checker.md`). `context.ts` builds the prompt, `schema.ts`
+> validates AI output with Zod (bad questions are dropped, never shown), `generate.ts` runs single pass or the staged
+> planner → writer → MCQ checker → repair pipeline (school flag `homework_pipeline`, off by default; keep it off for
+> real schools until the checker is recalibrated on Omnis's own teacher-scored questions). Both the streaming route
+> and `generateHomeworkFromResources` call it, so never re-add prompt text to either. The route now returns
+> `ilpTargetIds` (it silently didn't before). The MCQ checker (`lib/ai/judges/`) is calibrated against Oak's 311
+> teacher-scored questions with `scripts/calibrate-mcq-judge.mjs`; its prompt lives in one JSON file shared by app and script.
+>
 > **30 Sep 2026: overnight AI jobs are opt-in per school.** Use the `ai_agents` feature flag (Platform admin → Schools → Feature flags);
 > it is off by default. See `lib/ai/agent-schools.ts` and `docs/audit/2026-09-30-overnight-ai-cost.md`. The demo and test schools had
 > used about 99% of the API credit. `demo-advance` AI needs `DEMO_ADVANCE_AI=on`. New cron agents must use `getAiAgentSchools()`.

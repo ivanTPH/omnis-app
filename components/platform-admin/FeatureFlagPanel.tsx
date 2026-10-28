@@ -11,6 +11,7 @@ const KNOWN_FLAGS: { flag: string; label: string; description: string }[] = [
   { flag: 'parent_portal', label: 'Parent Portal',        description: 'Parent dashboard, progress view and messaging'                  },
   { flag: 'wonde_sync',    label: 'Wonde MIS Sync',       description: 'Live sync with Wonde MIS for staff, students and timetables'    },
   { flag: 'ai_agents',     label: 'Overnight AI agents',  description: 'Nightly AI review of pupils (coach, quality, plans, engagement, evidence). Uses paid API credit — switch on for live schools only' },
+  { flag: 'homework_pipeline', label: 'Staged AI homework', description: 'Homework is planned, written, then multiple-choice options are checked against teacher-calibrated quality scores and weak ones rewritten. About 30–40% more AI cost per generation' },
 ]
 
 type Props = { schoolId: string }

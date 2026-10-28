@@ -1,0 +1,102 @@
+{
+  "_about": "Prompt for the MCQ distractor-quality checker (lib/ai/judges/mcq-distractor.ts). Read by the app and by scripts/calibrate-mcq-judge.mjs, so what is calibrated is exactly what runs. Instruction and examples are from Oak National Academy's DSPy experiment (github.com/oaknational/oak-dspy-mcq-eval, MIT code, OGL v3 data; credit: Oak National Academy). Calibration figures are written here by the calibration script.",
+  "rubric": "Score how minimally different the options of a multiple-choice question are (\"MinDiff\", 1-5).\nScore 5 (minimally distinct): options are subtly different, requiring careful thought and deep understanding to distinguish correct from incorrect.\nScore 3 (moderate): a pupil can narrow it down to two or three plausible options.\nScore 1 (clearly distinct): options are obviously different, so the correct answer can be spotted without understanding the topic (for example it is the only positive option, or the distractors are off-topic).",
+  "candidates": {
+    "rubric": {
+      "instruction": "Evaluate the quality of the distractors (wrong options) in a multiple-choice question.",
+      "useExamples": false
+    },
+    "oak-optimised": {
+      "instruction": "Assess the challenge presented by the multiple-choice question by evaluating the distinctiveness of the options. Your task is to determine how nuances in language and concepts among the distractors and correct answer contribute to the difficulty of the question. Assign a score between 1 and 5 based on how much careful thought and understanding are required to distinguish the correct answer from the distractors. Provide a detailed explanation of your reasoning and justification for the score, considering the subject matter and educational context.",
+      "useExamples": true
+    }
+  },
+  "examples": [
+    {
+      "question": "If 2/6 of a number is 8, what is the whole number?",
+      "correct_answer": "24",
+      "distractors": [
+        "12",
+        "18",
+        "30"
+      ],
+      "score": 3,
+      "justification": "Each distractor reflects a different calculation slip, but a pupil with a basic grasp of fractions can rule them out without closely mimicking the correct method."
+    },
+    {
+      "question": "What is a stanza in poetry?",
+      "correct_answer": "A group of lines in a poem",
+      "distractors": [
+        "A single line in a poem",
+        "A type of poem",
+        "The rhyme scheme of a poem"
+      ],
+      "score": 2
+    },
+    {
+      "question": "Why is 'Animal Farm' considered an allegory?",
+      "correct_answer": "It represents the Russian Revolution",
+      "distractors": [
+        "It is set on a farm",
+        "It has a happy ending",
+        "It was written by George Orwell"
+      ],
+      "score": 1
+    },
+    {
+      "question": "What causes the Earth to have seasons?",
+      "correct_answer": "The Earth's tilt and its orbit around the Sun",
+      "distractors": [
+        "The Earth's distance from the Sun",
+        "The Moon's phases",
+        "The Earth's rotation"
+      ],
+      "score": 1
+    }
+  ],
+  "selected": {
+    "candidate": "rubric",
+    "model": "claude-haiku-4-5-20251001",
+    "calibration": {
+      "slope": 0.566,
+      "intercept": 2.2517
+    },
+    "flagRawAtOrBelow": 1
+  },
+  "evaluation": {
+    "heldOutTest": {
+      "raw": {
+        "n": 61,
+        "unparsed": 0,
+        "mse": 4.164,
+        "within1": 0.475,
+        "exact": 0.18,
+        "meanBias": -1.541
+      },
+      "calibrated": {
+        "n": 61,
+        "unparsed": 0,
+        "mse": 1.689,
+        "within1": 0.705,
+        "exact": 0.279,
+        "meanBias": 0.049
+      },
+      "weakFlag": {
+        "threshold": 1,
+        "precision": 0.417,
+        "recall": 0.682,
+        "f1": 0.517,
+        "flaggedShare": 0.59
+      }
+    },
+    "dataset": {
+      "total": 311,
+      "train": 66,
+      "dev": 184,
+      "test": 61,
+      "seed": 1337
+    },
+    "ranAt": "2026-10-28T23:47:25.579Z",
+    "note": "Held-out test questions played no part in choosing the prompt, model or calibration."
+  }
+}

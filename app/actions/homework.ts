@@ -493,6 +493,7 @@ import { buildHomeworkContext, underDailyLimit, DAILY_GENERATION_LIMIT } from '@
 import { generateHomework, toProposal } from '@/lib/homework/generate'
 import { homeworkPipelineEnabled } from '@/lib/homework/flags'
 import { anthropicLlm } from '@/lib/homework/llm'
+import { maxScoreFromBands, scoreForGrade } from '@/lib/homework/bands'
 
 // ── Generate from lesson content (objectives + resources) ─────────────────────
 
@@ -829,7 +830,11 @@ Return JSON:
 }
 
 export async function autoMarkSubmission(submissionId: string): Promise<{ score: number; maxScore: number; feedback: string }> {
-  const { schoolId } = await requireAuth()
+  const { schoolId, role } = await requireAuth()
+  // Same rule as markSubmission: this writes a score and can set MARKED, so a
+  // pupil or parent must not be able to call it (it previously checked only
+  // that the caller was signed in).
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) throw new Error('Only teaching staff can mark homework')
 
   const sub = await prisma.submission.findFirst({
     where: { id: submissionId, schoolId },
@@ -925,6 +930,71 @@ export async function autoMarkSubmission(submissionId: string): Promise<{ score:
   void updateLearningProfile(sub.studentId).catch(() => {})
   void markDirty(sub.studentId, sub.schoolId, [AgentType.COACH, AgentType.QUALITY]).catch(() => {})
   return { score, maxScore, feedback }
+}
+
+// ── "Generate AI Feedback" on the marking screen ─────────────────────────────
+
+const QUIZ_VARIANTS = ['quiz', 'multiple_choice', 'retrieval_practice']
+
+/**
+ * The marking screen's "Generate AI Feedback" button.
+ *
+ * Quiz-style homework is auto-marked as before (autoMarkSubmission). Written
+ * homework (short answer, extended writing, mixed) gets an AI grade suggestion
+ * against the model answer, stored as autoScore/autoFeedback so the screen's
+ * "AI Suggested Grade" panel shows it. The submission is not marked or sent:
+ * the teacher still approves or edits it and returns it.
+ *
+ * Previously the button always called autoMarkSubmission, which does nothing
+ * for written homework, so the button appeared to do nothing (29 Oct 2026).
+ * Returns a message the screen can show when no suggestion is possible.
+ */
+export type AiFeedbackResult =
+  | { ok: true; score: number; maxScore: number; feedback: string }
+  | { ok: false; message: string }
+
+export async function generateAiFeedback(submissionId: string): Promise<AiFeedbackResult> {
+  // Expected failures are returned, not thrown: Next.js hides thrown error
+  // messages from the browser in production, so a thrown reason never reaches
+  // the teacher.
+  const { schoolId, role } = await requireAuth()
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) return { ok: false, message: 'Only teaching staff can mark homework.' }
+
+  const sub = await prisma.submission.findFirst({
+    where:  { id: submissionId, schoolId },
+    select: {
+      status:   true,
+      content:  true,
+      homework: { select: { homeworkVariantType: true, modelAnswer: true, gradingBands: true } },
+    },
+  })
+  if (!sub) return { ok: false, message: 'Submission not found.' }
+  if (sub.status === 'RETURNED') return { ok: false, message: 'This homework has already been returned to the pupil.' }
+
+  if (QUIZ_VARIANTS.includes(sub.homework.homeworkVariantType ?? '')) {
+    const result = await autoMarkSubmission(submissionId)
+    if (result.maxScore === 0) return { ok: false, message: result.feedback }
+    return { ok: true, ...result }
+  }
+
+  if (!sub.homework.modelAnswer?.trim()) {
+    return { ok: false, message: 'This homework has no model answer, so AI feedback is not available. Add a model answer, or mark it yourself.' }
+  }
+  if (!sub.content?.trim()) return { ok: false, message: 'The pupil has not written an answer yet.' }
+
+  const suggestion = await suggestHomeworkGrade(submissionId)
+  if (!suggestion.grade) {
+    return { ok: false, message: 'AI feedback could not be generated just now. Please try again, or mark it yourself.' }
+  }
+
+  const maxScore = maxScoreFromBands(sub.homework.gradingBands)
+  const score    = scoreForGrade(suggestion.grade, maxScore)
+  const feedback = suggestion.feedback || suggestion.rationale
+  await prisma.submission.update({
+    where: { id: submissionId },
+    data:  { autoScore: score, autoFeedback: feedback, autoMarked: true, teacherReviewed: false },
+  })
+  return { ok: true, score, maxScore, feedback }
 }
 
 // ── Bulk return ───────────────────────────────────────────────────────────────
@@ -1104,12 +1174,12 @@ export async function markSubmission(
 
       if (prevSub) {
         const prevBands = prevSub.homework.gradingBands as Record<string, unknown> | null
-        const prevMax   = prevBands ? Math.max(...Object.keys(prevBands).map(Number)) : 100
+        const prevMax   = maxScoreFromBands(prevBands, 100)
         const prevPct   = Math.round((prevSub.finalScore! / prevMax) * 100)
         const prevGrade = percentToGcseGrade(prevPct)
 
         const currBands = homework.gradingBands as Record<string, unknown> | null
-        const currMax   = currBands ? Math.max(...Object.keys(currBands).map(Number)) : 100
+        const currMax   = maxScoreFromBands(currBands, 100)
         const currPct   = Math.round((data.teacherScore / currMax) * 100)
         const currGrade = percentToGcseGrade(currPct)
 
@@ -1235,7 +1305,8 @@ export async function bulkAutoMarkAndQueue(homeworkId: string): Promise<{
   queued: number
   alreadyMarked: number
 }> {
-  const { schoolId, id: userId } = await requireAuth()
+  const { schoolId, id: userId, role } = await requireAuth()
+  if (!['TEACHER', 'HEAD_OF_DEPT'].includes(role)) throw new Error('Only teaching staff can mark homework')
 
   const hw = await prisma.homework.findFirst({
     where: { id: homeworkId, schoolId },

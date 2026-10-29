@@ -12,6 +12,7 @@ function isGradeConflict(err: unknown): boolean {
 }
 import { percentToGcseGrade, normalizeScoreForForm, gradeLabel as gcseGradeLabel } from '@/lib/grading'
 import Icon from '@/components/ui/Icon'
+import { maxScoreFromBands } from '@/lib/homework/bands'
 import SendBadge from '@/components/ui/SendBadge'
 import { StrategyAppliesTo } from '@prisma/client'
 import StudentAvatar from '@/components/StudentAvatar'
@@ -20,15 +21,6 @@ type MarkingData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/h
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function maxFromBands(bands: unknown): number {
-  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return 9
-  const keys = Object.keys(bands as Record<string, string>)
-  if (keys.length === 0) return 9
-  return Math.max(
-    ...keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))),
-    1,
-  )
-}
 
 // ── component ─────────────────────────────────────────────────────────────────
 
@@ -44,7 +36,7 @@ export default function SubmissionMarkingView({
   const router = useRouter()
   const hw     = data.homework
 
-  const maxScore = maxFromBands(hw.gradingBands)
+  const maxScore = maxScoreFromBands(hw.gradingBands)
 
   // FIX 1 + 3: normalise finalScore — auto-mark stores a percentage, manual stores raw grade score
   // FIX 2: pre-fill feedback from autoFeedback when teacher hasn't written their own yet

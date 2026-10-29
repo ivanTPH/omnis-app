@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Icon from '@/components/ui/Icon'
 import { EmptyState } from '@/components/ui/EmptyState'
 import SendBadge from '@/components/ui/SendBadge'
-import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, bulkApproveAiMarks, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, autoMarkSubmission } from '@/app/actions/homework'
+import { markSubmission, bulkReturnSubmissions, bulkRemindMissing, bulkApproveAiMarks, resendHomeworkReminder, saveHomeworkTeacherNote, recordHomeworkAsIlpEvidence, classifyIlpEvidence, saveIlpEvidenceEntries, generateAiFeedback } from '@/app/actions/homework'
 import { GRADE_CONFLICT_PREFIX } from '@/lib/grade-conflict'
 
 /** True when markSubmission() rejected the save because someone else graded
@@ -17,6 +17,7 @@ import { addPassportRecommendation } from '@/app/actions/students'
 import { generateDifferentiatedVersions, getAdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import type { AdaptiveHomeworkSuggestions } from '@/app/actions/adaptive-learning'
 import { percentToGcseGrade, normalizeScoreForForm } from '@/lib/grading'
+import { maxScoreFromBands } from '@/lib/homework/bands'
 import { needsMarking } from '@/lib/metrics/homework'
 import StudentAvatar from '@/components/StudentAvatar'
 import { toast } from '@/components/ui/Toast'
@@ -25,15 +26,6 @@ type HWData = NonNullable<Awaited<ReturnType<typeof import('@/app/actions/homewo
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
-function maxFromBands(bands: unknown): number {
-  if (!bands || typeof bands !== 'object' || Array.isArray(bands)) return 9
-  const keys = Object.keys(bands as Record<string, string>)
-  if (keys.length === 0) return 9
-  return Math.max(
-    ...keys.flatMap(k => k.split(/[-–]/).map(Number).filter(n => !isNaN(n))),
-    1,
-  )
-}
 
 // ── status helpers ─────────────────────────────────────────────────────────────
 
@@ -218,7 +210,7 @@ type IlpClassification = {
 
 export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = null }: { hw: HWData; canGrade?: boolean; yearPlan?: string | null }) {
   const enrolled       = hw.class?.enrolments ?? []
-  const maxScore       = maxFromBands(hw.gradingBands)
+  const maxScore       = maxScoreFromBands(hw.gradingBands)
   const sendByStudent  = hw.sendByStudent
   const kPlanByStudent = (hw as any).kPlanByStudent as Record<string, { teacherActions: string[] }> | undefined ?? {}
   const ilpByStudent   = (hw as any).ilpByStudent   as Record<string, { id: string; needsSummary: string; targets: Array<{ id: string; description: string; successCriteria: string; subject: string | null }> }> | undefined ?? {}
@@ -580,7 +572,11 @@ export default function HomeworkMarkingView({ hw, canGrade = true, yearPlan = nu
     setGeneratingAi(true)
     setAiGenError(null)
     try {
-      await autoMarkSubmission(selectedSub.id)
+      // Quiz homework is auto-marked; written homework gets a grade suggestion
+      // against the model answer. Either way it appears in the AI Suggested
+      // Grade panel; if no suggestion is possible the reason is shown below.
+      const result = await generateAiFeedback(selectedSub.id)
+      if (!result.ok) { setAiGenError(result.message); return }
       router.refresh()
     } catch (err) {
       setAiGenError(err instanceof Error ? err.message : 'Failed to generate feedback')

@@ -1,6 +1,6 @@
 # Omnis App — Claude Reference
 
-> Last updated: 2026-10-23. Authoritative reference for Claude sessions.
+> Last updated: 2026-10-29. Authoritative reference for Claude sessions.
 >
 > **23 Oct 2026: how changes reach production.** Every push to `main` deploys to omnis.education automatically
 > (Coolify webhook, ~7 min) and then runs the full E2E suite against the live site (`.github/workflows/e2e.yml`).
@@ -1208,6 +1208,8 @@ tail -f /tmp/omnis-dev.log
 | `lib/oak-content.ts` | Shared Oak data helper with 500-entry 24h module-level LRU cache — `getOakLessonContent(slug)`, `getOakDataForLesson(lessonId)` (lesson→resource join), `findOakDataForTopics(topics[], subjectSlug)`, `extractMisconceptions/Keywords/Klps(lessons[])` — used by QUALITY, COACH, ENGAGE agents and ILP generation |
 | `lib/revision/analysis-engine.ts` | `analyseClassPerformance()` |
 | `lib/revision/content-generator.ts` | `generateRevisionTask()` with SEND adaptations + ILP integration |
+| `lib/homework/` | AI homework generation — `context.ts` (prompt + class SEND profile + Oak content), `schema.ts` (Zod validation), `generate.ts` (single pass or staged planner → writer → MCQ checker → repair), `llm.ts` (SafeAnthropic adapter), `flags.ts` (`homework_pipeline`) |
+| `lib/ai/judges/` | MCQ distractor-quality checker, calibrated against Oak's 311 teacher-scored MCQs (`scripts/calibrate-mcq-judge.mjs`) |
 | `lib/design-tokens.ts` | Design system constants — `colors`, `badges`, `buttons` objects. Source of truth for Tailwind class strings. Use when building new components. |
 
 ---
@@ -1399,8 +1401,13 @@ All results surface via `AgentAuditEntry` rows in `/senco/agent-insights` (confi
 - Teacher notes section: yellow sticky-note display with textarea + "Add note" button calling `saveHomeworkTeacherNote`. Notes are date-stamped and audit-logged.
 
 ### Homework
-- `generateHomeworkFromResources` logs to console: `RAW AI RESPONSE`, `PARSED KEYS`, `questionsJson?.questions length`, `USING STUB FALLBACK`. Check Vercel function logs after clicking Generate.
-- If `questionsJson` is missing from AI response, it retries once with a follow-up message, then checks `parsed.questions` at root level, then falls back to stubs.
+- **AI generation lives in `lib/homework/`** (since 2026-10-28). `buildHomeworkContext()` (context.ts) builds the one prompt; `generateHomework()` (generate.ts) runs it; `toProposal()` shapes the result. The streaming route `app/api/ai/generate-homework` (used by LessonFolder "Generate with AI") and the `generateHomeworkFromResources` server action are thin wrappers — never put prompt text back in either.
+- AI output is validated by `validateHomework()` (schema.ts, Zod): MCQs need 4 distinct options and a correct index 0–3; short-answer items need `q` + `modelAnswer` (`question`/`answer` aliases are accepted). Invalid questions are dropped and counted in `droppedQuestions`.
+- Minimum valid questions: MCQ 4 (10 asked), short answer 3 (4 asked). Below that, one retry names the exact problem; if still short, real questions are kept; only output with no usable questions falls back to `noApiKeyFallback()` stubs.
+- Only successful generations write `AI_HOMEWORK_GENERATED`, so failures don't use up the 10-per-day limit. Its `metadata.generation` records mode, attempts, dropped questions and (staged) checker scores. Failures log `[generate-homework] no usable AI output`.
+- Staged pipeline: school flag `homework_pipeline` or env `HOMEWORK_PIPELINE=on|off`. Off by default; it costs roughly 30–40% more per generation (one MCQ quiz took 14 calls instead of 1).
+- MCQ checker: `lib/ai/judges/mcq-distractor.ts`; prompt, model and calibration in `mcq-distractor.prompt.json`. Recalibrate with `node scripts/calibrate-mcq-judge.mjs <dataset.json> <out.json> --write`. Weak-question flagging uses the raw score (`flagRawAtOrBelow`), not the calibrated one.
+- Unit tests: `lib/homework/*.test.ts`, `lib/ai/mcq-distractor-judge.test.ts`. `send-smoke.spec.ts` Step 9 reads `lib/homework/context.ts` to check the SEND fields are in the prompt.
 - Homework grading: `maxScore` is derived from `gradingBands` JSON keys via `maxFromBandsServer()` — Homework model has no `maxScore` field, it uses `gradingBands: Record<string, string>`.
 - `autoMarkSubmission` returns gracefully for unsupported types (no throw).
 - Score display in marking: `autoScore` is stored as raw score (0–maxScore), not percentage.

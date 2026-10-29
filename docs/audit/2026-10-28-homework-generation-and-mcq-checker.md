@@ -73,6 +73,36 @@ on if precision improves. Use the logged `generation.distractorScores` in the au
 To recalibrate: `ANTHROPIC_API_KEY=… node scripts/calibrate-mcq-judge.mjs <dataset.json> <out.json> --write`
 (dataset format: `[{question, correct_answer, distractors[], human_score}]`).
 
+## Effect on AI usage (checked 29 Oct 2026)
+
+This change is about correctness, not cost. With the pipeline off (the default), AI use per generation is
+essentially unchanged:
+
+- Still one Sonnet call per generation, plus at most one retry, as before.
+- Prompts are slightly longer (about 1–2% more cost per generation, estimated) because the live route now includes
+  the ILP strategies, EHCP outcomes and a short Oak transcript excerpt that the unused copy already had. Output tokens,
+  which make up most of the cost, are unchanged.
+- The retry now triggers on too few *valid* questions rather than too few questions, so it can fire slightly more
+  often, but only where broken questions would otherwise have reached the teacher.
+- The wasted second call removed (short-answer minimum 5 vs 4 asked) was in the server action, which nothing calls,
+  so it saves nothing in practice.
+- Failed generations no longer count towards the 10-per-day limit, which allows slightly more use within that cap.
+- The staged pipeline adds about 30–40% per generation and is off.
+
+Homework generation is a very small share of Omnis's AI use. In the 90 days to 29 Oct 2026 there were 10 homework
+generations, against 27,732 overnight agent calls (1,018 in the last 30 days, after the `ai_agents` opt-in). Any real
+reduction in AI cost has to come from the overnight agents, not from this path.
+
+What did improve:
+
+- **Accuracy and safety:** malformed questions can no longer reach teachers.
+- **SEND:** generated homework links to pupils' ILP targets again, and the live prompt now carries the class's ILP
+  strategies and EHCP outcomes.
+- **Maintenance:** there is one code path instead of two drifting copies.
+
+Not yet shown: question quality itself has not been measured before and after. The checker matches teachers' scores
+well on average but is weak at picking out individual bad questions.
+
 ## Tests
 
 - `lib/homework/schema.test.ts` (10), `lib/homework/generate.test.ts` (12), `lib/ai/mcq-distractor-judge.test.ts` (6).

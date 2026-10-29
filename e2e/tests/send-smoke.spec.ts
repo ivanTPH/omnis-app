@@ -540,15 +540,20 @@ test('Step 8 — Class tab: inline SEND badges, ILP goals, EHCP badge, K Plan', 
 test('Step 9 — Homework AI prompt includes SEND profile', async () => {
   const fs   = await import('fs')
   const path = await import('path')
-  const code = fs.readFileSync(
-    path.join(process.cwd(), 'app/actions/homework.ts'),
-    'utf8',
-  )
+  const read = (f: string) => fs.readFileSync(path.join(process.cwd(), f), 'utf8')
+  const actions = read('app/actions/homework.ts')
+  const route   = read('app/api/ai/generate-homework/route.ts')
+  // Since 28 Oct 2026 the homework prompt is built in one place (lib/homework/context.ts).
+  const context = read('lib/homework/context.ts')
 
   // Verify SEND data is fetched and injected into the prompt
-  expect(code, 'homework.ts should fetch sendByStudent').toContain('sendByStudent')
-  expect(code, 'AI prompt should reference scaffolding_hint').toContain('scaffolding_hint')
-  expect(code, 'AI prompt should reference SEND student needs').toMatch(/SEND|send.*student|scaffolding/i)
+  expect(actions, 'homework.ts should fetch sendByStudent').toContain('sendByStudent')
+  expect(context, 'AI prompt should include the class SEND profile').toContain('CLASS SEND PROFILE')
+  for (const field of ['scaffolding_hint', 'ehcp_adaptation', 'vocab_support']) {
+    expect(context, `AI prompt should reference ${field}`).toContain(field)
+  }
+  expect(route, 'the Generate with AI route should use the shared prompt builder').toContain('buildHomeworkContext')
+  expect(actions, 'generateHomeworkFromResources should use the shared prompt builder').toContain('buildHomeworkContext')
   console.info('  SEND profile is wired into AI homework prompt ✓')
 })
 
